@@ -18891,7 +18891,7 @@ var _testExtendedTestdataBuildsApplicationTemplateCustombuildJson = []byte(`{
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "centos/mysql-57-centos7:latest",
+                "image": "image-registry.openshift-image-registry.svc:5000/openshift/mysql:5.7",
                 "ports": [
                   {
                     "containerPort": 3306,
@@ -19011,7 +19011,7 @@ items:
     runPolicy: Serial
     source:
       dockerfile: |
-        FROM busybox:latest
+        FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
     strategy:
       type: Docker
       dockerStrategy:
@@ -19409,7 +19409,7 @@ spec:
   successfulBuildsHistoryLimit: 2
   source:
     dockerfile: |
-      FROM busybox
+      FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       RUN touch /php-file
   strategy:
     dockerStrategy: {}`)
@@ -19502,7 +19502,7 @@ func testExtendedTestdataBuildsBuildQuotaS2iBinAssemble() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildQuotaDockerfile = []byte(`FROM centos:7
+var _testExtendedTestdataBuildsBuildQuotaDockerfile = []byte(`FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 USER root
 
 ADD .s2i/bin/assemble .
@@ -19528,7 +19528,7 @@ func testExtendedTestdataBuildsBuildQuotaDockerfile() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildSecretsDockerfile = []byte(`FROM docker.io/busybox
+var _testExtendedTestdataBuildsBuildSecretsDockerfile = []byte(`FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 
 USER root
 ADD ./secret-dir /secrets
@@ -19822,7 +19822,7 @@ var _testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson = []byte(`{
       "dockerStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "quay.io/quay/busybox:latest"
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         },
         "env": [
           {
@@ -19927,7 +19927,7 @@ var _testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
         },
         "env": [
           {
@@ -20140,7 +20140,7 @@ var _testExtendedTestdataBuildsBuildTimingTestDockerBuildJson = []byte(`{
         "forcePull": true,
         "from": {
           "kind": "DockerImage",
-          "name": "quay.io/quay/busybox:latest"
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         },
         "env": [
           {
@@ -20381,7 +20381,7 @@ func testExtendedTestdataBuildsCustomBuildDockerfile() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsCustomBuildDockerfileSample = []byte(`FROM docker.io/centos:7
+var _testExtendedTestdataBuildsCustomBuildDockerfileSample = []byte(`FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 RUN touch /tmp/built
 `)
 
@@ -20401,19 +20401,26 @@ func testExtendedTestdataBuildsCustomBuildDockerfileSample() (*asset, error) {
 }
 
 var _testExtendedTestdataBuildsCustomBuildBuildSh = []byte(`#!/bin/sh
+
+set -euo pipefail
+
 # Note that in this case the build inputs are part of the custom builder image, but normally this
 # would be retrieved from an external source.
 cd /tmp/input
 # OUTPUT_REGISTRY and OUTPUT_IMAGE are env variables provided by the custom
 # build framework
 TAG="${OUTPUT_REGISTRY}/${OUTPUT_IMAGE}"
-# performs the build of the new image defined by Dockerfile.sample
-buildah --storage-driver vfs bud --isolation chroot -t ${TAG} .
+
+cp -R /var/run/configs/openshift.io/certs/certs.d/* /etc/containers/certs.d/
+
 # buildah requires a slight modification to the push secret provided by the service account in order to use it for pushing the image
-cp /var/run/secrets/openshift.io/push/.dockercfg /tmp
-(echo "{ \"auths\": " ; cat /var/run/secrets/openshift.io/push/.dockercfg ; echo "}") > /tmp/.dockercfg
+echo "{ \"auths\": $(cat /var/run/secrets/openshift.io/pull/.dockercfg)}" > /tmp/.pull
+echo "{ \"auths\": $(cat /var/run/secrets/openshift.io/push/.dockercfg)}" > /tmp/.push
+
+# performs the build of the new image defined by Dockerfile.sample
+buildah --authfile /tmp/.pull --storage-driver vfs bud --isolation chroot -t ${TAG} .
 # push the new image to the target for the build
-buildah --storage-driver vfs push --tls-verify=false --authfile /tmp/.dockercfg ${TAG}
+buildah --authfile /tmp/.push --storage-driver vfs push ${TAG}
 
 `)
 
@@ -20432,7 +20439,7 @@ func testExtendedTestdataBuildsCustomBuildBuildSh() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsDockerAddDockerfile = []byte(`FROM centos:7
+var _testExtendedTestdataBuildsDockerAddDockerfile = []byte(`FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 ADD no-exist-file .
 `)
 
@@ -20451,7 +20458,7 @@ func testExtendedTestdataBuildsDockerAddDockerfile() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile = []byte(`FROM centos
+var _testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile = []byte(`FROM registry.redhat.io/rhel7
 ENV foo=foo
 ADD ./${foo} /tmp/foo
 `)
@@ -20538,7 +20545,7 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
             ],
             "from": {
               "kind": "DockerImage",
-              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
             },
             "incremental": true
           }
@@ -20586,7 +20593,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.redhat.io/rhscl/nodejs-10-rhel7:latest
+        name: image-registry.openshift-image-registry.svc:5000/openshift/nodejs:10
 `)
 
 func testExtendedTestdataBuildsPullsecretLinkedNodejsBcYamlBytes() ([]byte, error) {
@@ -20727,7 +20734,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
 `)
 
 func testExtendedTestdataBuildsStatusfailBadcontextdirs2iYamlBytes() ([]byte, error) {
@@ -20827,7 +20834,7 @@ spec:
     dockerStrategy:
       from:
         kind: DockerImage
-        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYamlBytes() ([]byte, error) {
@@ -20858,7 +20865,7 @@ spec:
     dockerStrategy:
       from:
         kind: DockerImage
-        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchsourcedockerYamlBytes() ([]byte, error) {
@@ -20889,7 +20896,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchsources2iYamlBytes() ([]byte, error) {
@@ -20920,7 +20927,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
       scripts: "http://example.org/scripts"
       env:
         - name: http_proxy
@@ -20958,7 +20965,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
       forcePull: true
 `)
 
@@ -21456,7 +21463,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
@@ -21582,7 +21589,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
     resources: {}
   status:
     lastVersion: 0
@@ -21611,7 +21618,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
     resources: {}
   status:
     lastVersion: 0
@@ -21639,7 +21646,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
     resources: {}
   status:
     lastVersion: 0
@@ -21668,7 +21675,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
     resources: {}
   status:
     lastVersion: 0
@@ -21696,7 +21703,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
     resources: {}
     nodeSelector:
       nodelabelkey: nodelabelvalue
@@ -21722,7 +21729,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: quay.io/quay/busybox:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
     resources: {}
     postCommit: {}
     nodeSelector: 
@@ -21741,16 +21748,16 @@ items:
       type: Dockerfile
       dockerfile: |-
         FROM centos/ruby-25-centos7
-        ARG foo
-        RUN echo $foo
+        ARG foofoo
+        RUN echo $foofoo
     strategy:
       type: Docker
       dockerStrategy:
         from:
           kind: DockerImage
-          name: quay.io/quay/busybox:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         buildArgs:
-        - name: foo
+        - name: foofoo
           value: default
     resources: {}
     postCommit: {}
@@ -21892,14 +21899,14 @@ var _testExtendedTestdataBuildsTestCdsDockerbuildJson = []byte(`{
     "triggers":[],
     "source":{
       "type":"Dockerfile",
-      "dockerfile":"FROM docker.io/busybox:latest\nRUN sleep 10m"
+      "dockerfile":"FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest\nRUN sleep 10m"
     },
     "strategy":{
       "type":"Docker",
       "dockerStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"docker.io/busybox:latest"
+          "name":"image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         }
       }
     }
@@ -21949,14 +21956,14 @@ var _testExtendedTestdataBuildsTestCdsSourcebuildJson = []byte(`{
         "triggers": [],
         "source":{
           "type":"Dockerfile",
-          "dockerfile":"FROM quay.io/fedora/fedora:34-x86_64 \nRUN sleep 10m"
+          "dockerfile":"FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest \nRUN sleep 10m"
         },
         "strategy": {
           "type": "Source",
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/quay/busybox:latest"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
             }
           }
         }
@@ -22038,7 +22045,7 @@ var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
             ],
             "from": {
               "kind": "DockerImage",
-              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
             }
           }
         },
@@ -22240,14 +22247,14 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
     },
     "spec": {
       "source": {
-        "dockerfile": "FROM quay.io/quay/busybox:latest"
+        "dockerfile": "FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
       },
       "strategy": {
         "type": "Docker",
         "dockerStrategy": {
           "from": {
             "kind": "DockerImage",
-            "name": "quay.io/quay/busybox:latest"
+            "name": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
           }
         }
       },
@@ -22270,7 +22277,7 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
     },
     "spec": {
       "source": {
-        "dockerfile": "FROM quay.io/quay/busybox:latest"
+        "dockerfile": "FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
       },
       "strategy": {
         "type": "Docker",
@@ -22317,14 +22324,14 @@ var _testExtendedTestdataBuildsTestDockerBuildJson = []byte(`{
       "git": {
         "uri":"https://github.com/sclorg/nodejs-ex"        
       },
-      "dockerfile": "FROM docker.io/busybox:latest"
+      "dockerfile": "FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
     },
     "strategy":{
       "type":"Docker",
       "dockerStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"quay.io/quay/busybox:latest"
+          "name":"image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         }
       }
     },
@@ -22380,7 +22387,7 @@ var _testExtendedTestdataBuildsTestDockerNoOutputnameJson = []byte(`{
     "triggers": [],
     "source": {
       "type": "Git",
-      "dockerfile": "FROM quay.io/quay/busybox:latest"
+      "dockerfile": "FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
     },
     "strategy": {
       "type": "Docker",
@@ -22393,7 +22400,7 @@ var _testExtendedTestdataBuildsTestDockerNoOutputnameJson = []byte(`{
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "quay.io/quay/busybox:latest"
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         }
       }
     }
@@ -22434,7 +22441,7 @@ var _testExtendedTestdataBuildsTestEnvBuildJson = []byte(`{
       "sourceStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+          "name":"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
         }
       }
     },
@@ -23334,7 +23341,7 @@ spec:
   runPolicy: Serial
   source:
     dockerfile:
-      'FROM busybox@sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6'
+      'FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest'
   strategy:
     type: Docker
     dockerStrategy:
