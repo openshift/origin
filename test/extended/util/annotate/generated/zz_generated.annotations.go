@@ -2273,6 +2273,22 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] services when using a plugin that isolates namespaces by default should prevent connections to pods in different namespaces on the same node via service IPs": "should prevent connections to pods in different namespaces on the same node via service IPs [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-network][Conformance][Feature:Route] Path based routing should work for \"edge+Allow\" route and \"edge+Allow\" route": "should work for \"edge+Allow\" route and \"edge+Allow\" route [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Top Level] [sig-network][Conformance][Feature:Route] Path based routing should work for \"edge+Allow\" route and \"edge+None\" route": "should work for \"edge+Allow\" route and \"edge+None\" route [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Top Level] [sig-network][Conformance][Feature:Route] Path based routing should work for \"edge+Allow\" route and \"reencrypt\" route": "should work for \"edge+Allow\" route and \"reencrypt\" route [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Top Level] [sig-network][Conformance][Feature:Route] Path based routing should work for \"http-only\" route and \"edge+Allow\" route": "should work for \"http-only\" route and \"edge+Allow\" route [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Top Level] [sig-network][Conformance][Feature:Route] Path based routing should work for \"http-only\" route and \"edge+None\" route": "should work for \"http-only\" route and \"edge+None\" route [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Top Level] [sig-network][Conformance][Feature:Route] Path based routing should work for \"http-only\" route and \"http-only\" route": "should work for \"http-only\" route and \"http-only\" route [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Top Level] [sig-network][Conformance][Feature:Route] Path based routing should work for \"http-only\" route and \"passthrough\" route": "should work for \"http-only\" route and \"passthrough\" route [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Top Level] [sig-network][Conformance][Feature:Route] Path based routing should work for \"http-only\" route and \"reencrypt\" route": "should work for \"http-only\" route and \"reencrypt\" route [Suite:openshift/conformance/parallel/minimal]",
+
 	"[Top Level] [sig-network][Feature:Router] The HAProxy router converges when multiple routers are writing conflicting status": "converges when multiple routers are writing conflicting status [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network][Feature:Router] The HAProxy router converges when multiple routers are writing status": "converges when multiple routers are writing status [Suite:openshift/conformance/parallel]",
