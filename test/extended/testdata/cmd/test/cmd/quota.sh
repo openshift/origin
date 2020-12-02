@@ -26,7 +26,7 @@ os::cmd::expect_success 'oc create clusterquota for-deads --project-label-select
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n quota-foo --as deads -o name' "for-deads"
 os::cmd::try_until_text 'oc get secrets --all-namespaces; oc get appliedclusterresourcequota/for-deads -n quota-foo --as deads -o jsonpath=used={.status.total.used.secrets}' "used=9"
 
-os::cmd::expect_failure_and_text 'oc create clusterquota for-deads-malformed --project-annotation-selector="openshift.#$%/requester=deads"' "prefix part a DNS-1123 subdomain must consist of lower case alphanumeric characters"
+os::cmd::expect_failure_and_text 'oc create clusterquota for-deads-malformed --project-annotation-selector="openshift.#$%/requester=deads"' "prefix part a (DNS-1123|lowercase RFC 1123) subdomain must consist of lower case alphanumeric characters"
 os::cmd::expect_failure_and_text 'oc create clusterquota for-deads-malformed --project-annotation-selector=openshift.io/requester=deads,openshift.io/novalue' "Malformed annotation selector"
 os::cmd::expect_success 'oc create clusterquota for-deads-by-annotation --project-annotation-selector=openshift.io/requester=deads --hard=secrets=50'
 os::cmd::expect_success 'oc create clusterquota for-deads-email-by-annotation --project-annotation-selector=openshift.io/requester=deads@deads.io --hard=secrets=50'
