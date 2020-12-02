@@ -196,10 +196,10 @@ func (plugin *fcPlugin) newBlockVolumeMapperInternal(spec *volume.Spec, podUID t
 
 func (plugin *fcPlugin) NewUnmounter(volName string, podUID types.UID) (volume.Unmounter, error) {
 	// Inject real implementations here, test through the internal function.
-	return plugin.newUnmounterInternal(volName, podUID, &FCUtil{}, plugin.host.GetMounter(plugin.GetPluginName()))
+	return plugin.newUnmounterInternal(volName, podUID, &FCUtil{}, plugin.host.GetMounter(plugin.GetPluginName()),plugin.host.GetExec(plugin.GetPluginName()))
 }
 
-func (plugin *fcPlugin) newUnmounterInternal(volName string, podUID types.UID, manager diskManager, mounter mount.Interface) (volume.Unmounter, error) {
+func (plugin *fcPlugin) newUnmounterInternal(volName string, podUID types.UID, manager diskManager, mounter mount.Interface, exec mount.Exec) (volume.Unmounter, error) {
 	return &fcDiskUnmounter{
 		fcDisk: &fcDisk{
 			podUID:  podUID,
@@ -210,14 +210,15 @@ func (plugin *fcPlugin) newUnmounterInternal(volName string, podUID types.UID, m
 		},
 		mounter:    mounter,
 		deviceUtil: util.NewDeviceHandler(util.NewIOHandler()),
+		exec:       exec,
 	}, nil
 }
 
 func (plugin *fcPlugin) NewBlockVolumeUnmapper(volName string, podUID types.UID) (volume.BlockVolumeUnmapper, error) {
-	return plugin.newUnmapperInternal(volName, podUID, &FCUtil{})
+	return plugin.newUnmapperInternal(volName, podUID, &FCUtil{}, plugin.host.GetExec(plugin.GetPluginName()))
 }
 
-func (plugin *fcPlugin) newUnmapperInternal(volName string, podUID types.UID, manager diskManager) (volume.BlockVolumeUnmapper, error) {
+func (plugin *fcPlugin) newUnmapperInternal(volName string, podUID types.UID, manager diskManager, exec mount.Exec) (volume.BlockVolumeUnmapper, error) {
 	return &fcDiskUnmapper{
 		fcDisk: &fcDisk{
 			podUID:  podUID,
@@ -226,6 +227,7 @@ func (plugin *fcPlugin) newUnmapperInternal(volName string, podUID types.UID, ma
 			plugin:  plugin,
 			io:      &osIOHandler{},
 		},
+		exec:       exec,
 		deviceUtil: util.NewDeviceHandler(util.NewIOHandler()),
 	}, nil
 }
@@ -415,6 +417,7 @@ type fcDiskUnmounter struct {
 	*fcDisk
 	mounter    mount.Interface
 	deviceUtil util.DeviceUtil
+	exec       mount.Exec
 }
 
 var _ volume.Unmounter = &fcDiskUnmounter{}
@@ -450,6 +453,7 @@ func (b *fcDiskMapper) MapDevice(devicePath, globalMapPath, volumeMapPath, volum
 type fcDiskUnmapper struct {
 	*fcDisk
 	deviceUtil util.DeviceUtil
+	exec       mount.Exec
 }
 
 var _ volume.BlockVolumeUnmapper = &fcDiskUnmapper{}

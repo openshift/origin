@@ -28,6 +28,7 @@ import (
 	"k8s.io/api/core/v1"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/kubernetes/pkg/features"
+	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
 	volumeutil "k8s.io/kubernetes/pkg/volume/util"
 	"k8s.io/kubernetes/pkg/volume/util/volumepathhandler"
@@ -261,6 +262,9 @@ func (util *FCUtil) DetachDisk(c fcDiskUnmounter, devicePath string) error {
 	// Find slave
 	if strings.HasPrefix(dstPath, "/dev/dm-") {
 		devices = c.deviceUtil.FindSlaveDevicesOnMultipath(dstPath)
+		if err := util.deleteMultipathDevice(c.exec, dstPath); err != nil {
+			return err
+		}
 	} else {
 		// Add single devicepath to devices
 		devices = append(devices, dstPath)
@@ -372,6 +376,9 @@ func (util *FCUtil) DetachBlockFCDisk(c fcDiskUnmapper, mapPath, devicePath stri
 	if len(dm) != 0 {
 		// Find all devices which are managed by multipath
 		devices = c.deviceUtil.FindSlaveDevicesOnMultipath(dm)
+		if err := util.deleteMultipathDevice(c.exec, dm); err != nil {
+			return err
+		}
 	} else {
 		// Add single device path to devices
 		devices = append(devices, dstPath)
@@ -406,4 +413,13 @@ func checkPathExists(path string) (bool, error) {
 		return pathExists, nil
 	}
 	return true, nil
+}
+
+func (util *FCUtil) deleteMultipathDevice(exec mount.Exec, dmDevice string) error {
+	out, err := exec.Run("multipath", "-f", dmDevice)
+	if err != nil {
+		return fmt.Errorf("failed to flush multipath device %s: %s\n%s", dmDevice, err, string(out))
+	}
+	glog.V(4).Infof("Flushed multipath device: %s", dmDevice)
+	return nil
 }

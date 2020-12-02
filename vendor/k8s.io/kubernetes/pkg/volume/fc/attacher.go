@@ -125,6 +125,7 @@ func (attacher *fcAttacher) MountDevice(spec *volume.Spec, devicePath string, de
 type fcDetacher struct {
 	mounter mount.Interface
 	manager diskManager
+	host    volume.VolumeHost
 }
 
 var _ volume.Detacher = &fcDetacher{}
@@ -133,6 +134,7 @@ func (plugin *fcPlugin) NewDetacher() (volume.Detacher, error) {
 	return &fcDetacher{
 		mounter: plugin.host.GetMounter(plugin.GetPluginName()),
 		manager: &FCUtil{},
+		host:    plugin.host,
 	}, nil
 }
 
@@ -152,7 +154,7 @@ func (detacher *fcDetacher) UnmountDevice(deviceMountPath string) error {
 	if err != nil {
 		return fmt.Errorf("fc: failed to unmount: %s\nError: %v", deviceMountPath, err)
 	}
-	unMounter := volumeSpecToUnmounter(detacher.mounter)
+	unMounter := volumeSpecToUnmounter(detacher.mounter, detacher.host)
 	err = detacher.manager.DetachDisk(*unMounter, devName)
 	if err != nil {
 		return fmt.Errorf("fc: failed to detach disk: %s\nError: %v", devName, err)
@@ -211,12 +213,13 @@ func volumeSpecToMounter(spec *volume.Spec, host volume.VolumeHost) (*fcDiskMoun
 	}, nil
 }
 
-func volumeSpecToUnmounter(mounter mount.Interface) *fcDiskUnmounter {
+func volumeSpecToUnmounter(mounter mount.Interface, host volume.VolumeHost) *fcDiskUnmounter {
 	return &fcDiskUnmounter{
 		fcDisk: &fcDisk{
 			io: &osIOHandler{},
 		},
 		mounter:    mounter,
 		deviceUtil: volumeutil.NewDeviceHandler(volumeutil.NewIOHandler()),
+		exec:       host.GetExec(fcPluginName),
 	}
 }
