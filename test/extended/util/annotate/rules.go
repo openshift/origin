@@ -35,11 +35,6 @@ var (
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},
-		// tests broken upstream
-		"[Disabled:BrokenUpstream]": {
-			`\[sig-apps\] ReplicationController should serve a basic image on each replica with a private image`,
-			`\[sig-apps\] ReplicaSet should serve a basic image on each replica with a private image`,
-		},
 		// tests too slow to be part of conformance
 		"[Slow]": {},
 		// tests that are known flaky
