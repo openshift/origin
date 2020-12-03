@@ -56,7 +56,8 @@ var _ = g.Describe("[sig-auth][Feature:LDAP][Serial] ldap group sync", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Copy groupsync test data
-		err = pod.CopyFromHost(path.Join("test", "extended", "authentication", "ldap"), remoteTmp)
+		groupSyncTestDir := testdata.MustAsset("test/extended/testdata/ldap/groupsync")
+		err = pod.CopyFromHost(groupSyncTestDir, remoteTmp)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Copy hack lib needed by groupsync.sh
