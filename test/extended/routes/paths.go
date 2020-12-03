@@ -337,7 +337,6 @@ var _ = g.Describe("[sig-network][Conformance][Feature:Route] Path based routing
 				InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyAllow,
 			},
 		},
-		/* FIXME: enable when the router gets fixed
 		{
 			specificRoute: nil,
 			globalRoute: &routev1.TLSConfig{
@@ -345,7 +344,6 @@ var _ = g.Describe("[sig-network][Conformance][Feature:Route] Path based routing
 				InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
 			},
 		},
-		*/
 		{
 			specificRoute: nil,
 			globalRoute: &routev1.TLSConfig{
@@ -378,7 +376,6 @@ var _ = g.Describe("[sig-network][Conformance][Feature:Route] Path based routing
 				InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyAllow,
 			},
 		},
-		/* FIXME: enable when the router gets fixed
 		{
 			specificRoute: &routev1.TLSConfig{
 				Termination:                   routev1.TLSTerminationEdge,
@@ -389,7 +386,6 @@ var _ = g.Describe("[sig-network][Conformance][Feature:Route] Path based routing
 				InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
 			},
 		},
-		*/
 		{
 			specificRoute: &routev1.TLSConfig{
 				Termination:                   routev1.TLSTerminationEdge,
@@ -399,7 +395,6 @@ var _ = g.Describe("[sig-network][Conformance][Feature:Route] Path based routing
 				Termination: routev1.TLSTerminationReencrypt,
 			},
 		},
-		/* FIXME: enable when the router gets fixed
 		{
 			specificRoute: &routev1.TLSConfig{
 				Termination:                   routev1.TLSTerminationEdge,
@@ -409,7 +404,6 @@ var _ = g.Describe("[sig-network][Conformance][Feature:Route] Path based routing
 				Termination: routev1.TLSTerminationPassthrough,
 			},
 		},
-		*/
 	}
 	for _, tc := range tt {
 		tc := tc
