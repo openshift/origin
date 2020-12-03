@@ -112,6 +112,16 @@ func findDiskWWIDs(wwid string, io ioHandler, deviceUtil volumeutil.DeviceUtil) 
 	return "", ""
 }
 
+// Flushes any outstanding I/O to the device
+func flushDevice(deviceName string, exec mount.Exec) {
+	out, err := exec.Run("blockdev", "--flushbufs", deviceName)
+	if err != nil {
+		// Ignore the error and continue deleting the device. There is will be no retry on error.
+		glog.Warningf("Failed to flush device %s: %s\n%s", deviceName, err, string(out))
+	}
+	glog.V(4).Infof("Flushed device %s", deviceName)
+}
+
 // Removes a scsi device based upon /dev/sdX name
 func removeFromScsiSubsystem(deviceName string, io ioHandler) {
 	fileName := "/sys/block/" + deviceName + "/device/delete"
@@ -272,7 +282,7 @@ func (util *FCUtil) DetachDisk(c fcDiskUnmounter, devicePath string) error {
 	glog.V(4).Infof("fc: DetachDisk devicePath: %v, dstPath: %v, devices: %v", devicePath, dstPath, devices)
 	var lastErr error
 	for _, device := range devices {
-		err := util.detachFCDisk(c.io, device)
+		err := util.detachFCDisk(c.io, c.exec, device)
 		if err != nil {
 			glog.Errorf("fc: detachFCDisk failed. device: %v err: %v", device, err)
 			lastErr = fmt.Errorf("fc: detachFCDisk failed. device: %v err: %v", device, err)
@@ -286,11 +296,12 @@ func (util *FCUtil) DetachDisk(c fcDiskUnmounter, devicePath string) error {
 }
 
 // detachFCDisk removes scsi device file such as /dev/sdX from the node.
-func (util *FCUtil) detachFCDisk(io ioHandler, devicePath string) error {
+func (util *FCUtil) detachFCDisk(io ioHandler, exec mount.Exec, devicePath string) error {
 	// Remove scsi device from the node.
 	if !strings.HasPrefix(devicePath, "/dev/") {
 		return fmt.Errorf("fc detach disk: invalid device name: %s", devicePath)
 	}
+	flushDevice(devicePath, exec)
 	arr := strings.Split(devicePath, "/")
 	dev := arr[len(arr)-1]
 	removeFromScsiSubsystem(dev, io)
@@ -369,7 +380,7 @@ func (util *FCUtil) DetachBlockFCDisk(c fcDiskUnmapper, mapPath, devicePath stri
 		if err.Error() != volumepathhandler.ErrDeviceNotFound {
 			return fmt.Errorf("fc: failed to get loopback for destination path: %v, err: %v", dstPath, err)
 		}
-		glog.Warning("fc: loopback for destination path: %s not found", dstPath)
+		glog.Warningf("fc: loopback for destination path: %s not found", dstPath)
 	}
 
 	// Detach volume from kubelet node
@@ -385,7 +396,7 @@ func (util *FCUtil) DetachBlockFCDisk(c fcDiskUnmapper, mapPath, devicePath stri
 	}
 	var lastErr error
 	for _, device := range devices {
-		err = util.detachFCDisk(c.io, device)
+		err = util.detachFCDisk(c.io, c.exec, device)
 		if err != nil {
 			glog.Errorf("fc: detachFCDisk failed. device: %v err: %v", device, err)
 			lastErr = fmt.Errorf("fc: detachFCDisk failed. device: %v err: %v", device, err)
