@@ -41,23 +41,23 @@ const (
 
 // CreateLDAPTestServer deploys an LDAP server on the service network and then confirms StartTLS connectivity with an
 // ldapsearch against it. It returns the ldapserver host and the ldap CA, or an error.
-func CreateLDAPTestServer(oc *CLI) (string, []byte, error) {
+func CreateLDAPTestServer(oc *CLI) (svcNs, svcName, svcHostname string, caPem []byte, err error) {
 	deploy, ldapService, ldif, scripts := ReadLDAPServerTestData()
 	certDir, err := ioutil.TempDir("", "testca")
 	if err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 	defer os.RemoveAll(certDir)
 	ctx := context.Background()
 	createOpts := metav1.CreateOptions{}
 	if _, err := oc.AdminKubeClient().CoreV1().ConfigMaps(oc.Namespace()).Create(ctx, ldif, createOpts); err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 	if _, err := oc.AdminKubeClient().CoreV1().ConfigMaps(oc.Namespace()).Create(ctx, scripts, createOpts); err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 	if _, err := oc.AdminKubeClient().CoreV1().Services(oc.Namespace()).Create(ctx, ldapService, createOpts); err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 
 	// Create SA.
@@ -66,31 +66,33 @@ func CreateLDAPTestServer(oc *CLI) (string, []byte, error) {
 			Name: saName,
 		},
 	}, createOpts); err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 
 	// Create CA.
 	ca, err := crypto.MakeSelfSignedCA(path.Join(certDir, caCertFilename), path.Join(certDir, caKeyFilename),
 		path.Join(certDir, "serial"), caName, 100)
 	if err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 
 	// Ensure that the server cert is valid for localhost and the service network hostname.
-	serviceHost := ldapService.Name + "." + oc.Namespace() + ".svc"
-	serverCertConfig, err := ca.MakeServerCert(sets.NewString("localhost", "127.0.0.1", serviceHost), 100)
+	svcNs = oc.Namespace()
+	svcName = ldapService.Name
+	svcHostname = svcName + "." + svcNs + ".svc"
+	serverCertConfig, err := ca.MakeServerCert(sets.NewString("localhost", "127.0.0.1", svcHostname), 100)
 	if err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 
-	caPEM, _, err := ca.Config.GetPEMBytes()
+	caPem, _, err = ca.Config.GetPEMBytes()
 	if err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 
 	serverCertPEM, serverCertKeyPEM, err := serverCertConfig.GetPEMBytes()
 	if err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 
 	_, err = oc.AdminKubeClient().CoreV1().Secrets(oc.Namespace()).Create(context.Background(), &corev1.Secret{
@@ -100,12 +102,12 @@ func CreateLDAPTestServer(oc *CLI) (string, []byte, error) {
 		Data: map[string][]byte{
 			corev1.TLSCertKey:       []byte(serverCertPEM),
 			corev1.TLSPrivateKeyKey: serverCertKeyPEM,
-			caCertFilename:          caPEM,
+			caCertFilename:          caPem,
 		},
 		Type: corev1.SecretTypeTLS,
 	}, metav1.CreateOptions{})
 	if err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 
 	// Allow the openldap container to run as root and privileged. This lets us use the existing openldap server
@@ -114,28 +116,28 @@ func CreateLDAPTestServer(oc *CLI) (string, []byte, error) {
 	err = oc.AsAdmin().Run("create").Args("role", "scc-anyuid", "--verb=use", "--resource=scc",
 		"--resource-name=anyuid").Execute()
 	if err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 	err = oc.AsAdmin().Run("adm").Args("policy", "add-role-to-user", "scc-anyuid", "-z", "ldap",
 		"--role-namespace", oc.Namespace()).Execute()
 	if err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 
 	err = oc.AsAdmin().Run("create").Args("role", "scc-priv", "--verb=use", "--resource=scc",
 		"--resource-name=privileged").Execute()
 	if err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 	err = oc.AsAdmin().Run("adm").Args("policy", "add-role-to-user", "scc-priv", "-z", "ldap",
 		"--role-namespace", oc.Namespace()).Execute()
 	if err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 
 	serverDeployment, err := oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()).Create(context.Background(), deploy, metav1.CreateOptions{})
 	if err != nil {
-		return "", nil, err
+		return "", "", "", nil, err
 	}
 
 	// Wait for an available replica.
@@ -151,16 +153,16 @@ func CreateLDAPTestServer(oc *CLI) (string, []byte, error) {
 		return true, nil
 	})
 	if err != nil {
-		return "", nil, fmt.Errorf("replica for %s not avaiable: %v", serverDeployment.Name, err)
+		return "", "", "", nil, fmt.Errorf("replica for %s not avaiable: %v", serverDeployment.Name, err)
 	}
 
 	// Confirm ldap server availability. Since the ldap client does not support SNI, a TLS passthrough route will not
 	// work, so we need to talk to the server over the service network.
-	if err := checkLDAPConn(oc, serviceHost); err != nil {
-		return "", nil, err
+	if err := checkLDAPConn(oc, svcHostname); err != nil {
+		return "", "", "", nil, err
 	}
 
-	return serviceHost, caPEM, nil
+	return
 }
 
 // Confirm that the ldapserver host is responding to ldapsearch.

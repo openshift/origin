@@ -14,7 +14,7 @@ var _ = g.Describe("[sig-auth][Feature:LDAP] LDAP", func() {
 	)
 
 	g.It("should start an OpenLDAP test server", func() {
-		_, _, err := exutil.CreateLDAPTestServer(oc)
+		_, _, _, _, err := exutil.CreateLDAPTestServer(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })

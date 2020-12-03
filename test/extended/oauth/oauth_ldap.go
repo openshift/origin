@@ -50,7 +50,7 @@ var _ = g.Describe("[sig-auth][Feature:LDAP] LDAP IDP", func() {
 		defer userv1client.NewForConfigOrDie(oc.AdminConfig()).Users().Delete(context.Background(), userName, metav1.DeleteOptions{})
 
 		g.By("setting up an OpenLDAP server")
-		ldapService, ldapCA, err := exutil.CreateLDAPTestServer(oc)
+		_, _, ldapService, ldapCA, err := exutil.CreateLDAPTestServer(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("deploying an oauth server")
