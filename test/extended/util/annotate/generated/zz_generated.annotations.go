@@ -691,7 +691,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-apps] ReplicaSet should adopt matching pods on creation and release no longer matching pods [Conformance]": "should adopt matching pods on creation and release no longer matching pods [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] ReplicaSet should serve a basic image on each replica with a private image": "should serve a basic image on each replica with a private image [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] ReplicaSet should serve a basic image on each replica with a private image": "should serve a basic image on each replica with a private image [Disabled:BrokenUpstream] [Suite:k8s]",
 
 	"[Top Level] [sig-apps] ReplicaSet should serve a basic image on each replica with a public image  [Conformance]": "should serve a basic image on each replica with a public image  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -703,7 +703,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-apps] ReplicationController should release no longer matching pods [Conformance]": "should release no longer matching pods [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] ReplicationController should serve a basic image on each replica with a private image": "should serve a basic image on each replica with a private image [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] ReplicationController should serve a basic image on each replica with a private image": "should serve a basic image on each replica with a private image [Disabled:BrokenUpstream] [Suite:k8s]",
 
 	"[Top Level] [sig-apps] ReplicationController should serve a basic image on each replica with a public image  [Conformance]": "should serve a basic image on each replica with a public image  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
