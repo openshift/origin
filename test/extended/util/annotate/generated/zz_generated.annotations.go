@@ -2277,11 +2277,17 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network][Conformance][Feature:Route] Path based routing should work for \"edge+Allow\" route and \"edge+None\" route": "should work for \"edge+Allow\" route and \"edge+None\" route [Suite:openshift/conformance/parallel/minimal]",
 
+	"[Top Level] [sig-network][Conformance][Feature:Route] Path based routing should work for \"edge+Allow\" route and \"edge+Redirect\" route": "should work for \"edge+Allow\" route and \"edge+Redirect\" route [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Top Level] [sig-network][Conformance][Feature:Route] Path based routing should work for \"edge+Allow\" route and \"passthrough\" route": "should work for \"edge+Allow\" route and \"passthrough\" route [Suite:openshift/conformance/parallel/minimal]",
+
 	"[Top Level] [sig-network][Conformance][Feature:Route] Path based routing should work for \"edge+Allow\" route and \"reencrypt\" route": "should work for \"edge+Allow\" route and \"reencrypt\" route [Suite:openshift/conformance/parallel/minimal]",
 
 	"[Top Level] [sig-network][Conformance][Feature:Route] Path based routing should work for \"http-only\" route and \"edge+Allow\" route": "should work for \"http-only\" route and \"edge+Allow\" route [Suite:openshift/conformance/parallel/minimal]",
 
 	"[Top Level] [sig-network][Conformance][Feature:Route] Path based routing should work for \"http-only\" route and \"edge+None\" route": "should work for \"http-only\" route and \"edge+None\" route [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Top Level] [sig-network][Conformance][Feature:Route] Path based routing should work for \"http-only\" route and \"edge+Redirect\" route": "should work for \"http-only\" route and \"edge+Redirect\" route [Suite:openshift/conformance/parallel/minimal]",
 
 	"[Top Level] [sig-network][Conformance][Feature:Route] Path based routing should work for \"http-only\" route and \"http-only\" route": "should work for \"http-only\" route and \"http-only\" route [Suite:openshift/conformance/parallel/minimal]",
 
