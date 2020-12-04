@@ -889,7 +889,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-auth][Feature:LDAP] LDAP should start an OpenLDAP test server": "should start an OpenLDAP test server [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:LDAP][Serial] ldap group sync can sync groups from ldap": "can sync groups from ldap [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-auth][Feature:LDAP][Serial] ldap group sync can sync groups from ldap": "can sync groups from ldap [Disabled:Broken]",
 
 	"[Top Level] [sig-auth][Feature:OAuthServer] ClientSecretWithPlus should create oauthclient": "should create oauthclient [Suite:openshift/conformance/parallel]",
 
