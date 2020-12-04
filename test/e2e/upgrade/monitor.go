@@ -20,6 +20,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/test/extended/util/disruption"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 type versionMonitor struct {
@@ -336,7 +337,7 @@ func triggerReboot(kubeClient kubernetes.Interface, target string, attempt int, 
 						RunAsUser:  &zero,
 						Privileged: &isTrue,
 					},
-					Image: "ubi8/ubi",
+					Image: image.ShellImage(),
 					Command: []string{
 						"/bin/bash",
 						"-c",

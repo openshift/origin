@@ -93,7 +93,7 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/triggers/deploymentconfigs"
 ## Deployment configs
 
-os::cmd::expect_success 'oc create deploymentconfig testdc --image=busybox'
+os::cmd::expect_success 'oc create deploymentconfig testdc --image=image-registry.openshift-image-registry.svc:5000/openshift/tools:latest'
 
 # error conditions
 os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-github' 'deployment configs do not support GitHub web hooks'
@@ -121,7 +121,7 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/triggers/annotations"
 ## Deployment
 
-os::cmd::expect_success 'oc create deployment test --image=busybox'
+os::cmd::expect_success 'oc create deployment test --image=image-registry.openshift-image-registry.svc:5000/openshift/tools:latest'
 
 # error conditions
 os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-github' 'does not support GitHub web hooks'
@@ -129,7 +129,7 @@ os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-webhook' 'd
 os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-gitlab' 'does not support GitLab web hooks'
 os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-bitbucket' 'does not support Bitbucket web hooks'
 os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-image=test:latest' 'you must specify --containers when setting --from-image'
-os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-image=test:latest --containers=other' 'not all container names exist: other \(accepts: busybox\)'
+os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-image=test:latest --containers=other' 'not all container names exist: other \(accepts: tools\)'
 # print
 os::cmd::expect_success_and_text 'oc set triggers deploy/test' 'config.*true'
 os::cmd::expect_success_and_not_text 'oc set triggers deploy/test' 'webhook|github|gitlab|bitbucket'
@@ -142,8 +142,8 @@ os::cmd::expect_success_and_text 'oc set triggers deploy/test' 'config.*false'
 # auto
 os::cmd::expect_success_and_text 'oc set triggers deploy/test --auto' 'updated'
 os::cmd::expect_success_and_text 'oc set triggers deploy/test' 'config.*true'
-os::cmd::expect_success_and_text 'oc set triggers deploy/test --from-image=ruby-hello-world:latest -c busybox' 'updated'
-os::cmd::expect_success_and_text 'oc set triggers deploy/test' 'image.*ruby-hello-world:latest \(busybox\).*true'
+os::cmd::expect_success_and_text 'oc set triggers deploy/test --from-image=ruby-hello-world:latest -c tools' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers deploy/test' 'image.*ruby-hello-world:latest \(tools\).*true'
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_end

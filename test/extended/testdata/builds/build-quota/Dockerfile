@@ -1,4 +1,4 @@
-FROM centos:7
+FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 USER root
 
 ADD .s2i/bin/assemble .

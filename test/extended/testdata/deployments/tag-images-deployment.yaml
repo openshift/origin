@@ -23,9 +23,11 @@ spec:
       labels:
         name: tag-images
     spec:
+      terminationGracePeriodSeconds: 1
       containers:
-      - image: openshift/origin-pod
+      - image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         imagePullPolicy: IfNotPresent
+        command: ["/bin/sh", "-c", "sleep 300"]
         name: sample-name
         ports:
         - containerPort: 8080

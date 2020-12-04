@@ -18863,7 +18863,7 @@ var _testExtendedTestdataBuildsApplicationTemplateCustombuildJson = []byte(`{
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "centos/mysql-57-centos7:latest",
+                "image": "image-registry.openshift-image-registry.svc:5000/openshift/mysql:5.7",
                 "ports": [
                   {
                     "containerPort": 3306,
@@ -18983,7 +18983,7 @@ items:
     runPolicy: Serial
     source:
       dockerfile: |
-        FROM busybox:latest
+        FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
     strategy:
       type: Docker
       dockerStrategy:
@@ -19474,7 +19474,7 @@ func testExtendedTestdataBuildsBuildQuotaS2iBinAssemble() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildQuotaDockerfile = []byte(`FROM centos:7
+var _testExtendedTestdataBuildsBuildQuotaDockerfile = []byte(`FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 USER root
 
 ADD .s2i/bin/assemble .
@@ -19500,7 +19500,7 @@ func testExtendedTestdataBuildsBuildQuotaDockerfile() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildSecretsDockerfile = []byte(`FROM docker.io/busybox
+var _testExtendedTestdataBuildsBuildSecretsDockerfile = []byte(`FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 
 USER root
 ADD ./secret-dir /secrets
@@ -19794,7 +19794,7 @@ var _testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson = []byte(`{
       "dockerStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "quay.io/quay/busybox:latest"
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         },
         "env": [
           {
@@ -19899,7 +19899,7 @@ var _testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
         },
         "env": [
           {
@@ -20112,7 +20112,7 @@ var _testExtendedTestdataBuildsBuildTimingTestDockerBuildJson = []byte(`{
         "forcePull": true,
         "from": {
           "kind": "DockerImage",
-          "name": "quay.io/quay/busybox:latest"
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         },
         "env": [
           {
@@ -20353,7 +20353,7 @@ func testExtendedTestdataBuildsCustomBuildDockerfile() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsCustomBuildDockerfileSample = []byte(`FROM docker.io/centos:7
+var _testExtendedTestdataBuildsCustomBuildDockerfileSample = []byte(`FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 RUN touch /tmp/built
 `)
 
@@ -20373,19 +20373,26 @@ func testExtendedTestdataBuildsCustomBuildDockerfileSample() (*asset, error) {
 }
 
 var _testExtendedTestdataBuildsCustomBuildBuildSh = []byte(`#!/bin/sh
+
+set -euo pipefail
+
 # Note that in this case the build inputs are part of the custom builder image, but normally this
 # would be retrieved from an external source.
 cd /tmp/input
 # OUTPUT_REGISTRY and OUTPUT_IMAGE are env variables provided by the custom
 # build framework
 TAG="${OUTPUT_REGISTRY}/${OUTPUT_IMAGE}"
-# performs the build of the new image defined by Dockerfile.sample
-buildah --storage-driver vfs bud --isolation chroot -t ${TAG} .
+
+cp -R /var/run/configs/openshift.io/certs/certs.d/* /etc/containers/certs.d/
+
 # buildah requires a slight modification to the push secret provided by the service account in order to use it for pushing the image
-cp /var/run/secrets/openshift.io/push/.dockercfg /tmp
-(echo "{ \"auths\": " ; cat /var/run/secrets/openshift.io/push/.dockercfg ; echo "}") > /tmp/.dockercfg
+echo "{ \"auths\": $(cat /var/run/secrets/openshift.io/pull/.dockercfg)}" > /tmp/.pull
+echo "{ \"auths\": $(cat /var/run/secrets/openshift.io/push/.dockercfg)}" > /tmp/.push
+
+# performs the build of the new image defined by Dockerfile.sample
+buildah --authfile /tmp/.pull --storage-driver vfs bud --isolation chroot -t ${TAG} .
 # push the new image to the target for the build
-buildah --storage-driver vfs push --tls-verify=false --authfile /tmp/.dockercfg ${TAG}
+buildah --authfile /tmp/.push --storage-driver vfs push ${TAG}
 
 `)
 
@@ -20404,7 +20411,7 @@ func testExtendedTestdataBuildsCustomBuildBuildSh() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsDockerAddDockerfile = []byte(`FROM centos:7
+var _testExtendedTestdataBuildsDockerAddDockerfile = []byte(`FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 ADD no-exist-file .
 `)
 
@@ -20510,7 +20517,7 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
             ],
             "from": {
               "kind": "DockerImage",
-              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
             },
             "incremental": true
           }
@@ -20558,7 +20565,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.redhat.io/rhscl/nodejs-10-rhel7:latest
+        name: image-registry.openshift-image-registry.svc:5000/openshift/nodejs:10
 `)
 
 func testExtendedTestdataBuildsPullsecretLinkedNodejsBcYamlBytes() ([]byte, error) {
@@ -20699,7 +20706,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
 `)
 
 func testExtendedTestdataBuildsStatusfailBadcontextdirs2iYamlBytes() ([]byte, error) {
@@ -20799,7 +20806,7 @@ spec:
     dockerStrategy:
       from:
         kind: DockerImage
-        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYamlBytes() ([]byte, error) {
@@ -20830,7 +20837,7 @@ spec:
     dockerStrategy:
       from:
         kind: DockerImage
-        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchsourcedockerYamlBytes() ([]byte, error) {
@@ -20861,7 +20868,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchsources2iYamlBytes() ([]byte, error) {
@@ -20892,7 +20899,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
       scripts: "http://example.org/scripts"
       env:
         - name: http_proxy
@@ -20930,7 +20937,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
       forcePull: true
 `)
 
@@ -21428,7 +21435,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
@@ -21554,7 +21561,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
     resources: {}
   status:
     lastVersion: 0
@@ -21583,7 +21590,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
     resources: {}
   status:
     lastVersion: 0
@@ -21611,7 +21618,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
     resources: {}
   status:
     lastVersion: 0
@@ -21640,7 +21647,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
     resources: {}
   status:
     lastVersion: 0
@@ -21668,7 +21675,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: registry.redhat.io/rhscl/ruby-25-rhel7:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
     resources: {}
     nodeSelector:
       nodelabelkey: nodelabelvalue
@@ -21694,7 +21701,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: quay.io/quay/busybox:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
     resources: {}
     postCommit: {}
     nodeSelector: 
@@ -21720,7 +21727,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: quay.io/quay/busybox:latest
+          name: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         buildArgs:
         - name: foofoo
           value: default
@@ -21864,14 +21871,14 @@ var _testExtendedTestdataBuildsTestCdsDockerbuildJson = []byte(`{
     "triggers":[],
     "source":{
       "type":"Dockerfile",
-      "dockerfile":"FROM docker.io/busybox:latest\nRUN sleep 10m"
+      "dockerfile":"FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest\nRUN sleep 10m"
     },
     "strategy":{
       "type":"Docker",
       "dockerStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"docker.io/busybox:latest"
+          "name":"image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         }
       }
     }
@@ -21921,14 +21928,14 @@ var _testExtendedTestdataBuildsTestCdsSourcebuildJson = []byte(`{
         "triggers": [],
         "source":{
           "type":"Dockerfile",
-          "dockerfile":"FROM quay.io/fedora/fedora:34-x86_64 \nRUN sleep 10m"
+          "dockerfile":"FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest\nRUN sleep 10m"
         },
         "strategy": {
           "type": "Source",
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/quay/busybox:latest"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
             }
           }
         }
@@ -22010,7 +22017,7 @@ var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
             ],
             "from": {
               "kind": "DockerImage",
-              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
             }
           }
         },
@@ -22212,14 +22219,14 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
     },
     "spec": {
       "source": {
-        "dockerfile": "FROM quay.io/quay/busybox:latest"
+        "dockerfile": "FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
       },
       "strategy": {
         "type": "Docker",
         "dockerStrategy": {
           "from": {
             "kind": "DockerImage",
-            "name": "quay.io/quay/busybox:latest"
+            "name": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
           }
         }
       },
@@ -22242,7 +22249,7 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
     },
     "spec": {
       "source": {
-        "dockerfile": "FROM quay.io/quay/busybox:latest"
+        "dockerfile": "FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
       },
       "strategy": {
         "type": "Docker",
@@ -22289,14 +22296,14 @@ var _testExtendedTestdataBuildsTestDockerBuildJson = []byte(`{
       "git": {
         "uri":"https://github.com/sclorg/nodejs-ex"        
       },
-      "dockerfile": "FROM docker.io/busybox:latest"
+      "dockerfile": "FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
     },
     "strategy":{
       "type":"Docker",
       "dockerStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"quay.io/quay/busybox:latest"
+          "name":"image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         }
       }
     },
@@ -22352,7 +22359,7 @@ var _testExtendedTestdataBuildsTestDockerNoOutputnameJson = []byte(`{
     "triggers": [],
     "source": {
       "type": "Git",
-      "dockerfile": "FROM quay.io/quay/busybox:latest"
+      "dockerfile": "FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
     },
     "strategy": {
       "type": "Docker",
@@ -22365,7 +22372,7 @@ var _testExtendedTestdataBuildsTestDockerNoOutputnameJson = []byte(`{
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "quay.io/quay/busybox:latest"
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         }
       }
     }
@@ -22406,7 +22413,7 @@ var _testExtendedTestdataBuildsTestEnvBuildJson = []byte(`{
       "sourceStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+          "name":"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
         }
       }
     },
@@ -24930,7 +24937,7 @@ metadata:
 spec:
   containers:
   - name: hello-centos
-    image: docker.io/centos:centos7
+    image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
     command:
       - /bin/sleep
       - infinity
@@ -24942,7 +24949,7 @@ spec:
     capabilities: {}
     securityContext: {}
   - name: hello-centos-2
-    image: docker.io/centos:centos7
+    image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
     command:
       - /bin/sleep
       - infinity
@@ -30736,9 +30743,9 @@ export KUBECONFIG="${temp_config}"
 #os::cmd::expect_success 'oc new-project test-project-admin'
 #os::cmd::try_until_success "oc project test-project-admin"
 
-os::cmd::expect_success 'oc create deploymentconfig --image=openshift/hello-openshift test'
-os::cmd::expect_success 'oc run --image=openshift/hello-openshift --restart=Never test3'
-os::cmd::expect_success 'oc create job --image=openshift/hello-openshift test4'
+os::cmd::expect_success 'oc create deploymentconfig --image=image-registry.openshift-image-registry.svc:5000/openshift/tools:latest test'
+os::cmd::expect_success 'oc run --image=image-registry.openshift-image-registry.svc:5000/openshift/tools:latest --restart=Never test3'
+os::cmd::expect_success 'oc create job --image=image-registry.openshift-image-registry.svc:5000/openshift/tools:latest test4'
 os::cmd::expect_success 'oc delete dc/test pod/test3 job/test4'
 
 os::cmd::expect_success_and_text 'oc create deploymentconfig --dry-run foo --image=bar -o name'               'deploymentconfig.apps.openshift.io/foo'
@@ -31177,9 +31184,9 @@ os::cmd::expect_success 'oc describe deploymentConfigs test-deployment-config'
 os::cmd::expect_success_and_text 'oc get dc -o name' 'deploymentconfig.apps.openshift.io/test-deployment-config'
 os::cmd::try_until_success 'oc get rc/test-deployment-config-1'
 os::cmd::expect_success_and_text 'oc describe dc test-deployment-config' 'deploymentconfig=test-deployment-config'
-os::cmd::expect_success_and_text 'oc status' 'dc/test-deployment-config deploys docker.io/openshift/origin-pod:latest'
+os::cmd::expect_success_and_text 'oc status' 'dc/test-deployment-config deploys image-registry.openshift-image-registry.svc:5000/openshift/tools:latest'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json'
-os::cmd::try_until_text 'oc status' 'pod/hello-openshift runs openshift/hello-openshift'
+os::cmd::try_until_text 'oc status' 'pod/hello-openshift runs'
 
 os::test::junit::declare_suite_start "cmd/deployments/env"
 # Patch a nil list
@@ -31279,7 +31286,7 @@ os::cmd::try_until_success 'oc rollout history dc/database --revision=2'
 # rolling back to the same revision should fail
 os::cmd::expect_failure 'oc rollback dc/database --to-version=2'
 # undo --dry-run should report the original image
-os::cmd::expect_success_and_text 'oc rollout undo dc/database --dry-run' 'mysql-57-centos7'
+os::cmd::expect_success_and_text 'oc rollout undo dc/database --dry-run' 'image-registry.openshift-image-registry.svc:5000/openshift/mysql:5.7'
 echo "rollback: ok"
 os::test::junit::declare_suite_end
 
@@ -34577,8 +34584,8 @@ os::cmd::try_until_not_text "oc get projects" "project-bar-2"
 os::cmd::expect_success "oc new-project project-status --display-name='my project' --description='test project'"
 
 # Verify jobs are showing in status
-os::cmd::expect_success "oc create job pi --image=perl -- perl -Mbignum=bpi -wle 'print bpi(2000)'"
-os::cmd::expect_success_and_text "oc status" "job/pi manages perl"
+os::cmd::expect_success "oc create job pi --image=image-registry.openshift-image-registry.svc:5000/openshift/tools:latest -- perl -Mbignum=bpi -wle 'print bpi(2000)'"
+os::cmd::expect_success_and_text "oc status" "job/pi manages image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
 
 # logout
 #os::cmd::expect_success "oc logout"
@@ -35229,7 +35236,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson = 
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "centos/mysql-57-centos7:latest",
+                "image": "image-registry.openshift-image-registry.svc:5000/openshift/mysql:5.7",
                 "ports": [
                   {
                     "containerPort": 3306,
@@ -35691,7 +35698,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "centos/mysql-57-centos7:latest",
+                "image": "image-registry.openshift-image-registry.svc:5000/openshift/mysql:5.7",
                 "ports": [
                   {
                     "containerPort": 3306,
@@ -36198,7 +36205,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson = []b
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "centos/mysql-57-centos7:latest",
+                "image": "image-registry.openshift-image-registry.svc:5000/openshift/mysql:5.7",
                 "ports": [
                   {
                     "containerPort": 3306,
@@ -36447,7 +36454,8 @@ var _testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson = []byte(`
     "containers": [
       {
         "name": "hello-openshift",
-        "image": "openshift/hello-openshift",
+        "image": "k8s.gcr.io/e2e-test-images/agnhost:2.20",
+        "args": ["netexec"],
         "ports": [
           {
             "containerPort": 8080,
@@ -36516,7 +36524,7 @@ spec:
         deploymentconfig: idling-echo
     spec:
       containers:
-      - image: openshift/origin-base
+      - image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         name: idling-tcp-echo
         command:
           - /usr/bin/socat
@@ -36525,7 +36533,7 @@ spec:
         ports:
         - containerPort: 8675
           protocol: TCP
-      - image: openshift/origin-base
+      - image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         name: idling-udp-echo
         command:
           - /usr/bin/socat
@@ -38584,7 +38592,7 @@ items:
           run: v1-job
       spec:
         containers:
-        - image: openshift/hello-openshift
+        - image: k8s.gcr.io/e2e-test-images/agnhost:2.20
           name: hello-container
         restartPolicy: Never
 
@@ -41017,7 +41025,8 @@ spec:
               namespaces: []
       containers:
       - name: kubernetes-pause
-        image: gcr.io/google-containers/pause:2.0
+        image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+        command: ["/bin/sleep", "84600"]
 `)
 
 func testExtendedTestdataCmdTestCmdTestdataRollingupdateDaemonsetYamlBytes() ([]byte, error) {
@@ -41224,7 +41233,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: openshift/hello-openshift
+                image: k8s.gcr.io/e2e-test-images/agnhost:2.20
       - kind: Route
         apiVersion: v1
         metadata:
@@ -42015,7 +42024,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTemplatesTemplateTypePrecisionJson = 
               "containers": [
                 {
                   "name": "test",
-                  "image": "busybox",
+                  "image": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest",
                   "imagePullPolicy": "IfNotPresent"
                 }
               ],
@@ -42288,7 +42297,7 @@ spec:
         name: test-deployment
     spec:
       containers:
-      - image: openshift/origin-pod
+      - image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         imagePullPolicy: IfNotPresent
         name: ruby-helloworld
         ports:
@@ -42338,14 +42347,14 @@ var _testExtendedTestdataCmdTestCmdTestdataTestDockerBuildJson = []byte(`{
       "git": {
         "uri":"https://github.com/sclorg/nodejs-ex"        
       },
-      "dockerfile": "FROM docker.io/busybox:latest"
+      "dockerfile": "FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
     },
     "strategy":{
       "type":"Docker",
       "dockerStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"docker.io/busybox:latest"
+          "name":"image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         }
       }
     },
@@ -42511,7 +42520,7 @@ spec:
         deploymentconfig: test-deployment
     spec:
       containers:
-      - image: openshift/origin-pod
+      - image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         imagePullPolicy: IfNotPresent
         name: ruby-helloworld
         ports:
@@ -42821,7 +42830,7 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/triggers/deploymentconfigs"
 ## Deployment configs
 
-os::cmd::expect_success 'oc create deploymentconfig testdc --image=busybox'
+os::cmd::expect_success 'oc create deploymentconfig testdc --image=image-registry.openshift-image-registry.svc:5000/openshift/tools:latest'
 
 # error conditions
 os::cmd::expect_failure_and_text 'oc set triggers dc/testdc --from-github' 'deployment configs do not support GitHub web hooks'
@@ -42849,7 +42858,7 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/triggers/annotations"
 ## Deployment
 
-os::cmd::expect_success 'oc create deployment test --image=busybox'
+os::cmd::expect_success 'oc create deployment test --image=image-registry.openshift-image-registry.svc:5000/openshift/tools:latest'
 
 # error conditions
 os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-github' 'does not support GitHub web hooks'
@@ -42857,7 +42866,7 @@ os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-webhook' 'd
 os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-gitlab' 'does not support GitLab web hooks'
 os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-bitbucket' 'does not support Bitbucket web hooks'
 os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-image=test:latest' 'you must specify --containers when setting --from-image'
-os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-image=test:latest --containers=other' 'not all container names exist: other \(accepts: busybox\)'
+os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-image=test:latest --containers=other' 'not all container names exist: other \(accepts: tools\)'
 # print
 os::cmd::expect_success_and_text 'oc set triggers deploy/test' 'config.*true'
 os::cmd::expect_success_and_not_text 'oc set triggers deploy/test' 'webhook|github|gitlab|bitbucket'
@@ -42870,8 +42879,8 @@ os::cmd::expect_success_and_text 'oc set triggers deploy/test' 'config.*false'
 # auto
 os::cmd::expect_success_and_text 'oc set triggers deploy/test --auto' 'updated'
 os::cmd::expect_success_and_text 'oc set triggers deploy/test' 'config.*true'
-os::cmd::expect_success_and_text 'oc set triggers deploy/test --from-image=ruby-hello-world:latest -c busybox' 'updated'
-os::cmd::expect_success_and_text 'oc set triggers deploy/test' 'image.*ruby-hello-world:latest \(busybox\).*true'
+os::cmd::expect_success_and_text 'oc set triggers deploy/test --from-image=ruby-hello-world:latest -c tools' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers deploy/test' 'image.*ruby-hello-world:latest \(tools\).*true'
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_end
@@ -43062,7 +43071,7 @@ items:
         <containers>
           <org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
             <name>jnlp</name>
-            <image>openshift/jenkins-slave-maven-centos7</image>
+            <image>image-registry.openshift-image-registry.svc:5000/openshift/jenkins-agent-maven:latest</image>
             <privileged>false</privileged>
             <alwaysPullImage>false</alwaysPullImage>
             <workingDir>/tmp</workingDir>
@@ -43227,7 +43236,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 0
       containers:
-      - image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
@@ -43334,7 +43343,7 @@ spec:
         name: history-limit
     spec:
       containers:
-      - image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
@@ -43377,7 +43386,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 0
       containers:
-      - image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
@@ -43409,13 +43418,13 @@ spec:
   - name: pullthrough
     from:
       kind: DockerImage
-      name: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+      name: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
     referencePolicy:
       type: Local
   - name: direct
     from:
       kind: DockerImage
-      name: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+      name: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
     referencePolicy:
      type: Source
 `)
@@ -43513,7 +43522,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 0
       containers:
-      - image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
@@ -43553,7 +43562,7 @@ spec:
         name: deployment-simple
     spec:
       containers:
-      - image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         imagePullPolicy: IfNotPresent
         command:
           - /bin/sleep
@@ -43657,7 +43666,7 @@ spec:
         name: deployment-simple
     spec:
       containers:
-      - image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         command: [ "/bin/bash", "-c", "sleep infinity" ]
         imagePullPolicy: IfNotPresent
         name: myapp
@@ -43703,7 +43712,7 @@ spec:
         name: hook
     spec:
       containers:
-      - image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         command:
           - /bin/sleep
           - infinity
@@ -43751,7 +43760,7 @@ spec:
         name: generation-test
     spec:
       containers:
-      - image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
@@ -43849,7 +43858,7 @@ spec:
         name: paused
     spec:
       containers:
-      - image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
@@ -43891,7 +43900,7 @@ spec:
       - command:
         - /bin/sleep
         - "infinity"
-        image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+        image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         imagePullPolicy: IfNotPresent
         name: never-ready
         readinessProbe:
@@ -43941,9 +43950,11 @@ spec:
       labels:
         name: tag-images
     spec:
+      terminationGracePeriodSeconds: 1
       containers:
-      - image: openshift/origin-pod
+      - image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         imagePullPolicy: IfNotPresent
+        command: ["/bin/sh", "-c", "sleep 300"]
         name: sample-name
         ports:
         - containerPort: 8080
@@ -43992,7 +44003,7 @@ spec:
         name: brokendeployment
     spec:
       containers:
-      - image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
@@ -44045,7 +44056,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 0
       containers:
-      - image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
@@ -46080,7 +46091,7 @@ var _testExtendedTestdataImageTestImageJson = []byte(`{
     "name": "test",
     "creationTimestamp": null
   },
-  "dockerImageReference": "registry.redhat.io/rhscl/ruby-25-rhel7:latest",
+  "dockerImageReference": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5",
   "dockerImageMetadata": {
     "kind": "DockerImage",
     "apiVersion": "1.0",
@@ -46532,8 +46543,9 @@ metadata:
 spec:
   tags:
   - from:
-      kind: DockerImage
-      name: docker.io/openshift/jenkins-slave-maven-centos7:latest
+      kind: ImageStreamTag
+      name: jenkins-agent-maven:latest
+      namespace: openshift
     name: base
   - from:
       kind: ImageStreamTag
@@ -46563,8 +46575,9 @@ metadata:
 spec:
   tags:
   - from:
-      kind: DockerImage
-      name: quay.io/openshift/origin-jenkins-agent-maven:latest
+      kind: ImageStreamTag
+      name: jenkins-agent-maven:latest
+      namespace: openshift
     name: base
   - annotations:
       role: jenkins-slave
@@ -47436,7 +47449,7 @@ var _testExtendedTestdataJenkinsPluginMultitagTemplateJson = []byte(`{
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
             }
           }
         ]
@@ -47454,7 +47467,7 @@ var _testExtendedTestdataJenkinsPluginMultitagTemplateJson = []byte(`{
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
             }
           }
         ]
@@ -47472,7 +47485,7 @@ var _testExtendedTestdataJenkinsPluginMultitagTemplateJson = []byte(`{
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
             }
           }
         ]
@@ -47900,7 +47913,7 @@ spec:
     spec:
       containers:
       - name: simplev1
-        image: docker.io/busybox
+        image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         command: ["/bin/sh", "-c", "exit 0"]
       restartPolicy: Never
 `)
@@ -48796,7 +48809,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
                     "sourceStrategy": {
                         "from": {
                             "kind": "DockerImage",
-                            "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+                            "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
                         }
                     }
                 }
@@ -48825,7 +48838,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
                     "sourceStrategy": {
                         "from": {
                             "kind": "DockerImage",
-                            "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+                            "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
                         }
                     }
                 }
@@ -49958,7 +49971,8 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: openshift/hello-openshift
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      args: ["netexec"]
       ports:
       - containerPort: 8080
         name: http
@@ -49975,7 +49989,8 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: openshift/hello-openshift
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      args: ["netexec"]
       ports:
       - containerPort: 8080
         name: http
@@ -50009,7 +50024,7 @@ items:
       app: serving-cert
   spec:
     containers:
-    - image: nginx:1.15.3
+    - image: docker.io/library/nginx:1.15-alpine
       name: serve
       command:
         - /usr/sbin/nginx
@@ -50207,8 +50222,8 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: openshift/hello-openshift
-      # image: openshift/deployment-example:v1
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      args: ["netexec"]
       ports:
       - containerPort: 8080
         name: http
@@ -50369,7 +50384,8 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: openshift/hello-openshift
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      args: ["netexec"]
       ports:
       - containerPort: 8080
         name: http
@@ -50383,7 +50399,7 @@ objects:
       app: secure-endpoint
   spec:
     containers:
-    - image: nginx:1.15.3
+    - image: docker.io/library/nginx:1.15-alpine
       name: serve
       command:
         - /usr/sbin/nginx
@@ -51224,7 +51240,7 @@ items:
           deploymentconfig: router-http-echo
       spec:
         containers:
-        - image: openshift/origin-node
+        - image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
           name: router-http-echo
           command:
             - /usr/bin/socat
@@ -51586,7 +51602,8 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: openshift/hello-openshift
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      args: ["netexec"]
       ports:
       - containerPort: 8080
         name: http
@@ -51603,7 +51620,8 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: openshift/hello-openshift
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      args: ["netexec"]
       ports:
       - containerPort: 8080
         name: http
@@ -51942,7 +51960,8 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: openshift/hello-openshift
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      args: ["netexec"]
       ports:
       - containerPort: 8080
         name: http
@@ -51959,7 +51978,8 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: openshift/hello-openshift
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      args: ["netexec"]
       ports:
       - containerPort: 8080
         name: http
@@ -51976,7 +51996,8 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: openshift/hello-openshift
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      args: ["netexec"]
       ports:
       - containerPort: 8080
         name: http
@@ -52033,7 +52054,7 @@ var _testExtendedTestdataRun_policyParallelBcYaml = []byte(`---
           sourceStrategy: 
             from: 
               kind: "DockerImage"
-              name: "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
         resources: {}
       status: 
         lastVersion: 0
@@ -52080,7 +52101,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
           sourceStrategy: 
             from: 
               kind: "DockerImage"
-              name: "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
     - 
       kind: "BuildConfig"
       apiVersion: "v1"
@@ -52101,7 +52122,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
           sourceStrategy: 
             from: 
               kind: "DockerImage"
-              name: "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
 `)
 
 func testExtendedTestdataRun_policySerialBcYamlBytes() ([]byte, error) {
@@ -52144,7 +52165,7 @@ var _testExtendedTestdataRun_policySerialLatestOnlyBcYaml = []byte(`---
           sourceStrategy: 
             from: 
               kind: "DockerImage"
-              name: "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
         resources: {}
       status: 
         lastVersion: 0
@@ -53372,7 +53393,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: openshift/hello-openshift
+                image: k8s.gcr.io/e2e-test-images/agnhost:2.20
 `)
 
 func testExtendedTestdataTemplatesTemplateinstance_badobjectYamlBytes() ([]byte, error) {
@@ -53432,7 +53453,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: openshift/hello-openshift
+                image: k8s.gcr.io/e2e-test-images/agnhost:2.20
       - kind: Route
         apiVersion: v1
         metadata:
@@ -53711,7 +53732,7 @@ items:
       type: Docker
     source:
       type: Git
-      dockerfile: "FROM busybox:latest\n"
+      dockerfile: "FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest\n"
     output:
       to:
         kind: ImageStreamTag
@@ -53790,7 +53811,7 @@ items:
       spec:
         containers:
         - name: busybox
-          image: busybox
+          image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 
 - kind: DeploymentConfig
   apiVersion: v1
@@ -53807,7 +53828,7 @@ items:
       spec:
         containers:
         - name: busybox
-          image: busybox
+          image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
           command:
           - foo
           - bar
@@ -53856,7 +53877,7 @@ spec:
         name: test-deployment
     spec:
       containers:
-      - image: openshift/origin-pod
+      - image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         imagePullPolicy: IfNotPresent
         name: ruby-helloworld
         ports:
@@ -53904,7 +53925,7 @@ var _testExtendedTestdataTestEnvPodJson = []byte(`{
     "containers":[
       {
         "name":"test",
-        "image":"centos:centos7",
+        "image":"image-registry.openshift-image-registry.svc:5000/openshift/tools:latest",
         "env": [
           {
             "name":"podname",
@@ -54174,7 +54195,7 @@ spec:
         deploymentconfig: test-deployment
     spec:
       containers:
-      - image: openshift/origin-pod
+      - image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         imagePullPolicy: IfNotPresent
         name: ruby-helloworld
         ports:
@@ -54603,7 +54624,7 @@ var _testIntegrationTestdataTestBuildcliJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
             },
             "incremental": true
           }
@@ -54645,7 +54666,7 @@ var _testIntegrationTestdataTestBuildcliJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
             },
             "incremental": true
           }

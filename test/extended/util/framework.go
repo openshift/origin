@@ -55,6 +55,7 @@ import (
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/origin/test/extended/testdata"
 	"github.com/openshift/origin/test/extended/util/ibmcloud"
+	utilimage "github.com/openshift/origin/test/extended/util/image"
 )
 
 // WaitForInternalRegistryHostname waits for the internal registry hostname to be made available to the cluster.
@@ -1404,18 +1405,7 @@ func FixturePath(elem ...string) string {
 
 	if testsStarted {
 		// extract the contents to disk
-		if err := testdata.RestoreAssets(fixtureDir, relativePath); err != nil {
-			panic(err)
-		}
-		if err := filepath.Walk(fullPath, func(path string, info os.FileInfo, err error) error {
-			if err := os.Chmod(path, 0640); err != nil {
-				return err
-			}
-			if stat, err := os.Lstat(path); err == nil && stat.IsDir() {
-				return os.Chmod(path, 0755)
-			}
-			return nil
-		}); err != nil {
+		if err := restoreFixtureAssets(fixtureDir, relativePath); err != nil {
 			panic(err)
 		}
 
@@ -1429,21 +1419,71 @@ func FixturePath(elem ...string) string {
 	return absPath
 }
 
+// restoreFixtureAsset restores an asset under the given directory and post-processes
+// any changes required by the test. It hardcodes file modes to 0640 and ensures image
+// values are replaced.
+func restoreFixtureAsset(dir, name string) error {
+	data, err := testdata.Asset(name)
+	if err != nil {
+		return err
+	}
+	data, err = utilimage.ReplaceContents(data)
+	if err != nil {
+		return err
+	}
+	info, err := testdata.AssetInfo(name)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(assetFilePath(dir, filepath.Dir(name)), os.FileMode(0755))
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(assetFilePath(dir, name), data, 0640)
+	if err != nil {
+		return err
+	}
+	err = os.Chtimes(assetFilePath(dir, name), info.ModTime(), info.ModTime())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// restoreFixtureAssets restores an asset under the given directory recursively, changing
+// any necessary content. This duplicates a method in testdata but with the additional
+// requirements for setting disk permissions and for altering image content.
+func restoreFixtureAssets(dir, name string) error {
+	children, err := testdata.AssetDir(name)
+	// File
+	if err != nil {
+		return restoreFixtureAsset(dir, name)
+	}
+	// Dir
+	for _, child := range children {
+		err = restoreFixtureAssets(dir, filepath.Join(name, child))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func assetFilePath(dir, name string) string {
+	cannonicalName := strings.Replace(name, "\\", "/", -1)
+	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
+}
+
 // FetchURL grabs the output from the specified url and returns it.
 // It will retry once per second for duration retryTimeout if an error occurs during the request.
 func FetchURL(oc *CLI, url string, retryTimeout time.Duration) (string, error) {
-
 	ns := oc.KubeFramework().Namespace.Name
-	execPodName := CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, string(uuid.NewUUID()))
+	execPod := CreateExecPodOrFail(oc.AdminKubeClient(), ns, string(uuid.NewUUID()))
 	defer func() {
-		oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
+		oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 	}()
 
-	execPod, err := oc.AdminKubeClient().CoreV1().Pods(ns).Get(context.Background(), execPodName, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-
+	var err error
 	var response string
 	waitFn := func() (bool, error) {
 		e2e.Logf("Waiting up to %v to wget %s", retryTimeout, url)
@@ -1546,26 +1586,6 @@ func GetEndpointAddress(oc *CLI, name string) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%s:%d", endpoint.Subsets[0].Addresses[0].IP, endpoint.Subsets[0].Ports[0].Port), nil
-}
-
-// CreateExecPodOrFail creates a simple busybox pod in a sleep loop used as a
-// vessel for kubectl exec commands.
-// Returns the name of the created pod.
-// TODO: expose upstream
-func CreateExecPodOrFail(client corev1client.CoreV1Interface, ns, name string) string {
-	e2e.Logf("Creating new exec pod")
-	execPod := e2epod.NewExecPodSpec(ns, name, false)
-	created, err := client.Pods(ns).Create(context.Background(), execPod, metav1.CreateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	err = wait.PollImmediate(e2e.Poll, 5*time.Minute, func() (bool, error) {
-		retrievedPod, err := client.Pods(execPod.Namespace).Get(context.Background(), created.Name, metav1.GetOptions{})
-		if err != nil {
-			return false, nil
-		}
-		return retrievedPod.Status.Phase == corev1.PodRunning, nil
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	return created.Name
 }
 
 // CheckForBuildEvent will poll a build for up to 1 minute looking for an event with
@@ -1851,37 +1871,6 @@ func GetRouterPodTemplate(oc *CLI) (*corev1.PodTemplateSpec, string, error) {
 		}
 	}
 	return nil, "", kapierrs.NewNotFound(schema.GroupResource{Group: "apps.openshift.io", Resource: "deploymentconfigs"}, "router")
-}
-
-// FindImageFormatString returns a format string for components on the cluster. It returns false
-// if no format string could be inferred from the cluster. OpenShift 4.0 clusters will not be able
-// to infer an image format string, so you must wrap this method in one that can locate your specific
-// image.
-func FindImageFormatString(oc *CLI) (string, bool) {
-	// legacy support for 3.x clusters
-	template, _, err := GetRouterPodTemplate(oc)
-	if err == nil {
-		if strings.Contains(template.Spec.Containers[0].Image, "haproxy-router") {
-			return strings.Replace(template.Spec.Containers[0].Image, "haproxy-router", "${component}", -1), true
-		}
-	}
-	// in openshift 4.0, no image format can be calculated on cluster
-	return "openshift/origin-${component}:latest", false
-}
-
-func FindCLIImage(oc *CLI) (string, bool) {
-	// look up image stream
-	is, err := oc.AdminImageClient().ImageV1().ImageStreams("openshift").Get(context.Background(), "cli", metav1.GetOptions{})
-	if err == nil {
-		for _, tag := range is.Spec.Tags {
-			if tag.Name == "latest" && tag.From != nil && tag.From.Kind == "DockerImage" {
-				return tag.From.Name, true
-			}
-		}
-	}
-
-	format, ok := FindImageFormatString(oc)
-	return strings.Replace(format, "${component}", "cli", -1), ok
 }
 
 func FindRouterImage(oc *CLI) (string, error) {

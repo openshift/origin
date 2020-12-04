@@ -7,7 +7,7 @@ metadata:
 spec:
   containers:
   - name: hello-centos
-    image: docker.io/centos:centos7
+    image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
     command:
       - /bin/sleep
       - infinity
@@ -19,7 +19,7 @@ spec:
     capabilities: {}
     securityContext: {}
   - name: hello-centos-2
-    image: docker.io/centos:centos7
+    image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
     command:
       - /bin/sleep
       - infinity

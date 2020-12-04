@@ -19,7 +19,7 @@
         "forcePull": true,
         "from": {
           "kind": "DockerImage",
-          "name": "quay.io/quay/busybox:latest"
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         },
         "env": [
           {

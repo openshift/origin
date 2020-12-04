@@ -11,6 +11,7 @@ import (
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	"github.com/openshift/origin/test/extended/authorization"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -266,7 +267,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 
 	g.It("TestPodDefaultCapabilities", func() {
 		g.By("Running a restricted pod and getting it's inherited capabilities")
-		pod, err := exutil.NewPodExecutor(oc, "restrictedcapsh", "fedora:29")
+		pod, err := exutil.NewPodExecutor(oc, "restrictedcapsh", image.ShellImage())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		desiredCapabilities := "000000000000051b"
@@ -298,6 +299,9 @@ func getPrivilegedPod(name string) *corev1.Pod {
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
 		Spec: corev1.PodSpec{
+			NodeSelector: map[string]string{
+				"e2e.openshift.io/unschedulable": "should-not-run",
+			},
 			Containers: []corev1.Container{
 				{Name: "first", Image: "something-innocuous"},
 			},
