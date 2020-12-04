@@ -19,6 +19,7 @@ import (
 
 	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 type explainExceptions struct {
@@ -49,7 +50,7 @@ var (
 		{Group: "template.openshift.io", Version: "v1", Resource: "templateinstances"},
 	}
 
-	crdTypes = []schema.GroupVersionResource{
+	baseCRDTypes = []schema.GroupVersionResource{
 
 		// coreos.com groups:
 
@@ -118,12 +119,6 @@ var (
 		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machines"},
 		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinesets"},
 
-		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "containerruntimeconfigs"},
-		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "controllerconfigs"},
-		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "kubeletconfigs"},
-		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigpools"},
-		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigs"},
-
 		{Group: "operator.openshift.io", Version: "v1alpha1", Resource: "imagecontentsourcepolicies"},
 
 		{Group: "operator.openshift.io", Version: "v1", Resource: "authentications"},
@@ -152,6 +147,13 @@ var (
 
 		{Group: "tuned.openshift.io", Version: "v1", Resource: "profiles"},
 		{Group: "tuned.openshift.io", Version: "v1", Resource: "tuneds"},
+	}
+	mcoTypes = []schema.GroupVersionResource{
+		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "containerruntimeconfigs"},
+		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "controllerconfigs"},
+		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "kubeletconfigs"},
+		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigpools"},
+		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigs"},
 	}
 
 	specialTypes = []explainExceptions{
@@ -381,6 +383,8 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 
 	oc := exutil.NewCLI("oc-explain")
 
+	crdTypes := append(baseCRDTypes, mcoTypes...)
+
 	g.It("list uncovered GroupVersionResources", func() {
 		resourceMap := make(map[schema.GroupVersionResource]bool)
 		kubeClient := kclientset.NewForConfigOrDie(oc.AdminConfig())
@@ -437,7 +441,11 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 
 	g.It("should contain proper spec+status for CRDs", func() {
 		crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
-		for _, ct := range crdTypes {
+		crdTypesTest := crdTypes
+		if e2e.TestContext.Provider == ibmcloud.ProviderName {
+			crdTypesTest = baseCRDTypes
+		}
+		for _, ct := range crdTypesTest {
 			e2e.Logf("Checking %s...", ct)
 			o.Expect(verifyCRDSpecStatusExplain(oc, crdClient, ct)).NotTo(o.HaveOccurred())
 		}
