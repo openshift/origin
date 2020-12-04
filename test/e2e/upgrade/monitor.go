@@ -156,13 +156,17 @@ func (m *versionMonitor) Describe(f *framework.Framework) {
 				disruption.RecordJUnitResult(f, fmt.Sprintf("Operator upgrade %s", item.Name), 0, "")
 			}
 
+			newVersion := ""
+			if m.lastCV != nil {
+				newVersion = m.lastCV.Status.Desired.Version
+			}
 			fmt.Fprintf(tw,
 				"%s\t%s %s %s\t%s\t%s\n",
 				item.Name,
 				findConditionShortStatus(available, configv1.ConditionTrue),
 				findConditionShortStatus(degraded, configv1.ConditionFalse),
 				findConditionShortStatus(progressing, configv1.ConditionFalse),
-				findVersion(item.Status.Versions, "operator", m.oldVersion, m.lastCV.Status.Desired.Version),
+				findVersion(item.Status.Versions, "operator", m.oldVersion, newVersion),
 				findConditionMessage(item.Status.Conditions, configv1.OperatorProgressing),
 			)
 		}
