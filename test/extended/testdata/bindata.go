@@ -19381,7 +19381,7 @@ spec:
   successfulBuildsHistoryLimit: 2
   source:
     dockerfile: |
-      FROM busybox
+      FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       RUN touch /php-file
   strategy:
     dockerStrategy: {}`)
@@ -23185,7 +23185,7 @@ spec:
   runPolicy: Serial
   source:
     dockerfile:
-      'FROM busybox@sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6'
+      'FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest'
   strategy:
     type: Docker
     dockerStrategy:
@@ -23313,7 +23313,7 @@ spec:
   runPolicy: Serial
   source:
     dockerfile:
-      'FROM busybox@sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6'
+      'FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest'
   strategy:
     type: Docker
     dockerStrategy:
