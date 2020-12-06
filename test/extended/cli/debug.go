@@ -17,6 +17,8 @@ var (
 )
 
 var _ = g.Describe("[sig-cli] oc debug", func() {
+	defer g.GinkgoRecover()
+
 	oc := exutil.NewCLI("oc-debug")
 	testCLIDebug := exutil.FixturePath("testdata", "test-cli-debug.yaml")
 	testDeploymentConfig := exutil.FixturePath("testdata", "test-deployment-config.yaml")

@@ -202,7 +202,6 @@
 // test/extended/testdata/cmd/test/cmd/login.sh
 // test/extended/testdata/cmd/test/cmd/migrate.sh
 // test/extended/testdata/cmd/test/cmd/newapp.sh
-// test/extended/testdata/cmd/test/cmd/observe.sh
 // test/extended/testdata/cmd/test/cmd/policy.sh
 // test/extended/testdata/cmd/test/cmd/printer.sh
 // test/extended/testdata/cmd/test/cmd/projects.sh
@@ -33243,66 +33242,6 @@ func testExtendedTestdataCmdTestCmdNewappSh() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdObserveSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-# Cleanup cluster resources created by this test
-(
-  set +e
-  exit 0
-) &>/dev/null
-
-os::test::junit::declare_suite_start "cmd/observe"
-
-# basic scenarios
-os::cmd::expect_failure_and_text 'oc observe' 'you must specify at least one argument containing the resource to observe'
-os::cmd::expect_success_and_text 'oc observe serviceaccounts --once' 'Sync ended'
-os::cmd::expect_success_and_text 'oc observe daemonsets --once' 'Nothing to sync, exiting immediately'
-os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces' 'default kubernetes'
-os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces --print-metrics-on-exit' 'observe_counts{type="Sync"}'
-os::cmd::expect_failure_and_text 'oc observe services --once --names echo' '\-\-delete and \-\-names must both be specified'
-os::cmd::expect_success_and_text 'oc observe services --exit-after=1s' 'Shutting down after 1s ...'
-os::cmd::expect_success_and_text 'oc observe services --exit-after=1s --all-namespaces --print-metrics-on-exit' 'observe_counts{type="Sync"}'
-os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces' 'default kubernetes'
-os::cmd::expect_success_and_text 'oc observe services --once --exit-after=3s --all-namespaces --names echo --names default/notfound --delete echo --delete remove' 'remove default notfound'
-
-# error counting
-os::cmd::expect_failure_and_text 'oc observe services --exit-after=1m --all-namespaces --maximum-errors=1 -- /bin/sh -c "exit 1"' 'reached maximum error limit of 1, exiting'
-os::cmd::expect_failure_and_text 'oc observe services --exit-after=1m --all-namespaces --retry-on-exit-code=2 --maximum-errors=1 --loglevel=4 -- /bin/sh -c "exit 2"' 'retrying command: exit status 2'
-
-# argument templates
-os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "{ .spec.clusterIP }"' '172.30.0.1'
-os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "{{ .spec.clusterIP }}" --output=gotemplate' '172.30.0.1'
-os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "bad{ .missingkey }key"' 'badkey'
-os::cmd::expect_failure_and_text 'oc observe services --once --all-namespaces -a "bad{ .missingkey }key" --strict-templates' 'missingkey is not found'
-os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "{{ .unknown }}" --output=gotemplate' '""'
-os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "bad{{ or (.unknown) \"\" }}key" --output=gotemplate' 'badkey'
-# TODO: bring back when oc#472 merges
-# os::cmd::expect_success_and_text 'oc observe services --once --all-namespaces -a "bad{{ .unknown }}key" --output=gotemplate --strict-templates' 'map has no entry for key'
-
-# --type-env-var
-os::cmd::expect_success_and_text 'MYENV=should_be_passed oc observe services --once --all-namespaces --type-env-var=EVENT -- /bin/sh -c "echo \$EVENT \$MYENV"' 'Sync should_be_passed'
-
-echo "observe: ok"
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdObserveShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdObserveSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdObserveSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdObserveShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/observe.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdPolicySh = []byte(`#!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
@@ -55190,7 +55129,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/login.sh":                                                           testExtendedTestdataCmdTestCmdLoginSh,
 	"test/extended/testdata/cmd/test/cmd/migrate.sh":                                                         testExtendedTestdataCmdTestCmdMigrateSh,
 	"test/extended/testdata/cmd/test/cmd/newapp.sh":                                                          testExtendedTestdataCmdTestCmdNewappSh,
-	"test/extended/testdata/cmd/test/cmd/observe.sh":                                                         testExtendedTestdataCmdTestCmdObserveSh,
 	"test/extended/testdata/cmd/test/cmd/policy.sh":                                                          testExtendedTestdataCmdTestCmdPolicySh,
 	"test/extended/testdata/cmd/test/cmd/printer.sh":                                                         testExtendedTestdataCmdTestCmdPrinterSh,
 	"test/extended/testdata/cmd/test/cmd/projects.sh":                                                        testExtendedTestdataCmdTestCmdProjectsSh,
@@ -55794,7 +55732,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							"login.sh":              {testExtendedTestdataCmdTestCmdLoginSh, map[string]*bintree{}},
 							"migrate.sh":            {testExtendedTestdataCmdTestCmdMigrateSh, map[string]*bintree{}},
 							"newapp.sh":             {testExtendedTestdataCmdTestCmdNewappSh, map[string]*bintree{}},
-							"observe.sh":            {testExtendedTestdataCmdTestCmdObserveSh, map[string]*bintree{}},
 							"policy.sh":             {testExtendedTestdataCmdTestCmdPolicySh, map[string]*bintree{}},
 							"printer.sh":            {testExtendedTestdataCmdTestCmdPrinterSh, map[string]*bintree{}},
 							"projects.sh":           {testExtendedTestdataCmdTestCmdProjectsSh, map[string]*bintree{}},

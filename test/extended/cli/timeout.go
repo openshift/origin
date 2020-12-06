@@ -8,6 +8,8 @@ import (
 )
 
 var _ = g.Describe("[sig-cli] oc --request-timeout", func() {
+	defer g.GinkgoRecover()
+
 	oc := exutil.NewCLI("oc-request-timeout")
 
 	g.It("works as expected", func() {
