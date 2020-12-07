@@ -37,6 +37,15 @@ const (
 	machineAnnotationName = "machine.openshift.io/machine"
 )
 
+var disruptionTests []upgrades.Test = []upgrades.Test{
+	&upgrades.ServiceUpgradeTest{},
+	&upgrades.SecretUpgradeTest{},
+	&apps.ReplicaSetUpgradeTest{},
+	&apps.StatefulSetUpgradeTest{},
+	&apps.DeploymentUpgradeTest{},
+	&apps.DaemonSetUpgradeTest{},
+}
+
 var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 	defer g.GinkgoRecover()
 
@@ -60,11 +69,6 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 			Version:  "v1",
 			Resource: "machineconfigpools",
 		})
-		coc := dynamicClient.Resource(schema.GroupVersionResource{
-			Group:    "config.openshift.io",
-			Version:  "v1",
-			Resource: "clusteroperators",
-		})
 
 		// test for machines as a proxy for "can we recover a master"
 		machines, err := dynamicClient.Resource(schema.GroupVersionResource{
@@ -79,14 +83,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 
 		disruption.Run(f, "Quorum Loss and Restore", "quorum_restore",
 			disruption.TestData{},
-			[]upgrades.Test{
-				&upgrades.ServiceUpgradeTest{},
-				&upgrades.SecretUpgradeTest{},
-				&apps.ReplicaSetUpgradeTest{},
-				&apps.StatefulSetUpgradeTest{},
-				&apps.DeploymentUpgradeTest{},
-				&apps.DaemonSetUpgradeTest{},
-			},
+			disruptionTests,
 			func() {
 
 				framework.Logf("Verify SSH is available before restart")
@@ -248,15 +245,8 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 				_, err = oc.AdminOperatorClient().OperatorV1().KubeAPIServers().Patch(context.Background(), "cluster", types.MergePatchType, []byte(`{"spec": {"forceRedeploymentReason": "recover-kube-apiserver"}}`), metav1.PatchOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				framework.Logf("Wait for etcd pods to become available")
-				_, err = waitForPodsTolerateClientTimeout(
-					oc.AdminKubeClient().CoreV1().Pods("openshift-etcd"),
-					exutil.ParseLabelsOrDie("k8s-app=etcd"),
-					exutil.CheckPodIsReady,
-					expectedNumberOfMasters,
-					40*time.Minute,
-				)
-				o.Expect(err).NotTo(o.HaveOccurred())
+				// Recovery 13
+				waitForReadyEtcdPods(oc.AdminKubeClient(), expectedNumberOfMasters)
 
 				scaleEtcdQuorum(pollClient, expectedNumberOfMasters)
 
@@ -264,14 +254,13 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 				// SDN won't switch to Degraded mode when service is down after disaster recovery
 				// restartSDNPods(oc)
 				waitForMastersToUpdate(oc, mcps)
-				waitForOperatorsToSettle(coc)
+				waitForOperatorsToSettle()
 			})
 	},
 	)
 })
 
-func waitForPodsTolerateClientTimeout(c corev1client.PodInterface, label labels.Selector, predicate func(corev1.Pod) bool, count int, timeout time.Duration) ([]string, error) {
-	var podNames []string
+func waitForPodsTolerateClientTimeout(c corev1client.PodInterface, label labels.Selector, predicate func(corev1.Pod) bool, count int, timeout time.Duration) {
 	err := wait.Poll(10*time.Second, timeout, func() (bool, error) {
 		p, e := exutil.GetPodNamesByFilter(c, label, predicate)
 		if e != nil {
@@ -282,10 +271,9 @@ func waitForPodsTolerateClientTimeout(c corev1client.PodInterface, label labels.
 		if len(p) != count {
 			return false, nil
 		}
-		podNames = p
 		return true, nil
 	})
-	return podNames, err
+	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 func scaleEtcdQuorum(client kubernetes.Interface, replicas int) error {
