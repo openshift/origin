@@ -813,9 +813,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch] ClusterOperators should define at least one related object that is not a namespace": "at least one related object that is not a namespace [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-arch] Managed cluster should ensure control plane operators do not make themselves unevictable": "ensure control plane operators do not make themselves unevictable [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] Managed cluster should ensure control plane containers have requests set for cpu and memory": "ensure control plane containers have requests set for cpu and memory [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-arch] Managed cluster should ensure control plane pods do not run in best-effort QoS": "ensure control plane pods do not run in best-effort QoS [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] Managed cluster should ensure control plane operators do not make themselves unevictable": "ensure control plane operators do not make themselves unevictable [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch] Managed cluster should ensure pods use downstream images from our release image with proper ImagePullPolicy": "should ensure pods use downstream images from our release image with proper ImagePullPolicy [Suite:openshift/conformance/parallel]",
 

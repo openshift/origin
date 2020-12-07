@@ -17,15 +17,15 @@ import (
 var _ = Describe("[sig-arch] Managed cluster should", func() {
 	oc := exutil.NewCLIWithoutNamespace("operators")
 
-	It("ensure control plane pods do not run in best-effort QoS", func() {
+	It("ensure control plane containers have requests set for cpu and memory", func() {
 		// iterate over the references to find valid images
 		pods, err := oc.KubeFramework().ClientSet.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			e2e.Failf("unable to list pods: %v", err)
 		}
 
-		// list of pods that use images not in the release payload
-		invalidPodQoS := sets.NewString()
+		// list of containers that do not set appropriate requests
+		invalidContainers := sets.NewString()
 		// a pod in a namespace that begins with kube-* or openshift-* must come from our release payload
 		// TODO components in openshift-operators may not come from our payload, may want to weaken restriction
 		namespacePrefixes := sets.NewString("kube-", "openshift-")
@@ -47,13 +47,29 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 			if hasPrefixSet(pod.Name, excludePodPrefix) {
 				continue
 			}
-			if pod.Status.QOSClass == v1.PodQOSBestEffort {
-				invalidPodQoS.Insert(fmt.Sprintf("%s/%s is running in best-effort QoS", pod.Namespace, pod.Name))
+			for i, container := range pod.Spec.InitContainers {
+				checkContainerRequests(invalidContainers, &pod, &container, fmt.Sprintf("initContainers[%d]", i))
+			}
+			for i, container := range pod.Spec.Containers {
+				checkContainerRequests(invalidContainers, &pod, &container, fmt.Sprintf("containers[%d]", i))
 			}
 		}
-		numInvalidPodQoS := len(invalidPodQoS)
-		if numInvalidPodQoS > 0 {
-			e2e.Failf("\n%d pods found in best-effort QoS:\n%s", numInvalidPodQoS, strings.Join(invalidPodQoS.List(), "\n"))
+		numInvalidContainers := len(invalidContainers)
+		if numInvalidContainers > 0 {
+			e2e.Failf("\n%d containers found without expected requests ( https://github.com/openshift/enhancements/blob/master/CONVENTIONS.md#resources-and-limits ):\n%s", numInvalidContainers, strings.Join(invalidContainers.List(), "\n"))
 		}
 	})
 })
+
+func checkContainerRequests(invalidContainers sets.String, pod *v1.Pod, container *v1.Container, source string) {
+	unsetResources := sets.NewString()
+	for _, resource := range []v1.ResourceName{v1.ResourceCPU, v1.ResourceMemory} {
+		quantity := container.Resources.Requests[resource]
+		if quantity.IsZero() {
+			unsetResources.Insert(string(resource))
+		}
+	}
+	if len(unsetResources) > 0 {
+		invalidContainers.Insert(fmt.Sprintf("%s/%s container %s (%s) is not requesting required resources: %s", pod.Namespace, pod.Name, source, container.Name, strings.Join(unsetResources.List(), ", ")))
+	}
+}
