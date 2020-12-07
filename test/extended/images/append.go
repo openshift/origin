@@ -134,7 +134,9 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(istag.Image).NotTo(o.BeNil())
 		imageutil.ImageWithMetadataOrDie(&istag.Image)
-		o.Expect(istag.Image.DockerImageLayers).To(o.HaveLen(7))
+		// In OCP there is an extra layer for package repositories that does not exist in upstream images
+		// Once there is a more robust way to account for this difference this should be removed
+		o.Expect(istag.Image.DockerImageLayers).To(o.SatisfyAny(o.HaveLen(6), o.HaveLen(7)))
 		o.Expect(istag.Image.DockerImageLayers[0].Name).NotTo(o.Equal(GzippedEmptyLayerDigest))
 		err = imageutil.ImageWithMetadata(&istag.Image)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -145,7 +147,9 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(istag.Image).NotTo(o.BeNil())
 		imageutil.ImageWithMetadataOrDie(&istag.Image)
-		o.Expect(istag.Image.DockerImageLayers).To(o.HaveLen(8))
+		// In OCP there is an extra layer for package repositories that does not exist in upstream images
+		// Once there is a more robust way to account for this difference this should be removed
+		o.Expect(istag.Image.DockerImageLayers).To(o.SatisfyAny(o.HaveLen(7), o.HaveLen(8)))
 		o.Expect(istag.Image.DockerImageLayers[0].Name).To(o.Equal(busyboxLayer))
 		err = imageutil.ImageWithMetadata(&istag.Image)
 		o.Expect(err).NotTo(o.HaveOccurred())
