@@ -198,6 +198,6 @@ spec:
 		o.Expect(err).NotTo(o.HaveOccurred())
 		out, err = oc.Run("debug").Args(fmt.Sprintf("isimage/wildfly@%s", sha), "-o", "yaml").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("image: docker.io/openshift/wildfly-150-centos7"))
+		o.Expect(out).To(o.ContainSubstring("image: quay.io/wildfly/wildfly-centos7"))
 	})
 })

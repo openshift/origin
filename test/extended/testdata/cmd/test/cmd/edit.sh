@@ -24,7 +24,7 @@ os::cmd::expect_success 'oc create -f ${TEST_DATA}/services.yaml'
 os::cmd::expect_success_and_text 'KUBE_EDITOR=cat oc edit svc' 'kind: List'
 
 os::cmd::expect_success 'oc create imagestream test'
-os::cmd::expect_success 'oc tag --source=docker docker.io/busybox:latest test:new'
+os::cmd::expect_success 'oc tag --source=docker quay.io/openshifttest/hello-openshift:openshift test:new'
 os::cmd::try_until_success 'oc get istag/test:new'
 os::cmd::expect_success_and_not_text 'oc get istag/test:new -o jsonpath={.metadata.annotations}' "tags.?:.?hidden"
 editorfile="$(mktemp -d)/tmp-editor.sh"
