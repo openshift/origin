@@ -78,7 +78,7 @@ os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-c
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
 os::cmd::expect_success_and_text "oc debug istag/wildfly:latest -o yaml" 'image:.*cmd-debug/wildfly.*@'
 sha="$( oc get istag/wildfly:latest --template '{{ .image.metadata.name }}' )"
-os::cmd::expect_success_and_text "oc debug isimage/wildfly@${sha} -o yaml" 'image: docker.io/openshift/wildfly-150-centos7'
+os::cmd::expect_success_and_text "oc debug isimage/wildfly@${sha} -o yaml" 'image: quay.io/wildfly/wildfly-centos7'
 
 echo "debug: ok"
 os::test::junit::declare_suite_end
