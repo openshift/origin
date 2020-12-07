@@ -161,7 +161,7 @@ os::cmd::expect_success "oc set volumes dc/nginx --add --configmap-name=default-
 os::cmd::try_until_text "oc get pods -l deployment-config.name=nginx" 'Running'
 
 # only show single pods in status if they are really single
-os::cmd::expect_success 'oc create -f test/integration/testdata/test-deployment-config.yaml'
+os::cmd::expect_success 'oc create -f test/extended/testdata/test-deployment-config.yaml'
 os::cmd::try_until_text 'oc status' 'dc\/test-deployment-config deploys docker\.io\/openshift\/origin-pod:latest' "$(( 2 * TIME_MIN ))"
 os::cmd::try_until_text 'oc status' 'deployment #1 deployed.*- 1 pod' "$(( 2 * TIME_MIN ))"
 os::cmd::expect_success_and_not_text 'oc status' 'pod\/test-deployment-config-1-[0-9a-z]{5} runs openshift\/origin-pod'

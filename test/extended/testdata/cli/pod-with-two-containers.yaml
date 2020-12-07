@@ -16,7 +16,6 @@ spec:
         memory: 256Mi
     terminationMessagePath: "/dev/termination-log"
     imagePullPolicy: IfNotPresent
-    capabilities: {}
     securityContext: {}
   - name: hello-centos-2
     image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
@@ -28,7 +27,6 @@ spec:
         memory: 256Mi
     terminationMessagePath: "/dev/termination-log1"
     imagePullPolicy: IfNotPresent
-    capabilities: {}
     securityContext: {}
   restartPolicy: Always
   dnsPolicy: ClusterFirst

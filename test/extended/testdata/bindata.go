@@ -131,6 +131,7 @@
 // test/extended/testdata/builds/test-docker-build.json
 // test/extended/testdata/builds/test-docker-no-outputname.json
 // test/extended/testdata/builds/test-env-build.json
+// test/extended/testdata/builds/test-image-stream.json
 // test/extended/testdata/builds/test-imagechangetriggers.yaml
 // test/extended/testdata/builds/test-imageresolution-custom-build.yaml
 // test/extended/testdata/builds/test-imageresolution-docker-build.yaml
@@ -438,15 +439,6 @@
 // test/extended/testdata/test-replication-controller.yaml
 // test/extended/testdata/test-secret.json
 // test/extended/testdata/verifyservice-pipeline-template.yaml
-// test/integration/testdata/project-request-template-with-quota.yaml
-// test/integration/testdata/test-buildcli-beta2.json
-// test/integration/testdata/test-buildcli.json
-// test/integration/testdata/test-image-stream-mapping.json
-// test/integration/testdata/test-image-stream.json
-// test/integration/testdata/test-image.json
-// test/integration/testdata/test-route.json
-// test/integration/testdata/test-service-with-finalizer.json
-// test/integration/testdata/test-service.json
 package testdata
 
 import (
@@ -6602,8 +6594,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
             "dnsPolicy": "ClusterFirst"
           }
         }
-      },
-      "status": {}
+      }
     },
     {
       "kind": "Service",
@@ -6722,8 +6713,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
             "dnsPolicy": "ClusterFirst"
           }
         }
-      },
-      "status": {}
+      }
     }
   ],
   "parameters": [
@@ -7049,8 +7039,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
             "dnsPolicy": "ClusterFirst"
           }
         }
-      },
-      "status": {}
+      }
     },
     {
       "kind": "Service",
@@ -7219,8 +7208,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
             "dnsPolicy": "ClusterFirst"
           }
         }
-      },
-      "status": {}
+      }
     }
   ],
   "parameters": [
@@ -7556,8 +7544,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
             "dnsPolicy": "ClusterFirst"
           }
         }
-      },
-      "status": {}
+      }
     },
     {
       "kind": "Service",
@@ -7726,8 +7713,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
             "dnsPolicy": "ClusterFirst"
           }
         }
-      },
-      "status": {}
+      }
     }
   ],
   "parameters": [
@@ -22441,6 +22427,37 @@ func testExtendedTestdataBuildsTestEnvBuildJson() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataBuildsTestImageStreamJson = []byte(`{
+  "kind": "ImageStream",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "test",
+    "creationTimestamp": null,
+    "labels": {
+      "color": "blue"
+    }
+  },
+  "spec": {},
+  "status": {
+    "dockerImageRepository": ""
+  }
+}`)
+
+func testExtendedTestdataBuildsTestImageStreamJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestImageStreamJson, nil
+}
+
+func testExtendedTestdataBuildsTestImageStreamJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestImageStreamJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-image-stream.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataBuildsTestImagechangetriggersYaml = []byte(`kind: List
 apiVersion: v1
 items:
@@ -24945,7 +24962,6 @@ spec:
         memory: 256Mi
     terminationMessagePath: "/dev/termination-log"
     imagePullPolicy: IfNotPresent
-    capabilities: {}
     securityContext: {}
   - name: hello-centos-2
     image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
@@ -24957,7 +24973,6 @@ spec:
         memory: 256Mi
     terminationMessagePath: "/dev/termination-log1"
     imagePullPolicy: IfNotPresent
-    capabilities: {}
     securityContext: {}
   restartPolicy: Always
   dnsPolicy: ClusterFirst
@@ -30572,8 +30587,6 @@ os::test::junit::declare_suite_start "cmd/basicresources/services"
 os::cmd::expect_success 'oc get services'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-service.json'
 os::cmd::expect_success 'oc delete services frontend'
-# TODO: reenable with a permission check
-# os::cmd::expect_failure_and_text 'oc create -f test/integration/testdata/test-service-with-finalizer.json' "finalizers are disabled"
 echo "services: ok"
 os::test::junit::declare_suite_end
 
@@ -38548,6 +38561,7 @@ items:
     kind: DockerImage
   dockerImageMetadataVersion: "1.0"
   dockerImageReference: registry/namespace/name
+  dockerImageLayers: []
   kind: Image
   metadata:
     annotations:
@@ -42253,7 +42267,6 @@ spec:
         name: vol1
   triggers:
   - type: ConfigChange
-status: {}
 `)
 
 func testExtendedTestdataCmdTestCmdTestdataTestDeploymentConfigYamlBytes() ([]byte, error) {
@@ -42374,7 +42387,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTestImageJson = []byte(`{
     "name": "test",
     "creationTimestamp": null
   },
-  "dockerImageReference": "openshift/ruby-19-centos:latest",
+  "dockerImageReference": "registry.redhat.io/rhscl/ruby-25-rhel7:latest",
   "dockerImageMetadata": {
     "kind": "DockerImage",
     "apiVersion": "1.0",
@@ -42382,6 +42395,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTestImageJson = []byte(`{
     "ContainerConfig": {},
     "Config": {}
   },
+  "dockerImageLayers": [],
   "dockerImageMetadataVersion": "1.0"
 }
 `)
@@ -46038,6 +46052,7 @@ var _testExtendedTestdataImageTestImageJson = []byte(`{
     "ContainerConfig": {},
     "Config": {}
   },
+  "dockerImageLayers": [],
   "dockerImageMetadataVersion": "1.0"
 }
 `)
@@ -49712,8 +49727,6 @@ objects:
     verbs:
     - create
 - apiVersion: rbac.authorization.k8s.io/v1
-  groupNames:
-  - system:authenticated
   kind: ClusterRoleBinding
   metadata:
     name: ${BINDING_NAME}
@@ -49801,12 +49814,12 @@ objects:
     - system:authenticated
     kind: RoleBinding
     metadata:
+      namespace: ${NAMESPACE}
       name: basic-users
     roleRef:
       apiGroup: rbac.authorization.k8s.io
       kind: Role
       name: basic-user
-      namespace: ${NAMESPACE}
     subjects:
     - apiGroup: rbac.authorization.k8s.io
       kind: Group
@@ -51480,8 +51493,8 @@ items:
     - name: weightedendpoints2
       kind: Service
       weight: 50
-    ports:
-    - targetPort: 8080
+    port:
+      targetPort: 8080
 
 # a route that has multiple services but all weights are zero
 - apiVersion: v1
@@ -51501,8 +51514,8 @@ items:
     - name: weightedendpoints2
       kind: Service
       weight: 0
-    ports:
-    - targetPort: 8080
+    port:
+      targetPort: 8080
 
 # two services that can be routed to
 - apiVersion: v1
@@ -52490,6 +52503,7 @@ items:
          ]
       }
     dockerImageManifestMediaType: application/vnd.docker.distribution.manifest.v2+json
+    dockerImageLayers: []
     dockerImageMetadata:
       Architecture: amd64
       Config:
@@ -53833,7 +53847,6 @@ spec:
         name: vol1
   triggers:
   - type: ConfigChange
-status: {}
 `)
 
 func testExtendedTestdataTestDeploymentConfigYamlBytes() ([]byte, error) {
@@ -54255,626 +54268,6 @@ func testExtendedTestdataVerifyservicePipelineTemplateYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testIntegrationTestdataProjectRequestTemplateWithQuotaYaml = []byte(`apiVersion: template.openshift.io/v1
-kind: Template
-metadata:
-  creationTimestamp: 2015-10-24T18:25:22Z
-  name: default-project-request
-  namespace: default
-objects:
-- apiVersion: v1
-  kind: Project
-  metadata:
-    annotations:
-      openshift.io/description: ${PROJECT_DESCRIPTION}
-      openshift.io/display-name: ${PROJECT_DISPLAYNAME}
-      extra: here
-    creationTimestamp: null
-    name: ${PROJECT_NAME}
-  spec: {}
-  status: {}
-- apiVersion: v1
-  kind: ResourceQuota
-  metadata:
-    name: ${PROJECT_NAME}-quota
-  spec:
-    hard:
-      cpu: 200m
-      memory: 512Mi
-      pods: 3
-      replicationcontrollers: 3
-      resourcequotas: 1
-      services: 3
-- apiVersion: v1
-  kind: LimitRange
-  metadata:
-    creationTimestamp: null
-    name: ${PROJECT_NAME}-limits
-  spec:
-    limits:
-    - max:
-        cpu: 500m
-        memory: 750Mi
-      min:
-        cpu: 10m
-        memory: 5Mi
-      type: Pod
-    - default:
-        cpu: 100m
-        memory: 100Mi
-      max:
-        cpu: 500m
-        memory: 750Mi
-      min:
-        cpu: 10m
-        memory: 5Mi
-      type: Container
-- apiVersion: v1
-  groupNames: []
-  kind: RoleBinding
-  metadata:
-    creationTimestamp: null
-    name: admins
-    namespace: ${PROJECT_NAME}
-  roleRef:
-    name: admin
-  subjects:
-  - kind: User
-    name: ${PROJECT_ADMIN_USER}
-  userNames:
-  - ${PROJECT_ADMIN_USER}
-- apiVersion: v1
-  groupNames:
-  - system:serviceaccounts:${PROJECT_NAME}
-  kind: RoleBinding
-  metadata:
-    creationTimestamp: null
-    name: system:image-pullers
-    namespace: ${PROJECT_NAME}
-  roleRef:
-    name: system:image-puller
-  subjects:
-  - kind: SystemGroup
-    name: system:serviceaccounts:${PROJECT_NAME}
-  userNames: []
-- apiVersion: v1
-  groupNames: []
-  kind: RoleBinding
-  metadata:
-    creationTimestamp: null
-    name: system:image-builders
-    namespace: ${PROJECT_NAME}
-  roleRef:
-    name: system:image-builder
-  subjects:
-  - kind: ServiceAccount
-    name: builder
-  userNames:
-  - system:serviceaccount:${PROJECT_NAME}:builder
-- apiVersion: v1
-  groupNames: []
-  kind: RoleBinding
-  metadata:
-    creationTimestamp: null
-    name: system:deployers
-    namespace: ${PROJECT_NAME}
-  roleRef:
-    name: system:deployer
-  subjects:
-  - kind: ServiceAccount
-    name: deployer
-  userNames:
-  - system:serviceaccount:${PROJECT_NAME}:deployer
-parameters:
-- name: PROJECT_NAME
-- name: PROJECT_DISPLAYNAME
-- name: PROJECT_DESCRIPTION
-- name: PROJECT_ADMIN_USER
-`)
-
-func testIntegrationTestdataProjectRequestTemplateWithQuotaYamlBytes() ([]byte, error) {
-	return _testIntegrationTestdataProjectRequestTemplateWithQuotaYaml, nil
-}
-
-func testIntegrationTestdataProjectRequestTemplateWithQuotaYaml() (*asset, error) {
-	bytes, err := testIntegrationTestdataProjectRequestTemplateWithQuotaYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/integration/testdata/project-request-template-with-quota.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testIntegrationTestdataTestBuildcliBeta2Json = []byte(`{
-  "kind": "List",
-  "apiVersion": "v1",
-  "metadata": {},
-  "items": [
-    {
-      "kind": "ImageStream",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "ruby-22-centos-buildcli",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "dockerImageRepository": "centos/ruby-22-centos",
-        "tags": [
-          {
-            "name": "valid"
-          }
-        ]
-      },
-      "status": {
-        "dockerImageRepository": ""
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "ruby-sample-build-validtag",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "imageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "https://github.com/openshift/ruby-hello-world.git"
-          }
-        },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "from": {
-              "kind": "ImageStreamTag",
-              "name": "ruby-22-centos-buildcli:valid"
-            },
-            "incremental": true
-          }
-        },
-        "output": {
-          "to": {
-            "kind": "ImageStreamTag",
-            "name": "origin-ruby-sample:latest"
-          }
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "ruby-sample-build-invalidtag",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "imageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "https://github.com/openshift/ruby-hello-world.git"
-          }
-        },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "from": {
-              "kind": "ImageStreamTag",
-              "name": "ruby-22-centos-buildcli:invalid"
-            },
-            "incremental": true
-          }
-        },
-        "output": {
-          "to": {
-            "kind": "ImageStreamTag",
-            "name": "origin-ruby-sample:latest"
-          }
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    }
-  ]
-}
-`)
-
-func testIntegrationTestdataTestBuildcliBeta2JsonBytes() ([]byte, error) {
-	return _testIntegrationTestdataTestBuildcliBeta2Json, nil
-}
-
-func testIntegrationTestdataTestBuildcliBeta2Json() (*asset, error) {
-	bytes, err := testIntegrationTestdataTestBuildcliBeta2JsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/integration/testdata/test-buildcli-beta2.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testIntegrationTestdataTestBuildcliJson = []byte(`{
-  "kind": "List",
-  "apiVersion": "v1",
-  "metadata": {},
-  "items": [
-    {
-      "kind": "ImageStream",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "ruby-20-centos7-buildcli",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "dockerImageRepository": "centos/ruby-25-centos7",
-        "tags": [
-          {
-            "name": "valid"
-          }
-        ]
-      },
-      "status": {
-        "dockerImageRepository": ""
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "ruby-sample-build-validtag",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "imageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "https://github.com/openshift/ruby-hello-world.git"
-          }
-        },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "from": {
-              "kind": "DockerImage",
-              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
-            },
-            "incremental": true
-          }
-        },
-        "output": {
-          "to": {
-            "kind": "ImageStreamTag",
-            "name": "origin-ruby-sample:latest"
-          }
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "ruby-sample-build-invalidtag",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "imageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "https://github.com/openshift/ruby-hello-world.git"
-          }
-        },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "from": {
-              "kind": "DockerImage",
-              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
-            },
-            "incremental": true
-          }
-        },
-        "output": {
-          "to": {
-            "kind": "ImageStreamTag",
-            "name": "origin-ruby-sample:latest"
-          }
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    }
-  ]
-}
-`)
-
-func testIntegrationTestdataTestBuildcliJsonBytes() ([]byte, error) {
-	return _testIntegrationTestdataTestBuildcliJson, nil
-}
-
-func testIntegrationTestdataTestBuildcliJson() (*asset, error) {
-	bytes, err := testIntegrationTestdataTestBuildcliJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/integration/testdata/test-buildcli.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testIntegrationTestdataTestImageStreamMappingJson = []byte(`{
-  "kind": "ImageStreamMapping",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "test",
-    "creationTimestamp": null
-  },
-  "image": {
-    "metadata": {
-      "name": "sha256:4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125",
-      "creationTimestamp": null
-    },
-    "dockerImageReference": "openshift/ruby-19-centos:latest",
-    "dockerImageMetadata": {
-      "kind": "DockerImage",
-      "apiVersion": "1.0",
-      "Id": "",
-      "Created": null,
-      "ContainerConfig": {},
-      "Config": {}
-    },
-    "dockerImageMetadataVersion": "1.0",
-    "dockerImageManifest": "{\n   \"name\": \"library/busybox\",\n   \"tag\": \"latest\",\n   \"architecture\": \"amd64\",\n   \"fsLayers\": [\n      {\n         \"blobSum\": \"tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n      },\n      {\n         \"blobSum\": \"tarsum.dev+sha256:d43a7079c4dd020e9c65419c2eb6751ea49d6f7f9337edd895596cd5f7aa6369\"\n      },\n      {\n         \"blobSum\": \"tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n      },\n      {\n         \"blobSum\": \"tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n      }\n   ],\n   \"history\": [\n      {\n         \"v1Compatibility\": \"{\\\"id\\\":\\\"4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125\\\",\\\"parent\\\":\\\"ea13149945cb6b1e746bf28032f02e9b5a793523481a0a18645fc77ad53c4ea2\\\",\\\"created\\\":\\\"2014-12-31T22:23:56.943403668Z\\\",\\\"container\\\":\\\"83dcf36ad1042b90f4ea8b2ebb60e61b2f1a451a883e04b388be299ad382b259\\\",\\\"container_config\\\":{\\\"Hostname\\\":\\\"7f674915980d\\\",\\\"Domainname\\\":\\\"\\\",\\\"User\\\":\\\"\\\",\\\"Memory\\\":0,\\\"MemorySwap\\\":0,\\\"CpuShares\\\":0,\\\"Cpuset\\\":\\\"\\\",\\\"AttachStdin\\\":false,\\\"AttachStdout\\\":false,\\\"AttachStderr\\\":false,\\\"PortSpecs\\\":null,\\\"ExposedPorts\\\":null,\\\"Tty\\\":false,\\\"OpenStdin\\\":false,\\\"StdinOnce\\\":false,\\\"Env\\\":[\\\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\\\"],\\\"Cmd\\\":[\\\"/bin/sh\\\",\\\"-c\\\",\\\"#(nop) CMD [/bin/sh]\\\"],\\\"Image\\\":\\\"ea13149945cb6b1e746bf28032f02e9b5a793523481a0a18645fc77ad53c4ea2\\\",\\\"Volumes\\\":null,\\\"WorkingDir\\\":\\\"\\\",\\\"Entrypoint\\\":null,\\\"NetworkDisabled\\\":false,\\\"MacAddress\\\":\\\"\\\",\\\"OnBuild\\\":[]},\\\"docker_version\\\":\\\"1.4.1\\\",\\\"author\\\":\\\"Jerome Petazzoni \\\\u003cjerome@docker.com\\\\u003e\\\",\\\"config\\\":{\\\"Hostname\\\":\\\"7f674915980d\\\",\\\"Domainname\\\":\\\"\\\",\\\"User\\\":\\\"\\\",\\\"Memory\\\":0,\\\"MemorySwap\\\":0,\\\"CpuShares\\\":0,\\\"Cpuset\\\":\\\"\\\",\\\"AttachStdin\\\":false,\\\"AttachStdout\\\":false,\\\"AttachStderr\\\":false,\\\"PortSpecs\\\":null,\\\"ExposedPorts\\\":null,\\\"Tty\\\":false,\\\"OpenStdin\\\":false,\\\"StdinOnce\\\":false,\\\"Env\\\":[\\\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\\\"],\\\"Cmd\\\":[\\\"/bin/sh\\\"],\\\"Image\\\":\\\"ea13149945cb6b1e746bf28032f02e9b5a793523481a0a18645fc77ad53c4ea2\\\",\\\"Volumes\\\":null,\\\"WorkingDir\\\":\\\"\\\",\\\"Entrypoint\\\":null,\\\"NetworkDisabled\\\":false,\\\"MacAddress\\\":\\\"\\\",\\\"OnBuild\\\":[]},\\\"architecture\\\":\\\"amd64\\\",\\\"os\\\":\\\"linux\\\",\\\"checksum\\\":\\\"tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\\\",\\\"Size\\\":0}\\n\"\n      },\n      {\n         \"v1Compatibility\": \"{\\\"id\\\":\\\"ea13149945cb6b1e746bf28032f02e9b5a793523481a0a18645fc77ad53c4ea2\\\",\\\"parent\\\":\\\"df7546f9f060a2268024c8a230d8639878585defcc1bc6f79d2728a13957871b\\\",\\\"created\\\":\\\"2014-12-31T22:23:56.190797792Z\\\",\\\"container\\\":\\\"7f674915980dbcafb3096fa82369c2943194486dcb4e585e3490a2e66c530e44\\\",\\\"container_config\\\":{\\\"Hostname\\\":\\\"7f674915980d\\\",\\\"Domainname\\\":\\\"\\\",\\\"User\\\":\\\"\\\",\\\"Memory\\\":0,\\\"MemorySwap\\\":0,\\\"CpuShares\\\":0,\\\"Cpuset\\\":\\\"\\\",\\\"AttachStdin\\\":false,\\\"AttachStdout\\\":false,\\\"AttachStderr\\\":false,\\\"PortSpecs\\\":null,\\\"ExposedPorts\\\":null,\\\"Tty\\\":false,\\\"OpenStdin\\\":false,\\\"StdinOnce\\\":false,\\\"Env\\\":[\\\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\\\"],\\\"Cmd\\\":[\\\"/bin/sh\\\",\\\"-c\\\",\\\"#(nop) ADD file:8cf517d90fe79547c474641cc1e6425850e04abbd8856718f7e4a184ea878538 in /\\\"],\\\"Image\\\":\\\"df7546f9f060a2268024c8a230d8639878585defcc1bc6f79d2728a13957871b\\\",\\\"Volumes\\\":null,\\\"WorkingDir\\\":\\\"\\\",\\\"Entrypoint\\\":null,\\\"NetworkDisabled\\\":false,\\\"MacAddress\\\":\\\"\\\",\\\"OnBuild\\\":[]},\\\"docker_version\\\":\\\"1.4.1\\\",\\\"author\\\":\\\"Jerome Petazzoni \\\\u003cjerome@docker.com\\\\u003e\\\",\\\"config\\\":{\\\"Hostname\\\":\\\"7f674915980d\\\",\\\"Domainname\\\":\\\"\\\",\\\"User\\\":\\\"\\\",\\\"Memory\\\":0,\\\"MemorySwap\\\":0,\\\"CpuShares\\\":0,\\\"Cpuset\\\":\\\"\\\",\\\"AttachStdin\\\":false,\\\"AttachStdout\\\":false,\\\"AttachStderr\\\":false,\\\"PortSpecs\\\":null,\\\"ExposedPorts\\\":null,\\\"Tty\\\":false,\\\"OpenStdin\\\":false,\\\"StdinOnce\\\":false,\\\"Env\\\":[\\\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\\\"],\\\"Cmd\\\":null,\\\"Image\\\":\\\"df7546f9f060a2268024c8a230d8639878585defcc1bc6f79d2728a13957871b\\\",\\\"Volumes\\\":null,\\\"WorkingDir\\\":\\\"\\\",\\\"Entrypoint\\\":null,\\\"NetworkDisabled\\\":false,\\\"MacAddress\\\":\\\"\\\",\\\"OnBuild\\\":[]},\\\"architecture\\\":\\\"amd64\\\",\\\"os\\\":\\\"linux\\\",\\\"checksum\\\":\\\"tarsum.dev+sha256:d43a7079c4dd020e9c65419c2eb6751ea49d6f7f9337edd895596cd5f7aa6369\\\",\\\"Size\\\":2433303}\\n\"\n      },\n      {\n         \"v1Compatibility\": \"{\\\"id\\\":\\\"df7546f9f060a2268024c8a230d8639878585defcc1bc6f79d2728a13957871b\\\",\\\"parent\\\":\\\"511136ea3c5a64f264b78b5433614aec563103b4d4702f3ba7d4d2698e22c158\\\",\\\"created\\\":\\\"2014-10-01T20:46:07.263351912Z\\\",\\\"container\\\":\\\"2147a17cb1b2d6626ed78e5ef8ba4c71ce82c884bc3b57ab01e6114ff357cea4\\\",\\\"container_config\\\":{\\\"Hostname\\\":\\\"2147a17cb1b2\\\",\\\"Domainname\\\":\\\"\\\",\\\"User\\\":\\\"\\\",\\\"Memory\\\":0,\\\"MemorySwap\\\":0,\\\"CpuShares\\\":0,\\\"Cpuset\\\":\\\"\\\",\\\"AttachStdin\\\":false,\\\"AttachStdout\\\":false,\\\"AttachStderr\\\":false,\\\"PortSpecs\\\":null,\\\"ExposedPorts\\\":null,\\\"Tty\\\":false,\\\"OpenStdin\\\":false,\\\"StdinOnce\\\":false,\\\"Env\\\":[\\\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\\\"],\\\"Cmd\\\":[\\\"/bin/sh\\\",\\\"-c\\\",\\\"#(nop) MAINTAINER Jerome Petazzoni \\\\u003cjerome@docker.com\\\\u003e\\\"],\\\"Image\\\":\\\"511136ea3c5a64f264b78b5433614aec563103b4d4702f3ba7d4d2698e22c158\\\",\\\"Volumes\\\":null,\\\"WorkingDir\\\":\\\"\\\",\\\"Entrypoint\\\":null,\\\"NetworkDisabled\\\":false,\\\"MacAddress\\\":\\\"\\\",\\\"OnBuild\\\":[]},\\\"docker_version\\\":\\\"1.2.0\\\",\\\"author\\\":\\\"Jerome Petazzoni \\\\u003cjerome@docker.com\\\\u003e\\\",\\\"config\\\":{\\\"Hostname\\\":\\\"2147a17cb1b2\\\",\\\"Domainname\\\":\\\"\\\",\\\"User\\\":\\\"\\\",\\\"Memory\\\":0,\\\"MemorySwap\\\":0,\\\"CpuShares\\\":0,\\\"Cpuset\\\":\\\"\\\",\\\"AttachStdin\\\":false,\\\"AttachStdout\\\":false,\\\"AttachStderr\\\":false,\\\"PortSpecs\\\":null,\\\"ExposedPorts\\\":null,\\\"Tty\\\":false,\\\"OpenStdin\\\":false,\\\"StdinOnce\\\":false,\\\"Env\\\":[\\\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\\\"],\\\"Cmd\\\":null,\\\"Image\\\":\\\"511136ea3c5a64f264b78b5433614aec563103b4d4702f3ba7d4d2698e22c158\\\",\\\"Volumes\\\":null,\\\"WorkingDir\\\":\\\"\\\",\\\"Entrypoint\\\":null,\\\"NetworkDisabled\\\":false,\\\"MacAddress\\\":\\\"\\\",\\\"OnBuild\\\":[]},\\\"architecture\\\":\\\"amd64\\\",\\\"os\\\":\\\"linux\\\",\\\"checksum\\\":\\\"tarsum.dev+sha256:1b755912c77197c6a43539f2a708ef89d5849b8ce02642cb702e47afaa8195c3\\\",\\\"Size\\\":0}\\n\"\n      },\n      {\n         \"v1Compatibility\": \"{\\\"id\\\":\\\"511136ea3c5a64f264b78b5433614aec563103b4d4702f3ba7d4d2698e22c158\\\",\\\"comment\\\":\\\"Imported from -\\\",\\\"created\\\":\\\"2013-06-13T14:03:50.821769-07:00\\\",\\\"container_config\\\":{\\\"Hostname\\\":\\\"\\\",\\\"Domainname\\\":\\\"\\\",\\\"User\\\":\\\"\\\",\\\"Memory\\\":0,\\\"MemorySwap\\\":0,\\\"CpuShares\\\":0,\\\"Cpuset\\\":\\\"\\\",\\\"AttachStdin\\\":false,\\\"AttachStdout\\\":false,\\\"AttachStderr\\\":false,\\\"PortSpecs\\\":null,\\\"ExposedPorts\\\":null,\\\"Tty\\\":false,\\\"OpenStdin\\\":false,\\\"StdinOnce\\\":false,\\\"Env\\\":null,\\\"Cmd\\\":null,\\\"Image\\\":\\\"\\\",\\\"Volumes\\\":null,\\\"WorkingDir\\\":\\\"\\\",\\\"Entrypoint\\\":null,\\\"NetworkDisabled\\\":false,\\\"MacAddress\\\":\\\"\\\",\\\"OnBuild\\\":null},\\\"docker_version\\\":\\\"0.4.0\\\",\\\"architecture\\\":\\\"x86_64\\\",\\\"checksum\\\":\\\"tarsum.dev+sha256:324d4cf44ee7daa46266c1df830c61a7df615c0632176a339e7310e34723d67a\\\",\\\"Size\\\":0}\\n\"\n      }\n   ],\n   \"schemaVersion\": 1,\n   \"signatures\": [\n      {\n         \"header\": {\n            \"jwk\": {\n               \"crv\": \"P-256\",\n               \"kid\": \"OIH7:HQFS:44FK:45VB:3B53:OIAG:TPL4:ATF5:6PNE:MGHN:NHQX:2GE4\",\n               \"kty\": \"EC\",\n               \"x\": \"Cu_UyxwLgHzE9rvlYSmvVdqYCXY42E9eNhBb0xNv0SQ\",\n               \"y\": \"zUsjWJkeKQ5tv7S-hl1Tg71cd-CqnrtiiLxSi6N_yc8\"\n            },\n            \"alg\": \"ES256\"\n         },\n         \"signature\": \"bWiisabH8LgSXezUhjN8X3I7ESBo_fCXvFtqAwRmzozTfPHTr8edd13SU0KUJMq4X7_agEuLpSh1V8YGcBVpYg\",\n         \"protected\": \"eyJmb3JtYXRMZW5ndGgiOjcwNjMsImZvcm1hdFRhaWwiOiJDbjAiLCJ0aW1lIjoiMjAxNS0wMy0zMVQxNjozMjoyOVoifQ\"\n      }\n   ]\n}"
-  },
-  "tag": "sometag"
-}`)
-
-func testIntegrationTestdataTestImageStreamMappingJsonBytes() ([]byte, error) {
-	return _testIntegrationTestdataTestImageStreamMappingJson, nil
-}
-
-func testIntegrationTestdataTestImageStreamMappingJson() (*asset, error) {
-	bytes, err := testIntegrationTestdataTestImageStreamMappingJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/integration/testdata/test-image-stream-mapping.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testIntegrationTestdataTestImageStreamJson = []byte(`{
-  "kind": "ImageStream",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "test",
-    "creationTimestamp": null,
-    "labels": {
-      "color": "blue"
-    }
-  },
-  "spec": {},
-  "status": {
-    "dockerImageRepository": ""
-  }
-}`)
-
-func testIntegrationTestdataTestImageStreamJsonBytes() ([]byte, error) {
-	return _testIntegrationTestdataTestImageStreamJson, nil
-}
-
-func testIntegrationTestdataTestImageStreamJson() (*asset, error) {
-	bytes, err := testIntegrationTestdataTestImageStreamJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/integration/testdata/test-image-stream.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testIntegrationTestdataTestImageJson = []byte(`{
-  "kind": "Image",
-  "apiVersion": "image.openshift.io/v1",
-  "metadata": {
-    "name": "test",
-    "creationTimestamp": null
-  },
-  "dockerImageReference": "openshift/ruby-19-centos:latest",
-  "dockerImageMetadata": {
-    "kind": "DockerImage",
-    "apiVersion": "1.0",
-    "Id": "",
-    "ContainerConfig": {},
-    "Config": {}
-  },
-  "dockerImageMetadataVersion": "1.0"
-}
-`)
-
-func testIntegrationTestdataTestImageJsonBytes() ([]byte, error) {
-	return _testIntegrationTestdataTestImageJson, nil
-}
-
-func testIntegrationTestdataTestImageJson() (*asset, error) {
-	bytes, err := testIntegrationTestdataTestImageJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/integration/testdata/test-image.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testIntegrationTestdataTestRouteJson = []byte(`{
-  "kind": "Route",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "testroute",
-    "creationTimestamp": null,
-    "labels": {
-       "rtlabel1": "greatroute"
-    }
-  },
-  "spec": {
-    "host": "test.example.com",
-    "to": {
-      "kind": "Service",
-      "name": "testservice"
-    }
-  },
-  "status": {}
-}
-`)
-
-func testIntegrationTestdataTestRouteJsonBytes() ([]byte, error) {
-	return _testIntegrationTestdataTestRouteJson, nil
-}
-
-func testIntegrationTestdataTestRouteJson() (*asset, error) {
-	bytes, err := testIntegrationTestdataTestRouteJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/integration/testdata/test-route.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testIntegrationTestdataTestServiceWithFinalizerJson = []byte(`{
-  "kind": "Service",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "frontend",
-    "creationTimestamp": null,
-    "labels": {
-      "name": "frontend"
-    },
-    "finalizers": ["fake/one"]
-  },
-  "spec": {
-    "ports": [
-      {
-        "protocol": "TCP",
-        "port": 9998,
-        "targetPort": 9998,
-        "nodePort": 0
-      }
-    ],
-    "selector": {
-      "name": "frontend"
-    },
-    "type": "ClusterIP",
-    "sessionAffinity": "None"
-  },
-  "status": {
-    "loadBalancer": {}
-  }
-}`)
-
-func testIntegrationTestdataTestServiceWithFinalizerJsonBytes() ([]byte, error) {
-	return _testIntegrationTestdataTestServiceWithFinalizerJson, nil
-}
-
-func testIntegrationTestdataTestServiceWithFinalizerJson() (*asset, error) {
-	bytes, err := testIntegrationTestdataTestServiceWithFinalizerJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/integration/testdata/test-service-with-finalizer.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testIntegrationTestdataTestServiceJson = []byte(`{
-  "kind": "Service",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "frontend",
-    "creationTimestamp": null,
-    "labels": {
-      "name": "frontend"
-    }
-  },
-  "spec": {
-    "ports": [
-      {
-        "protocol": "TCP",
-        "port": 9998,
-        "targetPort": 9998,
-        "nodePort": 0
-      }
-    ],
-    "selector": {
-      "name": "frontend"
-    },
-    "type": "ClusterIP",
-    "sessionAffinity": "None"
-  },
-  "status": {
-    "loadBalancer": {}
-  }
-}`)
-
-func testIntegrationTestdataTestServiceJsonBytes() ([]byte, error) {
-	return _testIntegrationTestdataTestServiceJson, nil
-}
-
-func testIntegrationTestdataTestServiceJson() (*asset, error) {
-	bytes, err := testIntegrationTestdataTestServiceJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/integration/testdata/test-service.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 // Asset loads and returns the asset for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -55058,6 +54451,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/test-docker-build.json":                                                   testExtendedTestdataBuildsTestDockerBuildJson,
 	"test/extended/testdata/builds/test-docker-no-outputname.json":                                           testExtendedTestdataBuildsTestDockerNoOutputnameJson,
 	"test/extended/testdata/builds/test-env-build.json":                                                      testExtendedTestdataBuildsTestEnvBuildJson,
+	"test/extended/testdata/builds/test-image-stream.json":                                                   testExtendedTestdataBuildsTestImageStreamJson,
 	"test/extended/testdata/builds/test-imagechangetriggers.yaml":                                            testExtendedTestdataBuildsTestImagechangetriggersYaml,
 	"test/extended/testdata/builds/test-imageresolution-custom-build.yaml":                                   testExtendedTestdataBuildsTestImageresolutionCustomBuildYaml,
 	"test/extended/testdata/builds/test-imageresolution-docker-build.yaml":                                   testExtendedTestdataBuildsTestImageresolutionDockerBuildYaml,
@@ -55365,15 +54759,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/test-replication-controller.yaml":                                                testExtendedTestdataTestReplicationControllerYaml,
 	"test/extended/testdata/test-secret.json":                                                                testExtendedTestdataTestSecretJson,
 	"test/extended/testdata/verifyservice-pipeline-template.yaml":                                            testExtendedTestdataVerifyservicePipelineTemplateYaml,
-	"test/integration/testdata/project-request-template-with-quota.yaml":                                     testIntegrationTestdataProjectRequestTemplateWithQuotaYaml,
-	"test/integration/testdata/test-buildcli-beta2.json":                                                     testIntegrationTestdataTestBuildcliBeta2Json,
-	"test/integration/testdata/test-buildcli.json":                                                           testIntegrationTestdataTestBuildcliJson,
-	"test/integration/testdata/test-image-stream-mapping.json":                                               testIntegrationTestdataTestImageStreamMappingJson,
-	"test/integration/testdata/test-image-stream.json":                                                       testIntegrationTestdataTestImageStreamJson,
-	"test/integration/testdata/test-image.json":                                                              testIntegrationTestdataTestImageJson,
-	"test/integration/testdata/test-route.json":                                                              testIntegrationTestdataTestRouteJson,
-	"test/integration/testdata/test-service-with-finalizer.json":                                             testIntegrationTestdataTestServiceWithFinalizerJson,
-	"test/integration/testdata/test-service.json":                                                            testIntegrationTestdataTestServiceJson,
 }
 
 // AssetDir returns the file names below a certain
@@ -55621,6 +55006,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"test-docker-build.json":                 {testExtendedTestdataBuildsTestDockerBuildJson, map[string]*bintree{}},
 					"test-docker-no-outputname.json":         {testExtendedTestdataBuildsTestDockerNoOutputnameJson, map[string]*bintree{}},
 					"test-env-build.json":                    {testExtendedTestdataBuildsTestEnvBuildJson, map[string]*bintree{}},
+					"test-image-stream.json":                 {testExtendedTestdataBuildsTestImageStreamJson, map[string]*bintree{}},
 					"test-imagechangetriggers.yaml":          {testExtendedTestdataBuildsTestImagechangetriggersYaml, map[string]*bintree{}},
 					"test-imageresolution-custom-build.yaml": {testExtendedTestdataBuildsTestImageresolutionCustomBuildYaml, map[string]*bintree{}},
 					"test-imageresolution-docker-build.yaml": {testExtendedTestdataBuildsTestImageresolutionDockerBuildYaml, map[string]*bintree{}},
@@ -56079,19 +55465,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"test-replication-controller.yaml":     {testExtendedTestdataTestReplicationControllerYaml, map[string]*bintree{}},
 				"test-secret.json":                     {testExtendedTestdataTestSecretJson, map[string]*bintree{}},
 				"verifyservice-pipeline-template.yaml": {testExtendedTestdataVerifyservicePipelineTemplateYaml, map[string]*bintree{}},
-			}},
-		}},
-		"integration": {nil, map[string]*bintree{
-			"testdata": {nil, map[string]*bintree{
-				"project-request-template-with-quota.yaml": {testIntegrationTestdataProjectRequestTemplateWithQuotaYaml, map[string]*bintree{}},
-				"test-buildcli-beta2.json":                 {testIntegrationTestdataTestBuildcliBeta2Json, map[string]*bintree{}},
-				"test-buildcli.json":                       {testIntegrationTestdataTestBuildcliJson, map[string]*bintree{}},
-				"test-image-stream-mapping.json":           {testIntegrationTestdataTestImageStreamMappingJson, map[string]*bintree{}},
-				"test-image-stream.json":                   {testIntegrationTestdataTestImageStreamJson, map[string]*bintree{}},
-				"test-image.json":                          {testIntegrationTestdataTestImageJson, map[string]*bintree{}},
-				"test-route.json":                          {testIntegrationTestdataTestRouteJson, map[string]*bintree{}},
-				"test-service-with-finalizer.json":         {testIntegrationTestdataTestServiceWithFinalizerJson, map[string]*bintree{}},
-				"test-service.json":                        {testIntegrationTestdataTestServiceJson, map[string]*bintree{}},
 			}},
 		}},
 	}},

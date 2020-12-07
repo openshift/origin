@@ -57,12 +57,12 @@ objects:
     - system:authenticated
     kind: RoleBinding
     metadata:
+      namespace: ${NAMESPACE}
       name: basic-users
     roleRef:
       apiGroup: rbac.authorization.k8s.io
       kind: Role
       name: basic-user
-      namespace: ${NAMESPACE}
     subjects:
     - apiGroup: rbac.authorization.k8s.io
       kind: Group

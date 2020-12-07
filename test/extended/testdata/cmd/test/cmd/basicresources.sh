@@ -108,8 +108,6 @@ os::test::junit::declare_suite_start "cmd/basicresources/services"
 os::cmd::expect_success 'oc get services'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-service.json'
 os::cmd::expect_success 'oc delete services frontend'
-# TODO: reenable with a permission check
-# os::cmd::expect_failure_and_text 'oc create -f test/integration/testdata/test-service-with-finalizer.json' "finalizers are disabled"
 echo "services: ok"
 os::test::junit::declare_suite_end
 
