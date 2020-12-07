@@ -11,8 +11,10 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/kubernetes/test/e2e/framework"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
 	e2essh "k8s.io/kubernetes/test/e2e/framework/ssh"
@@ -20,6 +22,7 @@ import (
 	"github.com/openshift/origin/test/e2e/upgrade"
 	exutil "github.com/openshift/origin/test/extended/util"
 
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"github.com/stretchr/objx"
 )
@@ -88,7 +91,17 @@ func waitForMastersToUpdate(oc *exutil.CLI, mcps dynamic.NamespaceableResourceIn
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-func waitForOperatorsToSettle(coc dynamic.NamespaceableResourceInterface) {
+func waitForOperatorsToSettle() {
+	g.By("Waiting for operators to settle before performing post-disruption testing")
+	config, err := framework.LoadConfig()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	dynamicClient := dynamic.NewForConfigOrDie(config)
+	coc := dynamicClient.Resource(schema.GroupVersionResource{
+		Group:    "config.openshift.io",
+		Version:  "v1",
+		Resource: "clusteroperators",
+	})
+
 	var lastErr error
 	// gate on all clusteroperators being ready
 	available := make(map[string]struct{})
@@ -271,6 +284,12 @@ func execOnNodeWithOutputOrFail(node *corev1.Node, cmd string) *e2essh.Result {
 // successfully before the timeout.
 func execOnNodeOrFail(node *corev1.Node, cmd string) {
 	_ = execOnNodeWithOutputOrFail(node, cmd)
+}
+
+// sudoExecOnNodeOrFail executes a command under sudo with execOnNodeOrFail.
+func sudoExecOnNodeOrFail(node *corev1.Node, cmd string) {
+	sudoCmd := fmt.Sprintf(`sudo -i /bin/bash -cx "%s"`, cmd)
+	execOnNodeOrFail(node, sudoCmd)
 }
 
 // checkSSH repeatedly attempts to establish an ssh connection to a
