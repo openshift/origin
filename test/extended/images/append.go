@@ -113,6 +113,14 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 		`, ns, registry, image.ShellImage())))
 		cli.WaitForSuccess(pod.Name, podStartupTimeout)
 
+		// verify that the shell image matches our check - if the shell image changes, we'll need to look up a different image
+		o.Expect(image.ShellImage()).To(o.HaveSuffix("/openshift/tools:latest"))
+		baseTools, err := oc.ImageClient().ImageV1().ImageStreamTags("openshift").Get(context.Background(), "tools:latest", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		// subsequent operations are expected to append to this image
+		baseLayerCount := len(baseTools.Image.DockerImageLayers)
+		o.Expect(baseLayerCount).To(o.BeNumerically(">=", 2))
+
 		istag, err := oc.ImageClient().ImageV1().ImageStreamTags(ns).Get(context.Background(), "test:scratch1", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(istag.Image).NotTo(o.BeNil())
@@ -134,7 +142,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(istag.Image).NotTo(o.BeNil())
 		imageutil.ImageWithMetadataOrDie(&istag.Image)
-		o.Expect(istag.Image.DockerImageLayers).To(o.HaveLen(7))
+		o.Expect(istag.Image.DockerImageLayers).To(o.HaveLen(baseLayerCount))
 		o.Expect(istag.Image.DockerImageLayers[0].Name).NotTo(o.Equal(GzippedEmptyLayerDigest))
 		err = imageutil.ImageWithMetadata(&istag.Image)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -145,7 +153,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(istag.Image).NotTo(o.BeNil())
 		imageutil.ImageWithMetadataOrDie(&istag.Image)
-		o.Expect(istag.Image.DockerImageLayers).To(o.HaveLen(8))
+		o.Expect(istag.Image.DockerImageLayers).To(o.HaveLen(baseLayerCount + 1))
 		o.Expect(istag.Image.DockerImageLayers[0].Name).To(o.Equal(busyboxLayer))
 		err = imageutil.ImageWithMetadata(&istag.Image)
 		o.Expect(err).NotTo(o.HaveOccurred())
