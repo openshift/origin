@@ -1601,7 +1601,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cluster-lifecycle] Pods cannot access the /config/master API endpoint": "Pods cannot access the /config/master API endpoint [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive] [Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks": "[Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks [Serial]",
+	"[Top Level] [sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive] [Feature:NodeRecovery] Cluster should survive worker failure and recover with machine health checks": "[Feature:NodeRecovery] Cluster should survive worker failure and recover with machine health checks [Serial]",
 
 	"[Top Level] [sig-cluster-lifecycle][Feature:Machines] Managed cluster should have machine resources": "have machine resources [Suite:openshift/conformance/parallel]",
 

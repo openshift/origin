@@ -34,7 +34,6 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
-	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 )
 
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive]", func() {
@@ -44,8 +43,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive
 
 	oc := exutil.NewCLIWithoutNamespace("machine-recovery")
 
-	g.It("[Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks", func() {
-
+	g.It("[Feature:NodeRecovery] Cluster should survive worker failure and recover with machine health checks", func() {
 		framework.Logf("Verify SSH is available before restart")
 		masters, workers := clusterNodes(oc)
 		o.Expect(len(masters)).To(o.BeNumerically(">=", 3))
@@ -60,11 +58,9 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive
 		disruption.Run(f, "Machine Shutdown and Restore", "machine_failure",
 			disruption.TestData{},
 			[]upgrades.Test{
-				&upgrades.ServiceUpgradeTest{},
 				controlplane.NewKubeAvailableWithNewConnectionsTest(),
 				controlplane.NewOpenShiftAvailableNewConnectionsTest(),
 				controlplane.NewOAuthAvailableNewConnectionsTest(),
-				&frontends.AvailableTest{},
 			},
 			func() {
 
@@ -77,37 +73,33 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive
 					Resource: "machines",
 				}).Namespace("openshift-machine-api")
 
-				// framework.Logf("Verify etcd endpoints are healthy")
-				// certsDir := "/tmp/etcd-client-certs/"
-				// dumpEtcdCertsOnDisk(oc, certsDir)
-				// defer os.RemoveAll(certsDir)
-				// unhealthyEtcds := getUnhealthyEtcds(certsDir, masters)
-				// o.Expect(len(unhealthyEtcds)).To(o.BeNumerically("==", 0))
-
-				// createMachineHealthCheckForRole("master")
-				// defer deleteMachineCheckForRole("master")
 				createMachineHealthCheckForRole("worker")
 				defer deleteMachineCheckForRole("worker")
 
 				replacedWorkerMachineName := getMachineNameByNodeName(oc, replacedWorker.Name)
-				// replacedMasterMachineName := getMachineNameByNodeName(oc, replacedMaster.Name)
-				// replacedMasterMachine, err := ms.Get(context.Background(), replacedMasterMachineName, metav1.GetOptions{})
-				// o.Expect(err).NotTo(o.HaveOccurred())
 
-				// add controller reference
-				// replacedMasterMachineCopy := replacedMasterMachine.DeepCopy()
-				// ownerReferences := getOwnerReferenceForMasterMachine(replacedMasterMachineCopy)
-				// replacedMasterMachineCopy.SetOwnerReferences(ownerReferences)
-				// _, err = ms.Update(context.Background(), replacedMasterMachineCopy, metav1.UpdateOptions{})
-				// o.Expect(err).NotTo(o.HaveOccurred())
-
-				targets := []*corev1.Node{ /* replacedMaster , */ replacedWorker}
-				targetMachineNames := []string{ /* replacedMasterMachineName, */ replacedWorkerMachineName}
+				targets := []*corev1.Node{replacedWorker}
+				targetMachineNames := []string{replacedWorkerMachineName}
+				targetNodeNames := sets.NewString()
+				for _, target := range targets {
+					targetNodeNames.Insert(target.Name)
+				}
 
 				// we use a hard shutdown to simulate a poweroff
 				for _, target := range targets {
 					framework.Logf("Forcing shutdown of node %s", target.Name)
-					_, err = ssh("sudo -i systemctl poweroff --force --force", target)
+					ch := make(chan struct{})
+					go func(node *corev1.Node) {
+						defer close(ch)
+						if _, err := ssh("sudo -i systemctl poweroff --force --force", node); err != nil {
+							framework.Logf("error when shutting down, continuing: %v", err)
+						}
+					}(target)
+					select {
+					case <-ch:
+					case <-time.After(time.Minute):
+						framework.Logf("Timeout attempting shutdown, assuming shutdown succeeded: %s", target.Name)
+					}
 				}
 
 				pollConfig := rest.CopyConfig(config)
@@ -115,85 +107,37 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive
 				pollClient, err := kubernetes.NewForConfig(pollConfig)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				framework.Logf("Wait for nodes to go unready")
-				err = wait.Poll(30*time.Second, 30*time.Minute, func() (done bool, err error) {
+				framework.Logf("Wait for nodes to be marked unready and unreachable via lease expiration within 5m")
+				err = wait.Poll(30*time.Second, 5*time.Minute, func() (bool, error) {
 					nodes, err := pollClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 					if err != nil || nodes.Items == nil {
 						framework.Logf("return false - err %v nodes.Items %v", err, nodes.Items)
 						return false, nil
 					}
-					notReadyNodes := sets.NewString()
+					nodesTaintedUnreachable := sets.NewString()
 					for _, node := range nodes.Items {
-						nodeReady := true
+						if nodeConditionStatus(node.Status.Conditions, corev1.NodeReady) == corev1.ConditionTrue {
+							framework.Logf("Ignoring ready node %s", node.Name)
+							continue
+						}
 						for _, t := range node.Spec.Taints {
 							if t.Key == "node.kubernetes.io/unreachable" {
-								nodeReady = false
+								framework.Logf("found unreachable unready node %s", node.Name)
+								nodesTaintedUnreachable.Insert(node.Name)
 								break
 							}
 						}
-						if !nodeReady {
-							notReadyNodes.Insert(node.Name)
-						}
 					}
-					if notReadyNodes.Len() != len(targets) {
-						framework.Logf("Nodes waiting to go unready: %v", notReadyNodes.List())
+					if targetNodeNames.Difference(nodesTaintedUnreachable).Len() != 0 {
+						framework.Logf("Expecting unreachable %v, waiting for: %v", targetNodeNames.List(), targetNodeNames.Difference(nodesTaintedUnreachable).List())
 						return false, nil
 					}
 					return true, nil
 				})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				// etcdMemberToRemove := getEtcdMemberToRemove(oc, replacedMaster.Name)
-				// framework.Logf("remove etcd member with ID %s", etcdMemberToRemove)
-				// removeMember(oc, etcdMemberToRemove)
-
-				// framework.Logf("Recreating master %s", replacedMasterMachineName+"-duplicate")
-				// newMaster := replacedMasterMachine.DeepCopy()
-				// // The providerID is relied upon by the machine controller to determine a machine
-				// // has been provisioned
-				// // https://github.com/openshift/cluster-api/blob/c4a461a19efb8a25b58c630bed0829512d244ba7/pkg/controller/machine/controller.go#L306-L308
-				// unstructured.SetNestedField(newMaster.Object, "", "spec", "providerID")
-				// newMaster.SetName(replacedMasterMachineName + "-duplicate")
-				// newMaster.SetResourceVersion("")
-				// newMaster.SetSelfLink("")
-				// newMaster.SetUID("")
-				// newMaster.SetCreationTimestamp(metav1.NewTime(time.Time{}))
-				// // retry until the machine gets created
-				// err = wait.PollImmediate(5*time.Second, 10*time.Minute, func() (bool, error) {
-				// 	_, err := ms.Create(context.Background(), newMaster, metav1.CreateOptions{})
-				// 	if errors.IsAlreadyExists(err) {
-				// 		framework.Logf("Waiting for old machine object %s to be deleted so we can create a new one", replacedMaster.Name)
-				// 		return false, nil
-				// 	}
-				// 	if err != nil {
-				// 		return false, err
-				// 	}
-				// 	return true, nil
-				// })
-				// o.Expect(err).NotTo(o.HaveOccurred())
-
-				// framework.Logf("Wait for masters to join as nodes and go ready")
-				// err = wait.Poll(30*time.Second, 30*time.Minute, func() (done bool, err error) {
-				// 	defer func() {
-				// 		if r := recover(); r != nil {
-				// 			fmt.Println("Recovered from panic", r)
-				// 		}
-				// 	}()
-				// 	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master="})
-				// 	if err != nil {
-				// 		return false, err
-				// 	}
-				// 	ready := countReady(nodes.Items)
-				// 	if ready != len(masters) {
-				// 		framework.Logf("%d master nodes still unready", len(masters)-ready)
-				// 		return false, nil
-				// 	}
-				// 	return true, nil
-				// })
-				// o.Expect(err).NotTo(o.HaveOccurred())
-
-				framework.Logf("Wait for worker to join as nodes and go ready")
-				err = wait.Poll(30*time.Second, 30*time.Minute, func() (done bool, err error) {
+				framework.Logf("Wait for old nodes to be deleted, and new nodes to join within 15m")
+				err = wait.Poll(30*time.Second, 15*time.Minute, func() (done bool, err error) {
 					defer func() {
 						if r := recover(); r != nil {
 							fmt.Println("Recovered from panic", r)
@@ -203,31 +147,37 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive
 					if err != nil {
 						return false, err
 					}
-					ready := countReady(nodes.Items)
-					if ready != len(workers) {
-						framework.Logf("%d worker nodes still unready", len(workers)-ready)
+					unreadyNodes := sets.NewString()
+					for _, node := range nodes.Items {
+						if targetNodeNames.Has(node.Name) {
+							framework.Logf("Node %s has not yet been removed", node.Name)
+							return false, nil
+						}
+						if nodeConditionStatus(node.Status.Conditions, corev1.NodeReady) != corev1.ConditionTrue {
+							unreadyNodes.Insert(node.Name)
+						}
+					}
+					if unreadyNodes.Len() != 0 {
+						framework.Logf("Some nodes are not yet ready: %v", unreadyNodes.List())
 						return false, nil
 					}
 					return true, nil
 				})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				framework.Logf("Wait for old machines to be deleted")
-				err = wait.Poll(30*time.Second, 30*time.Minute, func() (done bool, err error) {
+				framework.Logf("Wait for terminated machines to be deleted")
+				err = wait.Poll(30*time.Second, 5*time.Minute, func() (done bool, err error) {
 					machines, err := ms.List(context.Background(), metav1.ListOptions{})
 					if err != nil || machines.Items == nil {
 						framework.Logf("return false - err %v nodes.Items %v", err, machines.Items)
 						return false, nil
 					}
-					vanishedMachines := sets.NewString()
-					for _, machine := range targetMachineNames {
-						vanishedMachines.Insert(machine)
-					}
+					machinesToDelete := sets.NewString(targetMachineNames...)
 					for _, machine := range machines.Items {
-						vanishedMachines.Delete(machine.GetName())
+						machinesToDelete.Delete(machine.GetName())
 					}
-					if vanishedMachines.Len() != len(targetMachineNames) {
-						framework.Logf("Machines waiting to go be deleted: %v", vanishedMachines.List())
+					if machinesToDelete.Len() != 0 {
+						framework.Logf("Machines still waiting to be deleted: %v", machinesToDelete.List())
 						return false, nil
 					}
 					return true, nil
