@@ -29,7 +29,7 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 		// a pod in a namespace that begins with kube-* or openshift-* must come from our release payload
 		// TODO components in openshift-operators may not come from our payload, may want to weaken restriction
 		namespacePrefixes := sets.NewString("kube-", "openshift-")
-		excludeNamespaces := sets.NewString("openshift-operator-lifecycle-manager", "openshift-marketplace")
+		excludeNamespaces := sets.NewString("openshift-operator-lifecycle-manager", "openshift-marketplace", "openshift-service-catalog-removed")
 		excludePodPrefix := sets.NewString(
 			"revision-pruner-",  // operators have retry logic built in. these are like jobs but cannot rely on jobs
 			"installer-",        // operators have retry logic built in. these are like jobs but cannot rely on jobs
