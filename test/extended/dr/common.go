@@ -25,7 +25,8 @@ import (
 )
 
 const (
-	operatorWait = 15 * time.Minute
+	operatorWait      = 15 * time.Minute
+	defaultSSHTimeout = 5 * time.Minute
 )
 
 func runCommandAndRetry(command string) string {
@@ -285,21 +286,42 @@ func countReady(items []corev1.Node) int {
 
 func fetchFileContents(node *corev1.Node, path string) string {
 	e2elog.Logf("Fetching %s file contents from %s", path, node.Name)
-	out, err := ssh(fmt.Sprintf("cat %q", path), node)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	if len(out.Stderr) > 0 {
-		e2elog.Logf("file content stderr:\n%s", out.Stderr)
-	}
+	out := execOnNodeWithOutputOrFail(node, fmt.Sprintf("cat %q", path))
 	return out.Stdout
 }
 
-func expectSSH(cmd string, node *corev1.Node) {
-	e2elog.Logf("cmd[%s]: %s", node.Name, cmd)
-	out, err := e2essh.IssueSSHCommandWithResult(cmd, e2e.TestContext.Provider, node)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	if len(out.Stderr) > 0 {
-		e2elog.Logf("command %q stderr:\n%s", cmd, out.Stderr)
-	}
+// execOnNodeWithOutputOrFail executes a command via ssh against a
+// node in a poll loop to ensure reliable execution in a disrupted
+// environment. The calling test will be failed if the command cannot
+// be executed successfully before the provided timeout.
+func execOnNodeWithOutputOrFail(node *corev1.Node, cmd string) *e2essh.Result {
+	var out *e2essh.Result
+	var err error
+	waitErr := wait.PollImmediate(5*time.Second, defaultSSHTimeout, func() (bool, error) {
+		out, err = e2essh.IssueSSHCommandWithResult(cmd, e2e.TestContext.Provider, node)
+		// IssueSSHCommandWithResult logs output
+		if err != nil {
+			e2elog.Logf("Failed to exec cmd [%s] on node %s: %v", cmd, node.Name, err)
+		}
+		return err == nil, nil
+	})
+	o.Expect(waitErr).NotTo(o.HaveOccurred())
+	return out
+}
+
+// execOnNodeOrFail executes a command via ssh against a node in a
+// poll loop until success or timeout. The output is ignored. The
+// calling test will be failed if the command cannot be executed
+// successfully before the timeout.
+func execOnNodeOrFail(node *corev1.Node, cmd string) {
+	_ = execOnNodeWithOutputOrFail(node, cmd)
+}
+
+// checkSSH repeatedly attempts to establish an ssh connection to a
+// node and fails the calling test if unable to establish the
+// connection before the default timeout.
+func checkSSH(node *corev1.Node) {
+	_ = execOnNodeWithOutputOrFail(node, "true")
 }
 
 func ssh(cmd string, node *corev1.Node) (*e2essh.Result, error) {
