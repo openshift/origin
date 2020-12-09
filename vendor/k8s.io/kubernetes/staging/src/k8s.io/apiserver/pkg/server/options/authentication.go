@@ -180,6 +180,10 @@ type DelegatingAuthenticationOptions struct {
 	// TolerateInClusterLookupFailure indicates failures to look up authentication configuration from the cluster configmap should not be fatal.
 	// Setting this can result in an authenticator that will reject all requests.
 	TolerateInClusterLookupFailure bool
+
+	// ClientTimeout specifies a time limit for requests made by the authorization webhook client.
+	// The default value is set to 10 seconds.
+	ClientTimeout time.Duration
 }
 
 func NewDelegatingAuthenticationOptions() *DelegatingAuthenticationOptions {
@@ -192,7 +196,13 @@ func NewDelegatingAuthenticationOptions() *DelegatingAuthenticationOptions {
 			GroupHeaders:        []string{"x-remote-group"},
 			ExtraHeaderPrefixes: []string{"x-remote-extra-"},
 		},
+		ClientTimeout: 10 * time.Second,
 	}
+}
+
+// WithClientTimeout sets the given timeout for the authentication webhook client.
+func (s *DelegatingAuthenticationOptions) WithClientTimeout(timeout time.Duration) {
+	s.ClientTimeout = timeout
 }
 
 func (s *DelegatingAuthenticationOptions) Validate() []error {
@@ -419,6 +429,7 @@ func (s *DelegatingAuthenticationOptions) getClient() (kubernetes.Interface, err
 	// set high qps/burst limits since this will effectively limit API server responsiveness
 	clientConfig.QPS = 200
 	clientConfig.Burst = 400
+	clientConfig.Timeout = s.ClientTimeout
 
 	return kubernetes.NewForConfig(clientConfig)
 }
