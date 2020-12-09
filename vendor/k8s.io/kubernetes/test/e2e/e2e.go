@@ -226,7 +226,7 @@ func setupSuite() {
 
 	switch framework.TestContext.Provider {
 	case "gce", "gke":
-		logClusterImageSources()
+		// logClusterImageSources()
 	}
 
 	c, err := framework.LoadClientset()
