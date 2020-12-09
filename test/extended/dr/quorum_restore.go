@@ -94,7 +94,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 				o.Expect(len(masters)).To(o.BeNumerically(">=", 1))
 				survivingNode := masters[rand.Intn(len(masters))]
 				survivingNodeName := survivingNode.Name
-				expectSSH("true", survivingNode)
+				checkSSH(survivingNode)
 
 				err = scaleEtcdQuorum(oc.AdminKubeClient(), 0)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -148,9 +148,10 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 				}
 
 				framework.Logf("Perform etcd backup on remaining machine %s (machine %s)", survivingNodeName, survivingMachineName)
-				expectSSH("sudo -i /bin/bash -cx 'rm -rf /home/core/backup; /usr/local/bin/cluster-backup.sh ~core/backup'", survivingNode)
+				execOnNodeOrFail(survivingNode, "sudo -i /bin/bash -cx 'rm -rf /home/core/backup; /usr/local/bin/cluster-backup.sh ~core/backup'")
+
 				framework.Logf("Restore etcd and control-plane on remaining node %s (machine %s)", survivingNodeName, survivingMachineName)
-				expectSSH("sudo -i /bin/bash -cx '/usr/local/bin/cluster-restore.sh /home/core/backup'", survivingNode)
+				execOnNodeOrFail(survivingNode, "sudo -i /bin/bash -cx '/usr/local/bin/cluster-restore.sh /home/core/backup'")
 
 				framework.Logf("Wait for API server to come up")
 				time.Sleep(30 * time.Second)
