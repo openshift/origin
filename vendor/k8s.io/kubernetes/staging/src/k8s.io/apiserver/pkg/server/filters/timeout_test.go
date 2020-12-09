@@ -44,7 +44,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/endpoints/request"
-	"k8s.io/klog"
 )
 
 type recorder struct {
@@ -201,10 +200,8 @@ func captureStdErr() (func() string, func(), error) {
 		<-readerClosedCh
 		return buf.String()
 	}
-	klog.LogToStderr(true)
 	cleanUp := func() {
 		os.Stderr = stderr
-		klog.LogToStderr(false)
 		stopReadingStdErr()
 	}
 	os.Stderr = writer
@@ -213,7 +210,6 @@ func captureStdErr() (func() string, func(), error) {
 		readerClosedCh <- struct{}{}
 		close(readerClosedCh)
 	}()
-	klog.LogToStderr(true)
 
 	return stopReadingStdErr, cleanUp, nil
 }
@@ -236,7 +232,7 @@ func TestErrConnKilled(t *testing.T) {
 		GrouplessAPIPrefixes: sets.NewString("api"),
 	}
 
-	ts := httptest.NewServer(WithPanicRecovery(handler, nil, resolver))
+	ts := httptest.NewServer(WithPanicRecovery(handler, resolver))
 	defer ts.Close()
 
 	_, err = http.Get(ts.URL)
@@ -294,7 +290,7 @@ func TestErrConnKilledHTTP2(t *testing.T) {
 	}
 
 	// test server
-	ts := httptest.NewUnstartedServer(WithPanicRecovery(handler, nil, resolver))
+	ts := httptest.NewUnstartedServer(WithPanicRecovery(handler, resolver))
 	tsCert, err := tls.X509KeyPair(tsCrt, tsKey)
 	if err != nil {
 		t.Fatalf("backend: invalid x509/key pair: %v", err)
