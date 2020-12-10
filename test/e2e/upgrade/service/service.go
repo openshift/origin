@@ -49,7 +49,7 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	framework.ExpectNoError(err)
 	// ovirt does not support service type loadbalancer because it doesn't program a cloud.
-	if infra.Status.PlatformStatus.Type == configv1.OvirtPlatformType {
+	if infra.Status.PlatformStatus.Type == configv1.OvirtPlatformType || infra.Status.PlatformStatus.Type == configv1.KubevirtPlatformType {
 		t.unsupportedPlatform = true
 	}
 	if t.unsupportedPlatform {
