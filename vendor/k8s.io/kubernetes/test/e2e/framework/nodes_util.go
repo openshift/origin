@@ -34,7 +34,7 @@ import (
 	e2essh "k8s.io/kubernetes/test/e2e/framework/ssh"
 )
 
-const etcdImage = "3.4.9-1"
+const etcdImage = "3.4.13-0"
 
 // EtcdUpgrade upgrades etcd on GCE.
 func EtcdUpgrade(targetStorage, targetVersion string) error {
@@ -47,10 +47,10 @@ func EtcdUpgrade(targetStorage, targetVersion string) error {
 }
 
 // MasterUpgrade upgrades master node on GCE/GKE.
-func MasterUpgrade(f *Framework, v string) error {
+func MasterUpgrade(f *Framework, v string, extraEnvs []string) error {
 	switch TestContext.Provider {
 	case "gce":
-		return masterUpgradeGCE(v, false)
+		return masterUpgradeGCE(v, extraEnvs)
 	case "gke":
 		return MasterUpgradeGKE(f.Namespace.Name, v)
 	default:
@@ -72,12 +72,12 @@ func etcdUpgradeGCE(targetStorage, targetVersion string) error {
 // MasterUpgradeGCEWithKubeProxyDaemonSet upgrades master node on GCE with enabling/disabling the daemon set of kube-proxy.
 // TODO(mrhohn): Remove this function when kube-proxy is run as a DaemonSet by default.
 func MasterUpgradeGCEWithKubeProxyDaemonSet(v string, enableKubeProxyDaemonSet bool) error {
-	return masterUpgradeGCE(v, enableKubeProxyDaemonSet)
+	return masterUpgradeGCE(v, []string{fmt.Sprintf("KUBE_PROXY_DAEMONSET=%v", enableKubeProxyDaemonSet)})
 }
 
 // TODO(mrhohn): Remove 'enableKubeProxyDaemonSet' when kube-proxy is run as a DaemonSet by default.
-func masterUpgradeGCE(rawV string, enableKubeProxyDaemonSet bool) error {
-	env := append(os.Environ(), fmt.Sprintf("KUBE_PROXY_DAEMONSET=%v", enableKubeProxyDaemonSet))
+func masterUpgradeGCE(rawV string, extraEnvs []string) error {
+	env := append(os.Environ(), extraEnvs...)
 	// TODO: Remove these variables when they're no longer needed for downgrades.
 	if TestContext.EtcdUpgradeVersion != "" && TestContext.EtcdUpgradeStorage != "" {
 		env = append(env,
