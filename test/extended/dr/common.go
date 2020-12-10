@@ -197,50 +197,6 @@ func restartSDNPods(oc *exutil.CLI) {
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-func restartOpenshiftAPIPods(oc *exutil.CLI) {
-	e2elog.Logf("Restarting Openshift API server")
-
-	pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-apiserver").List(context.Background(), metav1.ListOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	for _, pod := range pods.Items {
-		e2elog.Logf("Deleting pod %s", pod.Name)
-		err := oc.AdminKubeClient().CoreV1().Pods("openshift-apiserver").Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-	}
-
-	err = wait.Poll(10*time.Second, 5*time.Minute, func() (done bool, err error) {
-		apiServerDS, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-apiserver").Get(context.Background(), "apiserver", metav1.GetOptions{})
-		if err != nil {
-			return false, nil
-		}
-		return apiServerDS.Status.NumberReady == apiServerDS.Status.NumberAvailable, nil
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
-}
-
-func restartMCDPods(oc *exutil.CLI) {
-	e2elog.Logf("Restarting MCD pods")
-
-	pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-machine-config-operator").List(context.Background(), metav1.ListOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	for _, pod := range pods.Items {
-		e2elog.Logf("Deleting pod %s", pod.Name)
-		err := oc.AdminKubeClient().CoreV1().Pods("openshift-machine-config-operator").Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-	}
-
-	err = wait.Poll(10*time.Second, 5*time.Minute, func() (done bool, err error) {
-		mcDS, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-machine-config-operator").Get(context.Background(), "machine-config-daemon", metav1.GetOptions{})
-		if err != nil {
-			return false, nil
-		}
-		return mcDS.Status.NumberReady == mcDS.Status.NumberAvailable, nil
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
-}
-
 func objects(from *objx.Value) []objx.Map {
 	var values []objx.Map
 	switch {
