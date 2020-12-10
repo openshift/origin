@@ -297,15 +297,11 @@ func (c *ManagedDiskController) ResizeDisk(diskURI string, oldSize resource.Quan
 		return newSizeQuant, nil
 	}
 
-	diskParameter := compute.DiskUpdate{
-		DiskUpdateProperties: &compute.DiskUpdateProperties{
-			DiskSizeGB: &requestGiB,
-		},
-	}
+	result.DiskProperties.DiskSizeGB = &requestGiB
 
 	ctx, cancel = getContextWithCancel()
 	defer cancel()
-	if rerr := c.common.cloud.DisksClient.Update(ctx, resourceGroup, diskName, diskParameter); rerr != nil {
+	if rerr := c.common.cloud.DisksClient.CreateOrUpdate(ctx, resourceGroup, diskName, result); rerr != nil {
 		return oldSize, rerr.Error()
 	}
 

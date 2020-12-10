@@ -82,7 +82,8 @@ spec:
                   description: text is the display text for the link
                   type: string
             location:
-              description: location is the location of the notification in the console.
+              description: 'location is the location of the notification in the console.
+                Valid values are: "BannerTop", "BannerBottom", "BannerTopBottom".'
               type: string
               pattern: ^(BannerTop|BannerBottom|BannerTopBottom)$
             text:

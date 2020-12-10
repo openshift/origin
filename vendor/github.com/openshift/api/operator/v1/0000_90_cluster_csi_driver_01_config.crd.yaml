@@ -35,6 +35,7 @@ spec:
               name:
                 enum:
                 - ebs.csi.aws.com
+                - cinder.csi.openstack.org
                 - manila.csi.openstack.org
                 - csi.ovirt.org
                 type: string
@@ -49,6 +50,12 @@ spec:
                   to manage coarse grained logging choices that operators have to
                   interpret for their operands. \n Valid values are: \"Normal\", \"Debug\",
                   \"Trace\", \"TraceAll\". Defaults to \"Normal\"."
+                enum:
+                - ""
+                - Normal
+                - Debug
+                - Trace
+                - TraceAll
                 type: string
               managementState:
                 description: managementState indicates whether and how the operator
@@ -63,10 +70,18 @@ spec:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
               operatorLogLevel:
-                description: operatorLogLevel is an intent based logging for the operator
-                  itself.  It does not give fine grained control, but it is a simple
-                  way to manage coarse grained logging choices that operators have
-                  to interpret for themselves.
+                default: Normal
+                description: "operatorLogLevel is an intent based logging for the
+                  operator itself.  It does not give fine grained control, but it
+                  is a simple way to manage coarse grained logging choices that operators
+                  have to interpret for themselves. \n Valid values are: \"Normal\",
+                  \"Debug\", \"Trace\", \"TraceAll\". Defaults to \"Normal\"."
+                enum:
+                - ""
+                - Normal
+                - Debug
+                - Trace
+                - TraceAll
                 type: string
               unsupportedConfigOverrides:
                 description: 'unsupportedConfigOverrides holds a sparse config that

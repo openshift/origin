@@ -87,12 +87,8 @@ func (el *EndpointsLock) Update(ctx context.Context, ler LeaderElectionRecord) e
 		el.e.Annotations = make(map[string]string)
 	}
 	el.e.Annotations[LeaderElectionRecordAnnotationKey] = string(recordBytes)
-	e, err := el.Client.Endpoints(el.EndpointsMeta.Namespace).Update(ctx, el.e, metav1.UpdateOptions{})
-	if err != nil {
-		return err
-	}
-	el.e = e
-	return nil
+	el.e, err = el.Client.Endpoints(el.EndpointsMeta.Namespace).Update(ctx, el.e, metav1.UpdateOptions{})
+	return err
 }
 
 // RecordEvent in leader election while adding meta-data

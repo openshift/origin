@@ -71,14 +71,9 @@ func (ll *LeaseLock) Update(ctx context.Context, ler LeaderElectionRecord) error
 		return errors.New("lease not initialized, call get or create first")
 	}
 	ll.lease.Spec = LeaderElectionRecordToLeaseSpec(&ler)
-
-	lease, err := ll.Client.Leases(ll.LeaseMeta.Namespace).Update(ctx, ll.lease, metav1.UpdateOptions{})
-	if err != nil {
-		return err
-	}
-
-	ll.lease = lease
-	return nil
+	var err error
+	ll.lease, err = ll.Client.Leases(ll.LeaseMeta.Namespace).Update(ctx, ll.lease, metav1.UpdateOptions{})
+	return err
 }
 
 // RecordEvent in leader election while adding meta-data

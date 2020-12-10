@@ -11,7 +11,7 @@ spec:
     listKind: IngressControllerList
     plural: ingresscontrollers
     singular: ingresscontroller
-  scope: Cluster
+  scope: Namespaced
   versions:
   - name: v1
     schema:
@@ -1031,4 +1031,8 @@ spec:
     served: true
     storage: true
     subresources:
+      scale:
+        labelSelectorPath: .status.selector
+        specReplicasPath: .spec.replicas
+        statusReplicasPath: .status.availableReplicas
       status: {}

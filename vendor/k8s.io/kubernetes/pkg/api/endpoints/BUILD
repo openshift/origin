@@ -8,23 +8,23 @@ load(
 
 go_library(
     name = "go_default_library",
-    srcs = ["strategy.go"],
-    importpath = "k8s.io/kubernetes/pkg/security/podsecuritypolicy/seccomp",
+    srcs = ["util.go"],
+    importpath = "k8s.io/kubernetes/pkg/api/endpoints",
     deps = [
-        "//pkg/api/pod:go_default_library",
         "//pkg/apis/core:go_default_library",
-        "//staging/src/k8s.io/apimachinery/pkg/util/validation/field:go_default_library",
+        "//pkg/util/hash:go_default_library",
+        "//staging/src/k8s.io/apimachinery/pkg/types:go_default_library",
     ],
 )
 
 go_test(
     name = "go_default_test",
-    srcs = ["strategy_test.go"],
+    srcs = ["util_test.go"],
     embed = [":go_default_library"],
     deps = [
         "//pkg/apis/core:go_default_library",
-        "//staging/src/k8s.io/api/core/v1:go_default_library",
-        "//staging/src/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+        "//staging/src/k8s.io/apimachinery/pkg/types:go_default_library",
+        "//vendor/github.com/davecgh/go-spew/spew:go_default_library",
     ],
 )
 

@@ -70,9 +70,6 @@ func addOrUpdateAvoidPodOnNode(c clientset.Interface, nodeName string, avoidPods
 	err := wait.PollImmediate(framework.Poll, framework.SingleCallTimeout, func() (bool, error) {
 		node, err := c.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 		if err != nil {
-			if testutils.IsRetryableAPIError(err) {
-				return false, nil
-			}
 			return false, err
 		}
 
@@ -102,9 +99,6 @@ func removeAvoidPodsOffNode(c clientset.Interface, nodeName string) {
 	err := wait.PollImmediate(framework.Poll, framework.SingleCallTimeout, func() (bool, error) {
 		node, err := c.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 		if err != nil {
-			if testutils.IsRetryableAPIError(err) {
-				return false, nil
-			}
 			return false, err
 		}
 
@@ -250,7 +244,7 @@ var _ = SIGDescribe("SchedulerPriorities [Serial]", func() {
 		defer func() {
 			// Resize the replication controller to zero to get rid of pods.
 			if err := e2erc.DeleteRCAndWaitForGC(f.ClientSet, f.Namespace.Name, rc.Name); err != nil {
-				framework.Failf("Failed to cleanup replication controller %v: %v.", rc.Name, err)
+				framework.Logf("Failed to cleanup replication controller %v: %v.", rc.Name, err)
 			}
 		}()
 

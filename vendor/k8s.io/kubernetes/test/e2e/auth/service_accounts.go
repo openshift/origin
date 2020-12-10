@@ -631,7 +631,7 @@ var _ = SIGDescribe("ServiceAccounts", func() {
 				framework.Logf("Error pulling logs: %v", err)
 				return false, nil
 			}
-			tokenCount, err := ParseInClusterClientLogs(logs)
+			tokenCount, err := parseInClusterClientLogs(logs)
 			if err != nil {
 				return false, fmt.Errorf("inclusterclient reported an error: %v", err)
 			}
@@ -832,8 +832,7 @@ var _ = SIGDescribe("ServiceAccounts", func() {
 
 var reportLogsParser = regexp.MustCompile("([a-zA-Z0-9-_]*)=([a-zA-Z0-9-_]*)$")
 
-// ParseInClusterClientLogs parses logs of pods using inclusterclient.
-func ParseInClusterClientLogs(logs string) (int, error) {
+func parseInClusterClientLogs(logs string) (int, error) {
 	seenTokens := map[string]struct{}{}
 
 	lines := strings.Split(logs, "\n")
