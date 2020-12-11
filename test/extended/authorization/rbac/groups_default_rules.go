@@ -118,7 +118,7 @@ var (
 
 			// These custom resources are used to extend console functionality
 			// The console team is working on eliminating this exception in the near future
-			rbacv1helpers.NewRule(read...).Groups(consoleGroup).Resources("consoleclidownloads", "consolelinks", "consoleexternalloglinks", "consolenotifications", "consoleyamlsamples").RuleOrDie(),
+			rbacv1helpers.NewRule(read...).Groups(consoleGroup).Resources("consoleclidownloads", "consolelinks", "consoleexternalloglinks", "consolenotifications", "consoleyamlsamples", "consolequickstarts").RuleOrDie(),
 
 			// HelmChartRepository instances keep Helm chart repository configuration
 			// By default users are able to browse charts from all configured repositories through console UI
