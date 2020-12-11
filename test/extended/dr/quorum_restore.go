@@ -148,7 +148,8 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 				}
 
 				framework.Logf("Perform etcd backup on remaining machine %s (machine %s)", survivingNodeName, survivingMachineName)
-				execOnNodeOrFail(survivingNode, "sudo -i /bin/bash -cx 'rm -rf /home/core/backup; /usr/local/bin/cluster-backup.sh ~core/backup'")
+				// Need to supply --force to the backup script to avoid failing on the api check for progressing operators.
+				execOnNodeOrFail(survivingNode, "sudo -i /bin/bash -cx 'rm -rf /home/core/backup; /usr/local/bin/cluster-backup.sh --force ~core/backup'")
 
 				framework.Logf("Restore etcd and control-plane on remaining node %s (machine %s)", survivingNodeName, survivingMachineName)
 				execOnNodeOrFail(survivingNode, "sudo -i /bin/bash -cx '/usr/local/bin/cluster-restore.sh /home/core/backup'")
