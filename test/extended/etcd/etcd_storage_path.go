@@ -304,10 +304,12 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 			gvr("flowcontrol.apiserver.k8s.io", "v1beta1", "flowschemas"): {
 				Stub:             `{"metadata": {"name": "va2"}, "spec": {"priorityLevelConfiguration": {"name": "name1"}}}`,
 				ExpectedEtcdPath: "/registry/flowschemas/va2",
+				ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1alpha1", "FlowSchema"),
 			},
 			gvr("flowcontrol.apiserver.k8s.io", "v1beta1", "prioritylevelconfigurations"): {
 				Stub:             `{"metadata": {"name": "conf2"}, "spec": {"type": "Limited", "limited": {"assuredConcurrencyShares":3, "limitResponse": {"type": "Reject"}}}}`,
 				ExpectedEtcdPath: "/registry/prioritylevelconfigurations/conf2",
+				ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1alpha1", "PriorityLevelConfiguration"),
 			},
 			gvr("node.k8s.io", "v1", "runtimeclasses"): {
 				Stub:             `{"metadata": {"name": "rc3"}, "handler": "h3"}`,
@@ -319,18 +321,6 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 				t.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)
 			}
 			etcdStorageData[k] = a
-		}
-
-		// Modified etcd data.
-		etcdStorageData[gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "flowschemas")] = etcddata.StorageData{
-			Stub:             `{"metadata": {"name": "va1"}, "spec": {"priorityLevelConfiguration": {"name": "name1"}}}`,
-			ExpectedEtcdPath: "/registry/flowschemas/va1",
-			ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1beta1", "FlowSchema"),
-		}
-		etcdStorageData[gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "prioritylevelconfigurations")] = etcddata.StorageData{
-			Stub:             `{"metadata": {"name": "conf1"}, "spec": {"type": "Limited", "limited": {"assuredConcurrencyShares":3, "limitResponse": {"type": "Reject"}}}}`,
-			ExpectedEtcdPath: "/registry/prioritylevelconfigurations/conf1",
-			ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1beta1", "PriorityLevelConfiguration"),
 		}
 
 		// Removed etcd data.
