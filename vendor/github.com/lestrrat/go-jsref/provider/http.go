@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lestrrat/go-pdebug"
+	"github.com/lestrrat-go/pdebug"
 	"github.com/pkg/errors"
 )
 

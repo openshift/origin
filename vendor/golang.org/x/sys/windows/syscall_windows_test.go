@@ -5,12 +5,13 @@
 package windows_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"syscall"
 	"testing"
-	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
@@ -54,34 +55,14 @@ func TestWin32finddata(t *testing.T) {
 }
 
 func TestFormatMessage(t *testing.T) {
-	dll := windows.MustLoadDLL("pdh.dll")
+	dll := windows.MustLoadDLL("netevent.dll")
 
-	pdhOpenQuery := func(datasrc *uint16, userdata uint32, query *windows.Handle) (errno uintptr) {
-		r0, _, _ := syscall.Syscall(dll.MustFindProc("PdhOpenQueryW").Addr(), 3, uintptr(unsafe.Pointer(datasrc)), uintptr(userdata), uintptr(unsafe.Pointer(query)))
-		return r0
-	}
-
-	pdhCloseQuery := func(query windows.Handle) (errno uintptr) {
-		r0, _, _ := syscall.Syscall(dll.MustFindProc("PdhCloseQuery").Addr(), 1, uintptr(query), 0, 0)
-		return r0
-	}
-
-	var q windows.Handle
-	name, err := windows.UTF16PtrFromString("no_such_source")
-	if err != nil {
-		t.Fatal(err)
-	}
-	errno := pdhOpenQuery(name, 0, &q)
-	if errno == 0 {
-		pdhCloseQuery(q)
-		t.Fatal("PdhOpenQuery succeeded, but expected to fail.")
-	}
-
+	const TITLE_SC_MESSAGE_BOX uint32 = 0xC0001B75
 	const flags uint32 = syscall.FORMAT_MESSAGE_FROM_HMODULE | syscall.FORMAT_MESSAGE_ARGUMENT_ARRAY | syscall.FORMAT_MESSAGE_IGNORE_INSERTS
 	buf := make([]uint16, 300)
-	_, err = windows.FormatMessage(flags, uintptr(dll.Handle), uint32(errno), 0, buf, nil)
+	_, err := windows.FormatMessage(flags, uintptr(dll.Handle), TITLE_SC_MESSAGE_BOX, 0, buf, nil)
 	if err != nil {
-		t.Fatal("FormatMessage for handle=%x and errno=%x failed: %v", dll.Handle, errno, err)
+		t.Fatalf("FormatMessage for handle=%x and errno=%x failed: %v", dll.Handle, TITLE_SC_MESSAGE_BOX, err)
 	}
 }
 
@@ -104,4 +85,134 @@ func ExampleLoadLibrary() {
 	minor := uint8(r >> 8)
 	build := uint16(r >> 16)
 	print("windows version ", major, ".", minor, " (Build ", build, ")\n")
+}
+
+func TestTOKEN_ALL_ACCESS(t *testing.T) {
+	if windows.TOKEN_ALL_ACCESS != 0xF01FF {
+		t.Errorf("TOKEN_ALL_ACCESS = %x, want 0xF01FF", windows.TOKEN_ALL_ACCESS)
+	}
+}
+
+func TestCreateWellKnownSid(t *testing.T) {
+	sid, err := windows.CreateWellKnownSid(windows.WinBuiltinAdministratorsSid)
+	if err != nil {
+		t.Fatalf("Unable to create well known sid for administrators: %v", err)
+	}
+	sidStr, err := sid.String()
+	if err != nil {
+		t.Fatalf("Unable to convert sid into string: %v", err)
+	}
+	if sidStr != "S-1-5-32-544" {
+		t.Fatalf("Expecting administrators to be S-1-5-32-544, but found %s instead", sidStr)
+	}
+}
+
+func TestPseudoTokens(t *testing.T) {
+	version, err := windows.GetVersion()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ((version&0xffff)>>8)|((version&0xff)<<8) < 0x0602 {
+		return
+	}
+
+	realProcessToken, err := windows.OpenCurrentProcessToken()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer realProcessToken.Close()
+	realProcessUser, err := realProcessToken.GetTokenUser()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pseudoProcessToken := windows.GetCurrentProcessToken()
+	pseudoProcessUser, err := pseudoProcessToken.GetTokenUser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !windows.EqualSid(realProcessUser.User.Sid, pseudoProcessUser.User.Sid) {
+		t.Fatal("The real process token does not have the same as the pseudo process token")
+	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	err = windows.RevertToSelf()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pseudoThreadToken := windows.GetCurrentThreadToken()
+	_, err = pseudoThreadToken.GetTokenUser()
+	if err != windows.ERROR_NO_TOKEN {
+		t.Fatal("Expected an empty thread token")
+	}
+	pseudoThreadEffectiveToken := windows.GetCurrentThreadEffectiveToken()
+	pseudoThreadEffectiveUser, err := pseudoThreadEffectiveToken.GetTokenUser()
+	if err != nil {
+		t.Fatal(nil)
+	}
+	if !windows.EqualSid(realProcessUser.User.Sid, pseudoThreadEffectiveUser.User.Sid) {
+		t.Fatal("The real process token does not have the same as the pseudo thread effective token, even though we aren't impersonating")
+	}
+
+	err = windows.ImpersonateSelf(windows.SecurityImpersonation)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer windows.RevertToSelf()
+	pseudoThreadUser, err := pseudoThreadToken.GetTokenUser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !windows.EqualSid(realProcessUser.User.Sid, pseudoThreadUser.User.Sid) {
+		t.Fatal("The real process token does not have the same as the pseudo thread token after impersonating self")
+	}
+}
+
+func TestGUID(t *testing.T) {
+	guid, err := windows.GenerateGUID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if guid.Data1 == 0 && guid.Data2 == 0 && guid.Data3 == 0 && guid.Data4 == [8]byte{} {
+		t.Fatal("Got an all zero GUID, which is overwhelmingly unlikely")
+	}
+	want := fmt.Sprintf("{%08X-%04X-%04X-%04X-%012X}", guid.Data1, guid.Data2, guid.Data3, guid.Data4[:2], guid.Data4[2:])
+	got := guid.String()
+	if got != want {
+		t.Fatalf("String = %q; want %q", got, want)
+	}
+	guid2, err := windows.GUIDFromString(got)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if guid2 != guid {
+		t.Fatalf("Did not parse string back to original GUID = %q; want %q", guid2, guid)
+	}
+	_, err = windows.GUIDFromString("not-a-real-guid")
+	if err != syscall.Errno(windows.CO_E_CLASSSTRING) {
+		t.Fatalf("Bad GUID string error = %v; want CO_E_CLASSSTRING", err)
+	}
+}
+
+func TestKnownFolderPath(t *testing.T) {
+	token, err := windows.OpenCurrentProcessToken()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer token.Close()
+	profileDir, err := token.GetUserProfileDirectory()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(profileDir, "Desktop")
+	got, err := windows.KnownFolderPath(windows.FOLDERID_Desktop, windows.KF_FLAG_DEFAULT)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want != got {
+		t.Fatalf("Path = %q; want %q", got, want)
+	}
 }

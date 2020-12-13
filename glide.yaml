@@ -170,12 +170,15 @@ import:
   version: 6d367c18edf6ca7fd004efd6863e4c5728fa858e
 # dev-ex (template service broker)
 - package: github.com/lestrrat/go-jspointer
+  repo: https://github.com/lestrrat-go/jspointer.git
   version: f4881e611bdbe9fb413a7780721ef8400a1f2341
 # dev-ex (template service broker)
 - package: github.com/lestrrat/go-jsref
+  repo: https://github.com/lestrrat-go/jsref.git
   version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
 # dev-ex (template service broker)
 - package: github.com/lestrrat/go-jsschema
+  repo: https://github.com/lestrrat-go/jsschema.git
   version: a6a42341b50d8d7e2a733db922eefaa756321021
 # master? for bindata
 - package: github.com/jteeuwen/go-bindata
@@ -384,9 +387,11 @@ import:
 - package: github.com/kr/fs
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
 - package: github.com/lestrrat/go-pdebug
-  version: 569c97477ae8837e053e5a50bc739e15172b8ebe
+  repo: https://github.com/lestrrat-go/pdebug.git
+  version: 39f9a71bcabe9432cbdfe4d3d33f41988acd2ce6
 - package: github.com/lestrrat/go-structinfo
-  version: 8204d40bbcd79eb7603cd4c2c998e60eb2479ded
+  repo: https://github.com/lestrrat-go/structinfo.git
+  version: acd51874663bf3297433cb1f1015075c3cbe6130
 - package: github.com/libopenstorage/openstorage
   version: 093a0c3888753c2056e7373183693d670c6bba01
 - package: github.com/lpabon/godbc
@@ -522,7 +527,7 @@ import:
 - package: github.com/xiang90/probing
   version: 07dd2e8dfe18522e9c447ba95f2fe95262f63bb2
 - package: golang.org/x/crypto
-  version: 49796115aa4b964c318aad4f3084fdb41e9aa067
+  version: 57b3e21c3d5606066a87e63cfe07ec6b9f0db000
 - package: golang.org/x/exp
   version: 292a51b8d262487dab23a588950e8052d63d9113
 - package: golang.org/x/net
@@ -530,7 +535,7 @@ import:
 - package: golang.org/x/oauth2
   version: a6bd8cefa1811bd24b86f8902872e4e8225f74c4
 - package: golang.org/x/sys
-  version: 95c6576299259db960f6c5b9b69ea52422860fce
+  version: 15dcb6c0061f497a3f66e3ea034b629c6dd4d99e
 - package: golang.org/x/text
   version: b19bf474d317b857955b12035d2c5acb57ce8b01
 - package: golang.org/x/time
@@ -564,4 +569,5 @@ import:
 - package: k8s.io/utils
   version: 258e2a2fa64568210fbd6267cf1d8fd87c3cb86e
 - package: vbom.ml/util
+  repo: https://github.com/fvbommel/util.git
   version: db5cfe13f5cc80a4990d98e2e1b0707a4d1a5394

@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lestrrat/go-jsref"
-	"github.com/lestrrat/go-jsref/provider"
+	"github.com/lestrrat-go/jsref"
+	"github.com/lestrrat-go/jsref/provider"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -195,7 +195,7 @@ func TestResolveRecursive(t *testing.T) {
 }
 
 func TestGHPR12(t *testing.T) {
-	// https://github.com/lestrrat/go-jsref/pull/2 gave me an example
+	// https://github.com/lestrrat-go/jsref/pull/2 gave me an example
 	// using "foo" as the JS pointer (could've been a typo)
 	// but it gave me weird results, so this is where I'm testing it
 	var v interface{}

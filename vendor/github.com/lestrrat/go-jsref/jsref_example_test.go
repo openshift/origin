@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	jsref "github.com/lestrrat/go-jsref"
-	"github.com/lestrrat/go-jsref/provider"
+	jsref "github.com/lestrrat-go/jsref"
+	"github.com/lestrrat-go/jsref/provider"
 )
 
 func Example() {
