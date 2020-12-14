@@ -38,7 +38,7 @@ func init() {
 
 		// allowed upstream kube images - index and value must match upstream or
 		// tests will fail
-		"k8s.gcr.io/e2e-test-images/agnhost:2.20": 1,
+		"k8s.gcr.io/e2e-test-images/agnhost:2.21": 1,
 		"docker.io/library/nginx:1.14-alpine":     23,
 		"docker.io/library/nginx:1.15-alpine":     24,
 		"docker.io/library/redis:5.0.5-alpine":    31,
