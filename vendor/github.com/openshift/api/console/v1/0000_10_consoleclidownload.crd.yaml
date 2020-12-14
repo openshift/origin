@@ -3,10 +3,12 @@ kind: CustomResourceDefinition
 metadata:
   name: consoleclidownloads.console.openshift.io
   annotations:
-    include.release.openshift.io/self-managed-high-availability: "true"
-    displayName: ConsoleCLIDownload
     description: Extension for configuring openshift web console command line interface
       (CLI) downloads.
+    displayName: ConsoleCLIDownload
+    include.release.openshift.io/ibm-cloud-managed: "true"
+    include.release.openshift.io/self-managed-high-availability: "true"
+    include.release.openshift.io/single-node-developer: "true"
 spec:
   scope: Cluster
   preserveUnknownFields: false

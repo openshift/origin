@@ -37,6 +37,7 @@ type Repository interface {
 	Add(dir string, spec string) error
 	Commit(dir string, message string) error
 	AddRemote(dir string, name, url string) error
+	AddConfig(location, name, value string) error
 	AddLocalConfig(dir, name, value string) error
 	AddGlobalConfig(name, value string) error
 	ShowFormat(dir, commit, format string) (string, error)
@@ -256,13 +257,28 @@ func (r *repository) AddRemote(location, name, url string) error {
 	return err
 }
 
-// AddLocalConfig adds a value to the current repository
+// AddConfig adds a value to the default git configuration. This is one of the following locations:
+//
+// 1. The file or option specified by the GIT_CONFIG environment variable
+// 2. The repository-specific git configuration ($location/.git/config)
+func (r *repository) AddConfig(location, name, value string) error {
+	_, _, err := r.git(location, "config", "--add", name, value)
+	return err
+}
+
+// AddLocalConfig adds a value to git configuration for the repository at the provided location.
+//
+// This command will return an error if the GIT_CONFIG environment variable is set.
+// Use AddConfig instead.
 func (r *repository) AddLocalConfig(location, name, value string) error {
 	_, _, err := r.git(location, "config", "--local", "--add", name, value)
 	return err
 }
 
-// AddGlobalConfig adds a value to the global git configuration
+// AddGlobalConfig adds a value to the global git configuration.
+//
+// This command will return an error if the GIT_CONFIG environment variable is set.
+// Use AddConfig instead.
 func (r *repository) AddGlobalConfig(name, value string) error {
 	_, _, err := r.git("", "config", "--global", "--add", name, value)
 	return err

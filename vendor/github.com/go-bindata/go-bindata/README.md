@@ -184,8 +184,16 @@ format is specified at build time with the appropriate tags.
 The tags are appended to a `// +build` line in the beginning of the output file
 and must follow the build tags syntax specified by the go tool.
 
-### Related projects
+### Serve assets with `net/http`
 
-[go-bindata-assetfs](https://github.com/elazarl/go-bindata-assetfs#readme) - 
-implements `http.FileSystem` interface. Allows you to serve assets with `net/http`.
+With the `-fs` flag, `go-bindata` will add an `AssetFile()` method returning an `http.FileSystem` interface:
 
+	$ go-bindata -fs -prefix "static/" static/
+
+Use `-prefix` flag to strip first level dir, then in your `net/http` router, you can use `AssetFile()` with `http.FileServer()` like:
+
+```go
+mux := http.NewServeMux()
+mux.Handle("/static", http.FileServer(AssetFile()))
+http.ListenAndServe(":8080", mux)
+```

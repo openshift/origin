@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-// LOW LEVEL API: Repersents a potentially cachable HTTP object.
+// LOW LEVEL API: Represents a potentially cachable HTTP object.
 //
 // This struct is designed to be serialized efficiently, so in a high
 // performance caching server, things like Date-Strings don't need to be
@@ -44,7 +44,7 @@ type Object struct {
 	NowUTC time.Time
 }
 
-// LOW LEVEL API: Repersents the results of examinig an Object with
+// LOW LEVEL API: Represents the results of examining an Object with
 // CachableObject and ExpirationObject.
 //
 // TODO(pquerna): decide if this is a good idea or bad
@@ -103,10 +103,10 @@ func CachableObject(obj *Object, rv *ObjectResults) {
 	// To my knowledge, none of them are cachable. Please open a ticket if this is not the case!
 	//
 	default:
-		rv.OutReasons = append(rv.OutReasons, ReasonRequestMethodUnkown)
+		rv.OutReasons = append(rv.OutReasons, ReasonRequestMethodUnknown)
 	}
 
-	if obj.ReqDirectives.NoStore {
+	if obj.ReqDirectives != nil && obj.ReqDirectives.NoStore {
 		rv.OutReasons = append(rv.OutReasons, ReasonRequestNoStore)
 	}
 
@@ -232,7 +232,7 @@ func ExpirationObject(obj *Object, rv *ObjectResults) {
 			println("Expiration: ", expiresTime.String())
 		}
 	} else {
-		// TODO(pquerna): what should the default behavoir be for expiration time?
+		// TODO(pquerna): what should the default behavior be for expiration time?
 	}
 
 	rv.OutExpirationTime = expiresTime
@@ -243,20 +243,29 @@ func UsingRequestResponse(req *http.Request,
 	statusCode int,
 	respHeaders http.Header,
 	privateCache bool) ([]Reason, time.Time, error) {
+	reasons, time, _, _, err := UsingRequestResponseWithObject(req, statusCode, respHeaders, privateCache)
+	return reasons, time, err
+}
 
+// Evaluate cachability based on an HTTP request, and parts of the response.
+// Returns the parsed Object as well.
+func UsingRequestResponseWithObject(req *http.Request,
+	statusCode int,
+	respHeaders http.Header,
+	privateCache bool) ([]Reason, time.Time, []Warning, *Object, error) {
 	var reqHeaders http.Header
 	var reqMethod string
 
 	var reqDir *RequestCacheDirectives = nil
 	respDir, err := ParseResponseCacheControl(respHeaders.Get("Cache-Control"))
 	if err != nil {
-		return nil, time.Time{}, err
+		return nil, time.Time{}, nil, nil, err
 	}
 
 	if req != nil {
 		reqDir, err = ParseRequestCacheControl(req.Header.Get("Cache-Control"))
 		if err != nil {
-			return nil, time.Time{}, err
+			return nil, time.Time{}, nil, nil, err
 		}
 		reqHeaders = req.Header
 		reqMethod = req.Method
@@ -279,7 +288,7 @@ func UsingRequestResponse(req *http.Request,
 	if respHeaders.Get("Date") != "" {
 		dateHeader, err = http.ParseTime(respHeaders.Get("Date"))
 		if err != nil {
-			return nil, time.Time{}, err
+			return nil, time.Time{}, nil, nil, err
 		}
 		dateHeader = dateHeader.UTC()
 	}
@@ -287,7 +296,7 @@ func UsingRequestResponse(req *http.Request,
 	if respHeaders.Get("Last-Modified") != "" {
 		lastModifiedHeader, err = http.ParseTime(respHeaders.Get("Last-Modified"))
 		if err != nil {
-			return nil, time.Time{}, err
+			return nil, time.Time{}, nil, nil, err
 		}
 		lastModifiedHeader = lastModifiedHeader.UTC()
 	}
@@ -312,15 +321,15 @@ func UsingRequestResponse(req *http.Request,
 
 	CachableObject(&obj, &rv)
 	if rv.OutErr != nil {
-		return nil, time.Time{}, rv.OutErr
+		return nil, time.Time{}, nil, nil, rv.OutErr
 	}
 
 	ExpirationObject(&obj, &rv)
 	if rv.OutErr != nil {
-		return nil, time.Time{}, rv.OutErr
+		return nil, time.Time{}, nil, nil, rv.OutErr
 	}
 
-	return rv.OutReasons, rv.OutExpirationTime, nil
+	return rv.OutReasons, rv.OutExpirationTime, rv.OutWarnings, &obj, nil
 }
 
 // calculate if a freshness directive is present: http://tools.ietf.org/html/rfc7234#section-4.2.1

@@ -76,6 +76,9 @@ func ApplyServiceMonitor(client dynamic.Interface, recorder events.Recorder, ser
 		recorder.Eventf("ServiceMonitorCreated", "Created ServiceMonitor.monitoring.coreos.com/v1 because it was missing")
 		return true, nil
 	}
+	if err != nil {
+		return false, err
+	}
 
 	existingCopy := existing.DeepCopy()
 
