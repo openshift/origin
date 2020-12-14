@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/apparentlymart/go-cidr/cidr"
 	g "github.com/onsi/ginkgo"
@@ -17,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/client-go/kubernetes"
 )
 

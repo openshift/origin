@@ -12,8 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
+	quota "k8s.io/apiserver/pkg/quota/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	quota "k8s.io/kubernetes/pkg/quota/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	g "github.com/onsi/ginkgo"
