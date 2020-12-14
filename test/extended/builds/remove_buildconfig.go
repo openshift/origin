@@ -43,6 +43,9 @@ var _ = g.Describe("[sig-builds][Feature:Builds] remove all builds when build co
 					err    error
 					builds [4]string
 				)
+				configMaps, err := oc.KubeClient().CoreV1().ConfigMaps(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				initialConfigMapCount := len(configMaps.Items)
 
 				g.By("starting multiple builds")
 				for i := range builds {
@@ -64,7 +67,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] remove all builds when build co
 					}
 					configMaps, err := oc.KubeClient().CoreV1().ConfigMaps(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
-					if len(configMaps.Items) > 0 {
+					if len(configMaps.Items) > initialConfigMapCount {
 						return false, nil
 					}
 					return true, nil
