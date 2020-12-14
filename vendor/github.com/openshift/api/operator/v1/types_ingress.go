@@ -815,6 +815,16 @@ type IngressControllerHTTPUniqueIdHeaderPolicy struct {
 	Format string `json:"format,omitempty"`
 }
 
+// IngressControllerHTTPHeaderNameCaseAdjustment is the name of an HTTP header
+// (for example, "X-Forwarded-For") in the desired capitalization.  The value
+// must be a valid HTTP header name as defined in RFC 2616 section 4.2.
+//
+// +optional
+// +kubebuilder:validation:Pattern="^$|^[-!#$%&'*+.0-9A-Z^_`a-z|~]+$"
+// +kubebuilder:validation:MinLength=0
+// +kubebuilder:validation:MaxLength=1024
+type IngressControllerHTTPHeaderNameCaseAdjustment string
+
 // IngressControllerHTTPHeaders specifies how the IngressController handles
 // certain HTTP headers.
 type IngressControllerHTTPHeaders struct {
@@ -851,6 +861,26 @@ type IngressControllerHTTPHeaders struct {
 	//
 	// +optional
 	UniqueId IngressControllerHTTPUniqueIdHeaderPolicy `json:"uniqueId,omitempty"`
+
+	// headerNameCaseAdjustments specifies case adjustments that can be
+	// applied to HTTP header names.  Each adjustment is specified as an
+	// HTTP header name with the desired capitalization.  For example,
+	// specifying "X-Forwarded-For" indicates that the "x-forwarded-for"
+	// HTTP header should be adjusted to have the specified capitalization.
+	//
+	// These adjustments are only applied to cleartext, edge-terminated, and
+	// re-encrypt routes, and only when using HTTP/1.
+	//
+	// For request headers, these adjustments are applied only for routes
+	// that have the haproxy.router.openshift.io/h1-adjust-case=true
+	// annotation.  For response headers, these adjustments are applied to
+	// all HTTP responses.
+	//
+	// If this field is empty, no request headers are adjusted.
+	//
+	// +nullable
+	// +optional
+	HeaderNameCaseAdjustments []IngressControllerHTTPHeaderNameCaseAdjustment `json:"headerNameCaseAdjustments,omitempty"`
 }
 
 var (

@@ -5,14 +5,18 @@ module k8s.io/cloud-provider
 go 1.15
 
 require (
-	github.com/google/go-cmp v0.4.0
-	github.com/stretchr/testify v1.4.0
-	k8s.io/api v0.19.2
-	k8s.io/apimachinery v0.19.2
-	k8s.io/client-go v0.19.2
-	k8s.io/component-base v0.19.2
-	k8s.io/klog/v2 v2.3.0
-	k8s.io/utils v0.0.0-20200729134348-d5654de09c73
+	github.com/google/go-cmp v0.5.2
+	github.com/spf13/cobra v1.1.1
+	github.com/spf13/pflag v1.0.5
+	github.com/stretchr/testify v1.6.1
+	k8s.io/api v0.20.0
+	k8s.io/apimachinery v0.20.0
+	k8s.io/apiserver v0.20.0
+	k8s.io/client-go v0.20.0
+	k8s.io/component-base v0.20.0
+	k8s.io/controller-manager v0.0.0
+	k8s.io/klog/v2 v2.4.0
+	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 )
 
 replace (
@@ -34,9 +38,10 @@ replace (
 	k8s.io/cluster-bootstrap => ../cluster-bootstrap
 	k8s.io/code-generator => ../code-generator
 	k8s.io/component-base => ../component-base
+	k8s.io/component-helpers => ../component-helpers
+	k8s.io/controller-manager => ../controller-manager
 	k8s.io/cri-api => ../cri-api
 	k8s.io/csi-translation-lib => ../csi-translation-lib
-	k8s.io/klog/v2 => k8s.io/klog/v2 v2.2.0
 	k8s.io/kube-aggregator => ../kube-aggregator
 	k8s.io/kube-controller-manager => ../kube-controller-manager
 	k8s.io/kube-proxy => ../kube-proxy
@@ -45,6 +50,6 @@ replace (
 	k8s.io/kubelet => ../kubelet
 	k8s.io/legacy-cloud-providers => ../legacy-cloud-providers
 	k8s.io/metrics => ../metrics
+	k8s.io/mount-utils => ../mount-utils
 	k8s.io/sample-apiserver => ../sample-apiserver
-	vbom.ml/util => vbom.ml/util v0.0.0-20160121211510-db5cfe13f5cc
 )

@@ -36,6 +36,10 @@ type HelmChartRepositoryList struct {
 // Helm chart repository exposed within the cluster
 type HelmChartRepositorySpec struct {
 
+	// If set to true, disable the repo usage in the cluster
+	// +optional
+	Disabled bool `json:"disabled,omitempty"`
+
 	// Optional associated human readable repository name, it can be used by UI for displaying purposes
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=100

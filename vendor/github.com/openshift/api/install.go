@@ -27,7 +27,6 @@ import (
 	krbacv1beta1 "k8s.io/api/rbac/v1beta1"
 	kschedulingv1alpha1 "k8s.io/api/scheduling/v1alpha1"
 	kschedulingv1beta1 "k8s.io/api/scheduling/v1beta1"
-	ksettingsv1alpha1 "k8s.io/api/settings/v1alpha1"
 	kstoragev1 "k8s.io/api/storage/v1"
 	kstoragev1alpha1 "k8s.io/api/storage/v1alpha1"
 	kstoragev1beta1 "k8s.io/api/storage/v1beta1"
@@ -115,7 +114,6 @@ var (
 		krbacv1alpha1.AddToScheme,
 		kschedulingv1alpha1.AddToScheme,
 		kschedulingv1beta1.AddToScheme,
-		ksettingsv1alpha1.AddToScheme,
 		kstoragev1.AddToScheme,
 		kstoragev1beta1.AddToScheme,
 		kstoragev1alpha1.AddToScheme,
