@@ -1974,7 +1974,8 @@ k8s.io/component-base/metrics/testutil
 k8s.io/component-base/term
 k8s.io/component-base/version
 k8s.io/component-base/version/verflag
-# k8s.io/component-helpers v0.0.0 => github.com/openshift/kubernetes/staging/src/k8s.io/component-helpers v0.0.0-20201214164629-86b3ca48ea10
+# k8s.io/component-helpers v0.20.0 => github.com/openshift/kubernetes/staging/src/k8s.io/component-helpers v0.0.0-20201214164629-86b3ca48ea10
+## explicit
 k8s.io/component-helpers/apimachinery/lease
 k8s.io/component-helpers/auth/rbac/reconciliation
 k8s.io/component-helpers/auth/rbac/validation
