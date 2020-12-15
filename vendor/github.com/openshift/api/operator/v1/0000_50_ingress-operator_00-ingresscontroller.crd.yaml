@@ -2,7 +2,9 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    include.release.openshift.io/ibm-cloud-managed: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
+    include.release.openshift.io/single-node-developer: "true"
   name: ingresscontrollers.operator.openshift.io
 spec:
   group: operator.openshift.io
@@ -229,6 +231,30 @@ spec:
                     - IfNone
                     - Never
                     type: string
+                  headerNameCaseAdjustments:
+                    description: "headerNameCaseAdjustments specifies case adjustments
+                      that can be applied to HTTP header names.  Each adjustment is
+                      specified as an HTTP header name with the desired capitalization.
+                      \ For example, specifying \"X-Forwarded-For\" indicates that
+                      the \"x-forwarded-for\" HTTP header should be adjusted to have
+                      the specified capitalization. \n These adjustments are only
+                      applied to cleartext, edge-terminated, and re-encrypt routes,
+                      and only when using HTTP/1. \n For request headers, these adjustments
+                      are applied only for routes that have the haproxy.router.openshift.io/h1-adjust-case=true
+                      annotation.  For response headers, these adjustments are applied
+                      to all HTTP responses. \n If this field is empty, no request
+                      headers are adjusted."
+                    items:
+                      description: IngressControllerHTTPHeaderNameCaseAdjustment is
+                        the name of an HTTP header (for example, "X-Forwarded-For")
+                        in the desired capitalization.  The value must be a valid
+                        HTTP header name as defined in RFC 2616 section 4.2.
+                      maxLength: 1024
+                      minLength: 0
+                      pattern: ^$|^[-!#$%&'*+.0-9A-Z^_`a-z|~]+$
+                      type: string
+                    nullable: true
+                    type: array
                   uniqueId:
                     description: "uniqueId describes configuration for a custom HTTP
                       header that the ingress controller should inject into incoming

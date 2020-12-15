@@ -3,41 +3,38 @@
 package network
 
 import (
-	"context"
 	"net"
 	"os"
 	"syscall"
 	"time"
 
 	"golang.org/x/sys/unix"
+
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
 func dialerWithDefaultOptions() DialContext {
 	nd := &net.Dialer{
 		// TCP_USER_TIMEOUT does affect the behaviour of connect() which is controlled by this field so we set it to the same value
 		Timeout: 25 * time.Second,
-	}
-	return wrapDialContext(nd.DialContext)
-}
-
-func wrapDialContext(dc DialContext) DialContext {
-	return func(ctx context.Context, network, address string) (net.Conn, error) {
-		conn, err := dc(ctx, network, address)
-		if err != nil {
-			return conn, err
-		}
-
-		if tcpCon, ok := conn.(*net.TCPConn); ok {
-			tcpFD, err := tcpCon.File()
+		// KeepAlive must to be set to a negative value to stop std library from applying the default values
+		// by doing so we ensure that the options we are interested in won't be overwritten
+		KeepAlive: time.Duration(-1),
+		Control: func(network, address string, con syscall.RawConn) error {
+			var errs []error
+			err := con.Control(func(fd uintptr) {
+				optionsErr := setDefaultSocketOptions(int(fd))
+				if optionsErr != nil {
+					errs = append(errs, optionsErr)
+				}
+			})
 			if err != nil {
-				return conn, err
+				errs = append(errs, err)
 			}
-			if err := setDefaultSocketOptions(int(tcpFD.Fd())); err != nil {
-				return conn, err
-			}
-		}
-		return conn, nil
+			return utilerrors.NewAggregate(errs)
+		},
 	}
+	return nd.DialContext
 }
 
 // setDefaultSocketOptions sets custom socket options so that we can detect connections to an unhealthy (dead) peer quickly.
@@ -57,6 +54,11 @@ func setDefaultSocketOptions(fd int) error {
 
 	// specifies the threshold for sending the first KEEP ALIVE probe in seconds
 	tcpKeepIdle := int(roundDuration(2*time.Second, time.Second))
+
+	// enable keep-alive probes
+	if err := syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_KEEPALIVE, 1); err != nil {
+		return wrapSyscallError("setsockopt", err)
+	}
 
 	if err := syscall.SetsockoptInt(int(fd), syscall.IPPROTO_TCP, unix.TCP_USER_TIMEOUT, tcpUserTimeoutInMilliSeconds); err != nil {
 		return wrapSyscallError("setsockopt", err)

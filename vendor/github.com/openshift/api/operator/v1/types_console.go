@@ -106,6 +106,51 @@ type ConsoleCustomization struct {
 	// SVG format preferred
 	// +optional
 	CustomLogoFile configv1.ConfigMapFileReference `json:"customLogoFile,omitempty"`
+	// developerCatalog allows to configure the shown developer catalog categories.
+	// +kubebuilder:validation:Optional
+	// +optional
+	DeveloperCatalog DeveloperConsoleCatalogCustomization `json:"developerCatalog,omitempty"`
+}
+
+// DeveloperConsoleCatalogCustomization allow cluster admin to configure developer catalog.
+type DeveloperConsoleCatalogCustomization struct {
+	// categories which are shown in the developer catalog.
+	// +kubebuilder:validation:Optional
+	// +optional
+	Categories []DeveloperConsoleCatalogCategory `json:"categories,omitempty"`
+}
+
+// DeveloperConsoleCatalogCategoryMeta are the key identifiers of a developer catalog category.
+type DeveloperConsoleCatalogCategoryMeta struct {
+	// ID is an identifier used in the URL to enable deep linking in console.
+	// ID is required and must have 1-32 URL safe (A-Z, a-z, 0-9, - and _) characters.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=32
+	// +kubebuilder:validation:Pattern=`^[A-Za-z0-9-_]+$`
+	// +required
+	ID string `json:"id"`
+	// label defines a category display label. It is required and must have 1-64 characters.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=64
+	// +required
+	Label string `json:"label"`
+	// tags is a list of strings that will match the category. A selected category
+	// show all items which has at least one overlapping tag between category and item.
+	// +kubebuilder:validation:Optional
+	// +optional
+	Tags []string `json:"tags,omitempty"`
+}
+
+// DeveloperConsoleCatalogCategory for the developer console catalog.
+type DeveloperConsoleCatalogCategory struct {
+	// defines top level category ID, label and filter tags.
+	DeveloperConsoleCatalogCategoryMeta `json:",inline"`
+	// subcategories defines a list of child categories.
+	// +kubebuilder:validation:Optional
+	// +optional
+	Subcategories []DeveloperConsoleCatalogCategoryMeta `json:"subcategories,omitempty"`
 }
 
 // Brand is a specific supported brand within the console.

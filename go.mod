@@ -15,11 +15,11 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/go-ozzo/ozzo-validation v0.0.0-00010101000000-000000000000 // indirect
-	github.com/golang/protobuf v1.4.2
-	github.com/google/go-cmp v0.4.0
+	github.com/golang/protobuf v1.4.3
+	github.com/google/go-cmp v0.5.2
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-querystring v0.0.0-00010101000000-000000000000 // indirect
-	github.com/google/uuid v1.1.1
+	github.com/google/uuid v1.1.2
 	github.com/gorilla/context v0.0.0-00010101000000-000000000000 // indirect
 	github.com/heketi/tests v0.0.0-00010101000000-000000000000 // indirect
 	github.com/lestrrat-go/jspointer v0.0.0-20181205001929-82fadba7561c // indirect
@@ -33,44 +33,47 @@ require (
 	github.com/mohae/deepcopy v0.0.0-00010101000000-000000000000 // indirect
 	github.com/onsi/ginkgo v4.5.0-origin.1+incompatible
 	github.com/onsi/gomega v1.7.0
-	github.com/opencontainers/go-digest v1.0.0-rc1
-	github.com/openshift/api v0.0.0-20201102162614-9252afb032e1
-	github.com/openshift/apiserver-library-go v0.0.0-20201113074933-3e1a513af676
+	github.com/opencontainers/go-digest v1.0.0
+	github.com/openshift/api v0.0.0-20201214114959-164a2fb63b5f
+	github.com/openshift/apiserver-library-go v0.0.0-20201214145556-6f1013f42f98
 	github.com/openshift/build-machinery-go v0.0.0-20200917070002-f171684f77ab
-	github.com/openshift/client-go v0.0.0-20201020082437-7737f16e53fc
-	github.com/openshift/library-go v0.0.0-20201102091359-c4fa0f5b3a08
+	github.com/openshift/client-go v0.0.0-20201214125552-e615e336eb49
+	github.com/openshift/library-go v0.0.0-20201214135256-d265f469e75b
 	github.com/pborman/uuid v1.2.0
 	github.com/pquerna/cachecontrol v0.0.0-00010101000000-000000000000 // indirect
 	github.com/prometheus/client_golang v1.7.1
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.10.0
-	github.com/spf13/cobra v1.0.0
+	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.4.0
+	github.com/spf13/viper v1.7.0
 	github.com/stretchr/objx v0.2.0
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.6.1
 	github.com/urfave/negroni v0.0.0-00010101000000-000000000000 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
-	go.etcd.io/etcd v3.3.17+incompatible
-	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	golang.org/x/net v0.0.0-20200707034311-ab3426394381
-	golang.org/x/oauth2 v0.0.0-20191202225959-858c2ad4c8b6
+	go.etcd.io/etcd v0.5.0-alpha.5.0.20200910180754-dd1b699fc489
+	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
+	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
+	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	google.golang.org/grpc v1.27.1
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v2 v2.3.0
-	k8s.io/api v0.19.2
-	k8s.io/apiextensions-apiserver v0.19.2
-	k8s.io/apimachinery v0.19.2
-	k8s.io/apiserver v0.19.2
-	k8s.io/cli-runtime v0.19.2
-	k8s.io/client-go v0.19.2
-	k8s.io/component-base v0.19.2
+	k8s.io/api v0.20.0
+	k8s.io/apiextensions-apiserver v0.20.0
+	k8s.io/apimachinery v0.20.0
+	k8s.io/apiserver v0.20.0
+	k8s.io/cli-runtime v0.20.0
+	k8s.io/client-go v0.20.0
+	k8s.io/component-base v0.20.0
+	k8s.io/component-helpers v0.20.0
+	k8s.io/controller-manager v0.20.0 // indirect
 	k8s.io/klog v1.0.0
-	k8s.io/kube-openapi v0.0.0-20200805222855-6aeccd4b50c6
-	k8s.io/kubectl v0.19.2
-	k8s.io/kubelet v0.19.2
-	k8s.io/kubernetes v1.19.2
-	k8s.io/legacy-cloud-providers v0.19.2
+	k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd
+	k8s.io/kubectl v0.20.0
+	k8s.io/kubelet v0.20.0
+	k8s.io/kubernetes v1.20.0
+	k8s.io/legacy-cloud-providers v0.20.0
+	k8s.io/mount-utils v0.20.0 // indirect
 	sigs.k8s.io/yaml v1.2.0
 )
 
@@ -100,7 +103,6 @@ replace (
 	github.com/armon/consul-api => github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6
 	github.com/asaskevich/govalidator => github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 	github.com/auth0/go-jwt-middleware => github.com/auth0/go-jwt-middleware v0.0.0-20170425171159-5493cabe49f7
-	github.com/aws/aws-sdk-go => github.com/aws/aws-sdk-go v1.28.2
 	github.com/bazelbuild/bazel-gazelle => github.com/bazelbuild/bazel-gazelle v0.19.1-0.20191105222053-70208cbdc798
 	github.com/bazelbuild/buildtools => github.com/bazelbuild/buildtools v0.0.0-20190917191645-69366ca98f89
 	github.com/bazelbuild/rules_go => github.com/bazelbuild/rules_go v0.0.0-20190719190356-6dae44dc5cab
@@ -138,11 +140,6 @@ replace (
 	github.com/daviddengcn/go-colortext => github.com/daviddengcn/go-colortext v0.0.0-20160507010035-511bcaf42ccd
 	github.com/dgrijalva/jwt-go => github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dnaeon/go-vcr => github.com/dnaeon/go-vcr v1.0.1
-	github.com/docker/distribution => github.com/docker/distribution v2.7.1+incompatible
-	github.com/docker/docker => github.com/docker/docker v0.7.3-0.20190327010347-be7ac8be2ae0
-	github.com/docker/go-connections => github.com/docker/go-connections v0.3.0
-	github.com/docker/go-units => github.com/docker/go-units v0.4.0
-	github.com/docker/spdystream => github.com/docker/spdystream v0.0.0-20160310174837-449fdfce4d96
 	github.com/dustin/go-humanize => github.com/dustin/go-humanize v1.0.0
 	github.com/elazarl/goproxy => github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153 // 947c36da3153 is the SHA for git tag v1.11
 	github.com/emicklei/go-restful => github.com/emicklei/go-restful v2.9.5+incompatible
@@ -318,7 +315,7 @@ replace (
 	github.com/pquerna/cachecontrol => github.com/pquerna/cachecontrol v0.0.0-20171018203845-0dec1b30a021
 	github.com/pquerna/ffjson => github.com/pquerna/ffjson v0.0.0-20180717144149-af8b230fcd20
 	github.com/quasilyte/go-consistent => github.com/quasilyte/go-consistent v0.0.0-20190521200055-c6f3937de18c
-	github.com/quobyte/api => github.com/quobyte/api v0.1.2
+	github.com/quobyte/api => github.com/quobyte/api v0.1.8
 	github.com/remyoudompheng/bigfft => github.com/remyoudompheng/bigfft v0.0.0-20170806203942-52369c62f446
 	github.com/robfig/cron => github.com/robfig/cron v1.1.0
 	github.com/rogpeppe/fastuuid => github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af
@@ -344,7 +341,7 @@ replace (
 	github.com/spf13/jwalterweatherman => github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/pflag => github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper => github.com/spf13/viper v1.3.2
-	github.com/storageos/go-api => github.com/storageos/go-api v0.0.0-20180912212459-343b3eff91fc
+	github.com/storageos/go-api => github.com/storageos/go-api v2.2.0+incompatible
 	github.com/stretchr/objx => github.com/stretchr/objx v0.2.0
 	github.com/stretchr/testify => github.com/stretchr/testify v1.4.0
 	github.com/syndtr/gocapability => github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
@@ -368,7 +365,6 @@ replace (
 	github.com/xlab/handysort => github.com/xlab/handysort v0.0.0-20150421192137-fb3537ed64a1
 	github.com/xordataexchange/crypt => github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77
 	go.etcd.io/bbolt => go.etcd.io/bbolt v1.3.3
-	go.etcd.io/etcd => go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738 // 3cf2f69b5738 is the SHA for git tag v3.4.3
 	go.mongodb.org/mongo-driver => go.mongodb.org/mongo-driver v1.1.2
 	go.opencensus.io => go.opencensus.io v0.21.0
 	go.uber.org/atomic => go.uber.org/atomic v1.3.2
@@ -382,7 +378,6 @@ replace (
 	golang.org/x/lint => golang.org/x/lint v0.0.0-20190409202823-959b441ac422
 	golang.org/x/mobile => golang.org/x/mobile v0.0.0-20190312151609-d3739f865fa6
 	golang.org/x/mod => golang.org/x/mod v0.0.0-20190513183733-4bf6d317e70e
-	golang.org/x/net => golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/perf => golang.org/x/perf v0.0.0-20180704124530-6e6d33e29852
 	golang.org/x/sync => golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
@@ -396,7 +391,7 @@ replace (
 	gonum.org/v1/plot => gonum.org/v1/plot v0.0.0-20190515093506-e2840ee46a6b
 	google.golang.org/appengine => google.golang.org/appengine v1.5.0
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
-	google.golang.org/grpc => google.golang.org/grpc v1.26.0
+	google.golang.org/grpc => google.golang.org/grpc v1.27.1
 	gopkg.in/airbrake/gobrake.v2 => gopkg.in/airbrake/gobrake.v2 v2.0.9
 	gopkg.in/alecthomas/kingpin.v2 => gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/check.v1 => gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
@@ -417,36 +412,38 @@ replace (
 	gotest.tools/gotestsum => gotest.tools/gotestsum v0.3.5
 	grpc.go4.org => grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
 	honnef.co/go/tools => honnef.co/go/tools v0.0.1-2019.2.2
-	k8s.io/api => k8s.io/api v0.19.2
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.19.2
-	k8s.io/apimachinery => k8s.io/apimachinery v0.19.2
-	k8s.io/apiserver => github.com/openshift/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20201119152602-89f5d4548df7
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.19.2
-	k8s.io/client-go => github.com/openshift/kubernetes/staging/src/k8s.io/client-go v0.0.0-20201119152602-89f5d4548df7
-	k8s.io/cloud-provider => github.com/openshift/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-20201119152602-89f5d4548df7
-	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.19.2
-	k8s.io/code-generator => k8s.io/code-generator v0.19.2
-	k8s.io/component-base => k8s.io/component-base v0.19.2
-	k8s.io/cri-api => k8s.io/cri-api v0.19.2
-	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.19.2
+	k8s.io/api => k8s.io/api v0.20.0
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.20.0
+	k8s.io/apimachinery => k8s.io/apimachinery v0.20.0
+	k8s.io/apiserver => github.com/marun/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20201215040514-b7c5d629b30f
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.20.0
+	k8s.io/client-go => github.com/marun/kubernetes/staging/src/k8s.io/client-go v0.0.0-20201215040514-b7c5d629b30f
+	k8s.io/cloud-provider => github.com/marun/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-20201215040514-b7c5d629b30f
+	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.20.0
+	k8s.io/code-generator => k8s.io/code-generator v0.20.0
+	k8s.io/component-base => k8s.io/component-base v0.20.0
+	k8s.io/component-helpers => k8s.io/component-helpers v0.20.0
+	k8s.io/controller-manager => github.com/marun/kubernetes/staging/src/k8s.io/controller-manager v0.0.0-20201215040514-b7c5d629b30f
+	k8s.io/cri-api => k8s.io/cri-api v0.20.0
+	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.20.0
 	k8s.io/gengo => k8s.io/gengo v0.0.0-20200114144118-36b2048a9120
 	k8s.io/heapster => k8s.io/heapster v1.2.0-beta.1
 	k8s.io/klog => k8s.io/klog v1.0.0
-	k8s.io/kube-aggregator => github.com/openshift/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20201119152602-89f5d4548df7
-	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.19.2
-	k8s.io/kube-proxy => k8s.io/kube-proxy v0.19.2
-	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.19.2
-	k8s.io/kubectl => k8s.io/kubectl v0.19.2
-	k8s.io/kubelet => k8s.io/kubelet v0.19.2
-	k8s.io/kubernetes => github.com/openshift/kubernetes v1.20.0-alpha.0.0.20201119152602-89f5d4548df7
-	k8s.io/legacy-cloud-providers => github.com/openshift/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20201119152602-89f5d4548df7
-	k8s.io/metrics => k8s.io/metrics v0.19.2
+	k8s.io/kube-aggregator => github.com/marun/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20201215040514-b7c5d629b30f
+	k8s.io/kube-controller-manager => github.com/marun/kubernetes/staging/src/k8s.io/kube-controller-manager v0.0.0-20201215040514-b7c5d629b30f
+	k8s.io/kube-proxy => k8s.io/kube-proxy v0.20.0
+	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.20.0
+	k8s.io/kubectl => k8s.io/kubectl v0.20.0
+	k8s.io/kubelet => k8s.io/kubelet v0.20.0
+	k8s.io/kubernetes => github.com/marun/kubernetes v0.0.0-20201215040514-b7c5d629b30f
+	k8s.io/legacy-cloud-providers => github.com/marun/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20201215040514-b7c5d629b30f
+	k8s.io/metrics => k8s.io/metrics v0.20.0
+	k8s.io/mount-utils => github.com/marun/kubernetes/staging/src/k8s.io/mount-utils v0.0.0-20201215040514-b7c5d629b30f
 	k8s.io/repo-infra => k8s.io/repo-infra v0.0.1-alpha.1
-	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.19.2
-	k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.19.2
-	k8s.io/sample-controller => k8s.io/sample-controller v0.19.2
+	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.20.0
+	k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.20.0
+	k8s.io/sample-controller => k8s.io/sample-controller v0.20.0
 	k8s.io/system-validators => k8s.io/system-validators v1.0.4
-	k8s.io/utils => k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89
 	modernc.org/cc => modernc.org/cc v1.0.0
 	modernc.org/golex => modernc.org/golex v1.0.0
 	modernc.org/mathutil => modernc.org/mathutil v1.0.0
@@ -460,6 +457,5 @@ replace (
 	sigs.k8s.io/kustomize => sigs.k8s.io/kustomize v2.0.3+incompatible
 	sigs.k8s.io/structured-merge-diff/v3 => sigs.k8s.io/structured-merge-diff/v3 v3.0.0
 	sigs.k8s.io/yaml => sigs.k8s.io/yaml v1.2.0
-	sourcegraph.com/sqs/pbtypes => sourcegraph.com/sqs/pbtypes v0.0.0-20180604144634-d3ebe8f20ae4
 	vbom.ml/util => vbom.ml/util v0.0.0-20160121211510-db5cfe13f5cc
 )
