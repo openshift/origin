@@ -497,9 +497,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-api-machinery] Servers with support for Table transformation should return a 406 for a backend which does not implement metadata [Conformance]": "should return a 406 for a backend which does not implement metadata [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Servers with support for Table transformation should return chunks of table results for list calls": "should return chunks of table results for list calls [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Servers with support for Table transformation should return chunks of table results for list calls": "should return chunks of table results for list calls [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Servers with support for Table transformation should return generic metadata details across all namespaces for nodes": "should return generic metadata details across all namespaces for nodes [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Servers with support for Table transformation should return generic metadata details across all namespaces for nodes": "should return generic metadata details across all namespaces for nodes [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-api-machinery] Servers with support for Table transformation should return pod details": "should return pod details [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
