@@ -163,7 +163,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] testing build configurati
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = oc.Run("patch").Args("bc/mydockertest", "-p", `{"spec":{"output":{"to":{"kind":"ImageStreamTag","name":"mydockertest:latest"}}}}`).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("patch").Args("bc/mydockertest", "-p", `{"spec":{"source":{"dockerfile":"FROM busybox:latest \n ENTRYPOINT /bin/sleep 600 \n"}}}`).Execute()
+				err = oc.Run("patch").Args("bc/mydockertest", "-p", `{"spec":{"source":{"dockerfile":"FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest \n ENTRYPOINT /bin/sleep 600 \n"}}}`).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("starting a build")

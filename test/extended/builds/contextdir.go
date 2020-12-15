@@ -102,7 +102,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds with a context dir
 				repo, err := exutil.NewGitRepo("contextdir")
 				o.Expect(err).NotTo(o.HaveOccurred())
 				defer repo.Remove()
-				err = repo.AddAndCommit("2.3/Dockerfile", "FROM busybox")
+				err = repo.AddAndCommit("2.3/Dockerfile", "FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest")
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				exutil.WaitForOpenShiftNamespaceImageStreams(oc)

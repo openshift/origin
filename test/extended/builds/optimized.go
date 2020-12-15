@@ -21,7 +21,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] Optimized image builds", func()
 		oc             = exutil.NewCLI("build-dockerfile-env")
 		skipLayers     = buildv1.ImageOptimizationSkipLayers
 		testDockerfile = `
-FROM centos:7
+FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 RUN yum list installed
 USER 1001
 `
