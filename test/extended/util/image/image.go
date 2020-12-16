@@ -20,6 +20,10 @@ func init() {
 		// used by oc mirror test, should be moved to publish to quay
 		"docker.io/library/registry:2.7.1": -1,
 
+		// used by build s2i e2e's to verify that builder with USER root are not allowed
+		// the github.com/openshift/build-test-images repo is built out of github.com/openshift/release
+		"registry.svc.ci.openshift.org/ocp/4.7:test-build-roots2i": -1,
+
 		// moved to GCR
 		"k8s.gcr.io/sig-storage/csi-attacher:v2.2.0":              -1,
 		"k8s.gcr.io/sig-storage/csi-attacher:v3.0.0":              -1,

@@ -50,3 +50,4 @@ k8s.gcr.io/sig-storage/livenessprobe:v1.1.0 quay.io/openshift/community-e2e-imag
 k8s.gcr.io/sig-storage/mock-driver:v3.1.0 quay.io/openshift/community-e2e-images:e2e-k8s-gcr-io-sig-storage-mock-driver-v3-1-0-PWpfweH52dPLzByS
 k8s.gcr.io/sig-storage/nfs-provisioner:v2.2.2 quay.io/openshift/community-e2e-images:e2e-22-k8s-gcr-io-sig-storage-nfs-provisioner-v2-2-2-dbgtOCwYmEGggl01
 k8s.gcr.io/sig-storage/snapshot-controller:v2.1.1 quay.io/openshift/community-e2e-images:e2e-k8s-gcr-io-sig-storage-snapshot-controller-v2-1-1-n5BM_jX2npV3RxHM
+registry.svc.ci.openshift.org/ocp/4.7:test-build-roots2i quay.io/openshift/community-e2e-images:e2e-registry-svc-ci-openshift-org-ocp-4-7-test-build-roots2i-ZzDWhWn0wPB9cLFM
