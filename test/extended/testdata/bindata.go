@@ -54026,7 +54026,7 @@ objects:
           # May not be used in combination with REQUIRE_GIT_AUTH
           #- name: REQUIRE_SERVER_AUTH
           #  value: "-"
-          
+
           # The namespace to check authorization against when
           # REQUIRE_SERVICE_AUTH is used. Users must have 'get' on
           # 'pods' to pull and 'create' on 'pods' to push.
