@@ -107,6 +107,18 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1825027
 			`\[Feature:Platform\] Managed cluster should ensure control plane operators do not make themselves unevictable`,
 		},
+		"[Skipped:Disruptive]": {
+			// DR testing induces ungraceful termination by forcefully shutting down nodes
+			`\[sig-api-machinery\]\[Feature:APIServer\]\[Late\] kube-apiserver terminates within graceful termination period`,
+			`\[sig-api-machinery\]\[Feature:APIServer\]\[Late\] kubelet terminates kube-apiserver gracefully`,
+
+			// DR testing results in an excessive amount of alerts
+			`\[sig-instrumentation\]\[Late\] Alerts shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster`,
+
+			// Machine API deletion does not properly handle stopped instances on AWS or GCP
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1905709
+			`\[sig-cluster-lifecycle\]\[Feature:DisasterRecovery\]\[Disruptive\] \[Feature:NodeRecovery\] Cluster should survive master and worker failure and recover with machine health checks`,
+		},
 	}
 
 	// labelExcludes temporarily block tests out of a specific suite
