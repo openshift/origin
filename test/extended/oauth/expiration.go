@@ -37,14 +37,13 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Token Expiration]", func() 
 	})
 
 	g.Context("Using a OAuth client with a non-default token max age", func() {
-		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
-			e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions have different oauth token rules")
-		}
-
 		var oAuthClientResource *oauthv1.OAuthClient
 		var accessTokenMaxAgeSeconds int32
 
 		g.JustBeforeEach(func() {
+			if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
+				e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions have different oauth token rules")
+			}
 			var err error
 			oAuthClientResource, err = oc.AdminOAuthClient().OauthV1().OAuthClients().Create(context.Background(), &oauthv1.OAuthClient{
 				ObjectMeta:               metav1.ObjectMeta{Name: fmt.Sprintf("%s-%05d", oc.Namespace(), accessTokenMaxAgeSeconds)},
