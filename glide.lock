@@ -1,5 +1,5 @@
-hash: 0f7cfa4789bdfcec6a27aace5cf6e1e2ea4fa19fe2fae1c87d698cccdc01c84f
-updated: 2020-07-09T10:00:16.576926+02:00
+hash: ce4c4ac1ff87e40bdadde78c514ea0d23b66b64bc8512c7d66fd5a3590e1a557
+updated: 2020-12-17T16:32:21.888625+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: a7dc8b61c822528f973a5e4e7b272055c6fdb43e
@@ -913,7 +913,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: eeebfaa62843201e865e96a61eb961ee2c446775
+  version: 07b0830b874034180d0e35d352241fec31ab1060
   subpackages:
   - pkg/apiserver/admission/admissionrestconfig
   - pkg/apiserver/admission/admissiontimeout
@@ -942,6 +942,7 @@ imports:
   - pkg/image/internal/digest
   - pkg/image/internal/reference
   - pkg/image/reference
+  - pkg/network
   - pkg/network/networkutils
   - pkg/oauth/oauthdiscovery
   - pkg/operator/events
@@ -1633,7 +1634,7 @@ imports:
   - test/integration
   - test/integration/fixtures
 - name: k8s.io/apimachinery
-  version: 486331e63b6ae160381030bac9dfb4c3c93452d2
+  version: f810590f3b946cec313a5daa38f61332b49b01fe
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/apitesting
@@ -1699,7 +1700,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: e7585ae3a3784f2c0ca4b69d57e0b048aaf47502
+  version: ccec12e504b9e5a58b5d878f690f988880cad263
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1850,7 +1851,7 @@ imports:
   - pkg/printers
   - pkg/resource
 - name: k8s.io/client-go
-  version: 13306934dd770b6e6bbeb9488f028c81c32c6411
+  version: cea66ed5144fe6f24eb0faefaecf77cbac335f05
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -2209,12 +2210,12 @@ imports:
   subpackages:
   - config/v1alpha1
 - name: k8s.io/kube-scheduler
-  version: 03ae14b8002f6f0f0e9d68b173cb9aa8c06a39ed
+  version: b9788b571b6fcea8886692285083b260a9c7688c
   repo: https://github.com/openshift/kubernetes-kube-scheduler.git
   subpackages:
   - config/v1
   - config/v1alpha1
-  - config/v1alpha2
+  - config/v1beta1
   - extender/v1
 - name: k8s.io/kubectl
   version: 9fb4d7b8ee32055adec23f29c6cfedb7ce9cd8aa
@@ -2302,7 +2303,7 @@ imports:
   - pkg/apis/deviceplugin/v1beta1
   - pkg/apis/pluginregistration/v1
 - name: k8s.io/kubernetes
-  version: cb0cba374fbdfc57e00b127d6f266aaa58bfcc46
+  version: 65a1d9482ceb5223bf76b2ab49f0244740ffbf34
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app
@@ -2374,7 +2375,6 @@ imports:
   - openshift-kube-apiserver/configdefault
   - openshift-kube-apiserver/enablement
   - openshift-kube-apiserver/openshiftkubeapiserver
-  - pkg/api/endpoints
   - pkg/api/legacyscheme
   - pkg/api/persistentvolume
   - pkg/api/persistentvolumeclaim
@@ -2937,7 +2937,7 @@ imports:
   - pkg/scheduler/apis/config/scheme
   - pkg/scheduler/apis/config/v1
   - pkg/scheduler/apis/config/v1alpha1
-  - pkg/scheduler/apis/config/v1alpha2
+  - pkg/scheduler/apis/config/v1beta1
   - pkg/scheduler/apis/config/validation
   - pkg/scheduler/core
   - pkg/scheduler/framework/plugins
@@ -3203,7 +3203,7 @@ imports:
   - third_party/forked/gonum/graph/traverse
   - third_party/forked/ipvs
 - name: k8s.io/legacy-cloud-providers
-  version: b6226989142af5acc03b7f747df109059f31b32c
+  version: d6949cc45921ccc0b669ada4e6cf711eb53cdd61
   repo: https://github.com/openshift/kubernetes-legacy-cloud-providers.git
   subpackages:
   - aws

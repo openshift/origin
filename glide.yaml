@@ -115,9 +115,9 @@ import:
 - package: github.com/openshift/client-go
   version: 05eb9880269c5ff1696fe20f511f9efa8bbdba0e
 - package: github.com/openshift/library-go
-  version: eeebfaa62843201e865e96a61eb961ee2c446775
+  version: 07b0830b874034180d0e35d352241fec31ab1060
 - package: github.com/openshift/apiserver-library-go
-  version: master
+  version: a7bc13e3e6504ddc7056ab9a5d2d6c61f7eb45b9
 
 # forks third
 - package: github.com/onsi/ginkgo
