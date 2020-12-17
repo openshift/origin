@@ -15,6 +15,7 @@ import (
 	kuser "k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
+	rbacvalidation "k8s.io/component-helpers/auth/rbac/validation"
 	kauthenticationapi "k8s.io/kubernetes/pkg/apis/authentication"
 	kauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	"k8s.io/kubernetes/pkg/apis/rbac"
@@ -227,12 +228,12 @@ func testGroupRules(ruleResolver validation.AuthorizationRuleResolver, group, na
 	actualRules, err := ruleResolver.RulesFor(&kuser.DefaultInfo{Groups: []string{group}}, namespace)
 	o.Expect(err).NotTo(o.HaveOccurred()) // our default RBAC policy should never have rule resolution errors
 
-	if cover, missing := validation.Covers(expectedRules, actualRules); !cover {
+	if cover, missing := rbacvalidation.Covers(expectedRules, actualRules); !cover {
 		e2e.Failf("%s has extra permissions in namespace %q:\n%s", group, namespace, rulesToString(missing))
 	}
 
 	// force test data to be cleaned up every so often but allow extra rules to not deadlock new changes
-	if cover, missing := validation.Covers(actualRules, expectedRules); !cover {
+	if cover, missing := rbacvalidation.Covers(actualRules, expectedRules); !cover {
 		log := e2e.Logf
 		if len(missing) > 15 {
 			log = e2e.Failf

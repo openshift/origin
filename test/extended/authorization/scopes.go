@@ -19,7 +19,7 @@ import (
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/transport"
-	rbacvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
+	rbacvalidation "k8s.io/component-helpers/auth/rbac/validation"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	buildv1 "github.com/openshift/api/build/v1"
