@@ -56,7 +56,7 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 			g.Skip("found no worker nodes with the MCD running")
 		}
 
-		topoMgrNodes = filterNodeWithTopologyManagerPolicy(mcdNodes, client, oc, kubeletconfigv1beta1.SingleNumaNodeTopologyManager)
+		topoMgrNodes = filterNodeWithTopologyManagerPolicy(mcdNodes, client, oc, kubeletconfigv1beta1.SingleNumaNodeTopologyManagerPolicy)
 
 		deviceResourceName = getValueFromEnv(resourceNameEnvVar, defaultResourceName, "resource name")
 		// we don't handle yet an uneven device amount on worker nodes. IOW, we expect the same amount of devices on each node

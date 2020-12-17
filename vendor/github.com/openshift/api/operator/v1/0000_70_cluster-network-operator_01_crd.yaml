@@ -4,6 +4,7 @@ metadata:
   name: networks.operator.openshift.io
   annotations:
     include.release.openshift.io/self-managed-high-availability: "true"
+    include.release.openshift.io/single-node-developer: "true"
 spec:
   group: operator.openshift.io
   names:
@@ -319,6 +320,10 @@ spec:
                               Default is 4789
                             type: integer
                             format: int32
+                      ipsecConfig:
+                        description: ipsecConfig enables and configures IPsec for
+                          pods on the pod network within the cluster.
+                        type: object
                       mtu:
                         description: mtu is the MTU to use for the tunnel interface.
                           This must be 100 bytes smaller than the uplink mtu. Default
@@ -342,6 +347,14 @@ spec:
                   pod network support should be disabled. If unset, this property
                   defaults to 'false' and multiple network support is enabled.
                 type: boolean
+              disableNetworkDiagnostics:
+                description: disableNetworkDiagnostics specifies whether or not PodNetworkConnectivityCheck
+                  CRs from a test pod to every node, apiserver and LB should be disabled
+                  or not. If unset, this property defaults to 'false' and network
+                  diagnostics is enabled. Setting this to 'true' would reduce the
+                  additional load of the pods performing the checks.
+                type: boolean
+                default: false
               kubeProxyConfig:
                 description: kubeProxyConfig lets us configure desired proxy configuration.
                   If not specified, sensible defaults will be chosen by OpenShift
@@ -370,12 +383,37 @@ spec:
                       items:
                         type: string
               logLevel:
-                description: "logLevel allows configuring the logging level of the
-                  components deployed by the operator. Currently only Kuryr SDN is
-                  affected by this setting. Please note that turning on extensive
-                  logging may affect performance. The default value is \"Normal\".
-                  \n Valid values are: \"Normal\", \"Debug\", \"Trace\", \"TraceAll\".
-                  Defaults to \"Normal\"."
+                description: "logLevel is an intent based logging for an overall component.
+                  \ It does not give fine grained control, but it is a simple way
+                  to manage coarse grained logging choices that operators have to
+                  interpret for their operands. \n Valid values are: \"Normal\", \"Debug\",
+                  \"Trace\", \"TraceAll\". Defaults to \"Normal\"."
+                type: string
+                default: Normal
+                enum:
+                - ""
+                - Normal
+                - Debug
+                - Trace
+                - TraceAll
+              managementState:
+                description: managementState indicates whether and how the operator
+                  should manage the component
+                type: string
+                pattern: ^(Managed|Unmanaged|Force|Removed)$
+              observedConfig:
+                description: observedConfig holds a sparse config that controller
+                  has observed from the cluster state.  It exists in spec because
+                  it is an input to the level for the operator
+                type: object
+                nullable: true
+                x-kubernetes-preserve-unknown-fields: true
+              operatorLogLevel:
+                description: "operatorLogLevel is an intent based logging for the
+                  operator itself.  It does not give fine grained control, but it
+                  is a simple way to manage coarse grained logging choices that operators
+                  have to interpret for themselves. \n Valid values are: \"Normal\",
+                  \"Debug\", \"Trace\", \"TraceAll\". Defaults to \"Normal\"."
                 type: string
                 default: Normal
                 enum:
@@ -391,7 +429,79 @@ spec:
                 type: array
                 items:
                   type: string
+              unsupportedConfigOverrides:
+                description: 'unsupportedConfigOverrides holds a sparse config that
+                  will override any previously set options.  It only needs to be the
+                  fields to override it will end up overlaying in the following order:
+                  1. hardcoded defaults 2. observedConfig 3. unsupportedConfigOverrides'
+                type: object
+                nullable: true
+                x-kubernetes-preserve-unknown-fields: true
           status:
-            description: NetworkStatus is currently unused. Instead, status is reported
-              in the Network.config.openshift.io object.
+            description: NetworkStatus is detailed operator status, which is distilled
+              up to the Network clusteroperator object.
             type: object
+            properties:
+              conditions:
+                description: conditions is a list of conditions and their status
+                type: array
+                items:
+                  description: OperatorCondition is just the standard condition fields.
+                  type: object
+                  properties:
+                    lastTransitionTime:
+                      type: string
+                      format: date-time
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+              generations:
+                description: generations are used to determine when an item needs
+                  to be reconciled or has changed in a way that needs a reaction.
+                type: array
+                items:
+                  description: GenerationStatus keeps track of the generation for
+                    a given resource so that decisions about forced updates can be
+                    made.
+                  type: object
+                  properties:
+                    group:
+                      description: group is the group of the thing you're tracking
+                      type: string
+                    hash:
+                      description: hash is an optional field set for resources without
+                        generation that are content sensitive like secrets and configmaps
+                      type: string
+                    lastGeneration:
+                      description: lastGeneration is the last generation of the workload
+                        controller involved
+                      type: integer
+                      format: int64
+                    name:
+                      description: name is the name of the thing you're tracking
+                      type: string
+                    namespace:
+                      description: namespace is where the thing you're tracking is
+                      type: string
+                    resource:
+                      description: resource is the resource type of the thing you're
+                        tracking
+                      type: string
+              observedGeneration:
+                description: observedGeneration is the last generation change you've
+                  dealt with
+                type: integer
+                format: int64
+              readyReplicas:
+                description: readyReplicas indicates how many replicas are ready and
+                  at the desired state
+                type: integer
+                format: int32
+              version:
+                description: version is the level this availability applies to
+                type: string

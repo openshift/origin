@@ -3,7 +3,9 @@ kind: CustomResourceDefinition
 metadata:
   name: consoles.operator.openshift.io
   annotations:
+    include.release.openshift.io/ibm-cloud-managed: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
+    include.release.openshift.io/single-node-developer: "true"
 spec:
   scope: Cluster
   group: operator.openshift.io
@@ -80,6 +82,78 @@ spec:
                       in page titles, logo alt text, and the about dialog instead
                       of the normal OpenShift product name.
                     type: string
+                  developerCatalog:
+                    description: developerCatalog allows to configure the shown developer
+                      catalog categories.
+                    type: object
+                    properties:
+                      categories:
+                        description: categories which are shown in the developer catalog.
+                        type: array
+                        items:
+                          description: DeveloperConsoleCatalogCategory for the developer
+                            console catalog.
+                          type: object
+                          required:
+                          - id
+                          - label
+                          properties:
+                            id:
+                              description: ID is an identifier used in the URL to
+                                enable deep linking in console. ID is required and
+                                must have 1-32 URL safe (A-Z, a-z, 0-9, - and _) characters.
+                              type: string
+                              maxLength: 32
+                              minLength: 1
+                              pattern: ^[A-Za-z0-9-_]+$
+                            label:
+                              description: label defines a category display label.
+                                It is required and must have 1-64 characters.
+                              type: string
+                              maxLength: 64
+                              minLength: 1
+                            subcategories:
+                              description: subcategories defines a list of child categories.
+                              type: array
+                              items:
+                                description: DeveloperConsoleCatalogCategoryMeta are
+                                  the key identifiers of a developer catalog category.
+                                type: object
+                                required:
+                                - id
+                                - label
+                                properties:
+                                  id:
+                                    description: ID is an identifier used in the URL
+                                      to enable deep linking in console. ID is required
+                                      and must have 1-32 URL safe (A-Z, a-z, 0-9,
+                                      - and _) characters.
+                                    type: string
+                                    maxLength: 32
+                                    minLength: 1
+                                    pattern: ^[A-Za-z0-9-_]+$
+                                  label:
+                                    description: label defines a category display
+                                      label. It is required and must have 1-64 characters.
+                                    type: string
+                                    maxLength: 64
+                                    minLength: 1
+                                  tags:
+                                    description: tags is a list of strings that will
+                                      match the category. A selected category show
+                                      all items which has at least one overlapping
+                                      tag between category and item.
+                                    type: array
+                                    items:
+                                      type: string
+                            tags:
+                              description: tags is a list of strings that will match
+                                the category. A selected category show all items which
+                                has at least one overlapping tag between category
+                                and item.
+                              type: array
+                              items:
+                                type: string
                   documentationBaseURL:
                     description: documentationBaseURL links to external documentation
                       are shown in various sections of the web console.  Providing

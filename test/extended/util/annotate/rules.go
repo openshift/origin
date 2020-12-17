@@ -35,9 +35,14 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1902702 - [sig-auth][Feature:LDAP][Serial] ldap group sync can sync groups from ldap: oc cp over non-existing directory/file fails
 			`\[sig-auth\]\[Feature:LDAP\]\[Serial\] ldap group sync can sync groups from ldap`,
 
-			// Will be fixed by the bump to 1.20: https://github.com/openshift/origin/pull/25765
-			`\[sig-api-machinery\] Servers with support for Table transformation should return generic metadata details across all namespaces for nodes`,
-			`\[sig-api-machinery\] Servers with support for Table transformation should return chunks of table results for list calls`,
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1908677
+			`SCTP \[Feature:SCTP\] \[LinuxOnly\] should create a Pod with SCTP HostPort`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1908645
+			`\[sig-network\] Networking Granular Checks: Services should function for service endpoints using hostNetwork`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1908675
+			`\[sig-storage\] CSI mock volume CSI FSGroupPolicy \[LinuxOnly\] should modify fsGroup if fsGroupPolicy=default`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},

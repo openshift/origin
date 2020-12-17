@@ -140,15 +140,27 @@ func MergeMap(modified *bool, existing *map[string]string, required map[string]s
 		*existing = map[string]string{}
 	}
 	for k, v := range required {
-		if existingV, ok := (*existing)[k]; !ok || v != existingV {
-			*modified = true
-			// if "required" map contains a key with "-" as suffix, remove that
-			// key from the existing map instead of replacing the value
-			if strings.HasSuffix(k, "-") {
-				delete(*existing, strings.TrimRight(k, "-"))
-			} else {
-				(*existing)[k] = v
+		actualKey := k
+		removeKey := false
+
+		// if "required" map contains a key with "-" as suffix, remove that
+		// key from the existing map instead of replacing the value
+		if strings.HasSuffix(k, "-") {
+			removeKey = true
+			actualKey = strings.TrimRight(k, "-")
+		}
+
+		if existingV, ok := (*existing)[actualKey]; removeKey {
+			if !ok {
+				continue
 			}
+			// value found -> it should be removed
+			delete(*existing, actualKey)
+			*modified = true
+
+		} else if !ok || v != existingV {
+			*modified = true
+			(*existing)[actualKey] = v
 		}
 	}
 }

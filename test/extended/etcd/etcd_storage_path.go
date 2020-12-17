@@ -288,42 +288,32 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		gvr("rbac.authorization.k8s.io", "v1alpha1", "rolebindings"),
 		gvr("rbac.authorization.k8s.io", "v1alpha1", "roles"),
 		gvr("scheduling.k8s.io", "v1alpha1", "priorityclasses"),
-		gvr("settings.k8s.io", "v1alpha1", "podpresets"),
 		gvr("storage.k8s.io", "v1alpha1", "volumeattachments"),
+		gvr("internal.apiserver.k8s.io", "v1alpha1", "storageversions"),
 	)
 
-	// Apply output of git diff origin/release-1.19 origin/release-1.20 test/integration/etcd/data.go. This is needed
+	// Apply output of git diff origin/release-1.20 origin/release-1.21 test/integration/etcd/data.go. This is needed
 	// to apply the right data depending on the kube version of the running server. Replace this with the next current
 	// and rebase version next time. Don't pile them up.
-	if strings.HasPrefix(version.Minor, "20") {
+	if strings.HasPrefix(version.Minor, "21") {
 		namespace := "etcdstoragepathtestnamespace"
 		_ = namespace
 
 		// Added etcd data.
-		for k, a := range map[schema.GroupVersionResource]etcddata.StorageData{
-			gvr("flowcontrol.apiserver.k8s.io", "v1beta1", "flowschemas"): {
-				Stub:             `{"metadata": {"name": "va2"}, "spec": {"priorityLevelConfiguration": {"name": "name1"}}}`,
-				ExpectedEtcdPath: "/registry/flowschemas/va2",
-				ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1alpha1", "FlowSchema"),
-			},
-			gvr("flowcontrol.apiserver.k8s.io", "v1beta1", "prioritylevelconfigurations"): {
-				Stub:             `{"metadata": {"name": "conf2"}, "spec": {"type": "Limited", "limited": {"assuredConcurrencyShares":3, "limitResponse": {"type": "Reject"}}}}`,
-				ExpectedEtcdPath: "/registry/prioritylevelconfigurations/conf2",
-				ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1alpha1", "PriorityLevelConfiguration"),
-			},
-			gvr("node.k8s.io", "v1", "runtimeclasses"): {
-				Stub:             `{"metadata": {"name": "rc3"}, "handler": "h3"}`,
-				ExpectedEtcdPath: "/registry/runtimeclasses/rc3",
-				ExpectedGVK:      gvkP("node.k8s.io", "v1beta1", "RuntimeClass"),
-			},
-		} {
+		for k, a := range map[schema.GroupVersionResource]etcddata.StorageData{} {
+			// TODO: fill when 1.21 rebase has started
+
 			if _, preexisting := etcdStorageData[k]; preexisting {
 				t.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)
 			}
 			etcdStorageData[k] = a
 		}
 
+		// Modified etcd data.
+		// TODO: fill when 1.21 rebase has started
+
 		// Removed etcd data.
+		// TODO: fill when 1.21 rebase has started
 		removeStorageData(t, etcdStorageData)
 
 	} else {
