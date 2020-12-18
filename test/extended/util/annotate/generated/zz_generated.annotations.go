@@ -3307,7 +3307,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] CSI mock volume CSI FSGroupPolicy [LinuxOnly] should modify fsGroup if fsGroupPolicy=File": "should modify fsGroup if fsGroupPolicy=File [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI mock volume CSI FSGroupPolicy [LinuxOnly] should modify fsGroup if fsGroupPolicy=default": "should modify fsGroup if fsGroupPolicy=default [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI mock volume CSI FSGroupPolicy [LinuxOnly] should modify fsGroup if fsGroupPolicy=default": "should modify fsGroup if fsGroupPolicy=default [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] CSI mock volume CSI FSGroupPolicy [LinuxOnly] should not modify fsGroup if fsGroupPolicy=None": "should not modify fsGroup if fsGroupPolicy=None [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
