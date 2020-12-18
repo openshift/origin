@@ -7,6 +7,8 @@ import (
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	operatorv1helpers "github.com/openshift/library-go/pkg/operator/v1helpers"
+
+	"k8s.io/klog"
 )
 
 type LogLevelController struct {
@@ -41,6 +43,11 @@ func (c LogLevelController) sync(ctx context.Context, syncCtx factory.SyncContex
 	// if operator operatorSpec OperatorLogLevel is empty, default to "Normal"
 	// TODO: This should be probably done by defaulting the CR field?
 	if len(desiredLogLevel) == 0 {
+		desiredLogLevel = operatorv1.Normal
+	}
+
+	if !ValidLogLevel(desiredLogLevel) {
+		klog.Warningf("OperatorLogLevelInvalid: Invalid logLevel %q, falling back to %q", desiredLogLevel, operatorv1.Normal)
 		desiredLogLevel = operatorv1.Normal
 	}
 

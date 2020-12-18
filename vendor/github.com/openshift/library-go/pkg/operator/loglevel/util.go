@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
@@ -23,6 +24,18 @@ func LogLevelToVerbosity(logLevel operatorv1.LogLevel) int {
 	default:
 		return 2
 	}
+}
+
+var validLogLevels = sets.NewString(
+	string(operatorv1.Normal),
+	string(operatorv1.Debug),
+	string(operatorv1.Trace),
+	string(operatorv1.TraceAll),
+	"", // Tolerate empty value, it gets defaulted.
+)
+
+func ValidLogLevel(logLevel operatorv1.LogLevel) bool {
+	return validLogLevels.Has(string(logLevel))
 }
 
 // verbosityFn is exported so it can be unit tested

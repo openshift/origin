@@ -519,18 +519,18 @@ func setAvailableProgressingNodeInstallerFailingConditions(newStatus *operatorv1
 // newNodeStateForInstallInProgress returns the new NodeState, whether it was killed by OOM or an error
 func (c *InstallerController) newNodeStateForInstallInProgress(ctx context.Context, currNodeState *operatorv1.NodeStatus, latestRevisionAvailable int32) (status *operatorv1.NodeStatus, installerPodFailed bool, reason string, err error) {
 	ret := currNodeState.DeepCopy()
-	installerPod, err := c.podsGetter.Pods(c.targetNamespace).Get(ctx, getInstallerPodName(currNodeState.TargetRevision, currNodeState.NodeName), metav1.GetOptions{})
+	installerPodName := getInstallerPodName(currNodeState.TargetRevision, currNodeState.NodeName)
+	installerPod, err := c.podsGetter.Pods(c.targetNamespace).Get(ctx, installerPodName, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		ret.LastFailedRevision = currNodeState.TargetRevision
-		ret.TargetRevision = currNodeState.CurrentRevision
-		ret.LastFailedRevisionErrors = []string{err.Error()}
-		return ret, false, "installer pod was not found", nil
+		// installer pod has disappeared before we saw it's termination state. Retry like if it had failed.
+		c.eventRecorder.Warning("InstallerPodDisappeared", err.Error())
+		return currNodeState, true, err.Error(), nil
 	}
 	if err != nil {
 		return nil, false, "", err
 	}
 
-	failed := false
+	operandFailed := false
 	errors := []string{}
 	reason = ""
 
@@ -567,7 +567,7 @@ func (c *InstallerController) newNodeStateForInstallInProgress(ctx context.Conte
 
 		switch state {
 		case staticPodStateFailed:
-			failed = true
+			operandFailed = true
 			reason = staticPodReason
 			errors = failedErrors
 
@@ -584,7 +584,7 @@ func (c *InstallerController) newNodeStateForInstallInProgress(ctx context.Conte
 		}
 
 	case corev1.PodFailed:
-		failed = true
+		operandFailed = true
 		reason = "installer pod failed"
 		for _, containerStatus := range installerPod.Status.ContainerStatuses {
 			if containerStatus.State.Terminated != nil && len(containerStatus.State.Terminated.Message) > 0 {
@@ -596,7 +596,7 @@ func (c *InstallerController) newNodeStateForInstallInProgress(ctx context.Conte
 		}
 	}
 
-	if failed {
+	if operandFailed {
 		ret.LastFailedRevision = currNodeState.TargetRevision
 		ret.TargetRevision = 0
 		if len(errors) == 0 {
