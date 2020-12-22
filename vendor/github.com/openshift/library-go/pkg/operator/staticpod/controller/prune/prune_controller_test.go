@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/openshift/library-go/pkg/operator/v1helpers"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,6 +13,7 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 type configMapInfo struct {
@@ -101,7 +100,7 @@ func TestPruneAPIResources(t *testing.T) {
 				},
 				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-3", Namespace: "prune-api"},
 					Data: map[string]string{
-						"status":   "InProgress",
+						"status":   StatusInProgress,
 						"revision": "3",
 					},
 				},
@@ -123,7 +122,7 @@ func TestPruneAPIResources(t *testing.T) {
 				},
 				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-3", Namespace: "prune-api"},
 					Data: map[string]string{
-						"status":   "InProgress",
+						"status":   StatusInProgress,
 						"revision": "3",
 					},
 				},
@@ -175,6 +174,44 @@ func TestPruneAPIResources(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:            "prune abandoned revisions",
+			targetNamespace: "prune-api",
+			startingObjects: []runtime.Object{
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-1", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   StatusAbandoned,
+						"revision": "1",
+					},
+				},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-2", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   StatusAbandoned,
+						"revision": "2",
+					},
+				},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-3", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   StatusAbandoned,
+						"revision": "3",
+					},
+				},
+			},
+			expectedObjects: []runtime.Object{
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-2", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   StatusAbandoned,
+						"revision": "2",
+					},
+				},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-2", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   StatusAbandoned,
+						"revision": "3",
+					},
+				},
+			},
+		},
 	}
 	for _, tc := range tests {
 		kubeClient := fake.NewSimpleClientset(tc.startingObjects...)
@@ -221,7 +258,7 @@ func TestPruneAPIResources(t *testing.T) {
 		}
 		failedLimit, succeededLimit := getRevisionLimits(operatorSpec)
 
-		excludedRevisions, err := c.excludedRevisionHistory(context.TODO(), eventRecorder, failedLimit, succeededLimit)
+		excludedRevisions, err := c.excludedRevisionHistory(context.TODO(), eventRecorder, failedLimit, succeededLimit, 2)
 		if err != nil {
 			t.Fatalf("unexpected error %q", err)
 		}
@@ -433,7 +470,7 @@ func TestPruneDiskResources(t *testing.T) {
 			}
 			failedLimit, succeededLimit := getRevisionLimits(operatorSpec)
 
-			excludedRevisions, err := c.excludedRevisionHistory(context.TODO(), eventRecorder, failedLimit, succeededLimit)
+			excludedRevisions, err := c.excludedRevisionHistory(context.TODO(), eventRecorder, failedLimit, succeededLimit, 1)
 			if err != nil {
 				t.Fatalf("unexpected error %q", err)
 			}
