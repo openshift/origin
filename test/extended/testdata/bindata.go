@@ -21413,6 +21413,22 @@ items:
           value: https://envuser:password@proxy3.com
         - name: SOME_HTTPS_PROXY
           value: https://envuser:password@proxy4.com
+- kind: BuildConfig
+  apiVersion: build.openshift.io/v1
+  metadata:
+    name: sample-docker-build-proxy-ca
+  spec:
+    mountTrustedCA: true
+    source:
+      dockerfile: |
+        FROM registry.redhat.io/ubi8/ubi:latest
+        RUN cat /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: cli
+          namespace: openshift
 `)
 
 func testExtendedTestdataBuildsTestBuildProxyYamlBytes() ([]byte, error) {

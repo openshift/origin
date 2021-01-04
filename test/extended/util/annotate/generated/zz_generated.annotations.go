@@ -1235,6 +1235,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should support proxies  start build with broken proxy should start a build and wait for the build to fail": "should start a build and wait for the build to fail",
 
+	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should support proxies  start build with cluster-wide custom PKI should mount the custom PKI into the build if specified": "should mount the custom PKI into the build if specified",
+
 	"[Top Level] [sig-builds][Feature:Builds][Slow] builds with a context directory  docker context directory build should docker build an application using a context directory": "should docker build an application using a context directory",
 
 	"[Top Level] [sig-builds][Feature:Builds][Slow] builds with a context directory  s2i context directory build should s2i build an application using a context directory": "should s2i build an application using a context directory",

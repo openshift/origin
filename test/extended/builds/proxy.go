@@ -1,8 +1,11 @@
 package builds
 
 import (
+	"context"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -82,6 +85,30 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds should support pro
 				o.Expect(buildLog).To(o.ContainSubstring("proxy3"), "build log should include proxy host")
 				o.Expect(buildLog).To(o.ContainSubstring("proxy4"), "build log should include proxy host")
 			})
+		})
+
+		g.Describe("start build with cluster-wide custom PKI", func() {
+
+			g.It("should mount the custom PKI into the build if specified", func() {
+				ctx := context.TODO()
+				proxy, err := oc.AdminConfigClient().ConfigV1().Proxies().Get(ctx, "cluster", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if len(proxy.Spec.TrustedCA.Name) == 0 {
+					g.Skip("cluster custom PKI is not configured")
+				}
+				caData, err := oc.AsAdmin().KubeClient().CoreV1().ConfigMaps("openshift-config").Get(ctx, proxy.Spec.TrustedCA.Name, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				caBundle, present := caData.Data["ca-bundle.crt"]
+				if !present {
+					g.Skip("cluster custom PKI is missing key ca-bundle.crt")
+				}
+				br, _ := exutil.StartBuildAndWait(oc, "sample-docker-build-proxy-ca")
+				br.AssertSuccess()
+				buildLog, err := br.Logs()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(buildLog).To(o.ContainSubstring(caBundle))
+			})
+
 		})
 	})
 })
