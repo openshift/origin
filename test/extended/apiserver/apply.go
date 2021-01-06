@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -14,9 +15,11 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	discocache "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/kubernetes/test/e2e/framework"
 
@@ -74,6 +77,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:ServerSideApply] Server-Side App
 				}
 				resourceClient, unstructuredObj, namespace := createResource(oc, mapper, prerequisite.GvrData, prerequisite.Stub, testNamespace)
 				testNamespace = namespace
+
+				// we need to wait for the tokens to appear at the SA otherwise creation
+				// of the oauthclientauthorization object fails
+				if gvr.Resource == "oauthclientauthorizations" && prerequisite.GvrData.Resource == "serviceaccounts" {
+					waitForSATokens(oc.AdminKubeClient().CoreV1().ServiceAccounts(testNamespace), unstructuredObj.Object)
+				}
 				defer deleteResource(resourceClient, unstructuredObj.GetName())
 			}
 
@@ -171,4 +180,20 @@ func createResource(
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	return resourceClient, &unstructuredObj, testNamespace
+}
+
+// waitForSATokens waits for the kube-controller-manager to populate the SA from the unstructured object
+// to be populated with a secret defining its tokens
+func waitForSATokens(saClient corev1client.ServiceAccountInterface, unstructuredObj map[string]interface{}) {
+	name, _, err := unstructured.NestedString(unstructuredObj, "metadata", "name")
+	o.Expect(err).NotTo(o.HaveOccurred())
+	err = wait.PollImmediate(time.Second, 15*time.Second, func() (bool, error) {
+		sa, err := saClient.Get(context.Background(), name, metav1.GetOptions{})
+		if err != nil {
+			framework.Logf("unexpected error retrieving SA %q: %v", name, err)
+			return false, nil
+		}
+		return len(sa.Secrets) > 0, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
 }
