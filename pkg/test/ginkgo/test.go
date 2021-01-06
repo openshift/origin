@@ -123,6 +123,18 @@ func filterWithRegex(suite *TestSuite, regex string) error {
 	return nil
 }
 
+func skipWithRegex(suite *TestSuite, regex string) error {
+	re, err := regexp.Compile(regex)
+	if err != nil {
+		return err
+	}
+	origMatches := suite.Matches
+	suite.Matches = func(name string) bool {
+		return origMatches(name) && !re.MatchString(name)
+	}
+	return nil
+}
+
 func testNames(tests []*testCase) []string {
 	var names []string
 	for _, t := range tests {

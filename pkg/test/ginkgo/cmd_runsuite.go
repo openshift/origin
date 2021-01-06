@@ -29,8 +29,10 @@ type Options struct {
 	TestFile    string
 	OutFile     string
 
-	// Regex allows a selection of a subset of tests
-	Regex string
+	// FocusRegex allows a selection of a subset of tests
+	FocusRegex string
+	// SkipRegex allows skipping a subset of tests
+	SkipRegex string
 	// MatchFn if set is also used to filter the suite contents
 	MatchFn func(name string) bool
 
@@ -100,8 +102,13 @@ func (opt *Options) Run(args []string) error {
 		return fmt.Errorf("suite %q does not exist", args[0])
 	}
 
-	if len(opt.Regex) > 0 {
-		if err := filterWithRegex(suite, opt.Regex); err != nil {
+	if len(opt.FocusRegex) > 0 {
+		if err := filterWithRegex(suite, opt.FocusRegex); err != nil {
+			return err
+		}
+	}
+	if len(opt.SkipRegex) > 0 {
+		if err := skipWithRegex(suite, opt.SkipRegex); err != nil {
 			return err
 		}
 	}
