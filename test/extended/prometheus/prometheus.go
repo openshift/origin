@@ -62,11 +62,14 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 		}()
 
+		// we only consider samples since the beginning of the test
+		testDuration := exutil.DurationSinceStartInSeconds().String()
+
 		tests := map[string]bool{
 			// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
 			// TODO: remove KubePodCrashLooping subtraction logic once https://bugzilla.redhat.com/show_bug.cgi?id=1842002
 			// is fixed, but for now we are ignoring KubePodCrashLooping alerts in the openshift-kube-controller-manager namespace.
-			`count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|KubeAPILatencyHigh",alertstate="firing",severity!="info"}[2h]) - count_over_time(ALERTS{alertname="KubePodCrashLooping",namespace="openshift-kube-controller-manager",alertstate="firing",severity!="info"}[2h]) >= 1`: false,
+			fmt.Sprintf(`count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|KubeAPILatencyHigh",alertstate="firing",severity!="info"}[%[1]s]) - count_over_time(ALERTS{alertname="KubePodCrashLooping",namespace="openshift-kube-controller-manager",alertstate="firing",severity!="info"}[%[1]s]) >= 1`, testDuration): false,
 		}
 		err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -80,9 +83,12 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 		}()
 
+		// we only consider series sent since the beginning of the test
+		testDuration := exutil.DurationSinceStartInSeconds().String()
+
 		tests := map[string]bool{
 			// should have constantly firing a watchdog alert
-			`count_over_time(ALERTS{alertstate="firing",alertname="Watchdog", severity="none"}[1h])`: true,
+			fmt.Sprintf(`count_over_time(ALERTS{alertstate="firing",alertname="Watchdog", severity="none"}[%s])`, testDuration): true,
 		}
 		err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -102,13 +108,16 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 		}()
 
+		// we only consider series sent since the beginning of the test
+		testDuration := exutil.DurationSinceStartInSeconds().String()
+
 		tests := map[string]bool{
 			// We want to limit the number of total series sent, the cluster:telemetry_selected_series:count
 			// rule contains the count of the all the series that are sent via telemetry. It is permissible
 			// for some scenarios to generate more series than 600, we just want the basic state to be below
 			// a threshold.
-			`avg_over_time(cluster:telemetry_selected_series:count[1h]) >= 600`:  false,
-			`max_over_time(cluster:telemetry_selected_series:count[1h]) >= 1200`: false,
+			fmt.Sprintf(`avg_over_time(cluster:telemetry_selected_series:count[%s]) >= 600`, testDuration):  false,
+			fmt.Sprintf(`max_over_time(cluster:telemetry_selected_series:count[%s]) >= 1200`, testDuration): false,
 		}
 		err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 		o.Expect(err).NotTo(o.HaveOccurred())

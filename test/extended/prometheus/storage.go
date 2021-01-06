@@ -51,6 +51,9 @@ func checkOperation(oc *exutil.CLI, url string, bearerToken string, component st
 		oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 	}()
 
+	// we only consider series sent since the beginning of the test
+	testDuration := exutil.DurationSinceStartInSeconds().String()
+
 	tests := map[string]bool{}
 	// Check "[total nr. of ops] - [nr. of ops < threshold] > 0' and expect failure (all ops should be < threshold).
 	// Using sum(max(...)) to sum all kubelets / controller-managers
@@ -58,11 +61,11 @@ func checkOperation(oc *exutil.CLI, url string, bearerToken string, component st
 	e2e.Logf("Checking that Operation %s time of plugin %s should be <= %d seconds", name, plugins, threshold)
 	queryTemplate := `
 # Operation %[4]s time of plugin %[1]s should be < %[2]d seconds
-  sum(max_over_time(storage_operation_duration_seconds_bucket{job="%[3]s",le="+Inf",operation_name="%[4]s",volume_plugin="%[1]s"}[2h]))
-- sum(max_over_time(storage_operation_duration_seconds_bucket{job="%[3]s",le="%[2]d",operation_name="%[4]s",volume_plugin="%[1]s"}[2h]))
+  sum(max_over_time(storage_operation_duration_seconds_bucket{job="%[3]s",le="+Inf",operation_name="%[4]s",volume_plugin="%[1]s"}[%[5]s]))
+- sum(max_over_time(storage_operation_duration_seconds_bucket{job="%[3]s",le="%[2]d",operation_name="%[4]s",volume_plugin="%[1]s"}[%[5]s]))
 > 0`
 	for _, plugin := range plugins {
-		query := fmt.Sprintf(queryTemplate, plugin, threshold, component, name)
+		query := fmt.Sprintf(queryTemplate, plugin, threshold, component, name, testDuration)
 		// Expect failure of the query (the result should be 0, all ops are expected to take < threshold)
 		tests[query] = false
 	}
