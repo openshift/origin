@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -40,14 +39,6 @@ type PrometheusResponse struct {
 type prometheusResponseData struct {
 	ResultType string       `json:"resultType"`
 	Result     model.Vector `json:"result"`
-}
-
-// TestUnsupportedAllowVersionSkew returns whether TEST_UNSUPPORTED_ALLOW_VERSION_SKEW is set
-func TestUnsupportedAllowVersionSkew() bool {
-	if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
-		return true
-	}
-	return false
 }
 
 // GetBearerTokenURLViaPod makes http request through given pod

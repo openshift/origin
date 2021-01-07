@@ -30,7 +30,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			g.Fail(fmt.Sprintf("Unexpected error: %v", err))
 		}
 
+		eventsAfterTime := exutil.LimitTestsToStartTime()
 		for _, ev := range evs.Items {
+			if ev.LastTimestamp.Time.Before(eventsAfterTime) {
+				continue
+			}
 			if ev.Reason != "NonGracefulTermination" {
 				continue
 			}
@@ -52,7 +56,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			g.Fail(fmt.Sprintf("Unexpected error: %v", err))
 		}
 
+		eventsAfterTime := exutil.LimitTestsToStartTime()
 		for _, ev := range evs.Items {
+			if ev.LastTimestamp.Time.Before(eventsAfterTime) {
+				continue
+			}
 			if ev.Reason != "GracefulTerminationTimeout" {
 				continue
 			}
@@ -74,7 +82,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			g.Fail(fmt.Sprintf("Unexpected error: %v", err))
 		}
 
+		eventsAfterTime := exutil.LimitTestsToStartTime()
 		for _, ev := range evs.Items {
+			if ev.LastTimestamp.Time.Before(eventsAfterTime) {
+				continue
+			}
 			if ev.Reason != "LateConnections" {
 				continue
 			}
@@ -96,7 +108,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			g.Fail(fmt.Sprintf("Unexpected error: %v", err))
 		}
 
+		eventsAfterTime := exutil.LimitTestsToStartTime()
 		for _, ev := range evs.Items {
+			if ev.LastTimestamp.Time.Before(eventsAfterTime) {
+				continue
+			}
 			if ev.Reason != "NonReadyRequests" {
 				continue
 			}

@@ -70,7 +70,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	time.Sleep(alertCheckSleep)
 	cancel()
 
-	if helper.TestUnsupportedAllowVersionSkew() {
+	if exutil.TolerateVersionSkewInTests() {
 		e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
 	}
 	t.oc.SetupProject()
