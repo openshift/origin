@@ -104,8 +104,11 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 
 		tests := map[string]bool{
 			// We want to limit the number of total series sent, the cluster:telemetry_selected_series:count
-			// rule contains the count of the all the series that are sent via telemetry.
-			`max_over_time(cluster:telemetry_selected_series:count[2h]) >= 600`: false,
+			// rule contains the count of the all the series that are sent via telemetry. It is permissible
+			// for some scenarios to generate more series than 600, we just want the basic state to be below
+			// a threshold.
+			`avg_over_time(cluster:telemetry_selected_series:count[1h]) >= 600`:  false,
+			`max_over_time(cluster:telemetry_selected_series:count[1h]) >= 1200`: false,
 		}
 		err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 		o.Expect(err).NotTo(o.HaveOccurred())
