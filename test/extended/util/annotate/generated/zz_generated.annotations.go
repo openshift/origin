@@ -2383,6 +2383,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-node] Downward API should provide pod name, namespace and IP address as env vars [NodeConformance] [Conformance]": "should provide pod name, namespace and IP address as env vars [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
+	"[Top Level] [sig-node] Managed cluster should report ready nodes the entire duration of the test run [Late]": "should report ready nodes the entire duration of the test run [Late] [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-node] PodTemplates should delete a collection of pod templates [Conformance]": "should delete a collection of pod templates [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-node] PodTemplates should run the lifecycle of PodTemplates [Conformance]": "should run the lifecycle of PodTemplates [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
