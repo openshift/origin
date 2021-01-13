@@ -181,6 +181,28 @@ import:
   repo:    https://github.com/lestrrat/go-structinfo.git
   version: 8204d40bbcd79eb7603cd4c2c998e60eb2479ded
 
+# pinned so that we get a small diff when updating the deps
+- package: github.com/fsouza/go-dockerclient
+  version: 2f8030ca4e32e7082b26144b3fbf70981c768a25
+- package: github.com/apparentlymart/go-cidr
+  version: c0fb5fbe0acb592411e2db59add389a43260ad44
+- package: gopkg.in/asn1-ber.v1
+  version: effdc98edfb5dde0d9fd8dfba266f6483e6ce9f0
+- package: github.com/containerd/continuity
+  version: d3ef23f19fbb106bb73ffde425d07a9187e30745
+- package: github.com/certifi/gocertifi
+  version: c7c1fbc02894e7114f06f6a4d9ab31eee2225bdb
+- package: github.com/emirpasic/gods
+  version: 80e934ed68b9084f386ae25f74f839aaecfb54d8
+- package: github.com/kevinburke/ssh_config
+  version: 01f96b0aa0cdcaa93f9495f89bbc6cb5a992ce6e
+- package: github.com/lestrrat-go/pdebug
+  version: 4d6bd78da58d473ea1a4f2aadaf7e768f2e7f288
+- package: github.com/xanzy/ssh-agent
+  version: 6a3e2ff9e7c564f36873c2e36413f634534f1c44
+- package: github.com/pkg/profile
+  version: e3db4c838a54a61aab235fd8b66b8ca09fd2dec2
+
 - package: github.com/mailru/easyjson
   version: v0.7.0
 - package: google.golang.org/api
