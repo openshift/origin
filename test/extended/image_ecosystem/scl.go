@@ -78,6 +78,15 @@ func defineTest(name string, t tc, oc *exutil.CLI) {
 				if strings.Contains(string(log), "Sample invocation") {
 					return true, nil
 				}
+				if strings.Contains(string(log), "oc new-app") {
+					return true, nil
+				}
+				if strings.Contains(string(log), "OpenShift") {
+					return true, nil
+				}
+				if strings.Contains(string(log), "Openshift") {
+					return true, nil
+				}
 				return false, nil
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
