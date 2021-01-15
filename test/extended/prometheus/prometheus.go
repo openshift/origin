@@ -363,8 +363,11 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
 
+			// we only consider samples since the beginning of the test
+			testDuration := exutil.DurationSinceStartInSeconds().String()
+
 			tests := map[string]bool{
-				`prometheus_rule_evaluation_failures_total >= 1`: false,
+				fmt.Sprintf(`increase(prometheus_rule_evaluation_failures_total[%s]) >= 1`, testDuration): false,
 			}
 			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())

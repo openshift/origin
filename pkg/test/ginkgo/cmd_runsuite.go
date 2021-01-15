@@ -49,6 +49,8 @@ type Options struct {
 	DryRun        bool
 	PrintCommands bool
 	Out, ErrOut   io.Writer
+
+	StartTime time.Time
 }
 
 func (opt *Options) AsEnv() []string {
@@ -57,6 +59,7 @@ func (opt *Options) AsEnv() []string {
 	args = append(args, fmt.Sprintf("KUBE_TEST_REPO=%s", opt.FromRepository))
 	args = append(args, fmt.Sprintf("TEST_PROVIDER=%s", opt.Provider))
 	args = append(args, fmt.Sprintf("TEST_SUITE_OPTIONS=%s", opt.SuiteOptions))
+	args = append(args, fmt.Sprintf("TEST_SUITE_START_TIME=%d", opt.StartTime.Unix()))
 	return args
 }
 
@@ -150,6 +153,11 @@ func (opt *Options) Run(args []string) error {
 		tests = newTests
 	}
 
+	start := time.Now()
+	if opt.StartTime.IsZero() {
+		opt.StartTime = start
+	}
+
 	if opt.PrintCommands {
 		status := newTestStatus(opt.Out, true, len(tests), time.Minute, &monitor.Monitor{}, opt.AsEnv())
 		newParallelTestQueue(tests).Execute(context.Background(), 1, status.OutputCommand)
@@ -226,7 +234,6 @@ func (opt *Options) Run(args []string) error {
 	})
 
 	// run the tests
-	start := time.Now()
 
 	// run our Early tests first
 	q := newParallelTestQueue(early)

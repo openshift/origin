@@ -17,35 +17,44 @@ import (
 // Disruptive tests use this value to signal when the disruption has healed
 // so that normal conformance results are not impacted.
 func LimitTestsToStartTime() time.Time {
-	s := os.Getenv("TEST_LIMIT_START_TIME")
-	if len(s) == 0 {
-		return time.Time{}
-	}
-	seconds, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		return time.Time{}
-	}
-	return time.Unix(seconds, 0)
+	return unixTimeFromEnv("TEST_LIMIT_START_TIME")
+}
+
+// SuiteStartTime returns a time.Time which is the beginning of the suite
+// execution (the set of tests). If this is empty or invalid the Time will
+// be the zero value.
+//
+// Tests that need to retrieve results newer than the suite start because
+// they are only checking the behavior of the system while the suite is being
+// run should use this time as the start of that interval.
+func SuiteStartTime() time.Time {
+	return unixTimeFromEnv("TEST_SUITE_START_TIME")
 }
 
 // DurationSinceStartInSeconds returns the current time minus the start
-// limit time, and if no start limit time is set it returns one hour. It
-// also rounds the duration to seconds. Used by tests that want to look
-// at a range such as prometheus metrics instead of hardcoding an interval.
-// This function clamps the returned value to [time.Minute, 24*time.Hour].
+// limit time or suite time, or one hour by default. It rounds the duration
+// to seconds. It always returns a one minute duration or longer, even if
+// the start time is in the future.
+//
+// This method simplifies the default behavior of tests that check metrics
+// from the current time to the preferred start time (either implicit via
+// the suite start time, or explicit via TEST_LIMIT_START_TIME). Depending
+// on the suite a user is running, if the invariants the suite tests should
+// hold BEFORE the suite is run, then TEST_LIMIT_START_TIME should be set
+// to that time, and tests will automatically check that interval as well.
 func DurationSinceStartInSeconds() time.Duration {
+	now := time.Now()
 	start := LimitTestsToStartTime()
 	if start.IsZero() {
-		return time.Hour
+		start = SuiteStartTime()
 	}
-	interval := time.Now().Sub(start).Round(time.Second)
+	if start.IsZero() {
+		start = now.Add(-time.Hour)
+	}
+	interval := now.Sub(start).Round(time.Second)
 	switch {
-	case interval < 0:
-		return time.Hour
 	case interval < time.Minute:
 		return time.Minute
-	case interval > 24*time.Hour:
-		return 24 * time.Hour
 	default:
 		return interval
 	}
@@ -67,4 +76,19 @@ func TolerateVersionSkewInTests() bool {
 		return true
 	}
 	return false
+}
+
+// unixTimeFromEnv reads a unix timestamp in seconds since the epoch and
+// returns a Time object. If no env var is set or if it does not parse, a
+// zero time is returned.
+func unixTimeFromEnv(name string) time.Time {
+	s := os.Getenv(name)
+	if len(s) == 0 {
+		return time.Time{}
+	}
+	seconds, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return time.Time{}
+	}
+	return time.Unix(seconds, 0)
 }
