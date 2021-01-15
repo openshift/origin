@@ -304,8 +304,12 @@ while true; do sleep 1; done
 					// Check container state
 					if !expectedPullStatus {
 						if status.State.Running == nil {
-							return fmt.Errorf("expected container state: Running, got: %q",
-								GetContainerState(status.State))
+							waitMsg := ""
+							if status.State.Waiting != nil {
+								waitMsg = fmt.Sprintf("msg = %s, reason = %s", status.State.Waiting.Message, status.State.Waiting.Reason)
+							}
+							return fmt.Errorf("expected container state: Running, got: %q, details: %s",
+								GetContainerState(status.State), waitMsg)
 						}
 					}
 					if expectedPullStatus {
@@ -341,6 +345,7 @@ while true; do sleep 1; done
 						if err = checkContainerStatus(); err == nil {
 							break
 						}
+						e2elog.Logf("No.%d container not ready, err: %v", i, err)
 					}
 					ginkgo.By("delete the container")
 					container.Delete()
