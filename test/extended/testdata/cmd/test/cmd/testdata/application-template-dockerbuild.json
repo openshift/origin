@@ -90,7 +90,7 @@
           {
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/ruby-25-centos7:latest"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:latest"
             },
             "name": "latest"
           }

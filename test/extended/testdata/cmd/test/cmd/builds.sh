@@ -25,8 +25,8 @@ os::test::junit::declare_suite_start "cmd/builds"
 template='{{with .spec.output.to}}{{.kind}} {{.name}}{{end}}'
 
 # Build from Dockerfile with output to ImageStreamTag
-os::cmd::expect_success "oc new-build --dockerfile=\$'FROM centos:7\nRUN yum install -y httpd'"
-os::cmd::expect_success_and_text "oc get bc/centos --template '${template}'" '^ImageStreamTag centos:latest$'
+os::cmd::expect_success "oc new-build --to=tests:custom --dockerfile=\$'FROM image-registry.openshift-image-registry.svc:5000/openshift/tests:latest\nRUN yum install -y httpd'"
+os::cmd::expect_success_and_text "oc get bc/tests --template '${template}'" '^ImageStreamTag tests:custom$'
 
 # Build from a binary with no inputs requires name
 os::cmd::expect_failure_and_text "oc new-build --binary" "you must provide a --name"
@@ -35,28 +35,28 @@ os::cmd::expect_failure_and_text "oc new-build --binary" "you must provide a --n
 os::cmd::expect_success "oc new-build --binary --name=binary-test"
 os::cmd::expect_success_and_text "oc get bc/binary-test" 'Binary'
 
-os::cmd::expect_success 'oc delete is/binary-test bc/binary-test bc/centos'
+os::cmd::expect_success 'oc delete is/binary-test bc/binary-test bc/tests'
 
 # Build from Dockerfile with output to DockerImage
-os::cmd::expect_success "oc new-build -D \$'FROM centos:7' --to-docker"
-os::cmd::expect_success_and_text "oc get bc/centos --template '${template}'" '^DockerImage centos:latest$'
+os::cmd::expect_success "oc new-build -D \$'FROM image-registry.openshift-image-registry.svc:5000/openshift/tests:latest' --to-docker"
+os::cmd::expect_success_and_text "oc get bc/tests --template '${template}'" '^DockerImage tests:latest$'
 
-os::cmd::expect_success 'oc delete is/centos bc/centos'
+os::cmd::expect_success 'oc delete is/tests bc/tests'
 
 # Build from Dockerfile with given output ImageStreamTag spec
-os::cmd::expect_success "oc new-build -D \$'FROM centos:7\nENV ok=1' --to origin-test:v1.1"
+os::cmd::expect_success "oc new-build -D \$'FROM image-registry.openshift-image-registry.svc:5000/openshift/tests:latest\nENV ok=1' --to origin-test:v1.1"
 os::cmd::expect_success_and_text "oc get bc/origin-test --template '${template}'" '^ImageStreamTag origin-test:v1.1$'
 
-os::cmd::expect_success 'oc delete is/centos bc/origin-test'
+os::cmd::expect_success 'oc delete is/tests bc/origin-test'
 
 # Build from Dockerfile with given output DockerImage spec
-os::cmd::expect_success "oc new-build -D \$'FROM centos:7\nENV ok=1' --to-docker --to openshift/origin:v1.1-test"
+os::cmd::expect_success "oc new-build -D \$'FROM image-registry.openshift-image-registry.svc:5000/openshift/tests:latest\nENV ok=1' --to-docker --to openshift/origin:v1.1-test"
 os::cmd::expect_success_and_text "oc get bc/origin --template '${template}'" '^DockerImage openshift/origin:v1.1-test$'
 
-os::cmd::expect_success 'oc delete is/centos'
+os::cmd::expect_success 'oc delete is/tests'
 
 # Build from Dockerfile with custom name and given output ImageStreamTag spec
-os::cmd::expect_success "oc new-build -D \$'FROM centos:7\nENV ok=1' --to origin-name-test --name origin-test2"
+os::cmd::expect_success "oc new-build -D \$'FROM image-registry.openshift-image-registry.svc:5000/openshift/tests:latest\nENV ok=1' --to origin-name-test --name origin-test2"
 os::cmd::expect_success_and_text "oc get bc/origin-test2 --template '${template}'" '^ImageStreamTag origin-name-test:latest$'
 
 #os::cmd::try_until_text 'oc get is ruby-25-centos7' 'latest'
@@ -64,11 +64,11 @@ os::cmd::expect_success_and_text "oc get bc/origin-test2 --template '${template}
 
 os::cmd::expect_success 'oc delete all --all'
 
-os::cmd::expect_success "oc new-build -D \$'FROM centos:7' --no-output"
-os::cmd::expect_success_and_not_text 'oc get bc/centos -o=jsonpath="{.spec.output.to}"' '.'
+os::cmd::expect_success "oc new-build -D \$'FROM image-registry.openshift-image-registry.svc:5000/openshift/tests:latest' --no-output"
+os::cmd::expect_success_and_not_text 'oc get bc/tests -o=jsonpath="{.spec.output.to}"' '.'
 
 # Ensure output is valid JSON
-#os::cmd::expect_success 'oc new-build -D "FROM centos:7" -o json | python -m json.tool'
+#os::cmd::expect_success 'oc new-build -D "FROM image-registry.openshift-image-registry.svc:5000/openshift/tests:latest" -o json | python -m json.tool'
 
 os::cmd::expect_success 'oc delete all --all'
 os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-dockerbuild.json -l build=docker | oc create -f -'
@@ -124,9 +124,9 @@ os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-buildcli.json'
 # the build should use the image field as defined in the buildconfig
 # Use basename to transform "build/build-name" into "build-name"
 started="$(basename $(oc start-build -o=name ruby-sample-build-invalidtag))"
-os::cmd::expect_success_and_text "oc describe build ${started}" 'centos/ruby-25-centos7$'
+os::cmd::expect_success_and_text "oc describe build ${started}" 'openshift/ruby$'
 frombuild="$(basename $(oc start-build -o=name --from-build="${started}"))"
-os::cmd::expect_success_and_text "oc describe build ${frombuild}" 'centos/ruby-25-centos7$'
+os::cmd::expect_success_and_text "oc describe build ${frombuild}" 'openshift/ruby$'
 os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-dir=. --from-build=${started}" "cannot use '--from-build' flag with binary builds"
 os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-file=. --from-build=${started}" "cannot use '--from-build' flag with binary builds"
 os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-repo=. --from-build=${started}" "cannot use '--from-build' flag with binary builds"
