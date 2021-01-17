@@ -2,6 +2,7 @@ package operators
 
 import (
 	"context"
+	"fmt"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -12,6 +13,9 @@ import (
 	"k8s.io/client-go/dynamic"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+
+	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/prometheus"
 )
 
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Early] Managed cluster should", func() {
@@ -50,5 +54,40 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Early] Managed clu
 
 		g.By("ensure number of Machines and Nodes are equal")
 		o.Expect(len(nodeItems)).To(o.Equal(len(machineItems)))
+	})
+})
+
+var _ = g.Describe("[sig-node] Managed cluster", func() {
+	defer g.GinkgoRecover()
+	var (
+		oc = exutil.NewCLIWithoutNamespace("managed-cluster-node")
+
+		url, bearerToken string
+	)
+	g.BeforeEach(func() {
+		var ok bool
+		url, bearerToken, ok = prometheus.LocatePrometheus(oc)
+		if !ok {
+			e2e.Failf("Prometheus could not be located on this cluster, failing prometheus test")
+		}
+	})
+
+	g.It("should report ready nodes the entire duration of the test run [Late]", func() {
+		oc.SetupProject()
+		ns := oc.Namespace()
+		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
+		defer func() {
+			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+		}()
+
+		// we only consider samples since the beginning of the test
+		testDuration := exutil.DurationSinceStartInSeconds().String()
+
+		tests := map[string]bool{
+			// all nodes should be reporting ready throughout the entire run
+			fmt.Sprintf(`min by (node) (avg_over_time(kube_node_status_condition{condition="Ready",status="true"}[%[1]s])) < 1`, testDuration): false,
+		}
+		err := prometheus.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })
