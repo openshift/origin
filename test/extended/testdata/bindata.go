@@ -361,7 +361,69 @@
 // test/extended/testdata/jenkins-plugin/shared-resources-template.json
 // test/extended/testdata/jenkins-slave-template.yaml
 // test/extended/testdata/jobs/v1.yaml
-// test/extended/testdata/ldap/groupsync.sh
+// test/extended/testdata/ldap/groupsync/ad/blacklist_ldap.txt
+// test/extended/testdata/ldap/groupsync/ad/blacklist_openshift.txt
+// test/extended/testdata/ldap/groupsync/ad/ldapgroupuids.txt
+// test/extended/testdata/ldap/groupsync/ad/osgroupuids.txt
+// test/extended/testdata/ldap/groupsync/ad/sync-config-dn-everywhere.yaml
+// test/extended/testdata/ldap/groupsync/ad/sync-config-paging.yaml
+// test/extended/testdata/ldap/groupsync/ad/sync-config-partially-user-defined.yaml
+// test/extended/testdata/ldap/groupsync/ad/sync-config-user-defined.yaml
+// test/extended/testdata/ldap/groupsync/ad/sync-config.yaml
+// test/extended/testdata/ldap/groupsync/ad/valid_all_blacklist_sync.yaml
+// test/extended/testdata/ldap/groupsync/ad/valid_all_ldap_sync.yaml
+// test/extended/testdata/ldap/groupsync/ad/valid_all_ldap_sync_dn_everywhere.yaml
+// test/extended/testdata/ldap/groupsync/ad/valid_all_ldap_sync_partially_user_defined.yaml
+// test/extended/testdata/ldap/groupsync/ad/valid_all_ldap_sync_prune.yaml
+// test/extended/testdata/ldap/groupsync/ad/valid_all_ldap_sync_user_defined.yaml
+// test/extended/testdata/ldap/groupsync/ad/valid_all_openshift_blacklist_sync.yaml
+// test/extended/testdata/ldap/groupsync/ad/valid_whitelist_sync.yaml
+// test/extended/testdata/ldap/groupsync/ad/valid_whitelist_union_sync.yaml
+// test/extended/testdata/ldap/groupsync/ad/whitelist_ldap.txt
+// test/extended/testdata/ldap/groupsync/ad/whitelist_openshift.txt
+// test/extended/testdata/ldap/groupsync/augmented-ad/blacklist_ldap.txt
+// test/extended/testdata/ldap/groupsync/augmented-ad/blacklist_openshift.txt
+// test/extended/testdata/ldap/groupsync/augmented-ad/ldapgroupuids.txt
+// test/extended/testdata/ldap/groupsync/augmented-ad/osgroupuids.txt
+// test/extended/testdata/ldap/groupsync/augmented-ad/sync-config-dn-everywhere.yaml
+// test/extended/testdata/ldap/groupsync/augmented-ad/sync-config-paging.yaml
+// test/extended/testdata/ldap/groupsync/augmented-ad/sync-config-partially-user-defined.yaml
+// test/extended/testdata/ldap/groupsync/augmented-ad/sync-config-user-defined.yaml
+// test/extended/testdata/ldap/groupsync/augmented-ad/sync-config.yaml
+// test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_blacklist_sync.yaml
+// test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_ldap_sync.yaml
+// test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_ldap_sync_delete_prune.yaml
+// test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_ldap_sync_dn_everywhere.yaml
+// test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_ldap_sync_partially_user_defined.yaml
+// test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_ldap_sync_prune.yaml
+// test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_ldap_sync_user_defined.yaml
+// test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_openshift_blacklist_sync.yaml
+// test/extended/testdata/ldap/groupsync/augmented-ad/valid_whitelist_sync.yaml
+// test/extended/testdata/ldap/groupsync/augmented-ad/valid_whitelist_union_sync.yaml
+// test/extended/testdata/ldap/groupsync/augmented-ad/whitelist_ldap.txt
+// test/extended/testdata/ldap/groupsync/augmented-ad/whitelist_openshift.txt
+// test/extended/testdata/ldap/groupsync/rfc2307/blacklist_ldap.txt
+// test/extended/testdata/ldap/groupsync/rfc2307/blacklist_openshift.txt
+// test/extended/testdata/ldap/groupsync/rfc2307/ldapgroupuids.txt
+// test/extended/testdata/ldap/groupsync/rfc2307/osgroupuids.txt
+// test/extended/testdata/ldap/groupsync/rfc2307/sync-config-dn-everywhere.yaml
+// test/extended/testdata/ldap/groupsync/rfc2307/sync-config-paging.yaml
+// test/extended/testdata/ldap/groupsync/rfc2307/sync-config-partially-user-defined.yaml
+// test/extended/testdata/ldap/groupsync/rfc2307/sync-config-tolerating.yaml
+// test/extended/testdata/ldap/groupsync/rfc2307/sync-config-user-defined.yaml
+// test/extended/testdata/ldap/groupsync/rfc2307/sync-config.yaml
+// test/extended/testdata/ldap/groupsync/rfc2307/valid_all_blacklist_sync.yaml
+// test/extended/testdata/ldap/groupsync/rfc2307/valid_all_ldap_sync.yaml
+// test/extended/testdata/ldap/groupsync/rfc2307/valid_all_ldap_sync_dn_everywhere.yaml
+// test/extended/testdata/ldap/groupsync/rfc2307/valid_all_ldap_sync_partially_user_defined.yaml
+// test/extended/testdata/ldap/groupsync/rfc2307/valid_all_ldap_sync_prune.yaml
+// test/extended/testdata/ldap/groupsync/rfc2307/valid_all_ldap_sync_tolerating.yaml
+// test/extended/testdata/ldap/groupsync/rfc2307/valid_all_ldap_sync_user_defined.yaml
+// test/extended/testdata/ldap/groupsync/rfc2307/valid_all_openshift_blacklist_sync.yaml
+// test/extended/testdata/ldap/groupsync/rfc2307/valid_whitelist_sync.yaml
+// test/extended/testdata/ldap/groupsync/rfc2307/valid_whitelist_union_sync.yaml
+// test/extended/testdata/ldap/groupsync/rfc2307/whitelist_ldap.txt
+// test/extended/testdata/ldap/groupsync/rfc2307/whitelist_openshift.txt
 // test/extended/testdata/ldap/ldapserver-config-cm.yaml
 // test/extended/testdata/ldap/ldapserver-deployment.yaml
 // test/extended/testdata/ldap/ldapserver-scripts-cm.yaml
@@ -47355,220 +47417,2355 @@ func testExtendedTestdataJobsV1Yaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataLdapGroupsyncSh = []byte(`#!/bin/bash
-#
-# This scripts starts the OpenShift server with a default configuration.
-# The OpenShift Docker registry and router are installed.
-# It will run all tests that are imported into test/extended.
-source "/usr/hack/lib/init.sh"
-os::util::environment::setup_time_vars
-os::build::setup_env
+var _testExtendedTestdataLdapGroupsyncAdBlacklist_ldapTxt = []byte(`group1
+group3
+`)
 
-export KUBECONFIG="${ADMIN_KUBECONFIG}"
-LDAP_SERVICE_IP="${LDAP_SERVICE}"
-
-function cleanup() {
-       return_code=$?
-       os::test::junit::generate_report
-       os::cleanup::all
-       os::util::describe_return_code "${return_code}"
-       exit "${return_code}"
-}
-trap "cleanup" EXIT
-
-function compare_and_cleanup() {
-       validation_file=$1
-       actual_file=actual-${validation_file}
-       rm -f ${WORKINGDIR}/${actual_file}
-       oc get groups --no-headers | awk '{print $1}' | sort | xargs -I{} oc get --export group {} -o yaml >> ${WORKINGDIR}/${actual_file}
-       os::util::sed '/sync-time/d' ${WORKINGDIR}/${actual_file}
-       diff ${validation_file} ${WORKINGDIR}/${actual_file}
-       oc delete groups --all
-       echo -e "\tSUCCESS"
+func testExtendedTestdataLdapGroupsyncAdBlacklist_ldapTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdBlacklist_ldapTxt, nil
 }
 
-os::log::info "Running extended tests"
-
-schema=('rfc2307' 'ad' 'augmented-ad')
-
-for (( i=0; i<${#schema[@]}; i++ )); do
-       current_schema=${schema[$i]}
-       os::log::info "Testing schema: ${current_schema}"
-       os::test::junit::declare_suite_start "extended/ldap-groups/${current_schema}"
-
-       WORKINGDIR=${BASETMPDIR}/${current_schema}
-       mkdir ${WORKINGDIR}
-
-       os::log::info "working dir ${WORKINGDIR}"
-       # create a temp copy of the test files
-       cp /tmp/ldap/${current_schema}/* ${WORKINGDIR}
-       pushd ${WORKINGDIR} > /dev/null
-
-       # load OpenShift and LDAP group UIDs, needed for literal whitelists
-       # use awk instead of sed for compatibility (see os::util::sed)
-       group1_ldapuid=$(awk 'NR == 1 {print $0}' ldapgroupuids.txt)
-       group2_ldapuid=$(awk 'NR == 2 {print $0}' ldapgroupuids.txt)
-       group3_ldapuid=$(awk 'NR == 3 {print $0}' ldapgroupuids.txt)
-
-       group1_osuid=$(awk 'NR == 1 {print $0}' osgroupuids.txt)
-       group2_osuid=$(awk 'NR == 2 {print $0}' osgroupuids.txt)
-       group3_osuid=$(awk 'NR == 3 {print $0}' osgroupuids.txt)
-
-       # update sync-configs and validation files with the LDAP server's IP
-       config_files=sync-config*.yaml
-       validation_files=valid*.yaml
-       for config in ${config_files} ${validation_files}
-       do
-               os::util::sed "s/LDAP_SERVICE_IP/${LDAP_SERVICE_IP}/g" ${config}
-               os::util::sed "s@LDAP_CA@${LDAP_CA}@g" ${config}
-       done
-
-       echo -e "\tTEST: Sync all LDAP groups from LDAP server"
-       oc adm groups sync --sync-config=sync-config.yaml --confirm
-       compare_and_cleanup valid_all_ldap_sync.yaml
-
-
-       # WHITELISTS
-       echo -e "\tTEST: Sync subset of LDAP groups from LDAP server using whitelist file"
-       oc adm groups sync --whitelist=whitelist_ldap.txt --sync-config=sync-config.yaml --confirm
-       compare_and_cleanup valid_whitelist_sync.yaml
-
-       echo -e "\tTEST: Sync subset of LDAP groups from LDAP server using literal whitelist"
-       oc adm groups sync ${group1_ldapuid} --sync-config=sync-config.yaml --confirm
-       compare_and_cleanup valid_whitelist_sync.yaml
-
-       echo -e "\tTEST: Sync subset of LDAP groups from LDAP server using union of literal whitelist and whitelist file"
-       oc adm groups sync ${group2_ldapuid} --whitelist=whitelist_ldap.txt --sync-config=sync-config.yaml --confirm
-       compare_and_cleanup valid_whitelist_union_sync.yaml
-
-       echo -e "\tTEST: Sync subset of OpenShift groups from LDAP server using whitelist file"
-       oc adm groups sync ${group1_ldapuid} --sync-config=sync-config.yaml --confirm
-       oc patch group ${group1_osuid} -p 'users: []'
-       oc adm groups sync --type=openshift --whitelist=whitelist_openshift.txt --sync-config=sync-config.yaml --confirm
-       compare_and_cleanup valid_whitelist_sync.yaml
-
-       echo -e "\tTEST: Sync subset of OpenShift groups from LDAP server using literal whitelist"
-       # sync group from LDAP
-       oc adm groups sync ${group1_ldapuid} --sync-config=sync-config.yaml --confirm
-       oc patch group ${group1_osuid} -p 'users: []'
-       oc adm groups sync --type=openshift ${group1_osuid} --sync-config=sync-config.yaml --confirm
-       compare_and_cleanup valid_whitelist_sync.yaml
-
-       echo -e "\tTEST: Sync subset of OpenShift groups from LDAP server using union of literal whitelist and whitelist file"
-       # sync groups from LDAP
-       oc adm groups sync ${group1_ldapuid} ${group2_ldapuid} --sync-config=sync-config.yaml --confirm
-       oc patch group ${group1_osuid} -p 'users: []'
-       oc patch group ${group2_osuid} -p 'users: []'
-       oc adm groups sync --type=openshift group/${group2_osuid} --whitelist=whitelist_openshift.txt --sync-config=sync-config.yaml --confirm
-       compare_and_cleanup valid_whitelist_union_sync.yaml
-
-
-       # BLACKLISTS
-       echo -e "\tTEST: Sync subset of LDAP groups from LDAP server using whitelist and blacklist file"
-       # oc adm groups sync --whitelist=ldapgroupuids.txt --blacklist=blacklist_ldap.txt --blacklist-group="${group1_ldapuid}" --sync-config=sync-config.yaml --confirm
-       oc adm groups sync --whitelist=ldapgroupuids.txt --blacklist=blacklist_ldap.txt --sync-config=sync-config.yaml --confirm
-       compare_and_cleanup valid_all_blacklist_sync.yaml
-
-       echo -e "\tTEST: Sync subset of LDAP groups from LDAP server using blacklist"
-       # oc adm groups sync --blacklist=blacklist_ldap.txt --blacklist-group=${group1_ldapuid} --sync-config=sync-config.yaml --confirm
-       oc adm groups sync --blacklist=blacklist_ldap.txt --sync-config=sync-config.yaml --confirm
-       compare_and_cleanup valid_all_blacklist_sync.yaml
-
-       echo -e "\tTEST: Sync subset of OpenShift groups from LDAP server using whitelist and blacklist file"
-       oc adm groups sync --sync-config=sync-config.yaml --confirm
-       oc get group -o name --no-headers | xargs -n 1 oc patch -p 'users: []'
-       # oc adm groups sync --type=openshift --whitelist=osgroupuids.txt --blacklist=blacklist_openshift.txt --blacklist-group=${group1_osuid} --sync-config=sync-config.yaml --confirm
-       oc adm groups sync --type=openshift --whitelist=osgroupuids.txt --blacklist=blacklist_openshift.txt --sync-config=sync-config.yaml --confirm
-       compare_and_cleanup valid_all_openshift_blacklist_sync.yaml
-
-
-       # MAPPINGS
-       echo -e "\tTEST: Sync all LDAP groups from LDAP server using a user-defined mapping"
-       oc adm groups sync --sync-config=sync-config-user-defined.yaml --confirm
-       compare_and_cleanup valid_all_ldap_sync_user_defined.yaml
-
-       echo -e "\tTEST: Sync all LDAP groups from LDAP server using a partially user-defined mapping"
-       oc adm groups sync --sync-config=sync-config-partially-user-defined.yaml --confirm
-       compare_and_cleanup valid_all_ldap_sync_partially_user_defined.yaml
-
-       echo -e "\tTEST: Sync based on OpenShift groups respecting OpenShift mappings"
-       oc adm groups sync --sync-config=sync-config-user-defined.yaml --confirm
-       oc get group -o name --no-headers | xargs -n 1 oc patch -p 'users: []'
-       oc adm groups sync --type=openshift --sync-config=sync-config.yaml --confirm
-       compare_and_cleanup valid_all_ldap_sync_user_defined.yaml
-
-       echo -e "\tTEST: Sync all LDAP groups from LDAP server using DN as attribute whenever possible"
-    oc adm groups sync --sync-config=sync-config-dn-everywhere.yaml --confirm
-       compare_and_cleanup valid_all_ldap_sync_dn_everywhere.yaml
-
-       echo -e "\tTEST: Sync based on OpenShift groups respecting OpenShift mappings and whitelist file"
-       os::cmd::expect_success_and_text 'oc adm groups sync --whitelist=ldapgroupuids.txt --sync-config=sync-config-user-defined.yaml --confirm' 'group/'
-       os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name}' 'firstgroup secondgroup thirdgroup'
-       os::cmd::expect_success_and_text 'oc adm groups sync --type=openshift --whitelist=ldapgroupuids.txt --sync-config=sync-config-user-defined.yaml --confirm' 'group/'
-       os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name}' 'firstgroup secondgroup thirdgroup'
-       os::cmd::expect_success_and_text 'oc delete groups --all' 'deleted'
-       os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name} | wc -l' '0'
-
-       # PRUNING
-       echo -e "\tTEST: Sync all LDAP groups from LDAP server, change LDAP UID, then prune OpenShift groups"
-       oc adm groups sync --sync-config=sync-config.yaml --confirm
-       oc patch group ${group2_osuid} -p "{\"metadata\":{\"annotations\":{\"openshift.io/ldap.uid\":\"cn=garbage,${group2_ldapuid}\"}}}"
-       oc adm groups prune --sync-config=sync-config.yaml --confirm
-       compare_and_cleanup valid_all_ldap_sync_prune.yaml
-
-       echo -e "\tTEST: Sync all LDAP groups from LDAP server using whitelist file, then prune OpenShift groups using the same whitelist file"
-       os::cmd::expect_success_and_text 'oc adm groups sync --whitelist=ldapgroupuids.txt --sync-config=sync-config-user-defined.yaml --confirm' 'group/'
-       os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name}' 'firstgroup secondgroup thirdgroup'
-       os::cmd::expect_success_and_text 'oc adm groups prune --whitelist=ldapgroupuids.txt --sync-config=sync-config-user-defined.yaml --confirm | wc -l' '0'
-       os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name}' 'firstgroup secondgroup thirdgroup'
-       os::cmd::expect_success_and_text 'oc patch group secondgroup -p "{\"metadata\":{\"annotations\":{\"openshift.io/ldap.uid\":\"cn=garbage\"}}}"' 'group.user.openshift.io/secondgroup patched'
-       os::cmd::expect_success_and_text 'oc adm groups prune --whitelist=ldapgroupuids.txt --sync-config=sync-config-user-defined.yaml --confirm' 'group/secondgroup'
-       os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name}' 'firstgroup thirdgroup'
-       os::cmd::expect_success_and_text 'oc delete groups --all' 'deleted'
-       os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name} | wc -l' '0'
-
-
-       # PAGING
-       echo -e "\tTEST: Sync all LDAP groups from LDAP server using paged queries"
-       oc adm groups sync --sync-config=sync-config-paging.yaml --confirm
-       compare_and_cleanup valid_all_ldap_sync.yaml
-
-
-       os::test::junit::declare_suite_end
-    popd > /dev/null
-done
-
-# special test for RFC2307
-pushd ${BASETMPDIR}/rfc2307 > /dev/null
-echo -e "\tTEST: Sync groups from LDAP server, tolerating errors"
-oc adm groups sync --sync-config=sync-config-tolerating.yaml --confirm 2>"${LOG_DIR}/tolerated-output.txt"
-grep 'For group "cn=group1,ou=groups,ou=incomplete\-rfc2307,dc=example,dc=com", ignoring member "cn=INVALID,ou=people,ou=rfc2307,dc=example,dc=com"' "${LOG_DIR}/tolerated-output.txt"
-grep 'For group "cn=group2,ou=groups,ou=incomplete\-rfc2307,dc=example,dc=com", ignoring member "cn=OUTOFSCOPE,ou=people,ou=OUTOFSCOPE,dc=example,dc=com"' "${LOG_DIR}/tolerated-output.txt"
-grep 'For group "cn=group3,ou=groups,ou=incomplete\-rfc2307,dc=example,dc=com", ignoring member "cn=INVALID,ou=people,ou=rfc2307,dc=example,dc=com"' "${LOG_DIR}/tolerated-output.txt"
-grep 'For group "cn=group3,ou=groups,ou=incomplete\-rfc2307,dc=example,dc=com", ignoring member "cn=OUTOFSCOPE,ou=people,ou=OUTOFSCOPE,dc=example,dc=com"' "${LOG_DIR}/tolerated-output.txt"
-compare_and_cleanup valid_all_ldap_sync_tolerating.yaml
-popd > /dev/null
-
-# special test for augmented-ad
-pushd ${BASETMPDIR}/augmented-ad > /dev/null
-echo -e "\tTEST: Sync all LDAP groups from LDAP server, remove LDAP group metadata entry, then prune OpenShift groups"
-oc adm groups sync --sync-config=sync-config.yaml --confirm
-ldapdelete -x -h $LDAP_SERVICE_IP -p 389 -D cn=Manager,dc=example,dc=com -w admin "${group1_ldapuid}"
-oc adm groups prune --sync-config=sync-config.yaml --confirm
-compare_and_cleanup valid_all_ldap_sync_delete_prune.yaml
-popd > /dev/null`)
-
-func testExtendedTestdataLdapGroupsyncShBytes() ([]byte, error) {
-	return _testExtendedTestdataLdapGroupsyncSh, nil
-}
-
-func testExtendedTestdataLdapGroupsyncSh() (*asset, error) {
-	bytes, err := testExtendedTestdataLdapGroupsyncShBytes()
+func testExtendedTestdataLdapGroupsyncAdBlacklist_ldapTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdBlacklist_ldapTxtBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/blacklist_ldap.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdBlacklist_openshiftTxt = []byte(`group1
+group/group3
+`)
+
+func testExtendedTestdataLdapGroupsyncAdBlacklist_openshiftTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdBlacklist_openshiftTxt, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdBlacklist_openshiftTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdBlacklist_openshiftTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/blacklist_openshift.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdLdapgroupuidsTxt = []byte(`group1
+group2
+group3`)
+
+func testExtendedTestdataLdapGroupsyncAdLdapgroupuidsTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdLdapgroupuidsTxt, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdLdapgroupuidsTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdLdapgroupuidsTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/ldapgroupuids.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdOsgroupuidsTxt = []byte(`group1
+group2
+group3`)
+
+func testExtendedTestdataLdapGroupsyncAdOsgroupuidsTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdOsgroupuidsTxt, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdOsgroupuidsTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdOsgroupuidsTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/osgroupuids.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdSyncConfigDnEverywhereYaml = []byte(`kind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://LDAP_SERVICE_IP:389
+insecure: false
+ca: LDAP_CA
+activeDirectory:
+    usersQuery:
+        baseDN: "ou=people,ou=ad,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+        filter: (objectclass=inetOrgPerson)
+    groupMembershipAttributes: [ testMemberOf ]
+    userNameAttributes: [ dn ]`)
+
+func testExtendedTestdataLdapGroupsyncAdSyncConfigDnEverywhereYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdSyncConfigDnEverywhereYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdSyncConfigDnEverywhereYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdSyncConfigDnEverywhereYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/sync-config-dn-everywhere.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdSyncConfigPagingYaml = []byte(`kind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://LDAP_SERVICE_IP:389
+insecure: false
+ca: LDAP_CA
+activeDirectory:
+    usersQuery:
+        baseDN: "ou=people,ou=ad,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+        filter: (objectclass=inetOrgPerson)
+        pageSize: 1
+    groupMembershipAttributes: [ testMemberOf ]
+    userNameAttributes: [ mail ]`)
+
+func testExtendedTestdataLdapGroupsyncAdSyncConfigPagingYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdSyncConfigPagingYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdSyncConfigPagingYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdSyncConfigPagingYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/sync-config-paging.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdSyncConfigPartiallyUserDefinedYaml = []byte(`kind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://LDAP_SERVICE_IP:389
+insecure: false
+ca: LDAP_CA
+groupUIDNameMapping:
+  group1: firstgroup
+  group3: thirdgroup
+activeDirectory:
+  usersQuery:
+    baseDN: "ou=people,ou=ad,dc=example,dc=com"
+    scope: sub
+    derefAliases: never
+    filter: (objectclass=inetOrgPerson)
+  groupMembershipAttributes: [ testMemberOf ]
+  userNameAttributes: [ mail ]`)
+
+func testExtendedTestdataLdapGroupsyncAdSyncConfigPartiallyUserDefinedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdSyncConfigPartiallyUserDefinedYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdSyncConfigPartiallyUserDefinedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdSyncConfigPartiallyUserDefinedYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/sync-config-partially-user-defined.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdSyncConfigUserDefinedYaml = []byte(`kind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://LDAP_SERVICE_IP:389
+insecure: false
+ca: LDAP_CA
+groupUIDNameMapping:
+  group1: firstgroup
+  group2: secondgroup
+  group3: thirdgroup
+activeDirectory:
+  usersQuery:
+    baseDN: "ou=people,ou=ad,dc=example,dc=com"
+    scope: sub
+    derefAliases: never
+    filter: (objectclass=inetOrgPerson)
+  groupMembershipAttributes: [ testMemberOf ]
+  userNameAttributes: [ mail ]`)
+
+func testExtendedTestdataLdapGroupsyncAdSyncConfigUserDefinedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdSyncConfigUserDefinedYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdSyncConfigUserDefinedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdSyncConfigUserDefinedYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/sync-config-user-defined.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdSyncConfigYaml = []byte(`kind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://LDAP_SERVICE_IP:389
+insecure: false
+ca: LDAP_CA
+activeDirectory:
+    usersQuery:
+        baseDN: "ou=people,ou=ad,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+        filter: (objectclass=inetOrgPerson)
+    groupMembershipAttributes: [ testMemberOf ]
+    userNameAttributes: [ mail ]`)
+
+func testExtendedTestdataLdapGroupsyncAdSyncConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdSyncConfigYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdSyncConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdSyncConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/sync-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdValid_all_blacklist_syncYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group2
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group2
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncAdValid_all_blacklist_syncYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdValid_all_blacklist_syncYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdValid_all_blacklist_syncYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdValid_all_blacklist_syncYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/valid_all_blacklist_sync.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdValid_all_ldap_syncYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group1
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group1
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group2
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group2
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group3
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group3
+users:
+- person1smith@example.com
+- person5smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncAdValid_all_ldap_syncYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdValid_all_ldap_syncYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdValid_all_ldap_syncYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdValid_all_ldap_syncYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/valid_all_ldap_sync.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_dn_everywhereYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group1
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group1
+users:
+- cn=Person1,ou=people,ou=ad,dc=example,dc=com
+- cn=Person2,ou=people,ou=ad,dc=example,dc=com
+- cn=Person3,ou=people,ou=ad,dc=example,dc=com
+- cn=Person4,ou=people,ou=ad,dc=example,dc=com
+- cn=Person5,ou=people,ou=ad,dc=example,dc=com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group2
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group2
+users:
+- cn=Person1,ou=people,ou=ad,dc=example,dc=com
+- cn=Person2,ou=people,ou=ad,dc=example,dc=com
+- cn=Person3,ou=people,ou=ad,dc=example,dc=com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group3
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group3
+users:
+- cn=Person1,ou=people,ou=ad,dc=example,dc=com
+- cn=Person5,ou=people,ou=ad,dc=example,dc=com
+`)
+
+func testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_dn_everywhereYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_dn_everywhereYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_dn_everywhereYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_dn_everywhereYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/valid_all_ldap_sync_dn_everywhere.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_partially_user_definedYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group1
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: firstgroup
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group2
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group2
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group3
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: thirdgroup
+users:
+- person1smith@example.com
+- person5smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_partially_user_definedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_partially_user_definedYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_partially_user_definedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_partially_user_definedYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/valid_all_ldap_sync_partially_user_defined.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_pruneYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group1
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group1
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group3
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group3
+users:
+- person1smith@example.com
+- person5smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_pruneYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_pruneYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_pruneYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_pruneYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/valid_all_ldap_sync_prune.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_user_definedYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group1
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: firstgroup
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group2
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: secondgroup
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group3
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: thirdgroup
+users:
+- person1smith@example.com
+- person5smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_user_definedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_user_definedYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_user_definedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_user_definedYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/valid_all_ldap_sync_user_defined.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdValid_all_openshift_blacklist_syncYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group1
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group1
+users: []
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group2
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group2
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group3
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group3
+users: []
+`)
+
+func testExtendedTestdataLdapGroupsyncAdValid_all_openshift_blacklist_syncYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdValid_all_openshift_blacklist_syncYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdValid_all_openshift_blacklist_syncYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdValid_all_openshift_blacklist_syncYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/valid_all_openshift_blacklist_sync.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdValid_whitelist_syncYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group1
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group1
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncAdValid_whitelist_syncYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdValid_whitelist_syncYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdValid_whitelist_syncYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdValid_whitelist_syncYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/valid_whitelist_sync.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdValid_whitelist_union_syncYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group1
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group1
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: group2
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group2
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncAdValid_whitelist_union_syncYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdValid_whitelist_union_syncYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdValid_whitelist_union_syncYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdValid_whitelist_union_syncYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/valid_whitelist_union_sync.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdWhitelist_ldapTxt = []byte(`group1`)
+
+func testExtendedTestdataLdapGroupsyncAdWhitelist_ldapTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdWhitelist_ldapTxt, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdWhitelist_ldapTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdWhitelist_ldapTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/whitelist_ldap.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAdWhitelist_openshiftTxt = []byte(`groups/group1`)
+
+func testExtendedTestdataLdapGroupsyncAdWhitelist_openshiftTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAdWhitelist_openshiftTxt, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAdWhitelist_openshiftTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAdWhitelist_openshiftTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/ad/whitelist_openshift.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdBlacklist_ldapTxt = []byte(`cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+cn=group3,ou=groups,ou=adextended,dc=example,dc=com
+`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdBlacklist_ldapTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdBlacklist_ldapTxt, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdBlacklist_ldapTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdBlacklist_ldapTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/blacklist_ldap.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdBlacklist_openshiftTxt = []byte(`extended-group1
+extended-group3
+`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdBlacklist_openshiftTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdBlacklist_openshiftTxt, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdBlacklist_openshiftTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdBlacklist_openshiftTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/blacklist_openshift.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdLdapgroupuidsTxt = []byte(`cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+cn=group3,ou=groups,ou=adextended,dc=example,dc=com`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdLdapgroupuidsTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdLdapgroupuidsTxt, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdLdapgroupuidsTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdLdapgroupuidsTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/ldapgroupuids.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdOsgroupuidsTxt = []byte(`extended-group1
+extended-group2
+extended-group3`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdOsgroupuidsTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdOsgroupuidsTxt, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdOsgroupuidsTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdOsgroupuidsTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/osgroupuids.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigDnEverywhereYaml = []byte(`kind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://LDAP_SERVICE_IP:389
+insecure: false
+ca: LDAP_CA
+augmentedActiveDirectory:
+    usersQuery:
+        baseDN: "ou=people,ou=adextended,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+        filter: (objectclass=inetOrgPerson)
+    groupMembershipAttributes: [ testMemberOf ]
+    userNameAttributes: [ dn ]
+    groupsQuery:
+        baseDN: "ou=groups,ou=adextended,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+    groupUIDAttribute: dn
+    groupNameAttributes: [ dn ]
+`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigDnEverywhereYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigDnEverywhereYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigDnEverywhereYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigDnEverywhereYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/sync-config-dn-everywhere.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigPagingYaml = []byte(`kind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://LDAP_SERVICE_IP:389
+insecure: false
+ca: LDAP_CA
+augmentedActiveDirectory:
+    usersQuery:
+        baseDN: "ou=people,ou=adextended,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+        filter: (objectclass=inetOrgPerson)
+        pageSize: 1
+    groupMembershipAttributes: [ testMemberOf ]
+    userNameAttributes: [ mail ]
+    groupsQuery:
+        baseDN: "ou=groups,ou=adextended,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+        pageSize: 1
+    groupUIDAttribute: dn
+    groupNameAttributes: [ cn ]
+`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigPagingYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigPagingYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigPagingYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigPagingYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/sync-config-paging.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigPartiallyUserDefinedYaml = []byte(`kind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://LDAP_SERVICE_IP:389
+insecure: false
+ca: LDAP_CA
+groupUIDNameMapping:
+  cn=group1,ou=groups,ou=adextended,dc=example,dc=com: firstgroup
+  cn=group3,ou=groups,ou=adextended,dc=example,dc=com: thirdgroup
+augmentedActiveDirectory:
+  usersQuery:
+    baseDN: "ou=people,ou=adextended,dc=example,dc=com"
+    scope: sub
+    derefAliases: never
+    filter: (objectclass=inetOrgPerson)
+  groupMembershipAttributes: [ testMemberOf ]
+  userNameAttributes: [ mail ]
+  groupsQuery:
+    baseDN: "ou=groups,ou=adextended,dc=example,dc=com"
+    scope: sub
+    derefAliases: never
+  groupUIDAttribute: dn
+  groupNameAttributes: [ cn ]
+`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigPartiallyUserDefinedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigPartiallyUserDefinedYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigPartiallyUserDefinedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigPartiallyUserDefinedYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/sync-config-partially-user-defined.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigUserDefinedYaml = []byte(`kind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://LDAP_SERVICE_IP:389
+insecure: false
+ca: LDAP_CA
+groupUIDNameMapping:
+  cn=group1,ou=groups,ou=adextended,dc=example,dc=com: firstgroup
+  cn=group2,ou=groups,ou=adextended,dc=example,dc=com: secondgroup
+  cn=group3,ou=groups,ou=adextended,dc=example,dc=com: thirdgroup
+augmentedActiveDirectory:
+  usersQuery:
+    baseDN: "ou=people,ou=adextended,dc=example,dc=com"
+    scope: sub
+    derefAliases: never
+    filter: (objectclass=inetOrgPerson)
+  groupMembershipAttributes: [ testMemberOf ]
+  userNameAttributes: [ mail ]
+  groupsQuery:
+    baseDN: "ou=groups,ou=adextended,dc=example,dc=com"
+    scope: sub
+    derefAliases: never
+  groupUIDAttribute: dn
+  groupNameAttributes: [ cn ]
+`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigUserDefinedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigUserDefinedYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigUserDefinedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigUserDefinedYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/sync-config-user-defined.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigYaml = []byte(`kind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://LDAP_SERVICE_IP:389
+insecure: false
+ca: LDAP_CA
+augmentedActiveDirectory:
+    usersQuery:
+        baseDN: "ou=people,ou=adextended,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+        filter: (objectclass=inetOrgPerson)
+    groupMembershipAttributes: [ testMemberOf ]
+    userNameAttributes: [ mail ]
+    groupsQuery:
+        baseDN: "ou=groups,ou=adextended,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+    groupUIDAttribute: dn
+    groupNameAttributes: [ cn ]
+`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/sync-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_blacklist_syncYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: extended-group2
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_blacklist_syncYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_blacklist_syncYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_blacklist_syncYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_blacklist_syncYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_blacklist_sync.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_syncYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: extended-group1
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: extended-group2
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: extended-group3
+users:
+- person1smith@example.com
+- person5smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_syncYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_syncYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_syncYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_syncYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_ldap_sync.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_delete_pruneYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: extended-group2
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: extended-group3
+users:
+- person1smith@example.com
+- person5smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_delete_pruneYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_delete_pruneYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_delete_pruneYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_delete_pruneYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_ldap_sync_delete_prune.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_dn_everywhereYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+users:
+- cn=Person1,ou=people,ou=adextended,dc=example,dc=com
+- cn=Person2,ou=people,ou=adextended,dc=example,dc=com
+- cn=Person3,ou=people,ou=adextended,dc=example,dc=com
+- cn=Person4,ou=people,ou=adextended,dc=example,dc=com
+- cn=Person5,ou=people,ou=adextended,dc=example,dc=com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+users:
+- cn=Person1,ou=people,ou=adextended,dc=example,dc=com
+- cn=Person2,ou=people,ou=adextended,dc=example,dc=com
+- cn=Person3,ou=people,ou=adextended,dc=example,dc=com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
+users:
+- cn=Person1,ou=people,ou=adextended,dc=example,dc=com
+- cn=Person5,ou=people,ou=adextended,dc=example,dc=com
+`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_dn_everywhereYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_dn_everywhereYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_dn_everywhereYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_dn_everywhereYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_ldap_sync_dn_everywhere.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_partially_user_definedYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: extended-group2
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: firstgroup
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: thirdgroup
+users:
+- person1smith@example.com
+- person5smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_partially_user_definedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_partially_user_definedYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_partially_user_definedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_partially_user_definedYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_ldap_sync_partially_user_defined.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_pruneYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: extended-group1
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: extended-group3
+users:
+- person1smith@example.com
+- person5smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_pruneYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_pruneYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_pruneYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_pruneYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_ldap_sync_prune.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_user_definedYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: firstgroup
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: secondgroup
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: thirdgroup
+users:
+- person1smith@example.com
+- person5smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_user_definedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_user_definedYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_user_definedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_user_definedYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_ldap_sync_user_defined.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_openshift_blacklist_syncYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: extended-group1
+users: []
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: extended-group2
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: extended-group3
+users: []
+`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_openshift_blacklist_syncYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_openshift_blacklist_syncYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_openshift_blacklist_syncYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_openshift_blacklist_syncYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_openshift_blacklist_sync.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdValid_whitelist_syncYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: extended-group1
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_whitelist_syncYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdValid_whitelist_syncYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_whitelist_syncYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdValid_whitelist_syncYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/valid_whitelist_sync.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdValid_whitelist_union_syncYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: extended-group1
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: extended-group2
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_whitelist_union_syncYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdValid_whitelist_union_syncYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdValid_whitelist_union_syncYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdValid_whitelist_union_syncYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/valid_whitelist_union_sync.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdWhitelist_ldapTxt = []byte(`cn=group1,ou=groups,ou=adextended,dc=example,dc=com`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdWhitelist_ldapTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdWhitelist_ldapTxt, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdWhitelist_ldapTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdWhitelist_ldapTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/whitelist_ldap.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncAugmentedAdWhitelist_openshiftTxt = []byte(`extended-group1`)
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdWhitelist_openshiftTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncAugmentedAdWhitelist_openshiftTxt, nil
+}
+
+func testExtendedTestdataLdapGroupsyncAugmentedAdWhitelist_openshiftTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncAugmentedAdWhitelist_openshiftTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/augmented-ad/whitelist_openshift.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307Blacklist_ldapTxt = []byte(`cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
+cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
+`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307Blacklist_ldapTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307Blacklist_ldapTxt, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307Blacklist_ldapTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307Blacklist_ldapTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/blacklist_ldap.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307Blacklist_openshiftTxt = []byte(`group1
+group3
+`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307Blacklist_openshiftTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307Blacklist_openshiftTxt, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307Blacklist_openshiftTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307Blacklist_openshiftTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/blacklist_openshift.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307LdapgroupuidsTxt = []byte(`cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
+cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
+cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307LdapgroupuidsTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307LdapgroupuidsTxt, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307LdapgroupuidsTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307LdapgroupuidsTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/ldapgroupuids.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307OsgroupuidsTxt = []byte(`group1
+group2
+group3`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307OsgroupuidsTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307OsgroupuidsTxt, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307OsgroupuidsTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307OsgroupuidsTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/osgroupuids.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307SyncConfigDnEverywhereYaml = []byte(`kind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://LDAP_SERVICE_IP:389
+insecure: false
+ca: LDAP_CA
+rfc2307:
+    groupsQuery:
+        baseDN: "ou=groups,ou=rfc2307,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+        filter: (objectclass=groupOfNames)
+    groupUIDAttribute: dn
+    groupNameAttributes: [ dn ]
+    groupMembershipAttributes: [ member ]
+    usersQuery:
+        baseDN: "ou=people,ou=rfc2307,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+    userUIDAttribute: dn
+    userNameAttributes: [ dn ]`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307SyncConfigDnEverywhereYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307SyncConfigDnEverywhereYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307SyncConfigDnEverywhereYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307SyncConfigDnEverywhereYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/sync-config-dn-everywhere.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307SyncConfigPagingYaml = []byte(`kind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://LDAP_SERVICE_IP:389
+insecure: false
+ca: LDAP_CA
+rfc2307:
+    groupsQuery:
+        baseDN: "ou=groups,ou=rfc2307,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+        filter: (objectclass=groupOfNames)
+        pageSize: 1
+    groupUIDAttribute: dn
+    groupNameAttributes: [ cn ]
+    groupMembershipAttributes: [ member ]
+    usersQuery:
+        baseDN: "ou=people,ou=rfc2307,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+        pageSize: 1
+    userUIDAttribute: dn
+    userNameAttributes: [ mail ]`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307SyncConfigPagingYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307SyncConfigPagingYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307SyncConfigPagingYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307SyncConfigPagingYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/sync-config-paging.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307SyncConfigPartiallyUserDefinedYaml = []byte(`kind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://LDAP_SERVICE_IP:389
+insecure: false
+ca: LDAP_CA
+groupUIDNameMapping:
+  "cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com": firstgroup
+  "cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com": thirdgroup
+rfc2307:
+  groupsQuery:
+    baseDN: "ou=groups,ou=rfc2307,dc=example,dc=com"
+    scope: sub
+    derefAliases: never
+    filter: (objectclass=groupOfNames)
+  groupUIDAttribute: dn
+  groupNameAttributes: [ cn ]
+  groupMembershipAttributes: [ member ]
+  usersQuery:
+    baseDN: "ou=people,ou=rfc2307,dc=example,dc=com"
+    scope: sub
+    derefAliases: never
+  userUIDAttribute: dn
+  userNameAttributes: [ mail ]`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307SyncConfigPartiallyUserDefinedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307SyncConfigPartiallyUserDefinedYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307SyncConfigPartiallyUserDefinedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307SyncConfigPartiallyUserDefinedYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/sync-config-partially-user-defined.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307SyncConfigToleratingYaml = []byte(`kind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://LDAP_SERVICE_IP:389
+insecure: false
+ca: LDAP_CA
+rfc2307:
+    groupsQuery:
+        baseDN: "ou=groups,ou=incomplete-rfc2307,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+        filter: (objectclass=groupOfNames)
+    groupUIDAttribute: dn
+    groupNameAttributes: [ cn ]
+    groupMembershipAttributes: [ member ]
+    usersQuery:
+        baseDN: "ou=people,ou=rfc2307,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+    userUIDAttribute: dn
+    userNameAttributes: [ mail ]
+    tolerateMemberNotFoundErrors: true
+    tolerateMemberOutOfScopeErrors: true`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307SyncConfigToleratingYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307SyncConfigToleratingYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307SyncConfigToleratingYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307SyncConfigToleratingYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/sync-config-tolerating.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307SyncConfigUserDefinedYaml = []byte(`kind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://LDAP_SERVICE_IP:389
+insecure: false
+ca: LDAP_CA
+groupUIDNameMapping:
+  "cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com": firstgroup
+  "cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com": secondgroup
+  "cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com": thirdgroup
+rfc2307:
+  groupsQuery:
+    baseDN: "ou=groups,ou=rfc2307,dc=example,dc=com"
+    scope: sub
+    derefAliases: never
+    filter: (objectclass=groupOfNames)
+  groupUIDAttribute: dn
+  groupNameAttributes: [ cn ]
+  groupMembershipAttributes: [ member ]
+  usersQuery:
+    baseDN: "ou=people,ou=rfc2307,dc=example,dc=com"
+    scope: sub
+    derefAliases: never
+  userUIDAttribute: dn
+  userNameAttributes: [ mail ]`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307SyncConfigUserDefinedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307SyncConfigUserDefinedYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307SyncConfigUserDefinedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307SyncConfigUserDefinedYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/sync-config-user-defined.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307SyncConfigYaml = []byte(`kind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://LDAP_SERVICE_IP:389
+insecure: false
+ca: LDAP_CA
+rfc2307:
+    groupsQuery:
+        baseDN: "ou=groups,ou=rfc2307,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+        filter: (objectclass=groupOfNames)
+    groupUIDAttribute: dn
+    groupNameAttributes: [ cn ]
+    groupMembershipAttributes: [ member ]
+    usersQuery:
+        baseDN: "ou=people,ou=rfc2307,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+    userUIDAttribute: dn
+    userNameAttributes: [ mail ]`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307SyncConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307SyncConfigYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307SyncConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307SyncConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/sync-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307Valid_all_blacklist_syncYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group2
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_all_blacklist_syncYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307Valid_all_blacklist_syncYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_all_blacklist_syncYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307Valid_all_blacklist_syncYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/valid_all_blacklist_sync.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_syncYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group1
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group2
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group3
+users:
+- person1smith@example.com
+- person5smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_syncYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_syncYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_syncYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_syncYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/valid_all_ldap_sync.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_dn_everywhereYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
+users:
+- cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+- cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+- cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+- cn=Person4,ou=people,ou=rfc2307,dc=example,dc=com
+- cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
+users:
+- cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+- cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+- cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
+users:
+- cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+- cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_dn_everywhereYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_dn_everywhereYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_dn_everywhereYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_dn_everywhereYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/valid_all_ldap_sync_dn_everywhere.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_partially_user_definedYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: firstgroup
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group2
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: thirdgroup
+users:
+- person1smith@example.com
+- person5smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_partially_user_definedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_partially_user_definedYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_partially_user_definedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_partially_user_definedYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/valid_all_ldap_sync_partially_user_defined.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_pruneYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group1
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group3
+users:
+- person1smith@example.com
+- person5smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_pruneYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_pruneYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_pruneYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_pruneYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/valid_all_ldap_sync_prune.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_toleratingYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group1,ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group1
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group2,ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group2
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group3,ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group3
+users:
+- person1smith@example.com
+- person5smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_toleratingYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_toleratingYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_toleratingYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_toleratingYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/valid_all_ldap_sync_tolerating.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_user_definedYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: firstgroup
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: secondgroup
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: thirdgroup
+users:
+- person1smith@example.com
+- person5smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_user_definedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_user_definedYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_user_definedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_user_definedYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/valid_all_ldap_sync_user_defined.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307Valid_all_openshift_blacklist_syncYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group1
+users: []
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group2
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group3
+users: []
+`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_all_openshift_blacklist_syncYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307Valid_all_openshift_blacklist_syncYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_all_openshift_blacklist_syncYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307Valid_all_openshift_blacklist_syncYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/valid_all_openshift_blacklist_sync.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307Valid_whitelist_syncYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group1
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_whitelist_syncYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307Valid_whitelist_syncYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_whitelist_syncYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307Valid_whitelist_syncYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/valid_whitelist_sync.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307Valid_whitelist_union_syncYaml = []byte(`apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group1
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group2
+users:
+- person1smith@example.com
+- person2smith@example.com
+- person3smith@example.com
+`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_whitelist_union_syncYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307Valid_whitelist_union_syncYaml, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307Valid_whitelist_union_syncYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307Valid_whitelist_union_syncYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/valid_whitelist_union_sync.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307Whitelist_ldapTxt = []byte(`cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307Whitelist_ldapTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307Whitelist_ldapTxt, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307Whitelist_ldapTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307Whitelist_ldapTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/whitelist_ldap.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataLdapGroupsyncRfc2307Whitelist_openshiftTxt = []byte(`group1`)
+
+func testExtendedTestdataLdapGroupsyncRfc2307Whitelist_openshiftTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataLdapGroupsyncRfc2307Whitelist_openshiftTxt, nil
+}
+
+func testExtendedTestdataLdapGroupsyncRfc2307Whitelist_openshiftTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataLdapGroupsyncRfc2307Whitelist_openshiftTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ldap/groupsync/rfc2307/whitelist_openshift.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -54149,7 +56346,69 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/jenkins-plugin/shared-resources-template.json":                                   testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson,
 	"test/extended/testdata/jenkins-slave-template.yaml":                                                     testExtendedTestdataJenkinsSlaveTemplateYaml,
 	"test/extended/testdata/jobs/v1.yaml":                                                                    testExtendedTestdataJobsV1Yaml,
-	"test/extended/testdata/ldap/groupsync.sh":                                                               testExtendedTestdataLdapGroupsyncSh,
+	"test/extended/testdata/ldap/groupsync/ad/blacklist_ldap.txt":                                            testExtendedTestdataLdapGroupsyncAdBlacklist_ldapTxt,
+	"test/extended/testdata/ldap/groupsync/ad/blacklist_openshift.txt":                                       testExtendedTestdataLdapGroupsyncAdBlacklist_openshiftTxt,
+	"test/extended/testdata/ldap/groupsync/ad/ldapgroupuids.txt":                                             testExtendedTestdataLdapGroupsyncAdLdapgroupuidsTxt,
+	"test/extended/testdata/ldap/groupsync/ad/osgroupuids.txt":                                               testExtendedTestdataLdapGroupsyncAdOsgroupuidsTxt,
+	"test/extended/testdata/ldap/groupsync/ad/sync-config-dn-everywhere.yaml":                                testExtendedTestdataLdapGroupsyncAdSyncConfigDnEverywhereYaml,
+	"test/extended/testdata/ldap/groupsync/ad/sync-config-paging.yaml":                                       testExtendedTestdataLdapGroupsyncAdSyncConfigPagingYaml,
+	"test/extended/testdata/ldap/groupsync/ad/sync-config-partially-user-defined.yaml":                       testExtendedTestdataLdapGroupsyncAdSyncConfigPartiallyUserDefinedYaml,
+	"test/extended/testdata/ldap/groupsync/ad/sync-config-user-defined.yaml":                                 testExtendedTestdataLdapGroupsyncAdSyncConfigUserDefinedYaml,
+	"test/extended/testdata/ldap/groupsync/ad/sync-config.yaml":                                              testExtendedTestdataLdapGroupsyncAdSyncConfigYaml,
+	"test/extended/testdata/ldap/groupsync/ad/valid_all_blacklist_sync.yaml":                                 testExtendedTestdataLdapGroupsyncAdValid_all_blacklist_syncYaml,
+	"test/extended/testdata/ldap/groupsync/ad/valid_all_ldap_sync.yaml":                                      testExtendedTestdataLdapGroupsyncAdValid_all_ldap_syncYaml,
+	"test/extended/testdata/ldap/groupsync/ad/valid_all_ldap_sync_dn_everywhere.yaml":                        testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_dn_everywhereYaml,
+	"test/extended/testdata/ldap/groupsync/ad/valid_all_ldap_sync_partially_user_defined.yaml":               testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_partially_user_definedYaml,
+	"test/extended/testdata/ldap/groupsync/ad/valid_all_ldap_sync_prune.yaml":                                testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_pruneYaml,
+	"test/extended/testdata/ldap/groupsync/ad/valid_all_ldap_sync_user_defined.yaml":                         testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_user_definedYaml,
+	"test/extended/testdata/ldap/groupsync/ad/valid_all_openshift_blacklist_sync.yaml":                       testExtendedTestdataLdapGroupsyncAdValid_all_openshift_blacklist_syncYaml,
+	"test/extended/testdata/ldap/groupsync/ad/valid_whitelist_sync.yaml":                                     testExtendedTestdataLdapGroupsyncAdValid_whitelist_syncYaml,
+	"test/extended/testdata/ldap/groupsync/ad/valid_whitelist_union_sync.yaml":                               testExtendedTestdataLdapGroupsyncAdValid_whitelist_union_syncYaml,
+	"test/extended/testdata/ldap/groupsync/ad/whitelist_ldap.txt":                                            testExtendedTestdataLdapGroupsyncAdWhitelist_ldapTxt,
+	"test/extended/testdata/ldap/groupsync/ad/whitelist_openshift.txt":                                       testExtendedTestdataLdapGroupsyncAdWhitelist_openshiftTxt,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/blacklist_ldap.txt":                                  testExtendedTestdataLdapGroupsyncAugmentedAdBlacklist_ldapTxt,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/blacklist_openshift.txt":                             testExtendedTestdataLdapGroupsyncAugmentedAdBlacklist_openshiftTxt,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/ldapgroupuids.txt":                                   testExtendedTestdataLdapGroupsyncAugmentedAdLdapgroupuidsTxt,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/osgroupuids.txt":                                     testExtendedTestdataLdapGroupsyncAugmentedAdOsgroupuidsTxt,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/sync-config-dn-everywhere.yaml":                      testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigDnEverywhereYaml,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/sync-config-paging.yaml":                             testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigPagingYaml,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/sync-config-partially-user-defined.yaml":             testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigPartiallyUserDefinedYaml,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/sync-config-user-defined.yaml":                       testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigUserDefinedYaml,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/sync-config.yaml":                                    testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigYaml,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_blacklist_sync.yaml":                       testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_blacklist_syncYaml,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_ldap_sync.yaml":                            testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_syncYaml,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_ldap_sync_delete_prune.yaml":               testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_delete_pruneYaml,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_ldap_sync_dn_everywhere.yaml":              testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_dn_everywhereYaml,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_ldap_sync_partially_user_defined.yaml":     testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_partially_user_definedYaml,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_ldap_sync_prune.yaml":                      testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_pruneYaml,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_ldap_sync_user_defined.yaml":               testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_user_definedYaml,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/valid_all_openshift_blacklist_sync.yaml":             testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_openshift_blacklist_syncYaml,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/valid_whitelist_sync.yaml":                           testExtendedTestdataLdapGroupsyncAugmentedAdValid_whitelist_syncYaml,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/valid_whitelist_union_sync.yaml":                     testExtendedTestdataLdapGroupsyncAugmentedAdValid_whitelist_union_syncYaml,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/whitelist_ldap.txt":                                  testExtendedTestdataLdapGroupsyncAugmentedAdWhitelist_ldapTxt,
+	"test/extended/testdata/ldap/groupsync/augmented-ad/whitelist_openshift.txt":                             testExtendedTestdataLdapGroupsyncAugmentedAdWhitelist_openshiftTxt,
+	"test/extended/testdata/ldap/groupsync/rfc2307/blacklist_ldap.txt":                                       testExtendedTestdataLdapGroupsyncRfc2307Blacklist_ldapTxt,
+	"test/extended/testdata/ldap/groupsync/rfc2307/blacklist_openshift.txt":                                  testExtendedTestdataLdapGroupsyncRfc2307Blacklist_openshiftTxt,
+	"test/extended/testdata/ldap/groupsync/rfc2307/ldapgroupuids.txt":                                        testExtendedTestdataLdapGroupsyncRfc2307LdapgroupuidsTxt,
+	"test/extended/testdata/ldap/groupsync/rfc2307/osgroupuids.txt":                                          testExtendedTestdataLdapGroupsyncRfc2307OsgroupuidsTxt,
+	"test/extended/testdata/ldap/groupsync/rfc2307/sync-config-dn-everywhere.yaml":                           testExtendedTestdataLdapGroupsyncRfc2307SyncConfigDnEverywhereYaml,
+	"test/extended/testdata/ldap/groupsync/rfc2307/sync-config-paging.yaml":                                  testExtendedTestdataLdapGroupsyncRfc2307SyncConfigPagingYaml,
+	"test/extended/testdata/ldap/groupsync/rfc2307/sync-config-partially-user-defined.yaml":                  testExtendedTestdataLdapGroupsyncRfc2307SyncConfigPartiallyUserDefinedYaml,
+	"test/extended/testdata/ldap/groupsync/rfc2307/sync-config-tolerating.yaml":                              testExtendedTestdataLdapGroupsyncRfc2307SyncConfigToleratingYaml,
+	"test/extended/testdata/ldap/groupsync/rfc2307/sync-config-user-defined.yaml":                            testExtendedTestdataLdapGroupsyncRfc2307SyncConfigUserDefinedYaml,
+	"test/extended/testdata/ldap/groupsync/rfc2307/sync-config.yaml":                                         testExtendedTestdataLdapGroupsyncRfc2307SyncConfigYaml,
+	"test/extended/testdata/ldap/groupsync/rfc2307/valid_all_blacklist_sync.yaml":                            testExtendedTestdataLdapGroupsyncRfc2307Valid_all_blacklist_syncYaml,
+	"test/extended/testdata/ldap/groupsync/rfc2307/valid_all_ldap_sync.yaml":                                 testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_syncYaml,
+	"test/extended/testdata/ldap/groupsync/rfc2307/valid_all_ldap_sync_dn_everywhere.yaml":                   testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_dn_everywhereYaml,
+	"test/extended/testdata/ldap/groupsync/rfc2307/valid_all_ldap_sync_partially_user_defined.yaml":          testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_partially_user_definedYaml,
+	"test/extended/testdata/ldap/groupsync/rfc2307/valid_all_ldap_sync_prune.yaml":                           testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_pruneYaml,
+	"test/extended/testdata/ldap/groupsync/rfc2307/valid_all_ldap_sync_tolerating.yaml":                      testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_toleratingYaml,
+	"test/extended/testdata/ldap/groupsync/rfc2307/valid_all_ldap_sync_user_defined.yaml":                    testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_user_definedYaml,
+	"test/extended/testdata/ldap/groupsync/rfc2307/valid_all_openshift_blacklist_sync.yaml":                  testExtendedTestdataLdapGroupsyncRfc2307Valid_all_openshift_blacklist_syncYaml,
+	"test/extended/testdata/ldap/groupsync/rfc2307/valid_whitelist_sync.yaml":                                testExtendedTestdataLdapGroupsyncRfc2307Valid_whitelist_syncYaml,
+	"test/extended/testdata/ldap/groupsync/rfc2307/valid_whitelist_union_sync.yaml":                          testExtendedTestdataLdapGroupsyncRfc2307Valid_whitelist_union_syncYaml,
+	"test/extended/testdata/ldap/groupsync/rfc2307/whitelist_ldap.txt":                                       testExtendedTestdataLdapGroupsyncRfc2307Whitelist_ldapTxt,
+	"test/extended/testdata/ldap/groupsync/rfc2307/whitelist_openshift.txt":                                  testExtendedTestdataLdapGroupsyncRfc2307Whitelist_openshiftTxt,
 	"test/extended/testdata/ldap/ldapserver-config-cm.yaml":                                                  testExtendedTestdataLdapLdapserverConfigCmYaml,
 	"test/extended/testdata/ldap/ldapserver-deployment.yaml":                                                 testExtendedTestdataLdapLdapserverDeploymentYaml,
 	"test/extended/testdata/ldap/ldapserver-scripts-cm.yaml":                                                 testExtendedTestdataLdapLdapserverScriptsCmYaml,
@@ -54803,7 +57062,77 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"v1.yaml": {testExtendedTestdataJobsV1Yaml, map[string]*bintree{}},
 				}},
 				"ldap": {nil, map[string]*bintree{
-					"groupsync.sh":               {testExtendedTestdataLdapGroupsyncSh, map[string]*bintree{}},
+					"groupsync": {nil, map[string]*bintree{
+						"ad": {nil, map[string]*bintree{
+							"blacklist_ldap.txt":                              {testExtendedTestdataLdapGroupsyncAdBlacklist_ldapTxt, map[string]*bintree{}},
+							"blacklist_openshift.txt":                         {testExtendedTestdataLdapGroupsyncAdBlacklist_openshiftTxt, map[string]*bintree{}},
+							"ldapgroupuids.txt":                               {testExtendedTestdataLdapGroupsyncAdLdapgroupuidsTxt, map[string]*bintree{}},
+							"osgroupuids.txt":                                 {testExtendedTestdataLdapGroupsyncAdOsgroupuidsTxt, map[string]*bintree{}},
+							"sync-config-dn-everywhere.yaml":                  {testExtendedTestdataLdapGroupsyncAdSyncConfigDnEverywhereYaml, map[string]*bintree{}},
+							"sync-config-paging.yaml":                         {testExtendedTestdataLdapGroupsyncAdSyncConfigPagingYaml, map[string]*bintree{}},
+							"sync-config-partially-user-defined.yaml":         {testExtendedTestdataLdapGroupsyncAdSyncConfigPartiallyUserDefinedYaml, map[string]*bintree{}},
+							"sync-config-user-defined.yaml":                   {testExtendedTestdataLdapGroupsyncAdSyncConfigUserDefinedYaml, map[string]*bintree{}},
+							"sync-config.yaml":                                {testExtendedTestdataLdapGroupsyncAdSyncConfigYaml, map[string]*bintree{}},
+							"valid_all_blacklist_sync.yaml":                   {testExtendedTestdataLdapGroupsyncAdValid_all_blacklist_syncYaml, map[string]*bintree{}},
+							"valid_all_ldap_sync.yaml":                        {testExtendedTestdataLdapGroupsyncAdValid_all_ldap_syncYaml, map[string]*bintree{}},
+							"valid_all_ldap_sync_dn_everywhere.yaml":          {testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_dn_everywhereYaml, map[string]*bintree{}},
+							"valid_all_ldap_sync_partially_user_defined.yaml": {testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_partially_user_definedYaml, map[string]*bintree{}},
+							"valid_all_ldap_sync_prune.yaml":                  {testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_pruneYaml, map[string]*bintree{}},
+							"valid_all_ldap_sync_user_defined.yaml":           {testExtendedTestdataLdapGroupsyncAdValid_all_ldap_sync_user_definedYaml, map[string]*bintree{}},
+							"valid_all_openshift_blacklist_sync.yaml":         {testExtendedTestdataLdapGroupsyncAdValid_all_openshift_blacklist_syncYaml, map[string]*bintree{}},
+							"valid_whitelist_sync.yaml":                       {testExtendedTestdataLdapGroupsyncAdValid_whitelist_syncYaml, map[string]*bintree{}},
+							"valid_whitelist_union_sync.yaml":                 {testExtendedTestdataLdapGroupsyncAdValid_whitelist_union_syncYaml, map[string]*bintree{}},
+							"whitelist_ldap.txt":                              {testExtendedTestdataLdapGroupsyncAdWhitelist_ldapTxt, map[string]*bintree{}},
+							"whitelist_openshift.txt":                         {testExtendedTestdataLdapGroupsyncAdWhitelist_openshiftTxt, map[string]*bintree{}},
+						}},
+						"augmented-ad": {nil, map[string]*bintree{
+							"blacklist_ldap.txt":                              {testExtendedTestdataLdapGroupsyncAugmentedAdBlacklist_ldapTxt, map[string]*bintree{}},
+							"blacklist_openshift.txt":                         {testExtendedTestdataLdapGroupsyncAugmentedAdBlacklist_openshiftTxt, map[string]*bintree{}},
+							"ldapgroupuids.txt":                               {testExtendedTestdataLdapGroupsyncAugmentedAdLdapgroupuidsTxt, map[string]*bintree{}},
+							"osgroupuids.txt":                                 {testExtendedTestdataLdapGroupsyncAugmentedAdOsgroupuidsTxt, map[string]*bintree{}},
+							"sync-config-dn-everywhere.yaml":                  {testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigDnEverywhereYaml, map[string]*bintree{}},
+							"sync-config-paging.yaml":                         {testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigPagingYaml, map[string]*bintree{}},
+							"sync-config-partially-user-defined.yaml":         {testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigPartiallyUserDefinedYaml, map[string]*bintree{}},
+							"sync-config-user-defined.yaml":                   {testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigUserDefinedYaml, map[string]*bintree{}},
+							"sync-config.yaml":                                {testExtendedTestdataLdapGroupsyncAugmentedAdSyncConfigYaml, map[string]*bintree{}},
+							"valid_all_blacklist_sync.yaml":                   {testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_blacklist_syncYaml, map[string]*bintree{}},
+							"valid_all_ldap_sync.yaml":                        {testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_syncYaml, map[string]*bintree{}},
+							"valid_all_ldap_sync_delete_prune.yaml":           {testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_delete_pruneYaml, map[string]*bintree{}},
+							"valid_all_ldap_sync_dn_everywhere.yaml":          {testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_dn_everywhereYaml, map[string]*bintree{}},
+							"valid_all_ldap_sync_partially_user_defined.yaml": {testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_partially_user_definedYaml, map[string]*bintree{}},
+							"valid_all_ldap_sync_prune.yaml":                  {testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_pruneYaml, map[string]*bintree{}},
+							"valid_all_ldap_sync_user_defined.yaml":           {testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_ldap_sync_user_definedYaml, map[string]*bintree{}},
+							"valid_all_openshift_blacklist_sync.yaml":         {testExtendedTestdataLdapGroupsyncAugmentedAdValid_all_openshift_blacklist_syncYaml, map[string]*bintree{}},
+							"valid_whitelist_sync.yaml":                       {testExtendedTestdataLdapGroupsyncAugmentedAdValid_whitelist_syncYaml, map[string]*bintree{}},
+							"valid_whitelist_union_sync.yaml":                 {testExtendedTestdataLdapGroupsyncAugmentedAdValid_whitelist_union_syncYaml, map[string]*bintree{}},
+							"whitelist_ldap.txt":                              {testExtendedTestdataLdapGroupsyncAugmentedAdWhitelist_ldapTxt, map[string]*bintree{}},
+							"whitelist_openshift.txt":                         {testExtendedTestdataLdapGroupsyncAugmentedAdWhitelist_openshiftTxt, map[string]*bintree{}},
+						}},
+						"rfc2307": {nil, map[string]*bintree{
+							"blacklist_ldap.txt":                              {testExtendedTestdataLdapGroupsyncRfc2307Blacklist_ldapTxt, map[string]*bintree{}},
+							"blacklist_openshift.txt":                         {testExtendedTestdataLdapGroupsyncRfc2307Blacklist_openshiftTxt, map[string]*bintree{}},
+							"ldapgroupuids.txt":                               {testExtendedTestdataLdapGroupsyncRfc2307LdapgroupuidsTxt, map[string]*bintree{}},
+							"osgroupuids.txt":                                 {testExtendedTestdataLdapGroupsyncRfc2307OsgroupuidsTxt, map[string]*bintree{}},
+							"sync-config-dn-everywhere.yaml":                  {testExtendedTestdataLdapGroupsyncRfc2307SyncConfigDnEverywhereYaml, map[string]*bintree{}},
+							"sync-config-paging.yaml":                         {testExtendedTestdataLdapGroupsyncRfc2307SyncConfigPagingYaml, map[string]*bintree{}},
+							"sync-config-partially-user-defined.yaml":         {testExtendedTestdataLdapGroupsyncRfc2307SyncConfigPartiallyUserDefinedYaml, map[string]*bintree{}},
+							"sync-config-tolerating.yaml":                     {testExtendedTestdataLdapGroupsyncRfc2307SyncConfigToleratingYaml, map[string]*bintree{}},
+							"sync-config-user-defined.yaml":                   {testExtendedTestdataLdapGroupsyncRfc2307SyncConfigUserDefinedYaml, map[string]*bintree{}},
+							"sync-config.yaml":                                {testExtendedTestdataLdapGroupsyncRfc2307SyncConfigYaml, map[string]*bintree{}},
+							"valid_all_blacklist_sync.yaml":                   {testExtendedTestdataLdapGroupsyncRfc2307Valid_all_blacklist_syncYaml, map[string]*bintree{}},
+							"valid_all_ldap_sync.yaml":                        {testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_syncYaml, map[string]*bintree{}},
+							"valid_all_ldap_sync_dn_everywhere.yaml":          {testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_dn_everywhereYaml, map[string]*bintree{}},
+							"valid_all_ldap_sync_partially_user_defined.yaml": {testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_partially_user_definedYaml, map[string]*bintree{}},
+							"valid_all_ldap_sync_prune.yaml":                  {testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_pruneYaml, map[string]*bintree{}},
+							"valid_all_ldap_sync_tolerating.yaml":             {testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_toleratingYaml, map[string]*bintree{}},
+							"valid_all_ldap_sync_user_defined.yaml":           {testExtendedTestdataLdapGroupsyncRfc2307Valid_all_ldap_sync_user_definedYaml, map[string]*bintree{}},
+							"valid_all_openshift_blacklist_sync.yaml":         {testExtendedTestdataLdapGroupsyncRfc2307Valid_all_openshift_blacklist_syncYaml, map[string]*bintree{}},
+							"valid_whitelist_sync.yaml":                       {testExtendedTestdataLdapGroupsyncRfc2307Valid_whitelist_syncYaml, map[string]*bintree{}},
+							"valid_whitelist_union_sync.yaml":                 {testExtendedTestdataLdapGroupsyncRfc2307Valid_whitelist_union_syncYaml, map[string]*bintree{}},
+							"whitelist_ldap.txt":                              {testExtendedTestdataLdapGroupsyncRfc2307Whitelist_ldapTxt, map[string]*bintree{}},
+							"whitelist_openshift.txt":                         {testExtendedTestdataLdapGroupsyncRfc2307Whitelist_openshiftTxt, map[string]*bintree{}},
+						}},
+					}},
 					"ldapserver-config-cm.yaml":  {testExtendedTestdataLdapLdapserverConfigCmYaml, map[string]*bintree{}},
 					"ldapserver-deployment.yaml": {testExtendedTestdataLdapLdapserverDeploymentYaml, map[string]*bintree{}},
 					"ldapserver-scripts-cm.yaml": {testExtendedTestdataLdapLdapserverScriptsCmYaml, map[string]*bintree{}},
