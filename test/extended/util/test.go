@@ -432,6 +432,8 @@ var (
 			"should reject a Pod requesting a RuntimeClass with conflicting node selector",
 			"should run a Pod requesting a RuntimeClass with scheduling",
 
+			`should be able to pull image from docker hub`, // https://bugzilla.redhat.com/show_bug.cgi?id=1917363
+
 			// TODO(sdn): reenable when openshift/sdn is rebased to 1.16
 			`Services should implement service.kubernetes.io/headless`,
 
