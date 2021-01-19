@@ -229,7 +229,7 @@ func newRunCommand() *cobra.Command {
 					return err
 				}
 				opt.MatchFn = matchFn
-				opt.AdditionalJUnitsFn = pulledInvalidImages(opt.FromRepository)
+				opt.SyntheticEventTests = pulledInvalidImages(opt.FromRepository)
 
 				err = opt.Run(args)
 				if !opt.DryRun && len(args) > 0 && strings.HasPrefix(args[0], "openshift/csi") {
@@ -311,7 +311,7 @@ func newRunUpgradeCommand() *cobra.Command {
 					return err
 				}
 				opt.MatchFn = matchFn
-				opt.AdditionalJUnitsFn = pulledInvalidImages(opt.FromRepository)
+				opt.SyntheticEventTests = pulledInvalidImages(opt.FromRepository)
 				return opt.Run(args)
 			})
 		},

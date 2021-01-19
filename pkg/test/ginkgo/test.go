@@ -74,6 +74,9 @@ type TestSuite struct {
 	// The number of flakes that may occur before this test is marked as a failure.
 	MaximumAllowedFlakes int
 
+	// SyntheticEventTests is a set of suite level synthetics applied
+	SyntheticEventTests JUnitsForEvents
+
 	TestTimeout time.Duration
 }
 

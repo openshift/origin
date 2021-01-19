@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -171,7 +172,7 @@ func verifyImagesWithoutEnv() error {
 // local cluster registry, any repository referenced by the image streams in the cluster's 'openshift'
 // namespace, or the location that input images are cloned from. Only namespaces prefixed with 'e2e-'
 // are checked.
-func pulledInvalidImages(fromRepository string) func(events monitor.EventIntervals) ([]*ginkgo.JUnitTestCase, bool) {
+func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 	// static allowed images
 	allowedImages := sets.NewString("image/webserver:404")
 	allowedPrefixes := sets.NewString(
@@ -207,7 +208,7 @@ func pulledInvalidImages(fromRepository string) func(events monitor.EventInterva
 
 	// any image not in the allowed prefixes is considered a failure, as the user
 	// may have added a new test image without calling the appropriate helpers
-	return func(events monitor.EventIntervals) ([]*ginkgo.JUnitTestCase, bool) {
+	return func(events monitor.EventIntervals, _ time.Duration) ([]*ginkgo.JUnitTestCase, bool) {
 		allowedPrefixes := allowedPrefixes.List()
 
 		passed := true
