@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	utilnet "k8s.io/utils/net"
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
@@ -42,6 +43,14 @@ type ClusterConfiguration struct {
 	// NetworkPluginMode is an optional sub-identifier for the NetworkPlugin.
 	// (Currently it is only used for OpenShiftSDN.)
 	NetworkPluginMode string `json:",omitempty"`
+
+	// HasIPv4 and HasIPv6 determine whether IPv4-specific, IPv6-specific,
+	// and dual-stack-specific tests are run
+	HasIPv4 bool
+	HasIPv6 bool
+
+	// HasSCTP determines whether SCTP connectivity tests can be run in the cluster
+	HasSCTP bool
 }
 
 func (c *ClusterConfiguration) ToJSONString() string {
@@ -165,6 +174,19 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 		config.NetworkPluginMode = string(state.NetworkSpec.DefaultNetwork.OpenShiftSDNConfig.Mode)
 	}
 
+	// Determine IP configuration
+	for _, cidr := range state.NetworkSpec.ServiceNetwork {
+		if utilnet.IsIPv6CIDRString(cidr) {
+			config.HasIPv6 = true
+		} else {
+			config.HasIPv4 = true
+		}
+	}
+
+	// FIXME: detect SCTP availability; there's no explicit config for it, so we'd
+	// have to scan MachineConfig objects to figure this out? For now, callers can
+	// can just manually override with --provider...
+
 	return config, nil
 }
 
@@ -173,15 +195,33 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 func (c *ClusterConfiguration) MatchFn() func(string) bool {
 	var skips []string
 	skips = append(skips, fmt.Sprintf("[Skipped:%s]", c.ProviderName))
+
 	if c.NetworkPlugin != "" {
 		skips = append(skips, fmt.Sprintf("[Skipped:Network/%s]", c.NetworkPlugin))
 		if c.NetworkPluginMode != "" {
 			skips = append(skips, fmt.Sprintf("[Skipped:Network/%s/%s]", c.NetworkPlugin, c.NetworkPluginMode))
 		}
 	}
+
 	if c.Disconnected {
 		skips = append(skips, "[Skipped:Disconnected]")
 	}
+
+	if !c.HasIPv4 {
+		skips = append(skips, "[Feature:Networking-IPv4]")
+	}
+	if !c.HasIPv6 {
+		skips = append(skips, "[Feature:Networking-IPv6]")
+	}
+	if !c.HasIPv4 || !c.HasIPv6 {
+		// lack of "]" is intentional; this matches multiple tags
+		skips = append(skips, "[Feature:IPv6DualStack")
+	}
+
+	if !c.HasSCTP {
+		skips = append(skips, "[Feature:SCTPConnectivity]")
+	}
+
 	matchFn := func(name string) bool {
 		for _, skip := range skips {
 			if strings.Contains(name, skip) {
