@@ -34,9 +34,14 @@ type ClusterConfiguration struct {
 	Zones       []string
 	ConfigFile  string
 
-	// Network-related configurations
-	Disconnected     bool
-	NetworkPluginIDs []string
+	// Disconnected is set for test jobs without external internet connectivity
+	Disconnected bool
+
+	// NetworkPlugin is the "official" plugin name
+	NetworkPlugin string
+	// NetworkPluginMode is an optional sub-identifier for the NetworkPlugin.
+	// (Currently it is only used for OpenShiftSDN.)
+	NetworkPluginMode string `json:",omitempty"`
 }
 
 func (c *ClusterConfiguration) ToJSONString() string {
@@ -107,12 +112,6 @@ func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 
 // LoadConfig generates a ClusterConfiguration based on a detected or hard-coded ClusterState
 func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
-	var networkPluginIDs []string
-	networkPluginIDs = append(networkPluginIDs, string(state.NetworkSpec.DefaultNetwork.Type))
-	if state.NetworkSpec.DefaultNetwork.OpenShiftSDNConfig != nil && state.NetworkSpec.DefaultNetwork.OpenShiftSDNConfig.Mode != "" {
-		networkPluginIDs = append(networkPluginIDs, string(state.NetworkSpec.DefaultNetwork.Type)+"/"+string(state.NetworkSpec.DefaultNetwork.OpenShiftSDNConfig.Mode))
-	}
-
 	zones := sets.NewString()
 	for _, node := range state.Masters.Items {
 		zones.Insert(node.Labels["failure-domain.beta.kubernetes.io/zone"])
@@ -120,10 +119,9 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 	zones.Delete("")
 
 	config := &ClusterConfiguration{
-		MultiMaster:      len(state.Masters.Items) > 1,
-		MultiZone:        zones.Len() > 1,
-		Zones:            zones.List(),
-		NetworkPluginIDs: networkPluginIDs,
+		MultiMaster: len(state.Masters.Items) > 1,
+		MultiZone:   zones.Len() > 1,
+		Zones:       zones.List(),
 	}
 	if zones.Len() > 0 {
 		config.Zone = zones.List()[0]
@@ -162,6 +160,11 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 		config.ConfigFile = tmpFile.Name()
 	}
 
+	config.NetworkPlugin = string(state.NetworkSpec.DefaultNetwork.Type)
+	if state.NetworkSpec.DefaultNetwork.OpenShiftSDNConfig != nil && state.NetworkSpec.DefaultNetwork.OpenShiftSDNConfig.Mode != "" {
+		config.NetworkPluginMode = string(state.NetworkSpec.DefaultNetwork.OpenShiftSDNConfig.Mode)
+	}
+
 	return config, nil
 }
 
@@ -170,8 +173,11 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 func (c *ClusterConfiguration) MatchFn() func(string) bool {
 	var skips []string
 	skips = append(skips, fmt.Sprintf("[Skipped:%s]", c.ProviderName))
-	for _, id := range c.NetworkPluginIDs {
-		skips = append(skips, fmt.Sprintf("[Skipped:Network/%s]", id))
+	if c.NetworkPlugin != "" {
+		skips = append(skips, fmt.Sprintf("[Skipped:Network/%s]", c.NetworkPlugin))
+		if c.NetworkPluginMode != "" {
+			skips = append(skips, fmt.Sprintf("[Skipped:Network/%s/%s]", c.NetworkPlugin, c.NetworkPluginMode))
+		}
 	}
 	if c.Disconnected {
 		skips = append(skips, "[Skipped:Disconnected]")
