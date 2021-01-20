@@ -38,6 +38,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/quota"
 	_ "github.com/openshift/origin/test/extended/router"
 	_ "github.com/openshift/origin/test/extended/security"
+	_ "github.com/openshift/origin/test/extended/single_node"
 	_ "github.com/openshift/origin/test/extended/tbr_health"
 	_ "github.com/openshift/origin/test/extended/templates"
 	_ "github.com/openshift/origin/test/extended/topology_manager"
