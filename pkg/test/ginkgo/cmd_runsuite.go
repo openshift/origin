@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/onsi/ginkgo/config"
 )
@@ -276,16 +277,31 @@ func (opt *Options) Run(args []string) error {
 			syntheticFailure = true
 		}
 
-		fmt.Fprintln(buf, "Synthetic test results:")
-		for _, test := range syntheticTestResults {
-			status := "passed"
-			if test.FailureOutput != nil {
-				status = "failed"
+		if len(syntheticTestResults) > 0 {
+			// mark any failures by name
+			failing, flaky := sets.NewString(), sets.NewString()
+			for _, test := range syntheticTestResults {
+				if test.FailureOutput != nil {
+					failing.Insert(test.Name)
+				}
 			}
-			fmt.Fprintf(buf, "%s: %s\n", status, test.Name)
+			// if a test has both a pass and a failure, flag it
+			// as a flake
+			for _, test := range syntheticTestResults {
+				if test.FailureOutput == nil {
+					if failing.Has(test.Name) {
+						flaky.Insert(test.Name)
+					}
+				}
+			}
+			failing = failing.Difference(flaky)
+			if failing.Len() > 0 {
+				fmt.Fprintf(buf, "Failing invariants:\n\n%s\n\n", strings.Join(failing.List(), "\n"))
+			}
+			if flaky.Len() > 0 {
+				fmt.Fprintf(buf, "Flaky invariants:\n\n%s\n\n", strings.Join(flaky.List(), "\n"))
+			}
 		}
-		fmt.Fprintln(buf, "(duplicates are used to mark some failures as flake and not to fail the whole suite")
-		fmt.Fprintln(buf)
 
 		opt.Out.Write(buf.Bytes())
 	}
@@ -321,9 +337,9 @@ func (opt *Options) Run(args []string) error {
 		}
 	}
 
+	// report the outcome of the test
 	if len(failing) > 0 {
-		names := testNames(failing)
-		sort.Strings(names)
+		names := sets.NewString(testNames(failing)...).List()
 		fmt.Fprintf(opt.Out, "Failing tests:\n\n%s\n\n", strings.Join(names, "\n"))
 	}
 
