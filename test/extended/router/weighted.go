@@ -11,7 +11,6 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	"k8s.io/kubernetes/test/e2e/framework/pod"
 
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -28,20 +27,10 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 		oc         = exutil.NewCLI("weighted-router")
 	)
 
-	g.BeforeEach(func() {
-		routerImage, err := exutil.FindRouterImage(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		err = oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-	})
-
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve a route that points to two services and respect weights", func() {
-			defer func() {
-				if g.CurrentGinkgoTestDescription().Failed {
-					dumpWeightedRouterLogs(oc, g.CurrentGinkgoTestDescription().FullTestText)
-				}
-			}()
+			routerIP, err := exutil.WaitForRouterServiceIP(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			ns := oc.KubeFramework().Namespace.Name
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
@@ -50,21 +39,6 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			}()
 
 			g.By(fmt.Sprintf("creating a weighted router from a config file %q", configPath))
-
-			var routerIP string
-			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
-				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get(context.Background(), "weighted-router", metav1.GetOptions{})
-				if err != nil {
-					return false, err
-				}
-				if len(pod.Status.PodIP) == 0 {
-					return false, nil
-				}
-
-				routerIP = pod.Status.PodIP
-				return true, nil
-			})
-			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// router expected to listen on port 80
 			routerURL := fmt.Sprintf("http://%s", routerIP)
@@ -128,9 +102,4 @@ func parseStats(stats string, backendSubstr string, statsField int) ([]string, e
 		}
 	}
 	return fieldValues, nil
-}
-
-func dumpWeightedRouterLogs(oc *exutil.CLI, name string) {
-	log, _ := pod.GetPodLogs(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "weighted-router", "router")
-	e2e.Logf("Weighted Router test %s logs:\n %s", name, log)
 }
