@@ -6,7 +6,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
-	exutilcloud "github.com/openshift/origin/test/extended/util/cloud"
+	exutilcluster "github.com/openshift/origin/test/extended/util/cluster"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -230,9 +230,9 @@ func TestDecodeProvider(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			discover := tc.discoveredPlatform != nil
-			var testState *exutilcloud.ClusterState
+			var testState *exutilcluster.ClusterState
 			if discover {
-				testState = &exutilcloud.ClusterState{
+				testState = &exutilcluster.ClusterState{
 					PlatformStatus: tc.discoveredPlatform,
 					Masters:        tc.discoveredMasters,
 					NonMasters:     nonMasters,
