@@ -200,10 +200,8 @@ func TestDecodeProvider(t *testing.T) {
 			discoveredPlatform: awsPlatform,
 			discoveredMasters:  simpleMasters,
 			discoveredNetwork:  ovnKubernetesConfig,
-			// NB: MultiMaster and MultiZone are set from discovery, with the
-			// JSON being ignored
-			expectedConfig: `{"type":"aws","ProjectID":"","Region":"us-east-2","Zone":"us-east-2a","NumNodes":3,"MultiMaster":true,"MultiZone":false,"Zones":[],"ConfigFile":"","Disconnected":false,"NetworkPluginIDs":["OVNKubernetes"]}`,
-			runTests:       sets.NewString("everyone", "not-gce", "not-sdn", "not-multitenant", "online"),
+			expectedConfig:     `{"type":"aws","ProjectID":"","Region":"us-east-2","Zone":"us-east-2a","NumNodes":3,"MultiMaster":false,"MultiZone":true,"Zones":[],"ConfigFile":"","Disconnected":false,"NetworkPluginIDs":["OVNKubernetes"]}`,
+			runTests:           sets.NewString("everyone", "not-gce", "not-sdn", "not-multitenant", "online"),
 		},
 		{
 			name:               "complex override without discovery",
@@ -220,6 +218,15 @@ func TestDecodeProvider(t *testing.T) {
 			discoveredNetwork:  ovnKubernetesConfig,
 			expectedConfig:     `{"type":"none","ProjectID":"","Region":"","Zone":"","NumNodes":3,"MultiMaster":true,"MultiZone":false,"Zones":[],"ConfigFile":"","Disconnected":true,"NetworkPluginIDs":["OVNKubernetes"]}`,
 			runTests:           sets.NewString("everyone", "not-gce", "not-aws", "not-sdn", "not-multitenant"),
+		},
+		{
+			name:               "override network plugin",
+			provider:           `{"type":"aws","networkPluginIDs":["Calico"]}`,
+			discoveredPlatform: awsPlatform,
+			discoveredMasters:  simpleMasters,
+			discoveredNetwork:  ovnKubernetesConfig,
+			expectedConfig:     `{"type":"aws","ProjectID":"","Region":"us-east-2","Zone":"","NumNodes":3,"MultiMaster":true,"MultiZone":false,"Zones":[],"ConfigFile":"","Disconnected":false,"NetworkPluginIDs":["Calico"]}`,
+			runTests:           sets.NewString("everyone", "not-gce", "not-sdn", "not-multitenant", "online"),
 		},
 	}
 

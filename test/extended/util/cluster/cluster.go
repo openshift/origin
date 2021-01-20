@@ -23,7 +23,8 @@ import (
 type ClusterConfiguration struct {
 	ProviderName string `json:"type"`
 
-	// These fields chosen to match the e2e configuration we fill
+	// These fields (and the "type" tag for ProviderName) chosen to match
+	// upstream's e2e.CloudConfig.
 	ProjectID   string
 	Region      string
 	Zone        string

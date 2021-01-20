@@ -102,18 +102,14 @@ func decodeProvider(provider string, dryRun, discover bool, clusterState *exutil
 
 	default:
 		var providerInfo struct {
-			Type            string
-			Disconnected    bool
-			e2e.CloudConfig `json:",inline"`
+			Type string
 		}
 		if err := json.Unmarshal([]byte(provider), &providerInfo); err != nil {
-			return nil, fmt.Errorf("provider must be a JSON object with the 'type' key at a minimum, and decode into a cloud config object: %v", err)
+			return nil, fmt.Errorf("provider must be a JSON object with the 'type' key at a minimum: %v", err)
 		}
 		if len(providerInfo.Type) == 0 {
 			return nil, fmt.Errorf("provider must be a JSON object with the 'type' key")
 		}
-		// attempt to load the default config, then overwrite with any values from the passed
-		// object that can be overridden
 		var config *exutilcluster.ClusterConfiguration
 		if discover {
 			if clusterState == nil {
@@ -124,41 +120,13 @@ func decodeProvider(provider string, dryRun, discover bool, clusterState *exutil
 			if clusterState != nil {
 				config, _ = exutilcluster.LoadConfig(clusterState)
 			}
-		}
-		if config == nil {
-			config = &exutilcluster.ClusterConfiguration{
-				ProviderName: providerInfo.Type,
-				ProjectID:    providerInfo.ProjectID,
-				Region:       providerInfo.Region,
-				Zone:         providerInfo.Zone,
-				Zones:        providerInfo.Zones,
-				NumNodes:     providerInfo.NumNodes,
-				MultiMaster:  providerInfo.MultiMaster,
-				MultiZone:    providerInfo.MultiZone,
-				ConfigFile:   providerInfo.ConfigFile,
-			}
 		} else {
-			config.ProviderName = providerInfo.Type
-			if len(providerInfo.ProjectID) > 0 {
-				config.ProjectID = providerInfo.ProjectID
-			}
-			if len(providerInfo.Region) > 0 {
-				config.Region = providerInfo.Region
-			}
-			if len(providerInfo.Zone) > 0 {
-				config.Zone = providerInfo.Zone
-			}
-			if len(providerInfo.Zones) > 0 {
-				config.Zones = providerInfo.Zones
-			}
-			if len(providerInfo.ConfigFile) > 0 {
-				config.ConfigFile = providerInfo.ConfigFile
-			}
-			if providerInfo.NumNodes > 0 {
-				config.NumNodes = providerInfo.NumNodes
-			}
+			config = &exutilcluster.ClusterConfiguration{}
 		}
-		config.Disconnected = providerInfo.Disconnected
+
+		if err := json.Unmarshal([]byte(provider), config); err != nil {
+			return nil, fmt.Errorf("provider must decode into the ClusterConfig object: %v", err)
+		}
 		return config, nil
 	}
 }
