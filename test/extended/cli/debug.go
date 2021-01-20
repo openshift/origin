@@ -29,8 +29,15 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 	g.It("deployment configs from a build", func() {
 		err := oc.Run("create").Args("-f", testCLIDebug).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
+		// wait for image stream to be present which means the build has completed
 		err = wait.Poll(cliInterval, buildTimeout, func() (bool, error) {
 			err := oc.Run("get").Args("imagestreamtags", "local-busybox:latest").Execute()
+			return err == nil, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		// and for replication controller which means we can kick of debug session
+		err = wait.Poll(cliInterval, buildTimeout, func() (bool, error) {
+			err := oc.Run("get").Args("replicationcontrollers", "local-busybox1-1").Execute()
 			return err == nil, nil
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
