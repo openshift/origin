@@ -147,13 +147,16 @@ func (opt *Options) Run(args []string) error {
 	}
 
 	count := opt.Count
-	if count == 0 {
+	if count < 1 {
 		count = suite.Count
 	}
 	if count > 1 {
 		var newTests []*testCase
 		for i := 0; i < count; i++ {
-			newTests = append(newTests, tests...)
+			for _, t := range tests {
+				copied := *t
+				newTests = append(newTests, &copied)
+			}
 		}
 		tests = newTests
 	}
