@@ -34,9 +34,9 @@ type Options struct {
 	// MatchFn if set is also used to filter the suite contents
 	MatchFn func(name string) bool
 
-	// AdditionalJUnitsFn allows the caller to translate events or outside
+	// SyntheticEventTests allows the caller to translate events or outside
 	// context into a failure.
-	AdditionalJUnitsFn func(events monitor.EventIntervals) (results []*JUnitTestCase, passed bool)
+	SyntheticEventTests JUnitsForEvents
 
 	IncludeSuccessOutput bool
 
@@ -113,6 +113,11 @@ func (opt *Options) Run(args []string) error {
 		suite.Matches = func(name string) bool {
 			return original(name) && opt.MatchFn(name)
 		}
+	}
+
+	syntheticEventTests := JUnitsForAllEvents{
+		opt.SyntheticEventTests,
+		suite.SyntheticEventTests,
 	}
 
 	tests, err := testsForSuite(config.GinkgoConfig)
@@ -258,17 +263,26 @@ func (opt *Options) Run(args []string) error {
 	var syntheticTestResults []*JUnitTestCase
 	var syntheticFailure bool
 	if events := m.Events(time.Time{}, time.Time{}); len(events) > 0 {
-		var buf *bytes.Buffer
 		eventsForTests := createEventsForTests(tests)
-		syntheticTestResults, buf, _ = createSyntheticTestsFromMonitor(m, eventsForTests, duration)
 
-		if opt.AdditionalJUnitsFn != nil {
-			testCases, passed := opt.AdditionalJUnitsFn(events)
-			syntheticTestResults = append(syntheticTestResults, testCases...)
-			if !passed {
-				syntheticFailure = true
-			}
+		var buf *bytes.Buffer
+		syntheticTestResults, buf, _ = createSyntheticTestsFromMonitor(m, eventsForTests, duration)
+		testCases, passed := syntheticEventTests.JUnitsForEvents(events, duration)
+		syntheticTestResults = append(syntheticTestResults, testCases...)
+		if !passed {
+			syntheticFailure = true
 		}
+
+		fmt.Fprintln(buf, "Synthetic test results:")
+		for _, test := range syntheticTestResults {
+			status := "passed"
+			if test.FailureOutput != nil {
+				status = "failed"
+			}
+			fmt.Fprintf(buf, "%s: %s\n", status, test.Name)
+		}
+		fmt.Fprintln(buf, "(duplicates are used to mark some failures as flake and not to fail the whole suite")
+		fmt.Fprintln(buf)
 
 		opt.Out.Write(buf.Bytes())
 	}
