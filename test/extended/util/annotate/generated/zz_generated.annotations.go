@@ -1145,6 +1145,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-builds][Feature:Builds] s2i build with a root user image should create a root build and pass with a privileged SCC": "should create a root build and pass with a privileged SCC [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-builds][Feature:Builds] verify /run filesystem contents  are writeable using a simple Docker Strategy Build": "using a simple Docker Strategy Build [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-builds][Feature:Builds] verify /run filesystem contents  do not have unexpected content using a simple Docker Strategy Build": "using a simple Docker Strategy Build [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config no ocm rollout Apply default proxy configuration to docker build pod through env vars": "Apply default proxy configuration to docker build pod through env vars",
 
 	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config no ocm rollout Apply default proxy configuration to source build pod through env vars": "Apply default proxy configuration to source build pod through env vars",
