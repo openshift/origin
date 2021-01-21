@@ -112,12 +112,6 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 		networkPluginIDs = append(networkPluginIDs, string(state.NetworkSpec.DefaultNetwork.Type)+"/"+string(state.NetworkSpec.DefaultNetwork.OpenShiftSDNConfig.Mode))
 	}
 
-	if state.PlatformStatus.Type == configv1.NonePlatformType {
-		return &ClusterConfiguration{
-			NetworkPluginIDs: networkPluginIDs,
-		}, nil
-	}
-
 	zones := sets.NewString()
 	for _, node := range state.Masters.Items {
 		zones.Insert(node.Labels["failure-domain.beta.kubernetes.io/zone"])
