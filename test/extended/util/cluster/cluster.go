@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -167,4 +168,26 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 	}
 
 	return config, nil
+}
+
+// MatchFn returns a function that tests if a named function should be run based on
+// the cluster configuration
+func (c *ClusterConfiguration) MatchFn() func(string) bool {
+	var skips []string
+	skips = append(skips, fmt.Sprintf("[Skipped:%s]", c.ProviderName))
+	for _, id := range c.NetworkPluginIDs {
+		skips = append(skips, fmt.Sprintf("[Skipped:Network/%s]", id))
+	}
+	if c.Disconnected {
+		skips = append(skips, "[Skipped:Disconnected]")
+	}
+	matchFn := func(name string) bool {
+		for _, skip := range skips {
+			if strings.Contains(name, skip) {
+				return false
+			}
+		}
+		return true
+	}
+	return matchFn
 }

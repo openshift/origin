@@ -247,7 +247,7 @@ func TestDecodeProvider(t *testing.T) {
 			if configJSON != tc.expectedConfig {
 				t.Fatalf("Generated config:\n%s\ndoes not match expected:\n%s\n", configJSON, tc.expectedConfig)
 			}
-			matchFn := getProviderMatchFn(config)
+			matchFn := config.MatchFn()
 
 			runTests := sets.NewString()
 			for name, tags := range e2eTests {

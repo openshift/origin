@@ -401,13 +401,13 @@ func suiteWithInitializedProviderPreSuite(opt *runOptions) error {
 }
 
 // suiteWithProviderPreSuite ensures that the suite filters out tests from providers
-// that aren't relevant (see getProviderMatchFn) by loading the provider info from the
-// cluster or flags.
+// that aren't relevant (see exutilcluster.ClusterConfig.MatchFn) by loading the
+// provider info from the cluster or flags.
 func suiteWithProviderPreSuite(opt *runOptions) error {
 	if err := suiteWithInitializedProviderPreSuite(opt); err != nil {
 		return err
 	}
-	opt.MatchFn = getProviderMatchFn(opt.config)
+	opt.MatchFn = opt.config.MatchFn()
 	return nil
 }
 
