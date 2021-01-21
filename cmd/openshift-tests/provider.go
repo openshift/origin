@@ -90,7 +90,7 @@ func getProviderMatchFn(config *exutilcloud.ClusterConfiguration) TestNameMatche
 	return matchFn
 }
 
-func decodeProvider(provider string, dryRun, discover bool) (*exutilcloud.ClusterConfiguration, error) {
+func decodeProvider(provider string, dryRun, discover bool, clusterState *exutilcloud.ClusterState) (*exutilcloud.ClusterConfiguration, error) {
 	switch provider {
 	case "none":
 		return &exutilcloud.ClusterConfiguration{ProviderName: "skeleton"}, nil
@@ -107,11 +107,17 @@ func decodeProvider(provider string, dryRun, discover bool) (*exutilcloud.Cluste
 		fallthrough
 
 	case "azure", "aws", "baremetal", "gce", "vsphere":
-		clientConfig, err := e2e.LoadConfig(true)
-		if err != nil {
-			return nil, err
+		if clusterState == nil {
+			clientConfig, err := e2e.LoadConfig(true)
+			if err != nil {
+				return nil, err
+			}
+			clusterState, err = exutilcloud.DiscoverClusterState(clientConfig)
+			if err != nil {
+				return nil, err
+			}
 		}
-		config, err := exutilcloud.LoadConfig(clientConfig)
+		config, err := exutilcloud.LoadConfig(clusterState)
 		if err != nil {
 			return nil, err
 		}
@@ -136,8 +142,13 @@ func decodeProvider(provider string, dryRun, discover bool) (*exutilcloud.Cluste
 		// object that can be overridden
 		var config *exutilcloud.ClusterConfiguration
 		if discover {
-			if clientConfig, err := e2e.LoadConfig(true); err == nil {
-				config, _ = exutilcloud.LoadConfig(clientConfig)
+			if clusterState == nil {
+				if clientConfig, err := e2e.LoadConfig(true); err == nil {
+					clusterState, _ = exutilcloud.DiscoverClusterState(clientConfig)
+				}
+			}
+			if clusterState != nil {
+				config, _ = exutilcloud.LoadConfig(clusterState)
 			}
 		}
 		if config == nil {

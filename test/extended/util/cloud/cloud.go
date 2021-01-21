@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	configv1 "github.com/openshift/api/config/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	operatorclient "github.com/openshift/client-go/operator/clientset/versioned"
 	"github.com/openshift/origin/test/extended/util/azure"
@@ -43,10 +45,17 @@ func (c *ClusterConfiguration) ToJSONString() string {
 	return string(out)
 }
 
-// LoadConfig uses the cluster to setup the cloud provider config.
-func LoadConfig(clientConfig *rest.Config) (*ClusterConfiguration, error) {
-	// LoadClientset but don't set the UserAgent to include the current test name because
-	// we don't run any test yet and this call panics
+// ClusterState provides information about the cluster that is used to generate
+// ClusterConfiguration
+type ClusterState struct {
+	PlatformStatus *configv1.PlatformStatus
+	Masters        *corev1.NodeList
+	NonMasters     *corev1.NodeList
+	NetworkSpec    *operatorv1.NetworkSpec
+}
+
+// DiscoverClusterState creates a ClusterState based on a live cluster
+func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 	coreClient, err := clientset.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, err
@@ -60,50 +69,62 @@ func LoadConfig(clientConfig *rest.Config) (*ClusterConfiguration, error) {
 		return nil, err
 	}
 
-	var networkPluginIDs []string
-	if networkConfig, err := operatorClient.OperatorV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{}); err == nil {
-		networkPluginIDs = append(networkPluginIDs, string(networkConfig.Spec.DefaultNetwork.Type))
-		if networkConfig.Spec.DefaultNetwork.OpenShiftSDNConfig != nil && networkConfig.Spec.DefaultNetwork.OpenShiftSDNConfig.Mode != "" {
-			networkPluginIDs = append(networkPluginIDs, string(networkConfig.Spec.DefaultNetwork.Type)+"/"+string(networkConfig.Spec.DefaultNetwork.OpenShiftSDNConfig.Mode))
-		}
-
-	}
+	state := &ClusterState{}
 
 	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-	p := infra.Status.PlatformStatus
-	if p == nil {
+	state.PlatformStatus = infra.Status.PlatformStatus
+	if state.PlatformStatus == nil {
 		return nil, fmt.Errorf("status.platformStatus must be set")
 	}
-	if p.Type == configv1.NonePlatformType {
-		return &ClusterConfiguration{
-			NetworkPluginIDs: networkPluginIDs,
-		}, nil
-	}
 
-	masters, err := coreClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
+	state.Masters, err = coreClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 		LabelSelector: "node-role.kubernetes.io/master=",
 	})
 	if err != nil {
 		return nil, err
 	}
-	zones := sets.NewString()
-	for _, node := range masters.Items {
-		zones.Insert(node.Labels["failure-domain.beta.kubernetes.io/zone"])
-	}
-	zones.Delete("")
 
-	nonMasters, err := coreClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
+	state.NonMasters, err = coreClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 		LabelSelector: "!node-role.kubernetes.io/master",
 	})
 	if err != nil {
 		return nil, err
 	}
 
+	networkConfig, err := operatorClient.OperatorV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	state.NetworkSpec = &networkConfig.Spec
+
+	return state, nil
+}
+
+// LoadConfig generates a ClusterConfiguration based on a detected or hard-coded ClusterState
+func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
+	var networkPluginIDs []string
+	networkPluginIDs = append(networkPluginIDs, string(state.NetworkSpec.DefaultNetwork.Type))
+	if state.NetworkSpec.DefaultNetwork.OpenShiftSDNConfig != nil && state.NetworkSpec.DefaultNetwork.OpenShiftSDNConfig.Mode != "" {
+		networkPluginIDs = append(networkPluginIDs, string(state.NetworkSpec.DefaultNetwork.Type)+"/"+string(state.NetworkSpec.DefaultNetwork.OpenShiftSDNConfig.Mode))
+	}
+
+	if state.PlatformStatus.Type == configv1.NonePlatformType {
+		return &ClusterConfiguration{
+			NetworkPluginIDs: networkPluginIDs,
+		}, nil
+	}
+
+	zones := sets.NewString()
+	for _, node := range state.Masters.Items {
+		zones.Insert(node.Labels["failure-domain.beta.kubernetes.io/zone"])
+	}
+	zones.Delete("")
+
 	config := &ClusterConfiguration{
-		MultiMaster:      len(masters.Items) > 1,
+		MultiMaster:      len(state.Masters.Items) > 1,
 		MultiZone:        zones.Len() > 1,
 		Zones:            zones.List(),
 		NetworkPluginIDs: networkPluginIDs,
@@ -111,23 +132,23 @@ func LoadConfig(clientConfig *rest.Config) (*ClusterConfiguration, error) {
 	if zones.Len() > 0 {
 		config.Zone = zones.List()[0]
 	}
-	if len(nonMasters.Items) == 0 {
-		config.NumNodes = len(nonMasters.Items)
+	if len(state.NonMasters.Items) == 0 {
+		config.NumNodes = len(state.NonMasters.Items)
 	} else {
-		config.NumNodes = len(masters.Items)
+		config.NumNodes = len(state.Masters.Items)
 	}
 
 	switch {
-	case p.AWS != nil:
+	case state.PlatformStatus.AWS != nil:
 		config.ProviderName = "aws"
-		config.Region = p.AWS.Region
+		config.Region = state.PlatformStatus.AWS.Region
 
-	case p.GCP != nil:
+	case state.PlatformStatus.GCP != nil:
 		config.ProviderName = "gce"
-		config.ProjectID = p.GCP.ProjectID
-		config.Region = p.GCP.Region
+		config.ProjectID = state.PlatformStatus.GCP.ProjectID
+		config.Region = state.PlatformStatus.GCP.Region
 
-	case p.Azure != nil:
+	case state.PlatformStatus.Azure != nil:
 		config.ProviderName = "azure"
 
 		data, err := azure.LoadConfigFile()

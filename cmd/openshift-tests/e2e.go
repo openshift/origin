@@ -390,7 +390,7 @@ func isStandardEarlyOrLateTest(name string) bool {
 // suiteWithInitializedProviderPreSuite loads the provider info, but does not
 // exclude any tests specific to that provider.
 func suiteWithInitializedProviderPreSuite(opt *runOptions) error {
-	config, err := decodeProvider(opt.Provider, opt.DryRun, true)
+	config, err := decodeProvider(opt.Provider, opt.DryRun, true, nil)
 	if err != nil {
 		return err
 	}
