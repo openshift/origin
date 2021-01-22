@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/test/extended/util/operator"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/onsi/ginkgo/config"
@@ -231,6 +232,13 @@ func (opt *Options) Run(args []string) error {
 	includeSuccess := opt.IncludeSuccessOutput
 	if len(tests) == 1 {
 		includeSuccess = true
+	} else {
+		// if we're running more than one test, check stability before we start.  This doesn't impact test result, but
+		// provides a clear log if we aren't running on a stable cluster.
+		err := operator.WaitForOperatorsToSettleWithDefaultClient(ctx)
+		if err != nil {
+			fmt.Printf("Operators are not yet stable, continuing: %v\n", err)
+		}
 	}
 	status := newTestStatus(opt.Out, includeSuccess, len(tests), timeout, m, opt.AsEnv())
 

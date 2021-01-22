@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 	"github.com/openshift/origin/test/extended/util/disruption/imageregistry"
+	"github.com/openshift/origin/test/extended/util/operator"
 )
 
 func AllTests() []upgrades.Test {
@@ -443,26 +444,8 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		f,
 		"[sig-cluster-lifecycle] ClusterOperators are available and not degraded after upgrade",
 		func() error {
-			framework.Logf("Waiting for operators to settle after upgrade")
-			if err := wait.PollImmediate(10*time.Second, 5*time.Minute, func() (bool, error) {
-				coList, err := c.ConfigV1().ClusterOperators().List(context.Background(), metav1.ListOptions{})
-				if err != nil {
-					framework.Logf("error getting ClusterOperators %v", err)
-					return false, nil
-				}
-				settled := true
-				for _, co := range coList.Items {
-					available := findCondition(co.Status.Conditions, configv1.OperatorAvailable)
-					degraded := findCondition(co.Status.Conditions, configv1.OperatorDegraded)
-					if !conditionHasStatus(available, configv1.ConditionTrue) ||
-						conditionHasStatus(degraded, configv1.ConditionTrue) {
-						settled = false
-						break
-					}
-				}
-				return settled, nil
-			}); err != nil {
-				return fmt.Errorf("ClusterOperators did not settle: %v", err)
+			if err := operator.WaitForOperatorsToSettle(context.TODO(), c); err != nil {
+				return err
 			}
 			return nil
 		},
