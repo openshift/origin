@@ -36,7 +36,7 @@ var _ = g.Describe("[sig-api-machinery] API data in etcd", func() {
 
 		etcdClientCreater := &etcdPortForwardClient{kubeClient: oc.AdminKubeClient()}
 		defer etcdClientCreater.closeAll()
-		testEtcd3StoragePath(g.GinkgoT(), oc.AdminConfig(), etcdClientCreater.getEtcdClient)
+		testEtcd3StoragePath(g.GinkgoT(2), oc.AdminConfig(), etcdClientCreater.getEtcdClient)
 	})
 })
 

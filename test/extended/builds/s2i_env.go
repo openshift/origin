@@ -22,7 +22,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] s2i build with environmen
 	)
 
 	var (
-		imageStreamFixture   = exutil.FixturePath("..", "integration", "testdata", "test-image-stream.json")
+		imageStreamFixture   = exutil.FixturePath("testdata", "builds", "test-image-stream.json")
 		stiEnvBuildFixture   = exutil.FixturePath("testdata", "builds", "test-env-build.json")
 		podAndServiceFixture = exutil.FixturePath("testdata", "builds", "test-build-podsvc.json")
 		oc                   = exutil.NewCLI("build-sti-env")

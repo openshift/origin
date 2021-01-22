@@ -280,9 +280,23 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 // disruption flake if any disruption occurs, and uses reason to prefix the message. I.e. tolerate 0.1 of 10m total will fail
 // if the sum of the intervals is greater than 1m, or report a flake if any interval is found.
 func ExpectNoDisruption(f *framework.Framework, tolerate float64, total time.Duration, events monitor.EventIntervals, reason string) {
+	duration, describe := GetDisruption(events, "")
+	if percent := float64(duration) / float64(total); percent > tolerate {
+		framework.Failf("%s for at least %s of %s (%0.0f%%):\n\n%s", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, strings.Join(describe, "\n"))
+	} else if duration > 0 {
+		FrameworkFlakef(f, "%s for at least %s of %s (%0.0f%%), this is currently sufficient to pass the test/job but not considered completely correct:\n\n%s", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, strings.Join(describe, "\n"))
+	}
+}
+
+// GetDisruption returns total duration of all error events and array of event description for printing.
+// When requiredLocator is specified (non-empty), only events matching this locator are considered.
+func GetDisruption(events monitor.EventIntervals, requiredLocator string) (time.Duration, []string) {
 	var duration time.Duration
 	var describe []string
 	for _, interval := range events {
+		if requiredLocator != "" && requiredLocator != interval.Locator {
+			continue
+		}
 		describe = append(describe, interval.String())
 		i := interval.To.Sub(interval.From)
 		if i < time.Second {
@@ -292,11 +306,7 @@ func ExpectNoDisruption(f *framework.Framework, tolerate float64, total time.Dur
 			duration += i
 		}
 	}
-	if percent := float64(duration) / float64(total); percent > tolerate {
-		framework.Failf("%s for at least %s of %s (%0.0f%%):\n\n%s", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, strings.Join(describe, "\n"))
-	} else if duration > 0 {
-		FrameworkFlakef(f, "%s for at least %s of %s (%0.0f%%), this is currently sufficient to pass the test/job but not considered completely correct:\n\n%s", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, strings.Join(describe, "\n"))
-	}
+	return duration, describe
 }
 
 // FrameworkFlakef records a flake on the current framework.

@@ -148,215 +148,218 @@ var _ = g.Describe("[sig-devex][Feature:JenkinsRHELImagesOnly][Slow] openshift p
 		}
 	)
 
-	g.Context("Sync plugin tests", func() {
+	g.Context("", func() {
 
-		g.It("using the ephemeral template", func() {
-			defer cleanup("jenkins-ephemeral")
-			setupJenkins("jenkins-ephemeral")
+		g.Describe("Sync plugin tests", func() {
+			g.It("using the ephemeral template", func() {
+				defer cleanup("jenkins-ephemeral")
+				setupJenkins("jenkins-ephemeral")
 
-			//TODO - for these config map slave tests, as well and the imagestream/imagestreamtag
-			// tests ... rather than actually running the pipelines, we could just inspect the config in jenkins
-			// to make sure the k8s pod templates are there.
-			// In general, while we want at least one verification somewhere in pipeline.go that the agent
-			// images work, we should minimize the actually running of pipelines using them to only one
-			// for each maven/nodejs
-			g.By("Pipeline using nodejs agent and client plugin")
+				//TODO - for these config map slave tests, as well and the imagestream/imagestreamtag
+				// tests ... rather than actually running the pipelines, we could just inspect the config in jenkins
+				// to make sure the k8s pod templates are there.
+				// In general, while we want at least one verification somewhere in pipeline.go that the agent
+				// images work, we should minimize the actually running of pipelines using them to only one
+				// for each maven/nodejs
+				g.By("Pipeline using nodejs agent and client plugin")
 
-			g.By("should build and complete successfully", func() {
-				g.By("create pipeline strategy build using nodejs agent and client plugin")
-				err := oc.Run("create").Args("-f", "https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/nodejs-sample-pipeline.yaml").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
+				g.By("should build and complete successfully", func() {
+					g.By("create pipeline strategy build using nodejs agent and client plugin")
+					err := oc.Run("create").Args("-f", "https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/nodejs-sample-pipeline.yaml").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("starting the pipeline build and waiting for it to complete")
-				// this just does sh "mvn --version"
-				br, err := exutil.StartBuildAndWait(oc, "nodejs-sample-pipeline")
-				if err != nil || !br.BuildSuccess {
-					debugAnyJenkinsFailure(br, oc.Namespace()+"-nodejs-sample-pipeline", oc, true)
-					exutil.DumpBuilds(oc)
-				}
-				br.AssertSuccess()
-
-				g.By("getting job log, make sure has success message")
-				out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
-				o.Expect(err).NotTo(o.HaveOccurred())
-				g.By("making sure job log ran with our nodejs pod template")
-				o.Expect(out).To(o.ContainSubstring("Running on nodejs"))
-
-				g.By("clean up openshift resources for next potential run")
-				err = oc.Run("delete").Args("bc", "--all").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("is", "--all").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("dc,svc", "mongodb", "--ignore-not-found").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("dc,svc,secret,route", "nodejs-mongodb-example", "--ignore-not-found").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-			})
-
-			g.By("Pipeline with env vars")
-
-			g.By("should build and complete successfully", func() {
-				// instantiate the bc
-				g.By(fmt.Sprintf("calling oc new-app -f %q", envVarsPipelinePath))
-				err := oc.Run("new-app").Args("-f", envVarsPipelinePath).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				// start the build
-				g.By("starting the pipeline build, including env var, and waiting for it to complete")
-				br, err := exutil.StartBuildAndWait(oc, "-e", "FOO2=BAR2", "sample-pipeline-withenvs")
-				if err != nil || !br.BuildSuccess {
-					debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-withenvs", oc, true)
-					exutil.DumpBuilds(oc)
-				}
-				br.AssertSuccess()
-
-				g.By("confirm all the log annotations are there")
-				_, err = jenkins.ProcessLogURLAnnotations(oc, br)
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("get build console logs and see if succeeded")
-				out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
-				if err != nil {
-					exutil.DumpApplicationPodLogs("jenkins", oc)
-					exutil.DumpBuilds(oc)
-				}
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("and see if env is set")
-				if !strings.Contains(out, "FOO2 is BAR2") {
-					exutil.DumpApplicationPodLogs("jenkins", oc)
-					exutil.DumpBuilds(oc)
-					o.Expect(out).To(o.ContainSubstring("FOO2 is BAR2"))
-				}
-
-				// start the nextbuild
-				g.By("starting the pipeline build and waiting for it to complete")
-				br, err = exutil.StartBuildAndWait(oc, "sample-pipeline-withenvs")
-				if err != nil || !br.BuildSuccess {
-					debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-withenvs", oc, true)
-					exutil.DumpApplicationPodLogs("jenkins", oc)
-					exutil.DumpBuilds(oc)
-				}
-				br.AssertSuccess()
-
-				g.By("get build console logs and see if succeeded")
-				out, err = j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
-				if err != nil {
-					exutil.DumpApplicationPodLogs("jenkins", oc)
-					exutil.DumpBuilds(oc)
-				}
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("and see if env FOO1 is set")
-				if !strings.Contains(out, "FOO1 is BAR1") {
-					exutil.DumpApplicationPodLogs("jenkins", oc)
-					exutil.DumpBuilds(oc)
-					o.Expect(out).To(o.ContainSubstring("FOO1 is BAR1"))
-				}
-
-				g.By("and see if env FOO2 is still not set")
-				if !strings.Contains(out, "FOO2 is null") {
-					exutil.DumpApplicationPodLogs("jenkins", oc)
-					exutil.DumpBuilds(oc)
-					o.Expect(out).To(o.ContainSubstring("FOO2 is null"))
-				}
-
-				g.By("clean up openshift resources for next potential run")
-				err = oc.Run("delete").Args("bc", "sample-pipeline-withenvs").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-			})
-
-			g.By("delete jenkins job runs when the associated build is deleted")
-
-			g.By("should prune pipeline builds based on the buildConfig settings", func() {
-
-				g.By("creating successful test pipeline")
-				err := oc.Run("create").Args("-f", successfulPipeline).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("starting four test builds")
-				// builds only do sh 'exit 0'
-				for i := 0; i < 4; i++ {
-					br, _ := exutil.StartBuildAndWait(oc, "successful-pipeline")
+					g.By("starting the pipeline build and waiting for it to complete")
+					// this just does sh "mvn --version"
+					br, err := exutil.StartBuildAndWait(oc, "nodejs-sample-pipeline")
+					if err != nil || !br.BuildSuccess {
+						debugAnyJenkinsFailure(br, oc.Namespace()+"-nodejs-sample-pipeline", oc, true)
+						exutil.DumpBuilds(oc)
+					}
 					br.AssertSuccess()
-				}
 
-				buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "successful-pipeline", metav1.GetOptions{})
-				if err != nil {
-					fmt.Fprintf(g.GinkgoWriter, "%v", err)
-				}
+					g.By("getting job log, make sure has success message")
+					out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
+					o.Expect(err).NotTo(o.HaveOccurred())
+					g.By("making sure job log ran with our nodejs pod template")
+					o.Expect(out).To(o.ContainSubstring("Running on nodejs"))
 
-				var builds *buildv1.BuildList
+					g.By("clean up openshift resources for next potential run")
+					err = oc.Run("delete").Args("bc", "--all").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.Run("delete").Args("is", "--all").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.Run("delete").Args("dc,svc", "mongodb", "--ignore-not-found").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.Run("delete").Args("dc,svc,secret,route", "nodejs-mongodb-example", "--ignore-not-found").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("waiting up to one minute for pruning to complete")
-				err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{LabelSelector: BuildConfigSelector("successful-pipeline").String()})
-					if err != nil {
-						fmt.Fprintf(g.GinkgoWriter, "%v", err)
-						return false, err
-					}
-					if int32(len(builds.Items)) == *buildConfig.Spec.SuccessfulBuildsHistoryLimit {
-						fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
-						return true, nil
-					}
-					return false, nil
 				})
 
-				if err != nil {
-					fmt.Fprintf(g.GinkgoWriter, "%v", err)
-				}
+				g.By("Pipeline with env vars")
 
-				passed := false
-				if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
-					passed = true
-				}
-				o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
+				g.By("should build and complete successfully", func() {
+					// instantiate the bc
+					g.By(fmt.Sprintf("calling oc new-app -f %q", envVarsPipelinePath))
+					err := oc.Run("new-app").Args("-f", envVarsPipelinePath).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("creating failed test pipeline")
-				err = oc.Run("create").Args("-f", failedPipeline).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
+					// start the build
+					g.By("starting the pipeline build, including env var, and waiting for it to complete")
+					br, err := exutil.StartBuildAndWait(oc, "-e", "FOO2=BAR2", "sample-pipeline-withenvs")
+					if err != nil || !br.BuildSuccess {
+						debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-withenvs", oc, true)
+						exutil.DumpBuilds(oc)
+					}
+					br.AssertSuccess()
 
-				g.By("starting four test builds")
-				for i := 0; i < 4; i++ {
-					br, _ := exutil.StartBuildAndWait(oc, "failed-pipeline")
-					br.AssertFailure()
-				}
+					g.By("confirm all the log annotations are there")
+					_, err = jenkins.ProcessLogURLAnnotations(oc, br)
+					o.Expect(err).NotTo(o.HaveOccurred())
 
-				buildConfig, err = oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "failed-pipeline", metav1.GetOptions{})
-				if err != nil {
-					fmt.Fprintf(g.GinkgoWriter, "%v", err)
-				}
-
-				g.By("waiting up to one minute for pruning to complete")
-				err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{LabelSelector: BuildConfigSelector("successful-pipeline").String()})
+					g.By("get build console logs and see if succeeded")
+					out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
 					if err != nil {
-						fmt.Fprintf(g.GinkgoWriter, "%v", err)
-						return false, err
+						exutil.DumpApplicationPodLogs("jenkins", oc)
+						exutil.DumpBuilds(oc)
 					}
-					if int32(len(builds.Items)) == *buildConfig.Spec.FailedBuildsHistoryLimit {
-						fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
-						return true, nil
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("and see if env is set")
+					if !strings.Contains(out, "FOO2 is BAR2") {
+						exutil.DumpApplicationPodLogs("jenkins", oc)
+						exutil.DumpBuilds(oc)
+						o.Expect(out).To(o.ContainSubstring("FOO2 is BAR2"))
 					}
-					return false, nil
+
+					// start the nextbuild
+					g.By("starting the pipeline build and waiting for it to complete")
+					br, err = exutil.StartBuildAndWait(oc, "sample-pipeline-withenvs")
+					if err != nil || !br.BuildSuccess {
+						debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-withenvs", oc, true)
+						exutil.DumpApplicationPodLogs("jenkins", oc)
+						exutil.DumpBuilds(oc)
+					}
+					br.AssertSuccess()
+
+					g.By("get build console logs and see if succeeded")
+					out, err = j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
+					if err != nil {
+						exutil.DumpApplicationPodLogs("jenkins", oc)
+						exutil.DumpBuilds(oc)
+					}
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("and see if env FOO1 is set")
+					if !strings.Contains(out, "FOO1 is BAR1") {
+						exutil.DumpApplicationPodLogs("jenkins", oc)
+						exutil.DumpBuilds(oc)
+						o.Expect(out).To(o.ContainSubstring("FOO1 is BAR1"))
+					}
+
+					g.By("and see if env FOO2 is still not set")
+					if !strings.Contains(out, "FOO2 is null") {
+						exutil.DumpApplicationPodLogs("jenkins", oc)
+						exutil.DumpBuilds(oc)
+						o.Expect(out).To(o.ContainSubstring("FOO2 is null"))
+					}
+
+					g.By("clean up openshift resources for next potential run")
+					err = oc.Run("delete").Args("bc", "sample-pipeline-withenvs").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
 				})
 
-				if err != nil {
-					fmt.Fprintf(g.GinkgoWriter, "%v", err)
-				}
+				g.By("delete jenkins job runs when the associated build is deleted")
 
-				passed = false
-				if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
-					passed = true
-				}
-				o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
+				g.By("should prune pipeline builds based on the buildConfig settings", func() {
 
-				g.By("clean up openshift resources for next potential run")
-				err = oc.Run("delete").Args("bc", "successful-pipeline").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("bc", "failed-pipeline").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
+					g.By("creating successful test pipeline")
+					err := oc.Run("create").Args("-f", successfulPipeline).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("starting four test builds")
+					// builds only do sh 'exit 0'
+					for i := 0; i < 4; i++ {
+						br, _ := exutil.StartBuildAndWait(oc, "successful-pipeline")
+						br.AssertSuccess()
+					}
+
+					buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "successful-pipeline", metav1.GetOptions{})
+					if err != nil {
+						fmt.Fprintf(g.GinkgoWriter, "%v", err)
+					}
+
+					var builds *buildv1.BuildList
+
+					g.By("waiting up to one minute for pruning to complete")
+					err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
+						builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{LabelSelector: BuildConfigSelector("successful-pipeline").String()})
+						if err != nil {
+							fmt.Fprintf(g.GinkgoWriter, "%v", err)
+							return false, err
+						}
+						if int32(len(builds.Items)) == *buildConfig.Spec.SuccessfulBuildsHistoryLimit {
+							fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
+							return true, nil
+						}
+						return false, nil
+					})
+
+					if err != nil {
+						fmt.Fprintf(g.GinkgoWriter, "%v", err)
+					}
+
+					passed := false
+					if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
+						passed = true
+					}
+					o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
+
+					g.By("creating failed test pipeline")
+					err = oc.Run("create").Args("-f", failedPipeline).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("starting four test builds")
+					for i := 0; i < 4; i++ {
+						br, _ := exutil.StartBuildAndWait(oc, "failed-pipeline")
+						br.AssertFailure()
+					}
+
+					buildConfig, err = oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "failed-pipeline", metav1.GetOptions{})
+					if err != nil {
+						fmt.Fprintf(g.GinkgoWriter, "%v", err)
+					}
+
+					g.By("waiting up to one minute for pruning to complete")
+					err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
+						builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{LabelSelector: BuildConfigSelector("successful-pipeline").String()})
+						if err != nil {
+							fmt.Fprintf(g.GinkgoWriter, "%v", err)
+							return false, err
+						}
+						if int32(len(builds.Items)) == *buildConfig.Spec.FailedBuildsHistoryLimit {
+							fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
+							return true, nil
+						}
+						return false, nil
+					})
+
+					if err != nil {
+						fmt.Fprintf(g.GinkgoWriter, "%v", err)
+					}
+
+					passed = false
+					if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
+						passed = true
+					}
+					o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
+
+					g.By("clean up openshift resources for next potential run")
+					err = oc.Run("delete").Args("bc", "successful-pipeline").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.Run("delete").Args("bc", "failed-pipeline").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+				})
 
 			})
 

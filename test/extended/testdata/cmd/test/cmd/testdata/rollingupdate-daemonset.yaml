@@ -27,4 +27,5 @@ spec:
               namespaces: []
       containers:
       - name: kubernetes-pause
-        image: gcr.io/google-containers/pause:2.0
+        image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+        command: ["/bin/sleep", "84600"]

@@ -68,9 +68,9 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			}()
 
 			ns := oc.KubeFramework().Namespace.Name
-			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
-				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
 
 			g.By(fmt.Sprintf("creating an http echo server from a config file %q", configPath))
@@ -98,17 +98,17 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 
 			g.By("waiting for the healthz endpoint to respond")
 			healthzURI := fmt.Sprintf("http://%s:1936/healthz", metricsIP)
-			err = waitForRouterOKResponseExec(ns, execPodName, healthzURI, metricsIP, changeTimeoutSeconds)
+			err = waitForRouterOKResponseExec(ns, execPod.Name, healthzURI, metricsIP, changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			host := "router-headers.example.com"
 			g.By(fmt.Sprintf("waiting for the route to become active"))
-			err = waitForRouterOKResponseExec(ns, execPodName, routerURL, host, changeTimeoutSeconds)
+			err = waitForRouterOKResponseExec(ns, execPod.Name, routerURL, host, changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("making a request and reading back the echoed headers"))
 			var payload string
-			payload, err = getRoutePayloadExec(ns, execPodName, routerURL, host)
+			payload, err = getRoutePayloadExec(ns, execPod.Name, routerURL, host)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// The trailing \n is being stripped, so add it back

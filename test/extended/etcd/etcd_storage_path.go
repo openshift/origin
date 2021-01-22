@@ -73,7 +73,7 @@ var OpenshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 
 	// github.com/openshift/api/apps/v1
 	gvr("apps.openshift.io", "v1", "deploymentconfigs"): {
-		Stub:             `{"metadata": {"name": "dc1g"}, "spec": {"selector": {"d": "c"}, "template": {"metadata": {"labels": {"d": "c"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container2"}]}}}}`,
+		Stub:             `{"metadata": {"name": "dc1g"}, "spec": {"selector": {"d": "c"}, "template": {"metadata": {"labels": {"d": "c"}}, "spec": {"containers": [{"image": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest", "name": "container2"}]}}}}`,
 		ExpectedEtcdPath: "openshift.io/deploymentconfigs/etcdstoragepathtestnamespace/dc1g",
 	},
 	// --
@@ -84,7 +84,7 @@ var OpenshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 		ExpectedEtcdPath: "openshift.io/imagestreams/etcdstoragepathtestnamespace/is1g",
 	},
 	gvr("image.openshift.io", "v1", "images"): {
-		Stub:             `{"dockerImageReference": "fedora:latest", "metadata": {"name": "image1g"}}`,
+		Stub:             `{"dockerImageReference": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest", "metadata": {"name": "image1g"}}`,
 		ExpectedEtcdPath: "openshift.io/images/image1g",
 	},
 	// --
@@ -140,7 +140,7 @@ var OpenshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 
 	// github.com/openshift/api/route/v1
 	gvr("route.openshift.io", "v1", "routes"): {
-		Stub:             `{"metadata": {"name": "route1g"}, "spec": {"host": "hostname1", "to": {"name": "service1"}}}`,
+		Stub:             `{"metadata": {"name": "route1g"}, "spec": {"host": "hostname1.com", "to": {"name": "service1"}}}`,
 		ExpectedEtcdPath: "openshift.io/routes/etcdstoragepathtestnamespace/route1g",
 	},
 	// --
@@ -288,21 +288,21 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		gvr("rbac.authorization.k8s.io", "v1alpha1", "rolebindings"),
 		gvr("rbac.authorization.k8s.io", "v1alpha1", "roles"),
 		gvr("scheduling.k8s.io", "v1alpha1", "priorityclasses"),
-		gvr("settings.k8s.io", "v1alpha1", "podpresets"),
 		gvr("storage.k8s.io", "v1alpha1", "volumeattachments"),
+		gvr("internal.apiserver.k8s.io", "v1alpha1", "storageversions"),
 	)
 
-	// Apply output of git diff origin/release-1.19 origin/release-1.20 test/integration/etcd/data.go. This is needed
+	// Apply output of git diff origin/release-1.20 origin/release-1.21 test/integration/etcd/data.go. This is needed
 	// to apply the right data depending on the kube version of the running server. Replace this with the next current
 	// and rebase version next time. Don't pile them up.
-	if strings.HasPrefix(version.Minor, "20") {
+	if strings.HasPrefix(version.Minor, "21") {
 		namespace := "etcdstoragepathtestnamespace"
 		_ = namespace
 
 		// Added etcd data.
-		for k, a := range map[schema.GroupVersionResource]etcddata.StorageData{
-			// TODO: fill when 1.20 rebase has started
-		} {
+		for k, a := range map[schema.GroupVersionResource]etcddata.StorageData{} {
+			// TODO: fill when 1.21 rebase has started
+
 			if _, preexisting := etcdStorageData[k]; preexisting {
 				t.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)
 			}
@@ -310,18 +310,15 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		}
 
 		// Modified etcd data.
-		//
-		// TODO: fill when 1.20 rebase has started
+		// TODO: fill when 1.21 rebase has started
 
 		// Removed etcd data.
-		removeStorageData(t, etcdStorageData) // TODO: fill when 1.20 rebase has started
+		// TODO: fill when 1.21 rebase has started
+		removeStorageData(t, etcdStorageData)
 
 	} else {
 		// Remove 1.19 only alpha versions
 		removeStorageData(t, etcdStorageData) // these alphas resources are not enabled in a real cluster but worked fine in the integration test
-		//
-		// TODO: fill when 1.20 rebase has started
-
 	}
 
 	// flowcontrol may or may not be on.  This allows us to ratchet in turning it on.

@@ -8,6 +8,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 var _ = g.Describe("[sig-builds][Feature:Builds] verify /run filesystem contents", func() {
@@ -34,7 +35,7 @@ spec:
           value: "10"
       imageOptimizationPolicy: SkipLayers
     type: Docker
-`, "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest")  // replace with image.ShellImage()) when github.com/openshift/origin/test/extended/util/image lands in this release
+`, image.ShellImage())
 		testVerifyRunFSContentsBuildConfigYaml = fmt.Sprintf(`
 apiVersion: build.openshift.io/v1
 kind: BuildConfig
@@ -55,7 +56,7 @@ spec:
           value: "10"
       imageOptimizationPolicy: SkipLayers
     type: Docker
-`, "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest")  // replace with image.ShellImage()) when github.com/openshift/origin/test/extended/util/image lands in this release
+`, image.ShellImage())
 		lsRSlashRun = `
 /run:
 lock

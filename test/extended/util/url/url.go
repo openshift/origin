@@ -15,13 +15,15 @@ import (
 
 	o "github.com/onsi/gomega"
 
-	exutil "github.com/openshift/origin/test/extended/util"
 	v1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kclientset "k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 type Tester struct {
@@ -135,7 +137,7 @@ func (ut *Tester) Within(t time.Duration, tests ...*Test) {
 	o.Expect(err).ToNot(o.HaveOccurred())
 }
 
-// createExecPod creates a simple pod in a sleep loop used as a
+// createExecPod creates a simple bash pod in a sleep loop used as a
 // vessel for kubectl exec commands.
 // Returns the name of the created pod.
 func createExecPod(clientset kclientset.Interface, ns, name string) (string, error) {
@@ -151,7 +153,7 @@ func createExecPod(clientset kclientset.Interface, ns, name string) (string, err
 				{
 					Command:         []string{"/bin/bash", "-c", "exec sleep 10000"},
 					Name:            "hostexec",
-					Image:           "registry.redhat.io/rhel7:latest",
+					Image:           image.ShellImage(),
 					ImagePullPolicy: v1.PullIfNotPresent,
 				},
 			},
@@ -181,7 +183,7 @@ func testsToScript(tests []*Test) string {
 	testScripts := []string{
 		"set -euo pipefail",
 		`function json_escape() {`,
-		`  python -c 'import json,sys; print json.dumps(sys.stdin.read())'`,
+		`  python -c 'import json,sys; print(json.dumps(sys.stdin.read()))'`,
 		`}`,
 	}
 	for i, test := range tests {

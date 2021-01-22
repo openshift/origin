@@ -55,9 +55,9 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 		g.It("should serve the correct routes when running with the haproxy config manager", func() {
 			g.Skip("TODO: This test is flaking, fix it")
 			ns := oc.KubeFramework().Namespace.Name
-			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
-				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
 
 			g.By(fmt.Sprintf("creating a router with haproxy config manager from a config file %q", configPath))
@@ -78,15 +78,15 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 
 			g.By("waiting for the healthz endpoint to respond")
 			healthzURI := fmt.Sprintf("http://%s:1936/healthz", routerIP)
-			err = waitForRouterOKResponseExec(ns, execPodName, healthzURI, routerIP, timeoutSeconds)
+			err = waitForRouterOKResponseExec(ns, execPod.Name, healthzURI, routerIP, timeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the valid routes to respond")
-			err = waitForRouteToRespond(ns, execPodName, "http", "insecure.hapcm.test", "/", routerIP, 0)
+			err = waitForRouteToRespond(ns, execPod.Name, "http", "insecure.hapcm.test", "/", routerIP, 0)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			for _, host := range []string{"edge.allow.hapcm.test", "reencrypt.hapcm.test", "passthrough.hapcm.test"} {
-				err = waitForRouteToRespond(ns, execPodName, "https", host, "/", routerIP, 0)
+				err = waitForRouteToRespond(ns, execPod.Name, "https", host, "/", routerIP, 0)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 
@@ -97,7 +97,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 				err := oc.AsAdmin().Run("expose").Args("service", "insecure-service", "--name", name, "--hostname", hostName, "--labels", "select=haproxy-cfgmgr").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				err = waitForRouteToRespond(ns, execPodName, "http", hostName, "/", routerIP, 0)
+				err = waitForRouteToRespond(ns, execPod.Name, "http", hostName, "/", routerIP, 0)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				err = oc.AsAdmin().Run("delete").Args("route", name).Execute()
@@ -117,7 +117,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 					err = oc.AsAdmin().Run("label").Args("route", name, "select=haproxy-cfgmgr").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 
-					err = waitForRouteToRespond(ns, execPodName, "https", hostName, "/", routerIP, 0)
+					err = waitForRouteToRespond(ns, execPod.Name, "https", hostName, "/", routerIP, 0)
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					err = oc.AsAdmin().Run("delete").Args("route", name).Execute()

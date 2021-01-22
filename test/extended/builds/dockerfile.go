@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/library-go/pkg/image/imageutil"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 var _ = g.Describe("[sig-builds][Feature:Builds][Slow] build can have Dockerfile input", func() {
@@ -20,10 +21,10 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] build can have Dockerfile
 	var (
 		oc             = exutil.NewCLI("build-dockerfile-env")
 		dockerfileAdd  = exutil.FixturePath("testdata", "builds", "docker-add")
-		testDockerfile = `
-FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+		testDockerfile = fmt.Sprintf(`
+FROM %s
 USER 1001
-`
+`, image.ShellImage())
 		testDockerfile2 = `
 FROM image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7
 USER 1001

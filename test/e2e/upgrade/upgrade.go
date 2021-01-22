@@ -31,13 +31,18 @@ import (
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
+	"github.com/openshift/origin/test/extended/util/disruption/imageregistry"
+	"github.com/openshift/origin/test/extended/util/operator"
 )
 
 func AllTests() []upgrades.Test {
 	return []upgrades.Test{
-		controlplane.NewKubeAvailableTest(),
-		controlplane.NewOpenShiftAvailableTest(),
-		controlplane.NewOAuthAvailableTest(),
+		controlplane.NewKubeAvailableWithNewConnectionsTest(),
+		controlplane.NewOpenShiftAvailableNewConnectionsTest(),
+		controlplane.NewOAuthAvailableNewConnectionsTest(),
+		controlplane.NewKubeAvailableWithConnectionReuseTest(),
+		controlplane.NewOpenShiftAvailableWithConnectionReuseTest(),
+		controlplane.NewOAuthAvailableWithConnectionReuseTest(),
 		&alert.UpgradeTest{},
 		&frontends.AvailableTest{},
 		&service.UpgradeTest{},
@@ -48,6 +53,7 @@ func AllTests() []upgrades.Test {
 		&apps.JobUpgradeTest{},
 		&upgrades.ConfigMapUpgradeTest{},
 		&apps.DaemonSetUpgradeTest{},
+		&imageregistry.AvailableTest{},
 	}
 }
 
@@ -428,6 +434,19 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 				return fmt.Errorf("Pools did not complete upgrade: %v", err)
 			}
 			framework.Logf("All pools completed upgrade")
+			return nil
+		},
+	); err != nil {
+		return err
+	}
+
+	if err := disruption.RecordJUnit(
+		f,
+		"[sig-cluster-lifecycle] ClusterOperators are available and not degraded after upgrade",
+		func() error {
+			if err := operator.WaitForOperatorsToSettle(context.TODO(), c); err != nil {
+				return err
+			}
 			return nil
 		},
 	); err != nil {

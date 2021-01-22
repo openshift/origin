@@ -15,7 +15,7 @@ items:
         <containers>
           <org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
             <name>jnlp</name>
-            <image>openshift/jenkins-slave-maven-centos7</image>
+            <image>image-registry.openshift-image-registry.svc:5000/openshift/jenkins-agent-maven:latest</image>
             <privileged>false</privileged>
             <alwaysPullImage>false</alwaysPullImage>
             <workingDir>/tmp</workingDir>

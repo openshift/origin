@@ -8,7 +8,7 @@ Origin Kubernetes
 This repo was previously the core Kubernetes tracking repo for
 [OKD](https://github.com/openshift/okd), and where OpenShift's
 `hyperkube` and `openshift-test` binaries were maintained. As of July
-2020, the purpose and maintenance stratety of the repo varies by
+2020, the purpose and maintenance strategy of the repo varies by
 branch.
 
 ## Maintenance of `master` and `release-x.x` branches for 4.6 and above

@@ -275,6 +275,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [k8s.io] [sig-node] Pods Extended [k8s.io] Pod Container Status should never report success for a pending container": "should never report success for a pending container [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
+	"[Top Level] [k8s.io] [sig-node] Pods Extended [k8s.io] Pod Container lifecycle should not create extra sandbox if all containers are done": "should not create extra sandbox if all containers are done [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
 	"[Top Level] [k8s.io] [sig-node] Pods Extended [k8s.io] Pods Set QOS Class should be set on Pods with matching resource requests and limits for memory and cpu [Conformance]": "should be set on Pods with matching resource requests and limits for memory and cpu [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [k8s.io] [sig-node] PreStop graceful pod terminated should wait until preStop hook completes the process [Flaky]": "graceful pod terminated should wait until preStop hook completes the process [Flaky] [Suite:k8s]",
@@ -535,13 +537,15 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and stop sending requests": "API LBs follow /readyz of kube-apiserver and stop sending requests [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] kube-apiserver terminates within graceful termination period": "kube-apiserver terminates within graceful termination period [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] kube-apiserver terminates within graceful termination period": "kube-apiserver terminates within graceful termination period [Skipped:Disruptive] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] kubelet terminates kube-apiserver gracefully": "kubelet terminates kube-apiserver gracefully [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] kubelet terminates kube-apiserver gracefully": "kubelet terminates kube-apiserver gracefully [Skipped:Disruptive] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-api-machinery][Feature:Audit] Basic audit should audit API calls": "should audit API calls [Disabled:SpecialConfig]",
 
 	"[Top Level] [sig-api-machinery][Feature:ClusterResourceQuota] Cluster resource quota should control resource limits across namespaces": "should control resource limits across namespaces [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-api-machinery][Feature:ResourceQuota] Object count should properly count the number of imagestreams resources": "should properly count the number of imagestreams resources [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for apps.openshift.io/v1, Resource=deploymentconfigs": "should work for apps.openshift.io/v1, Resource=deploymentconfigs [Suite:openshift/conformance/parallel]",
 
@@ -825,6 +829,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch] Managed cluster should should expose cluster services outside the cluster": "should expose cluster services outside the cluster [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-arch] [Conformance] FIPS TestFIPS": "TestFIPS [Suite:openshift/conformance/parallel/minimal]",
+
 	"[Top Level] [sig-arch] ocp payload should be based on existing source [Serial] olm version should contain the source commit id": "[Serial] olm version should contain the source commit id [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-arch][Early] Managed cluster should start all core operators": "start all core operators [Suite:openshift/conformance/parallel]",
@@ -993,6 +999,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestAllowedSCCViaRBAC": "TestAllowedSCCViaRBAC [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestPodDefaultCapabilities": "TestPodDefaultCapabilities [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestPodUpdateSCCEnforcement": "TestPodUpdateSCCEnforcement [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-auth][Feature:UserAPI] groups should work": "groups should work [Suite:openshift/conformance/parallel]",
@@ -1095,7 +1103,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-autoscaling] [HPA] Horizontal pod autoscaling (scale resource: Custom Metrics from Stackdriver) should scale up with two metrics of type Pod from Stackdriver [Feature:CustomMetricsAutoscaling]": "should scale up with two metrics of type Pod from Stackdriver [Feature:CustomMetricsAutoscaling] [Skipped:gce] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-builds][Feature:Builds] Multi-stage image builds  should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] Multi-stage image builds should succeed": "should succeed [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-builds][Feature:Builds] Optimized image builds  should succeed": "should succeed [Suite:openshift/conformance/parallel]",
 
@@ -1110,6 +1118,8 @@ var annotations = map[string]string{
 	"[Top Level] [sig-builds][Feature:Builds] build without output image  building from templates should create an image from a docker template without an output image reference defined": "should create an image from a docker template without an output image reference defined [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-builds][Feature:Builds] buildconfig secret injector  should inject secrets to the appropriate buildconfigs": "should inject secrets to the appropriate buildconfigs [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-builds][Feature:Builds] clone repository using git:// protocol  should clone using git:// if no proxy is configured": "should clone using git:// if no proxy is configured [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-builds][Feature:Builds] custom build with buildah  being created from new-build should complete build with custom builder image": "should complete build with custom builder image [Suite:openshift/conformance/parallel]",
 
@@ -1319,9 +1329,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-builds][Feature:Builds][pullsecret] docker build using a pull secret  Building from a template should create a docker build that pulls using a secret run it": "should create a docker build that pulls using a secret run it [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slow] openshift pipeline build Sync plugin tests using the ephemeral template": "using the ephemeral template",
+	"[Top Level] [sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slow] openshift pipeline build  Sync plugin tests using the ephemeral template": "using the ephemeral template",
 
-	"[Top Level] [sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slow] openshift pipeline build jenkins-client-plugin tests using the ephemeral template": "using the ephemeral template",
+	"[Top Level] [sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slow] openshift pipeline build  jenkins-client-plugin tests using the ephemeral template": "using the ephemeral template",
 
 	"[Top Level] [sig-builds][Feature:Builds][timing] capture build stages and durations  should record build stages and durations for docker": "should record build stages and durations for docker [Suite:openshift/conformance/parallel]",
 
@@ -1443,25 +1453,53 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] Kubectl client Update Demo should scale a replication controller  [Conformance]": "should scale a replication controller  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
+	"[Top Level] [sig-cli] oc --request-timeout works as expected": "works as expected [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc adm build-chain": "build-chain [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc adm cluster-role-reapers": "cluster-role-reapers [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc adm groups": "groups [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc adm images": "images [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc adm must-gather runs successfully for audit logs": "runs successfully for audit logs [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc adm must-gather runs successfully with options": "runs successfully with options [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc adm must-gather runs successfully": "runs successfully [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc adm oc adm node-logs --boot=0": "oc adm node-logs --boot=0 [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm new-project": "new-project [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc adm oc adm node-logs --role=master --since=-2m": "oc adm node-logs --role=master --since=-2m [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm node-logs": "node-logs [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc adm oc adm node-logs --since=-2m --until=-1m": "oc adm node-logs --since=-2m --until=-1m [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm policy": "policy [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc adm oc adm node-logs --since=<explicit-date> --until=-1m": "oc adm node-logs --since=<explicit-date> --until=-1m [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm role-reapers": "role-reapers [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc adm oc adm node-logs --tail=5": "oc adm node-logs --tail=5 [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm role-selectors": "role-selectors [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc adm oc adm node-logs --unit=kubelet --since=-1m": "oc adm node-logs --unit=kubelet --since=-1m [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm serviceaccounts": "serviceaccounts [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc adm oc adm node-logs": "oc adm node-logs [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm storage-admin": "storage-admin [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc adm ui-project-commands": "ui-project-commands [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc adm user-creation": "user-creation [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc adm who-can": "who-can [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc debug deployment configs from a build": "deployment configs from a build [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc debug dissect deployment config debug": "dissect deployment config debug [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc debug does not require a real resource on the server": "does not require a real resource on the server [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc debug ensure debug does not depend on a container actually existing for the selected resource": "ensure debug does not depend on a container actually existing for the selected resource [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc debug ensure it works with image streams": "ensure it works with image streams [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc explain list uncovered GroupVersionResources": "list uncovered GroupVersionResources [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc explain networking types when using openshift-sdn should contain proper fields description for special networking types": "should contain proper fields description for special networking types [Suite:openshift/conformance/parallel]",
 
@@ -1470,6 +1508,8 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli] oc explain should contain proper spec+status for CRDs": "should contain proper spec+status for CRDs [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc explain should contain spec+status for builtinTypes": "should contain spec+status for builtinTypes [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc observe works as expected": "works as expected [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc rsh rsh specific flags should work well when access to a remote shell": "should work well when access to a remote shell [Suite:openshift/conformance/parallel]",
 
@@ -1489,11 +1529,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/config.sh": "test/cmd/config.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/convert.sh": "test/cmd/convert.sh",
-
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/create.sh": "test/cmd/create.sh",
-
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/debug.sh": "test/cmd/debug.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/deployments.sh": "test/cmd/deployments.sh",
 
@@ -1515,10 +1551,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/images.sh": "test/cmd/images.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/observe.sh": "test/cmd/observe.sh",
-
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/policy-storage-admin.sh": "test/cmd/policy-storage-admin.sh",
-
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/printer.sh": "test/cmd/printer.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/projects.sh": "test/cmd/projects.sh",
@@ -1526,8 +1558,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/quota.sh": "test/cmd/quota.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/routes.sh": "test/cmd/routes.sh",
-
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/rsync.sh": "test/cmd/rsync.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/run.sh": "test/cmd/run.sh",
 
@@ -1548,8 +1578,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/status.sh": "test/cmd/status.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/templates.sh": "test/cmd/templates.sh",
-
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/timeout.sh": "test/cmd/timeout.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/triggers.sh": "test/cmd/triggers.sh",
 
@@ -1577,19 +1605,11 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods using a watch should watch for changes and rsync them": "should watch for changes and rsync them",
 
-	"[Top Level] [sig-cli][Slow] oc debug should print the container image-based container entrypoint/command": "should print the container image-based container entrypoint/command",
-
-	"[Top Level] [sig-cli][Slow] oc debug should print the imagestream-based container entrypoint/command": "should print the imagestream-based container entrypoint/command",
-
-	"[Top Level] [sig-cli][Slow] oc debug should print the overridden container image-based container entrypoint/command": "should print the overridden container image-based container entrypoint/command",
-
-	"[Top Level] [sig-cli][Slow] oc debug should print the overridden imagestream-based container entrypoint/command": "should print the overridden imagestream-based container entrypoint/command",
-
 	"[Top Level] [sig-cluster-lifecycle] CSRs from machines that are not recognized by the cloud provider are not approved": "CSRs from machines that are not recognized by the cloud provider are not approved [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cluster-lifecycle] Pods cannot access the /config/master API endpoint": "Pods cannot access the /config/master API endpoint [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive] [Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks": "[Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks [Serial]",
+	"[Top Level] [sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive] [Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks": "[Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks [Serial] [Skipped:Disruptive]",
 
 	"[Top Level] [sig-cluster-lifecycle][Feature:Machines] Managed cluster should have machine resources": "have machine resources [Suite:openshift/conformance/parallel]",
 
@@ -1637,6 +1657,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/ruby-27-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/ruby-27-rhel7\" should be SCL enabled",
 
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][nodejs] test nodejs images with nodejs-rest-http-crud db repo  Building nodejs-postgresql app from new-app should build a nodejs-postgresql image and run it in a pod": "should build a nodejs-postgresql image and run it in a pod",
+
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][php] test php images with cakephp-ex db repo  Building cakephp-mysql app from new-app should build a cakephp-mysql image and run it in a pod": "should build a cakephp-mysql image and run it in a pod",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][python] test python images with django-ex db repo  Building django-psql app from new-app should build a django-psql image and run it in a pod": "should build a django-psql image and run it in a pod",
@@ -1655,11 +1677,11 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][ruby][Slow] hot deploy for openshift ruby image  Rails example should work with hot deploy": "should work with hot deploy",
 
-	"[Top Level] [sig-devex][Feature:JenkinsRHELImagesOnly][Slow] openshift pipeline build Sync plugin tests using the ephemeral template": "using the ephemeral template",
+	"[Top Level] [sig-devex][Feature:JenkinsRHELImagesOnly][Slow] openshift pipeline build  Sync plugin tests using the ephemeral template": "using the ephemeral template",
 
-	"[Top Level] [sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshift using slow openshift pipeline build Sync plugin tests using the ephemeral template": "using the ephemeral template",
+	"[Top Level] [sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshift using slow openshift pipeline build  Sync plugin tests using the ephemeral template": "using the ephemeral template",
 
-	"[Top Level] [sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshift using slow openshift pipeline build Sync plugin tests using the persistent template": "using the persistent template",
+	"[Top Level] [sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshift using slow openshift pipeline build  Sync plugin tests using the persistent template": "using the persistent template",
 
 	"[Top Level] [sig-devex][Feature:OpenShiftControllerManager] TestAutomaticCreationOfPullSecrets": "TestAutomaticCreationOfPullSecrets [Suite:openshift/conformance/parallel]",
 
@@ -1693,11 +1715,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-devex][Feature:Templates] templateservicebroker security test  should pass security tests": "should pass security tests [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-etcd] etcd leader changes are not excessive": "leader changes are not excessive [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-etcd] etcd leader changes are not excessive [Late]": "leader changes are not excessive [Late] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-etcd][Feature:DisasterRecovery][Disruptive] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss": "[Feature:EtcdRecovery] Cluster should restore itself after quorum loss [Serial]",
-
-	"[Top Level] [sig-etcd][Feature:DisasterRecovery][Disruptive] [dr-etcd-snapshot] Cluster should restore itself from etcd snapshot": "[dr-etcd-snapshot] Cluster should restore itself from etcd snapshot [Serial]",
 
 	"[Top Level] [sig-imageregistry][Feature:ImageAppend] Image append should create images by appending them": "should create images by appending them [Suite:openshift/conformance/parallel]",
 
@@ -1743,13 +1763,13 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny an import of a repository exceeding limit on openshift.io/image-tags resource": "should deny an import of a repository exceeding limit on openshift.io/image-tags resource [Disabled:SpecialConfig]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Disruptive] ImageStream API TestImportImageFromBlockedRegistry": "TestImportImageFromBlockedRegistry",
+	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API TestImportImageFromBlockedRegistry": "TestImportImageFromBlockedRegistry",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Disruptive] ImageStream API TestImportImageFromInsecureRegistry": "TestImportImageFromInsecureRegistry",
+	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API TestImportImageFromInsecureRegistry": "TestImportImageFromInsecureRegistry",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Disruptive] ImageStream API TestImportRepositoryFromBlockedRegistry": "TestImportRepositoryFromBlockedRegistry",
+	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API TestImportRepositoryFromBlockedRegistry": "TestImportRepositoryFromBlockedRegistry",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Disruptive] ImageStream API TestImportRepositoryFromInsecureRegistry": "TestImportRepositoryFromInsecureRegistry",
+	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API TestImportRepositoryFromInsecureRegistry": "TestImportRepositoryFromInsecureRegistry",
 
 	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Annotation trigger reconciles after the image is overwritten": "reconciles after the image is overwritten [Suite:openshift/conformance/parallel]",
 
@@ -1827,7 +1847,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should provide named network metrics": "should provide named network metrics [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should report telemetry if a cloud.openshift.com token is present": "should report telemetry if a cloud.openshift.com token is present [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should report telemetry if a cloud.openshift.com token is present [Late]": "should report telemetry if a cloud.openshift.com token is present [Late] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should start and expose a secured proxy and unsecured metrics": "should start and expose a secured proxy and unsecured metrics [Suite:openshift/conformance/parallel]",
 
@@ -1851,7 +1871,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation][Late] Alerts should have a Watchdog alert in firing state the entire cluster run": "should have a Watchdog alert in firing state the entire cluster run [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster": "shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster": "shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster [Skipped:Disruptive] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured": "shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Suite:openshift/conformance/parallel]",
 
@@ -1885,7 +1905,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when server pod cycles for a ClusterIP service": "should be able to preserve UDP traffic when server pod cycles for a ClusterIP service [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when server pod cycles for a NodePort service": "should be able to preserve UDP traffic when server pod cycles for a NodePort service [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when server pod cycles for a NodePort service": "should be able to preserve UDP traffic when server pod cycles for a NodePort service [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] DNS configMap federations [Feature:Federation] should be able to change federation configuration [Slow][Serial]": "should be able to change federation configuration [Slow][Serial] [Disabled:SpecialConfig] [Suite:k8s]",
 
@@ -1993,17 +2013,17 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Network should set TCP CLOSE_WAIT timeout [Privileged]": "should set TCP CLOSE_WAIT timeout [Privileged] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] NetworkPolicy [LinuxOnly] NetworkPolicy between server and client should allow egress access on one named port [Feature:NetworkPolicy]": "should allow egress access on one named port [Feature:NetworkPolicy] [Disabled:Unimplemented] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
+	"[Top Level] [sig-network] NetworkPolicy [LinuxOnly] NetworkPolicy between server and client should allow egress access on one named port [Feature:NetworkPolicy]": "should allow egress access on one named port [Feature:NetworkPolicy] [Disabled:Unimplemented] [Skipped:Network/OVNKubernetes] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
 	"[Top Level] [sig-network] NetworkPolicy [LinuxOnly] NetworkPolicy between server and client should allow egress access to server in CIDR block [Feature:NetworkPolicy]": "should allow egress access to server in CIDR block [Feature:NetworkPolicy] [Disabled:Unimplemented] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
-	"[Top Level] [sig-network] NetworkPolicy [LinuxOnly] NetworkPolicy between server and client should allow ingress access from namespace on one named port [Feature:NetworkPolicy]": "should allow ingress access from namespace on one named port [Feature:NetworkPolicy] [Disabled:Unimplemented] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
+	"[Top Level] [sig-network] NetworkPolicy [LinuxOnly] NetworkPolicy between server and client should allow ingress access from namespace on one named port [Feature:NetworkPolicy]": "should allow ingress access from namespace on one named port [Feature:NetworkPolicy] [Disabled:Unimplemented] [Skipped:Network/OVNKubernetes] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
 	"[Top Level] [sig-network] NetworkPolicy [LinuxOnly] NetworkPolicy between server and client should allow ingress access from updated namespace [Feature:NetworkPolicy]": "should allow ingress access from updated namespace [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] NetworkPolicy [LinuxOnly] NetworkPolicy between server and client should allow ingress access from updated pod [Feature:NetworkPolicy]": "should allow ingress access from updated pod [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] NetworkPolicy [LinuxOnly] NetworkPolicy between server and client should allow ingress access on one named port [Feature:NetworkPolicy]": "should allow ingress access on one named port [Feature:NetworkPolicy] [Disabled:Broken] [Disabled:Unimplemented] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
+	"[Top Level] [sig-network] NetworkPolicy [LinuxOnly] NetworkPolicy between server and client should allow ingress access on one named port [Feature:NetworkPolicy]": "should allow ingress access on one named port [Feature:NetworkPolicy] [Disabled:Broken] [Disabled:Unimplemented] [Skipped:Network/OVNKubernetes] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
 	"[Top Level] [sig-network] NetworkPolicy [LinuxOnly] NetworkPolicy between server and client should deny ingress access to updated pod [Feature:NetworkPolicy]": "should deny ingress access to updated pod [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2067,19 +2087,19 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Networking Granular Checks: Services should function for client IP based session affinity: udp [LinuxOnly]": "should function for client IP based session affinity: udp [LinuxOnly] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for endpoint-Service: http": "should function for endpoint-Service: http [Skipped:ovirt] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for endpoint-Service: http": "should function for endpoint-Service: http [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for endpoint-Service: udp": "should function for endpoint-Service: udp [Skipped:ovirt] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for endpoint-Service: udp": "should function for endpoint-Service: udp [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for node-Service: http": "should function for node-Service: http [Skipped:ovirt] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for node-Service: http": "should function for node-Service: http [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for node-Service: udp": "should function for node-Service: udp [Skipped:ovirt] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for node-Service: udp": "should function for node-Service: udp [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for pod-Service: http": "should function for pod-Service: http [Skipped:ovirt] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for pod-Service: http": "should function for pod-Service: http [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for pod-Service: sctp [Feature:SCTPConnectivity]": "should function for pod-Service: sctp [Feature:SCTPConnectivity] [Disabled:Alpha] [Skipped:ovirt] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for pod-Service: sctp [Feature:SCTPConnectivity]": "should function for pod-Service: sctp [Feature:SCTPConnectivity] [Disabled:Alpha] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for pod-Service: udp": "should function for pod-Service: udp [Skipped:ovirt] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for pod-Service: udp": "should function for pod-Service: udp [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Networking Granular Checks: Services should update endpoints: http": "should update endpoints: http [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2117,7 +2137,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] SCTP [Feature:SCTP] [LinuxOnly] should create a ClusterIP Service with SCTP ports": "should create a ClusterIP Service with SCTP ports [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] SCTP [Feature:SCTP] [LinuxOnly] should create a Pod with SCTP HostPort": "should create a Pod with SCTP HostPort [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] SCTP [Feature:SCTP] [LinuxOnly] should create a Pod with SCTP HostPort": "should create a Pod with SCTP HostPort [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Service endpoints latency should not be very high  [Conformance]": "should not be very high  [Conformance] [Serial] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
 
@@ -2179,7 +2199,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Services should only allow access from service loadbalancer source ranges [Slow]": "should only allow access from service loadbalancer source ranges [Slow] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should preserve source pod IP for traffic thru service cluster IP [LinuxOnly]": "should preserve source pod IP for traffic thru service cluster IP [LinuxOnly] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should preserve source pod IP for traffic thru service cluster IP [LinuxOnly]": "should preserve source pod IP for traffic thru service cluster IP [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Services should prevent NodePort collisions": "should prevent NodePort collisions [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2313,6 +2333,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-node] Downward API should provide pod name, namespace and IP address as env vars [NodeConformance] [Conformance]": "should provide pod name, namespace and IP address as env vars [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
+	"[Top Level] [sig-node] Managed cluster should report ready nodes the entire duration of the test run [Late]": "should report ready nodes the entire duration of the test run [Late] [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-node] PodTemplates should delete a collection of pod templates [Conformance]": "should delete a collection of pod templates [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-node] PodTemplates should run the lifecycle of PodTemplates [Conformance]": "should run the lifecycle of PodTemplates [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
@@ -2330,6 +2352,8 @@ var annotations = map[string]string{
 	"[Top Level] [sig-node] RuntimeClass should run a Pod requesting a RuntimeClass with scheduling [NodeFeature:RuntimeHandler] [Disruptive] ": "should run a Pod requesting a RuntimeClass with scheduling [NodeFeature:RuntimeHandler] [Disruptive]  [Disabled:Broken] [Serial] [Suite:k8s]",
 
 	"[Top Level] [sig-node] supplemental groups Ensure supplemental groups propagate to docker should propagate requested groups to the container [Local]": "should propagate requested groups to the container [Local]",
+
+	"[Top Level] [sig-node][Late] should not have pod creation failures due to systemd timeouts": "should not have pod creation failures due to systemd timeouts [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-operator] OLM should Implement packages API server and list packagemanifest info with namespace not NULL": "Implement packages API server and list packagemanifest info with namespace not NULL [Suite:openshift/conformance/parallel]",
 
@@ -9919,7 +9943,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (default fs)] stress multiple pods should access different volumes repeatedly [Slow] [Serial]": "multiple pods should access different volumes repeatedly [Slow] [Serial] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted": "should be able to unmount after the subpath directory is deleted [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted": "should be able to unmount after the subpath directory is deleted [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (default fs)] subPath should fail if non-existent subpath is outside the volume [Slow][LinuxOnly]": "should fail if non-existent subpath is outside the volume [Slow][LinuxOnly] [Suite:k8s]",
 
@@ -11436,6 +11460,10 @@ var annotations = map[string]string{
 	"[Top Level] [sig-storage] vsphere cloud provider stress [Feature:vsphere] vsphere stress tests": "vsphere stress tests [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] vsphere statefulset [Feature:vsphere] vsphere statefulset testing": "vsphere statefulset testing [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[Top Level] [sig-storage][Late] Metrics should report short attach times": "should report short attach times [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-storage][Late] Metrics should report short mount times": "should report short mount times [Suite:openshift/conformance/parallel]",
 }
 
 func init() {

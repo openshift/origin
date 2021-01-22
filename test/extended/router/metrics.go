@@ -96,7 +96,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should expose a health check on the metrics port", func() {
-			execPodName = exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
+			execPodName = exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod").Name
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
 			}()
@@ -112,7 +112,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			err := oc.Run("create").Args("-f", configPath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			execPodName = exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
+			execPodName = exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod").Name
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
 			}()
@@ -288,7 +288,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 		})
 
 		g.It("should expose the profiling endpoints", func() {
-			execPodName = exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
+			execPodName = exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod").Name
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
 			}()
@@ -309,7 +309,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 				g.Skip("prometheus not found on this cluster")
 			}
 
-			execPod := exutil.CreateUbiExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", nil)
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()

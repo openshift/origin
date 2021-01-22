@@ -7,12 +7,12 @@ spec:
   - name: pullthrough
     from:
       kind: DockerImage
-      name: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+      name: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
     referencePolicy:
       type: Local
   - name: direct
     from:
       kind: DockerImage
-      name: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+      name: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
     referencePolicy:
      type: Source
