@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	buildTimeout = 5 * time.Minute
+	buildTimeout  = 10 * time.Minute
+	deployTimeout = 2 * time.Minute
 )
 
 var _ = g.Describe("[sig-cli] oc debug", func() {
@@ -36,7 +37,7 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// and for replication controller which means we can kick of debug session
-		err = wait.Poll(cliInterval, buildTimeout, func() (bool, error) {
+		err = wait.Poll(cliInterval, deployTimeout, func() (bool, error) {
 			err := oc.Run("get").Args("replicationcontrollers", "local-busybox1-1").Execute()
 			return err == nil, nil
 		})
