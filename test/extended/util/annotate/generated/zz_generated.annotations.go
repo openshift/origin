@@ -2405,6 +2405,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-node] RuntimeClass should run a Pod requesting a RuntimeClass with scheduling without taints ": "should run a Pod requesting a RuntimeClass with scheduling without taints  [Disabled:Broken] [Suite:k8s]",
 
+	"[Top Level] [sig-node] should override timeoutGracePeriodSeconds when annotation is set": "should override timeoutGracePeriodSeconds when annotation is set [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-node] supplemental groups Ensure supplemental groups propagate to docker should propagate requested groups to the container [Local]": "should propagate requested groups to the container [Local]",
 
 	"[Top Level] [sig-node][Late] should not have pod creation failures due to systemd timeouts": "should not have pod creation failures due to systemd timeouts [Suite:openshift/conformance/parallel]",
