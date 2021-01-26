@@ -1499,8 +1499,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc debug ensure it works with image streams": "ensure it works with image streams [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc explain list uncovered GroupVersionResources": "list uncovered GroupVersionResources [Suite:openshift/conformance/parallel]",
-
 	"[Top Level] [sig-cli] oc explain networking types when using openshift-sdn should contain proper fields description for special networking types": "should contain proper fields description for special networking types [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc explain should contain proper fields description for special types": "should contain proper fields description for special types [Suite:openshift/conformance/parallel]",
@@ -1508,8 +1506,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli] oc explain should contain proper spec+status for CRDs": "should contain proper spec+status for CRDs [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc explain should contain spec+status for builtinTypes": "should contain spec+status for builtinTypes [Suite:openshift/conformance/parallel]",
-
-	"[Top Level] [sig-cli] oc observe works as expected": "works as expected [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc rsh rsh specific flags should work well when access to a remote shell": "should work well when access to a remote shell [Suite:openshift/conformance/parallel]",
 

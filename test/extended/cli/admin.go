@@ -445,9 +445,9 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("origin-ruby-sample:latest"))
 
-		out, err = ocns.Run("adm", "build-chain").Args("ruby-25-centos7", "-o", "dot").Output()
+		out, err = ocns.Run("adm", "build-chain").Args("ruby-27-centos7", "-o", "dot").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring(`digraph "ruby-25-centos7:latest"`))
+		o.Expect(out).To(o.ContainSubstring(`digraph "ruby-27-centos7:latest"`))
 
 		ocns.Run("delete").Args("all", "-l", "build=sti").Execute()
 	})
