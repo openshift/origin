@@ -312,7 +312,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 	})
 
 	g.It("role-reapers", func() {
-		policyRoles, err := ocns.Run("process").Args("-f", policyRolesPath, "-p", fmt.Sprintf("NAMESPACE=%s", ocns.Namespace())).Output()
+		policyRoles, _, err := ocns.Run("process").Args("-f", policyRolesPath, "-p", fmt.Sprintf("NAMESPACE=%s", ocns.Namespace())).Outputs()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(ocns.Run("create").Args("-f", "-").InputString(policyRoles).Execute()).To(o.Succeed())
 		o.Expect(ocns.Run("get").Args("rolebinding/basic-users").Execute()).To(o.Succeed())
@@ -333,7 +333,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 	g.It("cluster-role-reapers", func() {
 		clusterRole := gen.GenerateName("basic-user2-")
 		clusterBinding := gen.GenerateName("basic-users2-")
-		policyClusterRoles, err := ocns.Run("process").Args("-f", policyClusterRolesPath, "-p", fmt.Sprintf("ROLE_NAME=%s", clusterRole), "-p", fmt.Sprintf("BINDING_NAME=%s", clusterBinding)).Output()
+		policyClusterRoles, _, err := ocns.Run("process").Args("-f", policyClusterRolesPath, "-p", fmt.Sprintf("ROLE_NAME=%s", clusterRole), "-p", fmt.Sprintf("BINDING_NAME=%s", clusterBinding)).Outputs()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(oc.Run("create").Args("-f", "-").InputString(policyClusterRoles).Execute()).To(o.Succeed())
 
@@ -364,7 +364,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		clusterRole := gen.GenerateName("basic-user2-")
 		clusterBinding := gen.GenerateName("basic-users2-")
 		// template processing requires a namespaced client
-		policyClusterRoles, err := ocns.Run("process").Args("-f", policyClusterRolesPath, "-p", fmt.Sprintf("ROLE_NAME=%s", clusterRole), "-p", fmt.Sprintf("BINDING_NAME=%s", clusterBinding)).Output()
+		policyClusterRoles, _, err := ocns.Run("process").Args("-f", policyClusterRolesPath, "-p", fmt.Sprintf("ROLE_NAME=%s", clusterRole), "-p", fmt.Sprintf("BINDING_NAME=%s", clusterBinding)).Outputs()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(oc.Run("create").Args("-f", "-").InputString(policyClusterRoles).Execute()).To(o.Succeed())
 
@@ -435,7 +435,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 	g.It("build-chain", func() {
 		// Test building a dependency tree
 		s2iBuildPath := exutil.FixturePath("..", "..", "examples", "sample-app", "application-template-stibuild.json")
-		out, err := ocns.Run("process").Args("-f", s2iBuildPath, "-l", "build=sti").Output()
+		out, _, err := ocns.Run("process").Args("-f", s2iBuildPath, "-l", "build=sti").Outputs()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(ocns.Run("create").Args("-f", "-").InputString(out).Execute()).To(o.Succeed())
 

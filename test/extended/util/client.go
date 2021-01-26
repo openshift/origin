@@ -634,7 +634,7 @@ func (c *CLI) outputs(stdOutBuff, stdErrBuff *bytes.Buffer) (string, string, err
 
 // OutputToFile executes the command and store output to a file
 func (c *CLI) OutputToFile(filename string) (string, error) {
-	content, err := c.Output()
+	content, _, err := c.Outputs()
 	if err != nil {
 		return "", err
 	}
