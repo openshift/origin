@@ -206,6 +206,15 @@ var staticSuites = []*ginkgo.TestSuite{
 		SyntheticEventTests: ginkgo.JUnitForEventsFunc(stableSystemEventInvariants),
 	},
 	{
+		Name: "openshift/network/third-party",
+		Description: templates.LongDesc(`
+		The conformance testing suite for certified third-party CNI plugins.
+		`),
+		Matches: func(name string) bool {
+			return !isDisabled(name) && inCNISuite(name)
+		},
+	},
+	{
 		Name: "all",
 		Description: templates.LongDesc(`
 		Run all tests.
