@@ -55,7 +55,7 @@ os::cmd::expect_success 'oc new-project quota-images --as=deads  --as-group=syst
 os::cmd::expect_success 'oc create quota -n quota-images is-quota --hard openshift.io/imagestreams=1'
 os::cmd::try_until_success 'oc tag -n quota-images openshift/hello-openshift myis2:v2'
 os::cmd::expect_failure_and_text 'oc tag -n quota-images busybox mybox:v1' "exceeded quota"
-os::cmd::expect_failure_and_text 'oc import-image centos -n quota-images --from=docker.io/centos:latest --confirm=true' "exceeded quota"
+os::cmd::expect_failure_and_text 'oc import-image centos -n quota-images --from=registry.centos.org/centos:latest --confirm=true' "exceeded quota"
 os::cmd::expect_success 'oc delete project quota-images'
 
 echo "imagestreams: ok"
