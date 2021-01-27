@@ -1,0 +1,137 @@
+package builds
+
+import (
+	"fmt"
+	"strings"
+
+	g "github.com/onsi/ginkgo"
+	o "github.com/onsi/gomega"
+
+	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
+)
+
+var _ = g.Describe("[sig-builds][Feature:Builds] verify /run filesystem contents", func() {
+	defer g.GinkgoRecover()
+	var (
+		oc                                      = exutil.NewCLI("verify-run-fs")
+		testVerityRunFSWriteableBuildConfigYaml = fmt.Sprintf(`
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: verify-run-fs
+spec:
+  runPolicy: Serial
+  source:
+    dockerfile: "FROM %s\nRUN chmod -R uga+rwx /run\nUSER 1001"
+    type: Dockerfile
+  strategy:
+    dockerStrategy:
+      env:
+      - name: BUILD_LOGLEVEL
+        value: "10"
+      imageOptimizationPolicy: SkipLayers
+    type: Docker
+`, image.ShellImage())
+		testVerifyRunFSContentsBuildConfigYaml = fmt.Sprintf(`
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: verify-run-fs
+spec:
+  runPolicy: Serial
+  source:
+    dockerfile: "FROM %s\nRUN ls -R /run\nUSER 1001"
+    type: Dockerfile
+  strategy:
+    dockerStrategy:
+      env:
+      - name: BUILD_LOGLEVEL
+        value: "10"
+      imageOptimizationPolicy: SkipLayers
+    type: Docker
+`, image.ShellImage())
+		lsRSlashRun = `
+/run:
+lock
+rhsm
+secrets
+
+/run/lock:
+
+/run/rhsm:
+
+/run/secrets:
+rhsm
+
+/run/secrets/rhsm:
+ca
+
+/run/secrets/rhsm/ca:
+redhat-entitlement-authority.pem
+redhat-uep.pem
+`
+		lsRSlashRunFIPS = `
+/run:
+lock
+rhsm
+secrets
+
+/run/lock:
+
+/run/rhsm:
+
+/run/secrets:
+system-fips
+`
+	)
+
+	g.Context("", func() {
+
+		g.BeforeEach(func() {
+			exutil.PreTestDump()
+		})
+
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("verify-run-fs", oc)
+			}
+		})
+
+		g.Describe("do not have unexpected content", func() {
+			g.It("using a simple Docker Strategy Build", func() {
+				g.By("calling oc create with yaml")
+				err := oc.Run("create").Args("-f", "-").InputString(testVerifyRunFSContentsBuildConfigYaml).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("start and wait for build")
+				br, err := exutil.StartBuildAndWait(oc, "verify-run-fs")
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br.AssertSuccess()
+
+				g.By("check build logs for ls -R /run")
+				logs, err := br.LogsNoTimestamp()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				hasRightListing := false
+				if strings.Contains(logs, lsRSlashRun) || strings.Contains(logs, lsRSlashRunFIPS) {
+					hasRightListing = true
+				}
+				o.Expect(hasRightListing).To(o.BeTrue())
+			})
+		})
+
+		g.Describe("are writeable", func() {
+			g.It("using a simple Docker Strategy Build", func() {
+				g.By("calling oc create with yaml")
+				err := oc.Run("create").Args("-f", "-").InputString(testVerityRunFSWriteableBuildConfigYaml).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("start and wait for build")
+				br, err := exutil.StartBuildAndWait(oc, "verify-run-fs")
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br.AssertSuccess()
+			})
+		})
+	})
+})
