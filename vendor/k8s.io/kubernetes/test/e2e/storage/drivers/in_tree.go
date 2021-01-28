@@ -1153,6 +1153,7 @@ func (c *cinderDriver) CreateVolume(config *testsuites.PerTestConfig, volType te
 	// We assume that namespace.Name is a random string
 	volumeName := ns.Name
 	ginkgo.By("creating a test Cinder volume")
+	// output, err := exec.Command("cinder", "-d", "create", "--display-name="+volumeName, "1").CombinedOutput()
 	output, err := exec.Command("cinder", "create", "--display-name="+volumeName, "1").CombinedOutput()
 	outputString := string(output[:])
 	framework.Logf("cinder output:\n%s", outputString)
