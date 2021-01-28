@@ -40397,7 +40397,7 @@ trap os::test::junit::reconcile_output EXIT
 # Cleanup cluster resources created by this test
 (
   set +e
-  oc delete all,templates,pv,pvc --all
+  oc delete all,templates,pvc --all
   exit 0
 ) &>/dev/null
 
