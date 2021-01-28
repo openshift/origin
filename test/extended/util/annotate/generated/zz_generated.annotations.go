@@ -1735,7 +1735,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-devex][Feature:Templates] templateservicebroker security test  should pass security tests": "should pass security tests [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-etcd] etcd leader changes are not excessive": "leader changes are not excessive [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-etcd] etcd leader changes are not excessive [Late]": "leader changes are not excessive [Late] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-etcd][Feature:DisasterRecovery][Disruptive] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss": "[Feature:EtcdRecovery] Cluster should restore itself after quorum loss [Serial]",
 
