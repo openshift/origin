@@ -5,13 +5,10 @@
 #
 FROM openshift/origin-cli
 
-COPY rhel-server-ose.repo /etc/yum.repos.d
-# If this is a non-CI/RHEL build, the repo is not necessary
-RUN test -e /etc/centos-release || rm /etc/yum.repos.d/rhel-server-ose.repo
-
-RUN INSTALL_PKGS="haproxy18 rsyslog" && \
+RUN INSTALL_PKGS="https://raw.githubusercontent.com/candita/haproxy-testing/main/haproxy18-1.8.28-1.el7.x86_64.rpm rsyslog" && \
     yum install -y $INSTALL_PKGS && \
-    rpm -V $INSTALL_PKGS && \
+    haproxy -vv && \
+    #rpm -V $INSTALL_PKGS && \
     yum clean all && \
     mkdir -p /var/lib/haproxy/router/{certs,cacerts,whitelists} && \
     mkdir -p /var/lib/haproxy/{conf/.tmp,run,bin,log} && \
