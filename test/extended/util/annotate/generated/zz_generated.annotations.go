@@ -2161,7 +2161,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] SCTP [Feature:SCTP] [LinuxOnly] should create a ClusterIP Service with SCTP ports": "should create a ClusterIP Service with SCTP ports [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] SCTP [Feature:SCTP] [LinuxOnly] should create a Pod with SCTP HostPort": "should create a Pod with SCTP HostPort [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-network] SCTP [Feature:SCTP] [LinuxOnly] should create a Pod with SCTP HostPort": "should create a Pod with SCTP HostPort [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Service endpoints latency should not be very high  [Conformance]": "should not be very high  [Conformance] [Serial] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
 
