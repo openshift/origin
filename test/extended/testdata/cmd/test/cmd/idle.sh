@@ -26,36 +26,15 @@ setup_idling_resources() {
     dc_name=$(basename $(oc create -f ${TEST_DATA}/idling-dc.yaml -o name))  # `basename type/name` --> name
     os::cmd::expect_success "oc describe deploymentconfigs '${dc_name}'"
     os::cmd::try_until_success 'oc describe endpoints idling-echo'
-    local endpoints_json
-    endpoints_json="$(oc get endpoints idling-echo -o json)"
-    os::cmd::expect_success 'oc delete service idling-echo'
-    os::cmd::expect_success "echo '${endpoints_json}' | oc create -f -"
-    os::cmd::expect_success 'oc describe endpoints idling-echo'
+
     # deployer pod won't work, so just scale up the rc ourselves
     os::cmd::try_until_success "oc get replicationcontroller ${dc_name}-1"
     os::cmd::expect_success "oc scale replicationcontroller ${dc_name}-1 --replicas=2"
     os::cmd::try_until_text "oc get pod -l app=idling-echo -o go-template='{{ len .items }}'" "2"
-    local pod_name
-    pod_name="$(oc get pod -l app=idling-echo -o go-template='{{ (index .items 0).metadata.name }}')"
-    fake_endpoints_patch=$(cat <<EOF
-{
-    "subsets": [{
-        "addresses": [{
-            "ip": "1.2.3.4",
-            "targetRef": {
-                "kind": "Pod",
-                "name": "${pod_name}",
-                "namespace": "${project}"
-            }
-        }],
-        "ports": [{"name": "foo", "port": 80}]
-    }]
-}
-EOF
-)
 
-    os::cmd::expect_success "oc patch endpoints idling-echo -p '${fake_endpoints_patch}'"
-    os::cmd::try_until_text 'oc get endpoints idling-echo -o go-template="{{ len .subsets }}"' '1'
+    # wait for endpoints to populate. Ensure subset exists first to avoid nil dereference.
+    os::cmd::try_until_success "oc get endpoints idling-echo -o go-template='{{ index .subsets 0 }}'"
+    os::cmd::try_until_text "oc get endpoints idling-echo -o go-template='{{ len (index .subsets 0).addresses }}'" "2"
 }
 
 os::test::junit::declare_suite_start "cmd/idle/by-name"
