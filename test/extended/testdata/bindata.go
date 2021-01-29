@@ -16467,7 +16467,7 @@ objects:
                 def tag="blue"
                 def altTag="green"
                 def verbose="${VERBOSE}"
-        
+
                 node {
                   project = env.PROJECT_NAME
                   stage("Initialize") {
@@ -16480,7 +16480,7 @@ objects:
                     sh "oc get route ${tag}-${appName} -n ${project} -o jsonpath='{ .spec.host }' --loglevel=4 > routehost"
                     routeHost = readFile('routehost').trim()
                   }
-        
+
                   openshift.withCluster() {
                     openshift.withProject() {
                       stage("Build") {
@@ -16489,19 +16489,19 @@ objects:
                         bld.untilEach {
                           return it.object().status.phase == "Running"
                         }
-                        bld.logs('-f')                        
+                        bld.logs('-f')
                       }
-            
+
                       stage("Deploy Test") {
                         openshift.tag("${appName}:latest", "${appName}:${tag}")
                         def dc = openshift.selector('dc', "${appName}-${tag}")
                         dc.rollout().status()
                       }
-            
+
                       stage("Test") {
                         input message: "Test deployment: http://${routeHost}. Approve?", id: "approval"
                       }
-            
+
                       stage("Go Live") {
                         sh "oc set -n ${project} route-backends ${appName} ${appName}-${tag}=100 ${appName}-${altTag}=0 --loglevel=4"
                       }
@@ -16515,7 +16515,7 @@ objects:
              echo "Caught: ${err}"
              currentBuild.result = 'FAILURE'
              throw err
-          }          
+          }
       type: JenkinsPipeline
     triggers:
     - github:
@@ -17019,13 +17019,13 @@ objects:
                     def status = sh(returnStdout: true, script: "oc start-build ${appName}-docker --from-file=target/ROOT.war -n ${project}")
 
                     def result = status.split("\n").find{ it.matches("^build.*started") }
-                    
+
                     if(!result) {
                       echo "ERROR: No started build found for ${appName}"
                       currentBuild.result = 'FAILURE'
                       return
                     }
-                    
+
                     // result can be:
                     // - build "build-name" started
                     // - build build.build.openshift.io/build-name started
@@ -17033,7 +17033,7 @@ objects:
                     // Goal is to isolate "build-name"
                     def startedBuild = result.replaceAll("build [^0-9a-zA-Z]*", "").replaceAll("[^0-9a-zA-Z]* started", "").replaceFirst("^.*/", "")
                     echo "Build ${startedBuild} has started. Now watching it ..."
-                    
+
                     timeout(time: 20, unit: 'MINUTES') {
                       openshift.withCluster() {
                         openshift.withProject() {
@@ -17046,7 +17046,7 @@ objects:
                             return object.status.phase == "Complete"
                           }
                         }
-                      }  
+                      }
                     }
                   }
                   stage("Deploy") {
@@ -17504,7 +17504,7 @@ objects:
                               return it.object().status.phase == "Running"
                             }
                             bld.logs('-f')
-                         }  
+                         }
                       }
                     }
                     stage('deploy') {
@@ -17522,7 +17522,7 @@ objects:
              echo "Caught: ${err}"
              currentBuild.result = 'FAILURE'
              throw err
-          }          
+          }
       type: JenkinsPipeline
     triggers:
     - github:
@@ -19490,7 +19490,7 @@ spec:
     jenkinsPipelineStrategy:
       jenkinsfile: |-
         node() {
-          sh 'exit 0' 
+          sh 'exit 0'
         }
       type: JenkinsPipeline
 `)
@@ -19633,7 +19633,7 @@ if [[ -f secret1  ]]; then
 else
     echo "Unable to locate testsecret2 fixture files"
     exit 2
-fi 
+fi
 
 mkdir -p "${HOME}/testconfig"
 if [[ -f /tmp/configmap/foo ]]; then
@@ -22375,7 +22375,7 @@ var _testExtendedTestdataBuildsTestDockerBuildJson = []byte(`{
     "triggers":[],
     "source":{
       "git": {
-        "uri":"https://github.com/sclorg/nodejs-ex"        
+        "uri":"https://github.com/sclorg/nodejs-ex"
       },
       "dockerfile": "FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
     },
@@ -23054,7 +23054,7 @@ var _testExtendedTestdataBuildsTestS2iBuildQuotaJson = []byte(`{
     "source": {
       "binary": {
         "asFile": ""
-      }          
+      }
     },
     "strategy": {
       "type": "Source",
@@ -23104,7 +23104,7 @@ var _testExtendedTestdataBuildsTestS2iBuildJson = []byte(`{
     "source": {
       "type": "Git",
       "git": {
-        "uri":"https://github.com/sclorg/nodejs-ex"        
+        "uri":"https://github.com/sclorg/nodejs-ex"
       }
     },
     "strategy": {
@@ -23489,7 +23489,7 @@ spec:
             secretKeyRef:
               name: mysecret
               key: username
-        - name: FIELDREF_CLONE_ENV 
+        - name: FIELDREF_CLONE_ENV
           value: $(FIELDREF_ENV)
         - name: FIELDREF_CLONE_CLONE_ENV
           value: $(FIELDREF_CLONE_ENV)
@@ -24178,10 +24178,10 @@ func testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventJson() (*asset, 
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson = []byte(`{  
+var _testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson = []byte(`{
   "eventKey":"repo:refs_changed",
   "date":"2017-09-19T09:45:32+1000",
-  "actor":{  
+  "actor":{
     "name":"admin",
     "emailAddress":"admin@example.com",
     "id":1,
@@ -24190,7 +24190,7 @@ var _testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson 
     "slug":"admin",
     "type":"NORMAL"
   },
-  "repository":{  
+  "repository":{
     "slug":"repository",
     "id":84,
     "name":"repository",
@@ -24198,7 +24198,7 @@ var _testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson 
     "state":"AVAILABLE",
     "statusMessage":"Available",
     "forkable":true,
-    "project":{  
+    "project":{
       "key":"PROJ",
       "id":84,
       "name":"project",
@@ -24207,9 +24207,9 @@ var _testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson 
     },
     "public":false
   },
-  "changes":[  
-    {  
-      "ref":{  
+  "changes":[
+    {
+      "ref":{
         "id":"refs/heads/other",
         "displayId":"other",
         "type":"BRANCH"
@@ -24237,10 +24237,10 @@ func testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson(
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54Json = []byte(`{  
+var _testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54Json = []byte(`{
   "eventKey":"repo:refs_changed",
   "date":"2017-09-19T09:45:32+1000",
-  "actor":{  
+  "actor":{
     "name":"admin",
     "emailAddress":"admin@example.com",
     "id":1,
@@ -24249,7 +24249,7 @@ var _testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54Json = []byte(
     "slug":"admin",
     "type":"NORMAL"
   },
-  "repository":{  
+  "repository":{
     "slug":"repository",
     "id":84,
     "name":"repository",
@@ -24257,7 +24257,7 @@ var _testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54Json = []byte(
     "state":"AVAILABLE",
     "statusMessage":"Available",
     "forkable":true,
-    "project":{  
+    "project":{
       "key":"PROJ",
       "id":84,
       "name":"project",
@@ -24266,9 +24266,9 @@ var _testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54Json = []byte(
     },
     "public":false
   },
-  "changes":[  
-    {  
-      "ref":{  
+  "changes":[
+    {
+      "ref":{
         "id":"refs/heads/master",
         "displayId":"master",
         "type":"BRANCH"
@@ -24376,19 +24376,19 @@ func testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsJson() (*ass
 
 var _testExtendedTestdataBuildsWebhookGenericTestdataPushGenericEnvsYaml = []byte(`---
   type: "Git"
-  git: 
+  git:
     uri: "https://mygitserver/myrepo.git"
     ref: "refs/heads/master"
     commit: "9bdc3a26ff933b32f3e558636b58aea86a69f051"
     message: "Random act of kindness"
-    author: 
+    author:
       name: "Jon Doe"
       email: "jondoe@email.com"
-    committer: 
+    committer:
       name: "Jon Doe"
       email: "jondoe@email.com"
-  env: 
-    - 
+  env:
+    -
       name: "EXAMPLE"
       value: "sample-app"
 `)
@@ -25074,7 +25074,7 @@ ClusterLoader:
       templates:
         - num: 1
           file: ./quickstarts/cakephp-mysql.json
-  
+
     - num: 1
       basename: clusterloader-dancer-mysql
       ifexists: delete
@@ -25082,7 +25082,7 @@ ClusterLoader:
       templates:
         - num: 1
           file: ./quickstarts/dancer-mysql.json
-  
+
     - num: 1
       basename: clusterloader-django-postgresql
       ifexists: delete
@@ -25090,7 +25090,7 @@ ClusterLoader:
       templates:
         - num: 1
           file: ./quickstarts/django-postgresql.json
-  
+
     - num: 1
       basename: clusterloader-nodejs-mongodb
       ifexists: delete
@@ -25098,7 +25098,7 @@ ClusterLoader:
       templates:
         - num: 1
           file: ./quickstarts/nodejs-mongodb.json
-  
+
     - num: 1
       basename: clusterloader-rails-postgresql
       ifexists: delete
@@ -25106,7 +25106,7 @@ ClusterLoader:
       templates:
         - num: 1
           file: ./quickstarts/rails-postgresql.json
-  
+
   tuningsets:
     - name: default
       pods:
@@ -32701,7 +32701,7 @@ os::cmd::expect_success 'oc create istag tag:8 --insecure --from-image=mysql:lat
 os::cmd::try_until_success 'oc get imagestreamtags tag:8'
 os::cmd::expect_success 'oc create imagestreamtag tag:9 --scheduled --reference-policy=Local --from-image=mysql:latest'
 os::cmd::expect_success 'oc create imagestream tag-b'
-os::cmd::expect_success 'oc create imagestreamtag tag-b:1 --from=wildfly:15.0'
+os::cmd::expect_success 'oc create imagestreamtag tag-b:1 --from=wildfly:20.0'
 os::cmd::expect_success 'oc create imagestreamtag tag-c:1 -A annotation.with.dots=are.ok'
 
 os::cmd::expect_failure_and_text 'oc create imagestreamtag tag-c --from-image=mysql:latest' 'must be of the form <stream_name>:<tag>'
@@ -32761,15 +32761,13 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/import-image"
 # should follow the latest reference to 5.6 and update that, and leave latest unchanged
 os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 1).from.kind}}'" 'DockerImage'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'DockerImage'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 3).from.kind}}'" 'ImageStreamTag'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 3).from.name}}'" '5.7'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.name}}'" '5.7'
 # import existing tag (implicit latest)
 os::cmd::expect_success_and_text 'oc import-image mysql' 'sha256:'
 os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 1).from.kind}}'" 'DockerImage'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'DockerImage'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 3).from.kind}}'" 'ImageStreamTag'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 3).from.name}}'" '5.7'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.name}}'" '5.7'
 # should prevent changing source
 os::cmd::expect_failure_and_text 'oc import-image mysql --from=docker.io/mysql' "use the 'tag' command if you want to change the source"
 os::cmd::expect_success 'oc describe is/mysql'
@@ -32786,41 +32784,41 @@ os::cmd::expect_success_and_text 'oc import-image mysql-new-single:latest --from
 os::cmd::expect_success_and_text "oc get is/mysql-new-single --template='{{(len .spec.tags)}}'" '1'
 os::cmd::expect_success 'oc delete is/mysql-new-single'
 # import creates new image stream with all tags
-os::cmd::expect_failure_and_text 'oc import-image mysql-new-all --from=mysql --all' '\-\-confirm'
-os::cmd::expect_success_and_text 'oc import-image mysql-new-all --from=mysql --all --confirm --request-timeout=1m' 'sha256:'
-name=$(oc get istag/mysql-new-all:latest --template='{{ .image.metadata.name }}')
+os::cmd::expect_failure_and_text 'oc import-image mysql-new-all --from=quay.io/openshifttest/hello-openshift --all' '\-\-confirm'
+os::cmd::expect_success_and_text 'oc import-image mysql-new-all --from=quay.io/openshifttest/hello-openshift --all --confirm --request-timeout=1m' 'sha256:'
+name=$(oc get istag/mysql-new-all:openshift --template='{{ .image.metadata.name }}')
 echo "import-image: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/tag"
 # oc tag
 os::cmd::expect_success 'oc tag mysql:latest mysql:tag1 --alias'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 5).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 4).from.kind}}'" 'ImageStreamTag'
 
 os::cmd::expect_success "oc tag mysql@${name} mysql:tag2 --alias"
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 6).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 5).from.kind}}'" 'ImageStreamImage'
 
 os::cmd::expect_success 'oc tag mysql:notfound mysql:tag3 --alias'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 7).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 6).from.kind}}'" 'ImageStreamTag'
 
 os::cmd::expect_success 'oc tag --source=imagestreamtag mysql:latest mysql:tag4 --alias'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 8).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 7).from.kind}}'" 'ImageStreamTag'
 
 os::cmd::expect_success 'oc tag --source=istag mysql:latest mysql:tag5 --alias'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 9).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 8).from.kind}}'" 'ImageStreamTag'
 
 os::cmd::expect_success "oc tag --source=imagestreamimage mysql@${name} mysql:tag6 --alias"
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 10).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 9).from.kind}}'" 'ImageStreamImage'
 
 os::cmd::expect_success "oc tag --source=isimage mysql@${name} mysql:tag7 --alias"
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 11).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 10).from.kind}}'" 'ImageStreamImage'
 
 os::cmd::expect_success 'oc tag --source=docker mysql:latest mysql:tag8 --alias'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 12).from.kind}}'" 'DockerImage'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 11).from.kind}}'" 'DockerImage'
 
 os::cmd::expect_success 'oc tag mysql:latest mysql:zzz mysql:yyy --alias'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 12).from.kind}}'" 'ImageStreamTag'
 os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 13).from.kind}}'" 'ImageStreamTag'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 14).from.kind}}'" 'ImageStreamTag'
 
 os::cmd::expect_failure_and_text 'oc tag mysql:latest tagtest:tag1 --alias' 'cannot set alias across'
 
@@ -32908,10 +32906,17 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/merge-tags-on-apply"
 os::cmd::expect_success 'oc new-project merge-tags'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-centos7.json'
+<<<<<<< HEAD
 os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.7-ubi8 latest'
 os::cmd::expect_success 'oc apply -f ${TEST_DATA}/modified-ruby-imagestream.json'
 os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.7-ubi8 latest newtag'
 os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[0].annotations.version}' '2.7 patched'
+=======
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.5 2.6 latest'
+os::cmd::expect_success 'oc apply -f ${TEST_DATA}/modified-ruby-imagestream.json'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.5 2.6 latest newtag'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[0].annotations.version}' '2.5 patched'
+>>>>>>> 12557517d3 (Bug 1904684: fix missing bits in images.sh tests)
 os::cmd::expect_success 'oc delete project merge-tags'
 echo "apply new imagestream tags: ok"
 os::test::junit::declare_suite_end
@@ -46227,7 +46232,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTestDockerBuildJson = []byte(`{
     "triggers":[],
     "source":{
       "git": {
-        "uri":"https://github.com/sclorg/nodejs-ex"        
+        "uri":"https://github.com/sclorg/nodejs-ex"
       },
       "dockerfile": "FROM docker.io/busybox:latest"
     },
@@ -46479,7 +46484,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTestS2iBuildJson = []byte(`{
     "source": {
       "type": "Git",
       "git": {
-        "uri":"https://github.com/sclorg/nodejs-ex"        
+        "uri":"https://github.com/sclorg/nodejs-ex"
       }
     },
     "strategy": {
@@ -46589,7 +46594,7 @@ metadata:
   resourceVersion: "327"
   selfLink: /oapi/v1/namespaces/test/imagestreams/test-stream
   uid: 15be89a8-70db-11e5-ae32-080027c5bfa9
-spec: 
+spec:
   dockerImageRepository: 172.30.30.30:5000/test/test-stream
   tags:
   - name: latest
@@ -49681,7 +49686,7 @@ LABEL io.openshift.s2i.scripts-url=image:///usr/libexec/s2i
 ENV STI_SCRIPTS_PATH=/usr/libexec/s2i
 COPY scripts $STI_SCRIPTS_PATH
 RUN chown 1001 /openshifttmp
-USER 1001 
+USER 1001
 `)
 
 func testExtendedTestdataHelloBuilderDockerfileBytes() ([]byte, error) {
@@ -50015,9 +50020,9 @@ objects:
     strategy:
       type: Rolling
       rollingParams:
-        pre: 
+        pre:
           failurePolicy: Abort
-          execNewPod: 
+          execNewPod:
             containerName: dc-pod
             command:
             - ls
@@ -50065,9 +50070,9 @@ objects:
     strategy:
       type: Rolling
       rollingParams:
-        pre: 
+        pre:
           failurePolicy: Abort
-          execNewPod: 
+          execNewPod:
             containerName: dc-pod-old
             command:
             - ls
@@ -50104,12 +50109,12 @@ apiVersion: v1
 metadata:
   name: template
 objects:
-- kind: Pod 
-  apiVersion: v1 
-  metadata: 
+- kind: Pod
+  apiVersion: v1
+  metadata:
     name: new-pull-pod
-  spec: 
-    containers: 
+  spec:
+    containers:
     - name: new-pull-pod
       image: ${DOCKER_REGISTRY}/image-ns/busybox
       command:
@@ -50139,12 +50144,12 @@ apiVersion: v1
 metadata:
   name: template
 objects:
-- kind: Pod 
-  apiVersion: v1 
-  metadata: 
+- kind: Pod
+  apiVersion: v1
+  metadata:
     name: no-pull-pod
-  spec: 
-    containers: 
+  spec:
+    containers:
     - name: no-pull-pod
       image: ${DOCKER_REGISTRY}/image-ns/busybox
       command:
@@ -50172,12 +50177,12 @@ apiVersion: v1
 metadata:
   name: template
 objects:
-- kind: Pod 
-  apiVersion: v1 
-  metadata: 
+- kind: Pod
+  apiVersion: v1
+  metadata:
     name: old-pull-pod
-  spec: 
-    containers: 
+  spec:
+    containers:
     - name: old-pull-pod
       image: ${DOCKER_REGISTRY}/image-ns/busybox
       command:
@@ -50211,9 +50216,9 @@ use Cwd  qw(abs_path);
 
 use lib (dirname abs_path $0) .'/lib';
 use My::Test qw(test);
-   
+
 print qq(Content-type: text/plain\n\n);
-     
+
 test();
 
 `)
@@ -50234,11 +50239,11 @@ func testExtendedTestdataImage_ecosystemPerlHotdeployIndexPl() (*asset, error) {
 }
 
 var _testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPm = []byte(`package My::Test;
-use strict; 
+use strict;
 use warnings;
 
 use Exporter qw(import);
- 
+
 our @EXPORT_OK = qw(test);
 
 sub test {
@@ -50321,7 +50326,7 @@ var _testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson = []byte(`{
             "kind": "ImageStreamTag",
             "name": "${NAME}:latest"
           }
-        } 
+        }
       }
     },
     {
@@ -50482,26 +50487,26 @@ func testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataJenkinsPluginBuildJobCloneXml = []byte(`<?xml version='1.0' encoding='UTF-8'?>                                                                                                                                                                                                                         
-<flow-definition plugin="workflow-job@2.8">                                                                                                                                                                                                                    
-  <actions/>                                                                                                                                                                                                                                                   
-  <description></description>                                                                                                                                                                                                                                  
-  <keepDependencies>false</keepDependencies>                                                                                                                                                                                                                   
-  <properties>                                                                                                                                                                                                                                                 
-    <io.fabric8.jenkins.openshiftsync.BuildConfigProjectProperty plugin="openshift-sync@0.1.1">                                                                                                                                                                
-      <uid></uid>                                                                                                                                                                                                                                              
-      <namespace></namespace>                                                                                                                                                                                                                                  
-      <name></name>                                                                                                                                                                                                                                            
-      <resourceVersion></resourceVersion>                                                                                                                                                                                                                      
-    </io.fabric8.jenkins.openshiftsync.BuildConfigProjectProperty>                                                                                                                                                                                             
-    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>                                                                                                                                                                                
-      <triggers/>                                                                                                                                                                                                                                              
-    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>                                                                                                                                                                               
-  </properties>                                                                                                                                                                                                                                                
-  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.22">                                                                                                                                                         
-    <script>node{                                                                                                                                                                                                                                              
-    openshiftBuild namespace: &apos;${PROJECT_NAME}&apos;, bldCfg: &apos;frontend&apos;, buildName: &apos;frontend-1&apos;, showBuildLogs: &apos;false&apos;, verbose: &apos;true&apos;                                                                                     
-}</script>                                                                                                                                                                                                                                                     
+var _testExtendedTestdataJenkinsPluginBuildJobCloneXml = []byte(`<?xml version='1.0' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.8">
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <io.fabric8.jenkins.openshiftsync.BuildConfigProjectProperty plugin="openshift-sync@0.1.1">
+      <uid></uid>
+      <namespace></namespace>
+      <name></name>
+      <resourceVersion></resourceVersion>
+    </io.fabric8.jenkins.openshiftsync.BuildConfigProjectProperty>
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers/>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.22">
+    <script>node{
+    openshiftBuild namespace: &apos;${PROJECT_NAME}&apos;, bldCfg: &apos;frontend&apos;, buildName: &apos;frontend-1&apos;, showBuildLogs: &apos;false&apos;, verbose: &apos;true&apos;
+}</script>
     <sandbox>true</sandbox>
   </definition>
   <triggers/>
@@ -50523,22 +50528,22 @@ func testExtendedTestdataJenkinsPluginBuildJobCloneXml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataJenkinsPluginBuildJobSlaveXml = []byte(`<?xml version='1.0' encoding='UTF-8'?>                                                                                                                                                                                                                         
-<project>                                                                                                                                                                                                                                                      
-  <actions/>                                                                                                                                                                                                                                                   
-  <description></description>                                                                                                                                                                                                                                  
-  <keepDependencies>false</keepDependencies>                                                                                                                                                                                                                   
-  <properties/>                                                                                                                                                                                                                                                
-  <scm class="hudson.scm.NullSCM"/>                                                                                                                                                                                                                            
-  <assignedNode>nodejs</assignedNode>                                                                                                                                                                                                                          
-  <canRoam>false</canRoam>                                                                                                                                                                                                                                     
-  <disabled>false</disabled>                                                                                                                                                                                                                                   
-  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>                                                                                                                                                                                   
-  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>                                                                                                                                                                                       
-  <triggers/>                                                                                                                                                                                                                                                  
-  <concurrentBuild>false</concurrentBuild>                                                                                                                                                                                                                     
+var _testExtendedTestdataJenkinsPluginBuildJobSlaveXml = []byte(`<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties/>
+  <scm class="hudson.scm.NullSCM"/>
+  <assignedNode>nodejs</assignedNode>
+  <canRoam>false</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
   <builders>
-    
+
         <com.openshift.jenkins.plugins.pipeline.OpenShiftScaler>
             <apiURL>https://openshift.default.svc.cluster.local</apiURL>
             <depCfg>frontend</depCfg>
@@ -50565,7 +50570,7 @@ var _testExtendedTestdataJenkinsPluginBuildJobSlaveXml = []byte(`<?xml version='
           <waitUnit>sec</waitUnit>
           <depCfg>frontend</depCfg>
         </com.openshift.jenkins.plugins.pipeline.OpenShiftDeployer>
-    
+
         <com.openshift.jenkins.plugins.pipeline.OpenShiftServiceVerifier>
             <apiURL>https://openshift.default.svc.cluster.local</apiURL>
             <svcName>frontend</svcName>
@@ -50590,10 +50595,10 @@ var _testExtendedTestdataJenkinsPluginBuildJobSlaveXml = []byte(`<?xml version='
             <replicaCount>0</replicaCount>
             <authToken></authToken>
         </com.openshift.jenkins.plugins.pipeline.OpenShiftDeploymentVerifier>
-    
-  </builders>                                                                                                                                                                                                                                                  
-  <publishers/>                                                                                                                                                                                                                                                
-  <buildWrappers/>                                                                                                                                                                                                                                             
+
+  </builders>
+  <publishers/>
+  <buildWrappers/>
 </project>
 `)
 
@@ -50652,7 +50657,7 @@ var _testExtendedTestdataJenkinsPluginBuildJobXml = []byte(`<?xml version='1.0' 
           <waitUnit>sec</waitUnit>
           <depCfg>frontend</depCfg>
         </com.openshift.jenkins.plugins.pipeline.OpenShiftDeployer>
-    
+
         <com.openshift.jenkins.plugins.pipeline.OpenShiftServiceVerifier>
             <apiURL>https://openshift.default.svc.cluster.local</apiURL>
             <svcName>frontend</svcName>
@@ -50856,7 +50861,7 @@ var _testExtendedTestdataJenkinsPluginCreateJobXml = []byte(`<?xml version='1.0'
     "metadata": {},
     "items": [
 	{
-    
+
 	    "kind": "ImageStream",
 	    "apiVersion": "v1",
 	    "metadata": {
@@ -50870,7 +50875,7 @@ var _testExtendedTestdataJenkinsPluginCreateJobXml = []byte(`<?xml version='1.0'
 	    "status": {
 		"dockerImageRepository": ""
 	    }
-    
+
 	},
 	{
 	    "kind": "BuildConfig",
@@ -50946,8 +50951,8 @@ var _testExtendedTestdataJenkinsPluginDeleteJobKeysXml = []byte(`<?xml version='
 
         <com.openshift.jenkins.plugins.pipeline.OpenShiftDeleterList>
           <namespace>${PROJECT_NAME}</namespace>
-          <types>is,bc</types>                                                                                                                                                                                                             
-          <keys>forcepull-extended-test-builder,forcepull-bldr</keys>                                                                                                                                                                                                                 
+          <types>is,bc</types>
+          <keys>forcepull-extended-test-builder,forcepull-bldr</keys>
         </com.openshift.jenkins.plugins.pipeline.OpenShiftDeleterList>
 
     </builders>
@@ -50987,9 +50992,9 @@ var _testExtendedTestdataJenkinsPluginDeleteJobLabelsXml = []byte(`<?xml version
 
         <com.openshift.jenkins.plugins.pipeline.OpenShiftDeleterLabels>
           <namespace>${PROJECT_NAME}</namespace>
-          <types>bc,is</types>                                                                                                                                                                                                             
-          <keys>foo</keys>                                                                                                                                                                                                                 
-          <values>bar</values>                                                                                                                                                                                                             
+          <types>bc,is</types>
+          <keys>foo</keys>
+          <values>bar</values>
         </com.openshift.jenkins.plugins.pipeline.OpenShiftDeleterLabels>
 
     </builders>
@@ -51035,7 +51040,7 @@ var _testExtendedTestdataJenkinsPluginDeleteJobXml = []byte(`<?xml version='1.0'
     "metadata": {},
     "items": [
 	{
-    
+
 	    "kind": "ImageStream",
 	    "apiVersion": "v1",
 	    "metadata": {
@@ -51046,7 +51051,7 @@ var _testExtendedTestdataJenkinsPluginDeleteJobXml = []byte(`<?xml version='1.0'
 	    "status": {
 		"dockerImageRepository": ""
 	    }
-    
+
 	},
 	{
 	    "kind": "BuildConfig",
@@ -51749,7 +51754,7 @@ objects:
         jenkinsfile: |-
           try {
              timeout(time: 20, unit: 'MINUTES') {
-        
+
                 node("jenkins-slave") {
                   sh "mvn --version"
                 }
@@ -54969,7 +54974,7 @@ metadata:
   annotations:
     iconClass: icon-jenkins
     tags: instant-app,jenkins
-  name: 
+  name:
 parameters:
 - description: namespace
   displayName: namespace
@@ -55030,7 +55035,7 @@ objects:
                               echo "Created ${it.name()} from template with labels ${it.object().metadata.labels}"
                           }
 
-               
+
                       }
                   }
               }
@@ -55488,7 +55493,7 @@ objects:
 parameters:
 - name: NAME
 - name: NAMESPACE
-  
+
 `)
 
 func testExtendedTestdataOlmOperatorgroupYamlBytes() ([]byte, error) {
@@ -58222,9 +58227,9 @@ var _testExtendedTestdataRun_policySerialLatestOnlyBcYaml = []byte(`---
             imageChange: {}
         source:
           type: "Git"
-          git: 
+          git:
             uri: "https://github.com/openshift/ruby-hello-world.git"
-        strategy: 
+        strategy:
           type: "Source"
           sourceStrategy:
             from:
@@ -59971,7 +59976,7 @@ objects:
           # May not be used in combination with REQUIRE_GIT_AUTH
           #- name: REQUIRE_SERVER_AUTH
           #  value: "-"
-          
+
           # The namespace to check authorization against when
           # REQUIRE_SERVICE_AUTH is used. Users must have 'get' on
           # 'pods' to pull and 'create' on 'pods' to push.
