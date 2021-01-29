@@ -224,11 +224,7 @@ func newRunCommand() *cobra.Command {
 					return err
 				}
 				opt.Provider = config.ToJSONString()
-				matchFn, err := initializeTestFramework(exutil.TestContext, config, opt.DryRun)
-				if err != nil {
-					return err
-				}
-				opt.MatchFn = matchFn
+				opt.MatchFn = getProviderMatchFn(config)
 				opt.SyntheticEventTests = pulledInvalidImages(opt.FromRepository)
 
 				err = opt.Run(args)
@@ -306,11 +302,7 @@ func newRunUpgradeCommand() *cobra.Command {
 					return err
 				}
 				opt.Provider = config.ToJSONString()
-				matchFn, err := initializeTestFramework(exutil.TestContext, config, opt.DryRun)
-				if err != nil {
-					return err
-				}
-				opt.MatchFn = matchFn
+				opt.MatchFn = getProviderMatchFn(config)
 				opt.SyntheticEventTests = pulledInvalidImages(opt.FromRepository)
 				return opt.Run(args)
 			})
@@ -352,7 +344,7 @@ func newRunTestCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if _, err := initializeTestFramework(exutil.TestContext, config, testOpt.DryRun); err != nil {
+			if err := initializeTestFramework(exutil.TestContext, config, testOpt.DryRun); err != nil {
 				return err
 			}
 			exutil.TestContext.ReportDir = upgradeOpts.JUnitDir

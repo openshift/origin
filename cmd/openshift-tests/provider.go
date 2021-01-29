@@ -28,7 +28,7 @@ import (
 
 type TestNameMatchesFunc func(name string) bool
 
-func initializeTestFramework(context *e2e.TestContextType, config *exutilcloud.ClusterConfiguration, dryRun bool) (TestNameMatchesFunc, error) {
+func initializeTestFramework(context *e2e.TestContextType, config *exutilcloud.ClusterConfiguration, dryRun bool) error {
 	// update context with loaded config
 	context.Provider = config.ProviderName
 	context.CloudConfig = e2e.CloudConfig{
@@ -49,17 +49,20 @@ func initializeTestFramework(context *e2e.TestContextType, config *exutilcloud.C
 	var err error
 	exutil.WithCleanup(func() { err = initCSITests(dryRun) })
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := exutil.InitTest(dryRun); err != nil {
-		return nil, err
+		return err
 	}
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
 	e2e.AfterReadingAllFlags(context)
 	context.DumpLogsOnFailure = true
+	return nil
+}
 
+func getProviderMatchFn(config *exutilcloud.ClusterConfiguration) TestNameMatchesFunc {
 	// given the configuration we have loaded, skip tests that our provider should exclude
 	// or our network plugin should exclude
 	var skips []string
@@ -75,7 +78,7 @@ func initializeTestFramework(context *e2e.TestContextType, config *exutilcloud.C
 		}
 		return true
 	}
-	return matchFn, nil
+	return matchFn
 }
 
 func decodeProvider(provider string, dryRun, discover bool) (*exutilcloud.ClusterConfiguration, error) {
