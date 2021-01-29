@@ -35,7 +35,7 @@ os::cmd::expect_failure_and_text "oc new-build --binary" "you must provide a --n
 os::cmd::expect_success "oc new-build --binary --name=binary-test"
 os::cmd::expect_success_and_text "oc get bc/binary-test" 'Binary'
 
-os::cmd::expect_success 'oc delete is/binary-test bc/binary-test bc/tests'
+os::cmd::expect_success 'oc delete is/binary-test bc/binary-test is/tests bc/tests'
 
 # Build from Dockerfile with output to DockerImage
 os::cmd::expect_success "oc new-build -D \$'FROM image-registry.openshift-image-registry.svc:5000/openshift/tests:latest' --to-docker"

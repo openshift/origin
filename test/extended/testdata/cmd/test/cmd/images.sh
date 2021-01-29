@@ -100,7 +100,7 @@ os::cmd::expect_success 'oc create istag tag:8 --insecure --from-image=quay.io/o
 os::cmd::try_until_success 'oc get imagestreamtags tag:8'
 os::cmd::expect_success 'oc create imagestreamtag tag:9 --scheduled --reference-policy=Local --from-image=quay.io/openshifttest/hello-openshift:openshift'
 os::cmd::expect_success 'oc create imagestream tag-b'
-os::cmd::expect_success 'oc create imagestreamtag tag-b:1 --from=quay.io/wildfly/wildfly-centos7:19.0'
+os::cmd::expect_success 'oc create imagestreamtag tag-b:1 --from=wildfly:20.0'
 os::cmd::expect_success 'oc create imagestreamtag tag-c:1 -A annotation.with.dots=are.ok'
 
 os::cmd::expect_failure_and_text 'oc create imagestreamtag tag-c --from-image=quay.io/openshifttest/hello-openshift:openshift' 'must be of the form <stream_name>:<tag>'
@@ -108,7 +108,7 @@ os::cmd::expect_failure_and_text 'oc create imagestreamtag tag-c:1 -A foo' 'anno
 os::cmd::expect_failure_and_text 'oc create imagestreamtag tag-c:2 --from=mysql --from-image=quay.io/openshifttest/hello-openshift:openshift' '\--from and --from-image may not be used together'
 
 os::cmd::expect_success_and_text 'oc get istag/tag:1 -o jsonpath={.image.dockerImageReference}' 'wildfly-centos7.*@sha256:'
-tag1=$( oc get istag/wildfly:15.0 -o jsonpath={.image.metadata.name} )
+tag1=$( oc get istag/wildfly:20.0 -o jsonpath={.image.metadata.name} )
 os::cmd::expect_success_and_text 'oc get istag/tag-b:1 -o jsonpath={.image.metadata.name}' "${tag1}"
 os::cmd::expect_success_and_text 'oc get istag/tag:2 -o jsonpath={.image.dockerImageReference}' 'hello-openshift@sha256:'
 tag2=$( oc get istag/tag:2 -o jsonpath={.image.metadata.name} )
@@ -159,15 +159,13 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/import-image"
 # should follow the latest reference to 5.6 and update that, and leave latest unchanged
 os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 1).from.kind}}'" 'DockerImage'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'DockerImage'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 3).from.kind}}'" 'ImageStreamTag'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 3).from.name}}'" '5.7'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.name}}'" '5.7'
 # import existing tag (implicit latest)
 os::cmd::expect_success_and_text 'oc import-image mysql' 'sha256:'
 os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 1).from.kind}}'" 'DockerImage'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'DockerImage'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 3).from.kind}}'" 'ImageStreamTag'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 3).from.name}}'" '5.7'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.name}}'" '5.7'
 # should prevent changing source
 os::cmd::expect_failure_and_text 'oc import-image mysql --from=quay.io/openshifttest/hello-openshift:openshift' "use the 'tag' command if you want to change the source"
 os::cmd::expect_success 'oc describe is/mysql'
@@ -184,41 +182,41 @@ os::cmd::expect_success_and_text 'oc import-image mysql-new-single:latest --from
 os::cmd::expect_success_and_text "oc get is/mysql-new-single --template='{{(len .spec.tags)}}'" '1'
 os::cmd::expect_success 'oc delete is/mysql-new-single'
 # import creates new image stream with all tags
-os::cmd::expect_failure_and_text 'oc import-image mysql-new-all --from=mysql --all' '\-\-confirm'
-os::cmd::expect_success_and_text 'oc import-image mysql-new-all --from=mysql --all --confirm --request-timeout=1m' 'sha256:'
-name=$(oc get istag/mysql-new-all:latest --template='{{ .image.metadata.name }}')
+os::cmd::expect_failure_and_text 'oc import-image mysql-new-all --from=quay.io/openshifttest/hello-openshift --all' '\-\-confirm'
+os::cmd::expect_success_and_text 'oc import-image mysql-new-all --from=quay.io/openshifttest/hello-openshift --all --confirm --request-timeout=1m' 'sha256:'
+name=$(oc get istag/mysql-new-all:openshift --template='{{ .image.metadata.name }}')
 echo "import-image: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/tag"
 # oc tag
 os::cmd::expect_success 'oc tag mysql:latest mysql:tag1 --alias'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 5).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 4).from.kind}}'" 'ImageStreamTag'
 
 os::cmd::expect_success "oc tag mysql@${name} mysql:tag2 --alias"
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 6).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 5).from.kind}}'" 'ImageStreamImage'
 
 os::cmd::expect_success 'oc tag mysql:notfound mysql:tag3 --alias'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 7).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 6).from.kind}}'" 'ImageStreamTag'
 
 os::cmd::expect_success 'oc tag --source=imagestreamtag mysql:latest mysql:tag4 --alias'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 8).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 7).from.kind}}'" 'ImageStreamTag'
 
 os::cmd::expect_success 'oc tag --source=istag mysql:latest mysql:tag5 --alias'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 9).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 8).from.kind}}'" 'ImageStreamTag'
 
 os::cmd::expect_success "oc tag --source=imagestreamimage mysql@${name} mysql:tag6 --alias"
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 10).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 9).from.kind}}'" 'ImageStreamImage'
 
 os::cmd::expect_success "oc tag --source=isimage mysql@${name} mysql:tag7 --alias"
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 11).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 10).from.kind}}'" 'ImageStreamImage'
 
 os::cmd::expect_success 'oc tag --source=docker mysql:latest mysql:tag8 --alias'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 12).from.kind}}'" 'DockerImage'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 11).from.kind}}'" 'DockerImage'
 
 os::cmd::expect_success 'oc tag mysql:latest mysql:zzz mysql:yyy --alias'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 12).from.kind}}'" 'ImageStreamTag'
 os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 13).from.kind}}'" 'ImageStreamTag'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 14).from.kind}}'" 'ImageStreamTag'
 
 os::cmd::expect_failure_and_text 'oc tag mysql:latest tagtest:tag1 --alias' 'cannot set alias across'
 
@@ -306,10 +304,10 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/merge-tags-on-apply"
 os::cmd::expect_success 'oc new-project merge-tags'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-centos7.json'
-os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.5 latest'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.5 2.6 latest'
 os::cmd::expect_success 'oc apply -f ${TEST_DATA}/modified-ruby-imagestream.json'
-os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.5 latest newtag'
-os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[3].annotations.version}' '2.5 patched'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.5 2.6 latest newtag'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[0].annotations.version}' '2.5 patched'
 os::cmd::expect_success 'oc delete project merge-tags'
 echo "apply new imagestream tags: ok"
 os::test::junit::declare_suite_end
