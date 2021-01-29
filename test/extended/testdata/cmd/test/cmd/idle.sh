@@ -28,7 +28,6 @@ setup_idling_resources() {
     os::cmd::try_until_success 'oc describe endpoints idling-echo'
     local endpoints_json
     endpoints_json="$(oc get endpoints idling-echo -o json)"
-    os::cmd::expect_success 'oc delete service idling-echo'
     os::cmd::expect_success "echo '${endpoints_json}' | oc create -f -"
     os::cmd::expect_success 'oc describe endpoints idling-echo'
     # deployer pod won't work, so just scale up the rc ourselves
