@@ -73,8 +73,7 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 	})
 
 	g.It("should report ready nodes the entire duration of the test run [Late]", func() {
-		oc.SetupProject()
-		ns := oc.Namespace()
+		ns := oc.SetupNamespace()
 		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 		defer func() {
 			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))

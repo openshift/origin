@@ -44,8 +44,7 @@ var _ = g.Describe("[sig-storage][Late] Metrics", func() {
 
 func checkOperation(oc *exutil.CLI, url string, bearerToken string, component string, name string, threshold int) {
 	plugins := []string{"kubernetes.io/azure-disk", "kubernetes.io/aws-ebs", "kubernetes.io/gce-pd", "kubernetes.io/cinder", "kubernetes.io/vsphere-volume"}
-	oc.SetupProject()
-	ns := oc.Namespace()
+	ns := oc.SetupNamespace()
 	execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 	defer func() {
 		oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))

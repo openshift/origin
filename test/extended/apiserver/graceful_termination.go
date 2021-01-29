@@ -15,7 +15,7 @@ import (
 var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("terminating-kube-apiserver")
+	oc := exutil.NewCLIWithoutNamespace("terminating-kube-apiserver")
 
 	g.It("kubelet terminates kube-apiserver gracefully", func() {
 		t := g.GinkgoT()

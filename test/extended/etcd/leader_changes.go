@@ -15,7 +15,7 @@ import (
 
 var _ = g.Describe("[sig-etcd] etcd", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("etcd-leader-change").AsAdmin()
+	oc := exutil.NewCLIWithoutNamespace("etcd-leader-change").AsAdmin()
 	g.It("leader changes are not excessive [Late]", func() {
 		prometheus, err := client.NewE2EPrometheusRouterClient(oc)
 		o.Expect(err).ToNot(o.HaveOccurred())

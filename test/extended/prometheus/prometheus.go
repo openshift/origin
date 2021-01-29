@@ -55,8 +55,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
 			e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
 		}
-		oc.SetupProject()
-		ns := oc.Namespace()
+		ns := oc.SetupNamespace()
 		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 		defer func() {
 			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
@@ -76,8 +75,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 	})
 
 	g.It("should have a Watchdog alert in firing state the entire cluster run", func() {
-		oc.SetupProject()
-		ns := oc.Namespace()
+		ns := oc.SetupNamespace()
 		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 		defer func() {
 			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
@@ -100,8 +98,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		if !hasPullSecret(oc.AdminKubeClient(), "cloud.openshift.com") {
 			e2eskipper.Skipf("Telemetry is disabled")
 		}
-		oc.SetupProject()
-		ns := oc.Namespace()
+		ns := oc.SetupNamespace()
 
 		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 		defer func() {
@@ -147,8 +144,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			if !hasPullSecret(oc.AdminKubeClient(), "cloud.openshift.com") {
 				e2eskipper.Skipf("Telemetry is disabled")
 			}
-			oc.SetupProject()
-			ns := oc.Namespace()
+			ns := oc.SetupNamespace()
 
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
@@ -173,8 +169,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 		})
 
 		g.It("should start and expose a secured proxy and unsecured metrics", func() {
-			oc.SetupProject()
-			ns := oc.Namespace()
+			ns := oc.SetupNamespace()
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
@@ -300,8 +295,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			o.Expect(insecureTargets).To(o.BeEmpty(), "some services expose metrics over insecure channel")
 		})
 		g.It("should have a AlertmanagerReceiversNotConfigured alert in firing state", func() {
-			oc.SetupProject()
-			ns := oc.Namespace()
+			ns := oc.SetupNamespace()
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
@@ -342,8 +336,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 		g.It("should have non-Pod host cAdvisor metrics", func() {
-			oc.SetupProject()
-			ns := oc.Namespace()
+			ns := oc.SetupNamespace()
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
@@ -374,8 +367,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 		})
 		networking.InOpenShiftSDNContext(func() {
 			g.It("should be able to get the sdn ovs flows", func() {
-				oc.SetupProject()
-				ns := oc.Namespace()
+				ns := oc.SetupNamespace()
 				execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 				defer func() {
 					oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
@@ -393,8 +385,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
 				e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
 			}
-			oc.SetupProject()
-			ns := oc.Namespace()
+			ns := oc.SetupNamespace()
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
@@ -408,8 +399,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 		g.It("should provide ingress metrics", func() {
-			oc.SetupProject()
-			ns := oc.Namespace()
+			ns := oc.SetupNamespace()
 
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
@@ -446,8 +436,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 		g.It("should provide named network metrics", func() {
-			oc.SetupProject()
-			ns := oc.Namespace()
+			ns := oc.SetupNamespace()
 
 			cs, err := newDynClientSet()
 			o.Expect(err).NotTo(o.HaveOccurred())
