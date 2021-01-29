@@ -200,15 +200,15 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 		allowedPrefixes.Insert(fromRepository)
 	}
 
-	imageStreamPrefixes, err := imagePrefixesFromNamespaceImageStreams("openshift")
-	if err != nil {
-		klog.Errorf("Unable to identify image prefixes from the openshift namespace: %v", err)
-	}
-	allowedPrefixes.Insert(imageStreamPrefixes.UnsortedList()...)
-
 	// any image not in the allowed prefixes is considered a failure, as the user
 	// may have added a new test image without calling the appropriate helpers
 	return func(events monitor.EventIntervals, _ time.Duration) ([]*ginkgo.JUnitTestCase, bool) {
+		imageStreamPrefixes, err := imagePrefixesFromNamespaceImageStreams("openshift")
+		if err != nil {
+			klog.Errorf("Unable to identify image prefixes from the openshift namespace: %v", err)
+		}
+		allowedPrefixes.Insert(imageStreamPrefixes.UnsortedList()...)
+
 		allowedPrefixes := allowedPrefixes.List()
 
 		passed := true

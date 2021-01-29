@@ -42,11 +42,7 @@ type Options struct {
 
 	IncludeSuccessOutput bool
 
-	FromRepository string
-	Provider       string
-	SuiteOptions   string
-
-	Suites []*TestSuite
+	CommandEnv []string
 
 	DryRun        bool
 	PrintCommands bool
@@ -57,15 +53,12 @@ type Options struct {
 
 func (opt *Options) AsEnv() []string {
 	var args []string
-	args = append(args, "KUBE_TEST_REPO_LIST=") // explicitly prevent selective override
-	args = append(args, fmt.Sprintf("KUBE_TEST_REPO=%s", opt.FromRepository))
-	args = append(args, fmt.Sprintf("TEST_PROVIDER=%s", opt.Provider))
-	args = append(args, fmt.Sprintf("TEST_SUITE_OPTIONS=%s", opt.SuiteOptions))
 	args = append(args, fmt.Sprintf("TEST_SUITE_START_TIME=%d", opt.StartTime.Unix()))
+	args = append(args, opt.CommandEnv...)
 	return args
 }
 
-func (opt *Options) Run(args []string) error {
+func (opt *Options) SelectSuite(suites []*TestSuite, args []string) (*TestSuite, error) {
 	var suite *TestSuite
 
 	if len(opt.TestFile) > 0 {
@@ -74,26 +67,26 @@ func (opt *Options) Run(args []string) error {
 		if opt.TestFile == "-" {
 			in, err = ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		} else {
 			in, err = ioutil.ReadFile(opt.TestFile)
 		}
 		if err != nil {
-			return err
+			return nil, err
 		}
 		suite, err = newSuiteFromFile("files", in)
 		if err != nil {
-			return fmt.Errorf("could not read test suite from input: %v", err)
+			return nil, fmt.Errorf("could not read test suite from input: %v", err)
 		}
 	}
 
 	if suite == nil && len(args) == 0 {
-		fmt.Fprintf(opt.ErrOut, SuitesString(opt.Suites, "Select a test suite to run against the server:\n\n"))
-		return fmt.Errorf("specify a test suite to run, for example: %s run %s", filepath.Base(os.Args[0]), opt.Suites[0].Name)
+		fmt.Fprintf(opt.ErrOut, SuitesString(suites, "Select a test suite to run against the server:\n\n"))
+		return nil, fmt.Errorf("specify a test suite to run, for example: %s run %s", filepath.Base(os.Args[0]), suites[0].Name)
 	}
 	if suite == nil && len(args) > 0 {
-		for _, s := range opt.Suites {
+		for _, s := range suites {
 			if s.Name == args[0] {
 				suite = s
 				break
@@ -101,10 +94,13 @@ func (opt *Options) Run(args []string) error {
 		}
 	}
 	if suite == nil {
-		fmt.Fprintf(opt.ErrOut, SuitesString(opt.Suites, "Select a test suite to run against the server:\n\n"))
-		return fmt.Errorf("suite %q does not exist", args[0])
+		fmt.Fprintf(opt.ErrOut, SuitesString(suites, "Select a test suite to run against the server:\n\n"))
+		return nil, fmt.Errorf("suite %q does not exist", args[0])
 	}
+	return suite, nil
+}
 
+func (opt *Options) Run(suite *TestSuite) error {
 	if len(opt.Regex) > 0 {
 		if err := filterWithRegex(suite, opt.Regex); err != nil {
 			return err

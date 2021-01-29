@@ -1,8 +1,8 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
-	goflag "flag"
 	"fmt"
 	"io"
 	"math/rand"
@@ -18,6 +18,7 @@ import (
 
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2"
 	"k8s.io/kubectl/pkg/util/templates"
 
 	"github.com/openshift/library-go/pkg/image/reference"
@@ -27,6 +28,7 @@ import (
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/pkg/version"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/cloud"
 )
 
 func main() {
@@ -187,9 +189,66 @@ func newImagesCommand() *cobra.Command {
 	return cmd
 }
 
+type runOptions struct {
+	testginkgo.Options
+
+	FromRepository string
+	Provider       string
+
+	// Passed to the test process if set
+	UpgradeSuite string
+	ToImage      string
+	TestOptions  []string
+
+	// Shared by initialization code
+	config *cloud.ClusterConfiguration
+}
+
+func (opt *runOptions) AsEnv() []string {
+	var args []string
+	args = append(args, "KUBE_TEST_REPO_LIST=") // explicitly prevent selective override
+	args = append(args, fmt.Sprintf("KUBE_TEST_REPO=%s", opt.FromRepository))
+	args = append(args, fmt.Sprintf("TEST_PROVIDER=%s", opt.Provider))
+	args = append(args, fmt.Sprintf("TEST_JUNIT_DIR=%s", opt.JUnitDir))
+	for i := 10; i > 0; i-- {
+		if klog.V(klog.Level(i)).Enabled() {
+			args = append(args, fmt.Sprintf("TEST_LOG_LEVEL=%d", i))
+			break
+		}
+	}
+
+	if len(opt.UpgradeSuite) > 0 {
+		data, err := json.Marshal(UpgradeOptions{
+			Suite:       opt.UpgradeSuite,
+			ToImage:     opt.ToImage,
+			TestOptions: opt.TestOptions,
+		})
+		if err != nil {
+			panic(err)
+		}
+		args = append(args, fmt.Sprintf("TEST_UPGRADE_OPTIONS=%s", string(data)))
+	} else {
+		args = append(args, "TEST_UPGRADE_OPTIONS=")
+	}
+
+	return args
+}
+
+func (opt *runOptions) SelectSuite(suites testSuites, args []string) (*testSuite, error) {
+	suite, err := opt.Options.SelectSuite(suites.TestSuites(), args)
+	if err != nil {
+		return nil, err
+	}
+	for i := range suites {
+		if &suites[i].TestSuite == suite {
+			return &suites[i], nil
+		}
+	}
+	return &testSuite{TestSuite: *suite}, nil
+}
+
 func newRunCommand() *cobra.Command {
-	opt := &testginkgo.Options{
-		Suites:         staticSuites,
+	opt := &runOptions{
 		FromRepository: defaultTestImageMirrorLocation,
 	}
 
@@ -207,29 +266,33 @@ func newRunCommand() *cobra.Command {
 		command with the --file argument. You may also pipe a list of test names, one per line, on
 		standard input by passing "-f -".
 
-		`) + testginkgo.SuitesString(opt.Suites, "\n\nAvailable test suites:\n\n"),
+		`) + testginkgo.SuitesString(staticSuites.TestSuites(), "\n\nAvailable test suites:\n\n"),
 
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return mirrorToFile(opt, func() error {
-				if !opt.DryRun {
-					fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
-				}
+			return mirrorToFile(&opt.Options, func() error {
 				if err := verifyImages(); err != nil {
 					return err
 				}
-				config, err := decodeProvider(opt.Provider, opt.DryRun, true)
+				opt.SyntheticEventTests = pulledInvalidImages(opt.FromRepository)
+
+				suite, err := opt.SelectSuite(staticSuites, args)
 				if err != nil {
 					return err
 				}
-				opt.Provider = config.ToJSONString()
-				opt.MatchFn = getProviderMatchFn(config)
-				opt.SyntheticEventTests = pulledInvalidImages(opt.FromRepository)
-
-				err = opt.Run(args)
-				if !opt.DryRun && len(args) > 0 && strings.HasPrefix(args[0], "openshift/csi") {
-					printStorageCapabilities(opt.Out)
+				if suite.PreSuite != nil {
+					if err := suite.PreSuite(opt); err != nil {
+						return err
+					}
+				}
+				opt.CommandEnv = opt.AsEnv()
+				if !opt.DryRun {
+					fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
+				}
+				err = opt.Run(&suite.TestSuite)
+				if suite.PostSuite != nil {
+					suite.PostSuite(opt)
 				}
 				return err
 			})
@@ -240,11 +303,9 @@ func newRunCommand() *cobra.Command {
 }
 
 func newRunUpgradeCommand() *cobra.Command {
-	opt := &testginkgo.Options{
-		Suites:         upgradeSuites,
+	opt := &runOptions{
 		FromRepository: defaultTestImageMirrorLocation,
 	}
-	upgradeOpt := &UpgradeOptions{}
 
 	cmd := &cobra.Command{
 		Use:   "run-upgrade SUITE",
@@ -266,51 +327,45 @@ func newRunUpgradeCommand() *cobra.Command {
 		the reboot will allow the node to shut down services in an orderly fashion. If set to 'force' the
 		machine will terminate immediately without clean shutdown.
 
-		`) + testginkgo.SuitesString(opt.Suites, "\n\nAvailable upgrade suites:\n\n"),
+		`) + testginkgo.SuitesString(upgradeSuites.TestSuites(), "\n\nAvailable upgrade suites:\n\n"),
 
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return mirrorToFile(opt, func() error {
-				if !opt.DryRun {
-					fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
-				}
-				if len(upgradeOpt.ToImage) == 0 {
+			return mirrorToFile(&opt.Options, func() error {
+				if len(opt.ToImage) == 0 {
 					return fmt.Errorf("--to-image must be specified to run an upgrade test")
 				}
 				if err := verifyImages(); err != nil {
 					return err
 				}
+				opt.SyntheticEventTests = pulledInvalidImages(opt.FromRepository)
 
-				if len(args) > 0 {
-					for _, suite := range opt.Suites {
-						if suite.Name == args[0] {
-							upgradeOpt.Suite = suite.Name
-							upgradeOpt.JUnitDir = opt.JUnitDir
-							value := upgradeOpt.ToEnv()
-							if _, err := initUpgrade(value); err != nil {
-								return err
-							}
-							opt.SuiteOptions = value
-							break
-						}
-					}
-				}
-
-				config, err := decodeProvider(opt.Provider, opt.DryRun, true)
+				suite, err := opt.SelectSuite(upgradeSuites, args)
 				if err != nil {
 					return err
 				}
-				opt.Provider = config.ToJSONString()
-				opt.MatchFn = getProviderMatchFn(config)
-				opt.SyntheticEventTests = pulledInvalidImages(opt.FromRepository)
-				return opt.Run(args)
+				opt.UpgradeSuite = suite.Name
+				if suite.PreSuite != nil {
+					if err := suite.PreSuite(opt); err != nil {
+						return err
+					}
+				}
+				opt.CommandEnv = opt.AsEnv()
+				if !opt.DryRun {
+					fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
+				}
+				err = opt.Run(&suite.TestSuite)
+				if suite.PostSuite != nil {
+					suite.PostSuite(opt)
+				}
+				return err
 			})
 		},
 	}
 
 	bindOptions(opt, cmd.Flags())
-	bindUpgradeOptions(upgradeOpt, cmd.Flags())
+	bindUpgradeOptions(opt, cmd.Flags())
 	return cmd
 }
 
@@ -324,7 +379,7 @@ func newRunTestCommand() *cobra.Command {
 		Use:   "run-test NAME",
 		Short: "Run a single test by name",
 		Long: templates.LongDesc(`
-		Execute a single test
+		Execute a single test 
 
 		This executes a single test by name. It is used by the run command during suite execution but may also
 		be used to test in isolation while developing new tests.
@@ -336,10 +391,7 @@ func newRunTestCommand() *cobra.Command {
 			if err := verifyImagesWithoutEnv(); err != nil {
 				return err
 			}
-			upgradeOpts, err := initUpgrade(os.Getenv("TEST_SUITE_OPTIONS"))
-			if err != nil {
-				return err
-			}
+
 			config, err := decodeProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun, false)
 			if err != nil {
 				return err
@@ -347,7 +399,15 @@ func newRunTestCommand() *cobra.Command {
 			if err := initializeTestFramework(exutil.TestContext, config, testOpt.DryRun); err != nil {
 				return err
 			}
-			exutil.TestContext.ReportDir = upgradeOpts.JUnitDir
+
+			exutil.TestContext.ReportDir = os.Getenv("TEST_JUNIT_DIR")
+
+			// allow upgrade test to pass some parameters here, although this may be
+			// better handled as an env var within the test itself in the future
+			if err := upgradeTestPreTest(); err != nil {
+				return err
+			}
+
 			exutil.WithCleanup(func() { err = testOpt.Run(args) })
 			return err
 		},
@@ -386,11 +446,16 @@ func mirrorToFile(opt *testginkgo.Options, fn func() error) error {
 	return exitErr
 }
 
-func bindOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {
+func bindOptions(opt *runOptions, flags *pflag.FlagSet) {
+	flags.StringVar(&opt.FromRepository, "from-repository", opt.FromRepository, "A container image repository to retrieve test images from.")
+	flags.StringVar(&opt.Provider, "provider", opt.Provider, "The cluster infrastructure provider. Will automatically default to the correct value.")
+	bindTestOptions(&opt.Options, flags)
+}
+
+func bindTestOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {
 	flags.BoolVar(&opt.DryRun, "dry-run", opt.DryRun, "Print the tests to run without executing them.")
 	flags.BoolVar(&opt.PrintCommands, "print-commands", opt.PrintCommands, "Print the sub-commands that would be executed instead.")
 	flags.StringVar(&opt.JUnitDir, "junit-dir", opt.JUnitDir, "The directory to write test reports to.")
-	flags.StringVar(&opt.Provider, "provider", opt.Provider, "The cluster infrastructure provider. Will automatically default to the correct value.")
 	flags.StringVarP(&opt.TestFile, "file", "f", opt.TestFile, "Create a suite from the newline-delimited test names in this file.")
 	flags.StringVar(&opt.Regex, "run", opt.Regex, "Regular expression of tests to run.")
 	flags.StringVarP(&opt.OutFile, "output-file", "o", opt.OutFile, "Write all test output to this file.")
@@ -399,5 +464,4 @@ func bindOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {
 	flags.DurationVar(&opt.Timeout, "timeout", opt.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
 	flags.BoolVar(&opt.IncludeSuccessOutput, "include-success", opt.IncludeSuccessOutput, "Print output from successful tests.")
 	flags.IntVar(&opt.Parallelism, "max-parallel-tests", opt.Parallelism, "Maximum number of tests running in parallel. 0 defaults to test suite recommended value, which is different in each suite.")
-	flags.StringVar(&opt.FromRepository, "from-repository", opt.FromRepository, "A container image repository to retrieve test images from.")
 }
