@@ -223,6 +223,7 @@
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-stibuild.json
 // test/extended/testdata/cmd/test/cmd/testdata/convert/job-v1.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/convert/job-v2.json
+// test/extended/testdata/cmd/test/cmd/testdata/endpoints.json
 // test/extended/testdata/cmd/test/cmd/testdata/external-service.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/hello-openshift/hello-pod.json
 // test/extended/testdata/cmd/test/cmd/testdata/idling-dc.yaml
@@ -29989,7 +29990,6 @@ setup_idling_resources() {
     os::cmd::try_until_success 'oc describe endpoints idling-echo'
     local endpoints_json
     endpoints_json="$(oc get endpoints idling-echo -o json)"
-    os::cmd::expect_success 'oc delete service idling-echo'
     os::cmd::expect_success "echo '${endpoints_json}' | oc create -f -"
     os::cmd::expect_success 'oc describe endpoints idling-echo'
     # deployer pod won't work, so just scale up the rc ourselves
@@ -34451,6 +34451,104 @@ func testExtendedTestdataCmdTestCmdTestdataConvertJobV2Json() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/convert/job-v2.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataEndpointsJson = []byte(`{
+    "apiVersion": "v1",
+    "kind": "Endpoints",
+    "metadata": {
+        "annotations": {
+            "endpoints.kubernetes.io/last-change-trigger-time": "2021-01-29T15:04:43Z"
+        },
+        "creationTimestamp": "2021-01-29T15:01:49Z",
+        "labels": {
+            "app": "idling-echo"
+        },
+        "managedFields": [
+            {
+                "apiVersion": "v1",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                    "f:metadata": {
+                        "f:annotations": {
+                            ".": {},
+                            "f:endpoints.kubernetes.io/last-change-trigger-time": {}
+                        },
+                        "f:labels": {
+                            ".": {},
+                            "f:app": {}
+                        }
+                    },
+                    "f:subsets": {}
+                },
+                "manager": "kube-controller-manager",
+                "operation": "Update",
+                "time": "2021-01-29T15:04:43Z"
+            }
+        ],
+        "name": "idling-echo",
+        "namespace": "test",
+        "resourceVersion": "70348",
+        "selfLink": "/api/v1/namespaces/test/endpoints/idling-echo",
+        "uid": "311517e0-a362-42e2-af9c-00b2448badad"
+    },
+    "subsets": [
+        {
+            "addresses": [
+                {
+                    "ip": "10.128.2.35",
+                    "nodeName": "ip-10-0-193-0.us-west-1.compute.internal",
+                    "targetRef": {
+                        "kind": "Pod",
+                        "name": "idling-echo-drz4f-1-6p7wp",
+                        "namespace": "test",
+                        "resourceVersion": "70342",
+                        "uid": "0e204da7-9927-4ba8-93be-2143aff73a6f"
+                    }
+                },
+                {
+                    "ip": "10.129.2.96",
+                    "nodeName": "ip-10-0-131-116.us-west-1.compute.internal",
+                    "targetRef": {
+                        "kind": "Pod",
+                        "name": "idling-echo-drz4f-1-pdrgz",
+                        "namespace": "test",
+                        "resourceVersion": "70347",
+                        "uid": "6339ce9e-4681-49bb-8e6e-3146ed2df6b2"
+                    }
+                }
+            ],
+            "ports": [
+                {
+                    "name": "tcp-echo",
+                    "port": 8675,
+                    "protocol": "TCP"
+                },
+                {
+                    "name": "udp-echo",
+                    "port": 3090,
+                    "protocol": "UDP"
+                }
+            ]
+        }
+    ]
+}
+
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataEndpointsJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataEndpointsJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataEndpointsJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataEndpointsJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/endpoints.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -53695,6 +53793,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/testdata/application-template-stibuild.json":                        testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/convert/job-v1.yaml":                                       testExtendedTestdataCmdTestCmdTestdataConvertJobV1Yaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/convert/job-v2.json":                                       testExtendedTestdataCmdTestCmdTestdataConvertJobV2Json,
+	"test/extended/testdata/cmd/test/cmd/testdata/endpoints.json":                                            testExtendedTestdataCmdTestCmdTestdataEndpointsJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/external-service.yaml":                                     testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/hello-openshift/hello-pod.json":                            testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/idling-dc.yaml":                                            testExtendedTestdataCmdTestCmdTestdataIdlingDcYaml,
@@ -54341,6 +54440,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 									"job-v1.yaml": {testExtendedTestdataCmdTestCmdTestdataConvertJobV1Yaml, map[string]*bintree{}},
 									"job-v2.json": {testExtendedTestdataCmdTestCmdTestdataConvertJobV2Json, map[string]*bintree{}},
 								}},
+								"endpoints.json":        {testExtendedTestdataCmdTestCmdTestdataEndpointsJson, map[string]*bintree{}},
 								"external-service.yaml": {testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml, map[string]*bintree{}},
 								"hello-openshift": {nil, map[string]*bintree{
 									"hello-pod.json": {testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson, map[string]*bintree{}},
