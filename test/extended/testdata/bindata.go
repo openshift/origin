@@ -28979,7 +28979,7 @@ os::cmd::expect_failure_and_text "oc new-build --binary" "you must provide a --n
 os::cmd::expect_success "oc new-build --binary --name=binary-test"
 os::cmd::expect_success_and_text "oc get bc/binary-test" 'Binary'
 
-os::cmd::expect_success 'oc delete is/binary-test bc/binary-test bc/tests'
+os::cmd::expect_success 'oc delete is/binary-test bc/binary-test is/tests bc/tests'
 
 # Build from Dockerfile with output to DockerImage
 os::cmd::expect_success "oc new-build -D \$'FROM image-registry.openshift-image-registry.svc:5000/openshift/tests:latest' --to-docker"
@@ -31661,7 +31661,7 @@ trap os::test::junit::reconcile_output EXIT
 # Test that resource printer includes resource kind on multiple resources
 os::test::junit::declare_suite_start "cmd/basicresources/printer"
 os::cmd::expect_success 'oc create imagestream test1'
-os::cmd::expect_success 'oc new-app node'
+os::cmd::expect_success 'oc new-app openshift/nodejs'
 os::cmd::expect_success_and_text 'oc get all' 'imagestream.image.openshift.io/test1'
 os::cmd::expect_success_and_not_text 'oc get is' 'imagestream.image.openshift.io/test1'
 
@@ -31671,9 +31671,9 @@ os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample' 'deployment
 os::cmd::expect_success_and_text 'oc get all --all-namespaces' 'cmd-printer[\ ]+buildconfig.build.openshift.io\/ruby\-sample\-build'
 
 # Test that infos printer supports all outputFormat options
-os::cmd::expect_success_and_text 'oc new-app node --dry-run -o yaml | oc set env --local -f - MYVAR=value' 'deployment.*.apps.*/node updated'
-os::cmd::expect_success_and_text 'oc new-app node --dry-run -o yaml | oc set env --local -f - MYVAR=value -o yaml' 'apiVersion: apps.*/v1'
-os::cmd::expect_success_and_text 'oc new-app node --dry-run -o yaml | oc set env --local -f - MYVAR=value -o json' '"apiVersion": "apps.*/v1"'
+os::cmd::expect_success_and_text 'oc new-app openshift/nodejs --dry-run -o yaml | oc set env --local -f - MYVAR=value' 'deployment.*.apps.*/nodejs updated'
+os::cmd::expect_success_and_text 'oc new-app openshift/nodejs --dry-run -o yaml | oc set env --local -f - MYVAR=value -o yaml' 'apiVersion: apps.*/v1'
+os::cmd::expect_success_and_text 'oc new-app openshift/nodejs --dry-run -o yaml | oc set env --local -f - MYVAR=value -o json' '"apiVersion": "apps.*/v1"'
 echo "resource printer: ok"
 os::test::junit::declare_suite_end
 `)
