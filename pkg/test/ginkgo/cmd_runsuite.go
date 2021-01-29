@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor"
-	"github.com/openshift/origin/test/extended/util/operator"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/onsi/ginkgo/config"
@@ -26,6 +25,7 @@ import (
 type Options struct {
 	Parallelism int
 	Count       int
+	FailFast    bool
 	Timeout     time.Duration
 	JUnitDir    string
 	TestFile    string
@@ -149,18 +149,8 @@ func (opt *Options) Run(args []string) error {
 	}
 
 	count := opt.Count
-	if count < 1 {
+	if count == 0 {
 		count = suite.Count
-	}
-	if count > 1 {
-		var newTests []*testCase
-		for i := 0; i < count; i++ {
-			for _, t := range tests {
-				copied := *t
-				newTests = append(newTests, &copied)
-			}
-		}
-		tests = newTests
 	}
 
 	start := time.Now()
@@ -170,7 +160,7 @@ func (opt *Options) Run(args []string) error {
 
 	if opt.PrintCommands {
 		status := newTestStatus(opt.Out, true, len(tests), time.Minute, &monitor.Monitor{}, opt.AsEnv())
-		newParallelTestQueue(tests).Execute(context.Background(), 1, status.OutputCommand)
+		newParallelTestQueue().Execute(context.Background(), tests, 1, status.OutputCommand)
 		return nil
 	}
 	if opt.DryRun {
@@ -230,17 +220,9 @@ func (opt *Options) Run(args []string) error {
 	}
 	// if we run a single test, always include success output
 	includeSuccess := opt.IncludeSuccessOutput
-	if len(tests) == 1 {
+	if len(tests) == 1 && count == 1 {
 		includeSuccess = true
-	} else {
-		// if we're running more than one test, check stability before we start.  This doesn't impact test result, but
-		// provides a clear log if we aren't running on a stable cluster.
-		err := operator.WaitForOperatorsToSettleWithDefaultClient(ctx)
-		if err != nil {
-			fmt.Printf("Operators are not yet stable, continuing: %v\n", err)
-		}
 	}
-	status := newTestStatus(opt.Out, includeSuccess, len(tests), timeout, m, opt.AsEnv())
 
 	early, normal := splitTests(tests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Early]")
@@ -250,19 +232,47 @@ func (opt *Options) Run(args []string) error {
 		return strings.Contains(t.name, "[Late]")
 	})
 
-	// run the tests
+	expectedTestCount := len(early) + len(late)
+	if count != -1 {
+		original := normal
+		for i := 1; i < count; i++ {
+			normal = append(normal, copyTests(original)...)
+		}
+	}
+	expectedTestCount += len(normal)
 
-	// run our Early tests first
-	q := newParallelTestQueue(early)
-	q.Execute(ctx, parallelism, status.Run)
+	status := newTestStatus(opt.Out, includeSuccess, expectedTestCount, timeout, m, opt.AsEnv())
+	testCtx := ctx
+	if opt.FailFast {
+		var cancelFn context.CancelFunc
+		testCtx, cancelFn = context.WithCancel(testCtx)
+		status.AfterTest(func(t *testCase) {
+			if t.failed {
+				cancelFn()
+			}
+		})
+	}
 
-	// run other tests next
-	q = newParallelTestQueue(normal)
-	q.Execute(ctx, parallelism, status.Run)
+	tests = nil
+
+	// run our Early tests
+	q := newParallelTestQueue()
+	q.Execute(testCtx, early, parallelism, status.Run)
+	tests = append(tests, early...)
+
+	// repeat the normal suite until context cancel when in the forever loop
+	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
+		copied := copyTests(normal)
+		q.Execute(testCtx, copied, parallelism, status.Run)
+		tests = append(tests, copied...)
+	}
 
 	// run Late test suits after everything else
-	q = newParallelTestQueue(late)
-	q.Execute(ctx, parallelism, status.Run)
+	q.Execute(testCtx, late, parallelism, status.Run)
+	tests = append(tests, late...)
+
+	// calculate the effective test set we ran, excluding any incompletes
+	tests, _ = splitTests(tests, func(t *testCase) bool { return t.success || t.failed || t.skipped })
 
 	duration := time.Now().Sub(start).Round(time.Second / 10)
 	if duration > time.Minute {
@@ -326,9 +336,9 @@ func (opt *Options) Run(args []string) error {
 			}
 		}
 
-		q := newParallelTestQueue(retries)
+		q := newParallelTestQueue()
 		status := newTestStatus(ioutil.Discard, opt.IncludeSuccessOutput, len(retries), timeout, m, opt.AsEnv())
-		q.Execute(ctx, parallelism, status.Run)
+		q.Execute(testCtx, retries, parallelism, status.Run)
 		var flaky []string
 		var repeatFailures []*testCase
 		for _, test := range retries {

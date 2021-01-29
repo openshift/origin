@@ -22,6 +22,8 @@ type testStatus struct {
 	monitor monitor.Interface
 	env     []string
 
+	afterTestFn func(t *testCase)
+
 	includeSuccessfulOutput bool
 
 	lock     sync.Mutex
@@ -42,19 +44,65 @@ func newTestStatus(out io.Writer, includeSuccessfulOutput bool, total int, timeo
 	}
 }
 
-func (s *testStatus) Failure() {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	s.failures++
+// AfterTest registers a function to be invoked after each test completes.
+func (s *testStatus) AfterTest(fn func(t *testCase)) {
+	s.afterTestFn = fn
 }
 
-func (s *testStatus) Fprintf(format string) {
+// fprintf formats the provided string with the status of the test with arguments failures, index, and total
+func (s *testStatus) fprintf(format string) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	if s.index < s.total {
 		s.index++
+	} else {
+		s.index++
+		s.total++
 	}
 	fmt.Fprintf(s.out, format, s.failures, s.index, s.total)
+}
+
+// finalizeTest outputs the result of the test to s.out, increments s.failures if necessary,
+// and invokes afterTestFn if registered.
+func (s *testStatus) finalizeTest(test *testCase) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	// executed under the lock deliberately to prevent races in client code
+	if s.afterTestFn != nil {
+		defer s.afterTestFn(test)
+	}
+
+	// output the status of the test
+	switch {
+	case test.flake:
+		s.out.Write(test.out)
+		fmt.Fprintln(s.out)
+		fmt.Fprintf(s.out, "flaked: (%s) %s %q\n\n", test.duration, test.end.UTC().Format("2006-01-02T15:04:05"), test.name)
+	case test.success:
+		if s.includeSuccessfulOutput {
+			s.out.Write(test.out)
+			fmt.Fprintln(s.out)
+		}
+		fmt.Fprintf(s.out, "passed: (%s) %s %q\n\n", test.duration, test.end.UTC().Format("2006-01-02T15:04:05"), test.name)
+	case test.skipped:
+		if s.includeSuccessfulOutput {
+			s.out.Write(test.out)
+			fmt.Fprintln(s.out)
+		} else {
+			message := lastLinesUntil(string(test.out), 100, "skip [")
+			if len(message) > 0 {
+				fmt.Fprintln(s.out, message)
+				fmt.Fprintln(s.out)
+			}
+		}
+		fmt.Fprintf(s.out, "skipped: (%s) %s %q\n\n", test.duration, test.end.UTC().Format("2006-01-02T15:04:05"), test.name)
+	case test.failed:
+		s.failures++
+		s.out.Write(test.out)
+		fmt.Fprintln(s.out)
+		fmt.Fprintf(s.out, "failed: (%s) %s %q\n\n", test.duration, test.end.UTC().Format("2006-01-02T15:04:05"), test.name)
+	}
 }
 
 // OutputCommand prints to stdout what would have been executed.
@@ -69,42 +117,12 @@ func (s *testStatus) OutputCommand(ctx context.Context, test *testCase) {
 }
 
 func (s *testStatus) Run(ctx context.Context, test *testCase) {
-	defer func() {
-		switch {
-		case test.flake:
-			s.out.Write(test.out)
-			fmt.Fprintln(s.out)
-			fmt.Fprintf(s.out, "flaked: (%s) %s %q\n\n", test.duration, test.end.UTC().Format("2006-01-02T15:04:05"), test.name)
-		case test.success:
-			if s.includeSuccessfulOutput {
-				s.out.Write(test.out)
-				fmt.Fprintln(s.out)
-			}
-			fmt.Fprintf(s.out, "passed: (%s) %s %q\n\n", test.duration, test.end.UTC().Format("2006-01-02T15:04:05"), test.name)
-		case test.skipped:
-			if s.includeSuccessfulOutput {
-				s.out.Write(test.out)
-				fmt.Fprintln(s.out)
-			} else {
-				message := lastLinesUntil(string(test.out), 100, "skip [")
-				if len(message) > 0 {
-					fmt.Fprintln(s.out, message)
-					fmt.Fprintln(s.out)
-				}
-			}
-			fmt.Fprintf(s.out, "skipped: (%s) %s %q\n\n", test.duration, test.end.UTC().Format("2006-01-02T15:04:05"), test.name)
-		case test.failed:
-			s.out.Write(test.out)
-			fmt.Fprintln(s.out)
-			fmt.Fprintf(s.out, "failed: (%s) %s %q\n\n", test.duration, test.end.UTC().Format("2006-01-02T15:04:05"), test.name)
-			s.Failure()
-		}
-	}()
+	defer s.finalizeTest(test)
 
 	test.start = time.Now()
 	c := exec.Command(os.Args[0], "run-test", test.name)
 	c.Env = append(os.Environ(), s.env...)
-	s.Fprintf(fmt.Sprintf("started: (%s) %q\n\n", "%d/%d/%d", test.name))
+	s.fprintf(fmt.Sprintf("started: (%s) %q\n\n", "%d/%d/%d", test.name))
 	out, err := runWithTimeout(ctx, c, s.timeout)
 	test.end = time.Now()
 
@@ -118,6 +136,15 @@ func (s *testStatus) Run(ctx context.Context, test *testCase) {
 		test.success = true
 		return
 	}
+
+	if ctx.Err() != nil {
+		test.skipped = true
+		test.flake = false
+		test.failed = false
+		test.success = false
+		return
+	}
+
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		switch exitErr.ProcessState.Sys().(syscall.WaitStatus).ExitStatus() {
 		case 1:
