@@ -3,7 +3,7 @@ package tokencmd
 import (
 	"net/http"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"

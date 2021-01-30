@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // Negotiator defines the minimal interface needed to interact with GSSAPI to perform a negotiate challenge/response

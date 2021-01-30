@@ -51,7 +51,7 @@ func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
-	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
+	//pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 
 	root := &cobra.Command{
 		Long: templates.LongDesc(`
@@ -72,6 +72,8 @@ func main() {
 		cmd.NewRunResourceWatchCommand(),
 	)
 
+	f := flag.CommandLine.Lookup("v")
+	root.PersistentFlags().AddGoFlag(f)
 	pflag.CommandLine = pflag.NewFlagSet("empty", pflag.ExitOnError)
 	flag.CommandLine = flag.NewFlagSet("empty", flag.ExitOnError)
 	exutil.InitStandardFlags()
@@ -388,6 +390,10 @@ func newRunTestCommand() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if v := os.Getenv("TEST_LOG_LEVEL"); len(v) > 0 {
+				cmd.Flags().Lookup("v").Value.Set(v)
+			}
+
 			if err := verifyImagesWithoutEnv(); err != nil {
 				return err
 			}
@@ -399,6 +405,7 @@ func newRunTestCommand() *cobra.Command {
 			if err := initializeTestFramework(exutil.TestContext, config, testOpt.DryRun); err != nil {
 				return err
 			}
+			klog.V(4).Infof("Loaded test configuration: %#v", exutil.TestContext)
 
 			exutil.TestContext.ReportDir = os.Getenv("TEST_JUNIT_DIR")
 
