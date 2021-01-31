@@ -99,10 +99,14 @@ var staticSuites = testSuites{
 		The disruptive test suite.
 		`),
 			Matches: func(name string) bool {
-				if isDisabled(name) || strings.Contains(name, "[Skipped:Disruptive]") {
+				if isDisabled(name) {
 					return false
 				}
-				return strings.Contains(name, "[Feature:EtcdRecovery]") || strings.Contains(name, "[Feature:NodeRecovery]") || isStandardEarlyOrLateTest(name)
+				// excluded due to stopped instance handling until https://bugzilla.redhat.com/show_bug.cgi?id=1905709 is fixed
+				if strings.Contains(name, "Cluster should survive master and worker failure and recover with machine health checks") {
+					return false
+				}
+				return strings.Contains(name, "[Feature:EtcdRecovery]") || strings.Contains(name, "[Feature:NodeRecovery]") || isStandardEarlyTest(name)
 
 			},
 			TestTimeout:         60 * time.Minute,
@@ -343,6 +347,15 @@ var staticSuites = testSuites{
 			},
 		},
 	},
+}
+
+// isStandardEarlyTest returns true if a test is considered part of the normal
+// pre or post condition tests.
+func isStandardEarlyTest(name string) bool {
+	if !strings.Contains(name, "[Early]") {
+		return false
+	}
+	return strings.Contains(name, "[Suite:openshift/conformance/parallel")
 }
 
 // isStandardEarlyOrLateTest returns true if a test is considered part of the normal

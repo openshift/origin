@@ -547,9 +547,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and stop sending requests": "API LBs follow /readyz of kube-apiserver and stop sending requests [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] kube-apiserver terminates within graceful termination period": "kube-apiserver terminates within graceful termination period [Skipped:Disruptive] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] kube-apiserver terminates within graceful termination period": "kube-apiserver terminates within graceful termination period [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] kubelet terminates kube-apiserver gracefully": "kubelet terminates kube-apiserver gracefully [Skipped:Disruptive] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] kubelet terminates kube-apiserver gracefully": "kubelet terminates kube-apiserver gracefully [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-api-machinery][Feature:Audit] Basic audit should audit API calls": "should audit API calls [Disabled:SpecialConfig]",
 
@@ -1625,7 +1625,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cluster-lifecycle] Pods cannot access the /config/master API endpoint": "Pods cannot access the /config/master API endpoint [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive] [Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks": "[Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks [Serial] [Skipped:Disruptive]",
+	"[Top Level] [sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive] [Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks": "[Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks [Serial]",
 
 	"[Top Level] [sig-cluster-lifecycle][Feature:Machines] Managed cluster should have machine resources": "have machine resources [Suite:openshift/conformance/parallel]",
 
@@ -1883,7 +1883,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation][Late] Alerts should have a Watchdog alert in firing state the entire cluster run": "should have a Watchdog alert in firing state the entire cluster run [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster": "shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster [Skipped:Disruptive] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster": "shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured": "shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Suite:openshift/conformance/parallel]",
 
