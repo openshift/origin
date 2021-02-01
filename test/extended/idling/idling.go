@@ -211,7 +211,6 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 		oc                  = exutil.NewCLI("cli-idling").Verbose()
 		echoServerFixture   = exutil.FixturePath("testdata", "idling-echo-server.yaml")
 		echoServerRcFixture = exutil.FixturePath("testdata", "idling-echo-server-rc.yaml")
-		framework           = oc.KubeFramework()
 	)
 
 	// path to the fixture
@@ -258,7 +257,6 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 	g.Describe("idling [Local]", func() {
 		g.Context("with a single service and DeploymentConfig", func() {
 			g.BeforeEach(func() {
-				framework.BeforeEach()
 				fixture = echoServerFixture
 			})
 
@@ -269,7 +267,6 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 
 		g.Context("with a single service and ReplicationController", func() {
 			g.BeforeEach(func() {
-				framework.BeforeEach()
 				fixture = echoServerRcFixture
 			})
 
@@ -281,7 +278,6 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 
 	g.Describe("unidling", func() {
 		g.BeforeEach(func() {
-			framework.BeforeEach()
 			fixture = echoServerFixture
 		})
 
