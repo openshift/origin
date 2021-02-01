@@ -197,8 +197,9 @@ func checkSingleIdle(oc *exutil.CLI, idlingFile string, resources map[string][]s
 		{
 			Replicas: 2,
 			CrossGroupObjectReference: unidlingapi.CrossGroupObjectReference{
-				Name: resources[resourceName][0],
-				Kind: kind,
+				Name:  resources[resourceName][0],
+				Kind:  kind,
+				Group: "apps.openshift.io",
 			},
 		},
 	}))
