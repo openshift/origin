@@ -241,24 +241,31 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 func waitForRouterOKResponseExec(ns, execPodName, url, host string, timeoutSeconds int) error {
 	cmd := fmt.Sprintf(`
 		set -e
-		STOP=$(($(date '+%%s') + %d))
+		pass=%[4]d
+		STOP=$(($(date '+%%s') + %[1]d))
 		while [ $(date '+%%s') -lt $STOP ]; do
 			rc=0
-			code=$( curl -k -s -m 5 -o /dev/null -w '%%{http_code}\n' --header 'Host: %s' %q ) || rc=$?
+			code=$( curl -k -s -m 5 -o /dev/null -w '%%{http_code}\n' --header 'Host: %[2]s' %[3]q ) || rc=$?
 			if [[ "${rc:-0}" -eq 0 ]]; then
 				echo $code
 				if [[ $code -eq 200 ]]; then
-					exit 0
+					pass=$(( pass - 1 ))
+					if [[ $pass -le 0 ]]; then
+						exit 0
+					fi
+					sleep 1
+					continue
 				fi
 				if [[ $code -ne 503 ]]; then
 					exit 1
 				fi
+				pass=%[4]d
 			else
 				echo "error ${rc}" 1>&2
 			fi
 			sleep 1
 		done
-		`, timeoutSeconds, host, url)
+		`, timeoutSeconds, host, url, 5)
 	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
 		return fmt.Errorf("host command failed: %v\n%s", err, output)
