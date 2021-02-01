@@ -1897,7 +1897,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should pass the http2 tests": "should pass the http2 tests [Suite:openshift/conformance/parallel/minimal]",
 
-	"[Top Level] [sig-network-edge][Feature:Idling] Idling and unidling idling [Local] with a single service and DeploymentConfig should idle the service and DeploymentConfig properly": "should idle the service and DeploymentConfig properly [Disabled:Broken]",
+	"[Top Level] [sig-network-edge][Feature:Idling] Idling and unidling idling [Local] with a single service and DeploymentConfig should idle the service and DeploymentConfig properly": "should idle the service and DeploymentConfig properly",
 
 	"[Top Level] [sig-network-edge][Feature:Idling] Idling and unidling idling [Local] with a single service and ReplicationController should idle the service and ReplicationController properly": "should idle the service and ReplicationController properly",
 
