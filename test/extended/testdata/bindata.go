@@ -30239,10 +30239,10 @@ os::cmd::expect_success 'oc create istag tag:8 --insecure --from-image=quay.io/o
 os::cmd::try_until_success 'oc get imagestreamtags tag:8'
 os::cmd::expect_success 'oc create imagestreamtag tag:9 --scheduled --reference-policy=Local --from-image=quay.io/openshifttest/hello-openshift:openshift'
 os::cmd::expect_success 'oc create imagestream tag-b'
-os::cmd::expect_success 'oc create imagestreamtag tag-b:1 --from-image=quay.io/wildfly/wildfly-centos7:19.0'
+os::cmd::expect_success 'oc create imagestreamtag tag-b:1 --from-image=quay.io/wildfly/wildfly-centos7:20.0'
 os::cmd::expect_success 'oc create imagestreamtag tag-c:1 -A annotation.with.dots=are.ok'
 
-os::cmd::expect_failure_and_text 'oc create imagestreamtag tag-b:1 --from=quay.io/wildfly/wildfly-centos7:19.0' 'registry may not be specified'
+os::cmd::expect_failure_and_text 'oc create imagestreamtag tag-b:1 --from=quay.io/wildfly/wildfly-centos7:20.0' 'registry may not be specified'
 os::cmd::expect_failure_and_text 'oc create imagestreamtag tag-c --from-image=quay.io/openshifttest/hello-openshift:openshift' 'must be of the form <stream_name>:<tag>'
 os::cmd::expect_failure_and_text 'oc create imagestreamtag tag-c:1 -A foo' 'annotations must be of the form key=value, but is "foo"'
 os::cmd::expect_failure_and_text 'oc create imagestreamtag tag-c:2 --from=mysql --from-image=quay.io/openshifttest/hello-openshift:openshift' '\--from and --from-image may not be used together'
