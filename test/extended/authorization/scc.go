@@ -14,7 +14,7 @@ import (
 var _ = g.Describe("[sig-auth][Feature:SCC][Early]", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("working-scc-during-install")
+	oc := exutil.NewCLIWithoutNamespace("working-scc-during-install")
 
 	g.It("should not have pod creation failures during install", func() {
 		kubeClient := oc.AdminKubeClient()

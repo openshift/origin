@@ -14,7 +14,7 @@ import (
 var _ = g.Describe("[sig-node][Late]", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("no-systemd-timeouts")
+	oc := exutil.NewCLIWithoutNamespace("no-systemd-timeouts")
 
 	g.It("should not have pod creation failures due to systemd timeouts", func() {
 		kubeClient := oc.AdminKubeClient()

@@ -996,9 +996,35 @@ func WaitForServiceAccount(c corev1client.ServiceAccountInterface, name string) 
 	return wait.Poll(100*time.Millisecond, 3*time.Minute, waitFn)
 }
 
-// WaitForNamespaceSCCAnnotations waits up to 2 minutes for the cluster-policy-controller to add the SCC related
+// WaitForNamespaceSCCAnnotations waits up to 30s for the cluster-policy-controller to add the SCC related
 // annotations to the provided namespace.
-func WaitForNamespaceSCCAnnotations(c projectv1typedclient.ProjectV1Interface, name string) error {
+func WaitForNamespaceSCCAnnotations(c corev1client.CoreV1Interface, name string) error {
+	waitFn := func() (bool, error) {
+		ns, err := c.Namespaces().Get(context.Background(), name, metav1.GetOptions{})
+		if err != nil {
+			// it is assumed the project was created prior to calling this, so we
+			// do not distinguish not found errors
+			return false, err
+		}
+		if ns.Annotations == nil {
+			return false, nil
+		}
+		for k := range ns.Annotations {
+			// annotations to check based off of
+			// https://github.com/openshift/cluster-policy-controller/blob/master/pkg/security/controller/namespace_scc_allocation_controller.go#L112
+			if k == securityv1.UIDRangeAnnotation {
+				return true, nil
+			}
+		}
+		e2e.Logf("namespace %s current annotation set: %#v", name, ns.Annotations)
+		return false, nil
+	}
+	return wait.Poll(time.Duration(250*time.Millisecond), 30*time.Minute, waitFn)
+}
+
+// WaitForProjectSCCAnnotations waits up to 30s for the cluster-policy-controller to add the SCC related
+// annotations to the provided namespace.
+func WaitForProjectSCCAnnotations(c projectv1typedclient.ProjectV1Interface, name string) error {
 	waitFn := func() (bool, error) {
 		proj, err := c.Projects().Get(context.Background(), name, metav1.GetOptions{})
 		if err != nil {
@@ -1019,7 +1045,7 @@ func WaitForNamespaceSCCAnnotations(c projectv1typedclient.ProjectV1Interface, n
 		e2e.Logf("project %s current annotation set: %#v", name, proj.Annotations)
 		return false, nil
 	}
-	return wait.Poll(time.Duration(15*time.Second), 2*time.Minute, waitFn)
+	return wait.Poll(time.Duration(500*time.Millisecond), 30*time.Minute, waitFn)
 }
 
 // WaitForAnImageStream waits for an ImageStream to fulfill the isOK function

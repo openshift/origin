@@ -1991,10 +1991,8 @@ k8s.io/cri-api/pkg/apis/runtime/v1alpha2
 # k8s.io/csi-translation-lib v0.0.0 => github.com/openshift/kubernetes/staging/src/k8s.io/csi-translation-lib v0.0.0-20210107082038-74cd459bbb9c
 k8s.io/csi-translation-lib
 k8s.io/csi-translation-lib/plugins
-# k8s.io/klog v1.0.0 => k8s.io/klog v1.0.0
-## explicit
-k8s.io/klog
 # k8s.io/klog/v2 v2.4.0
+## explicit
 k8s.io/klog/v2
 # k8s.io/kube-aggregator v0.20.0 => github.com/openshift/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20210107082038-74cd459bbb9c
 k8s.io/kube-aggregator/pkg/apis/apiregistration

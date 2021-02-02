@@ -11,7 +11,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
@@ -200,15 +200,15 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 		allowedPrefixes.Insert(fromRepository)
 	}
 
-	imageStreamPrefixes, err := imagePrefixesFromNamespaceImageStreams("openshift")
-	if err != nil {
-		klog.Errorf("Unable to identify image prefixes from the openshift namespace: %v", err)
-	}
-	allowedPrefixes.Insert(imageStreamPrefixes.UnsortedList()...)
-
 	// any image not in the allowed prefixes is considered a failure, as the user
 	// may have added a new test image without calling the appropriate helpers
 	return func(events monitor.EventIntervals, _ time.Duration) ([]*ginkgo.JUnitTestCase, bool) {
+		imageStreamPrefixes, err := imagePrefixesFromNamespaceImageStreams("openshift")
+		if err != nil {
+			klog.Errorf("Unable to identify image prefixes from the openshift namespace: %v", err)
+		}
+		allowedPrefixes.Insert(imageStreamPrefixes.UnsortedList()...)
+
 		allowedPrefixes := allowedPrefixes.List()
 
 		passed := true

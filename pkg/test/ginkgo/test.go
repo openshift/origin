@@ -63,10 +63,6 @@ type TestSuite struct {
 
 	Matches func(name string) bool
 
-	// Init should be run once before a test in this suite is run. Not called by
-	// methods in this package.
-	Init func(map[string]string) error
-
 	// The number of times to execute each test in this suite.
 	Count int
 	// The maximum parallelism of this suite.
