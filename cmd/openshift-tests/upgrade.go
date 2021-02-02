@@ -26,6 +26,9 @@ var upgradeSuites = testSuites{
 		Run all tests.
 		`),
 			Matches: func(name string) bool {
+				if isStandardEarlyTest(name) {
+					return true
+				}
 				return strings.Contains(name, "[Feature:ClusterUpgrade]") && !strings.Contains(name, "[Suite:k8s]")
 			},
 			TestTimeout: 240 * time.Minute,
@@ -39,6 +42,9 @@ var upgradeSuites = testSuites{
 		Run only the tests that verify the platform remains available.
 		`),
 			Matches: func(name string) bool {
+				if isStandardEarlyTest(name) {
+					return true
+				}
 				return strings.Contains(name, "[Feature:ClusterUpgrade]") && !strings.Contains(name, "[Suite:k8s]")
 			},
 			TestTimeout: 240 * time.Minute,
