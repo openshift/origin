@@ -83,8 +83,8 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 		testDuration := exutil.DurationSinceStartInSeconds().String()
 
 		tests := map[string]bool{
-			// all nodes should be reporting ready throughout the entire run
-			fmt.Sprintf(`min by (node) (avg_over_time(kube_node_status_condition{condition="Ready",status="true"}[%[1]s])) < 1`, testDuration): false,
+			// all nodes should be reporting ready throughout the entire run, as long as they are older than 6m
+			fmt.Sprintf(`(min_over_time((max by (node) (kube_node_status_condition{condition="Ready",status="true"}) and (((max by (node) (kube_node_status_condition))) and (0*max by (node) (kube_node_status_condition offset 6m))))[%s:1s])) < 1`, testDuration): false,
 		}
 		err := prometheus.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 		o.Expect(err).NotTo(o.HaveOccurred())
