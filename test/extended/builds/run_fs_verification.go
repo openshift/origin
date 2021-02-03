@@ -101,6 +101,31 @@ secrets
 
 /run/secrets:
 `
+		lsRSlashRunRhel7 = `
+/run:
+lock
+rhsm
+secrets
+
+/run/lock:
+
+/run/rhsm:
+
+/run/secrets:
+rhsm
+
+/run/secrets/rhsm:
+ca
+logging.conf
+rhsm.conf
+syspurpose
+
+/run/secrets/rhsm/ca:
+redhat-uep.pem
+
+/run/secrets/rhsm/syspurpose:
+valid_fields.json
+`
 	)
 
 	g.Context("", func() {
@@ -131,7 +156,11 @@ secrets
 				logs, err := br.LogsNoTimestamp()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				hasRightListing := false
-				if strings.Contains(logs, lsRSlashRun) || strings.Contains(logs, lsRSlashRunFIPS) || strings.Contains(logs, lsRSlashRunOKD) {
+				if strings.Contains(logs, lsRSlashRun) ||
+					strings.Contains(logs, lsRSlashRunFIPS) ||
+					strings.Contains(logs, lsRSlashRunOKD) ||
+					strings.Contains(logs, lsRSlashRunRhel7) {
+
 					hasRightListing = true
 				}
 				o.Expect(hasRightListing).To(o.BeTrue())
