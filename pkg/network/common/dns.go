@@ -26,6 +26,15 @@ type dnsValue struct {
 	nextQueryTime time.Time
 }
 
+type DNSInterface interface {
+	Add(dns string) error
+	Size() int
+	Get(dns string) dnsValue
+	Delete(dns string)
+	Update(dns string) (bool, error)
+	GetNextQueryTime() (time.Time, string, bool)
+}
+
 type DNS struct {
 	// Protects dnsMap operations
 	lock sync.Mutex
