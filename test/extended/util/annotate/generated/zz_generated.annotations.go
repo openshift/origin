@@ -1843,6 +1843,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-imageregistry][Serial][Suite:openshift/registry/serial] Image signature workflow can push a signed image to openshift registry and verify it": "can push a signed image to openshift registry and verify it [Suite:openshift/conformance/serial]",
 
+	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should have a metal3 deployment": "have a metal3 deployment [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should have baremetalhost resources": "have baremetalhost resources [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-instrumentation] Cluster level logging using Elasticsearch [Feature:Elasticsearch] should check that logs from containers are ingested into Elasticsearch": "should check that logs from containers are ingested into Elasticsearch [Disabled:Unimplemented] [Suite:k8s]",
 
 	"[Top Level] [sig-instrumentation] Events API should delete a collection of events [Conformance]": "should delete a collection of events [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
