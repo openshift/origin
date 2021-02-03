@@ -1891,6 +1891,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network-edge] DNS should answer endpoint and wildcard queries for the cluster": "should answer endpoint and wildcard queries for the cluster [Disabled:Broken]",
 
+	"[Top Level] [sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should be able to connect to a service that is idled because a GET on the route will unidle it": "should be able to connect to a service that is idled because a GET on the route will unidle it [Suite:openshift/conformance/parallel/minimal]",
+
 	"[Top Level] [sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should pass the gRPC interoperability tests": "should pass the gRPC interoperability tests [Suite:openshift/conformance/parallel/minimal]",
 
 	"[Top Level] [sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should pass the h2spec conformance tests": "should pass the h2spec conformance tests [Suite:openshift/conformance/parallel/minimal]",
