@@ -437,6 +437,7 @@
 // test/extended/testdata/router/router-h2spec.yaml
 // test/extended/testdata/router/router-http-echo-server.yaml
 // test/extended/testdata/router/router-http2.yaml
+// test/extended/testdata/router/router-idle.yaml
 // test/extended/testdata/router/router-metrics.yaml
 // test/extended/testdata/router/router-override-domains.yaml
 // test/extended/testdata/router/router-override.yaml
@@ -55967,6 +55968,83 @@ func testExtendedTestdataRouterRouterHttp2Yaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataRouterRouterIdleYaml = []byte(`apiVersion: v1
+kind: Template
+objects:
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: idle-test
+    labels:
+      app: idle-test
+  spec:
+    port:
+      targetPort: 8080
+    to:
+      kind: Service
+      name: idle-test
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: idle-test
+    labels:
+      app: idle-test
+  spec:
+    selector:
+      app: idle-test
+    ports:
+      - port: 8080
+        name: 8080-http
+        targetPort: 8080
+        protocol: TCP
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: idle-test
+  spec:
+    replicas: 1
+    template:
+      metadata:
+        name: idle-test
+        labels:
+          app: idle-test
+      spec:
+        containers:
+        - image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+          name: idle-test
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          command:
+            - /usr/bin/socat
+            - TCP4-LISTEN:8080,reuseaddr,fork
+            - EXEC:'/bin/bash -c \"printf \\\"HTTP/1.0 200 OK\r\n\r\n\\\"; sed -e \\\"/^\r/q\\\"\"'
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+    selector:
+      matchLabels:
+        app: idle-test
+`)
+
+func testExtendedTestdataRouterRouterIdleYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterIdleYaml, nil
+}
+
+func testExtendedTestdataRouterRouterIdleYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterIdleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-idle.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataRouterRouterMetricsYaml = []byte(`apiVersion: v1
 kind: List
 items:
@@ -59761,6 +59839,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/router/router-h2spec.yaml":                                                                testExtendedTestdataRouterRouterH2specYaml,
 	"test/extended/testdata/router/router-http-echo-server.yaml":                                                      testExtendedTestdataRouterRouterHttpEchoServerYaml,
 	"test/extended/testdata/router/router-http2.yaml":                                                                 testExtendedTestdataRouterRouterHttp2Yaml,
+	"test/extended/testdata/router/router-idle.yaml":                                                                  testExtendedTestdataRouterRouterIdleYaml,
 	"test/extended/testdata/router/router-metrics.yaml":                                                               testExtendedTestdataRouterRouterMetricsYaml,
 	"test/extended/testdata/router/router-override-domains.yaml":                                                      testExtendedTestdataRouterRouterOverrideDomainsYaml,
 	"test/extended/testdata/router/router-override.yaml":                                                              testExtendedTestdataRouterRouterOverrideYaml,
@@ -60511,6 +60590,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"router-h2spec.yaml":           {testExtendedTestdataRouterRouterH2specYaml, map[string]*bintree{}},
 					"router-http-echo-server.yaml": {testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
 					"router-http2.yaml":            {testExtendedTestdataRouterRouterHttp2Yaml, map[string]*bintree{}},
+					"router-idle.yaml":             {testExtendedTestdataRouterRouterIdleYaml, map[string]*bintree{}},
 					"router-metrics.yaml":          {testExtendedTestdataRouterRouterMetricsYaml, map[string]*bintree{}},
 					"router-override-domains.yaml": {testExtendedTestdataRouterRouterOverrideDomainsYaml, map[string]*bintree{}},
 					"router-override.yaml":         {testExtendedTestdataRouterRouterOverrideYaml, map[string]*bintree{}},
