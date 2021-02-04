@@ -111,10 +111,12 @@ func TestDefaultFlags(t *testing.T) {
 				ExtraHeaderPrefixes: []string{"x-remote-extra-"},
 			},
 			RemoteKubeConfigFileOptional: true,
+			ClientTimeout:                10 * time.Second,
 		},
 		Authorization: &apiserveroptions.DelegatingAuthorizationOptions{
 			AllowCacheTTL:                10 * time.Second,
 			DenyCacheTTL:                 10 * time.Second,
+			ClientTimeout:                10 * time.Second,
 			RemoteKubeConfigFileOptional: true,
 			AlwaysAllowPaths:             []string{"/healthz"}, // note: this does not match /healthz/ or
 		},
@@ -243,10 +245,12 @@ func TestAddFlags(t *testing.T) {
 				ExtraHeaderPrefixes: []string{"x-remote-extra-"},
 			},
 			RemoteKubeConfigFileOptional: true,
+			ClientTimeout:                10 * time.Second,
 		},
 		Authorization: &apiserveroptions.DelegatingAuthorizationOptions{
 			AllowCacheTTL:                10 * time.Second,
 			DenyCacheTTL:                 10 * time.Second,
+			ClientTimeout:                10 * time.Second,
 			RemoteKubeConfigFileOptional: true,
 			AlwaysAllowPaths:             []string{"/healthz"}, // note: this does not match /healthz/ or
 		},

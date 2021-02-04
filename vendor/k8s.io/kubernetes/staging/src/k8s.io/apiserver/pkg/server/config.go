@@ -756,7 +756,7 @@ func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 		handler = genericfilters.WithProbabilisticGoaway(handler, c.GoawayChance)
 	}
 	handler = genericapifilters.WithCacheControl(handler)
-	handler = genericfilters.WithPanicRecovery(handler)
+	handler = genericfilters.WithPanicRecovery(handler, c.RequestInfoResolver)
 	return handler
 }
 
