@@ -31,7 +31,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Headers]", func() {
 		// deploy oauth server
 		var newRequestTokenOptions oauthserver.NewRequestTokenOptionsFunc
 		newRequestTokenOptions, oauthServerCleanup, err = deployOAuthServer(oc)
-		o.Expect(err).ToNot(o.HaveOccurred())
+		o.Expect(err).ToNot(o.HaveOccurred(), "while attempting to deploy the oauth server")
 		oauthServerAddr = newRequestTokenOptions("", "").Issuer
 	})
 
