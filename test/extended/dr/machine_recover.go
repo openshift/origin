@@ -29,6 +29,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -45,6 +46,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive
 	oc := exutil.NewCLIWithoutNamespace("machine-recovery")
 
 	g.It("[Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks", func() {
+		e2eskipper.Skipf("Skipped until the fix for https://bugzilla.redhat.com/show_bug.cgi?id=1905709 is backported to 4.6")
 
 		framework.Logf("Verify SSH is available before restart")
 		masters, workers := clusterNodes(oc)
