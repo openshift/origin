@@ -314,8 +314,8 @@ var staticSuites = testSuites{
 				}
 				return (strings.Contains(name, "[Suite:openshift/conformance/") && strings.Contains(name, "[sig-network]")) || isStandardEarlyOrLateTest(name)
 			},
-			Parallelism:         30,
-			Count:               15,
+			Parallelism:         60,
+			Count:               12,
 			TestTimeout:         20 * time.Minute,
 			SyntheticEventTests: ginkgo.JUnitForEventsFunc(stableSystemEventInvariants),
 		},
