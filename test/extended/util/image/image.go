@@ -22,7 +22,7 @@ func init() {
 
 		// used by build s2i e2e's to verify that builder with USER root are not allowed
 		// the github.com/openshift/build-test-images repo is built out of github.com/openshift/release
-		"registry.svc.ci.openshift.org/ocp/4.7:test-build-roots2i": -1,
+		"registry.ci.openshift.org/ocp/4.7:test-build-roots2i": -1,
 
 		// moved to GCR
 		"k8s.gcr.io/sig-storage/csi-attacher:v2.2.0":              -1,
