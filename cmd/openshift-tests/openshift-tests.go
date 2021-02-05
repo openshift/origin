@@ -247,6 +247,9 @@ func (opt *runOptions) SelectSuite(suites testSuites, args []string) (*testSuite
 			return &suites[i], nil
 		}
 	}
+	if len(opt.Provider) > 0 {
+		return &testSuite{TestSuite: *suite, PreSuite: suiteWithProviderPreSuite}, nil
+	}
 	return &testSuite{TestSuite: *suite}, nil
 }
 
