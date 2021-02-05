@@ -85,6 +85,9 @@ func getProviderMatchFn(config *exutilcloud.ClusterConfiguration) TestNameMatche
 
 func decodeProvider(provider string, dryRun, discover bool) (*exutilcloud.ClusterConfiguration, error) {
 	switch provider {
+	case "none":
+		return &exutilcloud.ClusterConfiguration{ProviderName: "skeleton"}, nil
+
 	case "":
 		if _, ok := os.LookupEnv("KUBE_SSH_USER"); ok {
 			if _, ok := os.LookupEnv("LOCAL_SSH_KEY"); ok {
