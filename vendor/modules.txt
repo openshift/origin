@@ -570,7 +570,7 @@ github.com/mrunalp/fileutils
 github.com/munnerz/goautoneg
 # github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f
 github.com/mxk/go-flowrate/flowrate
-# github.com/onsi/ginkgo v4.5.0-origin.1+incompatible => github.com/openshift/onsi-ginkgo v4.5.0-origin.1+incompatible
+# github.com/onsi/ginkgo v4.7.0-origin.0+incompatible => github.com/openshift/onsi-ginkgo v4.7.0-origin.0+incompatible
 ## explicit
 github.com/onsi/ginkgo
 github.com/onsi/ginkgo/config
@@ -1153,7 +1153,8 @@ golang.org/x/oauth2/jwt
 # golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
+# golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c
+## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
@@ -2924,7 +2925,7 @@ sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.2.0
 ## explicit
 sigs.k8s.io/yaml
-# github.com/onsi/ginkgo => github.com/openshift/onsi-ginkgo v4.5.0-origin.1+incompatible
+# github.com/onsi/ginkgo => github.com/openshift/onsi-ginkgo v4.7.0-origin.0+incompatible
 # github.com/openshift/apiserver-library-go => github.com/openshift/apiserver-library-go v0.0.0-20201214145556-6f1013f42f98
 # github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20201214125552-e615e336eb49
 # github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20201214135256-d265f469e75b

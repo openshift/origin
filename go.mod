@@ -30,7 +30,7 @@ require (
 	github.com/lestrrat/go-jsschema v0.0.0-20181205002244-5c81c58ffcc3
 	github.com/lpabon/godbc v0.1.1 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
-	github.com/onsi/ginkgo v4.5.0-origin.1+incompatible
+	github.com/onsi/ginkgo v4.7.0-origin.0+incompatible
 	github.com/onsi/gomega v1.7.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/openshift/api v0.0.0-20201214114959-164a2fb63b5f
@@ -53,6 +53,7 @@ require (
 	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
+	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
 	google.golang.org/grpc v1.27.1
 	gopkg.in/ldap.v2 v2.5.1
 	gopkg.in/src-d/go-git.v4 v4.13.1
@@ -75,7 +76,7 @@ require (
 )
 
 replace (
-	github.com/onsi/ginkgo => github.com/openshift/onsi-ginkgo v4.5.0-origin.1+incompatible
+	github.com/onsi/ginkgo => github.com/openshift/onsi-ginkgo v4.7.0-origin.0+incompatible
 	github.com/openshift/apiserver-library-go => github.com/openshift/apiserver-library-go v0.0.0-20201214145556-6f1013f42f98
 	github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20201214125552-e615e336eb49
 	github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20201214135256-d265f469e75b
