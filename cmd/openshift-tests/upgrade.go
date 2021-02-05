@@ -55,6 +55,9 @@ var upgradeSuites = testSuites{
 
 // upgradeTestPreSuite validates the test options.
 func upgradeTestPreSuite(opt *runOptions) error {
+	// Upgrade test output is important for debugging because it shows linear progress
+	// and when the CVO hangs.
+	opt.IncludeSuccessOutput = true
 	return parseUpgradeOptions(opt.TestOptions)
 }
 
