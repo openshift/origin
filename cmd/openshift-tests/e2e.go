@@ -112,6 +112,7 @@ var staticSuites = testSuites{
 			TestTimeout:         60 * time.Minute,
 			SyntheticEventTests: ginkgo.JUnitForEventsFunc(systemEventInvariants),
 		},
+		PreSuite: suiteWithProviderPreSuite,
 	},
 	{
 		TestSuite: ginkgo.TestSuite{
@@ -149,6 +150,7 @@ var staticSuites = testSuites{
 			TestTimeout:         60 * time.Minute,
 			SyntheticEventTests: ginkgo.JUnitForEventsFunc(stableSystemEventInvariants),
 		},
+		PreSuite: suiteWithProviderPreSuite,
 	},
 	{
 		TestSuite: ginkgo.TestSuite{
@@ -165,6 +167,7 @@ var staticSuites = testSuites{
 			Parallelism:         1,
 			SyntheticEventTests: ginkgo.JUnitForEventsFunc(stableSystemEventInvariants),
 		},
+		PreSuite: suiteWithProviderPreSuite,
 	},
 	{
 		TestSuite: ginkgo.TestSuite{
@@ -180,6 +183,7 @@ var staticSuites = testSuites{
 			},
 			SyntheticEventTests: ginkgo.JUnitForEventsFunc(stableSystemEventInvariants),
 		},
+		PreSuite: suiteWithProviderPreSuite,
 	},
 	{
 		TestSuite: ginkgo.TestSuite{
@@ -197,6 +201,7 @@ var staticSuites = testSuites{
 			TestTimeout:         20 * time.Minute,
 			SyntheticEventTests: ginkgo.JUnitForEventsFunc(stableSystemEventInvariants),
 		},
+		PreSuite: suiteWithProviderPreSuite,
 	},
 	{
 		TestSuite: ginkgo.TestSuite{
@@ -214,6 +219,7 @@ var staticSuites = testSuites{
 			TestTimeout:         20 * time.Minute,
 			SyntheticEventTests: ginkgo.JUnitForEventsFunc(stableSystemEventInvariants),
 		},
+		PreSuite: suiteWithProviderPreSuite,
 	},
 	{
 		TestSuite: ginkgo.TestSuite{
@@ -280,6 +286,7 @@ var staticSuites = testSuites{
 			},
 			SyntheticEventTests: ginkgo.JUnitForEventsFunc(stableSystemEventInvariants),
 		},
+		PreSuite: suiteWithNoProviderPreSuite,
 	},
 	{
 		TestSuite: ginkgo.TestSuite{
@@ -346,6 +353,7 @@ var staticSuites = testSuites{
 				return true
 			},
 		},
+		PreSuite: suiteWithInitializedProviderPreSuite,
 	},
 }
 
@@ -367,10 +375,9 @@ func isStandardEarlyOrLateTest(name string) bool {
 	return strings.Contains(name, "[Suite:openshift/conformance/parallel")
 }
 
-// suiteWithProviderPreSuite ensures that the suite filters out tests from providers
-// that aren't relevant (see getProviderMatchFn) by loading the provider info from the
-// cluster or flags.
-func suiteWithProviderPreSuite(opt *runOptions) error {
+// suiteWithInitializedProviderPreSuite loads the provider info, but does not
+// exclude any tests specific to that provider.
+func suiteWithInitializedProviderPreSuite(opt *runOptions) error {
 	config, err := decodeProvider(opt.Provider, opt.DryRun, true)
 	if err != nil {
 		return err
@@ -378,8 +385,25 @@ func suiteWithProviderPreSuite(opt *runOptions) error {
 	opt.config = config
 
 	opt.Provider = config.ToJSONString()
-	opt.MatchFn = getProviderMatchFn(config)
 	return nil
+}
+
+// suiteWithProviderPreSuite ensures that the suite filters out tests from providers
+// that aren't relevant (see getProviderMatchFn) by loading the provider info from the
+// cluster or flags.
+func suiteWithProviderPreSuite(opt *runOptions) error {
+	if err := suiteWithInitializedProviderPreSuite(opt); err != nil {
+		return err
+	}
+	opt.MatchFn = getProviderMatchFn(opt.config)
+	return nil
+}
+
+// suiteWithNoProviderPreSuite blocks out provider settings from being passed to
+// child tests. Used with suites that should not have cloud specific behavior.
+func suiteWithNoProviderPreSuite(opt *runOptions) error {
+	opt.Provider = `none`
+	return suiteWithProviderPreSuite(opt)
 }
 
 // suiteWithKubeTestInitialization invokes the Kube suite in order to populate
