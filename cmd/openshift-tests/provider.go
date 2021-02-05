@@ -41,7 +41,8 @@ func initializeTestFramework(context *e2e.TestContextType, config *exutilcloud.C
 		MultiZone:   config.MultiZone,
 		ConfigFile:  config.ConfigFile,
 	}
-	context.AllowedNotReadyNodes = 100
+	context.AllowedNotReadyNodes = -1
+	context.MinStartupPods = -1
 	context.MaxNodesToGather = 0
 	reale2e.SetViperConfig(os.Getenv("VIPERCONFIG"))
 
