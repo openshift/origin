@@ -22,13 +22,16 @@ metadata:
 spec:
   runPolicy: Serial
   source:
-    dockerfile: "FROM %s\nRUN chmod -R uga+rwx /run\nUSER 1001"
-    type: Dockerfile
+    dockerfile: |-
+      FROM %s
+      RUN chmod -R uga+rwx /run
+      USER 1001
+  type: Dockerfile
   strategy:
     dockerStrategy:
       env:
-      - name: BUILD_LOGLEVEL
-        value: "10"
+        - name: BUILD_LOGLEVEL
+          value: "10"
       imageOptimizationPolicy: SkipLayers
     type: Docker
 `, "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest")  // replace with image.ShellImage()) when github.com/openshift/origin/test/extended/util/image lands in this release
@@ -40,13 +43,16 @@ metadata:
 spec:
   runPolicy: Serial
   source:
-    dockerfile: "FROM %s\nRUN ls -R /run\nUSER 1001"
-    type: Dockerfile
+    dockerfile: |-
+      FROM %s
+      RUN ls -R /run
+      USER 1001
+  type: Dockerfile
   strategy:
     dockerStrategy:
       env:
-      - name: BUILD_LOGLEVEL
-        value: "10"
+        - name: BUILD_LOGLEVEL
+          value: "10"
       imageOptimizationPolicy: SkipLayers
     type: Docker
 `, "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest")  // replace with image.ShellImage()) when github.com/openshift/origin/test/extended/util/image lands in this release
@@ -83,6 +89,18 @@ secrets
 /run/secrets:
 system-fips
 `
+		lsRSlashRunOKD = `
+/run:
+lock
+rhsm
+secrets
+
+/run/lock:
+
+/run/rhsm:
+
+/run/secrets:
+`
 	)
 
 	g.Context("", func() {
@@ -113,7 +131,7 @@ system-fips
 				logs, err := br.LogsNoTimestamp()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				hasRightListing := false
-				if strings.Contains(logs, lsRSlashRun) || strings.Contains(logs, lsRSlashRunFIPS) {
+				if strings.Contains(logs, lsRSlashRun) || strings.Contains(logs, lsRSlashRunFIPS) || strings.Contains(logs, lsRSlashRunOKD) {
 					hasRightListing = true
 				}
 				o.Expect(hasRightListing).To(o.BeTrue())
