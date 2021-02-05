@@ -45,6 +45,7 @@ k8s.gcr.io/sig-storage/csi-resizer:v0.4.0 quay.io/openshift/community-e2e-images
 k8s.gcr.io/sig-storage/csi-resizer:v0.5.0 quay.io/openshift/community-e2e-images:e2e-k8s-gcr-io-sig-storage-csi-resizer-v0-5-0-O79EW2-1fDT39X15
 k8s.gcr.io/sig-storage/csi-snapshotter:v2.0.1 quay.io/openshift/community-e2e-images:e2e-k8s-gcr-io-sig-storage-csi-snapshotter-v2-0-1-NIPtB_SC-LRqBaeq
 k8s.gcr.io/sig-storage/csi-snapshotter:v2.1.0 quay.io/openshift/community-e2e-images:e2e-k8s-gcr-io-sig-storage-csi-snapshotter-v2-1-0-1kbgyjhsZ5sWpBwq
+k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.2 quay.io/openshift/community-e2e-images:e2e-k8s-gcr-io-sig-storage-csi-snapshotter-v3-0-2-xM4zaRecqro9vBr7
 k8s.gcr.io/sig-storage/hostpathplugin:v1.4.0 quay.io/openshift/community-e2e-images:e2e-k8s-gcr-io-sig-storage-hostpathplugin-v1-4-0-AfY5JyX6DsfCefAR
 k8s.gcr.io/sig-storage/livenessprobe:v1.1.0 quay.io/openshift/community-e2e-images:e2e-k8s-gcr-io-sig-storage-livenessprobe-v1-1-0-d49j-mlARufXkhrZ
 k8s.gcr.io/sig-storage/mock-driver:v4.0.2 quay.io/openshift/community-e2e-images:e2e-k8s-gcr-io-sig-storage-mock-driver-v4-0-2-GE9vfPm7mdvjzZh_

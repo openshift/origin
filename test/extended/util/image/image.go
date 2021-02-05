@@ -35,6 +35,7 @@ func init() {
 		"k8s.gcr.io/sig-storage/csi-resizer:v0.5.0":               -1,
 		"k8s.gcr.io/sig-storage/csi-snapshotter:v2.0.1":           -1,
 		"k8s.gcr.io/sig-storage/csi-snapshotter:v2.1.0":           -1,
+		"k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.2":           -1,
 		"k8s.gcr.io/sig-storage/hostpathplugin:v1.4.0":            -1,
 		"k8s.gcr.io/sig-storage/livenessprobe:v1.1.0":             -1,
 		"k8s.gcr.io/sig-storage/mock-driver:v4.0.2":               -1,
