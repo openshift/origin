@@ -56,6 +56,8 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 	oc := exutil.NewCLIWithoutNamespace("disaster-recovery")
 
 	g.It("[Feature:EtcdRecovery] Cluster should restore itself after quorum loss", func() {
+		e2eskipper.Skipf("Test is disabled pending a fix https://github.com/openshift/origin/pull/25774")
+
 		config, err := framework.LoadConfig()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		dynamicClient := dynamic.NewForConfigOrDie(config)
