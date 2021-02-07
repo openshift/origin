@@ -35,12 +35,14 @@ func initializeTestFramework(context *e2e.TestContextType, config *exutilcloud.C
 		ProjectID:   config.ProjectID,
 		Region:      config.Region,
 		Zone:        config.Zone,
+		Zones:       config.Zones,
 		NumNodes:    config.NumNodes,
 		MultiMaster: config.MultiMaster,
 		MultiZone:   config.MultiZone,
 		ConfigFile:  config.ConfigFile,
 	}
-	context.AllowedNotReadyNodes = 100
+	context.AllowedNotReadyNodes = -1
+	context.MinStartupPods = -1
 	context.MaxNodesToGather = 0
 	reale2e.SetViperConfig(os.Getenv("VIPERCONFIG"))
 
@@ -83,6 +85,9 @@ func getProviderMatchFn(config *exutilcloud.ClusterConfiguration) TestNameMatche
 
 func decodeProvider(provider string, dryRun, discover bool) (*exutilcloud.ClusterConfiguration, error) {
 	switch provider {
+	case "none":
+		return &exutilcloud.ClusterConfiguration{ProviderName: "skeleton"}, nil
+
 	case "":
 		if _, ok := os.LookupEnv("KUBE_SSH_USER"); ok {
 			if _, ok := os.LookupEnv("LOCAL_SSH_KEY"); ok {
@@ -135,6 +140,7 @@ func decodeProvider(provider string, dryRun, discover bool) (*exutilcloud.Cluste
 				ProjectID:    cloudConfig.ProjectID,
 				Region:       cloudConfig.Region,
 				Zone:         cloudConfig.Zone,
+				Zones:        cloudConfig.Zones,
 				NumNodes:     cloudConfig.NumNodes,
 				MultiMaster:  cloudConfig.MultiMaster,
 				MultiZone:    cloudConfig.MultiZone,
@@ -150,6 +156,9 @@ func decodeProvider(provider string, dryRun, discover bool) (*exutilcloud.Cluste
 			}
 			if len(cloudConfig.Zone) > 0 {
 				config.Zone = cloudConfig.Zone
+			}
+			if len(cloudConfig.Zones) > 0 {
+				config.Zones = cloudConfig.Zones
 			}
 			if len(cloudConfig.ConfigFile) > 0 {
 				config.ConfigFile = cloudConfig.ConfigFile

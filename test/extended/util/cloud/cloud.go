@@ -27,6 +27,7 @@ type ClusterConfiguration struct {
 	NumNodes    int
 	MultiMaster bool
 	MultiZone   bool
+	Zones       []string
 	ConfigFile  string
 
 	NetworkPluginIDs []string
@@ -101,6 +102,7 @@ func LoadConfig(clientConfig *rest.Config) (*ClusterConfiguration, error) {
 	config := &ClusterConfiguration{
 		MultiMaster:      len(masters.Items) > 1,
 		MultiZone:        zones.Len() > 1,
+		Zones:            zones.List(),
 		NetworkPluginIDs: networkPluginIDs,
 	}
 	if zones.Len() > 0 {

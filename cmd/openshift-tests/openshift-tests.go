@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/onsi/ginkgo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -246,6 +247,9 @@ func (opt *runOptions) SelectSuite(suites testSuites, args []string) (*testSuite
 			return &suites[i], nil
 		}
 	}
+	if len(opt.Provider) > 0 {
+		return &testSuite{TestSuite: *suite, PreSuite: suiteWithProviderPreSuite}, nil
+	}
 	return &testSuite{TestSuite: *suite}, nil
 }
 
@@ -397,6 +401,10 @@ func newRunTestCommand() *cobra.Command {
 			if err := verifyImagesWithoutEnv(); err != nil {
 				return err
 			}
+
+			// Ignore the upstream suite behavior within test execution
+			ginkgo.GlobalSuite().ClearBeforeSuiteNode()
+			ginkgo.GlobalSuite().ClearAfterSuiteNode()
 
 			config, err := decodeProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun, false)
 			if err != nil {
