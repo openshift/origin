@@ -192,6 +192,7 @@ func (c *CLI) SetNamespace(ns string) *CLI {
 			Name: ns,
 		},
 	}
+	c.withoutNamespace = false
 	return c
 }
 

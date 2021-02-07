@@ -127,8 +127,6 @@ var _ = Describe("[sig-arch] Managed cluster", func() {
 				commands := []string{
 					"exec",
 					pod.Name,
-					"-n",
-					pod.Namespace,
 					"-c",
 					containerName,
 					"--",
@@ -170,17 +168,19 @@ func ignoredNamespace(namespace string) bool {
 	namespacePrefixes := sets.NewString("kube-", "openshift-")
 	ignoredNamespacePrefixes := sets.NewString("openshift-marketplace", "openshift-must-gather-")
 
-	ret := true
+	ignore := true
 	for _, prefix := range namespacePrefixes.List() {
 		if strings.HasPrefix(namespace, prefix) {
-			ret = false
+			ignore = false
+			break
 		}
 	}
 	for _, prefix := range ignoredNamespacePrefixes.List() {
 		if strings.HasPrefix(namespace, prefix) {
-			ret = true
+			ignore = true
+			break
 		}
 	}
-	return ret
+	return ignore
 
 }
