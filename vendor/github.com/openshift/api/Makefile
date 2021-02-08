@@ -23,6 +23,7 @@ $(call add-crd-gen,authorization,./authorization/v1,./authorization/v1,./authori
 $(call add-crd-gen,config,./config/v1,./config/v1,./config/v1)
 $(call add-crd-gen,helm,./helm/v1beta1,./helm/v1beta1,./helm/v1beta1)
 $(call add-crd-gen,console,./console/v1,./console/v1,./console/v1)
+$(call add-crd-gen,console-alpha,./console/v1alpha1,./console/v1alpha1,./console/v1alpha1)
 $(call add-crd-gen,imageregistry,./imageregistry/v1,./imageregistry/v1,./imageregistry/v1)
 $(call add-crd-gen,operator,./operator/v1,./operator/v1,./operator/v1)
 $(call add-crd-gen,operator-alpha,./operator/v1alpha1,./operator/v1alpha1,./operator/v1alpha1)

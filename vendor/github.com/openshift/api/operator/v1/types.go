@@ -215,9 +215,13 @@ type NodeStatus struct {
 	CurrentRevision int32 `json:"currentRevision"`
 	// targetRevision is the generation of the deployment we're trying to apply
 	TargetRevision int32 `json:"targetRevision,omitempty"`
+
 	// lastFailedRevision is the generation of the deployment we tried and failed to deploy.
 	LastFailedRevision int32 `json:"lastFailedRevision,omitempty"`
-
+	// lastFailedTime is the time the last failed revision failed the last time.
+	LastFailedTime *metav1.Time `json:"lastFailedTime,omitempty"`
+	// lastFailedCount is how often the last failed revision failed.
+	LastFailedCount int `json:"lastFailedCount,omitempty"`
 	// lastFailedRevisionErrors is a list of the errors during the failed deployment referenced in lastFailedRevision
 	LastFailedRevisionErrors []string `json:"lastFailedRevisionErrors,omitempty"`
 }

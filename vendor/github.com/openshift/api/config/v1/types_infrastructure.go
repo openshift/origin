@@ -77,7 +77,35 @@ type InfrastructureStatus struct {
 	// like kubelets, to contact the Kubernetes API server using the
 	// infrastructure provider rather than Kubernetes networking.
 	APIServerInternalURL string `json:"apiServerInternalURI"`
+
+	// controlPlaneTopology expresses the expectations for operands that normally run on control nodes.
+	// The default is 'HighlyAvailable', which represents the behavior operators have in a "normal" cluster.
+	// The 'SingleReplica' mode will be used in single-node deployments
+	// and the operators should not configure the operand for highly-available operation
+	// +kubebuilder:default=HighlyAvailable
+	ControlPlaneTopology TopologyMode `json:"controlPlaneTopology"`
+
+	// infrastructureTopology expresses the expectations for infrastructure services that do not run on control
+	// plane nodes, usually indicated by a node selector for a `role` value
+	// other than `master`.
+	// The default is 'HighlyAvailable', which represents the behavior operators have in a "normal" cluster.
+	// The 'SingleReplica' mode will be used in single-node deployments
+	// and the operators should not configure the operand for highly-available operation
+	// +kubebuilder:default=HighlyAvailable
+	InfrastructureTopology TopologyMode `json:"infrastructureTopology"`
 }
+
+// TopologyMode defines the topology mode of the control/infra nodes.
+// +kubebuilder:validation:Enum=HighlyAvailable;SingleReplica
+type TopologyMode string
+
+const (
+	// "HighlyAvailable" is for operators to configure high-availability as much as possible.
+	HighlyAvailableTopologyMode TopologyMode = "HighlyAvailable"
+
+	// "SingleReplica" is for operators to avoid spending resources for high-availability purpose.
+	SingleReplicaTopologyMode TopologyMode = "SingleReplica"
+)
 
 // PlatformType is a specific supported infrastructure provider.
 // +kubebuilder:validation:Enum="";AWS;Azure;BareMetal;GCP;Libvirt;OpenStack;None;VSphere;oVirt;IBMCloud;KubeVirt
