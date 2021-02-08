@@ -42,6 +42,9 @@ type ConsoleSpec struct {
 	// If not specified, default route will be used.
 	// +optional
 	Route ConsoleConfigRoute `json:"route"`
+	// plugins defines a list of enabled console plugin names.
+	// +optional
+	Plugins []string `json:"plugins,omitempty"`
 }
 
 // ConsoleConfigRoute holds information on external route access to console.

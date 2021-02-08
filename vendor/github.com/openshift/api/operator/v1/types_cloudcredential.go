@@ -54,6 +54,9 @@ type CloudCredentialSpec struct {
 	// It also allows putting the operator into "manual" mode if desired.
 	// Leaving the field in default mode runs CCO so that the cluster's cloud credentials
 	// will be dynamically probed for capabilities (on supported clouds/platforms).
+	// Supported modes:
+	//   AWS/Azure/GCP: "" (Default), "Mint", "Passthrough", "Manual"
+	//   Others: Do not set value as other platforms only support running in "Passthrough"
 	// +optional
 	CredentialsMode CloudCredentialsMode `json:"credentialsMode,omitempty"`
 }

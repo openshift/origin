@@ -25,7 +25,7 @@ type ImageContentSourcePolicySpec struct {
 	// provided to the pod will be compared to the source locations described in RepositoryDigestMirrors
 	// and the image may be pulled down from any of the mirrors in the list instead of the
 	// specified repository allowing administrators to choose a potentially faster mirror.
-	// Only image pull specifications that have an image disgest will have this behavior applied
+	// Only image pull specifications that have an image digest will have this behavior applied
 	// to them - tags will continue to be pulled from the specified repository in the pull spec.
 	//
 	// Each “source” repository is treated independently; configurations for different “source”

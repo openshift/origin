@@ -33,7 +33,7 @@ require (
 	github.com/onsi/ginkgo v4.7.0-origin.0+incompatible
 	github.com/onsi/gomega v1.7.0
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/openshift/api v0.0.0-20201214114959-164a2fb63b5f
+	github.com/openshift/api v0.0.0-20210208192252-670ac3fc997c
 	github.com/openshift/apiserver-library-go v0.0.0-20201214145556-6f1013f42f98
 	github.com/openshift/build-machinery-go v0.0.0-20200917070002-f171684f77ab
 	github.com/openshift/client-go v0.0.0-20201214125552-e615e336eb49
