@@ -24,7 +24,7 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 		testDuration := exutil.DurationSinceStartInSeconds().String()
 
 		g.By("Examining the number of etcd leadership changes over the run")
-		result, _, err := prometheus.Query(context.Background(), fmt.Sprintf("increase((max(max by (job) (etcd_server_leader_changes_seen_total)) or 0*absent(etcd_server_leader_changes_seen_total))[%s:15s])", testDuration), time.Now())
+		result, _, err := prometheus.Query(context.Background(), fmt.Sprintf("increase(max(max by (pod,job) (etcd_server_leader_changes_seen_total))[%s:1s])", testDuration), time.Now())
 		o.Expect(err).ToNot(o.HaveOccurred())
 		leaderChanges := result.(model.Vector)[0].Value
 		if leaderChanges != 0 {
