@@ -37,6 +37,7 @@ func makeHTTPClient(useHTTP2Transport bool, timeout time.Duration) *http.Client 
 	c := &http.Client{
 		Timeout: timeout,
 		Transport: &http.Transport{
+			Proxy:           http.ProxyFromEnvironment,
 			TLSClientConfig: &tlsConfig,
 		},
 	}
@@ -154,12 +155,19 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				urlTester.Within(30*time.Second, url.Expect("GET", "https://"+hostname+"/healthz").Through(hostname).SkipTLSVerification().HasStatusCode(200))
 
 				var resp *http.Response
+
 				client := makeHTTPClient(tc.useHTTP2Transport, http2ClientTimeout)
 
 				o.Expect(wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
-					var err error
 					url := "https://" + hostname
-					resp, err = client.Get(url)
+					req, err := http.NewRequest(http.MethodGet, url, nil)
+
+					o.Expect(err).NotTo(o.HaveOccurred())
+					if proxyURL, _ := http.ProxyFromEnvironment(req); tc.useHTTP2Transport && proxyURL != nil {
+						g.Skip("this test does not run in proxied environment")
+					}
+
+					resp, err = client.Do(req)
 					if err != nil && len(tc.expectedGetError) != 0 {
 						errMatch := strings.Contains(err.Error(), tc.expectedGetError)
 						if !errMatch {
