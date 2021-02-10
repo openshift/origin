@@ -48,6 +48,10 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			urlTester := url.NewTester(oc.AdminKubeClient(), oc.Namespace()).WithErrorPassthrough(true)
+			// Get cluster proxy config
+			proxy := exutil.GetClusterProxyConfig(oc.AdminConfig())
+			urlTester.WithProxy(proxy.Spec.HTTPProxy)
+
 			defer urlTester.Close()
 			hostname := getHostnameForRoute(oc, "idle-test")
 			urlTester.Within(urlTimeout, url.Expect("GET", "http://"+hostname).Through(hostname).HasStatusCode(200))
