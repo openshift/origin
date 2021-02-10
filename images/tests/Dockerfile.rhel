@@ -1,11 +1,11 @@
-FROM registry.ci.openshift.org/ocp/builder:rhel-8-golang-1.15-openshift-4.7 AS builder
+FROM registry.ci.openshift.org/ocp/builder:rhel-8-golang-1.15-openshift-4.8 AS builder
 WORKDIR /go/src/github.com/openshift/origin
 COPY . .
 RUN make; \
     mkdir -p /tmp/build; \
     cp /go/src/github.com/openshift/origin/openshift-tests /tmp/build/openshift-tests
 
-FROM registry.ci.openshift.org/ocp/4.7:tools
+FROM registry.ci.openshift.org/ocp/4.8:tools
 COPY --from=builder /tmp/build/openshift-tests /usr/bin/
 RUN yum install --setopt=tsflags=nodocs -y git gzip util-linux && yum clean all && rm -rf /var/cache/yum/* && \
     git config --system user.name test && \
