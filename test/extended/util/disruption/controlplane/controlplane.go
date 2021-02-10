@@ -37,7 +37,7 @@ func NewOAuthAvailableNewConnectionsTest() upgrades.Test {
 	return &availableTest{
 		testName:        "[sig-api-machinery] OAuth APIs remain available for new connections",
 		name:            "oauth-api-available-new-connections",
-		startMonitoring: monitor.StartOpenShiftAPIMonitoringWithNewConnections,
+		startMonitoring: monitor.StartOAuthAPIMonitoringWithNewConnections,
 	}
 }
 
@@ -64,7 +64,7 @@ func NewOAuthAvailableWithConnectionReuseTest() upgrades.Test {
 	return &availableTest{
 		testName:        "[sig-api-machinery] OAuth APIs remain available with reused connections",
 		name:            "oauth-api-available-reused-connections",
-		startMonitoring: monitor.StartOpenShiftAPIMonitoringWithConnectionReuse,
+		startMonitoring: monitor.StartOAuthAPIMonitoringWithConnectionReuse,
 	}
 }
 
