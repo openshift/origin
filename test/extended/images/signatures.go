@@ -22,7 +22,6 @@ var _ = g.Describe("[sig-imageregistry][Serial][Suite:openshift/registry/serial]
 	)
 
 	g.It("can push a signed image to openshift registry and verify it", func() {
-		g.Skip("disable because containers/image: https://github.com/containers/image/pull/570")
 		g.By("building a signer image that knows how to sign images")
 		output, err := oc.Run("create").Args("-f", signerBuildFixture).Output()
 		if err != nil {
@@ -90,7 +89,7 @@ var _ = g.Describe("[sig-imageregistry][Serial][Suite:openshift/registry/serial]
 		o.Expect(out).To(o.ContainSubstring("Logged in"))
 
 		// Sign and copy the memcached image into target image stream tag
-		g.By("signing the memcached:latest image and pushing it into openshift registry")
+		g.By("signing a just-built image and pushing it into openshift registry")
 		out, err = pod.Exec(strings.Join([]string{
 			"GNUPGHOME=/var/lib/origin/gnupg",
 			"skopeo", "--debug",
@@ -99,10 +98,14 @@ var _ = g.Describe("[sig-imageregistry][Serial][Suite:openshift/registry/serial]
 			"--registries.d", "/this/does/not/exist",
 
 			"copy", "--sign-by", "joe@foo.bar",
+			"--src-creds=" + user + ":" + token,
 			"--dest-creds=" + user + ":" + token,
-			// TODO: test with this turned to true as well
-			"--dest-tls-verify=false",
-			"docker://docker.io/library/memcached:latest",
+
+			// Expect to use /run/secrets/kubernetes.io/serviceaccount/ca.crt
+			"--src-cert-dir=/run/secrets/kubernetes.io/serviceaccount",
+			"--dest-cert-dir=/run/secrets/kubernetes.io/serviceaccount",
+
+			"docker://" + signerImage,
 			"docker://" + signedImage,
 		}, " "))
 		fmt.Fprintf(g.GinkgoWriter, "output: %s\n", out)
