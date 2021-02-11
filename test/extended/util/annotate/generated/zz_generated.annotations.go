@@ -831,6 +831,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-apps][Feature:OpenShiftControllerManager] TestTriggers_manual": "TestTriggers_manual [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-arch] Cluster topology single node tests Verify that OpenShift components deploy one replica in SingleReplica topology mode": "Verify that OpenShift components deploy one replica in SingleReplica topology mode [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-arch] ClusterOperators should define at least one namespace in their lists of related objects": "at least one namespace in their lists of related objects [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch] ClusterOperators should define at least one related object that is not a namespace": "at least one related object that is not a namespace [Suite:openshift/conformance/parallel]",
