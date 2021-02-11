@@ -27,6 +27,7 @@ type sampleRepoConfig struct {
 	appPath                string
 	dbDeploymentConfigName string
 	dbServiceName          string
+	newAppParams           string
 }
 
 // NewSampleRepoTest creates a function for a new ginkgo test case that will instantiate a template
@@ -56,6 +57,11 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 					o.Expect(err).NotTo(o.HaveOccurred())
 					g.By(fmt.Sprintf("calling oc new-app with the " + c.repoName + " example template"))
 					newAppArgs := []string{c.templateURL}
+					if len(c.newAppParams) > 0 {
+						newAppArgs = append(newAppArgs, "-p")
+						c.newAppParams = fmt.Sprintf(c.newAppParams, oc.Namespace())
+						newAppArgs = append(newAppArgs, c.newAppParams)
+					}
 					err = oc.Run("new-app").Args(newAppArgs...).Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -130,6 +136,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][Slow] openshift sample a
 			appPath:                "/articles",
 			dbDeploymentConfigName: "postgresql",
 			dbServiceName:          "postgresql",
+			newAppParams:           "APPLICATION_DOMAIN=rails-%s.ocp.io",
 		},
 	))
 
@@ -144,6 +151,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][Slow] openshift sample a
 			appPath:                "",
 			dbDeploymentConfigName: "postgresql",
 			dbServiceName:          "postgresql",
+			newAppParams:           "APPLICATION_DOMAIN=django-%s.ocp.io",
 		},
 	))
 
@@ -158,6 +166,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][Slow] openshift sample a
 			appPath:                "",
 			dbDeploymentConfigName: "postgresql",
 			dbServiceName:          "postgresql",
+			newAppParams:           "APPLICATION_DOMAIN=nodejs-%s.ocp.io",
 		},
 	))
 
@@ -172,6 +181,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][Slow] openshift sample a
 			appPath:                "",
 			dbDeploymentConfigName: "mysql",
 			dbServiceName:          "mysql",
+			newAppParams:           "APPLICATION_DOMAIN=cakephp-%s.ocp.io",
 		},
 	))
 
