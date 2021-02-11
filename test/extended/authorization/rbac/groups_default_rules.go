@@ -158,6 +158,10 @@ var (
 			"openshift-config-managed": {
 				rbacv1helpers.NewRule("get").Groups(legacyGroup).Resources("configmaps").Names("console-public").RuleOrDie(),
 			},
+			"kube-system": {
+				// this allows every authenticated user to use in-cluster client certificate termination
+				rbacv1helpers.NewRule(read...).Groups(legacyGroup).Resources("configmaps").Names("extension-apiserver-authentication").RuleOrDie(),
+			},
 		},
 		kuser.AllUnauthenticated:     {}, // no rules expect the cluster wide ones
 		"system:authenticated:oauth": {}, // no rules expect the cluster wide ones
