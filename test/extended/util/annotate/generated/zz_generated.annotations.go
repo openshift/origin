@@ -2547,7 +2547,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2581,7 +2581,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2677,7 +2677,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2725,13 +2725,13 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (xfs)][Slow] volumes should store data": "should store data [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable-stress[Feature:VolumeSnapshotDataSource] should support snapshotting of many volumes repeatedly [Slow] [Serial]": "should support snapshotting of many volumes repeatedly [Slow] [Serial] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable-stress[Feature:VolumeSnapshotDataSource] should support snapshotting of many volumes repeatedly [Slow] [Serial]": "should support snapshotting of many volumes repeatedly [Slow] [Serial] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller  should check snapshot fields, check restore correctly works after modifying source data, check deletion": "should check snapshot fields, check restore correctly works after modifying source data, check deletion [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller  should check snapshot fields, check restore correctly works after modifying source data, check deletion": "should check snapshot fields, check restore correctly works after modifying source data, check deletion [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable-stress[Feature:VolumeSnapshotDataSource] should support snapshotting of many volumes repeatedly [Slow] [Serial]": "should support snapshotting of many volumes repeatedly [Slow] [Serial] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable-stress[Feature:VolumeSnapshotDataSource] should support snapshotting of many volumes repeatedly [Slow] [Serial]": "should support snapshotting of many volumes repeatedly [Slow] [Serial] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller  should check snapshot fields, check restore correctly works after modifying source data, check deletion": "should check snapshot fields, check restore correctly works after modifying source data, check deletion [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller  should check snapshot fields, check restore correctly works after modifying source data, check deletion": "should check snapshot fields, check restore correctly works after modifying source data, check deletion [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Generic Ephemeral-volume (default fs) [Feature:GenericEphemeralVolume] (immediate-binding)] ephemeral should create read-only inline ephemeral volume": "should create read-only inline ephemeral volume [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2911,9 +2911,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned PV (xfs)][Slow] volumes should store data": "should store data [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller  should check snapshot fields, check restore correctly works after modifying source data, check deletion": "should check snapshot fields, check restore correctly works after modifying source data, check deletion [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller  should check snapshot fields, check restore correctly works after modifying source data, check deletion": "should check snapshot fields, check restore correctly works after modifying source data, check deletion [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller  should check snapshot fields, check restore correctly works after modifying source data, check deletion": "should check snapshot fields, check restore correctly works after modifying source data, check deletion [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller  should check snapshot fields, check restore correctly works after modifying source data, check deletion": "should check snapshot fields, check restore correctly works after modifying source data, check deletion [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: CSI Ephemeral-volume (default fs)] ephemeral should create read-only inline ephemeral volume": "should create read-only inline ephemeral volume [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -2953,7 +2953,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Skipped:gce] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -2987,7 +2987,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Skipped:gce] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -3083,7 +3083,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Skipped:gce] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -3131,13 +3131,13 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (xfs)][Slow] volumes should store data": "should store data [Skipped:gce] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable-stress[Feature:VolumeSnapshotDataSource] should support snapshotting of many volumes repeatedly [Slow] [Serial]": "should support snapshotting of many volumes repeatedly [Slow] [Serial] [Disabled:Broken] [Skipped:gce] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable-stress[Feature:VolumeSnapshotDataSource] should support snapshotting of many volumes repeatedly [Slow] [Serial]": "should support snapshotting of many volumes repeatedly [Slow] [Serial] [Skipped:gce] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller  should check snapshot fields, check restore correctly works after modifying source data, check deletion": "should check snapshot fields, check restore correctly works after modifying source data, check deletion [Disabled:Broken] [Skipped:gce] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller  should check snapshot fields, check restore correctly works after modifying source data, check deletion": "should check snapshot fields, check restore correctly works after modifying source data, check deletion [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable-stress[Feature:VolumeSnapshotDataSource] should support snapshotting of many volumes repeatedly [Slow] [Serial]": "should support snapshotting of many volumes repeatedly [Slow] [Serial] [Disabled:Broken] [Skipped:gce] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable-stress[Feature:VolumeSnapshotDataSource] should support snapshotting of many volumes repeatedly [Slow] [Serial]": "should support snapshotting of many volumes repeatedly [Slow] [Serial] [Skipped:gce] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller  should check snapshot fields, check restore correctly works after modifying source data, check deletion": "should check snapshot fields, check restore correctly works after modifying source data, check deletion [Disabled:Broken] [Skipped:gce] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller  should check snapshot fields, check restore correctly works after modifying source data, check deletion": "should check snapshot fields, check restore correctly works after modifying source data, check deletion [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Generic Ephemeral-volume (default fs) [Feature:GenericEphemeralVolume] (immediate-binding)] ephemeral should create read-only inline ephemeral volume": "should create read-only inline ephemeral volume [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -3317,9 +3317,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned PV (xfs)][Slow] volumes should store data": "should store data [Skipped:gce] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller  should check snapshot fields, check restore correctly works after modifying source data, check deletion": "should check snapshot fields, check restore correctly works after modifying source data, check deletion [Disabled:Broken] [Skipped:gce] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller  should check snapshot fields, check restore correctly works after modifying source data, check deletion": "should check snapshot fields, check restore correctly works after modifying source data, check deletion [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller  should check snapshot fields, check restore correctly works after modifying source data, check deletion": "should check snapshot fields, check restore correctly works after modifying source data, check deletion [Disabled:Broken] [Skipped:gce] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller  should check snapshot fields, check restore correctly works after modifying source data, check deletion": "should check snapshot fields, check restore correctly works after modifying source data, check deletion [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] CSI mock volume CSI CSIDriver deployment after pod creation using non-attachable mock driver should bringup pod after deploying CSIDriver attach=false [Slow]": "should bringup pod after deploying CSIDriver attach=false [Slow] [Suite:k8s]",
 
@@ -3339,7 +3339,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] CSI mock volume CSI NodeStage error cases [Slow] should retry NodeStage after NodeStage final error": "should retry NodeStage after NodeStage final error [Suite:k8s]",
 
-	"[Top Level] [sig-storage] CSI mock volume CSI Volume Snapshots [Feature:VolumeSnapshotDataSource] volumesnapshotcontent and pvc in Bound state with deletion timestamp set should not get deleted while snapshot finalizer exists": "volumesnapshotcontent and pvc in Bound state with deletion timestamp set should not get deleted while snapshot finalizer exists [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] CSI mock volume CSI Volume Snapshots [Feature:VolumeSnapshotDataSource] volumesnapshotcontent and pvc in Bound state with deletion timestamp set should not get deleted while snapshot finalizer exists": "volumesnapshotcontent and pvc in Bound state with deletion timestamp set should not get deleted while snapshot finalizer exists [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] CSI mock volume CSI Volume expansion should expand volume by restarting pod if attach=off, nodeExpansion=on": "should expand volume by restarting pod if attach=off, nodeExpansion=on [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -3653,7 +3653,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -3687,7 +3687,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -3783,7 +3783,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -4023,7 +4023,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -4057,7 +4057,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -4153,7 +4153,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -4393,7 +4393,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Disabled:Unsupported] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Disabled:Unsupported] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Unsupported] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Disabled:Unsupported] [Suite:k8s]",
 
@@ -4429,7 +4429,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Disabled:Unsupported] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Disabled:Unsupported] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Unsupported] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Disabled:Unsupported] [Suite:k8s]",
 
@@ -4525,7 +4525,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Disabled:Unsupported] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Disabled:Unsupported] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Unsupported] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Disabled:Unsupported] [Suite:k8s]",
 
@@ -4767,7 +4767,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -4801,7 +4801,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -4897,7 +4897,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5137,7 +5137,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5173,7 +5173,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5269,7 +5269,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5511,7 +5511,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5545,7 +5545,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5641,7 +5641,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5881,7 +5881,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: gluster] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Skipped:ibmcloud] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: gluster] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Skipped:ibmcloud] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: gluster] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Skipped:ibmcloud] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: gluster] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Skipped:ibmcloud] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5917,7 +5917,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: gluster] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Skipped:ibmcloud] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: gluster] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Skipped:ibmcloud] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: gluster] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Skipped:ibmcloud] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: gluster] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Skipped:ibmcloud] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -6013,7 +6013,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: gluster] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Skipped:ibmcloud] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: gluster] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Skipped:ibmcloud] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: gluster] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Skipped:ibmcloud] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: gluster] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Skipped:ibmcloud] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -6255,7 +6255,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -6291,7 +6291,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -6387,7 +6387,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -6629,7 +6629,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -6665,7 +6665,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -6761,7 +6761,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -7373,7 +7373,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -7407,7 +7407,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -7503,7 +7503,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -7743,7 +7743,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -7779,7 +7779,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -7875,7 +7875,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8117,7 +8117,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8153,7 +8153,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8249,7 +8249,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8491,7 +8491,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8527,7 +8527,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8623,7 +8623,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8865,7 +8865,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8901,7 +8901,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8997,7 +8997,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -9239,7 +9239,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -9275,7 +9275,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -9371,7 +9371,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -9613,7 +9613,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Skipped:gce] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -9649,7 +9649,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Skipped:gce] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -9745,7 +9745,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Skipped:gce] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -9987,7 +9987,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -10023,7 +10023,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -10119,7 +10119,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -10361,7 +10361,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -10397,7 +10397,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Disabled:Broken] [Suite:k8s]",
 
@@ -10493,7 +10493,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -10735,7 +10735,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Disabled:Unsupported] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Disabled:Unsupported] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Unsupported] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Disabled:Unsupported] [Suite:k8s]",
 
@@ -10769,7 +10769,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Disabled:Unsupported] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Disabled:Unsupported] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Unsupported] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Disabled:Unsupported] [Suite:k8s]",
 
@@ -10865,7 +10865,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Disabled:Unsupported] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Disabled:Unsupported] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Unsupported] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Disabled:Unsupported] [Suite:k8s]",
 
@@ -11105,7 +11105,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -11141,7 +11141,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -11237,7 +11237,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -11479,7 +11479,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": "should not allow expansion of pvcs without AllowVolumeExpansion property [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -11515,7 +11515,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -11611,7 +11611,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with pvc data source": "should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (ntfs)][sig-windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": "should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (ntfs)][sig-windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": "should be able to unmount after the subpath directory is deleted [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
