@@ -31,7 +31,8 @@ var upgradeSuites = testSuites{
 				}
 				return strings.Contains(name, "[Feature:ClusterUpgrade]") && !strings.Contains(name, "[Suite:k8s]")
 			},
-			TestTimeout: 240 * time.Minute,
+			TestTimeout:         240 * time.Minute,
+			SyntheticEventTests: ginkgo.JUnitForEventsFunc(systemUpgradeEventInvariants),
 		},
 		PreSuite: upgradeTestPreSuite,
 	},
@@ -47,7 +48,8 @@ var upgradeSuites = testSuites{
 				}
 				return strings.Contains(name, "[Feature:ClusterUpgrade]") && !strings.Contains(name, "[Suite:k8s]")
 			},
-			TestTimeout: 240 * time.Minute,
+			TestTimeout:         240 * time.Minute,
+			SyntheticEventTests: ginkgo.JUnitForEventsFunc(systemUpgradeEventInvariants),
 		},
 		PreSuite: upgradeTestPreSuite,
 	},
