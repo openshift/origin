@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -37,6 +38,15 @@ var _ = g.Describe("[sig-auth][Feature:SCC][Early]", func() {
 		denialStrings := []string{}
 		for _, event := range events.Items {
 			if !strings.Contains(event.Message, "unable to validate against any security context constraint") {
+				continue
+			}
+			// SCCs become accessible to serviceaccounts based on RBAC resources.  We could require that every operator
+			// apply their RBAC in order with respect to their operands by checking SARs against every kube-apiserver endpoint
+			// and ensuring that the "use" for an SCC comes back correctly, but that isn't very useful.
+			// We don't want to delay pods for an excessive period of time, so we will catch those pods that take more
+			// than five seconds to make it through SCC
+			durationPodFailed := event.LastTimestamp.Sub(event.FirstTimestamp.Time)
+			if durationPodFailed < 5*time.Second {
 				continue
 			}
 			// TODO if we need more details, this is a good guess.
