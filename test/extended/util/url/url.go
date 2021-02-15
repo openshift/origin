@@ -157,8 +157,19 @@ func createExecPod(clientset kclientset.Interface, ns, name string) (string, err
 					ImagePullPolicy: v1.PullIfNotPresent,
 				},
 			},
-			HostNetwork:                   false,
+			HostNetwork: false,
+			// Testing control plane vs workload nodes
+			NodeSelector: map[string]string{
+				"node-role.kubernetes.io/master": "",
+			},
 			TerminationGracePeriodSeconds: &immediate,
+			Tolerations: []v1.Toleration{
+				{
+					Effect:   v1.TaintEffectNoSchedule,
+					Key:      "node-role.kubernetes.io/master",
+					Operator: v1.TolerationOpExists,
+				},
+			},
 		},
 	}
 	client := clientset.CoreV1()
