@@ -35,8 +35,8 @@ func (a JUnitsForAllEvents) JUnitsForEvents(events monitor.EventIntervals, durat
 		if obj == nil {
 			continue
 		}
-		results, passed := obj.JUnitsForEvents(events, duration)
-		if !passed {
+		results, testPassed := obj.JUnitsForEvents(events, duration)
+		if !testPassed {
 			passed = false
 		}
 		all = append(all, results...)
