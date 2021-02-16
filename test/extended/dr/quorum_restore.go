@@ -3,7 +3,6 @@ package dr
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"strings"
 	"time"
@@ -300,48 +299,6 @@ func scaleEtcdQuorum(client kubernetes.Interface, replicas int) error {
 	}
 	o.Expect(etcdQGScale.Spec.Replicas).To(o.Equal(int32(replicas)))
 	return nil
-}
-
-func getPullSecret(oc *exutil.CLI) string {
-	framework.Logf("Saving image pull secret")
-	//TODO: copy of test/extended/operators/images.go, move this to a common func
-	imagePullSecret, err := oc.KubeFramework().ClientSet.CoreV1().Secrets("openshift-config").Get(context.Background(), "pull-secret", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	if err != nil {
-		framework.Failf("unable to get pull secret for cluster: %v", err)
-	}
-
-	// cache file to local temp location
-	imagePullFile, err := ioutil.TempFile("", "image-pull-secret")
-	if err != nil {
-		framework.Failf("unable to create a temporary file: %v", err)
-	}
-
-	// write the content
-	imagePullSecretBytes := imagePullSecret.Data[".dockerconfigjson"]
-	if _, err := imagePullFile.Write(imagePullSecretBytes); err != nil {
-		framework.Failf("unable to write pull secret to temp file: %v", err)
-	}
-	if err := imagePullFile.Close(); err != nil {
-		framework.Failf("unable to close file: %v", err)
-	}
-	framework.Logf("Image pull secret: %s", imagePullFile.Name())
-	return imagePullFile.Name()
-}
-
-func getImagePullSpecFromRelease(oc *exutil.CLI, imagePullSecretPath, imageName string) string {
-	var image string
-	err := wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
-		location, err := oc.Run("adm", "release", "info").Args("--image-for", imageName, "--registry-config", imagePullSecretPath).Output()
-		if err != nil {
-			framework.Logf("Unable to find release info, retrying: %v", err)
-			return false, nil
-		}
-		image = location
-		return true, nil
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	return image
 }
 
 func getMachineNameByNodeName(oc *exutil.CLI, name string) string {
