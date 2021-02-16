@@ -149,6 +149,11 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 
 				// check readiness probe is accessible
 				urlTester := url.NewTester(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name).WithErrorPassthrough(true)
+				proxy, err := exutil.GetClusterProxy(oc)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if len(proxy.Status.HTTPProxy) > 0 {
+					urlTester = urlTester.WithProxy(proxy.Status.HTTPProxy)
+				}
 				defer urlTester.Close()
 				hostname := getHostnameForRoute(oc, tc.route)
 				urlTester.Within(30*time.Second, url.Expect("GET", "https://"+hostname+"/healthz").Through(hostname).SkipTLSVerification().HasStatusCode(200))

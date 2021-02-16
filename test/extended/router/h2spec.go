@@ -89,6 +89,12 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			g.By("verifying accessing the host returns a 200 status code")
 			for i := 0; i < len(routeTypeTests); i++ {
 				urlTester := url.NewTester(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name).WithErrorPassthrough(true)
+				proxy, err := exutil.GetClusterProxy(oc)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if len(proxy.Status.HTTPProxy) > 0 {
+					urlTester = urlTester.WithProxy(proxy.Status.HTTPProxy)
+				}
+
 				defer urlTester.Close()
 				hostname := getHostnameForRoute(oc, fmt.Sprintf("h2spec-haproxy-%s", routeTypeTests[i].routeType))
 				urlTester.Within(30*time.Second, url.Expect("GET", "https://"+hostname).Through(hostname).SkipTLSVerification().HasStatusCode(200))

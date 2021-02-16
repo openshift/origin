@@ -70,13 +70,21 @@ func NewRef(oc *exutil.CLI) *JenkinsRef {
 	token, err := oc.Run("whoami").Args("-t").Output()
 	o.Expect(err).NotTo(o.HaveOccurred())
 
+	tester := exurl.NewTester(oc.AdminKubeClient(), oc.Namespace())
+
+	proxy, err := exutil.GetClusterProxy(oc)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if len(proxy.Status.HTTPProxy) > 0 {
+		tester = tester.WithProxy(proxy.Status.HTTPProxy)
+	}
+
 	j := &JenkinsRef{
 		oc:         oc,
 		host:       serviceIP,
 		port:       port,
 		namespace:  oc.Namespace(),
 		token:      token,
-		uri_tester: exurl.NewTester(oc.AdminKubeClient(), oc.Namespace()),
+		uri_tester: tester,
 	}
 	return j
 }

@@ -31,6 +31,7 @@ type Tester struct {
 	namespace        string
 	podName          string
 	errorPassThrough bool
+	proxy            string
 }
 
 func NewTester(client kclientset.Interface, ns string) *Tester {
@@ -64,6 +65,13 @@ func (ut *Tester) Responses(tests ...*Test) []*Response {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 		ut.podName = "execpod"
+	}
+
+	// Apply proxy settings to individual tests when necessary
+	if len(ut.proxy) > 0 {
+		for _, test := range tests {
+			test.Proxy = ut.proxy
+		}
 	}
 	// testToScript needs to run after creating the pod
 	// in case we need to rsync files for a post body
@@ -107,6 +115,11 @@ func (ut *Tester) WithErrorPassthrough(pt bool) *Tester {
 
 func (ut *Tester) Podname() string {
 	return ut.podName
+}
+
+func (ut *Tester) WithProxy(proxy string) *Tester {
+	ut.proxy = proxy
+	return ut
 }
 
 func (ut *Tester) Within(t time.Duration, tests ...*Test) {
@@ -248,6 +261,7 @@ type Test struct {
 	// to facilitate passing to curl
 	PostBodyFile string
 	PodName      string
+	Proxy        string
 	Oc           *exutil.CLI
 
 	Wants []func(*http.Response) error
@@ -366,6 +380,9 @@ func (ut *Test) ToShell(i int) string {
 	cmd += ` -w '{"code":%{http_code}}'`
 	if ut.SkipVerify {
 		cmd += ` -k`
+	}
+	if len(ut.Proxy) > 0 {
+		cmd += fmt.Sprintf(" --proxy %s", ut.Proxy)
 	}
 	cmd += " 2>/tmp/error 1>/tmp/output || rc=$?"
 	lines = append(lines, `: > /tmp/body /tmp/headers`)

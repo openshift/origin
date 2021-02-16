@@ -53,6 +53,12 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 
 		tester := exurl.NewTester(oc.AdminKubeClient(), ns).WithErrorPassthrough(true)
 
+		proxy, err := exutil.GetClusterProxy(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if len(proxy.Status.HTTPProxy) > 0 {
+			tester = tester.WithProxy(proxy.Status.HTTPProxy)
+		}
+
 		tests := []*exurl.Test{}
 
 		routes := []struct {
