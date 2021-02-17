@@ -94,6 +94,26 @@ func LocatePrometheus(oc *exutil.CLI) (queryURL, prometheusURL, bearerToken stri
 	return "https://thanos-querier.openshift-monitoring.svc:9091", "https://prometheus-k8s.openshift-monitoring.svc:9091", bearerToken, true
 }
 
+func RunQuery(query, ns, execPodName, baseURL, bearerToken string) (*PrometheusResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/query?%s", baseURL, (url.Values{"query": []string{query}}).Encode())
+	contents, err := GetBearerTokenURLViaPod(ns, execPodName, url, bearerToken)
+	if err != nil {
+		return nil, fmt.Errorf("unable to execute query %s: %v", query, err)
+	}
+
+	// check query result, if this is a new error log it, otherwise remain silent
+	var result PrometheusResponse
+	if err := json.Unmarshal([]byte(contents), &result); err != nil {
+		return nil, fmt.Errorf("unable to parse query response for %s: %v", query, err)
+	}
+	metrics := result.Data.Result
+	if result.Status != "success" {
+		data, _ := json.MarshalIndent(metrics, "", "  ")
+		return nil, fmt.Errorf("promQL query: %s had reported incorrect status:\n%s", query, data)
+	}
+	return &result, nil
+}
+
 // RunQueries executes Prometheus queries and checks provided expected result.
 func RunQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, baseURL, bearerToken string) error {
 	// expect all correct metrics within a reasonable time period
@@ -108,33 +128,21 @@ func RunQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, ba
 			// and introduced at https://github.com/prometheus/client_golang/blob/master/api/prometheus/v1/api.go are vendored into
 			// openshift/origin, look to replace this homegrown http request / query param with that API
 			g.By("perform prometheus metric query " + query)
-			url := fmt.Sprintf("%s/api/v1/query?%s", baseURL, (url.Values{"query": []string{query}}).Encode())
-			contents, err := GetBearerTokenURLViaPod(ns, execPodName, url, bearerToken)
+			result, err := RunQuery(query, ns, execPodName, baseURL, bearerToken)
 			if err != nil {
-				return err
-			}
-
-			// check query result, if this is a new error log it, otherwise remain silent
-			var result PrometheusResponse
-			if err := json.Unmarshal([]byte(contents), &result); err != nil {
-				framework.Logf("unable to parse query response for %s: %v", query, err)
+				msg := err.Error()
+				if prev, ok := queryErrors[query]; ok && prev.Error() != msg {
+					framework.Logf("%s", prev.Error())
+				}
+				queryErrors[query] = err
 				continue
 			}
 			metrics := result.Data.Result
-			if result.Status != "success" {
-				data, _ := json.MarshalIndent(metrics, "", "  ")
-				msg := fmt.Sprintf("promQL query: %s had reported incorrect status:\n%s", query, data)
-				if prev, ok := queryErrors[query]; !ok || prev.Error() != msg {
-					framework.Logf("%s", msg)
-				}
-				queryErrors[query] = fmt.Errorf(msg)
-				continue
-			}
 			if (len(metrics) > 0 && !expected) || (len(metrics) == 0 && expected) {
-				data, _ := json.MarshalIndent(metrics, "", "  ")
-				msg := fmt.Sprintf("promQL query: %s had reported incorrect results:\n%s", query, data)
-				if prev, ok := queryErrors[query]; !ok || prev.Error() != msg {
-					framework.Logf("%s", msg)
+				data, _ := json.MarshalIndent(result.Data.Result, "", "  ")
+				msg := fmt.Sprintf("promQL query returned unexpected results:\n%s\n%s", query, data)
+				if prev, ok := queryErrors[query]; ok && prev.Error() != msg {
+					framework.Logf("%s", prev.Error())
 				}
 				queryErrors[query] = fmt.Errorf(msg)
 				continue
@@ -155,8 +163,8 @@ func RunQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, ba
 		exutil.DumpPodLogsStartingWith("prometheus-k8s-", oc)
 	}
 	var errs []error
-	for query, err := range queryErrors {
-		errs = append(errs, fmt.Errorf("query failed: %s: %s", query, err))
+	for _, err := range queryErrors {
+		errs = append(errs, err)
 	}
 	return errors.NewAggregate(errs)
 }
