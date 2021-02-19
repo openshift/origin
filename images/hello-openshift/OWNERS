@@ -1,0 +1,18 @@
+reviewers:
+  - mfojtik
+  - smarterclayton
+  - pweil-
+  - jwforres
+  - derekwaynecarr
+  - bparees
+  - knobunc
+  - adambkaplan
+  - sgreene570
+approvers:
+  - mfojtik
+  - smarterclayton
+  - pweil-
+  - jwforres
+  - derekwaynecarr
+  - sgreene570
+component: Routing

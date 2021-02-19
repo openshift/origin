@@ -13,14 +13,14 @@
       "git": {
         "uri":"https://github.com/sclorg/nodejs-ex"        
       },
-      "dockerfile": "FROM docker.io/busybox:latest"
+      "dockerfile": "FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
     },
     "strategy":{
       "type":"Docker",
       "dockerStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"docker.io/busybox:latest"
+          "name":"image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         }
       }
     },

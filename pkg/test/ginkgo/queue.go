@@ -25,18 +25,11 @@ func (nopLock) Unlock() {}
 
 type TestFunc func(ctx context.Context, test *testCase)
 
-func newParallelTestQueue(tests []*testCase) *parallelByFileTestQueue {
-	r := ring.New(len(tests))
-	for _, test := range tests {
-		r.Value = test
-		r = r.Next()
-	}
-	q := &parallelByFileTestQueue{
+func newParallelTestQueue() *parallelByFileTestQueue {
+	return &parallelByFileTestQueue{
 		cond:   sync.NewCond(nopLock{}),
-		queue:  r,
 		active: make(map[string]struct{}),
 	}
-	return q
 }
 
 func (q *parallelByFileTestQueue) pop() (*testCase, bool) {
@@ -99,39 +92,41 @@ func (q *parallelByFileTestQueue) Take(ctx context.Context, fn TestFunc) bool {
 	}
 }
 
-func (q *parallelByFileTestQueue) Execute(parentCtx context.Context, parallelism int, fn TestFunc) {
-	go func() {
-		<-parentCtx.Done()
-		q.Close()
-	}()
-	var serial []*testCase
-	var lock sync.Mutex
+func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase, parallelism int, fn TestFunc) {
+	defer q.Close()
+
+	if ctx.Err() != nil {
+		return
+	}
+
+	serial, parallel := splitTests(tests, func(t *testCase) bool { return strings.Contains(t.name, "[Serial]") })
+
+	r := ring.New(len(parallel))
+	for _, test := range parallel {
+		r.Value = test
+		r = r.Next()
+	}
+	q.queue = r
+
 	var wg sync.WaitGroup
 	wg.Add(parallelism)
 	for i := 0; i < parallelism; i++ {
 		go func(i int) {
-			for q.Take(parentCtx, func(ctx context.Context, test *testCase) {
-				if strings.Contains(test.name, "[Serial]") {
-					lock.Lock()
-					defer lock.Unlock()
-					serial = append(serial, test)
+			defer wg.Done()
+			for q.Take(ctx, func(ctx context.Context, test *testCase) { fn(ctx, test) }) {
+				if ctx.Err() != nil {
 					return
 				}
-				fn(ctx, test)
-			}) {
-				// no-op
 			}
-			wg.Done()
 		}(i)
 	}
 	wg.Wait()
+
 	for _, test := range serial {
-		select {
-		case <-parentCtx.Done():
+		if ctx.Err() != nil {
 			return
-		default:
 		}
-		fn(parentCtx, test)
+		fn(ctx, test)
 	}
 }
 
@@ -150,6 +145,15 @@ func setTestExclusion(tests []*testCase, fn func(suitePath string, t *testCase) 
 			test.testExclusion = suitePath
 		}
 	}
+}
+
+func copyTests(tests []*testCase) []*testCase {
+	copied := make([]*testCase, 0, len(tests))
+	for _, t := range tests {
+		c := *t
+		copied = append(copied, &c)
+	}
+	return copied
 }
 
 func splitTests(tests []*testCase, fn func(*testCase) bool) (a, b []*testCase) {

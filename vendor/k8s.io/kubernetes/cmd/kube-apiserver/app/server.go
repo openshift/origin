@@ -738,8 +738,17 @@ func Complete(s *options.ServerRunOptions) (completedServerRunOptions, error) {
 	}
 
 	if s.Etcd.EnableWatchCache {
+		sizes := kubeapiserver.DefaultWatchCacheSizes()
 		// Ensure that overrides parse correctly.
-		if _, err := serveroptions.ParseWatchCacheSizes(s.Etcd.WatchCacheSizes); err != nil {
+		userSpecified, err := serveroptions.ParseWatchCacheSizes(s.Etcd.WatchCacheSizes)
+		if err != nil {
+			return options, err
+		}
+		for resource, size := range userSpecified {
+			sizes[resource] = size
+		}
+		s.Etcd.WatchCacheSizes, err = serveroptions.WriteWatchCacheSizes(sizes)
+		if err != nil {
 			return options, err
 		}
 	}
@@ -831,7 +840,7 @@ type eventRegistrySink struct {
 var _ genericapiserver.EventSink = eventRegistrySink{}
 
 func (s eventRegistrySink) Create(v1event *corev1.Event) (*corev1.Event, error) {
-	ctx := request.WithNamespace(request.NewContext(), v1event.Namespace)
+	ctx := request.WithNamespace(request.WithRequestInfo(request.NewContext(), &request.RequestInfo{APIVersion: "v1"}), v1event.Namespace)
 
 	var event core.Event
 	if err := v1.Convert_v1_Event_To_core_Event(v1event, &event, nil); err != nil {

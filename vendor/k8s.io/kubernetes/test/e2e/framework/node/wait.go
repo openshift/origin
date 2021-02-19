@@ -213,6 +213,9 @@ func CheckReadyForTests(c clientset.Interface, nonblockingTaints string, allowed
 	attempt := 0
 	var notSchedulable []*v1.Node
 	return func() (bool, error) {
+		if allowedNotReadyNodes == -1 {
+			return true, nil
+		}
 		attempt++
 		notSchedulable = nil
 		opts := metav1.ListOptions{

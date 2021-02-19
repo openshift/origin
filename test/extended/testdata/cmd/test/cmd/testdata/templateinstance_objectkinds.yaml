@@ -40,7 +40,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: openshift/hello-openshift
+                image: k8s.gcr.io/e2e-test-images/agnhost:2.20
       - kind: Route
         apiVersion: v1
         metadata:

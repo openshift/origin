@@ -23,7 +23,7 @@ spec:
         name: hook
     spec:
       containers:
-      - image: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
         command:
           - /bin/sleep
           - infinity

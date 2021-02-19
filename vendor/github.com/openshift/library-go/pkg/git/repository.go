@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -37,6 +38,7 @@ type Repository interface {
 	Commit(dir string, message string) error
 	AddRemote(dir string, name, url string) error
 	AddLocalConfig(dir, name, value string) error
+	AddGlobalConfig(name, value string) error
 	ShowFormat(dir, commit, format string) (string, error)
 	ListRemote(url string, args ...string) (string, string, error)
 	TimedListRemote(timeout time.Duration, url string, args ...string) (string, string, error)
@@ -260,6 +262,12 @@ func (r *repository) AddLocalConfig(location, name, value string) error {
 	return err
 }
 
+// AddGlobalConfig adds a value to the global git configuration
+func (r *repository) AddGlobalConfig(name, value string) error {
+	_, _, err := r.git("", "config", "--global", "--add", name, value)
+	return err
+}
+
 // CloneWithOptions clones a remote git repository to a local directory
 func (r *repository) CloneWithOptions(location string, url string, args ...string) error {
 	gitArgs := []string{"clone"}
@@ -421,7 +429,9 @@ func command(name, dir string, env []string, args ...string) (stdout, stderr str
 func timedCommand(timeout time.Duration, name, dir string, env []string, args ...string) (stdout, stderr string, err error) {
 	var stdoutBuffer, stderrBuffer bytes.Buffer
 
-	klog.V(4).Infof("Executing %s %s", name, strings.Join(args, " "))
+	logArgs := safeForLoggingArgs(args...)
+
+	klog.V(4).Infof("Executing %s %s", name, strings.Join(logArgs, " "))
 
 	cmd := exec.Command(name, args...)
 	cmd.Dir = dir
@@ -464,6 +474,29 @@ func timedCommand(timeout time.Duration, name, dir string, env []string, args ..
 
 	// if we didn't encounter an ExitError or a timeout, simply return the error
 	return stdout, stderr, err
+}
+
+// safeForLoggingArgs checks if a list of arguments contains a URL with embedded credentials.
+// If credentials are found, the username and password are redacted.
+func safeForLoggingArgs(args ...string) []string {
+	safeArgs := []string{}
+	for _, arg := range args {
+		u, err := url.Parse(arg)
+		if err != nil {
+			safeArgs = append(safeArgs, arg)
+			continue
+		}
+		if u.User == nil {
+			safeArgs = append(safeArgs, arg)
+			continue
+		}
+		if _, passwordSet := u.User.Password(); passwordSet {
+			// wipe out the user info from the url.
+			u.User = url.User("redacted")
+		}
+		safeArgs = append(safeArgs, u.String())
+	}
+	return safeArgs
 }
 
 // runCommand runs the command with the given timeout, and returns any errors encountered and whether

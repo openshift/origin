@@ -20,7 +20,12 @@ type KubeInformersForNamespaces interface {
 
 	ConfigMapLister() corev1listers.ConfigMapLister
 	SecretLister() corev1listers.SecretLister
+
+	// Used in by workloads controller and controllers that report deployment pods status
+	PodLister() corev1listers.PodLister
 }
+
+var _ KubeInformersForNamespaces = kubeInformersForNamespaces{}
 
 func NewKubeInformersForNamespaces(kubeClient kubernetes.Interface, namespaces ...string) KubeInformersForNamespaces {
 	ret := kubeInformersForNamespaces{}
@@ -102,4 +107,29 @@ func (l secretLister) Secrets(namespace string) corev1listers.SecretNamespaceLis
 	}
 
 	return informer.Core().V1().Secrets().Lister().Secrets(namespace)
+}
+
+type podLister kubeInformersForNamespaces
+
+func (i kubeInformersForNamespaces) PodLister() corev1listers.PodLister {
+	return podLister(i)
+}
+
+func (l podLister) List(selector labels.Selector) (ret []*corev1.Pod, err error) {
+	globalInformer, ok := l[""]
+	if !ok {
+		return nil, fmt.Errorf("combinedLister does not support cross namespace list")
+	}
+
+	return globalInformer.Core().V1().Pods().Lister().List(selector)
+}
+
+func (l podLister) Pods(namespace string) corev1listers.PodNamespaceLister {
+	informer, ok := l[namespace]
+	if !ok {
+		// coding error
+		panic(fmt.Sprintf("namespace %q is missing", namespace))
+	}
+
+	return informer.Core().V1().Pods().Lister().Pods(namespace)
 }
