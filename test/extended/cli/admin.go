@@ -19,8 +19,9 @@ import (
 )
 
 var (
-	cliInterval = 5 * time.Second
-	cliTimeout  = 1 * time.Minute
+	cliInterval        = 5 * time.Second
+	cliTimeout         = 1 * time.Minute
+	extendedCliTimeout = 2 * time.Minute
 )
 
 var _ = g.Describe("[sig-cli] oc adm", func() {
@@ -398,7 +399,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		o.Expect(oc.Run("adm", "policy", "add-role-to-user").Args("--rolebinding-name=admin", "admin", "adduser", "-n", "ui-test-project").Execute()).To(o.Succeed())
 
 		// Make sure project can be listed by oc (after auth cache syncs)
-		err := wait.Poll(cliInterval, cliTimeout, func() (bool, error) {
+		err := wait.Poll(cliInterval, extendedCliTimeout, func() (bool, error) {
 			err := ocns.Run("get").Args("project/ui-test-project").Execute()
 			return err == nil, nil
 		})
