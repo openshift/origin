@@ -25,7 +25,7 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 					conditions = append(conditions, Condition{
 						Level:   Warning,
 						Locator: locateNode(node),
-						Message: fmt.Sprintf("condition %s changed", c.Type),
+						Message: fmt.Sprintf("condition/%s status/%s reason/%s changed", c.Type, c.Status, c.Reason),
 					})
 				}
 			}

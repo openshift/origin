@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubectl/pkg/util/templates"
 
 	"github.com/openshift/origin/pkg/monitor"
@@ -425,27 +427,35 @@ const (
 // steady state (not being changed externally). Use these with suites that assume the
 // cluster is under no adversarial change (config changes, induced disruption to nodes,
 // etcd, or apis).
-func stableSystemEventInvariants(events monitor.EventIntervals, duration time.Duration) (results []*ginkgo.JUnitTestCase, passed bool) {
-	tests, _ := systemEventInvariants(events, duration)
-	results = append(results, tests...)
-	results = append(results, testKubeAPIServerGracefulTermination(events)...)
-	results = append(results, testServerAvailability(monitor.LocatorKubeAPIServerNewConnection, events, duration)...)
-	results = append(results, testServerAvailability(monitor.LocatorOpenshiftAPIServerNewConnection, events, duration)...)
-	results = append(results, testServerAvailability(monitor.LocatorOAuthAPIServerNewConnection, events, duration)...)
-	results = append(results, testServerAvailability(monitor.LocatorKubeAPIServerReusedConnection, events, duration)...)
-	results = append(results, testServerAvailability(monitor.LocatorOpenshiftAPIServerReusedConnection, events, duration)...)
-	results = append(results, testServerAvailability(monitor.LocatorOAuthAPIServerReusedConnection, events, duration)...)
-	return results, true
+func stableSystemEventInvariants(events monitor.EventIntervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase, passed bool) {
+	tests, _ = systemEventInvariants(events, duration)
+	tests = append(tests, testKubeAPIServerGracefulTermination(events)...)
+	tests = append(tests, testServerAvailability(monitor.LocatorKubeAPIServerNewConnection, events, duration)...)
+	tests = append(tests, testServerAvailability(monitor.LocatorOpenshiftAPIServerNewConnection, events, duration)...)
+	tests = append(tests, testServerAvailability(monitor.LocatorOAuthAPIServerNewConnection, events, duration)...)
+	tests = append(tests, testServerAvailability(monitor.LocatorKubeAPIServerReusedConnection, events, duration)...)
+	tests = append(tests, testServerAvailability(monitor.LocatorOpenshiftAPIServerReusedConnection, events, duration)...)
+	tests = append(tests, testServerAvailability(monitor.LocatorOAuthAPIServerReusedConnection, events, duration)...)
+	return tests, true
+}
+
+// systemUpgradeEventInvariants are invariants tested against events that should hold true in a cluster
+// that is being upgraded without induced disruption
+func systemUpgradeEventInvariants(events monitor.EventIntervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase, passed bool) {
+	tests, _ = systemEventInvariants(events, duration)
+	results, nodeUpgradeOk := testNodeUpgradeTransitions(events)
+	tests = append(tests, results...)
+	return tests, nodeUpgradeOk
 }
 
 // systemEventInvariants are invariants tested against events that should hold true in any cluster,
 // even one undergoing disruption. These are usually focused on things that must be true on a single
 // machine, even if the machine crashes.
-func systemEventInvariants(events monitor.EventIntervals, duration time.Duration) (results []*ginkgo.JUnitTestCase, passed bool) {
-	results = append(results, testPodTransitions(events)...)
-	results = append(results, testSystemDTimeout(events)...)
-	results = append(results, testPodSandboxCreation(events)...)
-	return results, true
+func systemEventInvariants(events monitor.EventIntervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase, passed bool) {
+	tests = append(tests, testPodTransitions(events)...)
+	tests = append(tests, testSystemDTimeout(events)...)
+	tests = append(tests, testPodSandboxCreation(events)...)
+	return tests, true
 }
 
 func testServerAvailability(locator string, events []*monitor.EventInterval, duration time.Duration) []*ginkgo.JUnitTestCase {
@@ -526,6 +536,116 @@ func testPodTransitions(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase
 	// TODO an upgrade job that starts before 4.6 may need to make this test flake instead of fail.  This will depend on which `openshift-tests`
 	//  is used to run that upgrade test.  I recommend waiting to a flake until we know and even then find a way to constrain it.
 	return []*ginkgo.JUnitTestCase{failure}
+}
+
+func formatTimes(times []time.Time) []string {
+	var s []string
+	for _, t := range times {
+		s = append(s, t.UTC().Format(time.RFC3339))
+	}
+	return s
+}
+
+func testNodeUpgradeTransitions(events []*monitor.EventInterval) ([]*ginkgo.JUnitTestCase, bool) {
+	const testName = "[sig-node] nodes should not go unready after being upgraded and go unready only once"
+
+	nodesWentReady, nodesWentUnready := make(map[string][]time.Time), make(map[string][]time.Time)
+	currentNodeReady := make(map[string]bool)
+
+	var buf bytes.Buffer
+	var testCases []*ginkgo.JUnitTestCase
+	for len(events) > 0 {
+		var text string
+		var failures []string
+		var foundEnd bool
+		for i, event := range events {
+			// treat multiple sequential upgrades as distinct test failures
+			if event.Locator == "clusterversion/cluster" && strings.Contains(event.Message, "reason/UpgradeStarted") {
+				text = event.Message
+				events = events[i+1:]
+				foundEnd = true
+				fmt.Fprintf(&buf, "DEBUG: found upgrade start event: %v\n", event.String())
+				break
+			}
+			if !strings.HasPrefix(event.Locator, "node/") {
+				continue
+			}
+			if !strings.HasPrefix(event.Message, "condition/Ready ") || !strings.HasSuffix(event.Message, " changed") {
+				continue
+			}
+			node := strings.TrimPrefix(event.Locator, "node/")
+			if strings.Contains(event.Message, " status/True ") {
+				if currentNodeReady[node] {
+					failures = append(failures, fmt.Sprintf("Node %s was reported ready twice in a row, this should be impossible", node))
+					continue
+				}
+				currentNodeReady[node] = true
+				nodesWentReady[node] = append(nodesWentReady[node], event.From)
+				fmt.Fprintf(&buf, "DEBUG: found node ready transition: %v\n", event.String())
+			} else {
+				if !currentNodeReady[node] && len(nodesWentUnready[node]) > 0 {
+					fmt.Fprintf(&buf, "DEBUG: node already considered not ready, ignoring: %v\n", event.String())
+					continue
+				}
+				currentNodeReady[node] = false
+				nodesWentUnready[node] = append(nodesWentUnready[node], event.From)
+				fmt.Fprintf(&buf, "DEBUG: found node not ready transition: %v\n", event.String())
+			}
+		}
+		if !foundEnd {
+			events = nil
+		}
+
+		abnormalNodes := sets.NewString()
+		for node, unready := range nodesWentUnready {
+			ready := nodesWentReady[node]
+			if len(unready) > 1 {
+				failures = append(failures, fmt.Sprintf("Node %s went unready multiple times: %s", node, strings.Join(formatTimes(unready), ", ")))
+				abnormalNodes.Insert(node)
+			}
+			if len(ready) > 1 {
+				failures = append(failures, fmt.Sprintf("Node %s went ready multiple times: %s", node, strings.Join(formatTimes(ready), ", ")))
+				abnormalNodes.Insert(node)
+			}
+
+			switch {
+			case len(ready) == 0, len(unready) == 1 && len(ready) == 1 && !unready[0].Before(ready[0]):
+				failures = append(failures, fmt.Sprintf("Node %s went unready at %s, never became ready again", node, strings.Join(formatTimes(unready[:1]), ", ")))
+				abnormalNodes.Insert(node)
+			}
+		}
+		for node, ready := range nodesWentReady {
+			unready := nodesWentUnready[node]
+			if len(unready) > 0 {
+				continue
+			}
+			switch {
+			case len(ready) > 1:
+				failures = append(failures, fmt.Sprintf("Node %s went ready multiple times without going unready: %s", node, strings.Join(formatTimes(ready), ", ")))
+				abnormalNodes.Insert(node)
+			case len(ready) == 1:
+				failures = append(failures, fmt.Sprintf("Node %s went ready at %s but had no record of going unready, may not have upgraded", node, strings.Join(formatTimes(ready), ", ")))
+				abnormalNodes.Insert(node)
+			}
+		}
+
+		if len(failures) == 0 {
+			continue
+		}
+
+		testCases = append(testCases, &ginkgo.JUnitTestCase{
+			Name:      testName,
+			SystemOut: fmt.Sprintf("%s\n\n%s", strings.Join(failures, "\n"), buf.String()),
+			FailureOutput: &ginkgo.FailureOutput{
+				Output: fmt.Sprintf("%d nodes violated upgrade expectations:\n\n%s\n\n%s", abnormalNodes.Len(), strings.Join(failures, "\n"), text),
+			},
+		})
+	}
+	if len(testCases) == 0 {
+		testCases = append(testCases, &ginkgo.JUnitTestCase{Name: testName})
+		return testCases, true
+	}
+	return testCases, false
 }
 
 func testSystemDTimeout(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {

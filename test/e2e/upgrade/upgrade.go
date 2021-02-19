@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	v1 "k8s.io/api/core/v1"
+	eventsv1 "k8s.io/api/events/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -23,6 +25,7 @@ import (
 	apps "k8s.io/kubernetes/test/e2e/upgrades/apps"
 
 	g "github.com/onsi/ginkgo"
+	"github.com/pborman/uuid"
 
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
@@ -254,6 +257,8 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		return nil
 	}
 
+	uid := uuid.NewRandom().String()
+
 	kubeClient := kubernetes.NewForConfigOrDie(config)
 
 	// this is very long.  We should update the clusteroperator junit to give us a duration.
@@ -261,7 +266,8 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 	// if upgrades take longer than this, then we will have a junit marker indicating failure.
 	durationToSoftFailure := 75 * time.Minute
 
-	framework.Logf("Starting upgrade to version=%s image=%s", version.Version.String(), version.NodeImage)
+	framework.Logf("Starting upgrade to version=%s image=%s attempt=%s", version.Version.String(), version.NodeImage, uid)
+	recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeStarted", fmt.Sprintf("version/%s image/%s", version.Version.String(), version.NodeImage), false)
 
 	// decide whether to abort at a percent
 	abortAt := upgradeAbortAt
@@ -328,6 +334,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			return nil
 		},
 	); err != nil {
+		recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeFailed", fmt.Sprintf("failed to acknowledge version: %v", err), true)
 		return err
 	}
 
@@ -374,6 +381,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 					}); err != nil {
 						return false, err
 					}
+					recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeRollback", fmt.Sprintf("version/%s image/%s", original.Status.Desired.Version, original.Status.Desired.Version), false)
 					aborted = true
 					return false, nil
 				}
@@ -388,6 +396,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			}
 
 			framework.Logf("Completed upgrade to %s", versionString(desired))
+			recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeVersion", fmt.Sprintf("version/%s image/%s", updated.Status.Desired.Version, updated.Status.Desired.Version), false)
 
 			// record whether the cluster was fast or slow upgrading.  Don't fail the test, we still want signal on the actual tests themselves.
 			upgradeEnded := time.Now()
@@ -401,6 +410,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			return nil
 		},
 	); err != nil {
+		recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeFailed", fmt.Sprintf("failed to reach cluster version: %v", err), true)
 		return err
 	}
 
@@ -437,6 +447,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			return nil
 		},
 	); err != nil {
+		recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeFailed", fmt.Sprintf("failed to upgrade nodes: %v", err), true)
 		return err
 	}
 
@@ -450,10 +461,41 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			return nil
 		},
 	); err != nil {
+		recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeFailed", fmt.Sprintf("failed to settle operators: %v", err), true)
 		return err
 	}
 
+	recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeComplete", fmt.Sprintf("version/%s image/%s", updated.Status.Desired.Version, updated.Status.Desired.Image), false)
 	return nil
+}
+
+// recordClusterEvent attempts to record an event to the cluster to indicate actions taken during an
+// upgrade for timeline review.
+func recordClusterEvent(client kubernetes.Interface, uid, action, reason, note string, warning bool) {
+	currentTime := metav1.MicroTime{Time: time.Now()}
+	t := v1.EventTypeNormal
+	if warning {
+		t = v1.EventTypeWarning
+	}
+	ctx, cancelFn := context.WithTimeout(context.TODO(), 10*time.Second)
+	defer cancelFn()
+	ns := "openshift-cluster-version"
+	_, err := client.EventsV1().Events(ns).Create(ctx, &eventsv1.Event{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("%v.%x", "cluster", currentTime.UnixNano()),
+		},
+		Regarding:           v1.ObjectReference{Kind: "ClusterVersion", Name: "cluster", Namespace: ns, APIVersion: configv1.GroupVersion.String()},
+		Action:              action,
+		Reason:              reason,
+		Note:                note,
+		Type:                t,
+		EventTime:           currentTime,
+		ReportingController: "openshift-tests.openshift.io/upgrade",
+		ReportingInstance:   uid,
+	}, metav1.CreateOptions{})
+	if err != nil {
+		framework.Logf("Unable to record cluster event: %v", err)
+	}
 }
 
 // TODO(runcom): drop this when MCO types are in openshift/api and we can use the typed client directly
