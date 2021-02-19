@@ -21,7 +21,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/reference"
 	watchtools "k8s.io/client-go/tools/watch"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsv1 "github.com/openshift/api/apps/v1"

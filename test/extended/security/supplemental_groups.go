@@ -18,6 +18,7 @@ import (
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 const (
@@ -103,7 +104,7 @@ func supGroupPod(fsGroup int64, supGroup int64) *kapiv1.Pod {
 			Containers: []kapiv1.Container{
 				{
 					Name:  supplementalGroupsPod,
-					Image: "openshift/origin-pod",
+					Image: image.ShellImage(),
 				},
 			},
 		},

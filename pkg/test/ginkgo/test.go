@@ -63,16 +63,15 @@ type TestSuite struct {
 
 	Matches func(name string) bool
 
-	// Init should be run once before a test in this suite is run. Not called by
-	// methods in this package.
-	Init func(map[string]string) error
-
 	// The number of times to execute each test in this suite.
 	Count int
 	// The maximum parallelism of this suite.
 	Parallelism int
 	// The number of flakes that may occur before this test is marked as a failure.
 	MaximumAllowedFlakes int
+
+	// SyntheticEventTests is a set of suite level synthetics applied
+	SyntheticEventTests JUnitsForEvents
 
 	TestTimeout time.Duration
 }

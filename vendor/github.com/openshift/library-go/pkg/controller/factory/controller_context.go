@@ -44,62 +44,66 @@ func (c syncContext) Recorder() events.Recorder {
 	return c.eventRecorder
 }
 
-func (c syncContext) isInterestingNamespace(obj interface{}, interestingNamespaces sets.String) (bool, bool) {
-	ns, ok := obj.(*corev1.Namespace)
-	if !ok {
-		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
-		if ok {
-			if ns, ok := tombstone.Obj.(*corev1.Namespace); ok {
-				return true, interestingNamespaces.Has(ns.Name)
-			}
-		}
-		return false, false
-	}
-	return true, interestingNamespaces.Has(ns.Name)
-}
-
 // eventHandler provides default event handler that is added to an informers passed to controller factory.
-func (c syncContext) eventHandler(queueKeyFunc ObjectQueueKeyFunc, interestingNamespaces sets.String) cache.ResourceEventHandler {
-	return cache.ResourceEventHandlerFuncs{
+func (c syncContext) eventHandler(queueKeyFunc ObjectQueueKeyFunc, filter EventFilterFunc) cache.ResourceEventHandler {
+	resourceEventHandler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			isNamespace, isInteresting := c.isInterestingNamespace(obj, interestingNamespaces)
 			runtimeObj, ok := obj.(runtime.Object)
 			if !ok {
 				utilruntime.HandleError(fmt.Errorf("added object %+v is not runtime Object", obj))
 				return
 			}
-			if !isNamespace || (isNamespace && isInteresting) {
-				c.Queue().Add(queueKeyFunc(runtimeObj))
-			}
+			c.Queue().Add(queueKeyFunc(runtimeObj))
 		},
 		UpdateFunc: func(old, new interface{}) {
-			isNamespace, isInteresting := c.isInterestingNamespace(new, interestingNamespaces)
 			runtimeObj, ok := new.(runtime.Object)
 			if !ok {
 				utilruntime.HandleError(fmt.Errorf("updated object %+v is not runtime Object", runtimeObj))
 				return
 			}
-			if !isNamespace || (isNamespace && isInteresting) {
-				c.Queue().Add(queueKeyFunc(runtimeObj))
-			}
+			c.Queue().Add(queueKeyFunc(runtimeObj))
 		},
 		DeleteFunc: func(obj interface{}) {
-			isNamespace, isInteresting := c.isInterestingNamespace(obj, interestingNamespaces)
 			runtimeObj, ok := obj.(runtime.Object)
 			if !ok {
-				tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
-				if ok {
-					if !isNamespace || (isNamespace && isInteresting) {
-						c.Queue().Add(queueKeyFunc(tombstone.Obj.(runtime.Object)))
-					}
+				if tombstone, ok := obj.(cache.DeletedFinalStateUnknown); ok {
+					c.Queue().Add(queueKeyFunc(tombstone.Obj.(runtime.Object)))
 					return
 				}
 				utilruntime.HandleError(fmt.Errorf("updated object %+v is not runtime Object", runtimeObj))
 				return
 			}
-			if !isNamespace || (isNamespace && isInteresting) {
-				c.Queue().Add(queueKeyFunc(runtimeObj))
-			}
+			c.Queue().Add(queueKeyFunc(runtimeObj))
 		},
+	}
+	if filter == nil {
+		return resourceEventHandler
+	}
+	return cache.FilteringResourceEventHandler{
+		FilterFunc: filter,
+		Handler:    resourceEventHandler,
+	}
+}
+
+// namespaceChecker returns a function which returns true if an inpuut obj
+// (or its tombstone) is a namespace  and it matches a name of any namespaces
+// that we are interested in
+func namespaceChecker(interestingNamespaces []string) func(obj interface{}) bool {
+	interestingNamespacesSet := sets.NewString(interestingNamespaces...)
+
+	return func(obj interface{}) bool {
+		ns, ok := obj.(*corev1.Namespace)
+		if ok {
+			return interestingNamespacesSet.Has(ns.Name)
+		}
+
+		// the object might be getting deleted
+		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+		if ok {
+			if ns, ok := tombstone.Obj.(*corev1.Namespace); ok {
+				return interestingNamespacesSet.Has(ns.Name)
+			}
+		}
+		return false
 	}
 }

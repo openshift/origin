@@ -31,6 +31,7 @@ import (
 	"github.com/openshift/library-go/pkg/image/imageutil"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 const deploymentRunTimeout = 5 * time.Minute
@@ -424,8 +425,8 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(dc.Name).To(o.Equal(dcName))
 			o.Expect(waitForSyncedConfig(oc, dcName, deploymentRunTimeout)).NotTo(o.HaveOccurred())
 
-			g.By("tagging the ubi-minimal:latest as test:v1 image")
-			_, err = oc.Run("tag").Args("registry.access.redhat.com/ubi8/ubi-minimal:latest", "test:v1").Output()
+			g.By("tagging the initial test:v1 image")
+			_, err = oc.Run("tag").Args("image-registry.openshift-image-registry.svc:5000/openshift/cli:latest", "test:v1").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			expectLatestVersion := func(version int) {
@@ -455,8 +456,8 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(waitForSyncedConfig(oc, dcName, deploymentRunTimeout)).NotTo(o.HaveOccurred())
 
-			g.By("tagging the ubi-minimal:8.0-127 as test:v2 image")
-			_, err = oc.Run("tag").Args("registry.access.redhat.com/ubi8/ubi-minimal:8.0-127", "test:v2").Output()
+			g.By("tagging a different image as test:v2")
+			_, err = oc.Run("tag").Args("image-registry.openshift-image-registry.svc:5000/openshift/tools:latest", "test:v2").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("ensuring the deployment config latest version is 2 and rollout completed")
@@ -502,8 +503,8 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			}
 			o.Expect(pollErr).NotTo(o.HaveOccurred())
 
-			if istag.Tag == nil || istag.Tag.From == nil || istag.Tag.From.Name != "openshift/origin-pod" {
-				err = fmt.Errorf("expected %q to be part of the image reference in %#v", "openshift/origin-pod", istag)
+			if istag.Tag == nil || istag.Tag.From == nil || istag.Tag.From.Name != image.ShellImage() {
+				err = fmt.Errorf("expected %q to be part of the image reference in %#v", image.ShellImage(), istag)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
@@ -1520,8 +1521,8 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(context.Background(), dc, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("tagging the ubi-minimal:latest as test:v1 image to create ImageStream")
-			out, err := oc.Run("tag").Args("registry.access.redhat.com/ubi8/ubi-minimal:latest", "test:v1").Output()
+			g.By("tagging the tools image as test:v1 to create ImageStream")
+			out, err := oc.Run("tag").Args("image-registry.openshift-image-registry.svc:5000/openshift/tools:latest", "test:v1").Output()
 			e2e.Logf("%s", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
 

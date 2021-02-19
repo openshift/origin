@@ -136,7 +136,8 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: openshift/hello-openshift
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      args: ["netexec"]
       ports:
       - containerPort: 8080
         name: http
@@ -150,7 +151,7 @@ objects:
       app: secure-endpoint
   spec:
     containers:
-    - image: nginx:1.15.3
+    - image: docker.io/library/nginx:1.15-alpine
       name: serve
       command:
         - /usr/sbin/nginx

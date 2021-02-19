@@ -5,8 +5,9 @@ metadata:
 spec:
   tags:
   - from:
-      kind: DockerImage
-      name: quay.io/openshift/origin-jenkins-agent-maven:latest
+      kind: ImageStreamTag
+      name: jenkins-agent-maven:latest
+      namespace: openshift
     name: base
   - annotations:
       role: jenkins-slave

@@ -87,7 +87,7 @@ func printStorageCapabilities(out io.Writer) {
 	fmt.Fprintln(out, "  Volume limits:                          ", yamlManifest.DriverInfo.Capabilities.VolumeLimits)
 	fmt.Fprintln(out, "  Volume can run on single node:          ", yamlManifest.DriverInfo.Capabilities.SingleNodeVolume)
 	fmt.Fprintln(out, "  Topology:                               ", yamlManifest.DriverInfo.Capabilities.Topology)
-	fmt.Fprintln(out, "Supported CNV features:")
+	fmt.Fprintln(out, "Supported OpenShift Virtualization features:")
 	fmt.Fprintln(out, "  Raw block VM disks:                     ", yamlManifest.DriverInfo.Capabilities.Block)
 	fmt.Fprintln(out, "  Live migration:                         ", yamlManifest.DriverInfo.Capabilities.RWX)
 	fmt.Fprintln(out, "  VM snapshots:                           ", yamlManifest.DriverInfo.Capabilities.SnapshotDataSource)

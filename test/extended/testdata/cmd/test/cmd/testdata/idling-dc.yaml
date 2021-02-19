@@ -16,7 +16,7 @@ spec:
         deploymentconfig: idling-echo
     spec:
       containers:
-      - image: openshift/origin-base
+      - image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         name: idling-tcp-echo
         command:
           - /usr/bin/socat
@@ -25,7 +25,7 @@ spec:
         ports:
         - containerPort: 8675
           protocol: TCP
-      - image: openshift/origin-base
+      - image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         name: idling-udp-echo
         command:
           - /usr/bin/socat

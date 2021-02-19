@@ -30,9 +30,6 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageInfo] Image info", func() {
 			# display info about an image on quay.io
 			oc image info quay.io/coreos/etcd:latest
 
-			# display info about an image on quay.io
-			oc image info docker.io/library/mysql:latest
-
 			# display info about an image in json format
 			oc image info quay.io/coreos/etcd:latest -o json
 		`)))

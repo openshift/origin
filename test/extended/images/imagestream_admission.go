@@ -522,6 +522,14 @@ func createLimitRangeOfType(t g.GinkgoTInterface, oc *exutil.CLI, lrClient corev
 	t.Logf("creating limit range object %q with %s limited to: %v", limitRangeName, limitType, maxLimits)
 	lr, err := lrClient.Create(context.Background(), lr, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
+
+	// When we have more than one replica, objects that are created on one
+	// replica aren't immediately visible to informers on other replicas.
+	// We don't have mechanisms to check if the LimitRange is observed by all
+	// replicas. Let's give the informers some time and hope that they'll be
+	// able to observe this limit.
+	time.Sleep(5 * time.Second)
+
 	return lr
 }
 

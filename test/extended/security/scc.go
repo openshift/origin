@@ -5,10 +5,13 @@ import (
 	"strings"
 
 	g "github.com/onsi/ginkgo"
+	o "github.com/onsi/gomega"
+
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	"github.com/openshift/origin/test/extended/authorization"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -16,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
+	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
@@ -257,6 +261,32 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	})
 })
 
+var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLI("ssc")
+
+	g.It("TestPodDefaultCapabilities", func() {
+		g.By("Running a restricted pod and getting it's inherited capabilities")
+		pod, err := exutil.NewPodExecutor(oc, "restrictedcapsh", image.ShellImage())
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		desiredCapabilities := "000000000000051b"
+
+		capabilities, err := pod.Exec("cat /proc/1/status | grep CapInh | cut -f 2")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		capString, err := pod.Exec("capsh --decode=" + capabilities)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		desiredCapString, err := pod.Exec("capsh --decode=" + desiredCapabilities)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		framework.Logf("comparing capabilities: %s with desired: %s", capabilities, desiredCapabilities)
+		framework.Logf("which translates to: %s compared with desired: %s", capString, desiredCapString)
+		o.Expect(capabilities).To(o.Equal(desiredCapabilities))
+	})
+})
+
 func isForbiddenBySCC(err error) bool {
 	return kapierror.IsForbidden(err) && strings.Contains(err.Error(), "unable to validate against any security context constraint")
 }
@@ -269,6 +299,9 @@ func getPrivilegedPod(name string) *corev1.Pod {
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
 		Spec: corev1.PodSpec{
+			NodeSelector: map[string]string{
+				"e2e.openshift.io/unschedulable": "should-not-run",
+			},
 			Containers: []corev1.Container{
 				{Name: "first", Image: "something-innocuous"},
 			},

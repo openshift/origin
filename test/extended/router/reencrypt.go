@@ -50,9 +50,9 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 		g.It("should support reencrypt to services backed by a serving certificate automatically", func() {
 			routerURL := fmt.Sprintf("https://%s", ip)
 
-			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
-				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
 			g.By(fmt.Sprintf("deploying a service using a reencrypt route without a destinationCACertificate"))
 			err := oc.Run("create").Args("-f", configPath).Execute()
@@ -73,7 +73,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// don't assume the router is available via external DNS, because of complexity
-			err = waitForRouterOKResponseExec(ns, execPodName, routerURL, hostname, changeTimeoutSeconds)
+			err = waitForRouterOKResponseExec(ns, execPod.Name, routerURL, hostname, changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
