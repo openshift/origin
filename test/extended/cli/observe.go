@@ -22,7 +22,7 @@ var _ = g.Describe("[sig-cli] oc observe", func() {
 
 		out, err = oc.Run("observe").Args("serviceaccounts", "--once").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("Sync ended"))
+		o.Expect(out).To(o.Or(o.ContainSubstring("Sync ended"), o.ContainSubstring("Nothing to sync")))
 
 		out, err = oc.Run("observe").Args("daemonsets", "--once").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())

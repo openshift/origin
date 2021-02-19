@@ -18,7 +18,7 @@ var _ = g.Describe("[sig-cli] oc rsh", func() {
 		podsLabel              = exutil.ParseLabelsOrDie("name=hello-centos")
 	)
 
-	g.Describe("rsh specific flags", func() {
+	g.Describe("specific flags", func() {
 		g.It("should work well when access to a remote shell", func() {
 			namespace := oc.Namespace()
 			g.By("Creating pods with multi containers")
