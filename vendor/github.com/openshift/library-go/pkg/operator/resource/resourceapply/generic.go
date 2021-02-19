@@ -9,6 +9,7 @@ import (
 
 	"github.com/openshift/api"
 	"github.com/openshift/library-go/pkg/operator/events"
+	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -165,6 +166,16 @@ func ApplyDirectly(clients *ClientHolder, recorder events.Recorder, manifests As
 				result.Error = fmt.Errorf("missing kubeClient")
 			}
 			result.Result, result.Changed, result.Error = ApplyCSIDriver(clients.kubeClient.StorageV1(), recorder, t)
+		case *admissionv1.ValidatingWebhookConfiguration:
+			if clients.kubeClient == nil {
+				result.Error = fmt.Errorf("missing kubeClient")
+			}
+			result.Result, result.Changed, result.Error = ApplyValidatingWebhookConfiguration(clients.kubeClient.AdmissionregistrationV1(), recorder, t)
+		case *admissionv1.MutatingWebhookConfiguration:
+			if clients.kubeClient == nil {
+				result.Error = fmt.Errorf("missing kubeClient")
+			}
+			result.Result, result.Changed, result.Error = ApplyMutatingWebhookConfiguration(clients.kubeClient.AdmissionregistrationV1(), recorder, t)
 		default:
 			result.Error = fmt.Errorf("unhandled type %T", requiredObj)
 		}
