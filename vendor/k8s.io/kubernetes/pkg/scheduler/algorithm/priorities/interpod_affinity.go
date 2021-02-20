@@ -193,12 +193,16 @@ func (ipa *InterPodAffinity) CalculateInterPodAffinityPriority(pod *v1.Pod, node
 		nodeInfo := nodeNameToInfo[allNodeNames[i]]
 		if nodeInfo.Node() != nil {
 			if hasAffinityConstraints || hasAntiAffinityConstraints {
-				if hasAffinityConstraints {
-					for _, term := range affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution {
-						_, err := metav1.LabelSelectorAsSelector(term.PodAffinityTerm.LabelSelector)
-						if err != nil {
-							pm.setError(err)
-							return
+				// if there aren't any existing pods to check affinity against, still check that the pod has valid
+				// affinity labels set to prevent future errors (see https://bugzilla.redhat.com/show_bug.cgi?id=1760807)
+				if len(nodeInfo.Pods()) == 0 {
+					if hasAffinityConstraints {
+						for _, term := range affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution {
+							_, err := metav1.LabelSelectorAsSelector(term.PodAffinityTerm.LabelSelector)
+							if err != nil {
+								pm.setError(err)
+								return
+							}
 						}
 					}
 				}

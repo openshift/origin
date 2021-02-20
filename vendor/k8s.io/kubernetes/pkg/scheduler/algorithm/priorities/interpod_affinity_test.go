@@ -558,7 +558,6 @@ func TestInterPodAffinityPriority(t *testing.T) {
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "machine1", Labels: labelRgChina}},
 			},
-			expectErr: "invalid label",
 		},
 		{
 			name: "invalid antiaffinity fails with an error",
@@ -566,18 +565,6 @@ func TestInterPodAffinityPriority(t *testing.T) {
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "machine1", Labels: labelRgChina}},
 			},
-			expectErr: "invalid label",
-		},
-		{
-			name: "invalid antiaffinity fails with an error and existing pods",
-			pod:  &v1.Pod{Spec: v1.PodSpec{NodeName: "", Affinity: invalidAntiAffinity}},
-			nodes: []*v1.Node{
-				{ObjectMeta: metav1.ObjectMeta{Name: "machine1", Labels: labelAzAz1}},
-			},
-			pods: []*v1.Pod{
-				{Spec: v1.PodSpec{NodeName: "machine1"}},
-			},
-			expectErr: "invalid label",
 		},
 	}
 	for _, test := range tests {
@@ -591,15 +578,12 @@ func TestInterPodAffinityPriority(t *testing.T) {
 			}
 			list, err := interPodAffinity.CalculateInterPodAffinityPriority(test.pod, nodeNameToInfo, test.nodes)
 			if err != nil {
-				if !strings.Contains(err.Error(), test.expectErr) || len(test.expectErr) == 0{
+				if !strings.Contains(err.Error(), test.expectErr) {
 					t.Errorf("unexpected error: %v", err)
 				}
 			} else {
 				if !reflect.DeepEqual(test.expectedList, list) {
 					t.Errorf("expected \n\t%#v, \ngot \n\t%#v\n", test.expectedList, list)
-				}
-				if len(test.expectErr) > 0 {
-					t.Errorf("expected error %s, got none", test.expectErr)
 				}
 			}
 		})
