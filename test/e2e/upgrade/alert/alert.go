@@ -85,7 +85,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	testDuration := exutil.DurationSinceStartInSeconds().String()
 
 	// Query to check for any critical severity alerts that have occurred within the last alertPeriodCheckMinutes.
-	criticalAlertQuery := fmt.Sprintf(`count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|KubeAPILatencyHigh",alertstate="firing",severity="critical"}[%ds]) >= 1`, testDuration)
+	criticalAlertQuery := fmt.Sprintf(`count_over_time(ALERTS{alertstate="firing",severity="critical"}[%ds]) >= 1`, testDuration)
 
 	tests := map[string]bool{
 		watchdogQuery:      true,
