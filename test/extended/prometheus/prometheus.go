@@ -68,7 +68,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 			// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
 			// TODO: remove KubePodCrashLooping subtraction logic once https://bugzilla.redhat.com/show_bug.cgi?id=1842002
 			// is fixed, but for now we are ignoring KubePodCrashLooping alerts in the openshift-kube-controller-manager namespace.
-			fmt.Sprintf(`count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|KubeAPILatencyHigh",alertstate="firing",severity!="info"}[%[1]s]) - count_over_time(ALERTS{alertname="KubePodCrashLooping",namespace="openshift-kube-controller-manager",alertstate="firing",severity!="info"}[%[1]s]) >= 1`, testDuration): false,
+			fmt.Sprintf(`count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured",alertstate="firing",severity!="info"}[%[1]s]) - count_over_time(ALERTS{alertname="KubePodCrashLooping",namespace="openshift-kube-controller-manager",alertstate="firing",severity!="info"}[%[1]s]) >= 1`, testDuration): false,
 		}
 		err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 		o.Expect(err).NotTo(o.HaveOccurred())
