@@ -21,9 +21,6 @@ const (
 	// Delay after upgrade is complete before checking for critical alerts
 	alertCheckSleepMinutes = 5
 	alertCheckSleep        = alertCheckSleepMinutes * time.Minute
-
-	// Previous period in which to check for critical alerts
-	alertPeriodCheckMinutes = 1
 )
 
 // UpgradeTest runs post-upgrade after alertCheckSleep delay and tests if any critical alerts are firing.
@@ -84,8 +81,11 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	// period by verifying Watchdog alert has been in firing state
 	watchdogQuery := fmt.Sprintf(`count_over_time(ALERTS{alertstate="firing",alertname="Watchdog", severity="none"}[%dm])`, alertCheckSleepMinutes)
 
+	// we only consider series sent since the beginning of the test
+	testDuration := exutil.DurationSinceStartInSeconds().String()
+
 	// Query to check for any critical severity alerts that have occurred within the last alertPeriodCheckMinutes.
-	criticalAlertQuery := fmt.Sprintf(`count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|KubeAPILatencyHigh",alertstate="firing",severity="critical"}[%dm]) >= 1`, alertPeriodCheckMinutes)
+	criticalAlertQuery := fmt.Sprintf(`count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|KubeAPILatencyHigh",alertstate="firing",severity="critical"}[%ds]) >= 1`, testDuration)
 
 	tests := map[string]bool{
 		watchdogQuery:      true,
