@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +15,37 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 )
+
+// condition/Degraded status/True reason/DNSDegraded changed: DNS default is degraded
+func GetOperatorConditionStatus(message string) (string, bool, string) {
+	if !strings.HasPrefix(message, "condition/") {
+		return "", false, ""
+	}
+	stanzas := strings.Split(message, " ")
+	if len(stanzas) < 2 {
+		return "", false, ""
+	}
+
+	conditions := strings.Split(stanzas[0], "/")
+	if len(conditions) != 2 {
+		return "", false, ""
+	}
+	statusStrings := strings.Split(stanzas[1], "/")
+	if len(statusStrings) != 2 {
+		return "", false, ""
+	}
+	status, err := strconv.ParseBool(statusStrings[1])
+	if err != nil {
+		return "", false, ""
+	}
+
+	messages := strings.SplitN(message, ": ", 2)
+	if len(messages) < 2 {
+		return conditions[1], status, ""
+	}
+
+	return conditions[1], status, messages[1]
+}
 
 func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client configclientset.Interface) {
 	coInformer := cache.NewSharedIndexInformer(
@@ -47,11 +79,17 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 					case len(c.Message) > 0:
 						msg = fmt.Sprintf("condition/%s status/%s changed: %s", c.Type, c.Status, c.Message)
 					default:
-						msg = fmt.Sprintf("condition/%s status/%s changed", c.Type, c.Status)
+						msg = fmt.Sprintf("condition/%s status/%s changed: ", c.Type, c.Status)
 					}
 					level := Warning
 					if c.Type == configv1.OperatorDegraded && c.Status == configv1.ConditionTrue {
 						level = Error
+					}
+					if c.Type == configv1.OperatorAvailable && c.Status == configv1.ConditionFalse {
+						level = Error
+					}
+					if c.Type == configv1.OperatorProgressing && c.Status == configv1.ConditionTrue {
+						level = Warning
 					}
 					if c.Type == configv1.ClusterStatusConditionType("Failing") && c.Status == configv1.ConditionTrue {
 						level = Error

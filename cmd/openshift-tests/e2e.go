@@ -436,6 +436,8 @@ func stableSystemEventInvariants(events monitor.EventIntervals, duration time.Du
 	tests = append(tests, testServerAvailability(monitor.LocatorKubeAPIServerReusedConnection, events, duration)...)
 	tests = append(tests, testServerAvailability(monitor.LocatorOpenshiftAPIServerReusedConnection, events, duration)...)
 	tests = append(tests, testServerAvailability(monitor.LocatorOAuthAPIServerReusedConnection, events, duration)...)
+	tests = append(tests, testOperatorStateTransitions(events)...)
+
 	return tests, true
 }
 
@@ -820,4 +822,66 @@ func getEventsByPod(events []*monitor.EventInterval) map[string][]*monitor.Event
 		eventsByPods[event.Locator] = append(eventsByPods[event.Locator], event)
 	}
 	return eventsByPods
+}
+
+func testOperatorStateTransitions(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {
+	// if this starts tripping too much, or tripping on the same actors, feel free to split into tests
+	// for every operator with independent pass/fails
+	available := testOperatorState("Available", events)
+	degraded := testOperatorState("Degraded", events)
+	progressing := testOperatorState("Progressing", events)
+
+	ret := []*ginkgo.JUnitTestCase{}
+	ret = append(ret, operatorStateTestCases("[sig-cluster-lifecycle] operators should never go unavailable", available)...)
+	ret = append(ret, operatorStateTestCases("[sig-cluster-lifecycle] operators should never go degraded", degraded)...)
+	ret = append(ret, operatorStateTestCases("[sig-cluster-lifecycle] operators should never go progressing", progressing)...)
+	return ret
+}
+
+func operatorStateTestCases(testName string, failures []string) []*ginkgo.JUnitTestCase {
+	success := &ginkgo.JUnitTestCase{Name: testName}
+
+	if len(failures) == 0 {
+		return []*ginkgo.JUnitTestCase{success}
+	}
+
+	failure := &ginkgo.JUnitTestCase{
+		Name:      testName,
+		SystemOut: strings.Join(failures, "\n"),
+		FailureOutput: &ginkgo.FailureOutput{
+			Output: fmt.Sprintf("%d unexpected clusteroperator state transitions \n\n%v", len(failures), strings.Join(failures, "\n")),
+		},
+	}
+
+	// write a passing test to trigger detection of this issue as a flake. Doing this first to try to see how frequent the issue actually is
+	return []*ginkgo.JUnitTestCase{failure, success}
+}
+
+func testOperatorState(interestingCondition string, events []*monitor.EventInterval) []string {
+	failures := []string{}
+
+	clusterOperatorToEvents := getEventsByOperator(events)
+	for clusterOperator, events := range clusterOperatorToEvents {
+		for _, event := range events {
+			condition, status, message := monitor.GetOperatorConditionStatus(event.Message)
+			if condition != interestingCondition {
+				continue
+			}
+			// if there was any switch, it was wrong/unexpected at some point
+			failures = append(failures, fmt.Sprintf("%v was %v=%v, but became %v=%v at %v -- %v", clusterOperator, condition, !status, condition, status, event.From, message))
+		}
+	}
+	return failures
+}
+
+// getEventsByOperator returns map keyed by operator locator with all events associated with it.
+func getEventsByOperator(events []*monitor.EventInterval) map[string][]*monitor.EventInterval {
+	eventsByClusterOperator := map[string][]*monitor.EventInterval{}
+	for _, event := range events {
+		if !strings.Contains(event.Locator, "clusteroperator/") {
+			continue
+		}
+		eventsByClusterOperator[event.Locator] = append(eventsByClusterOperator[event.Locator], event)
+	}
+	return eventsByClusterOperator
 }
