@@ -86,7 +86,8 @@ func clusterNodes(oc *exutil.CLI) (masters, workers []*corev1.Node) {
 func waitForMastersToUpdate(oc *exutil.CLI, mcps dynamic.NamespaceableResourceInterface) {
 	e2elog.Logf("Waiting for MachineConfig master to finish rolling out")
 	err := wait.Poll(30*time.Second, 30*time.Minute, func() (done bool, err error) {
-		return upgrade.IsPoolUpdated(mcps, "master")
+		done, _ = upgrade.IsPoolUpdated(mcps, "master")
+		return done, nil
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
