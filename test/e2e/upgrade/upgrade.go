@@ -505,6 +505,15 @@ func IsPoolUpdated(dc dynamic.NamespaceableResourceInterface, name string) (bool
 		framework.Logf("error getting pool %s: %v", name, err)
 		return false, nil
 	}
+	paused, found, err := unstructured.NestedBool(pool.Object, "spec", "paused")
+	if err != nil || !found {
+		return false, nil
+	}
+	if paused && (name == "worker") {
+		framework.Logf("worker pool paused, considering it to be updated")
+		return true, nil
+	}
+
 	conditions, found, err := unstructured.NestedFieldNoCopy(pool.Object, "status", "conditions")
 	if err != nil || !found {
 		return false, nil
