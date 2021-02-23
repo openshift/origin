@@ -436,7 +436,9 @@ func stableSystemEventInvariants(events monitor.EventIntervals, duration time.Du
 	tests = append(tests, testServerAvailability(monitor.LocatorKubeAPIServerReusedConnection, events, duration)...)
 	tests = append(tests, testServerAvailability(monitor.LocatorOpenshiftAPIServerReusedConnection, events, duration)...)
 	tests = append(tests, testServerAvailability(monitor.LocatorOAuthAPIServerReusedConnection, events, duration)...)
-	return tests, true
+	results, operatorUpgradeOk := testClusterOperatorTransitions(events)
+	tests = append(tests, results...)
+	return tests, operatorUpgradeOk
 }
 
 // systemUpgradeEventInvariants are invariants tested against events that should hold true in a cluster
@@ -445,7 +447,9 @@ func systemUpgradeEventInvariants(events monitor.EventIntervals, duration time.D
 	tests, _ = systemEventInvariants(events, duration)
 	results, nodeUpgradeOk := testNodeUpgradeTransitions(events)
 	tests = append(tests, results...)
-	return tests, nodeUpgradeOk
+	results, operatorUpgradeOk := testClusterOperatorTransitions(events)
+	tests = append(tests, results...)
+	return tests, nodeUpgradeOk && operatorUpgradeOk
 }
 
 // systemEventInvariants are invariants tested against events that should hold true in any cluster,
@@ -641,6 +645,53 @@ func testNodeUpgradeTransitions(events []*monitor.EventInterval) ([]*ginkgo.JUni
 			},
 		})
 	}
+	if len(testCases) == 0 {
+		testCases = append(testCases, &ginkgo.JUnitTestCase{Name: testName})
+		return testCases, true
+	}
+	return testCases, false
+}
+
+func testClusterOperatorTransitions(events []*monitor.EventInterval) ([]*ginkgo.JUnitTestCase, bool) {
+	const testName = "[sig-arch] Cluster operators may not transition to Degraded=true or Available=false during the test run"
+
+	var buf bytes.Buffer
+	nonCompliant := make(map[string]int)
+	var testCases []*ginkgo.JUnitTestCase
+	var failures []string
+	for _, event := range events {
+		if !strings.HasPrefix(event.Locator, "clusteroperator/") {
+			continue
+		}
+		name := strings.TrimPrefix(event.Locator, "clusteroperator/")
+		switch {
+		case strings.HasPrefix(event.Message, "condition/Available status/False "),
+			strings.HasPrefix(event.Message, "condition/Degraded status/Unknown "):
+			fmt.Fprintln(&buf, event.String())
+			failures = append(failures, fmt.Sprintf("Cluster operator %s went unavailable at %s: %s", name, event.From.UTC().Format(time.RFC3339), event.Message))
+			nonCompliant[name]++
+			continue
+		case strings.HasPrefix(event.Message, "condition/Degraded status/True "),
+			strings.HasPrefix(event.Message, "condition/Degraded status/Unknown "):
+			fmt.Fprintln(&buf, event.String())
+			failures = append(failures, fmt.Sprintf("Cluster operator %s went degraded at %s: %s", name, event.From.UTC().Format(time.RFC3339), event.Message))
+			nonCompliant[name]++
+			continue
+		}
+	}
+
+	if len(failures) == 0 {
+		return append(testCases, &ginkgo.JUnitTestCase{Name: testName}), true
+	}
+
+	testCases = append(testCases, &ginkgo.JUnitTestCase{
+		Name:      testName,
+		SystemOut: fmt.Sprintf("%s\n\n%s", strings.Join(failures, "\n"), buf.String()),
+		FailureOutput: &ginkgo.FailureOutput{
+			Output: fmt.Sprintf("%d operators violated upgrade expectations:\n\n%s", len(nonCompliant), strings.Join(failures, "\n")),
+		},
+	})
+
 	if len(testCases) == 0 {
 		testCases = append(testCases, &ginkgo.JUnitTestCase{Name: testName})
 		return testCases, true
