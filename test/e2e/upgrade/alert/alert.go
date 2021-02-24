@@ -42,7 +42,8 @@ func (UpgradeTest) DisplayName() string {
 func (t *UpgradeTest) Setup(f *framework.Framework) {
 	g.By("Setting up post-upgrade alert test")
 
-	url, bearerToken, oc, ok := helper.ExpectPrometheus(f)
+	oc := exutil.NewCLIWithFramework(f)
+	url, _, bearerToken, ok := helper.LocatePrometheus(oc)
 	if !ok {
 		framework.Failf("Prometheus could not be located on this cluster, failing test %s", t.Name())
 	}

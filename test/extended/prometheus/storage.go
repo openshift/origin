@@ -29,7 +29,7 @@ var _ = g.Describe("[sig-storage][Late] Metrics", func() {
 
 	g.BeforeEach(func() {
 		var ok bool
-		url, bearerToken, ok = helper.LocatePrometheus(oc)
+		url, _, bearerToken, ok = helper.LocatePrometheus(oc)
 		if !ok {
 			e2e.Failf("Prometheus could not be located on this cluster, failing prometheus test")
 		}

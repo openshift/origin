@@ -26,7 +26,7 @@ var _ = g.Describe("[sig-instrumentation][sig-builds][Feature:Builds] Prometheus
 	)
 	g.BeforeEach(func() {
 		var ok bool
-		url, bearerToken, ok = helper.LocatePrometheus(oc)
+		url, _, bearerToken, ok = helper.LocatePrometheus(oc)
 		if !ok {
 			e2eskipper.Skipf("Prometheus could not be located on this cluster, skipping prometheus test")
 		}

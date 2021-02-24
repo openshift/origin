@@ -62,11 +62,11 @@ func waitForServiceAccountInNamespace(c clientset.Interface, ns, serviceAccountN
 	return err
 }
 
-// LocatePrometheus uses an exisitng CLI to return information used to make http requests to Prometheus
-func LocatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
+// LocatePrometheus uses an exisitng CLI to return information used to make http requests to Prometheus.
+func LocatePrometheus(oc *exutil.CLI) (queryURL, prometheusURL, bearerToken string, ok bool) {
 	_, err := oc.AdminKubeClient().CoreV1().Services("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
 	if kapierrs.IsNotFound(err) {
-		return "", "", false
+		return "", "", "", false
 	}
 
 	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "openshift-monitoring", "prometheus-k8s", 2*time.Minute)
@@ -91,18 +91,7 @@ func LocatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
 	}
 	o.Expect(bearerToken).ToNot(o.BeEmpty())
 
-	return "https://prometheus-k8s.openshift-monitoring.svc:9091", bearerToken, true
-}
-
-// ExpectPrometheus uses an existing framework to return information used to make http requests to Prometheus
-func ExpectPrometheus(f *framework.Framework) (url, bearerToken string, oc *exutil.CLI, ok bool) {
-
-	// Must use version that's can run within Ginkgo It
-	oc = exutil.NewCLIWithFramework(f)
-
-	url, bearerToken, ok = LocatePrometheus(oc)
-
-	return url, bearerToken, oc, ok
+	return "https://thanos-querier.openshift-monitoring.svc:9091", "https://prometheus-k8s.openshift-monitoring.svc:9091", bearerToken, true
 }
 
 // RunQueries executes Prometheus queries and checks provided expected result.
@@ -133,7 +122,7 @@ func RunQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, ba
 			}
 			metrics := result.Data.Result
 			if result.Status != "success" {
-				data, _ := json.Marshal(metrics)
+				data, _ := json.MarshalIndent(metrics, "", "  ")
 				msg := fmt.Sprintf("promQL query: %s had reported incorrect status:\n%s", query, data)
 				if prev, ok := queryErrors[query]; !ok || prev.Error() != msg {
 					framework.Logf("%s", msg)
@@ -142,7 +131,7 @@ func RunQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, ba
 				continue
 			}
 			if (len(metrics) > 0 && !expected) || (len(metrics) == 0 && expected) {
-				data, _ := json.Marshal(metrics)
+				data, _ := json.MarshalIndent(metrics, "", "  ")
 				msg := fmt.Sprintf("promQL query: %s had reported incorrect results:\n%s", query, data)
 				if prev, ok := queryErrors[query]; !ok || prev.Error() != msg {
 					framework.Logf("%s", msg)
@@ -163,7 +152,7 @@ func RunQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, ba
 	}
 
 	if len(queryErrors) != 0 {
-		exutil.DumpPodLogsStartingWith("prometheus-0", oc)
+		exutil.DumpPodLogsStartingWith("prometheus-k8s-", oc)
 	}
 	var errs []error
 	for query, err := range queryErrors {
