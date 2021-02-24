@@ -34,26 +34,26 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 		func(co, oldCO *configv1.ClusterOperator) []Condition {
 			var conditions []Condition
 			for i := range co.Status.Conditions {
-				s := &co.Status.Conditions[i]
-				previous := findOperatorStatusCondition(oldCO.Status.Conditions, s.Type)
+				c := &co.Status.Conditions[i]
+				previous := findOperatorStatusCondition(oldCO.Status.Conditions, c.Type)
 				if previous == nil {
 					continue
 				}
-				if s.Status != previous.Status {
+				if c.Status != previous.Status {
 					var msg string
 					switch {
-					case len(s.Reason) > 0 && len(s.Message) > 0:
-						msg = fmt.Sprintf("changed %s to %s: %s: %s", s.Type, s.Status, s.Reason, s.Message)
-					case len(s.Message) > 0:
-						msg = fmt.Sprintf("changed %s to %s: %s", s.Type, s.Status, s.Message)
+					case len(c.Reason) > 0 && len(c.Message) > 0:
+						msg = fmt.Sprintf("condition/%s status/%s reason/%s changed: %s", c.Type, c.Status, c.Reason, c.Message)
+					case len(c.Message) > 0:
+						msg = fmt.Sprintf("condition/%s status/%s changed: %s", c.Type, c.Status, c.Message)
 					default:
-						msg = fmt.Sprintf("changed %s to %s", s.Type, s.Status)
+						msg = fmt.Sprintf("condition/%s status/%s changed", c.Type, c.Status)
 					}
 					level := Warning
-					if s.Type == configv1.OperatorDegraded && s.Status == configv1.ConditionTrue {
+					if c.Type == configv1.OperatorDegraded && c.Status == configv1.ConditionTrue {
 						level = Error
 					}
-					if s.Type == configv1.ClusterStatusConditionType("Failing") && s.Status == configv1.ConditionTrue {
+					if c.Type == configv1.ClusterStatusConditionType("Failing") && c.Status == configv1.ConditionTrue {
 						level = Error
 					}
 					conditions = append(conditions, Condition{
