@@ -65,9 +65,15 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		testDuration := exutil.DurationSinceStartInSeconds().String()
 
 		tests := map[string]bool{
-			// Invariant: No alerts should have fired during the test run except the known alerts
-			// Returns number of seconds the alerts were firing
-			fmt.Sprintf(`sort_desc(count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured",alertstate="firing",severity!="info"}[%[1]s:1s]) > 0)`, testDuration): false,
+			// Invariant: No alerts should have fired during the test run except the known alerts.
+			// 						Returns number of seconds the alerts were firing.
+			// * AggregatedAPIDown for {name="v1alpha1.wardle.example.com"} is excluded because of what
+			//   appears to be a teardown bug - the apiserver is not removed quickly, see https://bugzilla.redhat.com/show_bug.cgi?id=1933144
+			fmt.Sprintf(`
+sort_desc((
+count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured",alertstate="firing",severity!="info"}[%[1]s:1s]) unless
+count_over_time(ALERTS{alertname="AggregatedAPIDown",name="v1alpha1.wardle.example.com",alertstate="firing"}[%[1]s:1s])
+) > 0)`, testDuration): false,
 		}
 		err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 		o.Expect(err).NotTo(o.HaveOccurred())
