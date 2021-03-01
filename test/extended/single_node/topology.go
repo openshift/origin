@@ -2,6 +2,8 @@ package single_node
 
 import (
 	"context"
+	"strings"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
@@ -11,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
-	"strings"
 )
 
 func getOpenshiftNamespaces(f *e2e.Framework) []corev1.Namespace {
@@ -100,10 +101,6 @@ func isAllowedToFail(deployment appsv1.Deployment) bool {
 	allowedToFail := map[string][]string{
 		"openshift-authentication": {
 			"oauth-openshift",
-		},
-		"openshift-console": {
-			"console",
-			"downloads",
 		},
 		"openshift-image-registry": {
 			"image-registry",
