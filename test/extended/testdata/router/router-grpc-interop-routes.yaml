@@ -1,0 +1,48 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: DOMAIN
+- name: TLS_CRT
+- name: TLS_KEY
+- name: TYPE
+objects:
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: grpc-interop-reencrypt
+    labels:
+      type: ${TYPE}
+  spec:
+    host: grpc-interop-reencrypt.${DOMAIN}
+    port:
+      targetPort: 8443
+    tls:
+      termination: reencrypt
+      insecureEdgeTerminationPolicy: Redirect
+      key: |-
+        ${TLS_KEY}
+      certificate: |-
+        ${TLS_CRT}
+    to:
+      kind: Service
+      name: grpc-interop
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: grpc-interop-passthrough
+    labels:
+      type: ${TYPE}
+  spec:
+    host: grpc-interop-passthrough.${DOMAIN}
+    port:
+      targetPort: 8443
+    tls:
+      termination: passthrough
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: grpc-interop
+      weight: 100
+    wildcardPolicy: None
