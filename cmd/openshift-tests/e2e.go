@@ -443,6 +443,7 @@ func stableSystemEventInvariants(events monitor.EventIntervals, duration time.Du
 // that is being upgraded without induced disruption
 func systemUpgradeEventInvariants(events monitor.EventIntervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase, passed bool) {
 	tests, _ = systemEventInvariants(events, duration)
+	tests = append(tests, testKubeAPIServerGracefulTermination(events)...)
 	results, nodeUpgradeOk := testNodeUpgradeTransitions(events)
 	tests = append(tests, results...)
 	return tests, nodeUpgradeOk
@@ -485,30 +486,62 @@ func testServerAvailability(locator string, events []*monitor.EventInterval, dur
 
 func testKubeAPIServerGracefulTermination(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-node] kubelet terminates kube-apiserver gracefully"
-	success := &ginkgo.JUnitTestCase{Name: testName}
+	const testNamePre = "[sig-node] kubelet terminates kube-apiserver gracefully before suite execution"
 
-	failures := []string{}
+	ignoreEventsBefore := exutil.LimitTestsToStartTime()
+	// suiteStartTime can be inferred from the monitor interval, we can't use exutil.SuiteStartTime because that
+	// is run within sub processes
+	var suiteStartTime time.Time
+	if len(events) > 0 {
+		suiteStartTime = events[0].From.Add((-time.Second))
+	}
+
+	var preFailures, failures []string
 	for _, event := range events {
 		// from https://github.com/openshift/kubernetes/blob/1f35e4f63be8fbb19e22c9ff1df31048f6b42ddf/cmd/watch-termination/main.go#L96
 		if strings.Contains(event.Message, "did not terminate gracefully") {
-			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
+			if event.From.Before(ignoreEventsBefore) {
+				// we explicitly ignore graceful terminations when we are told to check up to a certain point
+				continue
+			}
+			if event.From.Before(suiteStartTime) {
+				preFailures = append(preFailures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
+			} else {
+				failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
+			}
 		}
 	}
-	if len(failures) == 0 {
-		return []*ginkgo.JUnitTestCase{success}
+
+	// failures during a run always fail the test suite
+	var tests []*ginkgo.JUnitTestCase
+	if len(failures) > 0 {
+		tests = append(tests, &ginkgo.JUnitTestCase{
+			Name:      testName,
+			SystemOut: strings.Join(failures, "\n"),
+			FailureOutput: &ginkgo.FailureOutput{
+				Output: fmt.Sprintf("%d kube-apiserver reports a non-graceful termination. Probably kubelet or CRI-O is not giving the time to cleanly shut down. This can lead to connection refused and network I/O timeout errors in other components.\n\n%v", len(failures), strings.Join(failures, "\n")),
+			},
+		})
+	} else {
+		tests = append(tests, &ginkgo.JUnitTestCase{Name: testName})
 	}
 
-	failure := &ginkgo.JUnitTestCase{
-		Name:      testName,
-		SystemOut: strings.Join(failures, "\n"),
-		FailureOutput: &ginkgo.FailureOutput{
-			Output: fmt.Sprintf("%d kube-apiserver reports a non-graceful termination. Probably kubelet or CRI-O is not giving the time to cleanly shut down. This can lead to connection refused and network I/O timeout errors in other components.\n\n%v", len(failures), strings.Join(failures, "\n")),
-		},
+	// pre-failures are flakes for now
+	if len(preFailures) > 0 {
+		tests = append(tests,
+			&ginkgo.JUnitTestCase{Name: testNamePre},
+			&ginkgo.JUnitTestCase{
+				Name:      testNamePre,
+				SystemOut: strings.Join(preFailures, "\n"),
+				FailureOutput: &ginkgo.FailureOutput{
+					Output: fmt.Sprintf("%d kube-apiserver reports a non-graceful termination outside of the test suite (during install or upgrade), which is reported as a flake. Probably kubelet or CRI-O is not giving the time to cleanly shut down. This can lead to connection refused and network I/O timeout errors in other components.\n\n%v", len(preFailures), strings.Join(preFailures, "\n")),
+				},
+			},
+		)
+	} else {
+		tests = append(tests, &ginkgo.JUnitTestCase{Name: testNamePre})
 	}
-
-	// This should fail a CI run, not flake it.
-	return []*ginkgo.JUnitTestCase{failure}
-
+	return tests
 }
 
 func testPodTransitions(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {
