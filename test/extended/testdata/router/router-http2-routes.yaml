@@ -1,0 +1,106 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: DOMAIN
+- name: TLS_CRT
+- name: TLS_KEY
+- name: TYPE
+objects:
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: http2-default-cert-edge
+    labels:
+      type: ${TYPE}
+  spec:
+    host: http2-default-cert-edge.${DOMAIN}
+    port:
+      targetPort: 8080
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: http2
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: http2-default-cert-reencrypt
+    labels:
+      type: ${TYPE}
+  spec:
+    host: http2-default-cert-reencrypt.${DOMAIN}
+    port:
+      targetPort: 8443
+    tls:
+      termination: reencrypt
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: http2
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: http2-custom-cert-edge
+    labels:
+      type: ${TYPE}
+  spec:
+    host: http2-custom-cert-edge.${DOMAIN}
+    port:
+      targetPort: 8080
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+      key: |-
+        ${TLS_KEY}
+      certificate: |-
+        ${TLS_CRT}
+    to:
+      kind: Service
+      name: http2
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: http2-custom-cert-reencrypt
+    labels:
+      type: ${TYPE}
+  spec:
+    host: http2-custom-cert-reencrypt.${DOMAIN}
+    port:
+      targetPort: 8443
+    tls:
+      termination: reencrypt
+      insecureEdgeTerminationPolicy: Redirect
+      key: |-
+        ${TLS_KEY}
+      certificate: |-
+        ${TLS_CRT}
+    to:
+      kind: Service
+      name: http2
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: http2-passthrough
+    labels:
+      type: ${TYPE}
+  spec:
+    host: http2-passthrough.${DOMAIN}
+    port:
+      targetPort: 8443
+    tls:
+      termination: passthrough
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: http2
+      weight: 100
+    wildcardPolicy: None
