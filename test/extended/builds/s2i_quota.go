@@ -56,8 +56,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a quota", func()
 				buildLog, err := br.LogsNoTimestamp()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(buildLog).To(o.ContainSubstring("MEMORY=419430400"))
-				// TODO: re-enable this check when https://github.com/containers/buildah/issues/1213 is resolved.
-				//o.Expect(buildLog).To(o.ContainSubstring("MEMORYSWAP=419430400"))
+				o.Expect(buildLog).To(o.ContainSubstring("MEMORYSWAP=419430400"))
 
 				testScheme := runtime.NewScheme()
 				utilruntime.Must(buildv1.Install(testScheme))
