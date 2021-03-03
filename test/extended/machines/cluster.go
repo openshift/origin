@@ -83,8 +83,12 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 		testDuration := exutil.DurationSinceStartInSeconds().String()
 
 		tests := map[string]bool{
-			// all nodes should be reporting ready throughout the entire run, as long as they are older than 6m
-			fmt.Sprintf(`(min_over_time((max by (node) (kube_node_status_condition{condition="Ready",status="true"}) and (((max by (node) (kube_node_status_condition))) and (0*max by (node) (kube_node_status_condition offset 6m))))[%s:1s])) < 1`, testDuration): false,
+			// all nodes should be reporting ready throughout the entire run, as long as they are older than 6m, and they still
+			// exist in 1m (because prometheus doesn't support negative offsets, we have to shift the entire query left). Since
+			// the late test might not catch a node not ready at the very end of the run anyway, we don't do anything special
+			// to shift the test execution later, we just note that there's a scrape_interval+wait_interval gap here of up to
+			// 1m30s and we can live with ith
+			fmt.Sprintf(`(min_over_time((max by (node) (kube_node_status_condition{condition="Ready",status="true"} offset 1m) and (((max by (node) (kube_node_status_condition offset 1m))) and (0*max by (node) (kube_node_status_condition offset 7m)) and (0*max by (node) (kube_node_status_condition))))[%s:1s])) < 1`, testDuration): false,
 		}
 		err := prometheus.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 		o.Expect(err).NotTo(o.HaveOccurred())
