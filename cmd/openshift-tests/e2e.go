@@ -593,7 +593,7 @@ func testNodeUpgradeTransitions(events []*monitor.EventInterval) ([]*ginkgo.JUni
 		var foundEnd bool
 		for i, event := range events {
 			// treat multiple sequential upgrades as distinct test failures
-			if event.Locator == "clusterversion/cluster" && strings.Contains(event.Message, "reason/UpgradeStarted") {
+			if event.Locator == "clusterversion/cluster" && (strings.Contains(event.Message, "reason/UpgradeStarted") || strings.Contains(event.Message, "reason/UpgradeRollback")) {
 				text = event.Message
 				events = events[i+1:]
 				foundEnd = true

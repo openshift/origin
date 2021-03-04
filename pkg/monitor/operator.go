@@ -151,7 +151,7 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 				conditions = append(conditions, Condition{
 					Level:   Warning,
 					Locator: locateClusterVersion(cv),
-					Message: fmt.Sprintf("cluster converging to %s", cv.Status.History[0].Version),
+					Message: fmt.Sprintf("cluster converging to %s", versionOrImage(cv.Status.History[0])),
 				})
 				return conditions
 			}
@@ -161,13 +161,13 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 				conditions = append(conditions, Condition{
 					Level:   Warning,
 					Locator: locateClusterVersion(cv),
-					Message: fmt.Sprintf("cluster reached %s", cvNew.Version),
+					Message: fmt.Sprintf("cluster reached %s", versionOrImage(cvNew)),
 				})
 			case cvNew.State == configv1.PartialUpdate && cvOld.State == cvNew.State && cvOld.Image != cvNew.Image:
 				conditions = append(conditions, Condition{
 					Level:   Warning,
 					Locator: locateClusterVersion(cv),
-					Message: fmt.Sprintf("cluster upgrading to %s without completing %s", cvNew.Version, cvOld.Version),
+					Message: fmt.Sprintf("cluster upgrading to %s without completing %s", versionOrImage(cvNew), versionOrImage(cvOld)),
 				})
 			}
 			return conditions
@@ -268,7 +268,7 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 					conditions = append(conditions, &Condition{
 						Level:   Warning,
 						Locator: locateClusterVersion(cv),
-						Message: fmt.Sprintf("cluster is updating to %s", cv.Status.History[0].Version),
+						Message: fmt.Sprintf("cluster is updating to %s", versionOrImage(cv.Status.History[0])),
 					})
 				}
 			}
@@ -277,6 +277,13 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 	})
 
 	go cvInformer.Run(ctx.Done())
+}
+
+func versionOrImage(h configv1.UpdateHistory) string {
+	if len(h.Version) == 0 {
+		return h.Image
+	}
+	return h.Version
 }
 
 func locateClusterOperator(co *configv1.ClusterOperator) string {
