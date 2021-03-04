@@ -6,16 +6,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/synthetictests"
+	"github.com/openshift/origin/pkg/test/ginkgo"
+	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/disruption"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubectl/pkg/util/templates"
 
-	"github.com/openshift/origin/pkg/monitor"
-	"github.com/openshift/origin/pkg/test/ginkgo"
-
 	_ "github.com/openshift/origin/test/extended"
-	exutil "github.com/openshift/origin/test/extended/util"
 	_ "github.com/openshift/origin/test/extended/util/annotate/generated"
-	"github.com/openshift/origin/test/extended/util/disruption"
 )
 
 func isDisabled(name string) bool {
@@ -825,16 +825,38 @@ func getEventsByPod(events []*monitor.EventInterval) map[string][]*monitor.Event
 }
 
 func testOperatorStateTransitions(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {
-	// if this starts tripping too much, or tripping on the same actors, feel free to split into tests
-	// for every operator with independent pass/fails
-	available := testOperatorState("Available", events)
-	degraded := testOperatorState("Degraded", events)
-	progressing := testOperatorState("Progressing", events)
-
 	ret := []*ginkgo.JUnitTestCase{}
-	ret = append(ret, operatorStateTestCases("[sig-cluster-lifecycle] operators should never go unavailable", available)...)
-	ret = append(ret, operatorStateTestCases("[sig-cluster-lifecycle] operators should never go degraded", degraded)...)
-	ret = append(ret, operatorStateTestCases("[sig-cluster-lifecycle] operators should never go progressing", progressing)...)
+
+	knownOperators := allOperators(events)
+	eventsByOperator := getEventsByOperator(events)
+	for _, condition := range []string{"Available", "Degraded", "Progressing"} {
+		for _, operatorName := range knownOperators.List() {
+			bzComponent := synthetictests.GetBugzillaComponentForOperator(operatorName)
+			if bzComponent == "Unknown" {
+				bzComponent = operatorName
+			}
+			testName := fmt.Sprintf("[bz-%v] clusteroperator/%v should not change condition/%v", bzComponent, operatorName, condition)
+			operatorEvents := eventsByOperator[operatorName]
+			if len(operatorEvents) == 0 {
+				ret = append(ret, &ginkgo.JUnitTestCase{Name: testName})
+				continue
+			}
+
+			failures := testOperatorState(condition, operatorEvents)
+			if len(failures) > 0 {
+				ret = append(ret, &ginkgo.JUnitTestCase{
+					Name:      testName,
+					SystemOut: strings.Join(failures, "\n"),
+					FailureOutput: &ginkgo.FailureOutput{
+						Output: fmt.Sprintf("%d unexpected clusteroperator state transitions during e2e test run \n\n%v", len(failures), strings.Join(failures, "\n")),
+					},
+				})
+			}
+			// always add a success so we flake and not fail
+			ret = append(ret, &ginkgo.JUnitTestCase{Name: testName})
+		}
+	}
+
 	return ret
 }
 
@@ -861,6 +883,7 @@ func testOperatorState(interestingCondition string, events []*monitor.EventInter
 	failures := []string{}
 
 	clusterOperatorToEvents := getEventsByOperator(events)
+
 	for clusterOperator, events := range clusterOperatorToEvents {
 		for _, event := range events {
 			condition, status, message := monitor.GetOperatorConditionStatus(event.Message)
@@ -881,7 +904,32 @@ func getEventsByOperator(events []*monitor.EventInterval) map[string][]*monitor.
 		if !strings.Contains(event.Locator, "clusteroperator/") {
 			continue
 		}
-		eventsByClusterOperator[event.Locator] = append(eventsByClusterOperator[event.Locator], event)
+		operators := strings.Split(event.Locator, "/")
+		operatorName := operators[1]
+		eventsByClusterOperator[operatorName] = append(eventsByClusterOperator[operatorName], event)
 	}
 	return eventsByClusterOperator
+}
+
+func allOperators(events []*monitor.EventInterval) sets.String {
+	// start with a list of known values
+	knownOperators := sets.NewString(synthetictests.KnownOperators.List()...)
+
+	// now add all the operators we see in the events.
+	for _, event := range events {
+		operatorName := operatorFromLocator(event.Locator)
+		if len(operatorName) == 0 {
+			continue
+		}
+		knownOperators.Insert(operatorName)
+	}
+	return knownOperators
+}
+
+func operatorFromLocator(locator string) string {
+	if !strings.Contains(locator, "clusteroperator/") {
+		return ""
+	}
+	operators := strings.Split(locator, "/")
+	return operators[1]
 }
