@@ -16,6 +16,7 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 
+	configv1 "github.com/openshift/api/config/v1"
 	v1 "k8s.io/api/core/v1"
 
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -58,6 +59,10 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
 			e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
 		}
+
+		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		ns := oc.SetupNamespace()
 		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 		defer func() {
@@ -69,6 +74,38 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 				Selector: map[string]string{"alertname": "AggregatedAPIDown", "name": "v1alpha1.wardle.example.com"},
 				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1933144",
 			},
+		}
+
+		if infra.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode {
+			firingAlertsWithBugs = append(firingAlertsWithBugs, helper.MetricConditions{
+				{
+					Selector: map[string]string{"alertname": "KubeMemoryOvercommit"},
+					Text:     "https://issues.redhat.com/browse/MON-1522",
+				},
+				{
+					Selector: map[string]string{"alertname": "KubeCPUOvercommit"},
+					Text:     "https://issues.redhat.com/browse/MON-1522",
+				},
+				{
+					Selector: map[string]string{"alertname": "SystemMemoryExceedsReservation"},
+					Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1945017",
+				},
+				//TODO: API-1136 ticket unimplemented - API server rollouts cause API downtime in single replica toplogy.
+				// As a result, some pods crash which causes some aggregated APIs to be unavailable.
+				// Until this is resolved we ignore those AggregatedAPIDown alerts
+				{
+					Selector: map[string]string{"alertname": "AggregatedAPIDown", "name": "v1.oauth.openshift.io"},
+					Text:     "https://issues.redhat.com/browse/API-1136",
+				},
+				{
+					Selector: map[string]string{"alertname": "AggregatedAPIDown", "name": "v1.packages.operators.coreos.com"},
+					Text:     "https://issues.redhat.com/browse/API-1136",
+				},
+				{
+					Selector: map[string]string{"alertname": "AggregatedAPIDown", "name": "v1.user.openshift.io"},
+					Text:     "https://issues.redhat.com/browse/API-1136",
+				},
+			}...)
 		}
 
 		pendingAlertsWithBugs := helper.MetricConditions{}
@@ -446,11 +483,28 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
 
-			tests := map[string]bool{
-				// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
-				`ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|PrometheusRemoteWriteDesiredShards",alertstate="firing",severity!="info"} >= 1`: false,
+			infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
+			allowedAlerts := []string{"Watchdog", "AlertmanagerReceiversNotConfigured", "PrometheusRemoteWriteDesiredShards"}
+			if infra.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode {
+				//TODO: MON-1522 bug - these alerts wrongly fire in single replica topology, remove this if statement once that bug is fixed.
+				allowedAlerts = append(allowedAlerts, "KubeMemoryOvercommit", "KubeCPUOvercommit")
+
+				//TODO: API-1136 ticket unimplemented - API server rollouts cause API downtime in single replica toplogy.
+				// As a result, some pods crash which causes some aggregated APIs to be unavailable.
+				// Until this is resolved we ignore AggregatedAPIDown alerts
+				allowedAlerts = append(allowedAlerts, "AggregatedAPIDown")
+
+				//TODO: https://bugzilla.redhat.com/show_bug.cgi?id=1945017
+				allowedAlerts = append(allowedAlerts, "SystemMemoryExceedsReservation")
 			}
-			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+
+			tests := map[string]bool{
+				fmt.Sprintf(`ALERTS{alertname!~"%s",alertstate="firing",severity!="info"} >= 1`, strings.Join(allowedAlerts, "|")): false,
+			}
+			err = helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
