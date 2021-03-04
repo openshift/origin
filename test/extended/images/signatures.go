@@ -83,24 +83,27 @@ var _ = g.Describe("[sig-imageregistry][Serial][Suite:openshift/registry/serial]
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("keyring `/var/lib/origin/gnupg/secring.gpg' created"))
 
-		// Create kubeconfig for skopeo
+		// Create kubeconfig for oc
 		g.By("logging as a test user")
 		out, err = pod.Exec("oc login https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT --token=" + token + " --certificate-authority=/run/secrets/kubernetes.io/serviceaccount/ca.crt")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("Logged in"))
 
 		// Sign and copy the memcached image into target image stream tag
-		// TODO: Fix skopeo to pickup the Kubernetes environment variables (remove the $KUBERNETES_MASTER)
 		g.By("signing the memcached:latest image and pushing it into openshift registry")
 		out, err = pod.Exec(strings.Join([]string{
-			"KUBERNETES_MASTER=https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT",
 			"GNUPGHOME=/var/lib/origin/gnupg",
-			"skopeo", "--debug", "copy", "--sign-by", "joe@foo.bar",
+			"skopeo", "--debug",
+			// Disable the default-docker: file sigstore default in /etc/containers/registries.d, so that the X-Registry-Supports-Signatures protocol is used.
+			// Newer versions of Skopeo default to X-R-S-S if present, this test (as of 2021-02) uses skopeo-0.1.40-11.el7_8.x86_64, which defaults to sigstore.
+			"--registries.d", "/this/does/not/exist",
+
+			"copy", "--sign-by", "joe@foo.bar",
 			"--dest-creds=" + user + ":" + token,
 			// TODO: test with this turned to true as well
 			"--dest-tls-verify=false",
 			"docker://docker.io/library/memcached:latest",
-			"atomic:" + signedImage,
+			"docker://" + signedImage,
 		}, " "))
 		fmt.Fprintf(g.GinkgoWriter, "output: %s\n", out)
 		o.Expect(err).NotTo(o.HaveOccurred())
