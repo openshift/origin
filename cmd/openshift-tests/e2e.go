@@ -347,6 +347,18 @@ var staticSuites = testSuites{
 	},
 	{
 		TestSuite: ginkgo.TestSuite{
+			Name: "openshift/node/conformance",
+			Description: templates.LongDesc(`
+		Run only the node conformance tests.
+		`),
+			Matches: func(name string) bool {
+				return !isDisabled(name) && strings.Contains(name, "[NodeConformance]")
+			},
+		},
+		PreSuite: suiteWithProviderPreSuite,
+	},
+	{
+		TestSuite: ginkgo.TestSuite{
 			Name: "all",
 			Description: templates.LongDesc(`
 		Run all tests.
