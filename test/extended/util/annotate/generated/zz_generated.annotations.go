@@ -329,6 +329,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-api-machinery] API priority and fairness should ensure that requests can't be drowned out (priority)": "should ensure that requests can't be drowned out (priority) [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
+	"[Top Level] [sig-api-machinery] API should specify compatibility level 4 if exposed and internal.": "should specify compatibility level 4 if exposed and internal. [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-api-machinery] APIServer CR fields validation additionalCORSAllowedOrigins": "additionalCORSAllowedOrigins [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] listing mutating webhooks should work [Conformance]": "listing mutating webhooks should work [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
