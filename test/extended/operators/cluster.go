@@ -137,7 +137,7 @@ func crashloopingContainerCheck(podFilters ...podFilter) {
 			e2e.Logf("Pod status %s/%s ignored for being pending", pod.Namespace, pod.Name)
 			continue
 		}
-		if pod.Status.StartTime.After(testStartTime) {
+		if pod.Status.StartTime != nil && pod.Status.StartTime.After(testStartTime) {
 			// At this point lastPending has a list of pods that were pending a few seconds ago, but those pods
 			// could have been created a few seconds before that.  What we really want is to know which pods are
 			// pending for longer than a predetermined threshold of time.  This test implies that the intent is
