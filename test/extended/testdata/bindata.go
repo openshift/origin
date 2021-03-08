@@ -4281,7 +4281,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "2.6"
+              "name": "2.7"
             },
             "name": "latest",
             "referencePolicy": {
@@ -4290,40 +4290,20 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           },
           {
             "annotations": {
-              "description": "Build and run Ruby 2.5 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.5/README.md.",
+              "description": "Build and run Ruby 2.7 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.6/README.md.",
               "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 2.5",
+              "openshift.io/display-name": "Ruby 2.7",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:2.5,ruby",
+              "supports": "ruby:2.7,ruby",
               "tags": "builder,ruby",
-              "version": "2.5"
+              "version": "2.7"
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/ruby-25-centos7:latest"
+              "name": "registry.centos.org/centos/ruby-27-centos7:latest"
             },
-            "name": "2.5",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
-              "description": "Build and run Ruby 2.6 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.6/README.md.",
-              "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 2.6",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:2.6,ruby",
-              "tags": "builder,ruby",
-              "version": "2.6"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.centos.org/centos/ruby-26-centos7:latest"
-            },
-            "name": "2.6",
+            "name": "2.7",
             "referencePolicy": {
               "type": "Local"
             }
@@ -4508,14 +4488,14 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-25-centos7"
+        "name": "ruby-27-centos7"
       },
       "spec": {
         "tags": [
           {
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/ruby-25-centos7:latest"
+              "name": "docker.io/centos/ruby-27-centos7:latest"
             },
             "name": "latest"
           }
@@ -4568,7 +4548,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
           "dockerStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "ruby-25-centos7:latest"
+              "name": "ruby-27-centos7:latest"
             },
             "env": [
               {
@@ -4968,10 +4948,10 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-25-centos7"
+        "name": "ruby-27-centos7"
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-25-centos7"
+        "dockerImageRepository": "centos/ruby-27-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -5019,7 +4999,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-25-centos7:latest"
+              "name": "centos/ruby-27-centos7:latest"
             }
           }
         },
@@ -5463,10 +5443,10 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-25-centos7"
+        "name": "ruby-27-centos7"
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-25-centos7"
+        "dockerImageRepository": "centos/ruby-27-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -5518,7 +5498,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "ruby-25-centos7:latest"
+              "name": "ruby-27-centos7:latest"
             },
             "env": [
               {
@@ -12220,7 +12200,7 @@ var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
                         ],
                         "from": {
                             "kind": "ImageStreamTag",
-                            "name": "ruby:2.5",
+                            "name": "ruby:2.7",
                             "namespace": "${NAMESPACE}"
                         }
                     },
@@ -12709,7 +12689,8 @@ var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
             "value": ""
         }
     ]
-}`)
+}
+`)
 
 func examplesQuickstartsRailsPostgresqlPersistentJsonBytes() ([]byte, error) {
 	return _examplesQuickstartsRailsPostgresqlPersistentJson, nil
@@ -18008,7 +17989,7 @@ var _testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
         },
         "env": [
           {
@@ -18025,7 +18006,8 @@ var _testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson = []byte(`{
       }
     }
   }
-}`)
+}
+`)
 
 func testExtendedTestdataBuildsBuildSecretsTestS2iBuildJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson, nil
@@ -18104,7 +18086,7 @@ func testExtendedTestdataBuildsBuildSecretsTestSecretJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildTimingDockerfile = []byte(`FROM centos/ruby-25-centos7
+var _testExtendedTestdataBuildsBuildTimingDockerfile = []byte(`FROM centos/ruby-27-centos7
 
 USER root
 `)
@@ -18626,7 +18608,7 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
             ],
             "from": {
               "kind": "DockerImage",
-              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
             },
             "incremental": true
           }
@@ -18644,7 +18626,8 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
   "labels": {
     "template": "application-template-stibuild"
   }
-}`)
+}
+`)
 
 func testExtendedTestdataBuildsIncrementalAuthBuildJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsIncrementalAuthBuildJson, nil
@@ -18815,7 +18798,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7
 `)
 
 func testExtendedTestdataBuildsStatusfailBadcontextdirs2iYamlBytes() ([]byte, error) {
@@ -18907,15 +18890,15 @@ spec:
         paths:
           - destinationDir: injected/opt/app-root/test-links
             sourcePath: /opt/app-root/test-links/.
-          - destinationDir: injected/opt/rh/rh-ruby-25/root/usr/bin
-            sourcePath: /opt/rh/rh-ruby25/root/usr/bin/ruby
+          - destinationDir: injected/opt/rh/rh-ruby-27/root/usr/bin
+            sourcePath: /opt/rh/rh-ruby27/root/usr/bin/ruby
 
   strategy:
     type: Docker
     dockerStrategy:
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYamlBytes() ([]byte, error) {
@@ -18946,7 +18929,7 @@ spec:
     dockerStrategy:
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchsourcedockerYamlBytes() ([]byte, error) {
@@ -18977,7 +18960,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchsources2iYamlBytes() ([]byte, error) {
@@ -19008,7 +18991,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7
       scripts: "http://example.org/scripts"
       env:
         - name: http_proxy
@@ -19046,7 +19029,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7
       forcePull: true
 `)
 
@@ -19266,14 +19249,14 @@ func testExtendedTestdataBuildsTestBcWithPrRefYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsTestBuildAppDockerfile = []byte(`FROM centos/ruby-25-centos7
+var _testExtendedTestdataBuildsTestBuildAppDockerfile = []byte(`FROM centos/ruby-27-centos7
 USER default
 EXPOSE 8080
 ENV RACK_ENV production
 ENV RAILS_ENV production
 COPY . /opt/app-root/src/
-RUN scl enable rh-ruby25 "bundle install"
-CMD ["scl", "enable", "rh-ruby25", "./run.sh"]
+RUN scl enable rh-ruby27 "bundle install"
+CMD ["scl", "enable", "rh-ruby27", "./run.sh"]
 
 USER default
 `)
@@ -19466,7 +19449,7 @@ items:
   apiVersion: v1
   metadata:
     name: origin-ruby-sample
-    creationTimestamp: 
+    creationTimestamp:
   spec: {}
   status:
     dockerImageRepository: ''
@@ -19474,7 +19457,7 @@ items:
   apiVersion: v1
   metadata:
     name: sample-build
-    creationTimestamp: 
+    creationTimestamp:
   spec:
     triggers:
     - type: imageChange
@@ -19500,7 +19483,7 @@ items:
   apiVersion: v1
   metadata:
     name: sample-s2i-build-noproxy
-    creationTimestamp: 
+    creationTimestamp:
   spec:
     triggers:
     - type: imageChange
@@ -19527,7 +19510,7 @@ items:
   apiVersion: v1
   metadata:
     name: sample-docker-build-noproxy
-    creationTimestamp: 
+    creationTimestamp:
   spec:
     triggers:
     - type: imageChange
@@ -19544,7 +19527,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
@@ -19628,7 +19611,7 @@ items:
   apiVersion: v1
   metadata:
     name: origin-ruby-sample
-    creationTimestamp: 
+    creationTimestamp:
   spec: {}
   status:
     dockerImageRepository: ''
@@ -19636,7 +19619,7 @@ items:
   apiVersion: v1
   metadata:
     name: webhooksecret
-    creationTimestamp: 
+    creationTimestamp:
   data:
     WebHookSecretKey: c2VjcmV0dmFsdWUx
   type: Opaque
@@ -19644,7 +19627,7 @@ items:
   apiVersion: v1
   metadata:
     name: sample-build
-    creationTimestamp: 
+    creationTimestamp:
   spec:
     triggers:
     - type: ImageChange
@@ -19652,7 +19635,7 @@ items:
     - type: Generic
       generic:
         secret: "mysecret"
-        secretReference: 
+        secretReference:
           name: "webhooksecret"
     source:
       type: Git
@@ -19670,7 +19653,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7
     resources: {}
   status:
     lastVersion: 0
@@ -19678,7 +19661,7 @@ items:
   apiVersion: v1
   metadata:
     name: sample-verbose-build
-    creationTimestamp: 
+    creationTimestamp:
   spec:
     triggers:
     - type: imageChange
@@ -19699,7 +19682,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7
     resources: {}
   status:
     lastVersion: 0
@@ -19707,7 +19690,7 @@ items:
   apiVersion: v1
   metadata:
     name: sample-build-binary
-    creationTimestamp: 
+    creationTimestamp:
   spec:
     triggers:
     - type: imageChange
@@ -19727,7 +19710,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7
     resources: {}
   status:
     lastVersion: 0
@@ -19735,7 +19718,7 @@ items:
   apiVersion: v1
   metadata:
     name: sample-build-github-archive
-    creationTimestamp: 
+    creationTimestamp:
   spec:
     triggers:
     - type: imageChange
@@ -19756,7 +19739,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7
     resources: {}
   status:
     lastVersion: 0
@@ -19764,7 +19747,7 @@ items:
   apiVersion: v1
   metadata:
     name: sample-build-binary-invalidnodeselector
-    creationTimestamp: 
+    creationTimestamp:
   spec:
     triggers:
     - type: imageChange
@@ -19784,7 +19767,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7
     resources: {}
     nodeSelector:
       nodelabelkey: nodelabelvalue
@@ -19794,7 +19777,7 @@ items:
   apiVersion: v1
   metadata:
     name: sample-build-docker-args
-    creationTimestamp: 
+    creationTimestamp:
   spec:
     triggers:
     - type: ImageChange
@@ -19802,7 +19785,7 @@ items:
     source:
       type: Dockerfile
       dockerfile: |-
-        FROM centos/ruby-25-centos7
+        FROM centos/ruby-27-centos7
         ARG foofoo
         RUN echo $foofoo
     strategy:
@@ -19813,14 +19796,14 @@ items:
           name: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
     resources: {}
     postCommit: {}
-    nodeSelector: 
+    nodeSelector:
   status:
     lastVersion: 0
 - kind: BuildConfig
   apiVersion: v1
   metadata:
     name: sample-build-docker-args-preset
-    creationTimestamp: 
+    creationTimestamp:
   spec:
     triggers:
     - type: ImageChange
@@ -19828,7 +19811,7 @@ items:
     source:
       type: Dockerfile
       dockerfile: |-
-        FROM centos/ruby-25-centos7
+        FROM centos/ruby-27-centos7
         ARG foofoo
         RUN echo $foofoo
     strategy:
@@ -19842,7 +19825,7 @@ items:
           value: default
     resources: {}
     postCommit: {}
-    nodeSelector: 
+    nodeSelector:
   status:
     lastVersion: 0
 `)
@@ -20113,7 +20096,7 @@ var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
           "git": {
             "uri":"https://github.com/sclorg/s2i-ruby-container"
           },
-          "contextDir": "2.5/test/puma-test-app"
+          "contextDir": "2.7/test/puma-test-app"
         },
         "strategy": {
           "type": "Source",
@@ -20126,7 +20109,7 @@ var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
             ],
             "from": {
               "kind": "DockerImage",
-              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
             }
           }
         },
@@ -20144,7 +20127,7 @@ var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
       "metadata": {
         "name": "test"
       }
-    },    
+    },
     {
       "kind": "DeploymentConfig",
       "apiVersion": "v1",
@@ -20522,7 +20505,7 @@ var _testExtendedTestdataBuildsTestEnvBuildJson = []byte(`{
       "sourceStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
+          "name":"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
         }
       }
     },
@@ -20713,7 +20696,7 @@ items:
           name: inputimage:latest
         paths:
         - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby25/root/usr/bin/ruby
+          sourcePath: /opt/rh/rh-ruby27/root/usr/bin/ruby
     strategy:
       customStrategy:
         from:
@@ -20760,7 +20743,7 @@ items:
           name: inputimage:latest
         paths:
         - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby25/root/usr/bin/ruby
+          sourcePath: /opt/rh/rh-ruby27/root/usr/bin/ruby
     strategy:
       dockerStrategy:
         from:
@@ -20807,7 +20790,7 @@ items:
           name: inputimage:latest
         paths:
         - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby25/root/usr/bin/ruby
+          sourcePath: /opt/rh/rh-ruby27/root/usr/bin/ruby
     strategy:
       sourceStrategy:
         from:
@@ -20850,12 +20833,12 @@ items:
         # Bug 1694859: ensure symlinks are followed
         FROM ruby
         RUN mkdir -p /opt/app-root/test-links && \
-            ln -s ../../rh/rh-ruby25/root/usr/bin /opt/app-root/test-links/bin
+            ln -s ../../rh/6/root/usr/bin /opt/app-root/test-links/bin
     strategy:
       dockerStrategy:
-        from: 
+        from:
           kind: ImageStreamTag
-          name: ruby:2.5
+          name: ruby:2.7
           namespace: openshift
 - apiVersion: v1
   kind: BuildConfig
@@ -20879,8 +20862,8 @@ items:
         # Bug 1698152: ensure image source copy behavior is correct
         - destinationDir: injected/opt/app-root/test-links
           sourcePath: /opt/app-root/test-links/.
-        - destinationDir: injected/opt/rh/rh-ruby-25/root/usr/bin
-          sourcePath: /opt/rh/rh-ruby25/root/usr/bin/ruby
+        - destinationDir: injected/opt/rh/rh-ruby-27/root/usr/bin
+          sourcePath: /opt/rh/rh-ruby27/root/usr/bin/ruby
     strategy:
       sourceStrategy:
         from:
@@ -20909,8 +20892,8 @@ items:
         # Bug 1698152: ensure image source copy behavior is correct
         - destinationDir: injected/opt/app-root/test-links
           sourcePath: /opt/app-root/test-links/.
-        - destinationDir: injected/opt/rh/rh-ruby-25/root/usr/bin
-          sourcePath: /opt/rh/rh-ruby25/root/usr/bin/ruby
+        - destinationDir: injected/opt/rh/rh-ruby-27/root/usr/bin
+          sourcePath: /opt/rh/rh-ruby27/root/usr/bin/ruby
     strategy:
       dockerStrategy: {}
 
@@ -25545,7 +25528,7 @@ var _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson = []byte(`{
                         ],
                         "from": {
                             "kind": "ImageStreamTag",
-                            "name": "ruby:2.5",
+                            "name": "ruby:2.7",
                             "namespace": "${NAMESPACE}"
                         }
                     },
@@ -28961,7 +28944,7 @@ project="$(oc project -q)"
 os::test::junit::declare_suite_start "cmd/builds"
 # This test validates builds and build related commands
 # Disabled because git is required in the container running the test
-#os::cmd::expect_success 'oc new-build centos/ruby-25-centos7 https://github.com/openshift/ruby-hello-world.git'
+#os::cmd::expect_success 'oc new-build centos/ruby-26-centos7 https://github.com/openshift/ruby-hello-world.git'
 #os::cmd::expect_success 'oc get bc/ruby-hello-world'
 
 #os::cmd::expect_success "cat '${OS_ROOT}/examples/hello-openshift/Dockerfile' | oc new-build -D - --name=test"
@@ -29004,8 +28987,8 @@ os::cmd::expect_success 'oc delete is/tests'
 os::cmd::expect_success "oc new-build -D \$'FROM image-registry.openshift-image-registry.svc:5000/openshift/tests:latest\nENV ok=1' --to origin-name-test --name origin-test2"
 os::cmd::expect_success_and_text "oc get bc/origin-test2 --template '${template}'" '^ImageStreamTag origin-name-test:latest$'
 
-#os::cmd::try_until_text 'oc get is ruby-25-centos7' 'latest'
-#os::cmd::expect_failure_and_text 'oc new-build ruby-25-centos7~https://github.com/sclorg/ruby-ex ruby-25-centos7~https://github.com/sclorg/ruby-ex --to invalid/argument' 'error: only one component with source can be used when specifying an output image reference'
+#os::cmd::try_until_text 'oc get is ruby-26-centos7' 'latest'
+#os::cmd::expect_failure_and_text 'oc new-build ruby-26-centos7~https://github.com/sclorg/ruby-ex ruby-26-centos7~https://github.com/sclorg/ruby-ex --to invalid/argument' 'error: only one component with source can be used when specifying an output image reference'
 
 os::cmd::expect_success 'oc delete all --all'
 
@@ -29022,7 +29005,7 @@ os::cmd::expect_success 'oc get bc'
 os::cmd::expect_success 'oc get builds'
 
 # make sure the imagestream has the latest tag before trying to test it or start a build with it
-os::cmd::try_until_success 'oc get istag ruby-25-centos7:latest'
+os::cmd::try_until_success 'oc get istag ruby-27-centos7:latest'
 
 os::test::junit::declare_suite_start "cmd/builds/patch-anon-fields"
 REAL_OUTPUT_TO=$(oc get bc/ruby-sample-build --template='{{ .spec.output.to.name }}')
@@ -30424,10 +30407,10 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/merge-tags-on-apply"
 os::cmd::expect_success 'oc new-project merge-tags'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-centos7.json'
-os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.5 2.6 latest'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.7 latest'
 os::cmd::expect_success 'oc apply -f ${TEST_DATA}/modified-ruby-imagestream.json'
-os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.5 2.6 latest newtag'
-os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[0].annotations.version}' '2.5 patched'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.7 latest newtag'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[0].annotations.version}' '2.7 patched'
 os::cmd::expect_success 'oc delete project merge-tags'
 echo "apply new imagestream tags: ok"
 os::test::junit::declare_suite_end
@@ -30749,7 +30732,7 @@ os::cmd::expect_success 'oc new-app --docker-image=library/perl https://github.c
 os::cmd::try_until_success 'oc get istag perl:latest -n test-imagestreams'
 
 # remove redundant imagestream tag before creating objects
-os::cmd::expect_success_and_text 'oc new-app  openshift/ruby-25-centos7 https://github.com/openshift/ruby-hello-world  --strategy=docker --loglevel=5' 'Removing duplicate tag from object list'
+os::cmd::expect_success_and_text 'oc new-app  openshift/ruby-27-centos7 https://github.com/openshift/ruby-hello-world  --strategy=docker --loglevel=5' 'Removing duplicate tag from object list'
 
 # create imagestream in the correct namespace
 os::cmd::expect_success 'oc new-app --name=mytest --image-stream=mysql --env=MYSQL_USER=test --env=MYSQL_PASSWORD=redhat --env=MYSQL_DATABASE=testdb -l app=mytest'
@@ -30806,7 +30789,7 @@ os::cmd::expect_success 'oc delete all -l app=ruby-ex'
 os::cmd::expect_success_and_not_text 'oc new-app --file ${TEST_DATA}/new-app/invalid-build-strategy.yaml --dry-run' 'invalid memory address or nil pointer dereference'
 
 # test that imagestream references across imagestreams do not cause an error
-os::cmd::try_until_success 'oc get imagestreamtags ruby:2.5'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.7'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/new-app/imagestream-ref.yaml'
 os::cmd::try_until_success 'oc get imagestreamtags myruby:latest'
 os::cmd::expect_success 'oc new-app myruby~https://github.com/openshift/ruby-hello-world.git --dry-run'
@@ -31063,8 +31046,7 @@ os::cmd::try_until_success 'oc get imagestreamtags python:latest'
 os::cmd::try_until_success 'oc get imagestreamtags python:2.7'
 os::cmd::try_until_success 'oc get imagestreamtags python:3.6'
 os::cmd::try_until_success 'oc get imagestreamtags ruby:latest'
-os::cmd::try_until_success 'oc get imagestreamtags ruby:2.5'
-os::cmd::try_until_success 'oc get imagestreamtags ruby:2.6'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.7'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:20.0'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:21.0'
@@ -31078,7 +31060,7 @@ os::cmd::expect_success_and_text 'oc new-app --search --image-stream=perl' "Tags
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=php' "Tags:\s+7.0, 7.1, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=postgresql' "Tags:\s+9.5, 9.6, latest"
 os::cmd::expect_success_and_text 'oc new-app -S --image-stream=python' "Tags:\s+2.7, 3.6, latest"
-os::cmd::expect_success_and_text 'oc new-app -S --image-stream=ruby' "Tags:\s+2.5, 2.6, latest"
+os::cmd::expect_success_and_text 'oc new-app -S --image-stream=ruby' "Tags:\s+2.6, 2.7, latest"
 os::cmd::expect_success_and_text 'oc new-app -S --image-stream=wildfly' "Tags:\s+20.0, 21.0, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --template=ruby-helloworld-sample' 'ruby-helloworld-sample'
 # check search - no matches
@@ -31147,10 +31129,10 @@ os::cmd::expect_success 'oc new-app --image-stream ruby https://github.com/sclor
 os::cmd::expect_success 'oc delete imagestreamtag ruby:latest'
 os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.com/sclorg/rails-ex --dry-run' 'error: multiple images or templates matched \"ruby\"'
 # when only 2.6 exists, there is a single partial match (2.6)
-os::cmd::expect_success 'oc delete imagestreamtag ruby:2.5'
+os::cmd::expect_success 'oc delete imagestreamtag ruby:2.7'
 os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.com/sclorg/rails-ex --dry-run' 'error: only a partial match was found for \"ruby\":'
 # when the tag is specified explicitly, the operation is successful
-os::cmd::expect_success 'oc new-app --image-stream ruby:2.6 https://github.com/sclorg/rails-ex --dry-run'
+os::cmd::expect_success 'oc new-app --image-stream ruby:2.7 https://github.com/sclorg/rails-ex --dry-run'
 os::cmd::expect_success 'oc delete imagestreams --all'
 
 # newapp does not attempt to create an imagestream that already exists for a container image
@@ -31163,9 +31145,9 @@ os::cmd::expect_success 'oc delete all -l app=testapp1'
 os::cmd::expect_success 'oc delete all -l app=ruby --ignore-not-found'
 os::cmd::expect_success 'oc delete imagestreams --all --ignore-not-found'
 # newapp does not attempt to create an imagestream that already exists for a container image
-os::cmd::expect_success 'oc new-app docker.io/ruby:2.5'
+os::cmd::expect_success 'oc new-app docker.io/ruby:2.7'
 # the next one technically fails cause the DC is already created, but we should still see the ist created
-os::cmd::expect_failure_and_text 'oc new-app docker.io/ruby:2.6' 'imagestreamtag.image.openshift.io "ruby:2.6" created'
+os::cmd::expect_failure_and_text 'oc new-app docker.io/ruby:2.7' 'imagestreamtag.image.openshift.io "ruby:2.7" created'
 os::cmd::expect_success 'oc delete imagestreams --all --ignore-not-found'
 
 # check that we can create from the template without errors
@@ -31191,7 +31173,7 @@ os::cmd::expect_success_and_text 'oc new-build mysql https://github.com/openshif
 os::cmd::expect_failure_and_text 'oc new-build mysql https://github.com/openshift/ruby-hello-world --binary' 'specifying binary builds and source repositories at the same time is not allowed'
 # binary builds cannot be created unless a builder image is specified.
 os::cmd::expect_failure_and_text 'oc new-build --name mybuild --binary --strategy=source -o yaml' 'you must provide a builder image when using the source strategy with a binary build'
-os::cmd::expect_success_and_text 'oc new-build --name mybuild registry.centos.org/centos/ruby-25-centos7 --binary --strategy=source -o yaml' 'name: ruby-25-centos7:latest'
+os::cmd::expect_success_and_text 'oc new-build --name mybuild registry.centos.org/centos/ruby-27-centos7 --binary --strategy=source -o yaml' 'name: ruby-27-centos7:latest'
 # binary builds can be created with no builder image if no strategy or docker strategy is specified
 os::cmd::expect_success_and_text 'oc new-build --name mybuild --binary -o yaml' 'type: Binary'
 os::cmd::expect_success_and_text 'oc new-build --name mybuild --binary --strategy=docker -o yaml' 'type: Binary'
@@ -31260,19 +31242,19 @@ os::cmd::expect_success 'oc delete imagestreams --all --ignore-not-found'
 
 # new-app different syntax for new-app functionality
 os::cmd::expect_success 'oc new-project new-app-syntax'
-os::cmd::expect_success 'oc import-image registry.centos.org/centos/ruby-25-centos7:latest --confirm'
+os::cmd::expect_success 'oc import-image registry.centos.org/centos/ruby-27-centos7:latest --confirm'
 os::cmd::expect_success 'oc import-image registry.centos.org/centos/php-70-centos7:latest --confirm'
-os::cmd::expect_success 'oc new-app ruby-25-centos7:latest~https://github.com/openshift/ruby-hello-world.git --dry-run'
-os::cmd::expect_success 'oc new-app ruby-25-centos7:latest~./test/testdata/testapp --dry-run'
-os::cmd::expect_success 'oc new-app -i ruby-25-centos7:latest https://github.com/openshift/ruby-hello-world.git --dry-run'
-os::cmd::expect_success 'oc new-app -i ruby-25-centos7:latest ./test/testdata/testapp --dry-run'
-os::cmd::expect_success 'oc new-app ruby-25-centos7:latest --code https://github.com/openshift/ruby-hello-world.git --dry-run'
-os::cmd::expect_success 'oc new-app ruby-25-centos7:latest --code ./test/testdata/testapp --dry-run'
-os::cmd::expect_success 'oc new-app -i ruby-25-centos7:latest --code https://github.com/openshift/ruby-hello-world.git --dry-run'
-os::cmd::expect_success 'oc new-app -i ruby-25-centos7:latest --code ./test/testdata/testapp --dry-run'
+os::cmd::expect_success 'oc new-app ruby-27-centos7:latest~https://github.com/openshift/ruby-hello-world.git --dry-run'
+os::cmd::expect_success 'oc new-app ruby-27-centos7:latest~./test/testdata/testapp --dry-run'
+os::cmd::expect_success 'oc new-app -i ruby-27-centos7:latest https://github.com/openshift/ruby-hello-world.git --dry-run'
+os::cmd::expect_success 'oc new-app -i ruby-27-centos7:latest ./test/testdata/testapp --dry-run'
+os::cmd::expect_success 'oc new-app ruby-27-centos7:latest --code https://github.com/openshift/ruby-hello-world.git --dry-run'
+os::cmd::expect_success 'oc new-app ruby-27-centos7:latest --code ./test/testdata/testapp --dry-run'
+os::cmd::expect_success 'oc new-app -i ruby-27-centos7:latest --code https://github.com/openshift/ruby-hello-world.git --dry-run'
+os::cmd::expect_success 'oc new-app -i ruby-27-centos7:latest --code ./test/testdata/testapp --dry-run'
 
 os::cmd::expect_success 'oc new-app --code ./test/testdata/testapp --name test'
-os::cmd::expect_success_and_text 'oc get bc test --template={{.spec.strategy.dockerStrategy.from.name}}' 'ruby-25-centos7:latest'
+os::cmd::expect_success_and_text 'oc get bc test --template={{.spec.strategy.dockerStrategy.from.name}}' 'ruby-27-centos7:latest'
 
 os::cmd::expect_success 'oc new-app -i php-70-centos7:latest --code ./test/testdata/testapp --name test2'
 os::cmd::expect_success_and_text 'oc get bc test2 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-70-centos7:latest'
@@ -31290,7 +31272,7 @@ os::cmd::expect_success 'oc new-app php-70-centos7:latest --code https://github.
 os::cmd::expect_success_and_text 'oc get bc test6 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-70-centos7:latest'
 
 os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-world.git --name test7'
-os::cmd::expect_success_and_text 'oc get bc test7 --template={{.spec.strategy.dockerStrategy.from.name}}' 'ruby-25-centos7:latest'
+os::cmd::expect_success_and_text 'oc get bc test7 --template={{.spec.strategy.dockerStrategy.from.name}}' 'ruby-27-centos7:latest'
 
 os::cmd::expect_success 'oc new-app php-70-centos7:latest https://github.com/openshift/ruby-hello-world.git --name test8'
 os::cmd::expect_success_and_text 'oc get bc test8 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-70-centos7:latest'
@@ -32306,20 +32288,19 @@ os::test::junit::declare_suite_start "cmd/oc/set/image"
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-deployment-config.yaml'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-centos7.json'
-os::cmd::try_until_success 'oc get imagestreamtags ruby:2.5'
-os::cmd::try_until_success 'oc get imagestreamtags ruby:2.6'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.7'
 
 # test --local flag
-os::cmd::expect_failure_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.5 --local' 'you must specify resources by --filename when --local is set.'
+os::cmd::expect_failure_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7 --local' 'you must specify resources by --filename when --local is set.'
 # test --dry-run flag with -o formats
-os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.5 --source=istag --dry-run' 'test-deployment-config'
-os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.5 --source=istag --dry-run -o name' 'deploymentconfig.apps.openshift.io/test-deployment-config'
-os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.5 --source=istag --dry-run' 'deploymentconfig.apps.openshift.io/test-deployment-config image updated \(dry run\)'
+os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7 --source=istag --dry-run' 'test-deployment-config'
+os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7 --source=istag --dry-run -o name' 'deploymentconfig.apps.openshift.io/test-deployment-config'
+os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7 --source=istag --dry-run' 'deploymentconfig.apps.openshift.io/test-deployment-config image updated \(dry run\)'
 
-os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.6 --source=istag'
+os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7 --source=istag'
 os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" 'image-registry.openshift-image-registry.svc:5000/cmd-set-image/ruby'
 
-os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.5 --source=istag'
+os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7 --source=istag'
 os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" 'image-registry.openshift-image-registry.svc:5000/cmd-set-image/ruby'
 
 os::cmd::expect_failure 'oc set image dc/test-deployment-config ruby-helloworld=ruby:XYZ --source=istag'
@@ -32334,7 +32315,7 @@ os::cmd::expect_success_and_text "oc get pod/hello-openshift -o jsonpath='{.spec
 os::cmd::expect_success 'oc set image pod/hello-openshift hello-openshift=nginx:1.9.1'
 os::cmd::expect_success_and_text "oc get pod/hello-openshift -o jsonpath='{.spec.containers[0].image}'" 'nginx:1.9.1'
 
-os::cmd::expect_success 'oc set image pods,dc *=ruby:2.5 --all --source=imagestreamtag'
+os::cmd::expect_success 'oc set image pods,dc *=ruby:2.7 --all --source=imagestreamtag'
 os::cmd::expect_success_and_text "oc get pod/hello-openshift -o jsonpath='{.spec.containers[0].image}'" 'image-registry.openshift-image-registry.svc:5000/cmd-set-image/ruby'
 os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" 'image-registry.openshift-image-registry.svc:5000/cmd-set-image/ruby'
 
@@ -32671,10 +32652,10 @@ os::cmd::expect_success 'oc process ruby-helloworld-sample -o go-template-file=/
 os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o jsonpath --template "{.kind}"' "List"
 os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o jsonpath={.kind}'              "List"
 os::cmd::expect_success 'oc process ruby-helloworld-sample -o jsonpath-file=/dev/null'
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o describe' "ruby-25-centos7"
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o json'     "ruby-25-centos7"
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o yaml'     "ruby-25-centos7"
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o name'     "ruby-25-centos7"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o describe' "ruby-27-centos7"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o json'     "ruby-27-centos7"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o yaml'     "ruby-27-centos7"
+os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o name'     "ruby-27-centos7"
 os::cmd::expect_success_and_text 'oc describe templates ruby-helloworld-sample' "BuildConfig.*ruby-sample-build"
 os::cmd::expect_success 'oc delete templates ruby-helloworld-sample'
 os::cmd::expect_success 'oc get templates'
@@ -33456,7 +33437,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-25-centos7"
+        "name": "ruby-27-centos7"
       },
       "spec": {
         "tags": [
@@ -33516,7 +33497,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
           "dockerStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "ruby-25-centos7:latest"
+              "name": "ruby-27-centos7:latest"
             },
             "env": [
               {
@@ -33918,10 +33899,10 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson = []b
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-25-centos7"
+        "name": "ruby-27-centos7"
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-25-centos7"
+        "dockerImageRepository": "centos/ruby-27-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -33973,7 +33954,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson = []b
           "sourceStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "ruby-25-centos7:latest"
+              "name": "ruby-27-centos7:latest"
             },
             "env": [
               {
@@ -34944,18 +34925,18 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
           },
           {
             "annotations": {
-              "description": "Provides a MongoDB 2.6 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/blob/master/2.6/README.md.",
+              "description": "Provides a MongoDB 2.7 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/blob/master/2.7/README.md.",
               "iconClass": "icon-mongodb",
-              "openshift.io/display-name": "MongoDB 2.6",
+              "openshift.io/display-name": "MongoDB 2.7",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "tags": "hidden,database,mongodb",
-              "version": "2.6"
+              "version": "2.7"
             },
             "from": {
               "kind": "DockerImage",
               "name": "registry.centos.org/centos/mongodb-26-centos7:latest"
             },
-            "name": "2.6",
+            "name": "2.7",
             "referencePolicy": {
               "type": "Local"
             }
@@ -35568,7 +35549,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "2.6"
+              "name": "2.7"
             },
             "name": "latest",
             "referencePolicy": {
@@ -35577,40 +35558,20 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
           },
           {
             "annotations": {
-              "description": "Build and run Ruby 2.5 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.5/README.md.",
+              "description": "Build and run Ruby 2.7 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.7/README.md.",
               "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 2.5",
+              "openshift.io/display-name": "Ruby 2.7",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:2.5,ruby",
+              "supports": "ruby:2.7,ruby",
               "tags": "builder,ruby",
-              "version": "2.5"
+              "version": "2.7"
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/ruby-25-centos7:latest"
+              "name": "registry.centos.org/centos/ruby-27-centos7:latest"
             },
-            "name": "2.5",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
-              "description": "Build and run Ruby 2.6 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.6/README.md.",
-              "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 2.6",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:2.6,ruby",
-              "tags": "builder,ruby",
-              "version": "2.6"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.centos.org/centos/ruby-26-centos7:latest"
-            },
-            "name": "2.6",
+            "name": "2.7",
             "referencePolicy": {
               "type": "Local"
             }
@@ -36111,27 +36072,27 @@ var _testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJson = []byte(
   "spec": {
     "tags": [
       {
-        "name": "2.5",
+        "name": "2.7",
         "annotations": {
           "openshift.io/display-name": "Ruby Patched",
           "openshift.io/provider-display-name": "Red Hat, Inc.",
-          "description": "Build and run Ruby 2.5 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.5/README.md.",
+          "description": "Build and run Ruby 2.7 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.7/README.md.",
           "iconClass": "icon-ruby",
           "tags": "builder,ruby",
-          "supports": "ruby:2.5,ruby",
-          "version": "2.5 patched",
+          "supports": "ruby:2.7,ruby",
+          "version": "2.7 patched",
           "sampleRepo": "https://github.com/sclorg/ruby-ex.git"
         },
         "from": {
           "kind": "DockerImage",
-          "name": "registry.centos.org/centos/ruby-25-centos7:latest"
+          "name": "registry.centos.org/centos/ruby-27-centos7:latest"
         }
       },
       {
         "name": "newtag",
         "from": {
           "kind": "DockerImage",
-          "name": "registry.centos.org/centos/ruby-25-centos7:latest"
+          "name": "registry.centos.org/centos/ruby-27-centos7:latest"
         }
       }
     ]
@@ -36269,7 +36230,7 @@ func testExtendedTestdataCmdTestCmdTestdataNewAppBcFromImagestreamimageJson() (*
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataNewAppBuildArgDockerfileDockerfile = []byte(`FROM centos/ruby-25-centos7
+var _testExtendedTestdataCmdTestCmdTestdataNewAppBuildArgDockerfileDockerfile = []byte(`FROM centos/ruby-27-centos7
 ARG foo
 RUN echo $foo
 `)
@@ -36378,12 +36339,12 @@ spec:
   tags:
   - from:
       kind: ImageStreamTag
-      name: "2.5"
+      name: "2.7"
     name: "latest"
   - from:
       kind: ImageStreamTag
-      name: ruby:2.5
-    name: "2.5"
+      name: ruby:2.7
+    name: "2.7"
 `)
 
 func testExtendedTestdataCmdTestCmdTestdataNewAppImagestreamRefYamlBytes() ([]byte, error) {
@@ -36648,11 +36609,11 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson = []by
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-25-centos7",
+        "name": "ruby-27-centos7",
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-25-centos7"
+        "dockerImageRepository": "centos/ruby-27-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -36702,7 +36663,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson = []by
           "sourceStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "ruby-25-centos7:latest"
+              "name": "ruby-27-centos7:latest"
             },
             "env": [
               {
@@ -37311,11 +37272,11 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson = [
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-25-centos7",
+        "name": "ruby-27-centos7",
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-25-centos7"
+        "dockerImageRepository": "centos/ruby-27-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -37364,7 +37325,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson = [
           "sourceStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "ruby-25-centos7:latest"
+              "name": "ruby-27-centos7:latest"
             },
             "env": [
               {
@@ -38637,7 +38598,7 @@ spec:
     spec:
       containers:
       - name: testapp
-        image: centos/ruby-25-centos7:latest
+        image: centos/ruby-27-centos7:latest
         command:
         - /bin/sleep
         args:
@@ -39591,7 +39552,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/ruby-25-centos7
+        name: centos/ruby-27-centos7
     type: Source
   triggers: []
 status:
@@ -39902,7 +39863,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTestImageJson = []byte(`{
     "name": "test",
     "creationTimestamp": null
   },
-  "dockerImageReference": "registry.redhat.io/rhscl/ruby-25-rhel7:latest",
+  "dockerImageReference": "registry.redhat.io/rhscl/ruby-27-rhel7:latest",
   "dockerImageMetadata": {
     "kind": "DockerImage",
     "apiVersion": "1.0",
@@ -40221,7 +40182,7 @@ project="$(oc project -q)"
 os::test::junit::declare_suite_start "cmd/triggers"
 # This test validates triggers
 
-os::cmd::expect_success 'oc new-app centos/ruby-25-centos7~https://github.com/openshift/ruby-hello-world.git'
+os::cmd::expect_success 'oc new-app centos/ruby-27-centos7~https://github.com/openshift/ruby-hello-world.git'
 os::cmd::expect_success 'oc get bc/ruby-hello-world'
 
 os::cmd::expect_success "oc new-build --name=scratch --docker-image=scratch --dockerfile='FROM scratch'"
@@ -40234,7 +40195,7 @@ os::cmd::expect_failure_and_text 'oc set triggers bc/ruby-hello-world --remove -
 os::cmd::expect_failure_and_text 'oc set triggers bc/ruby-hello-world --auto --manual' 'at most one of --auto or --manual'
 # print
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'config.*true'
-os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-25-centos7:latest.*true'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-27-centos7:latest.*true'
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'webhook'
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'github'
 # note, oc new-app currently does not set up gitlab or bitbucket webhooks by default
@@ -40251,7 +40212,7 @@ os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --remove-a
 
 os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'webhook|github'
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'config.*false'
-os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-25-centos7:latest.*false'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-27-centos7:latest.*false'
 # set github hook
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-github' 'updated'
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'github'
@@ -40278,18 +40239,18 @@ os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'bitbucke
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --remove --from-bitbucket' 'updated'
 os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'bitbucket'
 # set from-image
-os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-25-centos7:other' 'updated'
-os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-25-centos7:other.*true'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-27-centos7:other' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-27-centos7:other.*true'
 # manual and remove both clear build configs
-os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-25-centos7:other --manual' 'updated'
-os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-25-centos7:other.*false'
-os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-25-centos7:other' 'updated'
-os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-25-centos7:other --remove' 'updated'
-os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-25-centos7:other'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-27-centos7:other --manual' 'updated'
+os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-27-centos7:other.*false'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-27-centos7:other' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-27-centos7:other --remove' 'updated'
+os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-27-centos7:other'
 # test --all
-os::cmd::expect_success_and_text 'oc set triggers bc --all' 'buildconfigs/ruby-hello-world.*image.*ruby-25-centos7:latest.*false'
+os::cmd::expect_success_and_text 'oc set triggers bc --all' 'buildconfigs/ruby-hello-world.*image.*ruby-27-centos7:latest.*false'
 os::cmd::expect_success_and_text 'oc set triggers bc --all --auto' 'updated'
-os::cmd::expect_success_and_text 'oc set triggers bc --all' 'buildconfigs/ruby-hello-world.*image.*ruby-25-centos7:latest.*true'
+os::cmd::expect_success_and_text 'oc set triggers bc --all' 'buildconfigs/ruby-hello-world.*image.*ruby-27-centos7:latest.*true'
 # set a trigger on a build that doesn't have an imagestream strategy.from-image
 os::cmd::expect_success_and_text 'oc set triggers bc/scratch --from-image=test:latest' 'updated'
 
@@ -40640,7 +40601,7 @@ run Proc.new { |env|
 EOF
 
 cat > Dockerfile <<- EOF
-FROM centos/ruby-25-centos7
+FROM centos/ruby-27-centos7
 ENV SECRET_FILE /opt/openshift/src/dockercfg
 COPY dockercfg ./
 COPY config.ru ./
@@ -43040,7 +43001,7 @@ var _testExtendedTestdataImageTestImageJson = []byte(`{
     "name": "test",
     "creationTimestamp": null
   },
-  "dockerImageReference": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5",
+  "dockerImageReference": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7",
   "dockerImageMetadata": {
     "kind": "DockerImage",
     "apiVersion": "1.0",
@@ -44399,7 +44360,7 @@ var _testExtendedTestdataJenkinsPluginMultitagTemplateJson = []byte(`{
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
             }
           }
         ]
@@ -44417,7 +44378,7 @@ var _testExtendedTestdataJenkinsPluginMultitagTemplateJson = []byte(`{
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
             }
           }
         ]
@@ -44435,7 +44396,7 @@ var _testExtendedTestdataJenkinsPluginMultitagTemplateJson = []byte(`{
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
             }
           }
         ]
@@ -47846,7 +47807,7 @@ func testExtendedTestdataLdapLdapserverServiceYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataLong_namesDockerfile = []byte(`FROM centos/ruby-25-centos7
+var _testExtendedTestdataLong_namesDockerfile = []byte(`FROM centos/ruby-27-centos7
 
 CMD ["/bin/sh", "-c", "echo", "hello"]
 `)
@@ -47894,7 +47855,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
                     "sourceStrategy": {
                         "from": {
                             "kind": "DockerImage",
-                            "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
+                            "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
                         }
                     }
                 }
@@ -47923,14 +47884,15 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
                     "sourceStrategy": {
                         "from": {
                             "kind": "DockerImage",
-                            "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
+                            "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
                         }
                     }
                 }
             }
         }
     ]
-}`)
+}
+`)
 
 func testExtendedTestdataLong_namesFixtureJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataLong_namesFixtureJson, nil
@@ -51184,41 +51146,40 @@ var _testExtendedTestdataRun_policyParallelBcYaml = []byte(`---
   kind: "List"
   apiVersion: "v1"
   metadata: {}
-  items: 
-    - 
+  items:
+    -
       kind: "ImageStream"
       apiVersion: "v1"
-      metadata: 
+      metadata:
         name: "origin-ruby-sample"
         creationTimestamp: null
       spec: {}
-      status: 
+      status:
         dockerImageRepository: ""
-    - 
+    -
       kind: "BuildConfig"
       apiVersion: "v1"
-      metadata: 
+      metadata:
         name: "sample-parallel-build"
-      spec: 
+      spec:
         runPolicy: "Parallel"
-        triggers: 
-          - 
+        triggers:
+          -
             type: "imageChange"
             imageChange: {}
-        source: 
+        source:
           type: "Git"
-          git: 
+          git:
             uri: "https://github.com/openshift/ruby-hello-world.git"
-        strategy: 
+        strategy:
           type: "Source"
-          sourceStrategy: 
-            from: 
+          sourceStrategy:
+            from:
               kind: "DockerImage"
-              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
         resources: {}
-      status: 
+      status:
         lastVersion: 0
-
 `)
 
 func testExtendedTestdataRun_policyParallelBcYamlBytes() ([]byte, error) {
@@ -51240,49 +51201,49 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
   kind: "List"
   apiVersion: "v1"
   metadata: {}
-  items: 
-    - 
+  items:
+    -
       kind: "BuildConfig"
       apiVersion: "v1"
-      metadata: 
+      metadata:
         name: "sample-serial-build"
-      spec: 
+      spec:
         runPolicy: "Serial"
-        triggers: 
-          - 
+        triggers:
+          -
             type: "imageChange"
             imageChange: {}
-        source: 
+        source:
           type: "Git"
-          git: 
+          git:
             uri: "https://github.com/openshift/ruby-hello-world.git"
-        strategy: 
+        strategy:
           type: "Source"
-          sourceStrategy: 
-            from: 
+          sourceStrategy:
+            from:
               kind: "DockerImage"
-              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
-    - 
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
+    -
       kind: "BuildConfig"
       apiVersion: "v1"
-      metadata: 
+      metadata:
         name: "sample-serial-build-fail"
-      spec: 
+      spec:
         runPolicy: "Serial"
-        triggers: 
-          - 
+        triggers:
+          -
             type: "imageChange"
             imageChange: {}
-        source: 
+        source:
           type: "Git"
-          git: 
+          git:
             uri: "https://github.com/openshift/invalidrepo.git"
-        strategy: 
+        strategy:
           type: "Source"
-          sourceStrategy: 
-            from: 
+          sourceStrategy:
+            from:
               kind: "DockerImage"
-              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
 `)
 
 func testExtendedTestdataRun_policySerialBcYamlBytes() ([]byte, error) {
@@ -51304,32 +51265,31 @@ var _testExtendedTestdataRun_policySerialLatestOnlyBcYaml = []byte(`---
   kind: "List"
   apiVersion: "v1"
   metadata: {}
-  items: 
-    - 
+  items:
+    -
       kind: "BuildConfig"
       apiVersion: "v1"
-      metadata: 
+      metadata:
         name: "sample-serial-latest-only-build"
-      spec: 
+      spec:
         runPolicy: "SerialLatestOnly"
-        triggers: 
-          - 
+        triggers:
+          -
             type: "imageChange"
             imageChange: {}
-        source: 
+        source:
           type: "Git"
-          git: 
+          git:
             uri: "https://github.com/openshift/ruby-hello-world.git"
-        strategy: 
+        strategy:
           type: "Source"
-          sourceStrategy: 
-            from: 
+          sourceStrategy:
+            from:
               kind: "DockerImage"
-              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
         resources: {}
-      status: 
+      status:
         lastVersion: 0
-
 `)
 
 func testExtendedTestdataRun_policySerialLatestOnlyBcYamlBytes() ([]byte, error) {
@@ -51400,7 +51360,7 @@ func testExtendedTestdataS2iDropcapsRootAccessBuildYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataS2iDropcapsRootableRubyDockerfile = []byte(`FROM centos/ruby-25-centos7:latest
+var _testExtendedTestdataS2iDropcapsRootableRubyDockerfile = []byte(`FROM centos/ruby-27-centos7:latest
 USER root
 RUN rm -f /usr/bin/ls
 RUN echo "root:redhat" | chpasswd

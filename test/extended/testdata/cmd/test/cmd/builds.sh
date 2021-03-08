@@ -16,7 +16,7 @@ project="$(oc project -q)"
 os::test::junit::declare_suite_start "cmd/builds"
 # This test validates builds and build related commands
 # Disabled because git is required in the container running the test
-#os::cmd::expect_success 'oc new-build centos/ruby-25-centos7 https://github.com/openshift/ruby-hello-world.git'
+#os::cmd::expect_success 'oc new-build centos/ruby-26-centos7 https://github.com/openshift/ruby-hello-world.git'
 #os::cmd::expect_success 'oc get bc/ruby-hello-world'
 
 #os::cmd::expect_success "cat '${OS_ROOT}/examples/hello-openshift/Dockerfile' | oc new-build -D - --name=test"
@@ -59,8 +59,8 @@ os::cmd::expect_success 'oc delete is/tests'
 os::cmd::expect_success "oc new-build -D \$'FROM image-registry.openshift-image-registry.svc:5000/openshift/tests:latest\nENV ok=1' --to origin-name-test --name origin-test2"
 os::cmd::expect_success_and_text "oc get bc/origin-test2 --template '${template}'" '^ImageStreamTag origin-name-test:latest$'
 
-#os::cmd::try_until_text 'oc get is ruby-25-centos7' 'latest'
-#os::cmd::expect_failure_and_text 'oc new-build ruby-25-centos7~https://github.com/sclorg/ruby-ex ruby-25-centos7~https://github.com/sclorg/ruby-ex --to invalid/argument' 'error: only one component with source can be used when specifying an output image reference'
+#os::cmd::try_until_text 'oc get is ruby-26-centos7' 'latest'
+#os::cmd::expect_failure_and_text 'oc new-build ruby-26-centos7~https://github.com/sclorg/ruby-ex ruby-26-centos7~https://github.com/sclorg/ruby-ex --to invalid/argument' 'error: only one component with source can be used when specifying an output image reference'
 
 os::cmd::expect_success 'oc delete all --all'
 
@@ -77,7 +77,7 @@ os::cmd::expect_success 'oc get bc'
 os::cmd::expect_success 'oc get builds'
 
 # make sure the imagestream has the latest tag before trying to test it or start a build with it
-os::cmd::try_until_success 'oc get istag ruby-25-centos7:latest'
+os::cmd::try_until_success 'oc get istag ruby-27-centos7:latest'
 
 os::test::junit::declare_suite_start "cmd/builds/patch-anon-fields"
 REAL_OUTPUT_TO=$(oc get bc/ruby-sample-build --template='{{ .spec.output.to.name }}')
