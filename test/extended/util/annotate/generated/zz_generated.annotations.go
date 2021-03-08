@@ -2427,6 +2427,12 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-node][Late] should not have pod creation failures due to systemd timeouts": "should not have pod creation failures due to systemd timeouts [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-node][Serial] should evict the same pod that causes memory crunch": "should evict the same pod that causes memory crunch [Suite:openshift/conformance/serial]",
+
+	"[Top Level] [sig-node][Serial] should oom kill the pod with openshift user critical priority class which induced it": "should oom kill the pod with openshift user critical priority class which induced it [Suite:openshift/conformance/serial]",
+
+	"[Top Level] [sig-node][Serial] should oom kill the pod with system critical priority class which induced it": "should oom kill the pod with system critical priority class which induced it [Suite:openshift/conformance/serial]",
+
 	"[Top Level] [sig-operator] OLM should Implement packages API server and list packagemanifest info with namespace not NULL": "Implement packages API server and list packagemanifest info with namespace not NULL [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-operator] OLM should be installed with catalogsources at version v1alpha1": "be installed with catalogsources at version v1alpha1 [Suite:openshift/conformance/parallel]",
