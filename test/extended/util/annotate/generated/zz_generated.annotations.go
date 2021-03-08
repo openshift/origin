@@ -1899,6 +1899,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation][sig-builds][Feature:Builds] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics": "should start and expose a secured proxy and verify build metrics [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-network-edge] DNS should answer A and AAAA queries for a dual-stack service": "should answer A and AAAA queries for a dual-stack service [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-network-edge] DNS should answer endpoint and wildcard queries for the cluster": "should answer endpoint and wildcard queries for the cluster [Disabled:Broken]",
 
 	"[Top Level] [sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should be able to connect to a service that is idled because a GET on the route will unidle it": "should be able to connect to a service that is idled because a GET on the route will unidle it [Suite:openshift/conformance/parallel/minimal]",

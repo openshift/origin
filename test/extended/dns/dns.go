@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
 
 	kapiv1 "k8s.io/api/core/v1"
+	discoveryv1beta1 "k8s.io/api/discovery/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -20,6 +22,8 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	watchtools "k8s.io/client-go/tools/watch"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 func createDNSPod(namespace, probeCmd string) *kapiv1.Pod {
@@ -109,6 +113,17 @@ func digForARecords(records map[string][]string, expect sets.String) string {
 	for name, ips := range records {
 		fileName := fmt.Sprintf("%s_endpoints@%s", fileNamePrefix, name)
 		probeCmd += fmt.Sprintf(`[ "$$(dig +short +notcp +noall +answer +search %s A | sort | xargs echo)" = "%s" ] && echo %q;`, name, strings.Join(ips, " "), fileName)
+		expect.Insert(fileName)
+	}
+	return probeCmd
+}
+
+func digForAAAARecords(records map[string][]string, expect sets.String) string {
+	var probeCmd string
+	fileNamePrefix := "test"
+	for name, ips := range records {
+		fileName := fmt.Sprintf("%s_endpoints_v6@%s", fileNamePrefix, name)
+		probeCmd += fmt.Sprintf(`[ "$$(dig +short +notcp +noall +answer +search %s AAAA | sort | xargs echo)" = "%s" ] && echo %q;`, name, strings.Join(ips, " "), fileName)
 		expect.Insert(fileName)
 	}
 	return probeCmd
@@ -262,6 +277,19 @@ func createServiceSpec(serviceName string, isHeadless bool, externalName string,
 	return s
 }
 
+func createDualStackServiceSpec(serviceName string, isHeadless bool, externalName string, selector map[string]string) *kapiv1.Service {
+	s := createServiceSpec(serviceName, isHeadless, externalName, selector)
+	s.Spec.IPFamilies = []kapiv1.IPFamily{
+		kapiv1.IPv4Protocol,
+		kapiv1.IPv6Protocol,
+	}
+
+	ipFamilyPolicy := kapiv1.IPFamilyPolicyRequireDualStack
+	s.Spec.IPFamilyPolicy = &ipFamilyPolicy
+
+	return s
+}
+
 func createEndpointSpec(name string) *kapiv1.Endpoints {
 	return &kapiv1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{
@@ -285,6 +313,47 @@ func createEndpointSpec(name string) *kapiv1.Endpoints {
 	}
 }
 
+func createEndpointSliceSpec(name, serviceName string, addressType discoveryv1beta1.AddressType) *discoveryv1beta1.EndpointSlice {
+	port := int32(80)
+	es := &discoveryv1beta1.EndpointSlice{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name + strings.ToLower(string(addressType)),
+			Labels: map[string]string{
+				discoveryv1beta1.LabelServiceName: serviceName,
+			},
+		},
+		AddressType: addressType,
+		Ports: []discoveryv1beta1.EndpointPort{{
+			Port: &port,
+		}},
+	}
+
+	switch addressType {
+	case discoveryv1beta1.AddressTypeIPv4:
+		es.Endpoints = []discoveryv1beta1.Endpoint{{
+			Addresses: []string{
+				"3.3.3.3",
+				"4.4.4.4",
+			},
+			Hostname: stringPtr(strings.ToLower(string(addressType))),
+		}}
+	case discoveryv1beta1.AddressTypeIPv6:
+		es.Endpoints = []discoveryv1beta1.Endpoint{{
+			Addresses: []string{
+				"2001:4860:4860::3333",
+				"2001:4860:4860::4444",
+			},
+			Hostname: stringPtr(strings.ToLower(string(addressType))),
+		}}
+	}
+
+	return es
+}
+
+func stringPtr(s string) *string {
+	return &s
+}
+
 func ipsForEndpoints(ep *kapiv1.Endpoints) []string {
 	ips := sets.NewString()
 	for _, sub := range ep.Subsets {
@@ -295,8 +364,18 @@ func ipsForEndpoints(ep *kapiv1.Endpoints) []string {
 	return ips.List()
 }
 
+func ipsForEndpointSlice(es *discoveryv1beta1.EndpointSlice) []string {
+	ips := sets.NewString()
+	for _, endpoint := range es.Endpoints {
+		ips.Insert(endpoint.Addresses...)
+	}
+
+	return ips.List()
+}
+
 var _ = Describe("[sig-network-edge] DNS", func() {
 	f := e2e.NewDefaultFramework("dns")
+	oc := exutil.NewCLI("dns-dualstack")
 
 	It("should answer endpoint and wildcard queries for the cluster", func() {
 		ctx := context.Background()
@@ -377,6 +456,94 @@ var _ = Describe("[sig-network-edge] DNS", func() {
 		By("Running these commands:" + cmd + "\n")
 
 		// Run a pod which probes DNS and exposes the results by HTTP.
+		By("creating a pod to probe DNS")
+		pod := createDNSPod(f.Namespace.Name, cmd)
+		validateDNSResults(f, pod, expect, times)
+	})
+
+	It("should answer A and AAAA queries for a dual-stack service", func() {
+		// Only run this test on dual-stack enabled clusters.
+		networkConfig, err := oc.AdminConfigClient().ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
+		if err != nil {
+			e2e.Failf("unable to get cluster network config: %v", err)
+		}
+		usingIPv4 := false
+		usingIPv6 := false
+		for _, clusterNetworkEntry := range networkConfig.Status.ClusterNetwork {
+			addr, _, err := net.ParseCIDR(clusterNetworkEntry.CIDR)
+			if err != nil {
+				continue
+			}
+			if addr.To4() != nil {
+				usingIPv4 = true
+			} else {
+				usingIPv6 = true
+			}
+		}
+
+		if !usingIPv4 || !usingIPv6 {
+			Skip("skipping test on non dual-stack enabled platform")
+		}
+
+		By("creating a dual-stack service on a dual-stack cluster")
+
+		ctx := context.Background()
+		serviceName := "v4v6"
+		createOpts := metav1.CreateOptions{}
+		service, err := f.ClientSet.CoreV1().Services(f.Namespace.Name).Create(ctx, createDualStackServiceSpec(serviceName, false, "", nil), createOpts)
+		if err != nil {
+			e2e.Failf("unable to create dual-stack service: %v", err)
+		}
+
+		v4 := createEndpointSliceSpec("dns-test", serviceName, discoveryv1beta1.AddressTypeIPv4)
+		if _, err := f.ClientSet.DiscoveryV1beta1().EndpointSlices(f.Namespace.Name).Create(ctx, v4, createOpts); err != nil {
+			e2e.Failf("unable to create endpointslice %s: %v", v4.Name, err)
+		}
+
+		v6 := createEndpointSliceSpec("dns-test", serviceName, discoveryv1beta1.AddressTypeIPv6)
+		if _, err := f.ClientSet.DiscoveryV1beta1().EndpointSlices(f.Namespace.Name).Create(ctx, v6, createOpts); err != nil {
+			e2e.Failf("unable to create endpointslice %s: %v", v6.Name, err)
+		}
+
+		v4ips := ipsForEndpointSlice(v4)
+		v6ips := ipsForEndpointSlice(v6)
+
+		var v4ClusterIP string
+		var v6ClusterIP string
+
+		for i, ipFamily := range service.Spec.IPFamilies {
+			if ipFamily == kapiv1.IPv4Protocol {
+				v4ClusterIP = service.Spec.ClusterIPs[i]
+			} else if ipFamily == kapiv1.IPv6Protocol {
+				v6ClusterIP = service.Spec.ClusterIPs[i]
+			}
+		}
+
+		// All the names we need to be able to resolve.
+		expect := sets.NewString()
+		times := 10
+		cmd := repeatCommand(
+			times,
+			// Verify that <service>.<namespace>.svc resolves as expected
+			// using A and AAAA queries.
+			digForARecords(map[string][]string{
+				fmt.Sprintf("%s.%s.svc", serviceName, f.Namespace.Name): {v4ClusterIP},
+			}, expect),
+			digForAAAARecords(map[string][]string{
+				fmt.Sprintf("%s.%s.svc", serviceName, f.Namespace.Name): {v6ClusterIP},
+			}, expect),
+			// Verify that service endpointslices resolve as expected using A and AAAA queries.
+			digForARecords(map[string][]string{
+				fmt.Sprintf("%s.%s.%s.svc", strings.ToLower(string(v4.AddressType)), serviceName, f.Namespace.Name): v4ips,
+			}, expect),
+			digForAAAARecords(map[string][]string{
+				fmt.Sprintf("%s.%s.%s.svc", strings.ToLower(string(v6.AddressType)), serviceName, f.Namespace.Name): v6ips,
+			}, expect),
+		)
+
+		By("Running these commands:" + cmd + "\n")
+
+		// Run a pod which probes DNS and exposes the results.
 		By("creating a pod to probe DNS")
 		pod := createDNSPod(f.Namespace.Name, cmd)
 		validateDNSResults(f, pod, expect, times)
