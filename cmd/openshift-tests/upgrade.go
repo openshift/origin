@@ -7,14 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spf13/pflag"
-
-	"k8s.io/kubectl/pkg/util/templates"
-	"k8s.io/kubernetes/test/e2e/upgrades"
-
+	"github.com/openshift/origin/pkg/synthetictests"
 	"github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/test/e2e/upgrade"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
+	"github.com/spf13/pflag"
+	"k8s.io/kubectl/pkg/util/templates"
+	"k8s.io/kubernetes/test/e2e/upgrades"
 )
 
 // upgradeSuites are all known upgade test suites this binary should run
@@ -32,7 +31,7 @@ var upgradeSuites = testSuites{
 				return strings.Contains(name, "[Feature:ClusterUpgrade]") && !strings.Contains(name, "[Suite:k8s]")
 			},
 			TestTimeout:         240 * time.Minute,
-			SyntheticEventTests: ginkgo.JUnitForEventsFunc(systemUpgradeEventInvariants),
+			SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.SystemUpgradeEventInvariants),
 		},
 		PreSuite: upgradeTestPreSuite,
 	},
@@ -49,7 +48,7 @@ var upgradeSuites = testSuites{
 				return strings.Contains(name, "[Feature:ClusterUpgrade]") && !strings.Contains(name, "[Suite:k8s]")
 			},
 			TestTimeout:         240 * time.Minute,
-			SyntheticEventTests: ginkgo.JUnitForEventsFunc(systemUpgradeEventInvariants),
+			SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.SystemUpgradeEventInvariants),
 		},
 		PreSuite: upgradeTestPreSuite,
 	},
