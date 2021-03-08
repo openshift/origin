@@ -18,7 +18,7 @@
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
             }
           }
         ]
@@ -36,7 +36,7 @@
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
             }
           }
         ]
@@ -54,7 +54,7 @@
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
             }
           }
         ]

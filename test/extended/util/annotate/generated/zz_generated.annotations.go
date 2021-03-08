@@ -1659,11 +1659,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/python-36-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/python-36-rhel7\" should print the usage",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/ruby-24-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/ruby-24-rhel7\" should print the usage",
-
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/ruby-25-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/ruby-25-rhel7\" should print the usage",
-
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/ruby-26-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/ruby-26-rhel7\" should print the usage",
+
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"registry.redhat.io/rhscl/ruby-27-rhel7\" should print the usage": "\"registry.redhat.io/rhscl/ruby-27-rhel7\" should print the usage",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/nodejs-10-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/nodejs-10-rhel7\" should be SCL enabled",
 
@@ -1679,11 +1677,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/python-36-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/python-36-rhel7\" should be SCL enabled",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/ruby-24-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/ruby-24-rhel7\" should be SCL enabled",
-
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/ruby-25-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/ruby-25-rhel7\" should be SCL enabled",
-
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/ruby-26-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/ruby-26-rhel7\" should be SCL enabled",
+
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"registry.redhat.io/rhscl/ruby-27-rhel7\" should be SCL enabled": "\"registry.redhat.io/rhscl/ruby-27-rhel7\" should be SCL enabled",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][nodejs] test nodejs images with nodejs-rest-http-crud db repo  Building nodejs-postgresql app from new-app should build a nodejs-postgresql image and run it in a pod": "should build a nodejs-postgresql image and run it in a pod",
 

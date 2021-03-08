@@ -29,25 +29,18 @@ type tc struct {
 var s2iImages = map[string][]tc{
 	"ruby": {
 		{
+			Version:    "27",
+			Cmd:        "ruby --version",
+			Expected:   "ruby 2.7",
+			Repository: "rhscl",
+			NonAMD:     true,
+		},
+		{
 			Version:    "26",
 			Cmd:        "ruby --version",
 			Expected:   "ruby 2.6",
 			Repository: "rhscl",
 			NonAMD:     true,
-		},
-		{
-			Version:    "25",
-			Cmd:        "ruby --version",
-			Expected:   "ruby 2.5",
-			Repository: "rhscl",
-			NonAMD:     true,
-		},
-		{
-			Version:    "24",
-			Cmd:        "ruby --version",
-			Expected:   "ruby 2.4",
-			Repository: "rhscl",
-			NonAMD:     false,
 		},
 	},
 	"python": {
