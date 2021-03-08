@@ -60,3 +60,35 @@ func Test_findOperatorVersionChange(t *testing.T) {
 		})
 	}
 }
+
+func TestGetOperatorConditionStatus(t *testing.T) {
+	tests := []struct {
+		name    string
+		message string
+		want    string
+		want1   bool
+		want3   string
+	}{
+		{
+			name:    "simple",
+			message: "condition/Degraded status/True reason/DNSDegraded changed: DNS default is degraded",
+			want:    "Degraded",
+			want1:   true,
+			want3:   "DNS default is degraded",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1, got3 := GetOperatorConditionStatus(tt.message)
+			if got != tt.want {
+				t.Errorf("GetOperatorConditionStatus() got = %v, want %v", got, tt.want)
+			}
+			if got1 != tt.want1 {
+				t.Errorf("GetOperatorConditionStatus() got1 = %v, want %v", got1, tt.want1)
+			}
+			if got3 != tt.want3 {
+				t.Errorf("GetOperatorConditionStatus() got3 = %v, want %v", got3, tt.want3)
+			}
+		})
+	}
+}
