@@ -455,12 +455,15 @@
 // test/extended/testdata/router/router-grpc-interop.yaml
 // test/extended/testdata/router/router-h2spec.yaml
 // test/extended/testdata/router/router-http-echo-server.yaml
+// test/extended/testdata/router/router-http2-routes.yaml
+// test/extended/testdata/router/router-http2-server.backend
 // test/extended/testdata/router/router-http2.yaml
 // test/extended/testdata/router/router-idle.yaml
 // test/extended/testdata/router/router-metrics.yaml
 // test/extended/testdata/router/router-override-domains.yaml
 // test/extended/testdata/router/router-override.yaml
 // test/extended/testdata/router/router-scoped.yaml
+// test/extended/testdata/router/router-shard.yaml
 // test/extended/testdata/router/weighted-router.yaml
 // test/extended/testdata/run_policy/parallel-bc.yaml
 // test/extended/testdata/run_policy/serial-bc.yaml
@@ -50392,112 +50395,22 @@ func testExtendedTestdataRouterRouterHttpEchoServerYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterRouterHttp2Yaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterHttp2RoutesYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
+parameters:
+- name: DOMAIN
+- name: TLS_CRT
+- name: TLS_KEY
+- name: TYPE
 objects:
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: http2
-    annotations:
-      service.beta.openshift.io/serving-cert-secret-name: serving-cert-http2
-  spec:
-    selector:
-      name: http2
-    ports:
-      - name: https
-        protocol: TCP
-        port: 27443
-        targetPort: 8443
-      - name: http
-        protocol: TCP
-        port: 8080
-        targetPort: 8080
-- apiVersion: v1
-  kind: ConfigMap
-  metadata:
-    name: src-config
-  data:
-    data.base64: |
-      H4sIAAAAAAAC/+xW32vbMBD2q/VXaIKBvWWObCdpaenDKA2FBhbqsDEYFONcXBNZSiU5xSv+34cU
-      t01Y1/1gaynz93I29919d7qTcS6CUsydfwpKKR2NBsaGe0O6bTeIqRPGo+FgGA8HcezQMBzuUQdT
-      5wlQKZ1Kh9K0KB/l/czftnJnXwhKMa8Y4IxVSoNEKBc4DMIYOR3+C+QiUFX5zPeffnf/R2HU3f+n
-      gAK5Bhnk4vnmH4VRbOc/iqLhHg0dGkZx1H3/nwSrNFumOeAyLThCRbkSUmMPuWRRaoJcwkRuDAfd
-      v9R6ZZ6FIshHKBNcWeocFmnF9OlsNp2aaHyEyT7dp2THlVifcQ0G8b1rNkmOTYyN6oPO+mYjC56/
-      y0DqvmYqyKTe4Z9B/Sh/CbUtcFHxDDMhltXqhK+9JdQ93Gb5mDKstCx47rcW3yC3WOB1ynpYLPHB
-      ERYqmGwH+4fGcYNcV4KuJDdc5Dbo9vU+NWpacXOonm9iMqnHBQOT974iMpskF8fnM3JX1+Y0fOQu
-      of4B/+zk8w7/DGofIdcMJzhN+ZzBuOKZR/qkh00R3jW2vnNQK8EVfJKFBtnDEq7wm9ZzVYHStk53
-      UepgvJIF1961JQVTKbTwkds8LHMJKdOXX/+GGpGQzmtyq5WLTcoN1S7m7nGYtbqYftg+wNsl9JHr
-      MpEHU5N74ZFJoTRwM2fBsU31ev2Fk559NmJm+CClUbBlbgLe83liPpAeOSBvDbWHecH8Q0t9dWRe
-      bHFWa5zqlHkgpRFvkNt4v9xF8kAbyeN9KMgqCaz+s4Zmk2Srp3Y7e7hdu9/vUgGDTOObBjXdr2OH
-      Dh06vAR8CwAA//+plR+uABIAAA==
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: http2
-    labels:
-      name: http2
-  spec:
-    containers:
-    - image: golang:1.14
-      name: server
-      command: ["/workdir/http2-server"]
-      readinessProbe:
-        httpGet:
-          path: /healthz
-          port: 8080
-        initialDelaySeconds: 3
-        periodSeconds: 3
-      env:
-      - name: GODEBUG
-        value: http2debug=1
-      ports:
-      - containerPort: 8443
-        protocol: TCP
-      - containerPort: 8080
-        protocol: TCP
-      volumeMounts:
-      - name: cert
-        mountPath: /etc/serving-cert
-      - name: workdir
-        mountPath: /workdir
-    initContainers:
-    - image: golang:1.14
-      name: builder
-      command: ["/bin/bash", "-c"]
-      args:
-        - set -e;
-          cd /workdir;
-          base64 -d /go/src/data.base64 | tar zxf -;
-          go build -v -mod=readonly -o /workdir/http2-server server.go;
-      env:
-      - name: GO111MODULE
-        value: "auto"
-      - name: GOCACHE
-        value: "/tmp"
-      - name: GOPROXY
-        value: "https://goproxy.golang.org,direct"
-      volumeMounts:
-      - name: cert
-        mountPath: /etc/serving-cert
-      - name: src-volume
-        mountPath: /go/src
-      - name: workdir
-        mountPath: /workdir
-    volumes:
-    - name: src-volume
-      configMap:
-        name: src-config
-    - name: cert
-      secret:
-        secretName: serving-cert-http2
-    - name: workdir
-      emptyDir: {}
 - apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: http2-default-cert-edge
+    labels:
+      type: ${TYPE}
   spec:
+    host: http2-default-cert-edge.${DOMAIN}
     port:
       targetPort: 8080
     tls:
@@ -50512,7 +50425,10 @@ objects:
   kind: Route
   metadata:
     name: http2-default-cert-reencrypt
+    labels:
+      type: ${TYPE}
   spec:
+    host: http2-default-cert-reencrypt.${DOMAIN}
     port:
       targetPort: 8443
     tls:
@@ -50527,30 +50443,19 @@ objects:
   kind: Route
   metadata:
     name: http2-custom-cert-edge
+    labels:
+      type: ${TYPE}
   spec:
+    host: http2-custom-cert-edge.${DOMAIN}
     port:
       targetPort: 8080
     tls:
       termination: edge
       insecureEdgeTerminationPolicy: Redirect
       key: |-
-        -----BEGIN EC PRIVATE KEY-----
-        MHcCAQEEIAW+ecg2cZR47ItbI898N3nJduh9UJNv+b0cOwH/Z1BEoAoGCCqGSM49
-        AwEHoUQDQgAEx0/5sEgiUPFdcbd4dSllkul8s68RQ5WxIjfwWYMdfYLiLLqP1lkz
-        4UYpwAW/t63qBx3jRhPgkUxh5saJP9Qu5Q==
-        -----END EC PRIVATE KEY-----
+        ${TLS_KEY}
       certificate: |-
-        -----BEGIN CERTIFICATE-----
-        MIIBgTCCASagAwIBAgIRALutWdExjxX8fWljW+lcYbswCgYIKoZIzj0EAwIwJDEQ
-        MA4GA1UEChMHUmVkIEhhdDEQMA4GA1UEAxMHUm9vdCBDQTAgFw0yMDA1MTExMDU2
-        NThaGA8yMTIwMDQxNzEwNTY1OFowJjEQMA4GA1UEChMHUmVkIEhhdDESMBAGA1UE
-        AwwJdGVzdF9jZXJ0MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEx0/5sEgiUPFd
-        cbd4dSllkul8s68RQ5WxIjfwWYMdfYLiLLqP1lkz4UYpwAW/t63qBx3jRhPgkUxh
-        5saJP9Qu5aM1MDMwDgYDVR0PAQH/BAQDAgWgMBMGA1UdJQQMMAoGCCsGAQUFBwMB
-        MAwGA1UdEwEB/wQCMAAwCgYIKoZIzj0EAwIDSQAwRgIhAOIx8885y8tX/Vv94UGx
-        hWC/O1Hzi15kOT0WQ/UKUMjMAiEA40uW9P6k+i1cDwgfBBMzgDFQa9GAb4FqM8Wr
-        PaUMdqg=
-        -----END CERTIFICATE-----
+        ${TLS_CRT}
     to:
       kind: Service
       name: http2
@@ -50560,30 +50465,19 @@ objects:
   kind: Route
   metadata:
     name: http2-custom-cert-reencrypt
+    labels:
+      type: ${TYPE}
   spec:
+    host: http2-custom-cert-reencrypt.${DOMAIN}
     port:
       targetPort: 8443
     tls:
       termination: reencrypt
       insecureEdgeTerminationPolicy: Redirect
       key: |-
-        -----BEGIN EC PRIVATE KEY-----
-        MHcCAQEEIBk5BXzGWoGiRD9726TFPcvKHuwNVBUfPBlbF5fISRFPoAoGCCqGSM49
-        AwEHoUQDQgAEjCp5jERwCaBpjhoaOxgD1DDaPwKkWu+a8mJLn9Cn9+LcSub05zPa
-        MQy0a+FkvZSyTA2y8a8/IMM1f2MQC6bATg==
-        -----END EC PRIVATE KEY-----
+        ${TLS_KEY}
       certificate: |-
-        -----BEGIN CERTIFICATE-----
-        MIIBgTCCASagAwIBAgIRAO2UsHGM2j+IZfxSG0KSSH0wCgYIKoZIzj0EAwIwJDEQ
-        MA4GA1UEChMHUmVkIEhhdDEQMA4GA1UEAxMHUm9vdCBDQTAgFw0yMDA1MTExMDU2
-        NThaGA8yMTIwMDQxNzEwNTY1OFowJjEQMA4GA1UEChMHUmVkIEhhdDESMBAGA1UE
-        AwwJdGVzdF9jZXJ0MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEjCp5jERwCaBp
-        jhoaOxgD1DDaPwKkWu+a8mJLn9Cn9+LcSub05zPaMQy0a+FkvZSyTA2y8a8/IMM1
-        f2MQC6bATqM1MDMwDgYDVR0PAQH/BAQDAgWgMBMGA1UdJQQMMAoGCCsGAQUFBwMB
-        MAwGA1UdEwEB/wQCMAAwCgYIKoZIzj0EAwIDSQAwRgIhALwL+vTFS37a/R6RMeNN
-        fKKM6dOZeTSIVk6eGen6ZmZmAiEAhdLQwSu7ev/GrGwINF1rraoyrgiq4mFdPwHa
-        TctfSDo=
-        -----END CERTIFICATE-----
+        ${TLS_CRT}
     to:
       kind: Service
       name: http2
@@ -50593,7 +50487,10 @@ objects:
   kind: Route
   metadata:
     name: http2-passthrough
+    labels:
+      type: ${TYPE}
   spec:
+    host: http2-passthrough.${DOMAIN}
     port:
       targetPort: 8443
     tls:
@@ -50604,6 +50501,190 @@ objects:
       name: http2
       weight: 100
     wildcardPolicy: None
+`)
+
+func testExtendedTestdataRouterRouterHttp2RoutesYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterHttp2RoutesYaml, nil
+}
+
+func testExtendedTestdataRouterRouterHttp2RoutesYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterHttp2RoutesYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-http2-routes.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterRouterHttp2ServerBackend = []byte(`package main
+
+import (
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+)
+
+const (
+	defaultHTTPPort  = "8080"
+	defaultHTTPSPort = "8443"
+	defaultTLSCrt    = "/etc/serving-cert/tls.crt"
+	defaultTLSKey    = "/etc/serving-cert/tls.key"
+)
+
+func lookupEnv(key, defaultVal string) string {
+	if val, ok := os.LookupEnv(key); ok {
+		return val
+	}
+	return defaultVal
+}
+
+func main() {
+	crtFile := lookupEnv("TLS_CRT", defaultTLSCrt)
+	keyFile := lookupEnv("TLS_KEY", defaultTLSKey)
+
+	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+		fmt.Fprint(w, req.Proto)
+	})
+
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, req *http.Request) {
+		fmt.Fprint(w, "ready")
+	})
+
+	go func() {
+		port := lookupEnv("HTTP_PORT", defaultHTTPPort)
+		log.Printf("Listening on port %v\n", port)
+
+		if err := http.ListenAndServe(":"+port, nil); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	go func() {
+		port := lookupEnv("HTTPS_PORT", defaultHTTPSPort)
+		log.Printf("Listening securely on port %v\n", port)
+
+		if err := http.ListenAndServeTLS(":"+port, crtFile, keyFile, nil); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	select {}
+}
+`)
+
+func testExtendedTestdataRouterRouterHttp2ServerBackendBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterHttp2ServerBackend, nil
+}
+
+func testExtendedTestdataRouterRouterHttp2ServerBackend() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterHttp2ServerBackendBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-http2-server.backend", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterRouterHttp2Yaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: BASE64_SRC_TGZ
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: http2
+    annotations:
+      service.beta.openshift.io/serving-cert-secret-name: serving-cert-http2
+  spec:
+    selector:
+      name: http2
+    ports:
+      - name: https
+        protocol: TCP
+        port: 8443
+        targetPort: 8443
+      - name: http
+        protocol: TCP
+        port: 8080
+        targetPort: 8080
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: src-config
+  data:
+    data.base64: |-
+      ${BASE64_SRC_TGZ}
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: http2
+    labels:
+      name: http2
+  spec:
+    containers:
+    - image: openshift/origin-release:golang-1.15
+      name: server
+      command: ["/bin/bash", "-c"]
+      args:
+        - set -e;
+          cd /var/tmp;
+          base64 -d /src/data.base64 | tar -zxf -;
+          mv router-http2-server.backend server.go;
+          go run server.go
+      startupProbe:
+        failureThreshold: 20
+        tcpSocket:
+          port: 8080
+        initialDelaySeconds: 30
+        periodSeconds: 5
+        timeoutSeconds: 3
+      readinessProbe:
+        failureThreshold: 3
+        tcpSocket:
+          port: 8080
+        initialDelaySeconds: 10
+        periodSeconds: 30
+        successThreshold: 1
+      livenessProbe:
+        failureThreshold: 3
+        tcpSocket:
+          port: 8080
+        initialDelaySeconds: 10
+        periodSeconds: 30
+        successThreshold: 1
+      ports:
+      - containerPort: 8443
+        protocol: TCP
+      - containerPort: 8080
+        protocol: TCP
+      env:
+      - name: GODEBUG
+        value: http2debug=1
+      - name: GO111MODULE
+        value: "auto"
+      - name: GOCACHE
+        value: "/tmp"
+      - name: GOPROXY
+        value: "https://goproxy.golang.org,direct"
+      volumeMounts:
+      - mountPath: /src
+        name: src-volume
+      - mountPath: /etc/serving-cert
+        name: cert
+    volumes:
+    - name: src-volume
+      configMap:
+        name: src-config
+    - name: cert
+      secret:
+        secretName: serving-cert-http2
+    terminationGracePeriodSeconds: 1
 `)
 
 func testExtendedTestdataRouterRouterHttp2YamlBytes() ([]byte, error) {
@@ -51010,6 +51091,50 @@ func testExtendedTestdataRouterRouterScopedYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/router/router-scoped.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterRouterShardYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: NAME
+- name: DOMAIN
+- name: NAMESPACE
+- name: TYPE
+objects:
+- apiVersion: operator.openshift.io/v1
+  kind: IngressController
+  metadata:
+    name: ${TYPE}
+    namespace: ${NAMESPACE}
+    annotations:
+      ingress.operator.openshift.io/default-enable-http2: "true"
+  spec:
+    replicas: 1
+    domain: ${DOMAIN}
+    endpointPublishingStrategy:
+      type: LoadBalancerService
+    nodePlacement:
+      nodeSelector:
+        matchLabels:
+          node-role.kubernetes.io/worker: ""
+    namespaceSelector:
+      matchLabels:
+        type: ${TYPE}
+`)
+
+func testExtendedTestdataRouterRouterShardYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterShardYaml, nil
+}
+
+func testExtendedTestdataRouterRouterShardYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterShardYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-shard.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -53999,12 +54124,15 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/router/router-grpc-interop.yaml":                                                 testExtendedTestdataRouterRouterGrpcInteropYaml,
 	"test/extended/testdata/router/router-h2spec.yaml":                                                       testExtendedTestdataRouterRouterH2specYaml,
 	"test/extended/testdata/router/router-http-echo-server.yaml":                                             testExtendedTestdataRouterRouterHttpEchoServerYaml,
+	"test/extended/testdata/router/router-http2-routes.yaml":                                                 testExtendedTestdataRouterRouterHttp2RoutesYaml,
+	"test/extended/testdata/router/router-http2-server.backend":                                              testExtendedTestdataRouterRouterHttp2ServerBackend,
 	"test/extended/testdata/router/router-http2.yaml":                                                        testExtendedTestdataRouterRouterHttp2Yaml,
 	"test/extended/testdata/router/router-idle.yaml":                                                         testExtendedTestdataRouterRouterIdleYaml,
 	"test/extended/testdata/router/router-metrics.yaml":                                                      testExtendedTestdataRouterRouterMetricsYaml,
 	"test/extended/testdata/router/router-override-domains.yaml":                                             testExtendedTestdataRouterRouterOverrideDomainsYaml,
 	"test/extended/testdata/router/router-override.yaml":                                                     testExtendedTestdataRouterRouterOverrideYaml,
 	"test/extended/testdata/router/router-scoped.yaml":                                                       testExtendedTestdataRouterRouterScopedYaml,
+	"test/extended/testdata/router/router-shard.yaml":                                                        testExtendedTestdataRouterRouterShardYaml,
 	"test/extended/testdata/router/weighted-router.yaml":                                                     testExtendedTestdataRouterWeightedRouterYaml,
 	"test/extended/testdata/run_policy/parallel-bc.yaml":                                                     testExtendedTestdataRun_policyParallelBcYaml,
 	"test/extended/testdata/run_policy/serial-bc.yaml":                                                       testExtendedTestdataRun_policySerialBcYaml,
@@ -54747,12 +54875,15 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"router-grpc-interop.yaml":     {testExtendedTestdataRouterRouterGrpcInteropYaml, map[string]*bintree{}},
 					"router-h2spec.yaml":           {testExtendedTestdataRouterRouterH2specYaml, map[string]*bintree{}},
 					"router-http-echo-server.yaml": {testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
+					"router-http2-routes.yaml":     {testExtendedTestdataRouterRouterHttp2RoutesYaml, map[string]*bintree{}},
+					"router-http2-server.backend":  {testExtendedTestdataRouterRouterHttp2ServerBackend, map[string]*bintree{}},
 					"router-http2.yaml":            {testExtendedTestdataRouterRouterHttp2Yaml, map[string]*bintree{}},
 					"router-idle.yaml":             {testExtendedTestdataRouterRouterIdleYaml, map[string]*bintree{}},
 					"router-metrics.yaml":          {testExtendedTestdataRouterRouterMetricsYaml, map[string]*bintree{}},
 					"router-override-domains.yaml": {testExtendedTestdataRouterRouterOverrideDomainsYaml, map[string]*bintree{}},
 					"router-override.yaml":         {testExtendedTestdataRouterRouterOverrideYaml, map[string]*bintree{}},
 					"router-scoped.yaml":           {testExtendedTestdataRouterRouterScopedYaml, map[string]*bintree{}},
+					"router-shard.yaml":            {testExtendedTestdataRouterRouterShardYaml, map[string]*bintree{}},
 					"weighted-router.yaml":         {testExtendedTestdataRouterWeightedRouterYaml, map[string]*bintree{}},
 				}},
 				"run_policy": {nil, map[string]*bintree{
