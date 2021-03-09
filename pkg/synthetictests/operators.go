@@ -3,6 +3,7 @@ package synthetictests
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/test/ginkgo"
@@ -14,6 +15,7 @@ func testOperatorStateTransitions(events []*monitor.EventInterval) []*ginkgo.JUn
 
 	knownOperators := allOperators(events)
 	eventsByOperator := getEventsByOperator(events)
+	e2eEvents := monitor.E2ETestEvents(events)
 	for _, condition := range []string{"Available", "Degraded", "Progressing"} {
 		for _, operatorName := range knownOperators.List() {
 			bzComponent := GetBugzillaComponentForOperator(operatorName)
@@ -27,7 +29,7 @@ func testOperatorStateTransitions(events []*monitor.EventInterval) []*ginkgo.JUn
 				continue
 			}
 
-			failures := testOperatorState(condition, operatorEvents)
+			failures := testOperatorState(condition, operatorEvents, e2eEvents)
 			if len(failures) > 0 {
 				ret = append(ret, &ginkgo.JUnitTestCase{
 					Name:      testName,
@@ -74,11 +76,12 @@ func getEventsByOperator(events []*monitor.EventInterval) map[string][]*monitor.
 	return eventsByClusterOperator
 }
 
-func testOperatorState(interestingCondition string, events []*monitor.EventInterval) []string {
+func testOperatorState(interestingCondition string, events []*monitor.EventInterval, e2eEvents []*monitor.EventInterval) []string {
 	failures := []string{}
 
 	clusterOperatorToEvents := getEventsByOperator(events)
 
+	var previousEvent *monitor.EventInterval
 	for clusterOperator, events := range clusterOperatorToEvents {
 		for _, event := range events {
 			condition, status, message := monitor.GetOperatorConditionStatus(event.Message)
@@ -87,6 +90,20 @@ func testOperatorState(interestingCondition string, events []*monitor.EventInter
 			}
 			// if there was any switch, it was wrong/unexpected at some point
 			failures = append(failures, fmt.Sprintf("%v was %v=%v, but became %v=%v at %v -- %v", clusterOperator, condition, !status, condition, status, event.From, message))
+
+			if !isTransitionToGoodOperatorState(interestingCondition, status) {
+				// we don't see a lot of these as end states, don't bother trying to find the tests that were running during this time.
+				continue
+			}
+
+			startTime := time.Now().Add(4 * time.Hour)
+			if previousEvent != nil {
+				startTime = previousEvent.InitiatedAt
+			}
+			failedTests := monitor.FindFailedTestsActiveBetween(e2eEvents, startTime, event.InitiatedAt)
+			if len(failedTests) > 0 {
+				failures = append(failures, fmt.Sprintf("%d tests failed during this blip (%v to %v): %v", len(failedTests), startTime, event.InitiatedAt, strings.Join(failedTests, ",")))
+			}
 		}
 	}
 	return failures
@@ -98,4 +115,26 @@ func operatorFromLocator(locator string) string {
 	}
 	operators := strings.Split(locator, "/")
 	return operators[1]
+}
+
+func isTransitionToGoodOperatorState(condition string, status bool) bool {
+	switch condition {
+	case "Available":
+		if status {
+			return true
+		}
+		return false
+	case "Degraded":
+		if !status {
+			return true
+		}
+		return false
+	case "Progressing":
+		if !status {
+			return true
+		}
+		return false
+	default:
+		return false
+	}
 }
