@@ -28,6 +28,7 @@ type testCase struct {
 	out      []byte
 	success  bool
 	failed   bool
+	timedOut bool
 	skipped  bool
 	flake    bool
 

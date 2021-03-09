@@ -17,10 +17,11 @@ import (
 )
 
 type testStatus struct {
-	out     io.Writer
-	timeout time.Duration
-	monitor monitor.Interface
-	env     []string
+	out             io.Writer
+	timeout         time.Duration
+	monitor         monitor.Interface
+	monitorRecorder monitor.Recorder
+	env             []string
 
 	afterTestFn func(t *testCase)
 
@@ -32,13 +33,14 @@ type testStatus struct {
 	total    int
 }
 
-func newTestStatus(out io.Writer, includeSuccessfulOutput bool, total int, timeout time.Duration, m monitor.Interface, testEnv []string) *testStatus {
+func newTestStatus(out io.Writer, includeSuccessfulOutput bool, total int, timeout time.Duration, m monitor.Interface, monitorRecorder monitor.Recorder, testEnv []string) *testStatus {
 	return &testStatus{
-		out:     out,
-		total:   total,
-		timeout: timeout,
-		monitor: m,
-		env:     testEnv,
+		out:             out,
+		total:           total,
+		timeout:         timeout,
+		monitor:         m,
+		monitorRecorder: monitorRecorder,
+		env:             testEnv,
 
 		includeSuccessfulOutput: includeSuccessfulOutput,
 	}
@@ -73,18 +75,24 @@ func (s *testStatus) finalizeTest(test *testCase) {
 		defer s.afterTestFn(test)
 	}
 
+	eventMessage := "finishedStatus/Unknown reason/Unknown"
+	eventLevel := monitor.Warning
 	// output the status of the test
 	switch {
 	case test.flake:
 		s.out.Write(test.out)
 		fmt.Fprintln(s.out)
 		fmt.Fprintf(s.out, "flaked: (%s) %s %q\n\n", test.duration, test.end.UTC().Format("2006-01-02T15:04:05"), test.name)
+		eventMessage = "finishedStatus/Flaked"
+		eventLevel = monitor.Error
 	case test.success:
 		if s.includeSuccessfulOutput {
 			s.out.Write(test.out)
 			fmt.Fprintln(s.out)
 		}
 		fmt.Fprintf(s.out, "passed: (%s) %s %q\n\n", test.duration, test.end.UTC().Format("2006-01-02T15:04:05"), test.name)
+		eventMessage = "finishedStatus/Passed"
+		eventLevel = monitor.Info
 	case test.skipped:
 		if s.includeSuccessfulOutput {
 			s.out.Write(test.out)
@@ -97,12 +105,25 @@ func (s *testStatus) finalizeTest(test *testCase) {
 			}
 		}
 		fmt.Fprintf(s.out, "skipped: (%s) %s %q\n\n", test.duration, test.end.UTC().Format("2006-01-02T15:04:05"), test.name)
+		eventMessage = "finishedStatus/Skipped"
+		eventLevel = monitor.Info
 	case test.failed:
 		s.failures++
 		s.out.Write(test.out)
 		fmt.Fprintln(s.out)
 		fmt.Fprintf(s.out, "failed: (%s) %s %q\n\n", test.duration, test.end.UTC().Format("2006-01-02T15:04:05"), test.name)
+		eventMessage = "finishedStatus/Failed"
+		eventLevel = monitor.Error
+		if test.timedOut {
+			eventMessage = "finishedStatus/Failed  reason/Timeout"
+		}
 	}
+
+	s.monitorRecorder.Record(monitor.Condition{
+		Level:   eventLevel,
+		Locator: monitor.E2ETestLocator(test.name),
+		Message: eventMessage,
+	})
 }
 
 // OutputCommand prints to stdout what would have been executed.
@@ -117,6 +138,11 @@ func (s *testStatus) OutputCommand(ctx context.Context, test *testCase) {
 }
 
 func (s *testStatus) Run(ctx context.Context, test *testCase) {
+	s.monitorRecorder.Record(monitor.Condition{
+		Level:   monitor.Info,
+		Locator: monitor.E2ETestLocator(test.name),
+		Message: "started",
+	})
 	defer s.finalizeTest(test)
 
 	test.start = time.Now()
@@ -153,6 +179,7 @@ func (s *testStatus) Run(ctx context.Context, test *testCase) {
 		case 2:
 			// timeout (ABRT is an exit code 2)
 			test.failed = true
+			test.timedOut = true
 		case 3:
 			// skipped
 			test.skipped = true

@@ -92,7 +92,7 @@ func (q *parallelByFileTestQueue) Take(ctx context.Context, fn TestFunc) bool {
 	}
 }
 
-func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase, parallelism int, fn TestFunc) {
+func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase, parallelism int, testFn TestFunc) {
 	defer q.Close()
 
 	if ctx.Err() != nil {
@@ -113,7 +113,9 @@ func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase
 	for i := 0; i < parallelism; i++ {
 		go func(i int) {
 			defer wg.Done()
-			for q.Take(ctx, func(ctx context.Context, test *testCase) { fn(ctx, test) }) {
+			for q.Take(ctx, func(ctx context.Context, test *testCase) {
+				testFn(ctx, test)
+			}) {
 				if ctx.Err() != nil {
 					return
 				}
@@ -126,7 +128,7 @@ func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase
 		if ctx.Err() != nil {
 			return
 		}
-		fn(ctx, test)
+		testFn(ctx, test)
 	}
 }
 
