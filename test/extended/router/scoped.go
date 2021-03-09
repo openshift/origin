@@ -78,11 +78,10 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 				if err != nil {
 					return false, err
 				}
-				if len(pod.Status.PodIP) == 0 {
-					return false, nil
-				}
 				routerIP = pod.Status.PodIP
-				return true, nil
+				podIsReady := podConditionStatus(pod, corev1.PodReady)
+
+				return len(routerIP) != 0 && podIsReady == corev1.ConditionTrue, nil
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -124,11 +123,10 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 				if err != nil {
 					return false, err
 				}
-				if len(pod.Status.PodIP) == 0 {
-					return false, nil
-				}
 				routerIP = pod.Status.PodIP
-				return true, nil
+				podIsReady := podConditionStatus(pod, corev1.PodReady)
+
+				return len(routerIP) != 0 && podIsReady == corev1.ConditionTrue, nil
 			})
 
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -191,11 +189,10 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 				if err != nil {
 					return false, err
 				}
-				if len(pod.Status.PodIP) == 0 {
-					return false, nil
-				}
 				routerIP = pod.Status.PodIP
-				return true, nil
+				podIsReady := podConditionStatus(pod, corev1.PodReady)
+
+				return len(routerIP) != 0 && podIsReady == corev1.ConditionTrue, nil
 			})
 
 			o.Expect(err).NotTo(o.HaveOccurred())

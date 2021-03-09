@@ -15,3 +15,13 @@ func IngressConditionStatus(ingress *routev1.RouteIngress, t routev1.RouteIngres
 	}
 	return corev1.ConditionUnknown, routev1.RouteIngressCondition{}
 }
+
+func podConditionStatus(pod *corev1.Pod, t corev1.PodConditionType) corev1.ConditionStatus {
+	for _, condition := range pod.Status.Conditions {
+		if t != condition.Type {
+			continue
+		}
+		return condition.Status
+	}
+	return corev1.ConditionUnknown
+}
