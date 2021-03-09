@@ -2,6 +2,7 @@ package v1helpers
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -13,6 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/util/retry"
+
+	"github.com/ghodss/yaml"
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
@@ -309,4 +312,38 @@ func MapToEnvVars(mapEnvVars map[string]string) []corev1.EnvVar {
 	// need to sort the slice so that kube-controller-manager-pod configmap does not change all the time
 	sort.Slice(envVars, func(i, j int) bool { return envVars[i].Name < envVars[j].Name })
 	return envVars
+}
+
+// InjectObservedProxyIntoContainers injects proxy environment variables in containers specified in containerNames.
+func InjectObservedProxyIntoContainers(podSpec *corev1.PodSpec, containerNames []string, observedConfig []byte, fields ...string) error {
+	var config map[string]interface{}
+	if err := yaml.Unmarshal(observedConfig, &config); err != nil {
+		return fmt.Errorf("failed to unmarshal the observedConfig: %w", err)
+	}
+
+	proxyConfig, found, err := unstructured.NestedStringMap(config, fields...)
+	if err != nil {
+		return fmt.Errorf("couldn't get the proxy config from observedConfig: %w", err)
+	}
+
+	proxyEnvVars := MapToEnvVars(proxyConfig)
+	if !found || len(proxyEnvVars) < 1 {
+		// There's no observed proxy config, we should tolerate that
+		return nil
+	}
+
+	for _, containerName := range containerNames {
+		for i := range podSpec.InitContainers {
+			if podSpec.InitContainers[i].Name == containerName {
+				podSpec.InitContainers[i].Env = append(podSpec.InitContainers[i].Env, proxyEnvVars...)
+			}
+		}
+		for i := range podSpec.Containers {
+			if podSpec.Containers[i].Name == containerName {
+				podSpec.Containers[i].Env = append(podSpec.Containers[i].Env, proxyEnvVars...)
+			}
+		}
+	}
+
+	return nil
 }
