@@ -155,7 +155,7 @@ func (opt *Options) Run(suite *TestSuite) error {
 	}
 
 	if opt.PrintCommands {
-		status := newTestStatus(opt.Out, true, len(tests), time.Minute, &monitor.Monitor{}, opt.AsEnv())
+		status := newTestStatus(opt.Out, true, len(tests), time.Minute, &monitor.Monitor{}, monitor.NewNoOpMonitor(), opt.AsEnv())
 		newParallelTestQueue().Execute(context.Background(), tests, 1, status.OutputCommand)
 		return nil
 	}
@@ -237,7 +237,7 @@ func (opt *Options) Run(suite *TestSuite) error {
 	}
 	expectedTestCount += len(normal)
 
-	status := newTestStatus(opt.Out, includeSuccess, expectedTestCount, timeout, m, opt.AsEnv())
+	status := newTestStatus(opt.Out, includeSuccess, expectedTestCount, timeout, m, m, opt.AsEnv())
 	testCtx := ctx
 	if opt.FailFast {
 		var cancelFn context.CancelFunc
@@ -333,7 +333,7 @@ func (opt *Options) Run(suite *TestSuite) error {
 		}
 
 		q := newParallelTestQueue()
-		status := newTestStatus(ioutil.Discard, opt.IncludeSuccessOutput, len(retries), timeout, m, opt.AsEnv())
+		status := newTestStatus(ioutil.Discard, opt.IncludeSuccessOutput, len(retries), timeout, m, m, opt.AsEnv())
 		q.Execute(testCtx, retries, parallelism, status.Run)
 		var flaky []string
 		var repeatFailures []*testCase
