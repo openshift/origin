@@ -110,12 +110,12 @@ func formatTimes(times []time.Time) []string {
 func testNodeUpgradeTransitions(events []*monitor.EventInterval) ([]*ginkgo.JUnitTestCase, bool) {
 	const testName = "[sig-node] nodes should not go unready after being upgraded and go unready only once"
 
-	nodesWentReady, nodesWentUnready := make(map[string][]time.Time), make(map[string][]time.Time)
-	currentNodeReady := make(map[string]bool)
-
 	var buf bytes.Buffer
 	var testCases []*ginkgo.JUnitTestCase
 	for len(events) > 0 {
+		nodesWentReady, nodesWentUnready := make(map[string][]time.Time), make(map[string][]time.Time)
+		currentNodeReady := make(map[string]bool)
+
 		var text string
 		var failures []string
 		var foundEnd bool
