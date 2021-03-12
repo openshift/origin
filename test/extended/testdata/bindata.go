@@ -30407,9 +30407,9 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/merge-tags-on-apply"
 os::cmd::expect_success 'oc new-project merge-tags'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-centos7.json'
-os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.7 latest'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.7-ubi8 latest'
 os::cmd::expect_success 'oc apply -f ${TEST_DATA}/modified-ruby-imagestream.json'
-os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.7 latest newtag'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.7-ubi8 latest newtag'
 os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[0].annotations.version}' '2.7 patched'
 os::cmd::expect_success 'oc delete project merge-tags'
 echo "apply new imagestream tags: ok"
@@ -32288,19 +32288,19 @@ os::test::junit::declare_suite_start "cmd/oc/set/image"
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-deployment-config.yaml'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-centos7.json'
-os::cmd::try_until_success 'oc get imagestreamtags ruby:2.7'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.7-ubi8'
 
 # test --local flag
-os::cmd::expect_failure_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7 --local' 'you must specify resources by --filename when --local is set.'
+os::cmd::expect_failure_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7-ubi8 --local' 'you must specify resources by --filename when --local is set.'
 # test --dry-run flag with -o formats
-os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7 --source=istag --dry-run' 'test-deployment-config'
-os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7 --source=istag --dry-run -o name' 'deploymentconfig.apps.openshift.io/test-deployment-config'
-os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7 --source=istag --dry-run' 'deploymentconfig.apps.openshift.io/test-deployment-config image updated \(dry run\)'
+os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7-ubi8 --source=istag --dry-run' 'test-deployment-config'
+os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7-ubi8 --source=istag --dry-run -o name' 'deploymentconfig.apps.openshift.io/test-deployment-config'
+os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7-ubi8 --source=istag --dry-run' 'deploymentconfig.apps.openshift.io/test-deployment-config image updated \(dry run\)'
 
-os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7 --source=istag'
+os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7-ubi8 --source=istag'
 os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" 'image-registry.openshift-image-registry.svc:5000/cmd-set-image/ruby'
 
-os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7 --source=istag'
+os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7-ubi8 --source=istag'
 os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" 'image-registry.openshift-image-registry.svc:5000/cmd-set-image/ruby'
 
 os::cmd::expect_failure 'oc set image dc/test-deployment-config ruby-helloworld=ruby:XYZ --source=istag'
@@ -32315,7 +32315,7 @@ os::cmd::expect_success_and_text "oc get pod/hello-openshift -o jsonpath='{.spec
 os::cmd::expect_success 'oc set image pod/hello-openshift hello-openshift=nginx:1.9.1'
 os::cmd::expect_success_and_text "oc get pod/hello-openshift -o jsonpath='{.spec.containers[0].image}'" 'nginx:1.9.1'
 
-os::cmd::expect_success 'oc set image pods,dc *=ruby:2.7 --all --source=imagestreamtag'
+os::cmd::expect_success 'oc set image pods,dc *=ruby:2.7-ubi8 --all --source=imagestreamtag'
 os::cmd::expect_success_and_text "oc get pod/hello-openshift -o jsonpath='{.spec.containers[0].image}'" 'image-registry.openshift-image-registry.svc:5000/cmd-set-image/ruby'
 os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" 'image-registry.openshift-image-registry.svc:5000/cmd-set-image/ruby'
 
@@ -35557,10 +35557,11 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             }
           },
           {
+            "name": "2.7-ubi8",
             "annotations": {
-              "description": "Build and run Ruby 2.7 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.7/README.md.",
+              "description": "Build and run Ruby 2.7 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.7/README.md.",
               "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 2.7",
+              "openshift.io/display-name": "Ruby 2.7 (UBI 8)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
               "supports": "ruby:2.7,ruby",
@@ -35569,9 +35570,10 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/ruby-27-centos7:latest"
+              "name": "registry.access.redhat.com/ubi8/ruby-27:latest"
             },
-            "name": "2.7",
+            "generation": null,
+            "importPolicy": {},
             "referencePolicy": {
               "type": "Local"
             }
