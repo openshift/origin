@@ -153,21 +153,21 @@ func startServerMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.
 			case err == nil && !previous:
 				condition = &Condition{
 					Level:   Info,
-					Locator: resourceLocator,
+					Locator: "monitor/" + resourceLocator,
 					Message: fmt.Sprintf("%s started responding to GET requests", resourceLocator),
 				}
 			case err != nil && previous:
 				condition = &Condition{
 					Level:   Error,
-					Locator: resourceLocator,
+					Locator: "monitor/" + resourceLocator,
 					Message: fmt.Sprintf("%s started failing: %v", resourceLocator, err),
 				}
 			}
 			return condition, err == nil
 		}).ConditionWhenFailing(&Condition{
 			Level:   Error,
-			Locator: resourceLocator,
-			Message: fmt.Sprintf("%s is not responding to GET requests", resourceLocator),
+			Locator: "monitor/" + resourceLocator,
+			Message: fmt.Sprintf("outage: %s is not responding to GET requests", resourceLocator),
 		}),
 	)
 	return nil

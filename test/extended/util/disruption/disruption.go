@@ -282,9 +282,11 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 func ExpectNoDisruption(f *framework.Framework, tolerate float64, total time.Duration, events monitor.EventIntervals, reason string) {
 	duration, describe := GetDisruption(events, "")
 	if percent := float64(duration) / float64(total); percent > tolerate {
-		framework.Failf("%s for at least %s of %s (%0.0f%%):\n\n%s", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, strings.Join(describe, "\n"))
+		framework.Logf("Events:\n%s", strings.Join(describe, "\n"))
+		framework.Failf("%s for at least %s of %s (%0.0f%%)", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100)
 	} else if duration > 0 {
-		FrameworkFlakef(f, "%s for at least %s of %s (%0.0f%%), this is currently sufficient to pass the test/job but not considered completely correct:\n\n%s", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, strings.Join(describe, "\n"))
+		framework.Logf("Events:\n%s", strings.Join(describe, "\n"))
+		FrameworkFlakef(f, "%s for at least %s of %s (%0.0f%%), this is currently sufficient to pass the test/job but not considered completely correct", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100)
 	}
 }
 
