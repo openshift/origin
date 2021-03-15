@@ -2,13 +2,16 @@ package apiserver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	g "github.com/onsi/ginkgo"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -17,9 +20,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 
 	oc := exutil.NewCLIWithoutNamespace("terminating-kube-apiserver")
 
+	// This test checks whether the apiserver reports any events that may indicate a problem at any time,
+	// not just when the suite is running. We already have invariant tests that fail if these are violated
+	// during suite execution, but we want to know if there are fingerprints of these failures outside of tests.
 	g.It("kubelet terminates kube-apiserver gracefully", func() {
-		t := g.GinkgoT()
-
 		client, err := kubernetes.NewForConfig(oc.AdminConfig())
 		if err != nil {
 			g.Fail(fmt.Sprintf("Unexpected error: %v", err))
@@ -30,6 +34,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			g.Fail(fmt.Sprintf("Unexpected error: %v", err))
 		}
 
+		var messages []string
 		eventsAfterTime := exutil.LimitTestsToStartTime()
 		for _, ev := range evs.Items {
 			if ev.LastTimestamp.Time.Before(eventsAfterTime) {
@@ -38,14 +43,18 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			if ev.Reason != "NonGracefulTermination" {
 				continue
 			}
-
-			t.Errorf("kube-apiserver reports a non-graceful termination: %#v. Probably kubelet or CRI-O is not giving the time to cleanly shut down. This can lead to connection refused and network I/O timeout errors in other components.", ev)
+			data, _ := json.Marshal(ev)
+			messages = append(messages, string(data))
+		}
+		if len(messages) > 0 {
+			result.Flakef("kube-apiserver reported a non-graceful termination (after %s which is test environment dependent). Probably kubelet or CRI-O is not giving the time to cleanly shut down. This can lead to connection refused and network I/O timeout errors in other components.\n\n%s", eventsAfterTime, strings.Join(messages, "\n"))
 		}
 	})
 
+	// This test checks whether the apiserver reports any events that may indicate a problem at any time,
+	// not just when the suite is running. We already have invariant tests that fail if these are violated
+	// during suite execution, but we want to know if there are fingerprints of these failures outside of tests.
 	g.It("kube-apiserver terminates within graceful termination period", func() {
-		t := g.GinkgoT()
-
 		client, err := kubernetes.NewForConfig(oc.AdminConfig())
 		if err != nil {
 			g.Fail(fmt.Sprintf("Unexpected error: %v", err))
@@ -56,6 +65,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			g.Fail(fmt.Sprintf("Unexpected error: %v", err))
 		}
 
+		var messages []string
 		eventsAfterTime := exutil.LimitTestsToStartTime()
 		for _, ev := range evs.Items {
 			if ev.LastTimestamp.Time.Before(eventsAfterTime) {
@@ -64,8 +74,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			if ev.Reason != "GracefulTerminationTimeout" {
 				continue
 			}
-
-			t.Errorf("kube-apiserver didn't terminate by itself during the graceful termination period: %#v. This is a bug in kube-apiserver. It probably means that network connections are not closed cleanly, and this leads to network I/O timeout errors in other components.", ev)
+			data, _ := json.Marshal(ev)
+			messages = append(messages, string(data))
+		}
+		if len(messages) > 0 {
+			result.Flakef("kube-apiserver didn't terminate by itself during the graceful termination period (after %s which is test environment dependent). This is a bug in kube-apiserver. It probably means that network connections are not closed cleanly, and this leads to network I/O timeout errors in other components.\n\n%s", eventsAfterTime, strings.Join(messages, "\n"))
 		}
 	})
 

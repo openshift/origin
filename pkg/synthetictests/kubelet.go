@@ -8,35 +8,18 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/test/ginkgo"
-	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-func testKubeAPIServerGracefulTermination(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {
+func testKubeletToAPIServerGracefulTermination(events []*monitor.EventInterval) ([]*ginkgo.JUnitTestCase, bool) {
 	const testName = "[sig-node] kubelet terminates kube-apiserver gracefully"
-	const testNamePre = "[sig-node] kubelet terminates kube-apiserver gracefully before suite execution"
 
-	ignoreEventsBefore := exutil.LimitTestsToStartTime()
-	// suiteStartTime can be inferred from the monitor interval, we can't use exutil.SuiteStartTime because that
-	// is run within sub processes
-	var suiteStartTime time.Time
-	if len(events) > 0 {
-		suiteStartTime = events[0].From.Add((-time.Second))
-	}
+	pass := true
 
-	var preFailures, failures []string
+	var failures []string
 	for _, event := range events {
-		// from https://github.com/openshift/kubernetes/blob/1f35e4f63be8fbb19e22c9ff1df31048f6b42ddf/cmd/watch-termination/main.go#L96
-		if strings.Contains(event.Message, "did not terminate gracefully") {
-			if event.From.Before(ignoreEventsBefore) {
-				// we explicitly ignore graceful terminations when we are told to check up to a certain point
-				continue
-			}
-			if event.From.Before(suiteStartTime) {
-				preFailures = append(preFailures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
-			} else {
-				failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
-			}
+		if strings.Contains(event.Message, "did not terminate gracefully") || strings.Contains(event.Message, "reason/NonGracefulTermination") {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
 		}
 	}
 
@@ -47,29 +30,44 @@ func testKubeAPIServerGracefulTermination(events []*monitor.EventInterval) []*gi
 			Name:      testName,
 			SystemOut: strings.Join(failures, "\n"),
 			FailureOutput: &ginkgo.FailureOutput{
-				Output: fmt.Sprintf("%d kube-apiserver reports a non-graceful termination. Probably kubelet or CRI-O is not giving the time to cleanly shut down. This can lead to connection refused and network I/O timeout errors in other components.\n\n%v", len(failures), strings.Join(failures, "\n")),
+				Output: fmt.Sprintf("%d kube-apiserver reports a non-graceful termination.  Probably kubelet or CRI-O is not giving the time to cleanly shut down. This can lead to connection refused and network I/O timeout errors in other components.\n\n%v", len(failures), strings.Join(failures, "\n")),
 			},
 		})
+		pass = false
 	} else {
 		tests = append(tests, &ginkgo.JUnitTestCase{Name: testName})
 	}
 
-	// pre-failures are flakes for now
-	if len(preFailures) > 0 {
-		tests = append(tests,
-			&ginkgo.JUnitTestCase{Name: testNamePre},
-			&ginkgo.JUnitTestCase{
-				Name:      testNamePre,
-				SystemOut: strings.Join(preFailures, "\n"),
-				FailureOutput: &ginkgo.FailureOutput{
-					Output: fmt.Sprintf("%d kube-apiserver reports a non-graceful termination outside of the test suite (during install or upgrade), which is reported as a flake. Probably kubelet or CRI-O is not giving the time to cleanly shut down. This can lead to connection refused and network I/O timeout errors in other components.\n\n%v", len(preFailures), strings.Join(preFailures, "\n")),
-				},
-			},
-		)
-	} else {
-		tests = append(tests, &ginkgo.JUnitTestCase{Name: testNamePre})
+	return tests, pass
+}
+
+func testKubeAPIServerGracefulTermination(events []*monitor.EventInterval) ([]*ginkgo.JUnitTestCase, bool) {
+	const testName = "[sig-api-machinery] kube-apiserver terminates within graceful termination period"
+
+	pass := true
+
+	var failures []string
+	for _, event := range events {
+		if strings.Contains(event.Message, "reason/GracefulTerminationTimeout") {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
+		}
 	}
-	return tests
+
+	// failures during a run always fail the test suite
+	var tests []*ginkgo.JUnitTestCase
+	if len(failures) > 0 {
+		tests = append(tests, &ginkgo.JUnitTestCase{
+			Name:      testName,
+			SystemOut: strings.Join(failures, "\n"),
+			FailureOutput: &ginkgo.FailureOutput{
+				Output: fmt.Sprintf("%d kube-apiserver reports a non-graceful termination. This is a bug in kube-apiserver. It probably means that network connections are not closed cleanly, and this leads to network I/O timeout errors in other components.\n\n%v", len(failures), strings.Join(failures, "\n")),
+			},
+		})
+		pass = false
+	} else {
+		tests = append(tests, &ginkgo.JUnitTestCase{Name: testName})
+	}
+	return tests, pass
 }
 
 func testPodTransitions(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {
