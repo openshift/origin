@@ -13,7 +13,10 @@ import (
 // etcd, or apis).
 func StableSystemEventInvariants(events monitor.EventIntervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase, passed bool) {
 	tests, _ = SystemEventInvariants(events, duration)
-	tests = append(tests, testKubeAPIServerGracefulTermination(events)...)
+	results, kubeAPIOk := testKubeAPIServerGracefulTermination(events)
+	tests = append(tests, results...)
+	results, kubeletOk := testKubeletToAPIServerGracefulTermination(events)
+	tests = append(tests, results...)
 	tests = append(tests, testServerAvailability(monitor.LocatorKubeAPIServerNewConnection, events, duration)...)
 	tests = append(tests, testServerAvailability(monitor.LocatorOpenshiftAPIServerNewConnection, events, duration)...)
 	tests = append(tests, testServerAvailability(monitor.LocatorOAuthAPIServerNewConnection, events, duration)...)
@@ -22,17 +25,19 @@ func StableSystemEventInvariants(events monitor.EventIntervals, duration time.Du
 	tests = append(tests, testServerAvailability(monitor.LocatorOAuthAPIServerReusedConnection, events, duration)...)
 	tests = append(tests, testOperatorStateTransitions(events)...)
 
-	return tests, true
+	return tests, kubeAPIOk && kubeletOk
 }
 
 // systemUpgradeEventInvariants are invariants tested against events that should hold true in a cluster
 // that is being upgraded without induced disruption
 func SystemUpgradeEventInvariants(events monitor.EventIntervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase, passed bool) {
 	tests, _ = SystemEventInvariants(events, duration)
-	tests = append(tests, testKubeAPIServerGracefulTermination(events)...)
+	results, kubeAPIOk := testKubeAPIServerGracefulTermination(events)
+	tests = append(tests, results...)
+	results, kubeletOk := testKubeletToAPIServerGracefulTermination(events)
 	results, nodeUpgradeOk := testNodeUpgradeTransitions(events)
 	tests = append(tests, results...)
-	return tests, nodeUpgradeOk
+	return tests, kubeAPIOk && kubeletOk && nodeUpgradeOk
 }
 
 // systemEventInvariants are invariants tested against events that should hold true in any cluster,
