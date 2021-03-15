@@ -11,6 +11,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -51,6 +52,10 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 			"openshift-multus/multus":                 "https://bugzilla.redhat.com/show_bug.cgi?id=1933159",
 			"openshift-multus/network-metrics-daemon": "https://bugzilla.redhat.com/show_bug.cgi?id=1933159",
 		}
+		masterReq, err := labels.NewRequirement("node-role.kubernetes.io/master", selection.Exists, []string{})
+		if err != nil {
+			e2e.Failf("unable to build label requirement: %v", err)
+		}
 
 		var debug []string
 		var knownBroken []string
@@ -60,8 +65,8 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 				continue
 			}
 			if ds.Spec.Selector != nil {
-				selector := labels.SelectorFromSet(ds.Spec.Template.Spec.NodeSelector)
-				if !selector.Empty() && selector.Matches(labels.Set(map[string]string{"node-role.kubernetes.io/master": ""})) {
+				var labelSet = labels.Set(ds.Spec.Template.Spec.NodeSelector)
+				if !labelSet.AsSelector().Empty() && masterReq.Matches(labelSet) {
 					continue
 				}
 			}
