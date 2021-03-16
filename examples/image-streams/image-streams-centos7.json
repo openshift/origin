@@ -1258,7 +1258,7 @@
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "2.5"
+              "name": "2.7"
             },
             "name": "latest",
             "referencePolicy": {
@@ -1267,20 +1267,20 @@
           },
           {
             "annotations": {
-              "description": "Build and run Ruby 2.5 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.5/README.md.",
+              "description": "Build and run Ruby 2.7 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.6/README.md.",
               "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 2.5",
+              "openshift.io/display-name": "Ruby 2.7",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:2.5,ruby",
+              "supports": "ruby:2.7,ruby",
               "tags": "builder,ruby",
-              "version": "2.5"
+              "version": "2.7"
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/ruby-25-centos7:latest"
+              "name": "registry.centos.org/centos/ruby-27-centos7:latest"
             },
-            "name": "2.5",
+            "name": "2.7",
             "referencePolicy": {
               "type": "Local"
             }
