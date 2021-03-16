@@ -10,27 +10,27 @@
   "spec": {
     "tags": [
       {
-        "name": "2.5",
+        "name": "2.7",
         "annotations": {
           "openshift.io/display-name": "Ruby Patched",
           "openshift.io/provider-display-name": "Red Hat, Inc.",
-          "description": "Build and run Ruby 2.5 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.5/README.md.",
+          "description": "Build and run Ruby 2.7 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.7/README.md.",
           "iconClass": "icon-ruby",
           "tags": "builder,ruby",
-          "supports": "ruby:2.5,ruby",
-          "version": "2.5 patched",
+          "supports": "ruby:2.7,ruby",
+          "version": "2.7 patched",
           "sampleRepo": "https://github.com/sclorg/ruby-ex.git"
         },
         "from": {
           "kind": "DockerImage",
-          "name": "registry.centos.org/centos/ruby-25-centos7:latest"
+          "name": "registry.centos.org/centos/ruby-27-centos7:latest"
         }
       },
       {
         "name": "newtag",
         "from": {
           "kind": "DockerImage",
-          "name": "registry.centos.org/centos/ruby-25-centos7:latest"
+          "name": "registry.centos.org/centos/ruby-27-centos7:latest"
         }
       }
     ]
