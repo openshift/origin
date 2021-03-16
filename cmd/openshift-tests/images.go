@@ -217,11 +217,11 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 		pulls := make(map[string]sets.String)
 		for _, event := range events {
 			// only messages that include a Pulled reason
-			if !strings.Contains(event.Message, " reason/Pulled ") {
+			if !strings.Contains(" "+event.Message, " reason/Pulled ") {
 				continue
 			}
 			// only look at pull events from an e2e-* namespace
-			if !strings.Contains(event.Locator, " ns/e2e-") {
+			if !strings.Contains(" "+event.Locator, " ns/e2e-") {
 				continue
 			}
 
