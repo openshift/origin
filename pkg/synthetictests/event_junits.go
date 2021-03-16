@@ -17,6 +17,8 @@ func StableSystemEventInvariants(events monitor.EventIntervals, duration time.Du
 	tests = append(tests, results...)
 	results, kubeletOk := testKubeletToAPIServerGracefulTermination(events)
 	tests = append(tests, results...)
+	tests = append(tests, testPodTransitions(events)...)
+	tests = append(tests, testPodSandboxCreation(events)...)
 	tests = append(tests, testServerAvailability(monitor.LocatorKubeAPIServerNewConnection, events, duration)...)
 	tests = append(tests, testServerAvailability(monitor.LocatorOpenshiftAPIServerNewConnection, events, duration)...)
 	tests = append(tests, testServerAvailability(monitor.LocatorOAuthAPIServerNewConnection, events, duration)...)
@@ -35,6 +37,8 @@ func SystemUpgradeEventInvariants(events monitor.EventIntervals, duration time.D
 	results, kubeAPIOk := testKubeAPIServerGracefulTermination(events)
 	tests = append(tests, results...)
 	results, kubeletOk := testKubeletToAPIServerGracefulTermination(events)
+	tests = append(tests, testPodTransitions(events)...)
+	tests = append(tests, testPodSandboxCreation(events)...)
 	results, nodeUpgradeOk := testNodeUpgradeTransitions(events)
 	tests = append(tests, results...)
 	return tests, kubeAPIOk && kubeletOk && nodeUpgradeOk
@@ -44,8 +48,6 @@ func SystemUpgradeEventInvariants(events monitor.EventIntervals, duration time.D
 // even one undergoing disruption. These are usually focused on things that must be true on a single
 // machine, even if the machine crashes.
 func SystemEventInvariants(events monitor.EventIntervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase, passed bool) {
-	tests = append(tests, testPodTransitions(events)...)
 	tests = append(tests, testSystemDTimeout(events)...)
-	tests = append(tests, testPodSandboxCreation(events)...)
 	return tests, true
 }
