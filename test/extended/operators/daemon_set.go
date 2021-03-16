@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	g "github.com/onsi/ginkgo"
-	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -46,19 +45,12 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 			e2e.Failf("unable to list daemonsets: %v", err)
 		}
 
-		// daemonsets that have an explicit exception, every entry here must have a bug associated
-		// e.g. "openshift-x/foo": "link to bug"
-		bugsAgainstBrokenDaemonSets := map[string]string{
-			"openshift-multus/multus":                 "https://bugzilla.redhat.com/show_bug.cgi?id=1933159",
-			"openshift-multus/network-metrics-daemon": "https://bugzilla.redhat.com/show_bug.cgi?id=1933159",
-		}
 		masterReq, err := labels.NewRequirement("node-role.kubernetes.io/master", selection.Exists, []string{})
 		if err != nil {
 			e2e.Failf("unable to build label requirement: %v", err)
 		}
 
 		var debug []string
-		var knownBroken []string
 		var invalidDaemonSets []string
 		for _, ds := range daemonSets.Items {
 			if !strings.HasPrefix(ds.Namespace, "openshift-") {
@@ -75,20 +67,12 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 			case ds.Spec.UpdateStrategy.RollingUpdate == nil,
 				ds.Spec.UpdateStrategy.RollingUpdate.MaxUnavailable == nil:
 				violation := fmt.Sprintf("expected daemonset %s to have a maxUnavailable strategy of 10%% or 33%%", key)
-				if bug, ok := bugsAgainstBrokenDaemonSets[key]; ok {
-					knownBroken = append(knownBroken, fmt.Sprintf("%s (bug %s)", violation, bug))
-				} else {
-					invalidDaemonSets = append(invalidDaemonSets, violation)
-				}
+				invalidDaemonSets = append(invalidDaemonSets, violation)
 				debug = append(debug, violation)
 			case ds.Spec.UpdateStrategy.RollingUpdate.MaxUnavailable.StrVal != "10%" &&
 				ds.Spec.UpdateStrategy.RollingUpdate.MaxUnavailable.StrVal != "33%":
 				violation := fmt.Sprintf("expected daemonset %s to have maxUnavailable 10%% or 33%% (see comment) instead of %s", key, ds.Spec.UpdateStrategy.RollingUpdate.MaxUnavailable.String())
-				if bug, ok := bugsAgainstBrokenDaemonSets[key]; ok {
-					knownBroken = append(knownBroken, fmt.Sprintf("%s (bug %s)", violation, bug))
-				} else {
-					invalidDaemonSets = append(invalidDaemonSets, violation)
-				}
+				invalidDaemonSets = append(invalidDaemonSets, violation)
 				debug = append(debug, violation)
 			default:
 				debug = append(debug, fmt.Sprintf("daemonset %s has %s", key, ds.Spec.UpdateStrategy.RollingUpdate.MaxUnavailable.String()))
@@ -97,12 +81,6 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 
 		sort.Strings(debug)
 		e2e.Logf("Daemonset configuration in payload:\n%s", strings.Join(debug, "\n"))
-
-		// All known bugs are listed as flakes so we can see them as dashboards
-		if len(knownBroken) > 0 {
-			sort.Strings(knownBroken)
-			result.Flakef("Daemonsets with outstanding bugs in payload:\n%s", strings.Join(knownBroken, "\n"))
-		}
 
 		// Users are not allowed to add new violations
 		if len(invalidDaemonSets) > 0 {
