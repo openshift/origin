@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -729,14 +730,9 @@ func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 		c.AddExplicitResourceToDelete(oauthv1.GroupVersion.WithResource("oauthclients"), "", oauthClientName)
 	}
 
-	randomToken := uuid.NewRandom()
-	accesstoken := base64.RawURLEncoding.EncodeToString([]byte(randomToken))
-	// make sure the token is long enough to pass validation
-	for i := len(accesstoken); i < 32; i++ {
-		accesstoken += "A"
-	}
+	privToken, pubToken := GenerateOAuthTokenPair()
 	token, err := oauthClient.OauthV1().OAuthAccessTokens().Create(ctx, &oauthv1.OAuthAccessToken{
-		ObjectMeta:  metav1.ObjectMeta{Name: accesstoken},
+		ObjectMeta:  metav1.ObjectMeta{Name: pubToken},
 		ClientName:  oauthClientName,
 		UserName:    username,
 		UserUID:     string(user.UID),
@@ -749,9 +745,20 @@ func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 	c.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), token)
 
 	userClientConfig := rest.AnonymousClientConfig(turnOffRateLimiting(rest.CopyConfig(c.AdminConfig())))
-	userClientConfig.BearerToken = token.Name
+	userClientConfig.BearerToken = privToken
 
 	return userClientConfig
+}
+
+// GenerateOAuthTokenPair returns two tokens to use with OpenShift OAuth-based authentication.
+// The first token is a private token meant to be used as a Bearer token to send
+// queries to the API, the second token is a hashed token meant to be stored in
+// the database.
+func GenerateOAuthTokenPair() (privToken, pubToken string) {
+	const sha256Prefix = "sha256~"
+	randomToken := base64.RawURLEncoding.EncodeToString(uuid.NewRandom())
+	hashed := sha256.Sum256([]byte(randomToken))
+	return sha256Prefix + string(randomToken), sha256Prefix + base64.RawURLEncoding.EncodeToString(hashed[:])
 }
 
 // turnOffRateLimiting reduces the chance that a flaky test can be written while using this package
