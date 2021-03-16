@@ -181,8 +181,8 @@ items:
       type: Dockerfile
       dockerfile: |-
         FROM centos/ruby-27-centos7
-        ARG foofoo
-        RUN echo $foofoo
+        ARG foo
+        RUN echo $foo
     strategy:
       type: Docker
       dockerStrategy:

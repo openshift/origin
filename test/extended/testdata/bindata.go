@@ -21726,8 +21726,8 @@ items:
       type: Dockerfile
       dockerfile: |-
         FROM centos/ruby-27-centos7
-        ARG foofoo
-        RUN echo $foofoo
+        ARG foo
+        RUN echo $foo
     strategy:
       type: Docker
       dockerStrategy:
@@ -30523,7 +30523,7 @@ os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-stibuil
 # Test both the type/name resource syntax and the fact that istag/origin-ruby-sample:latest is still
 # not created but due to a buildConfig pointing to it, we get back its graph of deps.
 os::cmd::expect_success_and_text 'oc adm build-chain istag/origin-ruby-sample' 'istag/origin-ruby-sample:latest'
-os::cmd::expect_success_and_text 'oc adm build-chain ruby-25-centos7 -o dot' 'digraph "ruby-25-centos7:latest"'
+os::cmd::expect_success_and_text 'oc adm build-chain ruby-27-centos7 -o dot' 'digraph "ruby-27-centos7:latest"'
 os::cmd::expect_success 'oc delete all -l build=sti'
 echo "ex build-chain: ok"
 os::test::junit::declare_suite_end
