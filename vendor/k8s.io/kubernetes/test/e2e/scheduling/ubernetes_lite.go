@@ -24,7 +24,7 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -58,6 +58,12 @@ var _ = SIGDescribe("Multi-AZ Clusters", func() {
 		cs := f.ClientSet
 		e2enode.WaitForTotalHealthy(cs, time.Minute)
 		nodeList, err := e2enode.GetReadySchedulableNodes(cs)
+		framework.ExpectNoError(err)
+
+		// ensure no terminating pods still remain on nodes, which ensures the
+		// balanced pods we create next are still accurate when the time the test
+		// starts
+		err = framework.CheckTestingNSDeletedExcept(f.ClientSet, f.Namespace.Name)
 		framework.ExpectNoError(err)
 
 		// make the nodes have balanced cpu,mem usage
