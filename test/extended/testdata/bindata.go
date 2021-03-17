@@ -34465,7 +34465,7 @@ var _testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson = []byte(`
     "containers": [
       {
         "name": "hello-openshift",
-        "image": "k8s.gcr.io/e2e-test-images/agnhost:2.20",
+        "image": "k8s.gcr.io/e2e-test-images/agnhost:2.21",
         "args": ["netexec"],
         "ports": [
           {
@@ -36022,7 +36022,7 @@ items:
           run: v1-job
       spec:
         containers:
-        - image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+        - image: k8s.gcr.io/e2e-test-images/agnhost:2.21
           name: hello-container
         restartPolicy: Never
 
@@ -38664,7 +38664,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+                image: k8s.gcr.io/e2e-test-images/agnhost:2.21
       - kind: Route
         apiVersion: v1
         metadata:
@@ -49018,7 +49018,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -49036,7 +49036,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -49269,7 +49269,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -49431,7 +49431,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -50726,7 +50726,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -50744,7 +50744,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -51084,7 +51084,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -51102,7 +51102,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -51120,7 +51120,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -52516,7 +52516,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+                image: k8s.gcr.io/e2e-test-images/agnhost:2.21
 `)
 
 func testExtendedTestdataTemplatesTemplateinstance_badobjectYamlBytes() ([]byte, error) {
@@ -52576,7 +52576,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: k8s.gcr.io/e2e-test-images/agnhost:2.20
+                image: k8s.gcr.io/e2e-test-images/agnhost:2.21
       - kind: Route
         apiVersion: v1
         metadata:
