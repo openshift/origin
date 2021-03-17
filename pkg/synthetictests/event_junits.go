@@ -37,6 +37,7 @@ func SystemUpgradeEventInvariants(events monitor.EventIntervals, duration time.D
 	results, kubeAPIOk := testKubeAPIServerGracefulTermination(events)
 	tests = append(tests, results...)
 	results, kubeletOk := testKubeletToAPIServerGracefulTermination(events)
+	tests = append(tests, results...)
 	tests = append(tests, testPodTransitions(events)...)
 	tests = append(tests, testPodSandboxCreation(events)...)
 	results, nodeUpgradeOk := testNodeUpgradeTransitions(events)
