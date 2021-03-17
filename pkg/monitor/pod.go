@@ -91,17 +91,38 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 						Message: fmt.Sprintf("invariant violation (bug): pod should not transition %s->%s even when terminated", old, new),
 					})
 				case isMirrorPod(pod):
-					conditions = append(conditions, monitorapi.Condition{
-						Level:   monitorapi.Warning,
-						Locator: locatePod(pod),
-						Message: fmt.Sprintf("invariant violation (bug): static pod should not transition %s->%s with same UID", old, new),
-					})
+					if old == corev1.PodRunning {
+						debugOldPod, _ := json.MarshalIndent(oldPod.Status, "", "  ")
+						debugPod, _ := json.MarshalIndent(pod.Status, "", "  ")
+						conditions = append(conditions, monitorapi.Condition{
+							Level:   monitorapi.Warning,
+							Locator: locatePod(pod),
+							Message: fmt.Sprintf("static pod moved back to Pending:\nold status: %s\nnew status: %s", string(debugOldPod), string(debugPod)),
+						})
+					} else {
+						conditions = append(conditions, monitorapi.Condition{
+							Level:   monitorapi.Warning,
+							Locator: locatePod(pod),
+							Message: fmt.Sprintf("invariant violation (bug): static pod should not transition %s->%s with same UID", old, new),
+						})
+					}
 				default:
-					conditions = append(conditions, monitorapi.Condition{
-						Level:   monitorapi.Warning,
-						Locator: locatePod(pod),
-						Message: fmt.Sprintf("pod moved back to Pending"),
-					})
+					if old == corev1.PodRunning {
+						debugOldPod, _ := json.MarshalIndent(oldPod.Status, "", "  ")
+						debugPod, _ := json.MarshalIndent(pod.Status, "", "  ")
+						conditions = append(conditions, monitorapi.Condition{
+							Level:   monitorapi.Warning,
+							Locator: locatePod(pod),
+							Message: fmt.Sprintf("pod moved back to Pending:\nold status: %s\nnew status: %s", string(debugOldPod), string(debugPod)),
+						})
+					} else {
+						conditions = append(conditions, monitorapi.Condition{
+							Level:   monitorapi.Warning,
+							Locator: locatePod(pod),
+							Message: fmt.Sprintf("pod moved back to Pending"),
+						})
+
+					}
 				}
 			case new == corev1.PodUnknown:
 				conditions = append(conditions, monitorapi.Condition{
