@@ -3,6 +3,7 @@ package synthetictests
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -74,9 +75,28 @@ func testPodTransitions(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase
 	const testName = "[sig-node] pods should never transition back to pending"
 	success := &ginkgo.JUnitTestCase{Name: testName}
 
+	var nodeRebooted map[string]bool
+	rebootRegex := regexp.MustCompile(`Node ([^ ]+) has been rebooted`)
+	nodeRegex := regexp.MustCompile(`node/([^ ]+)`)
+
 	failures := []string{}
 	for _, event := range events {
+		// As we check events, see which nodes have been rebooted
+		rebootMatches := rebootRegex.FindStringSubmatch(event.Message)
+		if len(rebootMatches) != 0 {
+			nodeRebooted[rebootMatches[1]] = true
+		}
+
 		if strings.Contains(event.Message, "pod should not transition") || strings.Contains(event.Message, "pod moved back to Pending") {
+			// If node was rebooted recently, it is okay for Pod to have transitioned back to Pending
+			nodeMatches := nodeRegex.FindStringSubmatch(event.Locator)
+			if len(nodeMatches) == 0 {
+				_, ok := nodeRebooted[nodeMatches[1]]
+				if ok {
+					continue
+				}
+			}
+
 			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
 		}
 	}
