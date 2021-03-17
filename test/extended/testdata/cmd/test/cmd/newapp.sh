@@ -38,7 +38,7 @@ os::cmd::try_until_success 'oc get istag php:latest -n test-imagestreams'
 os::cmd::expect_success 'oc create istag php:latest --from=openshift/php:7.1 -n openshift'
 
 # create a new tag for an existing imagestream in the current namespace
-os::cmd::expect_success 'oc create istag perl:5.24 --from=openshift/perl:5.24'
+os::cmd::expect_success 'oc create istag perl:5.30 --from=openshift/perl:5.30'
 os::cmd::expect_success 'oc new-app --docker-image=library/perl https://github.com/sclorg/dancer-ex --strategy=source'
 os::cmd::try_until_success 'oc get istag perl:latest -n test-imagestreams'
 
@@ -345,8 +345,8 @@ os::cmd::try_until_success 'oc get imagestreamtags nodejs:latest'
 os::cmd::try_until_success 'oc get imagestreamtags nodejs:10'
 os::cmd::try_until_success 'oc get imagestreamtags nodejs:12'
 os::cmd::try_until_success 'oc get imagestreamtags perl:latest'
-os::cmd::try_until_success 'oc get imagestreamtags perl:5.24'
-os::cmd::try_until_success 'oc get imagestreamtags perl:5.26'
+os::cmd::try_until_success 'oc get imagestreamtags perl:5.30'
+os::cmd::try_until_success 'oc get imagestreamtags perl:5.26-ubi8'
 os::cmd::try_until_success 'oc get imagestreamtags php:latest'
 os::cmd::try_until_success 'oc get imagestreamtags php:7.0'
 os::cmd::try_until_success 'oc get imagestreamtags php:7.1'
@@ -367,7 +367,7 @@ os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mongodb' "T
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mysql' "Tags:\s+5.7, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=nginx' "Tags:\s+1.14, 1.16, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=nodejs' "Tags:\s+10, 12, latest"
-os::cmd::expect_success_and_text 'oc new-app --search --image-stream=perl' "Tags:\s+5.24, 5.26, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=perl' "Tags:\s+5.30-ubi8,latest,5.30-el7"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=php' "Tags:\s+7.0, 7.1, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=postgresql' "Tags:\s+9.5, 9.6, latest"
 os::cmd::expect_success_and_text 'oc new-app -S --image-stream=python' "Tags:\s+2.7, 3.6, latest"
