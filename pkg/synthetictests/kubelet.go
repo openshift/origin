@@ -71,7 +71,7 @@ func testKubeAPIServerGracefulTermination(events []*monitor.EventInterval) ([]*g
 }
 
 func testPodTransitions(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {
-	const testName = "[sig-node] pods should never transition back to pending"
+	const testName = "[sig-node] pods should never transition back to pending [Flaky]"
 	success := &ginkgo.JUnitTestCase{Name: testName}
 
 	failures := []string{}
