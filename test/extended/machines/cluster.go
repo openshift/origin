@@ -66,7 +66,7 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 	)
 	g.BeforeEach(func() {
 		var ok bool
-		url, bearerToken, ok = prometheus.LocatePrometheus(oc)
+		url, _, bearerToken, ok = prometheus.LocatePrometheus(oc)
 		if !ok {
 			e2e.Failf("Prometheus could not be located on this cluster, failing prometheus test")
 		}

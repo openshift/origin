@@ -45,7 +45,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 	)
 	g.BeforeEach(func() {
 		var ok bool
-		url, bearerToken, ok = helper.LocatePrometheus(oc)
+		url, _, bearerToken, ok = helper.LocatePrometheus(oc)
 		if !ok {
 			e2e.Failf("Prometheus could not be located on this cluster, failing prometheus test")
 		}
@@ -133,12 +133,12 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 	var (
 		oc = exutil.NewCLIWithoutNamespace("prometheus")
 
-		url, bearerToken string
+		url, prometheusURL, bearerToken string
 	)
 
 	g.BeforeEach(func() {
 		var ok bool
-		url, bearerToken, ok = helper.LocatePrometheus(oc)
+		url, prometheusURL, bearerToken, ok = helper.LocatePrometheus(oc)
 		if !ok {
 			e2e.Failf("Prometheus could not be located on this cluster, failing prometheus test")
 		}
@@ -183,7 +183,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			g.By("checking the prometheus metrics path")
 			var metrics map[string]*dto.MetricFamily
 			o.Expect(wait.PollImmediate(10*time.Second, 2*time.Minute, func() (bool, error) {
-				results, err := getInsecureURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/metrics", url))
+				results, err := getInsecureURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/metrics", prometheusURL))
 				if err != nil {
 					e2e.Logf("unable to get metrics: %v", err)
 					return false, nil
@@ -222,7 +222,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			// expect all endpoints within 60 seconds
 			var lastErrs []error
 			o.Expect(wait.PollImmediate(10*time.Second, 2*time.Minute, func() (bool, error) {
-				contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", url), bearerToken)
+				contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", prometheusURL), bearerToken)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				targets := &prometheusTargets{}
@@ -269,7 +269,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 
 			g.By("verifying all targets are exposing metrics over secure channel")
 			var insecureTargets []error
-			contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", url), bearerToken)
+			contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", prometheusURL), bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			targets := &prometheusTargets{}
@@ -299,6 +299,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			}
 			o.Expect(insecureTargets).To(o.BeEmpty(), "some services expose metrics over insecure channel")
 		})
+
 		g.It("should have a AlertmanagerReceiversNotConfigured alert in firing state", func() {
 			ns := oc.SetupNamespace()
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
@@ -314,6 +315,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 
 			e2e.Logf("AlertmanagerReceiversNotConfigured alert is firing")
 		})
+
 		g.It("should have important platform topology metrics", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
@@ -340,6 +342,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
+
 		g.It("should have non-Pod host cAdvisor metrics", func() {
 			ns := oc.SetupNamespace()
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
@@ -353,6 +356,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
+
 		g.It("shouldn't have failing rules evaluation", func() {
 			oc.SetupProject()
 			ns := oc.Namespace()
@@ -370,6 +374,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
+
 		networking.InOpenShiftSDNContext(func() {
 			g.It("should be able to get the sdn ovs flows", func() {
 				ns := oc.SetupNamespace()
@@ -386,6 +391,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 		})
+
 		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early]", func() {
 			if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
 				e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
@@ -403,6 +409,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
+
 		g.It("should provide ingress metrics", func() {
 			ns := oc.SetupNamespace()
 
@@ -413,7 +420,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 
 			var lastErrs []error
 			o.Expect(wait.PollImmediate(10*time.Second, 4*time.Minute, func() (bool, error) {
-				contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", url), bearerToken)
+				contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", prometheusURL), bearerToken)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				targets := &prometheusTargets{}
@@ -440,6 +447,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			err := helper.RunQueries(queries, oc, ns, execPod.Name, url, bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
+
 		g.It("should provide named network metrics", func() {
 			ns := oc.SetupNamespace()
 
