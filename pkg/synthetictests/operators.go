@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/test/ginkgo"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -16,7 +17,7 @@ func testOperatorStateTransitions(events []*monitor.EventInterval) []*ginkgo.JUn
 	knownOperators := allOperators(events)
 	eventsByOperator := getEventsByOperator(events)
 	e2eEvents := monitor.E2ETestEvents(events)
-	for _, condition := range []string{"Available", "Degraded", "Progressing"} {
+	for _, condition := range []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded, configv1.OperatorProgressing} {
 		for _, operatorName := range knownOperators.List() {
 			bzComponent := GetBugzillaComponentForOperator(operatorName)
 			if bzComponent == "Unknown" {
@@ -76,22 +77,23 @@ func getEventsByOperator(events []*monitor.EventInterval) map[string][]*monitor.
 	return eventsByClusterOperator
 }
 
-func testOperatorState(interestingCondition string, events []*monitor.EventInterval, e2eEvents []*monitor.EventInterval) []string {
+func testOperatorState(interestingCondition configv1.ClusterStatusConditionType, events []*monitor.EventInterval, e2eEvents []*monitor.EventInterval) []string {
 	failures := []string{}
 
 	clusterOperatorToEvents := getEventsByOperator(events)
 
 	var previousEvent *monitor.EventInterval
+
 	for clusterOperator, events := range clusterOperatorToEvents {
 		for _, event := range events {
-			condition, status, message := monitor.GetOperatorConditionStatus(event.Message)
-			if condition != interestingCondition {
+			condition := monitor.GetOperatorConditionStatus(event.Message)
+			if condition == nil || condition.Type != interestingCondition {
 				continue
 			}
 			// if there was any switch, it was wrong/unexpected at some point
-			failures = append(failures, fmt.Sprintf("%v was %v=%v, but became %v=%v at %v -- %v", clusterOperator, condition, !status, condition, status, event.From, message))
+			failures = append(failures, fmt.Sprintf("%v became %v=%v at %v -- reason/%v: %v", clusterOperator, condition.Type, condition.Status, event.From, condition.Reason, condition.Message))
 
-			if !isTransitionToGoodOperatorState(interestingCondition, status) {
+			if !isTransitionToGoodOperatorState(condition) {
 				// we don't see a lot of these as end states, don't bother trying to find the tests that were running during this time.
 				continue
 			}
@@ -117,23 +119,14 @@ func operatorFromLocator(locator string) string {
 	return operators[1]
 }
 
-func isTransitionToGoodOperatorState(condition string, status bool) bool {
-	switch condition {
-	case "Available":
-		if status {
-			return true
-		}
-		return false
-	case "Degraded":
-		if !status {
-			return true
-		}
-		return false
-	case "Progressing":
-		if !status {
-			return true
-		}
-		return false
+func isTransitionToGoodOperatorState(condition *configv1.ClusterOperatorStatusCondition) bool {
+	switch condition.Type {
+	case configv1.OperatorAvailable:
+		return condition.Status == configv1.ConditionTrue
+	case configv1.OperatorDegraded:
+		return condition.Status == configv1.ConditionFalse
+	case configv1.OperatorProgressing:
+		return condition.Status == configv1.ConditionFalse
 	default:
 		return false
 	}
