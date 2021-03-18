@@ -14,9 +14,8 @@ type tc struct {
 	// Expected output from the command
 	Expected string
 
-	// Repository is either openshift/ or rhcsl/
-	// The default is 'openshift'
-	Repository string
+	// Tag is the image tag to correlates to the Version string
+	Tag string
 
 	// Internal: We resolve this in JustBeforeEach
 	DockerImageReference string
@@ -29,75 +28,75 @@ type tc struct {
 var s2iImages = map[string][]tc{
 	"ruby": {
 		{
-			Version:    "27",
-			Cmd:        "ruby --version",
-			Expected:   "ruby 2.7",
-			Repository: "rhscl",
-			NonAMD:     true,
+			Version:  "27",
+			Cmd:      "ruby --version",
+			Expected: "ruby 2.7",
+			Tag:      "2.7",
+			NonAMD:   true,
 		},
 		{
-			Version:    "26",
-			Cmd:        "ruby --version",
-			Expected:   "ruby 2.6",
-			Repository: "rhscl",
-			NonAMD:     true,
+			Version:  "26",
+			Cmd:      "ruby --version",
+			Expected: "ruby 2.6",
+			Tag:      "2.6",
+			NonAMD:   true,
 		},
 	},
 	"python": {
 		{
-			Version:    "27",
-			Cmd:        "python --version",
-			Expected:   "Python 2.7",
-			Repository: "rhscl",
-			NonAMD:     true,
+			Version:  "27",
+			Cmd:      "python --version",
+			Expected: "Python 2.7",
+			Tag:      "2.7",
+			NonAMD:   true,
 		},
 		{
-			Version:    "36",
-			Cmd:        "python --version",
-			Expected:   "Python 3.6",
-			Repository: "rhscl",
-			NonAMD:     true,
+			Version:  "36",
+			Cmd:      "python --version",
+			Expected: "Python 3.6",
+			Tag:      "3.6-ubi8",
+			NonAMD:   true,
 		},
 	},
 	"nodejs": {
 		{
-			Version:    "10",
-			Cmd:        "node --version",
-			Expected:   "v10",
-			Repository: "rhscl",
-			NonAMD:     true,
+			Version:  "10",
+			Cmd:      "node --version",
+			Expected: "v10",
+			Tag:      "10",
+			NonAMD:   true,
 		},
 		{
-			Version:    "12",
-			Cmd:        "node --version",
-			Expected:   "v12",
-			Repository: "rhscl",
-			NonAMD:     true,
+			Version:  "12",
+			Cmd:      "node --version",
+			Expected: "v12",
+			Tag:      "12",
+			NonAMD:   true,
 		},
 	},
 	"perl": {
 		{
-			Version:    "526",
-			Cmd:        "perl --version",
-			Expected:   "v5.26",
-			Repository: "rhscl",
-			NonAMD:     true,
+			Version:  "526",
+			Cmd:      "perl --version",
+			Expected: "v5.26",
+			Tag:      "5.26",
+			NonAMD:   true,
 		},
 	},
 	"php": {
 		{
-			Version:    "72",
-			Cmd:        "php --version",
-			Expected:   "7.2",
-			Repository: "rhscl",
-			NonAMD:     true,
+			Version:  "72",
+			Cmd:      "php --version",
+			Expected: "7.2",
+			Tag:      "7.2-ubi8",
+			NonAMD:   true,
 		},
 		{
-			Version:    "73",
-			Cmd:        "php --version",
-			Expected:   "7.3",
-			Repository: "rhscl",
-			NonAMD:     true,
+			Version:  "73",
+			Cmd:      "php --version",
+			Expected: "7.3",
+			Tag:      "7.3",
+			NonAMD:   true,
 		},
 	},
 }
@@ -115,8 +114,5 @@ func GetTestCaseForImages() map[string][]tc {
 
 // resolveDockerImageReferences resolves the pull specs for all images
 func resolveDockerImageReference(name string, t *tc) {
-	if len(t.Repository) == 0 {
-		t.Repository = "openshift"
-	}
-	t.DockerImageReference = fmt.Sprintf("registry.redhat.io/%s/%s-%s-rhel7", t.Repository, name, t.Version)
+	t.DockerImageReference = fmt.Sprintf("image-registry.openshift-image-registry.svc:5000/openshift/%s:%s", name, t.Tag)
 }
