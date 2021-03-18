@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/url"
 	"os"
 	"regexp"
@@ -89,7 +90,7 @@ func (j *JenkinsRef) Namespace() string {
 // BuildURI builds a URI for the Jenkins server.
 func (j *JenkinsRef) BuildURI(resourcePathFormat string, a ...interface{}) string {
 	resourcePath := fmt.Sprintf(resourcePathFormat, a...)
-	return fmt.Sprintf("http://%s:%v/%s", j.host, j.port, resourcePath)
+	return fmt.Sprintf("http://%s/%s", net.JoinHostPort(j.host, j.port), resourcePath)
 }
 
 // GetResource submits a GET request to this Jenkins server.

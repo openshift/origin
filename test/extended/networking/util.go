@@ -3,8 +3,10 @@ package networking
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -94,8 +96,8 @@ func launchWebserverService(f *e2e.Framework, serviceName string, nodeName strin
 	expectNoError(exutil.WaitForEndpoint(f.ClientSet, f.Namespace.Name, serviceName))
 	createdService, err := serviceClient.Get(context.Background(), serviceName, metav1.GetOptions{})
 	expectNoError(err)
-	serviceAddr = fmt.Sprintf("%s:%d", createdService.Spec.ClusterIP, servicePort)
-	e2e.Logf("Target service IP:port is %s", serviceAddr)
+	serviceAddr = net.JoinHostPort(createdService.Spec.ClusterIP, strconv.Itoa(servicePort))
+	e2e.Logf("Target service IP/port is %s", serviceAddr)
 	return
 }
 

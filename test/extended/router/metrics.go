@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -102,7 +103,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			}()
 
 			g.By("listening on the health port")
-			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/healthz", host, metricsPort), 200)
+			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s/healthz", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), 200)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -118,11 +119,11 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			}()
 
 			g.By("preventing access without a username and password")
-			err = expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, metricsPort), 401, 403)
+			err = expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), 401, 403)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("validate access using username and password")
-			_, err = getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, metricsPort), username, password)
+			_, err = getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), username, password)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("checking for the expected metrics")
@@ -135,7 +136,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			p := expfmt.TextParser{}
 
 			err = wait.PollImmediate(2*time.Second, 240*time.Second, func() (bool, error) {
-				results, err = getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, metricsPort), bearerToken)
+				results, err = getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), bearerToken)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				metrics, err = p.TextToMetricFamilies(bytes.NewBufferString(results))
@@ -210,7 +211,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			time.Sleep(15 * time.Second)
 
 			g.By("checking that some metrics are not reset to 0 after router restart")
-			updatedResults, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, metricsPort), bearerToken)
+			updatedResults, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			defer func() { e2e.Logf("final metrics:\n%s", updatedResults) }()
 
@@ -226,7 +227,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			err = wait.PollImmediate(2*time.Second, 5*time.Minute, func() (bool, error) {
 				refreshMetrics := func() (map[string]*dto.MetricFamily, error) {
 					startTime := time.Now()
-					results, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, metricsPort), bearerToken)
+					results, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), bearerToken)
 					if err != nil {
 						return nil, err
 					}
@@ -294,11 +295,11 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			}()
 
 			g.By("preventing access without a username and password")
-			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/debug/pprof/heap", host, metricsPort), 401, 403)
+			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s/debug/pprof/heap", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), 401, 403)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("at /debug/pprof")
-			results, err := getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/debug/pprof/heap?debug=1", host, metricsPort), username, password)
+			results, err := getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s/debug/pprof/heap?debug=1", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), username, password)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(results).To(o.ContainSubstring("# runtime.MemStats"))
 		})
