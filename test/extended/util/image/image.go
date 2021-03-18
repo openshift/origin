@@ -47,6 +47,9 @@ func init() {
 		"docker.io/library/nginx:1.14-alpine":     23,
 		"docker.io/library/nginx:1.15-alpine":     24,
 		"docker.io/library/redis:5.0.5-alpine":    31,
+
+		// Used for stressing node
+		"k8s.gcr.io/stress:v1": -1,
 	}
 
 	images = GetMappedImages(allowedImages, os.Getenv("KUBE_TEST_REPO"))
