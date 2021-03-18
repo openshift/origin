@@ -106,7 +106,8 @@ var staticSuites = testSuites{
 				return strings.Contains(name, "[Feature:EtcdRecovery]") || strings.Contains(name, "[Feature:NodeRecovery]") || isStandardEarlyTest(name)
 
 			},
-			TestTimeout:         60 * time.Minute,
+			// Duration of the quorum restore test exceeds 60 minutes.
+			TestTimeout:         90 * time.Minute,
 			SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.SystemEventInvariants),
 		},
 		PreSuite: suiteWithProviderPreSuite,

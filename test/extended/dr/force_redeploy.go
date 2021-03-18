@@ -103,31 +103,48 @@ func forceOperandRedeployment(client operatorv1client.OperatorV1Interface) {
 			},
 		},
 	}
+
+	// Initiate redeployment of all operands without waiting so that
+	// redeployment is performed in parallel.
+	latestRevisions := []int32{}
 	for _, client := range clients {
+		// Retrieve the LatestAvailableRevision before rolling out to know
+		// what revision not to look for in the subsequent check for
+		// rollout success.
+		latestRevision := latestAvailableRevision(client)
+		latestRevisions = append(latestRevisions, latestRevision)
+
 		forceRedeployOperand(client)
+	}
+
+	// Wait for redeployment of operands
+	for i, client := range clients {
+		latestRevision := latestRevisions[i]
+		g.By(fmt.Sprintf("Waiting for %s to be updated on all nodes to a revision greater than %d", client, latestRevision))
+		waitForRollout(client, latestRevision)
+		framework.Logf("Rollout complete for %s", client)
 	}
 }
 
-// forceRedeployOperand initiates redeployment of an operand and waits for a
-// successful rollout.
-func forceRedeployOperand(client *operatorConfigClient) {
-	// Retrieve the LatestAvailableRevision before rolling out to know
-	// what revision not to look for in the subsequent check for
-	// rollout success.
+func latestAvailableRevision(client *operatorConfigClient) int32 {
 	g.By(fmt.Sprintf("Finding LatestAvailableRevision for %s", client))
-	var latestAvailableRevision int32
+	var revision int32
 	err := wait.PollImmediate(redeployWaitInterval, redeployWaitTimeout, func() (done bool, err error) {
 		status, err := client.getStatus(context.Background(), "cluster", metav1.GetOptions{})
 		if err != nil {
 			framework.Logf("Error retrieving %s operator status: %v", client, err)
 		} else {
-			latestAvailableRevision = status.LatestAvailableRevision
+			revision = status.LatestAvailableRevision
 		}
 		return err == nil, nil
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
-	framework.Logf("LatestAvailableRevision for %s is %d", client, latestAvailableRevision)
+	framework.Logf("LatestAvailableRevision for %s is %d", client, revision)
+	return revision
+}
 
+// forceRedeployOperand initiates forced redeployment of an operand.
+func forceRedeployOperand(client *operatorConfigClient) {
 	// Ensure a unique forceRedeploymentReason for each test run to
 	// ensure rollout is always triggered even if running repeatedly
 	// against the same cluster (as when debugging).
@@ -135,7 +152,7 @@ func forceRedeployOperand(client *operatorConfigClient) {
 
 	g.By(fmt.Sprintf("Forcing redeployment of %s", client))
 	data := fmt.Sprintf(`{"spec": {"forceRedeploymentReason": "%s"}}`, reason)
-	err = wait.PollImmediate(redeployWaitInterval, redeployWaitTimeout, func() (done bool, err error) {
+	err := wait.PollImmediate(redeployWaitInterval, redeployWaitTimeout, func() (done bool, err error) {
 		err = client.patch(context.Background(), "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})
 		if err != nil {
 			framework.Logf("Error patching %s operator status to set redeploy reason: %v", client, err)
@@ -143,10 +160,6 @@ func forceRedeployOperand(client *operatorConfigClient) {
 		return err == nil, nil
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
-
-	g.By(fmt.Sprintf("Waiting for %s to be updated on all nodes to a revision greater than %d", client, latestAvailableRevision))
-	waitForRollout(client, latestAvailableRevision)
-	framework.Logf("Rollout complete for %s", client)
 }
 
 // waitForRollout waits for an operator status to indicate that all nodes are
