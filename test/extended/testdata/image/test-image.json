@@ -5,7 +5,7 @@
     "name": "test",
     "creationTimestamp": null
   },
-  "dockerImageReference": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5",
+  "dockerImageReference": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7",
   "dockerImageMetadata": {
     "kind": "DockerImage",
     "apiVersion": "1.0",

@@ -6,7 +6,7 @@ items:
   apiVersion: v1
   metadata:
     name: origin-ruby-sample
-    creationTimestamp: 
+    creationTimestamp:
   spec: {}
   status:
     dockerImageRepository: ''
@@ -14,7 +14,7 @@ items:
   apiVersion: v1
   metadata:
     name: sample-build
-    creationTimestamp: 
+    creationTimestamp:
   spec:
     triggers:
     - type: imageChange
@@ -40,7 +40,7 @@ items:
   apiVersion: v1
   metadata:
     name: sample-s2i-build-noproxy
-    creationTimestamp: 
+    creationTimestamp:
   spec:
     triggers:
     - type: imageChange
@@ -67,7 +67,7 @@ items:
   apiVersion: v1
   metadata:
     name: sample-docker-build-noproxy
-    creationTimestamp: 
+    creationTimestamp:
   spec:
     triggers:
     - type: imageChange
@@ -84,7 +84,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
