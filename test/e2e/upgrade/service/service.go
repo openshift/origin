@@ -89,8 +89,11 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 
 	ginkgo.By("creating RC to be part of service " + serviceName)
 	rc, err := jig.Run(func(rc *v1.ReplicationController) {
+		// ensure the pod waits long enough during update for the LB to see the newly ready pod, which
+		// must be longer than the worst load balancer above (GCP at 32s)
+		rc.Spec.MinReadySeconds = 33
 		// ensure the pod waits long enough for most LBs to take it out of rotation, which has to be
-		// longer than the LB failed health check interval
+		// longer than the LB failed health check duration + 1 cycle
 		rc.Spec.Template.Spec.Containers[0].Lifecycle = &v1.Lifecycle{
 			PreStop: &v1.Handler{
 				Exec: &v1.ExecAction{Command: []string{"sleep", "45"}},
