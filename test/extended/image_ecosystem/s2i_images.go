@@ -42,13 +42,6 @@ var s2iImages = map[string][]tc{
 			Repository: "rhscl",
 			NonAMD:     true,
 		},
-		{
-			Version:    "24",
-			Cmd:        "ruby --version",
-			Expected:   "ruby 2.4",
-			Repository: "rhscl",
-			NonAMD:     false,
-		},
 	},
 	"python": {
 		{

@@ -75,6 +75,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds should support pro
 				o.Expect(buildLog).To(o.ContainSubstring("proxy4"), "build log should include proxy host")
 			})
 			g.It("should start a docker build and wait for the build to succeed", func() {
+				g.Skip("ruby-hello-world Dockerfile requires Ruby 2.7, which is not available on OCP 4.5")
 				g.By("starting the build")
 				br, _ := exutil.StartBuildAndWait(oc, "sample-docker-build-noproxy", "--build-loglevel=5")
 				br.AssertSuccess()

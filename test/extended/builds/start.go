@@ -281,6 +281,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 				})
 
 				g.It("shoud accept --from-archive with https URL as an input", func() {
+					g.Skip("ruby-hello-world Docerfile requires Ruby 2.7, which is not available on OCP 4.5")
 					g.By("starting a valid build with input archive served by https")
 					// can't use sample-build-binary because we need contextDir due to github archives containing the top-level directory
 					br, err := exutil.StartBuildAndWait(oc, "sample-build-github-archive", fmt.Sprintf("--from-archive=%s", exampleArchiveURL))
@@ -364,7 +365,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					g.By("verifying the build output contains the build args from the BuildConfig.")
-					o.Expect(buildLog).To(o.ContainSubstring("default"))
+					o.Expect(buildLog).To(o.ContainSubstring("[Warning] one or more build args were not consumed"))
 				})
 				g.It("Should accept build args that are specified in the Dockerfile", func() {
 					g.By("starting the build with --build-arg flag")

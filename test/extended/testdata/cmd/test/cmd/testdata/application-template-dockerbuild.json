@@ -83,7 +83,7 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-25-centos7"
+        "name": "ruby-26-centos7"
       },
       "spec": {
         "tags": [
@@ -143,7 +143,7 @@
           "dockerStrategy": {
             "from": {
               "kind": "ImageStreamTag",
-              "name": "ruby-25-centos7:latest"
+              "name": "ruby-26-centos7:latest"
             },
             "env": [
               {
