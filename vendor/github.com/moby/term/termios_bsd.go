@@ -1,6 +1,6 @@
 // +build darwin freebsd openbsd netbsd
 
-package term // import "github.com/moby/term"
+package term
 
 import (
 	"unsafe"

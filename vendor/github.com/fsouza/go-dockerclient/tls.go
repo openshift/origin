@@ -38,7 +38,7 @@ func tlsDialWithDialer(dialer *net.Dialer, network, addr string, config *tls.Con
 	timeout := dialer.Timeout
 
 	if !dialer.Deadline.IsZero() {
-		deadlineTimeout := dialer.Deadline.Sub(time.Now())
+		deadlineTimeout := time.Until(dialer.Deadline)
 		if timeout == 0 || deadlineTimeout < timeout {
 			timeout = deadlineTimeout
 		}
@@ -103,16 +103,15 @@ func copyTLSConfig(cfg *tls.Config) *tls.Config {
 		ClientCAs:                cfg.ClientCAs,
 		ClientSessionCache:       cfg.ClientSessionCache,
 		CurvePreferences:         cfg.CurvePreferences,
-		InsecureSkipVerify:       cfg.InsecureSkipVerify,
+		InsecureSkipVerify:       cfg.InsecureSkipVerify, //nolint:gosec
 		MaxVersion:               cfg.MaxVersion,
 		MinVersion:               cfg.MinVersion,
-		NameToCertificate:        cfg.NameToCertificate,
 		NextProtos:               cfg.NextProtos,
 		PreferServerCipherSuites: cfg.PreferServerCipherSuites,
-		Rand:                   cfg.Rand,
-		RootCAs:                cfg.RootCAs,
-		ServerName:             cfg.ServerName,
-		SessionTicketKey:       cfg.SessionTicketKey,
-		SessionTicketsDisabled: cfg.SessionTicketsDisabled,
+		Rand:                     cfg.Rand,
+		RootCAs:                  cfg.RootCAs,
+		ServerName:               cfg.ServerName,
+		SessionTicketKey:         cfg.SessionTicketKey,
+		SessionTicketsDisabled:   cfg.SessionTicketsDisabled,
 	}
 }

@@ -2,7 +2,6 @@ package resourceapply
 
 import (
 	"fmt"
-
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
@@ -30,6 +29,8 @@ var (
 func init() {
 	utilruntime.Must(api.InstallKube(genericScheme))
 	utilruntime.Must(apiextensionsv1beta1.AddToScheme(genericScheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(genericScheme))
+
 }
 
 type AssetFunc func(name string) ([]byte, error)

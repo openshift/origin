@@ -247,7 +247,11 @@ func (c *baseController) processNextWorkItem(queueCtx context.Context) {
 			// logging this helps detecting wedged controllers with missing pre-requirements
 			klog.V(5).Infof("%q controller requested synthetic requeue with key %q", c.name, key)
 		} else {
-			utilruntime.HandleError(fmt.Errorf("%q controller failed to sync %q, err: %w", c.name, key, err))
+			if klog.V(4).Enabled() || key != "key" {
+				utilruntime.HandleError(fmt.Errorf("%q controller failed to sync %q, err: %w", c.name, key, err))
+			} else {
+				utilruntime.HandleError(fmt.Errorf("%s reconciliation failed: %w", c.name, err))
+			}
 		}
 		c.syncContext.Queue().AddRateLimited(key)
 		return

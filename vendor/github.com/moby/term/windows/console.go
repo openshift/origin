@@ -1,6 +1,6 @@
 // +build windows
 
-package windowsconsole // import "github.com/moby/term/windows"
+package windowsconsole
 
 import (
 	"os"
