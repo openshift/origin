@@ -11,10 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-func testKubeletToAPIServerGracefulTermination(events []*monitor.EventInterval) ([]*ginkgo.JUnitTestCase, bool) {
+func testKubeletToAPIServerGracefulTermination(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-node] kubelet terminates kube-apiserver gracefully"
-
-	pass := true
 
 	var failures []string
 	for _, event := range events {
@@ -36,19 +34,17 @@ func testKubeletToAPIServerGracefulTermination(events []*monitor.EventInterval) 
 
 		// while waiting for https://bugzilla.redhat.com/show_bug.cgi?id=1928946 mark as flake
 		tests[0].FailureOutput.Output = "Marked flake while fix for https://bugzilla.redhat.com/show_bug.cgi?id=1928946 is identified:\n\n" + tests[0].FailureOutput.Output
-		// pass = false
-		tests = append(tests, &ginkgo.JUnitTestCase{Name: testName})
-	} else {
 		tests = append(tests, &ginkgo.JUnitTestCase{Name: testName})
 	}
 
-	return tests, pass
+	if len(tests) == 0 {
+		tests = append(tests, &ginkgo.JUnitTestCase{Name: testName})
+	}
+	return tests
 }
 
-func testKubeAPIServerGracefulTermination(events []*monitor.EventInterval) ([]*ginkgo.JUnitTestCase, bool) {
+func testKubeAPIServerGracefulTermination(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-api-machinery] kube-apiserver terminates within graceful termination period"
-
-	pass := true
 
 	var failures []string
 	for _, event := range events {
@@ -67,11 +63,12 @@ func testKubeAPIServerGracefulTermination(events []*monitor.EventInterval) ([]*g
 				Output: fmt.Sprintf("%d kube-apiserver reports a non-graceful termination. This is a bug in kube-apiserver. It probably means that network connections are not closed cleanly, and this leads to network I/O timeout errors in other components.\n\n%v", len(failures), strings.Join(failures, "\n")),
 			},
 		})
-		pass = false
-	} else {
+	}
+
+	if len(tests) == 0 {
 		tests = append(tests, &ginkgo.JUnitTestCase{Name: testName})
 	}
-	return tests, pass
+	return tests
 }
 
 func testPodTransitions(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {
@@ -107,7 +104,7 @@ func formatTimes(times []time.Time) []string {
 	return s
 }
 
-func testNodeUpgradeTransitions(events []*monitor.EventInterval) ([]*ginkgo.JUnitTestCase, bool) {
+func testNodeUpgradeTransitions(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-node] nodes should not go unready after being upgraded and go unready only once"
 
 	var buf bytes.Buffer
@@ -204,9 +201,8 @@ func testNodeUpgradeTransitions(events []*monitor.EventInterval) ([]*ginkgo.JUni
 	}
 	if len(testCases) == 0 {
 		testCases = append(testCases, &ginkgo.JUnitTestCase{Name: testName})
-		return testCases, true
 	}
-	return testCases, false
+	return testCases
 }
 
 func testSystemDTimeout(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {

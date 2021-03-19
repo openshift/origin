@@ -15,13 +15,13 @@ type JUnitsForEvents interface {
 	// JUnitsForEvents returns a set of additional test passes or failures implied by the
 	// events sent during the test suite run. If passed is false, the entire suite is failed.
 	// To set a test as flaky, return a passing and failing JUnitTestCase with the same name.
-	JUnitsForEvents(events monitor.EventIntervals, duration time.Duration) (results []*JUnitTestCase, passed bool)
+	JUnitsForEvents(events monitor.EventIntervals, duration time.Duration) []*JUnitTestCase
 }
 
 // JUnitForEventsFunc converts a function into the JUnitForEvents interface.
-type JUnitForEventsFunc func(events monitor.EventIntervals, duration time.Duration) (results []*JUnitTestCase, passed bool)
+type JUnitForEventsFunc func(events monitor.EventIntervals, duration time.Duration) []*JUnitTestCase
 
-func (fn JUnitForEventsFunc) JUnitsForEvents(events monitor.EventIntervals, duration time.Duration) (results []*JUnitTestCase, passed bool) {
+func (fn JUnitForEventsFunc) JUnitsForEvents(events monitor.EventIntervals, duration time.Duration) []*JUnitTestCase {
 	return fn(events, duration)
 }
 
@@ -29,19 +29,16 @@ func (fn JUnitForEventsFunc) JUnitsForEvents(events monitor.EventIntervals, dura
 // the result of all invocations. It ignores nil interfaces.
 type JUnitsForAllEvents []JUnitsForEvents
 
-func (a JUnitsForAllEvents) JUnitsForEvents(events monitor.EventIntervals, duration time.Duration) (all []*JUnitTestCase, passed bool) {
-	passed = true
+func (a JUnitsForAllEvents) JUnitsForEvents(events monitor.EventIntervals, duration time.Duration) []*JUnitTestCase {
+	var all []*JUnitTestCase
 	for _, obj := range a {
 		if obj == nil {
 			continue
 		}
-		results, testPassed := obj.JUnitsForEvents(events, duration)
-		if !testPassed {
-			passed = false
-		}
+		results := obj.JUnitsForEvents(events, duration)
 		all = append(all, results...)
 	}
-	return all, passed
+	return all
 }
 
 func createEventsForTests(tests []*testCase) []*monitor.EventInterval {

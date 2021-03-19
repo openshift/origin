@@ -285,11 +285,8 @@ func (opt *Options) Run(suite *TestSuite) error {
 
 		var buf *bytes.Buffer
 		syntheticTestResults, buf, _ = createSyntheticTestsFromMonitor(m, eventsForTests, duration)
-		testCases, passed := syntheticEventTests.JUnitsForEvents(events, duration)
+		testCases := syntheticEventTests.JUnitsForEvents(events, duration)
 		syntheticTestResults = append(syntheticTestResults, testCases...)
-		if !passed {
-			syntheticFailure = true
-		}
 
 		if len(syntheticTestResults) > 0 {
 			// mark any failures by name
@@ -311,6 +308,7 @@ func (opt *Options) Run(suite *TestSuite) error {
 			failing = failing.Difference(flaky)
 			if failing.Len() > 0 {
 				fmt.Fprintf(buf, "Failing invariants:\n\n%s\n\n", strings.Join(failing.List(), "\n"))
+				syntheticFailure = true
 			}
 			if flaky.Len() > 0 {
 				fmt.Fprintf(buf, "Flaky invariants:\n\n%s\n\n", strings.Join(flaky.List(), "\n"))

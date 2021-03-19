@@ -202,7 +202,7 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 
 	// any image not in the allowed prefixes is considered a failure, as the user
 	// may have added a new test image without calling the appropriate helpers
-	return func(events monitor.EventIntervals, _ time.Duration) ([]*ginkgo.JUnitTestCase, bool) {
+	return func(events monitor.EventIntervals, _ time.Duration) []*ginkgo.JUnitTestCase {
 		imageStreamPrefixes, err := imagePrefixesFromNamespaceImageStreams("openshift")
 		if err != nil {
 			klog.Errorf("Unable to identify image prefixes from the openshift namespace: %v", err)
@@ -211,7 +211,6 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 
 		allowedPrefixes := allowedPrefixes.List()
 
-		passed := true
 		var tests []*ginkgo.JUnitTestCase
 
 		pulls := make(map[string]sets.String)
@@ -260,10 +259,9 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 					Output: fmt.Sprintf("Cluster accessed images that were not mirrored to the testing repository or already part of the cluster, see test/extended/util/image/README.md in the openshift/origin repo:\n\n%s", buf.String()),
 				},
 			})
-			passed = false
 		}
 
-		return tests, passed
+		return tests
 	}
 }
 

@@ -11,12 +11,10 @@ import (
 // steady state (not being changed externally). Use these with suites that assume the
 // cluster is under no adversarial change (config changes, induced disruption to nodes,
 // etcd, or apis).
-func StableSystemEventInvariants(events monitor.EventIntervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase, passed bool) {
-	tests, _ = SystemEventInvariants(events, duration)
-	results, kubeAPIOk := testKubeAPIServerGracefulTermination(events)
-	tests = append(tests, results...)
-	results, kubeletOk := testKubeletToAPIServerGracefulTermination(events)
-	tests = append(tests, results...)
+func StableSystemEventInvariants(events monitor.EventIntervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase) {
+	tests = SystemEventInvariants(events, duration)
+	tests = append(tests, testKubeAPIServerGracefulTermination(events)...)
+	tests = append(tests, testKubeletToAPIServerGracefulTermination(events)...)
 	tests = append(tests, testPodTransitions(events)...)
 	tests = append(tests, testPodSandboxCreation(events)...)
 	tests = append(tests, testServerAvailability(monitor.LocatorKubeAPIServerNewConnection, events, duration)...)
@@ -27,28 +25,25 @@ func StableSystemEventInvariants(events monitor.EventIntervals, duration time.Du
 	tests = append(tests, testServerAvailability(monitor.LocatorOAuthAPIServerReusedConnection, events, duration)...)
 	tests = append(tests, testOperatorStateTransitions(events)...)
 
-	return tests, kubeAPIOk && kubeletOk
+	return tests
 }
 
 // systemUpgradeEventInvariants are invariants tested against events that should hold true in a cluster
 // that is being upgraded without induced disruption
-func SystemUpgradeEventInvariants(events monitor.EventIntervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase, passed bool) {
-	tests, _ = SystemEventInvariants(events, duration)
-	results, kubeAPIOk := testKubeAPIServerGracefulTermination(events)
-	tests = append(tests, results...)
-	results, kubeletOk := testKubeletToAPIServerGracefulTermination(events)
-	tests = append(tests, results...)
+func SystemUpgradeEventInvariants(events monitor.EventIntervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase) {
+	tests = SystemEventInvariants(events, duration)
+	tests = append(tests, testKubeAPIServerGracefulTermination(events)...)
+	tests = append(tests, testKubeletToAPIServerGracefulTermination(events)...)
 	tests = append(tests, testPodTransitions(events)...)
 	tests = append(tests, testPodSandboxCreation(events)...)
-	results, nodeUpgradeOk := testNodeUpgradeTransitions(events)
-	tests = append(tests, results...)
-	return tests, kubeAPIOk && kubeletOk && nodeUpgradeOk
+	tests = append(tests, testNodeUpgradeTransitions(events)...)
+	return tests
 }
 
 // systemEventInvariants are invariants tested against events that should hold true in any cluster,
 // even one undergoing disruption. These are usually focused on things that must be true on a single
 // machine, even if the machine crashes.
-func SystemEventInvariants(events monitor.EventIntervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase, passed bool) {
+func SystemEventInvariants(events monitor.EventIntervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase) {
 	tests = append(tests, testSystemDTimeout(events)...)
-	return tests, true
+	return tests
 }
