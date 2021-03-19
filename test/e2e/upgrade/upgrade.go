@@ -277,9 +277,11 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 	case upgradeAbortAtRandom:
 		abortAt = int(rand.Int31n(100) + 1)
 		maximumDuration *= 2
+		durationToSoftFailure *= 2
 		framework.Logf("Upgrade will be aborted and the cluster will roll back to the current version after %d%% of operators have upgraded (picked randomly)", abortAt)
 	default:
 		maximumDuration *= 2
+		durationToSoftFailure *= 2
 		framework.Logf("Upgrade will be aborted and the cluster will roll back to the current version after %d%% of operators have upgraded", upgradeAbortAt)
 	}
 
@@ -349,6 +351,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		func() error {
 			framework.Logf("Cluster version operator acknowledged upgrade request")
 			aborted := false
+			action := "upgrade"
 			var lastMessage string
 			upgradeStarted := time.Now()
 
@@ -383,6 +386,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 					}
 					recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeRollback", fmt.Sprintf("version/%s image/%s", original.Status.Desired.Version, original.Status.Desired.Version), false)
 					aborted = true
+					action = "aborted upgrade"
 					return false, nil
 				}
 
@@ -390,19 +394,19 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 
 			}); err != nil {
 				if lastMessage != "" {
-					return fmt.Errorf("Cluster did not complete upgrade: %v: %s", err, lastMessage)
+					return fmt.Errorf("Cluster did not complete %s: %v: %s", action, err, lastMessage)
 				}
-				return fmt.Errorf("Cluster did not complete upgrade: %v", err)
+				return fmt.Errorf("Cluster did not complete %s: %v", action, err)
 			}
 
-			framework.Logf("Completed upgrade to %s", versionString(desired))
+			framework.Logf("Completed %s to %s", action, versionString(desired))
 			recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeVersion", fmt.Sprintf("version/%s image/%s", updated.Status.Desired.Version, updated.Status.Desired.Version), false)
 
 			// record whether the cluster was fast or slow upgrading.  Don't fail the test, we still want signal on the actual tests themselves.
 			upgradeEnded := time.Now()
 			upgradeDuration := upgradeEnded.Sub(upgradeStarted)
 			if upgradeDuration > durationToSoftFailure {
-				disruption.RecordJUnitResult(f, "[sig-cluster-lifecycle] cluster upgrade should be fast", upgradeDuration, fmt.Sprintf("Upgrade took too long: %v", upgradeDuration.Minutes()))
+				disruption.RecordJUnitResult(f, "[sig-cluster-lifecycle] cluster upgrade should be fast", upgradeDuration, fmt.Sprintf("%s to %s took too long: %v", action, versionString(desired), upgradeDuration.Minutes()))
 			} else {
 				disruption.RecordJUnitResult(f, "[sig-cluster-lifecycle] cluster upgrade should be fast", upgradeDuration, "")
 			}
