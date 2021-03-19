@@ -95,6 +95,9 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 			"apps/v1/Deployment/openshift-machine-api/metal3/container/metal3-mariadb/request[memory]":                "https://bugzilla.redhat.com/show_bug.cgi?id=1940518",
 			"apps/v1/Deployment/openshift-machine-api/metal3/container/metal3-static-ip-manager/request[cpu]":         "https://bugzilla.redhat.com/show_bug.cgi?id=1940518",
 			"apps/v1/Deployment/openshift-machine-api/metal3/container/metal3-static-ip-manager/request[memory]":      "https://bugzilla.redhat.com/show_bug.cgi?id=1940518",
+
+			"apps/v1/Deployment/openshift-cluster-csi-drivers/ovirt-csi-driver-controller/container/csi-provisioner/request[cpu]":    "https://bugzilla.redhat.com/show_bug.cgi?id=1940876",
+			"apps/v1/Deployment/openshift-cluster-csi-drivers/ovirt-csi-driver-controller/container/csi-provisioner/request[memory]": "https://bugzilla.redhat.com/show_bug.cgi?id=1940876",
 		}
 
 		// pods with an exception granted, the value should be the justification and the approver (a release architect)
