@@ -855,6 +855,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch] Managed cluster should should expose cluster services outside the cluster": "should expose cluster services outside the cluster [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-arch] OCP Payload should allow targeting management cores": "should allow targeting management cores [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch] OCP Payload should run pods on management cores": "should run pods on management cores [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-arch] [Conformance] FIPS TestFIPS": "TestFIPS [Suite:openshift/conformance/parallel/minimal]",
 
 	"[Top Level] [sig-arch] ocp payload should be based on existing source [Serial] olm version should contain the source commit id": "[Serial] olm version should contain the source commit id [Suite:openshift/conformance/serial]",
