@@ -25,7 +25,7 @@ FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 USER 1001
 `
 		testDockerfile2 = `
-FROM image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5
+FROM image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7
 USER 1001
 `
 		testDockerfile3 = `
@@ -109,7 +109,7 @@ USER 1001
 				o.Expect(image.Image.DockerImageMetadata.Object.(*docker10.DockerImage).Config.User).To(o.Equal("1001"))
 
 				g.By("checking for the imported tag")
-				_, err = oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), "ruby:2.5", metav1.GetOptions{})
+				_, err = oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), "ruby:2.7", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 

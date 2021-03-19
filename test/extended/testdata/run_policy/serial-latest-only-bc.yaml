@@ -2,29 +2,28 @@
   kind: "List"
   apiVersion: "v1"
   metadata: {}
-  items: 
-    - 
+  items:
+    -
       kind: "BuildConfig"
       apiVersion: "v1"
-      metadata: 
+      metadata:
         name: "sample-serial-latest-only-build"
-      spec: 
+      spec:
         runPolicy: "SerialLatestOnly"
-        triggers: 
-          - 
+        triggers:
+          -
             type: "imageChange"
             imageChange: {}
-        source: 
+        source:
           type: "Git"
-          git: 
-            uri: "git://github.com/openshift/ruby-hello-world.git"
-        strategy: 
+          git:
+            uri: "https://github.com/openshift/ruby-hello-world.git"
+        strategy:
           type: "Source"
-          sourceStrategy: 
-            from: 
+          sourceStrategy:
+            from:
               kind: "DockerImage"
-              name: "registry.redhat.io/rhscl/ruby-25-rhel7:latest"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
         resources: {}
-      status: 
+      status:
         lastVersion: 0
-

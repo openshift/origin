@@ -268,36 +268,18 @@
           },
           {
             "annotations": {
-              "description": "Provides a MongoDB 2.4 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/2.4/README.md.",
+              "description": "Provides a MongoDB 2.7 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/blob/master/2.7/README.md.",
               "iconClass": "icon-mongodb",
-              "openshift.io/display-name": "MongoDB 2.4",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "tags": "hidden,mongodb",
-              "version": "2.4"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/openshift/mongodb-24-centos7:latest"
-            },
-            "name": "2.4",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
-              "description": "Provides a MongoDB 2.6 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/2.6/README.md.",
-              "iconClass": "icon-mongodb",
-              "openshift.io/display-name": "MongoDB 2.6",
+              "openshift.io/display-name": "MongoDB 2.7",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "tags": "hidden,database,mongodb",
-              "version": "2.6"
+              "version": "2.7"
             },
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/mongodb-26-centos7:latest"
             },
-            "name": "2.6",
+            "name": "2.7",
             "referencePolicy": {
               "type": "Local"
             }
@@ -1258,7 +1240,7 @@
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "2.5"
+              "name": "2.7"
             },
             "name": "latest",
             "referencePolicy": {
@@ -1266,101 +1248,23 @@
             }
           },
           {
+            "name": "2.7-ubi8",
             "annotations": {
-              "description": "Build and run Ruby 2.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.0/README.md.",
+              "description": "Build and run Ruby 2.7 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.7/README.md.",
               "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 2.0",
+              "openshift.io/display-name": "Ruby 2.7 (UBI 8)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:2.0,ruby",
-              "tags": "hidden,builder,ruby",
-              "version": "2.0"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/openshift/ruby-20-centos7:latest"
-            },
-            "name": "2.0",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
-              "description": "Build and run Ruby 2.2 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.2/README.md.",
-              "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 2.2",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:2.2,ruby",
-              "tags": "hidden,builder,ruby",
-              "version": "2.2"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/centos/ruby-22-centos7:latest"
-            },
-            "name": "2.2",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
-              "description": "Build and run Ruby 2.3 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.3/README.md.",
-              "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 2.3",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:2.3,ruby",
+              "supports": "ruby:2.7,ruby",
               "tags": "builder,ruby",
-              "version": "2.3"
+              "version": "2.7"
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/ruby-23-centos7:latest"
+              "name": "registry.access.redhat.com/ubi8/ruby-27:latest"
             },
-            "name": "2.3",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
-              "description": "Build and run Ruby 2.4 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.4/README.md.",
-              "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 2.4",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:2.4,ruby",
-              "tags": "builder,ruby",
-              "version": "2.4"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/centos/ruby-24-centos7:latest"
-            },
-            "name": "2.4",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
-              "description": "Build and run Ruby 2.5 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.5/README.md.",
-              "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 2.5",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:2.5,ruby",
-              "tags": "builder,ruby",
-              "version": "2.5"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/centos/ruby-25-centos7:latest"
-            },
-            "name": "2.5",
+            "generation": null,
+            "importPolicy": {},
             "referencePolicy": {
               "type": "Local"
             }
