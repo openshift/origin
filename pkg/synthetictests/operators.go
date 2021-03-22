@@ -87,7 +87,7 @@ func testOperatorState(interestingCondition configv1.ClusterStatusConditionType,
 
 	for clusterOperator, events := range clusterOperatorToEvents {
 		for _, event := range events {
-			condition := monitor.GetOperatorConditionStatus(event.Message)
+			condition := monitorapi.GetOperatorConditionStatus(event.Message)
 			if condition == nil || condition.Type != interestingCondition {
 				continue
 			}

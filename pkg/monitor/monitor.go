@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/intervalcreation"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
@@ -134,6 +136,11 @@ func (m *Monitor) EventIntervals(from, to time.Time) monitorapi.EventIntervals {
 	samples, events := m.snapshot()
 	intervals := filterSamples(samples, from, to)
 	events = filterEvents(events, from, to)
+
+	// create additional intervals from events
+	intervals = append(intervals, intervalcreation.IntervalsFromEvents_OperatorAvailable(events, from, to)...)
+	intervals = append(intervals, intervalcreation.IntervalsFromEvents_OperatorProgressing(events, from, to)...)
+	intervals = append(intervals, intervalcreation.IntervalsFromEvents_OperatorDegraded(events, from, to)...)
 
 	// merge the two sets of inputs
 	mustSort := len(intervals) > 0
