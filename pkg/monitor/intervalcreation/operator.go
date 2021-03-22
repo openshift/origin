@@ -5,7 +5,6 @@ import (
 	"time"
 
 	configv1 "github.com/openshift/api/config/v1"
-
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 

@@ -6,6 +6,8 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
+type IntervalCreationFunc func(events []*monitorapi.Event, beginning, end time.Time) monitorapi.EventIntervals
+
 type SamplerFunc func(time.Time) []*monitorapi.Condition
 
 type Interface interface {
