@@ -8,11 +8,14 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
 	"syscall"
 	"time"
+
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 
 	"github.com/openshift/origin/pkg/monitor"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -280,7 +283,11 @@ func (opt *Options) Run(suite *TestSuite) error {
 	// monitor the cluster while the tests are running and report any detected anomalies
 	var syntheticTestResults []*JUnitTestCase
 	var syntheticFailure bool
-	if events := m.Events(time.Time{}, time.Time{}); len(events) > 0 {
+	events := m.Events(time.Time{}, time.Time{})
+	if err = monitorserialization.EventsToFile(path.Join(os.Getenv("ARTIFACT_DIR"), "e2e-events.json"), events); err != nil {
+		fmt.Fprintf(opt.Out, "Failed to write event file: %v\n", err)
+	}
+	if len(events) > 0 {
 		eventsForTests := createEventsForTests(tests)
 
 		var buf *bytes.Buffer
