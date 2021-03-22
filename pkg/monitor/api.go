@@ -10,10 +10,9 @@ import (
 	"sync"
 	"time"
 
+	configclientset "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
-	"k8s.io/client-go/transport"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -22,8 +21,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
-
-	configclientset "github.com/openshift/client-go/config/clientset/versioned"
+	"k8s.io/client-go/transport"
 )
 
 const (
@@ -74,7 +72,17 @@ func Start(ctx context.Context) (*Monitor, error) {
 	startPodMonitoring(ctx, m, client)
 	startNodeMonitoring(ctx, m, client)
 	startEventMonitoring(ctx, m, client)
+
+	// add interval creation at the same point where we add the monitors
 	startClusterOperatorMonitoring(ctx, m, configClient)
+	m.intervalCreationFns = append(
+		m.intervalCreationFns,
+		intervalcreation.IntervalsFromEvents_OperatorAvailable,
+		intervalcreation.IntervalsFromEvents_OperatorProgressing,
+		intervalcreation.IntervalsFromEvents_OperatorDegraded,
+	)
+
+	m.intervalCreationFns = append(m.intervalCreationFns, intervalcreation.IntervalsFromEvents_E2ETests)
 
 	m.StartSampling(ctx)
 	return m, nil

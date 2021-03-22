@@ -17,7 +17,7 @@ func testOperatorStateTransitions(events []*monitorapi.EventInterval) []*ginkgo.
 
 	knownOperators := allOperators(events)
 	eventsByOperator := getEventsByOperator(events)
-	e2eEvents := monitor.E2ETestEvents(events)
+	e2eEventIntervals := monitor.E2ETestEventIntervals(events)
 	for _, condition := range []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded, configv1.OperatorProgressing} {
 		for _, operatorName := range knownOperators.List() {
 			bzComponent := GetBugzillaComponentForOperator(operatorName)
@@ -31,7 +31,7 @@ func testOperatorStateTransitions(events []*monitorapi.EventInterval) []*ginkgo.
 				continue
 			}
 
-			failures := testOperatorState(condition, operatorEvents, e2eEvents)
+			failures := testOperatorState(condition, operatorEvents, e2eEventIntervals)
 			if len(failures) > 0 {
 				ret = append(ret, &ginkgo.JUnitTestCase{
 					Name:      testName,
@@ -77,7 +77,7 @@ func getEventsByOperator(events []*monitorapi.EventInterval) map[string][]*monit
 	return eventsByClusterOperator
 }
 
-func testOperatorState(interestingCondition configv1.ClusterStatusConditionType, eventIntervals []*monitorapi.EventInterval, e2eEvents []*monitorapi.EventInterval) []string {
+func testOperatorState(interestingCondition configv1.ClusterStatusConditionType, eventIntervals []*monitorapi.EventInterval, e2eEventIntervals []*monitorapi.EventInterval) []string {
 	failures := []string{}
 
 	for _, eventInterval := range eventIntervals {
@@ -92,9 +92,21 @@ func testOperatorState(interestingCondition configv1.ClusterStatusConditionType,
 		// if there was any switch, it was wrong/unexpected at some point
 		failures = append(failures, fmt.Sprintf("%v", eventInterval))
 
-		failedTests := monitor.FindFailedTestsActiveBetween(e2eEvents, eventInterval.From, eventInterval.From)
-		if len(failedTests) > 0 {
-			failures = append(failures, fmt.Sprintf("%d tests failed during this blip (%v to %v): %v", len(failedTests), eventInterval.From, eventInterval.From, strings.Join(failedTests, ",")))
+		overlappingE2EIntervals := monitor.FindOverlap(e2eEventIntervals, eventInterval.From, eventInterval.From)
+		concurrentE2E := []string{}
+		for _, overlap := range overlappingE2EIntervals {
+			if overlap.Level == monitorapi.Info {
+				continue
+			}
+			e2eTest, ok := monitorapi.E2ETestFromLocator(overlap.Locator)
+			if !ok {
+				continue
+			}
+			concurrentE2E = append(concurrentE2E, fmt.Sprintf("%v", e2eTest))
+		}
+
+		if len(concurrentE2E) > 0 {
+			failures = append(failures, fmt.Sprintf("%d tests failed during this blip (%v to %v): %v", len(concurrentE2E), eventInterval.From, eventInterval.From, strings.Join(concurrentE2E, "\n")))
 		}
 	}
 	return failures

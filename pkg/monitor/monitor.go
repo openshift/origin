@@ -7,16 +7,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/intervalcreation"
-
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 // Monitor records events that have occurred in memory and can also periodically
 // sample results.
 type Monitor struct {
-	interval time.Duration
-	samplers []SamplerFunc
+	interval            time.Duration
+	samplers            []SamplerFunc
+	intervalCreationFns []IntervalCreationFunc
 
 	lock    sync.Mutex
 	events  []*monitorapi.Event
@@ -138,9 +137,9 @@ func (m *Monitor) EventIntervals(from, to time.Time) monitorapi.EventIntervals {
 	events = filterEvents(events, from, to)
 
 	// create additional intervals from events
-	intervals = append(intervals, intervalcreation.IntervalsFromEvents_OperatorAvailable(events, from, to)...)
-	intervals = append(intervals, intervalcreation.IntervalsFromEvents_OperatorProgressing(events, from, to)...)
-	intervals = append(intervals, intervalcreation.IntervalsFromEvents_OperatorDegraded(events, from, to)...)
+	for _, createIntervals := range m.intervalCreationFns {
+		intervals = append(intervals, createIntervals(events, from, to)...)
+	}
 
 	// merge the two sets of inputs
 	mustSort := len(intervals) > 0
