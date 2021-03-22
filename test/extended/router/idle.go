@@ -42,7 +42,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster-wide infrastructure")
 			switch infra.Status.PlatformStatus.Type {
-			case configv1.OvirtPlatformType, configv1.KubevirtPlatformType, configv1.LibvirtPlatformType, configv1.VSpherePlatformType:
+			case configv1.OvirtPlatformType, configv1.LibvirtPlatformType, configv1.VSpherePlatformType:
 				// Skip on platforms where the default
 				// router is not exposed by a load
 				// balancer service.
