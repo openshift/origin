@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -91,13 +93,13 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 							default:
 								message = fmt.Sprintf("reason/%s %s", obj.Reason, message)
 							}
-							condition := Condition{
-								Level:   Info,
+							condition := monitorapi.Condition{
+								Level:   monitorapi.Info,
 								Locator: locateEvent(obj),
 								Message: message,
 							}
 							if obj.Type == corev1.EventTypeWarning {
-								condition.Level = Warning
+								condition.Level = monitorapi.Warning
 							}
 							m.Record(condition)
 						case watch.Error:
@@ -111,8 +113,8 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 							} else {
 								message = fmt.Sprintf("event object was not a Status: %T", event.Object)
 							}
-							m.Record(Condition{
-								Level:   Info,
+							m.Record(monitorapi.Condition{
+								Level:   monitorapi.Info,
 								Locator: "kube-apiserver",
 								Message: fmt.Sprintf("received an error while watching events: %s", message),
 							})

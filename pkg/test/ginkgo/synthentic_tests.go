@@ -6,6 +6,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+
 	"github.com/openshift/origin/pkg/monitor"
 )
 
@@ -15,13 +17,13 @@ type JUnitsForEvents interface {
 	// JUnitsForEvents returns a set of additional test passes or failures implied by the
 	// events sent during the test suite run. If passed is false, the entire suite is failed.
 	// To set a test as flaky, return a passing and failing JUnitTestCase with the same name.
-	JUnitsForEvents(events monitor.EventIntervals, duration time.Duration) []*JUnitTestCase
+	JUnitsForEvents(events monitorapi.EventIntervals, duration time.Duration) []*JUnitTestCase
 }
 
 // JUnitForEventsFunc converts a function into the JUnitForEvents interface.
-type JUnitForEventsFunc func(events monitor.EventIntervals, duration time.Duration) []*JUnitTestCase
+type JUnitForEventsFunc func(events monitorapi.EventIntervals, duration time.Duration) []*JUnitTestCase
 
-func (fn JUnitForEventsFunc) JUnitsForEvents(events monitor.EventIntervals, duration time.Duration) []*JUnitTestCase {
+func (fn JUnitForEventsFunc) JUnitsForEvents(events monitorapi.EventIntervals, duration time.Duration) []*JUnitTestCase {
 	return fn(events, duration)
 }
 
@@ -29,7 +31,7 @@ func (fn JUnitForEventsFunc) JUnitsForEvents(events monitor.EventIntervals, dura
 // the result of all invocations. It ignores nil interfaces.
 type JUnitsForAllEvents []JUnitsForEvents
 
-func (a JUnitsForAllEvents) JUnitsForEvents(events monitor.EventIntervals, duration time.Duration) []*JUnitTestCase {
+func (a JUnitsForAllEvents) JUnitsForEvents(events monitorapi.EventIntervals, duration time.Duration) []*JUnitTestCase {
 	var all []*JUnitTestCase
 	for _, obj := range a {
 		if obj == nil {
@@ -41,27 +43,27 @@ func (a JUnitsForAllEvents) JUnitsForEvents(events monitor.EventIntervals, durat
 	return all
 }
 
-func createEventsForTests(tests []*testCase) []*monitor.EventInterval {
-	eventsForTests := []*monitor.EventInterval{}
+func createEventsForTests(tests []*testCase) []*monitorapi.EventInterval {
+	eventsForTests := []*monitorapi.EventInterval{}
 	for _, test := range tests {
 		if !test.failed {
 			continue
 		}
 		eventsForTests = append(eventsForTests,
-			&monitor.EventInterval{
+			&monitorapi.EventInterval{
 				From: test.start,
 				To:   test.end,
-				Condition: &monitor.Condition{
-					Level:   monitor.Info,
+				Condition: &monitorapi.Condition{
+					Level:   monitorapi.Info,
 					Locator: fmt.Sprintf("test=%q", test.name),
 					Message: "running",
 				},
 			},
-			&monitor.EventInterval{
+			&monitorapi.EventInterval{
 				From: test.end,
 				To:   test.end,
-				Condition: &monitor.Condition{
-					Level:   monitor.Info,
+				Condition: &monitorapi.Condition{
+					Level:   monitorapi.Info,
 					Locator: fmt.Sprintf("test=%q", test.name),
 					Message: "failed",
 				},
@@ -71,7 +73,7 @@ func createEventsForTests(tests []*testCase) []*monitor.EventInterval {
 	return eventsForTests
 }
 
-func createSyntheticTestsFromMonitor(m *monitor.Monitor, eventsForTests []*monitor.EventInterval, monitorDuration time.Duration) ([]*JUnitTestCase, *bytes.Buffer, *bytes.Buffer) {
+func createSyntheticTestsFromMonitor(m *monitor.Monitor, eventsForTests []*monitorapi.EventInterval, monitorDuration time.Duration) ([]*JUnitTestCase, *bytes.Buffer, *bytes.Buffer) {
 	var syntheticTestResults []*JUnitTestCase
 
 	events := m.EventIntervals(time.Time{}, time.Time{})
@@ -82,7 +84,7 @@ func createSyntheticTestsFromMonitor(m *monitor.Monitor, eventsForTests []*monit
 	fmt.Fprintf(buf, "\nTimeline:\n\n")
 	errorCount := 0
 	for _, event := range events {
-		if event.Level == monitor.Error {
+		if event.Level == monitorapi.Error {
 			errorCount++
 			fmt.Fprintln(errBuf, event.String())
 		}

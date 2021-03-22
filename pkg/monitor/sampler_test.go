@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+
 	"k8s.io/apimachinery/pkg/util/diff"
 )
 
@@ -17,31 +19,31 @@ func TestStartSampling(t *testing.T) {
 
 	doneCh := make(chan struct{})
 	var count int
-	m.AddSampler(StartSampling(ctx, m, 21*time.Millisecond, func(previous bool) (condition *Condition, next bool) {
+	m.AddSampler(StartSampling(ctx, m, 21*time.Millisecond, func(previous bool) (condition *monitorapi.Condition, next bool) {
 		defer func() { count++ }()
 		switch {
 		case count <= 5:
 			return nil, true
 		case count == 6:
-			return &Condition{Level: Error, Locator: "tester", Message: "dying"}, false
+			return &monitorapi.Condition{Level: monitorapi.Error, Locator: "tester", Message: "dying"}, false
 		case count == 7:
-			return &Condition{Level: Info, Locator: "tester", Message: "recovering"}, true
+			return &monitorapi.Condition{Level: monitorapi.Info, Locator: "tester", Message: "recovering"}, true
 		case count <= 12:
 			return nil, true
 		case count == 13:
-			return &Condition{Level: Error, Locator: "tester", Message: "dying 2"}, false
+			return &monitorapi.Condition{Level: monitorapi.Error, Locator: "tester", Message: "dying 2"}, false
 		case count <= 16:
 			return nil, false
 		case count == 17:
-			return &Condition{Level: Info, Locator: "tester", Message: "recovering 2"}, true
+			return &monitorapi.Condition{Level: monitorapi.Info, Locator: "tester", Message: "recovering 2"}, true
 		case count <= 20:
 			return nil, true
 		default:
 			doneCh <- struct{}{}
 			return nil, true
 		}
-	}).ConditionWhenFailing(&Condition{
-		Level:   Error,
+	}).ConditionWhenFailing(&monitorapi.Condition{
+		Level:   monitorapi.Error,
 		Locator: "tester",
 		Message: "down",
 	}))

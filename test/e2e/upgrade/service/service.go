@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+
 	"github.com/onsi/ginkgo"
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
@@ -184,7 +186,7 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 	}
 
 	m.AddSampler(
-		monitor.StartSampling(ctx, m, time.Second, func(previous bool) (condition *monitor.Condition, next bool) {
+		monitor.StartSampling(ctx, m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
 			resp, err := continuousClient.Get(url)
 			if err == nil {
 				defer resp.Body.Close()
@@ -195,16 +197,16 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 			}
 			switch {
 			case err == nil && !previous:
-				condition = &monitor.Condition{
-					Level:   monitor.Info,
+				condition = &monitorapi.Condition{
+					Level:   monitorapi.Info,
 					Locator: locateService(svc),
 					Message: "Service started responding to GET requests on reused connections",
 				}
 			case err != nil && previous:
 				framework.Logf("Service %s is unreachable on reused connections: %v", svc.Name, err)
 				r.Eventf(&v1.ObjectReference{Kind: "Service", Namespace: "kube-system", Name: "service-upgrade-test"}, nil, v1.EventTypeWarning, "Unreachable", "detected", "on reused connections")
-				condition = &monitor.Condition{
-					Level:   monitor.Error,
+				condition = &monitorapi.Condition{
+					Level:   monitorapi.Error,
 					Locator: locateService(svc),
 					Message: "Service stopped responding to GET requests on reused connections",
 				}
@@ -212,8 +214,8 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 				framework.Logf("Service %s is unreachable on reused connections: %v", svc.Name, err)
 			}
 			return condition, err == nil
-		}).ConditionWhenFailing(&monitor.Condition{
-			Level:   monitor.Error,
+		}).ConditionWhenFailing(&monitorapi.Condition{
+			Level:   monitorapi.Error,
 			Locator: locateService(svc),
 			Message: "Service is not responding to GET requests on reused connections",
 		}),
@@ -233,7 +235,7 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 		},
 	}
 	m.AddSampler(
-		monitor.StartSampling(ctx, m, time.Second, func(previous bool) (condition *monitor.Condition, next bool) {
+		monitor.StartSampling(ctx, m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
 			resp, err := client.Get(url)
 			if err == nil {
 				defer resp.Body.Close()
@@ -244,16 +246,16 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 			}
 			switch {
 			case err == nil && !previous:
-				condition = &monitor.Condition{
-					Level:   monitor.Info,
+				condition = &monitorapi.Condition{
+					Level:   monitorapi.Info,
 					Locator: locateService(svc),
 					Message: "Service started responding to GET requests over new connections",
 				}
 			case err != nil && previous:
 				framework.Logf("Service %s is unreachable on new connections: %v", svc.Name, err)
 				r.Eventf(&v1.ObjectReference{Kind: "Service", Namespace: "kube-system", Name: "service-upgrade-test"}, nil, v1.EventTypeWarning, "Unreachable", "detected", "on new connections")
-				condition = &monitor.Condition{
-					Level:   monitor.Error,
+				condition = &monitorapi.Condition{
+					Level:   monitorapi.Error,
 					Locator: locateService(svc),
 					Message: "Service stopped responding to GET requests over new connections",
 				}
@@ -261,8 +263,8 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 				framework.Logf("Service %s is unreachable on new connections: %v", svc.Name, err)
 			}
 			return condition, err == nil
-		}).ConditionWhenFailing(&monitor.Condition{
-			Level:   monitor.Error,
+		}).ConditionWhenFailing(&monitorapi.Condition{
+			Level:   monitorapi.Error,
 			Locator: locateService(svc),
 			Message: "Service is not responding to GET requests over new connections",
 		}),

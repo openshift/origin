@@ -5,7 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+
 	"github.com/openshift/origin/pkg/test/ginkgo"
 )
 
@@ -14,7 +15,7 @@ type testCategorizer struct {
 	substring string
 }
 
-func testPodSandboxCreation(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {
+func testPodSandboxCreation(events []*monitorapi.EventInterval) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-network] pods should successfully create sandboxes"
 	// we can further refine this signal by subdividing different failure modes if it is pertinent.  Right now I'm seeing
 	// 1. error reading container (probably exited) json message: EOF
@@ -128,8 +129,8 @@ func categorizeBySubset(categorizers []testCategorizer, failures, flakes []strin
 }
 
 // getEventsByPod returns map keyed by pod locator with all events associated with it.
-func getEventsByPod(events []*monitor.EventInterval) map[string][]*monitor.EventInterval {
-	eventsByPods := map[string][]*monitor.EventInterval{}
+func getEventsByPod(events []*monitorapi.EventInterval) map[string][]*monitorapi.EventInterval {
+	eventsByPods := map[string][]*monitorapi.EventInterval{}
 	for _, event := range events {
 		if !strings.Contains(event.Locator, "pod/") {
 			continue
@@ -139,7 +140,7 @@ func getEventsByPod(events []*monitor.EventInterval) map[string][]*monitor.Event
 	return eventsByPods
 }
 
-func getPodDeletionTime(events []*monitor.EventInterval, podLocator string) *time.Time {
+func getPodDeletionTime(events []*monitorapi.EventInterval, podLocator string) *time.Time {
 	for _, event := range events {
 		if event.Locator == podLocator && event.Message == "reason/Deleted" {
 			return &event.From

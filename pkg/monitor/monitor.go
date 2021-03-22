@@ -6,6 +6,8 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 // Monitor records events that have occurred in memory and can also periodically
@@ -15,7 +17,7 @@ type Monitor struct {
 	samplers []SamplerFunc
 
 	lock    sync.Mutex
-	events  []*Event
+	events  []*monitorapi.Event
 	samples []*sample
 }
 
@@ -67,7 +69,7 @@ func (m *Monitor) AddSampler(fn SamplerFunc) {
 
 // Record captures one or more conditions at the current time. All conditions are recorded
 // in monotonic order as Event objects.
-func (m *Monitor) Record(conditions ...Condition) {
+func (m *Monitor) Record(conditions ...monitorapi.Condition) {
 	if len(conditions) == 0 {
 		return
 	}
@@ -75,7 +77,7 @@ func (m *Monitor) Record(conditions ...Condition) {
 	defer m.lock.Unlock()
 	t := time.Now().UTC()
 	for _, condition := range conditions {
-		m.events = append(m.events, &Event{
+		m.events = append(m.events, &monitorapi.Event{
 			At:        t,
 			Condition: condition,
 		})
@@ -88,7 +90,7 @@ func (m *Monitor) sample(hasPrevious bool) bool {
 	m.lock.Unlock()
 
 	now := time.Now().UTC()
-	var conditions []*Condition
+	var conditions []*monitorapi.Condition
 	for _, fn := range samplers {
 		conditions = append(conditions, fn(now)...)
 	}
@@ -108,7 +110,7 @@ func (m *Monitor) sample(hasPrevious bool) bool {
 	return len(conditions) > 0
 }
 
-func (m *Monitor) snapshot() ([]*sample, []*Event) {
+func (m *Monitor) snapshot() ([]*sample, []*monitorapi.Event) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	return m.samples, m.events
@@ -120,7 +122,7 @@ func (m *Monitor) snapshot() ([]*sample, []*Event) {
 // their first sampling. A condition that was only sampled once is
 // returned with from == to. No duplicate conditions are returned
 // unless a sampling interval did not report that value.
-func (m *Monitor) Conditions(from, to time.Time) EventIntervals {
+func (m *Monitor) Conditions(from, to time.Time) monitorapi.EventIntervals {
 	samples, _ := m.snapshot()
 	return filterSamples(samples, from, to)
 }
@@ -128,7 +130,7 @@ func (m *Monitor) Conditions(from, to time.Time) EventIntervals {
 // Events returns all events that occur between from and to, including
 // any sampled conditions that were encountered during that period.
 // EventIntervals are returned in order of their occurrence.
-func (m *Monitor) EventIntervals(from, to time.Time) EventIntervals {
+func (m *Monitor) EventIntervals(from, to time.Time) monitorapi.EventIntervals {
 	samples, events := m.snapshot()
 	intervals := filterSamples(samples, from, to)
 	events = filterEvents(events, from, to)
@@ -147,7 +149,7 @@ func (m *Monitor) EventIntervals(from, to time.Time) EventIntervals {
 		}
 
 		condition := &events[i].Condition
-		intervals = append(intervals, &EventInterval{
+		intervals = append(intervals, &monitorapi.EventInterval{
 			From:      from,
 			To:        to,
 			Condition: condition,
@@ -159,7 +161,7 @@ func (m *Monitor) EventIntervals(from, to time.Time) EventIntervals {
 	return intervals
 }
 
-func filterSamples(samples []*sample, from, to time.Time) EventIntervals {
+func filterSamples(samples []*sample, from, to time.Time) monitorapi.EventIntervals {
 	if len(samples) == 0 {
 		return nil
 	}
@@ -186,8 +188,8 @@ func filterSamples(samples []*sample, from, to time.Time) EventIntervals {
 		return nil
 	}
 
-	intervals := make(EventIntervals, 0, len(samples)*2)
-	last, next := make(map[Condition]*EventInterval), make(map[Condition]*EventInterval)
+	intervals := make(monitorapi.EventIntervals, 0, len(samples)*2)
+	last, next := make(map[monitorapi.Condition]*monitorapi.EventInterval), make(map[monitorapi.Condition]*monitorapi.EventInterval)
 	for _, sample := range samples {
 		for _, condition := range sample.conditions {
 			interval, ok := last[*condition]
@@ -196,7 +198,7 @@ func filterSamples(samples []*sample, from, to time.Time) EventIntervals {
 				next[*condition] = interval
 				continue
 			}
-			interval = &EventInterval{
+			interval = &monitorapi.EventInterval{
 				Condition: condition,
 				From:      sample.at,
 				To:        sample.at,
@@ -212,7 +214,7 @@ func filterSamples(samples []*sample, from, to time.Time) EventIntervals {
 	return intervals
 }
 
-func filterEvents(events []*Event, from, to time.Time) []*Event {
+func filterEvents(events []*monitorapi.Event, from, to time.Time) []*monitorapi.Event {
 	if from.IsZero() && to.IsZero() {
 		return events
 	}

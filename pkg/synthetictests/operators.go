@@ -5,13 +5,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/test/ginkgo"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-func testOperatorStateTransitions(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {
+func testOperatorStateTransitions(events []*monitorapi.EventInterval) []*ginkgo.JUnitTestCase {
 	ret := []*ginkgo.JUnitTestCase{}
 
 	knownOperators := allOperators(events)
@@ -48,7 +50,7 @@ func testOperatorStateTransitions(events []*monitor.EventInterval) []*ginkgo.JUn
 	return ret
 }
 
-func allOperators(events []*monitor.EventInterval) sets.String {
+func allOperators(events []*monitorapi.EventInterval) sets.String {
 	// start with a list of known values
 	knownOperators := sets.NewString(KnownOperators.List()...)
 
@@ -64,8 +66,8 @@ func allOperators(events []*monitor.EventInterval) sets.String {
 }
 
 // getEventsByOperator returns map keyed by operator locator with all events associated with it.
-func getEventsByOperator(events []*monitor.EventInterval) map[string][]*monitor.EventInterval {
-	eventsByClusterOperator := map[string][]*monitor.EventInterval{}
+func getEventsByOperator(events []*monitorapi.EventInterval) map[string][]*monitorapi.EventInterval {
+	eventsByClusterOperator := map[string][]*monitorapi.EventInterval{}
 	for _, event := range events {
 		operatorName, ok := monitor.OperatorFromLocator(event.Locator)
 		if !ok {
@@ -76,12 +78,12 @@ func getEventsByOperator(events []*monitor.EventInterval) map[string][]*monitor.
 	return eventsByClusterOperator
 }
 
-func testOperatorState(interestingCondition configv1.ClusterStatusConditionType, events []*monitor.EventInterval, e2eEvents []*monitor.EventInterval) []string {
+func testOperatorState(interestingCondition configv1.ClusterStatusConditionType, events []*monitorapi.EventInterval, e2eEvents []*monitorapi.EventInterval) []string {
 	failures := []string{}
 
 	clusterOperatorToEvents := getEventsByOperator(events)
 
-	var previousEvent *monitor.EventInterval
+	var previousEvent *monitorapi.EventInterval
 
 	for clusterOperator, events := range clusterOperatorToEvents {
 		for _, event := range events {

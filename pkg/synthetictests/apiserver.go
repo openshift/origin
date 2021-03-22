@@ -5,7 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+
 	"github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/test/extended/util/disruption"
 )
@@ -15,7 +16,7 @@ const (
 	tolerateDisruptionPercent = 0.01
 )
 
-func testServerAvailability(locator string, events []*monitor.EventInterval, duration time.Duration) []*ginkgo.JUnitTestCase {
+func testServerAvailability(locator string, events []*monitorapi.EventInterval, duration time.Duration) []*ginkgo.JUnitTestCase {
 	errDuration, errMessages := disruption.GetDisruption(events, locator)
 
 	testName := fmt.Sprintf("[sig-api-machinery] %s should be available", locator)

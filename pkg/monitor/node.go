@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+
 	corev1 "k8s.io/api/core/v1"
 	informercorev1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -26,9 +28,9 @@ func NodeFromLocator(locator string) (string, bool) {
 }
 
 func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Interface) {
-	nodeChangeFns := []func(node, oldNode *corev1.Node) []Condition{
-		func(node, oldNode *corev1.Node) []Condition {
-			var conditions []Condition
+	nodeChangeFns := []func(node, oldNode *corev1.Node) []monitorapi.Condition{
+		func(node, oldNode *corev1.Node) []monitorapi.Condition {
+			var conditions []monitorapi.Condition
 			for i := range node.Status.Conditions {
 				c := &node.Status.Conditions[i]
 				previous := findNodeCondition(oldNode.Status.Conditions, c.Type, i)
@@ -36,16 +38,16 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 					continue
 				}
 				if c.Status != previous.Status {
-					conditions = append(conditions, Condition{
-						Level:   Warning,
+					conditions = append(conditions, monitorapi.Condition{
+						Level:   monitorapi.Warning,
 						Locator: locateNode(node),
 						Message: fmt.Sprintf("condition/%s status/%s reason/%s changed", c.Type, c.Status, c.Reason),
 					})
 				}
 			}
 			if node.UID != oldNode.UID {
-				conditions = append(conditions, Condition{
-					Level:   Error,
+				conditions = append(conditions, monitorapi.Condition{
+					Level:   monitorapi.Error,
 					Locator: locateNode(node),
 					Message: fmt.Sprintf("node was deleted and recreated"),
 				})
@@ -63,8 +65,8 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 				if !ok {
 					return
 				}
-				m.Record(Condition{
-					Level:   Warning,
+				m.Record(monitorapi.Condition{
+					Level:   monitorapi.Warning,
 					Locator: locateNode(pod),
 					Message: "deleted",
 				})
@@ -85,8 +87,8 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 		},
 	)
 
-	m.AddSampler(func(now time.Time) []*Condition {
-		var conditions []*Condition
+	m.AddSampler(func(now time.Time) []*monitorapi.Condition {
+		var conditions []*monitorapi.Condition
 		for _, obj := range nodeInformer.GetStore().List() {
 			node, ok := obj.(*corev1.Node)
 			if !ok {
@@ -97,8 +99,8 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 				isReady = c.Status == corev1.ConditionTrue
 			}
 			if !isReady {
-				conditions = append(conditions, &Condition{
-					Level:   Warning,
+				conditions = append(conditions, &monitorapi.Condition{
+					Level:   monitorapi.Warning,
 					Locator: locateNode(node),
 					Message: "node is not ready",
 				})

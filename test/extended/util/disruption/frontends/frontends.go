@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+
 	"github.com/onsi/ginkgo"
 
 	v1 "k8s.io/api/core/v1"
@@ -131,23 +133,23 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, frontend F
 		return err
 	}
 	m.AddSampler(
-		monitor.StartSampling(ctx, m, time.Second, func(previous bool) (condition *monitor.Condition, next bool) {
+		monitor.StartSampling(ctx, m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
 			data, err := continuousClient.Get().AbsPath(frontend.Path).DoRaw(ctx)
 			if err == nil && !bytes.Contains(data, []byte(frontend.Expect)) {
 				err = fmt.Errorf("route returned success but did not contain the correct body contents: %q", string(data))
 			}
 			switch {
 			case err == nil && !previous:
-				condition = &monitor.Condition{
-					Level:   monitor.Info,
+				condition = &monitorapi.Condition{
+					Level:   monitorapi.Info,
 					Locator: locateRoute(frontend.Namespace, frontend.Name),
 					Message: "Route started responding to GET requests on reused connections",
 				}
 			case err != nil && previous:
 				framework.Logf("Route %s is unreachable on reused connections: %v", frontend.Name, err)
 				r.Eventf(&v1.ObjectReference{Kind: "Route", Namespace: "kube-system", Name: frontend.Name}, nil, v1.EventTypeWarning, "Unreachable", "detected", "on reused connections")
-				condition = &monitor.Condition{
-					Level:   monitor.Error,
+				condition = &monitorapi.Condition{
+					Level:   monitorapi.Error,
 					Locator: locateRoute(frontend.Namespace, frontend.Name),
 					Message: "Route stopped responding to GET requests on reused connections",
 				}
@@ -155,8 +157,8 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, frontend F
 				framework.Logf("Route %s is unreachable on reused connections: %v", frontend.Name, err)
 			}
 			return condition, err == nil
-		}).ConditionWhenFailing(&monitor.Condition{
-			Level:   monitor.Error,
+		}).ConditionWhenFailing(&monitorapi.Condition{
+			Level:   monitorapi.Error,
 			Locator: locateRoute(frontend.Namespace, frontend.Name),
 			Message: "Route is not responding to GET requests on reused connections",
 		}),
@@ -184,7 +186,7 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, frontend F
 		return err
 	}
 	m.AddSampler(
-		monitor.StartSampling(ctx, m, time.Second, func(previous bool) (condition *monitor.Condition, next bool) {
+		monitor.StartSampling(ctx, m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
 			data, err := client.Get().AbsPath(frontend.Path).DoRaw(ctx)
 			switch {
 			case err == nil && len(frontend.Expect) != 0 && !bytes.Contains(data, []byte(frontend.Expect)):
@@ -194,16 +196,16 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, frontend F
 			}
 			switch {
 			case err == nil && !previous:
-				condition = &monitor.Condition{
-					Level:   monitor.Info,
+				condition = &monitorapi.Condition{
+					Level:   monitorapi.Info,
 					Locator: locateRoute(frontend.Namespace, frontend.Name),
 					Message: "Route started responding to GET requests over new connections",
 				}
 			case err != nil && previous:
 				framework.Logf("Route %s is unreachable on new connections: %v", frontend.Name, err)
 				r.Eventf(&v1.ObjectReference{Kind: "Route", Namespace: "kube-system", Name: frontend.Name}, nil, v1.EventTypeWarning, "Unreachable", "detected", "on new connections")
-				condition = &monitor.Condition{
-					Level:   monitor.Error,
+				condition = &monitorapi.Condition{
+					Level:   monitorapi.Error,
 					Locator: locateRoute(frontend.Namespace, frontend.Name),
 					Message: "Route stopped responding to GET requests over new connections",
 				}
@@ -211,8 +213,8 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, frontend F
 				framework.Logf("Route %s is unreachable on new connections: %v", frontend.Name, err)
 			}
 			return condition, err == nil
-		}).ConditionWhenFailing(&monitor.Condition{
-			Level:   monitor.Error,
+		}).ConditionWhenFailing(&monitorapi.Condition{
+			Level:   monitorapi.Error,
 			Locator: locateRoute(frontend.Namespace, frontend.Name),
 			Message: "Route is not responding to GET requests over new connections",
 		}),
