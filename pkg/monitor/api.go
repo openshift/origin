@@ -250,10 +250,6 @@ func locatePod(pod *corev1.Pod) string {
 	return fmt.Sprintf("ns/%s pod/%s node/%s", pod.Namespace, pod.Name, pod.Spec.NodeName)
 }
 
-func locateNode(node *corev1.Node) string {
-	return fmt.Sprintf("node/%s", node.Name)
-}
-
 func locatePodContainer(pod *corev1.Pod, containerName string) string {
 	return fmt.Sprintf("ns/%s pod/%s node/%s container/%s", pod.Namespace, pod.Name, pod.Spec.NodeName, containerName)
 }

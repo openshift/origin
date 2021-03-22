@@ -3,7 +3,6 @@ package monitor
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -13,19 +12,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
-
-func IsNode(locator string) bool {
-	_, ret := NodeFromLocator(locator)
-	return ret
-}
-
-func NodeFromLocator(locator string) (string, bool) {
-	if !strings.HasPrefix(locator, "node/") {
-		return "", false
-	}
-	parts := strings.SplitN(locator, "/", 2)
-	return parts[1], true
-}
 
 func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Interface) {
 	nodeChangeFns := []func(node, oldNode *corev1.Node) []monitorapi.Condition{
@@ -40,7 +26,7 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 				if c.Status != previous.Status {
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Warning,
-						Locator: locateNode(node),
+						Locator: monitorapi.NodeLocator(node.Name),
 						Message: fmt.Sprintf("condition/%s status/%s reason/%s changed", c.Type, c.Status, c.Reason),
 					})
 				}
@@ -48,7 +34,7 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 			if node.UID != oldNode.UID {
 				conditions = append(conditions, monitorapi.Condition{
 					Level:   monitorapi.Error,
-					Locator: locateNode(node),
+					Locator: monitorapi.NodeLocator(node.Name),
 					Message: fmt.Sprintf("node was deleted and recreated"),
 				})
 			}
@@ -61,13 +47,13 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {},
 			DeleteFunc: func(obj interface{}) {
-				pod, ok := obj.(*corev1.Node)
+				node, ok := obj.(*corev1.Node)
 				if !ok {
 					return
 				}
 				m.Record(monitorapi.Condition{
 					Level:   monitorapi.Warning,
-					Locator: locateNode(pod),
+					Locator: monitorapi.NodeLocator(node.Name),
 					Message: "deleted",
 				})
 			},
@@ -101,7 +87,7 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 			if !isReady {
 				conditions = append(conditions, &monitorapi.Condition{
 					Level:   monitorapi.Warning,
-					Locator: locateNode(node),
+					Locator: monitorapi.NodeLocator(node.Name),
 					Message: "node is not ready",
 				})
 			}

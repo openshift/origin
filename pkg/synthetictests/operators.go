@@ -69,7 +69,7 @@ func allOperators(events []*monitorapi.EventInterval) sets.String {
 func getEventsByOperator(events []*monitorapi.EventInterval) map[string][]*monitorapi.EventInterval {
 	eventsByClusterOperator := map[string][]*monitorapi.EventInterval{}
 	for _, event := range events {
-		operatorName, ok := monitor.OperatorFromLocator(event.Locator)
+		operatorName, ok := monitorapi.OperatorFromLocator(event.Locator)
 		if !ok {
 			continue
 		}

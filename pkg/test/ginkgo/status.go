@@ -123,7 +123,7 @@ func (s *testStatus) finalizeTest(test *testCase) {
 
 	s.monitorRecorder.Record(monitorapi.Condition{
 		Level:   eventLevel,
-		Locator: monitor.E2ETestLocator(test.name),
+		Locator: monitorapi.E2ETestLocator(test.name),
 		Message: eventMessage,
 	})
 }
@@ -142,7 +142,7 @@ func (s *testStatus) OutputCommand(ctx context.Context, test *testCase) {
 func (s *testStatus) Run(ctx context.Context, test *testCase) {
 	s.monitorRecorder.Record(monitorapi.Condition{
 		Level:   monitorapi.Info,
-		Locator: monitor.E2ETestLocator(test.name),
+		Locator: monitorapi.E2ETestLocator(test.name),
 		Message: "started",
 	})
 	defer s.finalizeTest(test)

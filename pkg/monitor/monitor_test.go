@@ -29,66 +29,66 @@ func TestMonitor_Events(t *testing.T) {
 	}{
 		{
 			events: []*monitorapi.Event{
-				{monitorapi.Condition{Message: "1"}, time.Unix(1, 0)},
-				{monitorapi.Condition{Message: "2"}, time.Unix(2, 0)},
+				{Condition: monitorapi.Condition{Message: "1"}, At: time.Unix(1, 0)},
+				{Condition: monitorapi.Condition{Message: "2"}, At: time.Unix(2, 0)},
 			},
 			want: monitorapi.EventIntervals{
-				{&monitorapi.Condition{Message: "1"}, time.Unix(1, 0), time.Unix(1, 0)},
-				{&monitorapi.Condition{Message: "2"}, time.Unix(2, 0), time.Unix(2, 0)},
+				{Condition: &monitorapi.Condition{Message: "1"}, From: time.Unix(1, 0), To: time.Unix(1, 0)},
+				{Condition: &monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(2, 0)},
 			},
 		},
 		{
 			events: []*monitorapi.Event{
-				{monitorapi.Condition{Message: "1"}, time.Unix(1, 0)},
-				{monitorapi.Condition{Message: "2"}, time.Unix(2, 0)},
+				{Condition: monitorapi.Condition{Message: "1"}, At: time.Unix(1, 0)},
+				{Condition: monitorapi.Condition{Message: "2"}, At: time.Unix(2, 0)},
 			},
 			from: time.Unix(1, 0),
 			want: monitorapi.EventIntervals{
-				{&monitorapi.Condition{Message: "2"}, time.Unix(2, 0), time.Unix(2, 0)},
+				{Condition: &monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(2, 0)},
 			},
 		},
 		{
 			events: []*monitorapi.Event{
-				{monitorapi.Condition{Message: "1"}, time.Unix(1, 0)},
-				{monitorapi.Condition{Message: "2"}, time.Unix(2, 0)},
+				{Condition: monitorapi.Condition{Message: "1"}, At: time.Unix(1, 0)},
+				{Condition: monitorapi.Condition{Message: "2"}, At: time.Unix(2, 0)},
 			},
 			from: time.Unix(1, 0),
 			to:   time.Unix(2, 0),
 			want: monitorapi.EventIntervals{
-				{&monitorapi.Condition{Message: "2"}, time.Unix(2, 0), time.Unix(2, 0)},
+				{Condition: &monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(2, 0)},
 			},
 		},
 		{
 			events: []*monitorapi.Event{
-				{monitorapi.Condition{Message: "1"}, time.Unix(1, 0)},
-				{monitorapi.Condition{Message: "2"}, time.Unix(2, 0)},
+				{Condition: monitorapi.Condition{Message: "1"}, At: time.Unix(1, 0)},
+				{Condition: monitorapi.Condition{Message: "2"}, At: time.Unix(2, 0)},
 			},
 			from: time.Unix(2, 0),
 			want: nil,
 		},
 		{
 			samples: []*sample{
-				{time.Unix(1, 0), []*monitorapi.Condition{{Message: "1"}, {Message: "A"}}},
-				{time.Unix(2, 0), []*monitorapi.Condition{{Message: "2"}}},
-				{time.Unix(3, 0), []*monitorapi.Condition{{Message: "2"}, {Message: "A"}}},
+				{at: time.Unix(1, 0), conditions: []*monitorapi.Condition{{Message: "1"}, {Message: "A"}}},
+				{at: time.Unix(2, 0), conditions: []*monitorapi.Condition{{Message: "2"}}},
+				{at: time.Unix(3, 0), conditions: []*monitorapi.Condition{{Message: "2"}, {Message: "A"}}},
 			},
 			from: time.Unix(1, 0),
 			want: monitorapi.EventIntervals{
-				{&monitorapi.Condition{Message: "2"}, time.Unix(2, 0), time.Unix(3, 0)},
-				{&monitorapi.Condition{Message: "A"}, time.Unix(3, 0), time.Unix(3, 0)},
+				{Condition: &monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(3, 0)},
+				{Condition: &monitorapi.Condition{Message: "A"}, From: time.Unix(3, 0), To: time.Unix(3, 0)},
 			},
 		},
 		{
 			samples: []*sample{
-				{time.Unix(1, 0), []*monitorapi.Condition{{Message: "1"}, {Message: "A"}}},
-				{time.Unix(2, 0), []*monitorapi.Condition{{Message: "2"}}},
-				{time.Unix(3, 0), []*monitorapi.Condition{{Message: "2"}, {Message: "A"}}},
+				{at: time.Unix(1, 0), conditions: []*monitorapi.Condition{{Message: "1"}, {Message: "A"}}},
+				{at: time.Unix(2, 0), conditions: []*monitorapi.Condition{{Message: "2"}}},
+				{at: time.Unix(3, 0), conditions: []*monitorapi.Condition{{Message: "2"}, {Message: "A"}}},
 			},
 			want: monitorapi.EventIntervals{
-				{&monitorapi.Condition{Message: "1"}, time.Unix(1, 0), time.Unix(1, 0)},
-				{&monitorapi.Condition{Message: "A"}, time.Unix(1, 0), time.Unix(1, 0)},
-				{&monitorapi.Condition{Message: "2"}, time.Unix(2, 0), time.Unix(3, 0)},
-				{&monitorapi.Condition{Message: "A"}, time.Unix(3, 0), time.Unix(3, 0)},
+				{Condition: &monitorapi.Condition{Message: "1"}, From: time.Unix(1, 0), To: time.Unix(1, 0)},
+				{Condition: &monitorapi.Condition{Message: "A"}, From: time.Unix(1, 0), To: time.Unix(1, 0)},
+				{Condition: &monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(3, 0)},
+				{Condition: &monitorapi.Condition{Message: "A"}, From: time.Unix(3, 0), To: time.Unix(3, 0)},
 			},
 		},
 	}

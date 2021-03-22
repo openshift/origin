@@ -1,35 +1,11 @@
 package monitor
 
 import (
-	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
-
-func E2ETestLocator(testName string) string {
-	return fmt.Sprintf("e2e-test/%q", testName)
-}
-
-func IsE2ETest(locator string) bool {
-	_, ret := E2ETestFromLocator(locator)
-	return ret
-}
-
-func E2ETestFromLocator(locator string) (string, bool) {
-	if !strings.HasPrefix(locator, "e2e-test/") {
-		return "", false
-	}
-	parts := strings.SplitN(locator, "/", 2)
-	quotedTestName := parts[1]
-	testName, err := strconv.Unquote(quotedTestName)
-	if err != nil {
-		return "", false
-	}
-	return testName, true
-}
 
 // EventsByE2ETest returns map keyed by e2e test name (may contain spaces).
 func EventsByE2ETest(events []*monitorapi.EventInterval) map[string][]*monitorapi.EventInterval {
@@ -38,7 +14,7 @@ func EventsByE2ETest(events []*monitorapi.EventInterval) map[string][]*monitorap
 		if !strings.Contains(event.Locator, "e2e-test/") {
 			continue
 		}
-		testName, ok := E2ETestFromLocator(event.Locator)
+		testName, ok := monitorapi.E2ETestFromLocator(event.Locator)
 		if !ok {
 			continue
 		}

@@ -8,7 +8,6 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
-	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/test/ginkgo"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -127,13 +126,13 @@ func testNodeUpgradeTransitions(events []*monitorapi.EventInterval) []*ginkgo.JU
 				fmt.Fprintf(&buf, "DEBUG: found upgrade start event: %v\n", event.String())
 				break
 			}
-			if !monitor.IsNode(event.Locator) {
+			if !monitorapi.IsNode(event.Locator) {
 				continue
 			}
 			if !strings.HasPrefix(event.Message, "condition/Ready ") || !strings.HasSuffix(event.Message, " changed") {
 				continue
 			}
-			node, _ := monitor.NodeFromLocator(event.Locator)
+			node, _ := monitorapi.NodeFromLocator(event.Locator)
 			if strings.Contains(event.Message, " status/True ") {
 				if currentNodeReady[node] {
 					failures = append(failures, fmt.Sprintf("Node %s was reported ready twice in a row, this should be impossible", node))

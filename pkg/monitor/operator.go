@@ -17,19 +17,6 @@ import (
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 )
 
-func IsOperator(locator string) bool {
-	_, ret := OperatorFromLocator(locator)
-	return ret
-}
-
-func OperatorFromLocator(locator string) (string, bool) {
-	if !strings.HasPrefix(locator, "clusteroperator/") {
-		return "", false
-	}
-	parts := strings.SplitN(locator, "/", 2)
-	return parts[1], true
-}
-
 // condition/Degraded status/True reason/DNSDegraded changed: DNS default is degraded
 func GetOperatorConditionStatus(message string) *configv1.ClusterOperatorStatusCondition {
 	if !strings.HasPrefix(message, "condition/") {
@@ -118,7 +105,7 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 					}
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   level,
-						Locator: locateClusterOperator(co),
+						Locator: monitorapi.OperatorLocator(co.Name),
 						Message: msg,
 					})
 				}
@@ -126,7 +113,7 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 			if changes := findOperatorVersionChange(oldCO.Status.Versions, co.Status.Versions); len(changes) > 0 {
 				conditions = append(conditions, monitorapi.Condition{
 					Level:   monitorapi.Info,
-					Locator: locateClusterOperator(co),
+					Locator: monitorapi.OperatorLocator(co.Name),
 					Message: fmt.Sprintf("versions: %v", strings.Join(changes, ", ")),
 				})
 			}
@@ -149,7 +136,7 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 				}
 				m.Record(monitorapi.Condition{
 					Level:   monitorapi.Info,
-					Locator: locateClusterOperator(co),
+					Locator: monitorapi.OperatorLocator(co.Name),
 					Message: "created",
 				})
 			},
@@ -160,7 +147,7 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 				}
 				m.Record(monitorapi.Condition{
 					Level:   monitorapi.Warning,
-					Locator: locateClusterOperator(co),
+					Locator: monitorapi.OperatorLocator(co.Name),
 					Message: "deleted",
 				})
 			},
@@ -344,10 +331,6 @@ func versionOrImage(h configv1.UpdateHistory) string {
 		return h.Image
 	}
 	return h.Version
-}
-
-func locateClusterOperator(co *configv1.ClusterOperator) string {
-	return fmt.Sprintf("clusteroperator/%s", co.Name)
 }
 
 func locateClusterVersion(cv *configv1.ClusterVersion) string {
