@@ -125,13 +125,13 @@ func testNodeUpgradeTransitions(events []*monitor.EventInterval) []*ginkgo.JUnit
 				fmt.Fprintf(&buf, "DEBUG: found upgrade start event: %v\n", event.String())
 				break
 			}
-			if !strings.HasPrefix(event.Locator, "node/") {
+			if !monitor.IsNode(event.Locator) {
 				continue
 			}
 			if !strings.HasPrefix(event.Message, "condition/Ready ") || !strings.HasSuffix(event.Message, " changed") {
 				continue
 			}
-			node := strings.TrimPrefix(event.Locator, "node/")
+			node, _ := monitor.NodeFromLocator(event.Locator)
 			if strings.Contains(event.Message, " status/True ") {
 				if currentNodeReady[node] {
 					failures = append(failures, fmt.Sprintf("Node %s was reported ready twice in a row, this should be impossible", node))

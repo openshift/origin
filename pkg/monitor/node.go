@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -10,6 +11,19 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
+
+func IsNode(locator string) bool {
+	_, ret := NodeFromLocator(locator)
+	return ret
+}
+
+func NodeFromLocator(locator string) (string, bool) {
+	if !strings.HasPrefix(locator, "node/") {
+		return "", false
+	}
+	parts := strings.SplitN(locator, "/", 2)
+	return parts[1], true
+}
 
 func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Interface) {
 	nodeChangeFns := []func(node, oldNode *corev1.Node) []Condition{

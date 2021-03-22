@@ -67,11 +67,10 @@ func allOperators(events []*monitor.EventInterval) sets.String {
 func getEventsByOperator(events []*monitor.EventInterval) map[string][]*monitor.EventInterval {
 	eventsByClusterOperator := map[string][]*monitor.EventInterval{}
 	for _, event := range events {
-		if !strings.Contains(event.Locator, "clusteroperator/") {
+		operatorName, ok := monitor.OperatorFromLocator(event.Locator)
+		if !ok {
 			continue
 		}
-		operators := strings.Split(event.Locator, "/")
-		operatorName := operators[1]
 		eventsByClusterOperator[operatorName] = append(eventsByClusterOperator[operatorName], event)
 	}
 	return eventsByClusterOperator

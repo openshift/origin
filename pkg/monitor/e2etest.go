@@ -11,6 +11,11 @@ func E2ETestLocator(testName string) string {
 	return fmt.Sprintf("e2e-test/%q", testName)
 }
 
+func IsE2ETest(locator string) bool {
+	_, ret := E2ETestFromLocator(locator)
+	return ret
+}
+
 func E2ETestFromLocator(locator string) (string, bool) {
 	if !strings.HasPrefix(locator, "e2e-test/") {
 		return "", false

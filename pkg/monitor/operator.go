@@ -15,6 +15,19 @@ import (
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 )
 
+func IsOperator(locator string) bool {
+	_, ret := OperatorFromLocator(locator)
+	return ret
+}
+
+func OperatorFromLocator(locator string) (string, bool) {
+	if !strings.HasPrefix(locator, "clusteroperator/") {
+		return "", false
+	}
+	parts := strings.SplitN(locator, "/", 2)
+	return parts[1], true
+}
+
 // condition/Degraded status/True reason/DNSDegraded changed: DNS default is degraded
 func GetOperatorConditionStatus(message string) *configv1.ClusterOperatorStatusCondition {
 	if !strings.HasPrefix(message, "condition/") {
