@@ -128,7 +128,7 @@ func (m *Monitor) Conditions(from, to time.Time) EventIntervals {
 // Events returns all events that occur between from and to, including
 // any sampled conditions that were encountered during that period.
 // EventIntervals are returned in order of their occurrence.
-func (m *Monitor) Events(from, to time.Time) EventIntervals {
+func (m *Monitor) EventIntervals(from, to time.Time) EventIntervals {
 	samples, events := m.snapshot()
 	intervals := filterSamples(samples, from, to)
 	events = filterEvents(events, from, to)

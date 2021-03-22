@@ -280,7 +280,7 @@ func (opt *Options) Run(suite *TestSuite) error {
 	// monitor the cluster while the tests are running and report any detected anomalies
 	var syntheticTestResults []*JUnitTestCase
 	var syntheticFailure bool
-	if events := m.Events(time.Time{}, time.Time{}); len(events) > 0 {
+	if events := m.EventIntervals(time.Time{}, time.Time{}); len(events) > 0 {
 		eventsForTests := createEventsForTests(tests)
 
 		var buf *bytes.Buffer

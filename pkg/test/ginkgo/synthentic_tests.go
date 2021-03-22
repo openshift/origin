@@ -74,7 +74,7 @@ func createEventsForTests(tests []*testCase) []*monitor.EventInterval {
 func createSyntheticTestsFromMonitor(m *monitor.Monitor, eventsForTests []*monitor.EventInterval, monitorDuration time.Duration) ([]*JUnitTestCase, *bytes.Buffer, *bytes.Buffer) {
 	var syntheticTestResults []*JUnitTestCase
 
-	events := m.Events(time.Time{}, time.Time{})
+	events := m.EventIntervals(time.Time{}, time.Time{})
 	events = append(events, eventsForTests...)
 	sort.Sort(events)
 

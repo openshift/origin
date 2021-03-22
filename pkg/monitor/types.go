@@ -11,7 +11,7 @@ import (
 type SamplerFunc func(time.Time) []*Condition
 
 type Interface interface {
-	Events(from, to time.Time) EventIntervals
+	EventIntervals(from, to time.Time) EventIntervals
 	Conditions(from, to time.Time) EventIntervals
 }
 

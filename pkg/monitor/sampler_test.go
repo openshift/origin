@@ -52,7 +52,7 @@ func TestStartSampling(t *testing.T) {
 
 	var describe []string
 	var log []string
-	events := m.Events(time.Time{}, time.Time{})
+	events := m.EventIntervals(time.Time{}, time.Time{})
 	for _, interval := range events {
 		i := interval.To.Sub(interval.From)
 		describe = append(describe, fmt.Sprintf("%v %s", *interval.Condition, i))
