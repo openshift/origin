@@ -99,7 +99,7 @@ func decodeProvider(provider string, dryRun, discover bool) (*exutilcloud.Cluste
 		}
 		fallthrough
 
-	case "azure", "aws", "gce", "vsphere":
+	case "azure", "aws", "baremetal", "gce", "vsphere":
 		clientConfig, err := e2e.LoadConfig(true)
 		if err != nil {
 			return nil, err
