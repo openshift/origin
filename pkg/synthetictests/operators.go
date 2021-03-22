@@ -3,7 +3,6 @@ package synthetictests
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
@@ -56,8 +55,8 @@ func allOperators(events []*monitorapi.EventInterval) sets.String {
 
 	// now add all the operators we see in the events.
 	for _, event := range events {
-		operatorName := operatorFromLocator(event.Locator)
-		if len(operatorName) == 0 {
+		operatorName, ok := monitorapi.OperatorFromLocator(event.Locator)
+		if !ok {
 			continue
 		}
 		knownOperators.Insert(operatorName)
@@ -78,57 +77,25 @@ func getEventsByOperator(events []*monitorapi.EventInterval) map[string][]*monit
 	return eventsByClusterOperator
 }
 
-func testOperatorState(interestingCondition configv1.ClusterStatusConditionType, events []*monitorapi.EventInterval, e2eEvents []*monitorapi.EventInterval) []string {
+func testOperatorState(interestingCondition configv1.ClusterStatusConditionType, eventIntervals []*monitorapi.EventInterval, e2eEvents []*monitorapi.EventInterval) []string {
 	failures := []string{}
 
-	clusterOperatorToEvents := getEventsByOperator(events)
+	for _, eventInterval := range eventIntervals {
+		// ignore non-interval eventInterval intervals
+		if eventInterval.From == eventInterval.To {
+			continue
+		}
+		if !strings.Contains(eventInterval.Message, fmt.Sprintf("%v", interestingCondition)) {
+			continue
+		}
 
-	var previousEvent *monitorapi.EventInterval
+		// if there was any switch, it was wrong/unexpected at some point
+		failures = append(failures, fmt.Sprintf("%v", eventInterval))
 
-	for clusterOperator, events := range clusterOperatorToEvents {
-		for _, event := range events {
-			condition := monitorapi.GetOperatorConditionStatus(event.Message)
-			if condition == nil || condition.Type != interestingCondition {
-				continue
-			}
-			// if there was any switch, it was wrong/unexpected at some point
-			failures = append(failures, fmt.Sprintf("%v became %v=%v at %v -- reason/%v: %v", clusterOperator, condition.Type, condition.Status, event.From, condition.Reason, condition.Message))
-
-			if !isTransitionToGoodOperatorState(condition) {
-				// we don't see a lot of these as end states, don't bother trying to find the tests that were running during this time.
-				continue
-			}
-
-			startTime := time.Now().Add(4 * time.Hour)
-			if previousEvent != nil {
-				startTime = previousEvent.From
-			}
-			failedTests := monitor.FindFailedTestsActiveBetween(e2eEvents, startTime, event.From)
-			if len(failedTests) > 0 {
-				failures = append(failures, fmt.Sprintf("%d tests failed during this blip (%v to %v): %v", len(failedTests), startTime, event.From, strings.Join(failedTests, ",")))
-			}
+		failedTests := monitor.FindFailedTestsActiveBetween(e2eEvents, eventInterval.From, eventInterval.From)
+		if len(failedTests) > 0 {
+			failures = append(failures, fmt.Sprintf("%d tests failed during this blip (%v to %v): %v", len(failedTests), eventInterval.From, eventInterval.From, strings.Join(failedTests, ",")))
 		}
 	}
 	return failures
-}
-
-func operatorFromLocator(locator string) string {
-	if !strings.Contains(locator, "clusteroperator/") {
-		return ""
-	}
-	operators := strings.Split(locator, "/")
-	return operators[1]
-}
-
-func isTransitionToGoodOperatorState(condition *configv1.ClusterOperatorStatusCondition) bool {
-	switch condition.Type {
-	case configv1.OperatorAvailable:
-		return condition.Status == configv1.ConditionTrue
-	case configv1.OperatorDegraded:
-		return condition.Status == configv1.ConditionFalse
-	case configv1.OperatorProgressing:
-		return condition.Status == configv1.ConditionFalse
-	default:
-		return false
-	}
 }
