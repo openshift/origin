@@ -57,14 +57,25 @@ func intervalsFromEvents_OperatorStatus(events []*monitorapi.Event, beginning, e
 		delete(operatorToInterestingBadCondition, operatorName)
 
 		from := beginning
+		lastStatus := "Unknown"
+		lastMessage := "Unknown"
 		if lastCondition != nil {
 			from = lastCondition.LastTransitionTime.Time
+			lastStatus = fmt.Sprintf("%v", lastCondition.Status)
+			lastMessage = lastCondition.Message
+		} else {
+			// if we're in a good state now, then we were probably in a bad state before.  Let's start by assuming that anyway
+			if conditionGoodState == configv1.ConditionTrue {
+				lastStatus = "False"
+			} else {
+				lastStatus = "True"
+			}
 		}
 		ret = append(ret, &monitorapi.EventInterval{
 			Condition: &monitorapi.Condition{
 				Level:   level,
 				Locator: event.Locator,
-				Message: fmt.Sprintf("condition/%s status/%s reason/%s", conditionType, lastCondition.Status, lastCondition.Message),
+				Message: fmt.Sprintf("condition/%s status/%s reason/%s", conditionType, lastStatus, lastMessage),
 			},
 			From: from,
 			To:   event.At,
