@@ -68,10 +68,10 @@ func E2ETestsRunningBetween(events []*EventInterval, start, end time.Time) map[s
 		for _, event := range events {
 			switch {
 			case event.Message == "started":
-				currInterval.start = event.InitiatedAt
+				currInterval.start = event.From
 				currInterval.events = append(currInterval.events, event)
 			case strings.HasPrefix(event.Message, "finishedStatus/"):
-				currInterval.end = event.InitiatedAt
+				currInterval.end = event.From
 				currInterval.events = append(currInterval.events, event)
 				runningIntervals = append(runningIntervals, currInterval)
 

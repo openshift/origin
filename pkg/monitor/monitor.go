@@ -141,7 +141,7 @@ func (m *Monitor) Events(from, to time.Time) EventIntervals {
 		}
 
 		to := events[i].At
-		from := events[i].InitiatedAt
+		from := events[i].At
 		if from.IsZero() {
 			from = to
 		}

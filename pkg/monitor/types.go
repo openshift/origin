@@ -54,8 +54,6 @@ type Condition struct {
 
 	Locator string
 	Message string
-
-	InitiatedAt time.Time
 }
 
 type EventInterval struct {

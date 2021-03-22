@@ -100,11 +100,11 @@ func testOperatorState(interestingCondition configv1.ClusterStatusConditionType,
 
 			startTime := time.Now().Add(4 * time.Hour)
 			if previousEvent != nil {
-				startTime = previousEvent.InitiatedAt
+				startTime = previousEvent.From
 			}
-			failedTests := monitor.FindFailedTestsActiveBetween(e2eEvents, startTime, event.InitiatedAt)
+			failedTests := monitor.FindFailedTestsActiveBetween(e2eEvents, startTime, event.From)
 			if len(failedTests) > 0 {
-				failures = append(failures, fmt.Sprintf("%d tests failed during this blip (%v to %v): %v", len(failedTests), startTime, event.InitiatedAt, strings.Join(failedTests, ",")))
+				failures = append(failures, fmt.Sprintf("%d tests failed during this blip (%v to %v): %v", len(failedTests), startTime, event.From, strings.Join(failedTests, ",")))
 			}
 		}
 	}
