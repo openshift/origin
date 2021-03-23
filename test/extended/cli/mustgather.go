@@ -131,11 +131,11 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		}
 
 		// makes some tokens that should not show in the audit logs
-		const tokenName = "must-gather-audit-logs-token-plus-some-padding-here-to-make-the-limit"
+		_, sha256TokenName := exutil.GenerateOAuthTokenPair()
 		oauthClient := oauthv1client.NewForConfigOrDie(oc.AdminConfig())
 		_, err1 := oauthClient.OAuthAccessTokens().Create(context.Background(), &oauthv1.OAuthAccessToken{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: tokenName,
+				Name: sha256TokenName,
 			},
 			ClientName:  "openshift-challenging-client",
 			ExpiresIn:   30,
@@ -147,7 +147,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		o.Expect(err1).NotTo(o.HaveOccurred())
 		_, err2 := oauthClient.OAuthAuthorizeTokens().Create(context.Background(), &oauthv1.OAuthAuthorizeToken{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: tokenName,
+				Name: sha256TokenName,
 			},
 			ClientName:  "openshift-challenging-client",
 			ExpiresIn:   30,
@@ -241,7 +241,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 						// - if on 4.6 but not upgraded => disable check
 						// - if on 4.6 and we have been upgraded from older release => keep the check.
 						if upgradedFrom45 {
-							for _, token := range []string{"oauthaccesstokens", "oauthauthorizetokens", tokenName} {
+							for _, token := range []string{"oauthaccesstokens", "oauthauthorizetokens", sha256TokenName} {
 								o.Expect(text).NotTo(o.ContainSubstring(token))
 							}
 						}
