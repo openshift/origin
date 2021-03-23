@@ -404,6 +404,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		return err
 	}
 
+	var errMasterUpdating error
 	if err := disruption.RecordJUnit(
 		f,
 		"[sig-mco] Machine config pools complete upgrade",
@@ -422,12 +423,14 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 				}
 				allUpdated := true
 				for _, p := range pools.Items {
-					updated, err := IsPoolUpdated(mcps, p.GetName())
-					if err != nil {
-						framework.Logf("error checking pool %s: %v", p.GetName(), err)
-						return false, nil
-					}
+					updated, requiresUpdate := IsPoolUpdated(mcps, p.GetName())
 					allUpdated = allUpdated && updated
+
+					// Invariant: when CVO reaches level, MCO is required to have rolled out control plane updates
+					if p.GetName() == "master" && requiresUpdate && errMasterUpdating == nil {
+						errMasterUpdating = fmt.Errorf("the %q pool should be updated before the CVO reports available at the new version", p.GetName())
+						framework.Logf("Invariant violation detected: %s", errMasterUpdating)
+					}
 				}
 				return allUpdated, nil
 			}); err != nil {
@@ -438,6 +441,11 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		},
 	); err != nil {
 		return err
+	}
+
+	if errMasterUpdating != nil {
+		framework.Logf("master was updating after cluster version reached level: %v", errMasterUpdating)
+		return errMasterUpdating
 	}
 
 	if err := disruption.RecordJUnit(
@@ -457,33 +465,39 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 }
 
 // TODO(runcom): drop this when MCO types are in openshift/api and we can use the typed client directly
-func IsPoolUpdated(dc dynamic.NamespaceableResourceInterface, name string) (bool, error) {
+func IsPoolUpdated(dc dynamic.NamespaceableResourceInterface, name string) (poolUpToDate bool, poolIsUpdating bool) {
 	pool, err := dc.Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
 		framework.Logf("error getting pool %s: %v", name, err)
-		return false, nil
+		return false, false
 	}
+
+	paused, found, err := unstructured.NestedBool(pool.Object, "spec", "paused")
+	if err != nil || !found {
+		return false, false
+	}
+
 	conditions, found, err := unstructured.NestedFieldNoCopy(pool.Object, "status", "conditions")
 	if err != nil || !found {
-		return false, nil
+		return false, false
 	}
 	original, ok := conditions.([]interface{})
 	if !ok {
-		return false, nil
+		return false, false
 	}
 	var updated, updating, degraded bool
 	for _, obj := range original {
 		o, ok := obj.(map[string]interface{})
 		if !ok {
-			return false, nil
+			return false, false
 		}
 		t, found, err := unstructured.NestedString(o, "type")
 		if err != nil || !found {
-			return false, nil
+			return false, false
 		}
 		s, found, err := unstructured.NestedString(o, "status")
 		if err != nil || !found {
-			return false, nil
+			return false, false
 		}
 		if t == "Updated" && s == "True" {
 			updated = true
@@ -495,9 +509,13 @@ func IsPoolUpdated(dc dynamic.NamespaceableResourceInterface, name string) (bool
 			degraded = true
 		}
 	}
+	if paused {
+		framework.Logf("Pool %s is paused, treating as up-to-date (Updated: %v, Updating: %v, Degraded: %v)", name, updated, updating, degraded)
+		return true, updating
+	}
 	if updated && !updating && !degraded {
-		return true, nil
+		return true, updating
 	}
 	framework.Logf("Pool %s is still reporting (Updated: %v, Updating: %v, Degraded: %v)", name, updated, updating, degraded)
-	return false, nil
+	return false, updating
 }
