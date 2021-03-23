@@ -15,6 +15,9 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	exutilcloud "github.com/openshift/origin/test/extended/util/cloud"
 
+	// Initialize baremetal as a provider
+	_ "github.com/openshift/origin/test/extended/util/baremetal"
+
 	// Initialize ovirt as a provider
 	_ "github.com/openshift/origin/test/extended/util/ovirt"
 
