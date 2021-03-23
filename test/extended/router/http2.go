@@ -24,6 +24,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
+	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 
 	"github.com/openshift/origin/test/extended/router/certgen"
@@ -87,6 +88,13 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should pass the http2 tests", func() {
+			infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster-wide infrastructure")
+			switch infra.Status.PlatformStatus.Type {
+			case configv1.OvirtPlatformType, configv1.KubevirtPlatformType, configv1.LibvirtPlatformType, configv1.VSpherePlatformType:
+				g.Skip("Skip on platforms where the default router is not exposed by a load balancer service.")
+			}
+
 			defaultDomain, err := getDefaultIngressClusterDomainName(oc, 5*time.Minute)
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to find default domain name")
 
