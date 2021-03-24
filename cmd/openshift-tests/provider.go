@@ -68,13 +68,17 @@ func initializeTestFramework(context *e2e.TestContextType, config *exutilcloud.C
 }
 
 func getProviderMatchFn(config *exutilcloud.ClusterConfiguration) TestNameMatchesFunc {
-	// given the configuration we have loaded, skip tests that our provider should exclude
+	// given the configuration we have loaded, skip tests that our provider, disconnected status,
 	// or our network plugin should exclude
 	var skips []string
 	skips = append(skips, fmt.Sprintf("[Skipped:%s]", config.ProviderName))
 	for _, id := range config.NetworkPluginIDs {
 		skips = append(skips, fmt.Sprintf("[Skipped:Network/%s]", id))
 	}
+	if config.Disconnected {
+		skips = append(skips, "[Skipped:Disconnected]")
+	}
+
 	matchFn := func(name string) bool {
 		for _, skip := range skips {
 			if strings.Contains(name, skip) {
@@ -117,20 +121,19 @@ func decodeProvider(provider string, dryRun, discover bool) (*exutilcloud.Cluste
 		return config, nil
 
 	default:
-		var providerInfo struct{ Type string }
+		var providerInfo struct {
+			Type            string
+			Disconnected    bool
+			e2e.CloudConfig `json:",inline"`
+		}
 		if err := json.Unmarshal([]byte(provider), &providerInfo); err != nil {
-			return nil, fmt.Errorf("provider must be a JSON object with the 'type' key at a minimum: %v", err)
+			return nil, fmt.Errorf("provider must be a JSON object with the 'type' key at a minimum, and decode into a cloud config object: %v", err)
 		}
 		if len(providerInfo.Type) == 0 {
 			return nil, fmt.Errorf("provider must be a JSON object with the 'type' key")
 		}
-		var cloudConfig e2e.CloudConfig
-		if err := json.Unmarshal([]byte(provider), &cloudConfig); err != nil {
-			return nil, fmt.Errorf("provider must decode into the cloud config object: %v", err)
-		}
-
 		// attempt to load the default config, then overwrite with any values from the passed
-		// object that can be overriden
+		// object that can be overridden
 		var config *exutilcloud.ClusterConfiguration
 		if discover {
 			if clientConfig, err := e2e.LoadConfig(true); err == nil {
@@ -140,36 +143,37 @@ func decodeProvider(provider string, dryRun, discover bool) (*exutilcloud.Cluste
 		if config == nil {
 			config = &exutilcloud.ClusterConfiguration{
 				ProviderName: providerInfo.Type,
-				ProjectID:    cloudConfig.ProjectID,
-				Region:       cloudConfig.Region,
-				Zone:         cloudConfig.Zone,
-				Zones:        cloudConfig.Zones,
-				NumNodes:     cloudConfig.NumNodes,
-				MultiMaster:  cloudConfig.MultiMaster,
-				MultiZone:    cloudConfig.MultiZone,
-				ConfigFile:   cloudConfig.ConfigFile,
+				ProjectID:    providerInfo.ProjectID,
+				Region:       providerInfo.Region,
+				Zone:         providerInfo.Zone,
+				Zones:        providerInfo.Zones,
+				NumNodes:     providerInfo.NumNodes,
+				MultiMaster:  providerInfo.MultiMaster,
+				MultiZone:    providerInfo.MultiZone,
+				ConfigFile:   providerInfo.ConfigFile,
 			}
 		} else {
 			config.ProviderName = providerInfo.Type
-			if len(cloudConfig.ProjectID) > 0 {
-				config.ProjectID = cloudConfig.ProjectID
+			if len(providerInfo.ProjectID) > 0 {
+				config.ProjectID = providerInfo.ProjectID
 			}
-			if len(cloudConfig.Region) > 0 {
-				config.Region = cloudConfig.Region
+			if len(providerInfo.Region) > 0 {
+				config.Region = providerInfo.Region
 			}
-			if len(cloudConfig.Zone) > 0 {
-				config.Zone = cloudConfig.Zone
+			if len(providerInfo.Zone) > 0 {
+				config.Zone = providerInfo.Zone
 			}
-			if len(cloudConfig.Zones) > 0 {
-				config.Zones = cloudConfig.Zones
+			if len(providerInfo.Zones) > 0 {
+				config.Zones = providerInfo.Zones
 			}
-			if len(cloudConfig.ConfigFile) > 0 {
-				config.ConfigFile = cloudConfig.ConfigFile
+			if len(providerInfo.ConfigFile) > 0 {
+				config.ConfigFile = providerInfo.ConfigFile
 			}
-			if cloudConfig.NumNodes > 0 {
-				config.NumNodes = cloudConfig.NumNodes
+			if providerInfo.NumNodes > 0 {
+				config.NumNodes = providerInfo.NumNodes
 			}
 		}
+		config.Disconnected = providerInfo.Disconnected
 		return config, nil
 	}
 }
