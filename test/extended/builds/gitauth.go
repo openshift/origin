@@ -3,11 +3,13 @@ package builds
 import (
 	"context"
 	"fmt"
-	"strings"
+
+	"github.com/openshift/origin/test/extended/util"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -17,18 +19,12 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use private repositor
 	defer g.GinkgoRecover()
 
 	const (
-		gitServerDeploymentConfigName = "gitserver"
-		sourceSecretName              = "sourcesecret"
-		gitUserName                   = "gituser"
-		gitPassword                   = "gituserpassword"
-		buildConfigName               = "gitauthtest"
-		sourceURLTemplate             = "https://%s/ruby-hello-world"
+		buildConfigName = "gitauth"
 	)
 
 	var (
-		gitServerFixture = exutil.FixturePath("testdata", "test-gitserver.yaml")
 		testBuildFixture = exutil.FixturePath("testdata", "builds", "test-auth-build.yaml")
-		oc               = exutil.NewCLI("build-sti-private-repo")
+		oc               = exutil.NewCLI("build-s2i-private-repo")
 	)
 
 	g.Context("", func() {
@@ -45,62 +41,74 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use private repositor
 			}
 		})
 
-		testGitAuth := func(routeName, gitServerYaml, urlTemplate string, secretFunc func() string) {
-
-			err := oc.Run("new-app").Args("-f", gitServerYaml).Execute()
+		testGitAuth := func(sourceURL string, sourceSecretName string) {
+			g.By(fmt.Sprintf("creating a new BuildConfig to clone source via %s", sourceURL))
+			err := oc.Run("new-app").Args("-f", testBuildFixture, "-p", fmt.Sprintf("SOURCE_SECRET=%s", sourceSecretName), "-p", fmt.Sprintf("SOURCE_URL=%s", sourceURL)).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("expecting the deployment of the gitserver to be in the Complete phase")
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), gitServerDeploymentConfigName, 1, true, oc)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			sourceSecretName := secretFunc()
-
-			route, err := oc.AdminRouteClient().RouteV1().Routes(oc.Namespace()).Get(context.Background(), routeName, metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			sourceURL := fmt.Sprintf(urlTemplate, route.Spec.Host)
-			g.By(fmt.Sprintf("creating a new BuildConfig by calling oc new-app -f %q -p SOURCE_SECRET=%s -p SOURCE_URL=%s",
-				testBuildFixture, sourceSecretName, sourceURL))
-			err = oc.Run("new-app").Args("-f", testBuildFixture, "-p", fmt.Sprintf("SOURCE_SECRET=%s", sourceSecretName), "-p", fmt.Sprintf("SOURCE_URL=%s", sourceURL)).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("starting a test build")
+			g.By("starting a test build and waiting for success")
 			br, _ := exutil.StartBuildAndWait(oc, buildConfigName)
 			if !br.BuildSuccess {
-				exutil.DumpApplicationPodLogs(gitServerDeploymentConfigName, oc)
+				exutil.DumpBuildLogs(buildConfigName, oc)
 			}
 			br.AssertSuccess()
 		}
 
-		g.Describe("Build using a username and password", func() {
-			g.It("should create a new build using the internal gitserver", func() {
-				g.Skip("Need to fetch router CA via https://github.com/openshift/cluster-ingress-operator/pull/111")
-				testGitAuth("gitserver", gitServerFixture, sourceURLTemplate, func() string {
-					g.By(fmt.Sprintf("creating a new secret for the gitserver by calling oc secrets new-basicauth %s --username=%s --password=%s",
-						sourceSecretName, gitUserName, gitPassword))
-					sa, err := oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()).Get(context.Background(), "builder", metav1.GetOptions{})
-					o.Expect(err).NotTo(o.HaveOccurred())
-					for _, s := range sa.Secrets {
-						if strings.Contains(s.Name, "token") {
-							secret, err := oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Get(context.Background(), s.Name, metav1.GetOptions{})
-							o.Expect(err).NotTo(o.HaveOccurred())
-							err = oc.Run("create").Args(
-								"secret",
-								"generic",
-								sourceSecretName,
-								"--type", "kubernetes.io/basic-auth",
-								"--from-literal", fmt.Sprintf("username=%s", gitUserName),
-								"--from-literal", fmt.Sprintf("password=%s", gitPassword),
-								// TODO this needs to come from https://github.com/openshift/cluster-ingress-operator/pull/111 instead
-								"--from-literal", fmt.Sprintf("ca.crt=%s", string(secret.Data["service-ca.crt"])),
-							).Execute()
-							o.Expect(err).NotTo(o.HaveOccurred())
-							return sourceSecretName
-						}
-					}
-					return ""
-				})
+		g.Describe("build using an HTTP token", func() {
+
+			g.BeforeEach(func() {
+				ctx := context.Background()
+				httpToken, err := oc.AsAdmin().KubeClient().CoreV1().Secrets("build-e2e-github-secrets").Get(ctx, "github-http-token", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				copiedHTTPToken := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "github-http-token",
+					},
+					Data: httpToken.Data,
+					Type: httpToken.Type,
+				}
+				_, err = oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Create(ctx, copiedHTTPToken, metav1.CreateOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+			})
+
+			g.It("should be able to clone source code via an HTTP token", func() {
+				testGitAuth("https://github.com/openshift-github-testing/nodejs-ex-private.git", "github-http-token")
+			})
+
+		})
+
+		g.Describe("build using an ssh private key", func() {
+
+			g.BeforeEach(func() {
+				// Skip this test when running in FIPS mode
+				// FIPS requires ssh-based clone to have a known_hosts file provided, and GitHub's
+				// known hosts can be dynamic
+				isFIPS, err := util.IsFIPS(oc.AdminKubeClient().CoreV1())
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if isFIPS {
+					g.Skip("skipping ssh git clone test on FIPS cluster")
+				}
+
+				ctx := context.Background()
+				sshKey, err := oc.AsAdmin().KubeClient().CoreV1().Secrets("build-e2e-github-secrets").Get(ctx, "github-ssh-privatekey", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				copiedSSHKey := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "github-ssh-privatekey",
+					},
+					Data: sshKey.Data,
+					Type: sshKey.Type,
+				}
+				_, err = oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Create(ctx, copiedSSHKey, metav1.CreateOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+			})
+
+			g.It("should be able to clone source code via ssh", func() {
+				testGitAuth("ssh://git@github.com/openshift-github-testing/nodejs-ex-private.git", "github-ssh-privatekey")
+			})
+
+			g.It("should be able to clone source code via ssh using SCP-style URIs", func() {
+				testGitAuth("git@github.com:openshift-github-testing/nodejs-ex-private.git", "github-ssh-privatekey")
 			})
 		})
 	})

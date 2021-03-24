@@ -1259,7 +1259,11 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-builds][Feature:Builds][Slow] can use build secrets  build with secrets and configMaps should contain secrets during the source strategy build": "should contain secrets during the source strategy build",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] can use private repositories as build input  Build using a username and password should create a new build using the internal gitserver": "should create a new build using the internal gitserver",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] can use private repositories as build input  build using an HTTP token should be able to clone source code via an HTTP token": "should be able to clone source code via an HTTP token",
+
+	"[Top Level] [sig-builds][Feature:Builds][Slow] can use private repositories as build input  build using an ssh private key should be able to clone source code via ssh using SCP-style URIs": "should be able to clone source code via ssh using SCP-style URIs",
+
+	"[Top Level] [sig-builds][Feature:Builds][Slow] can use private repositories as build input  build using an ssh private key should be able to clone source code via ssh": "should be able to clone source code via ssh",
 
 	"[Top Level] [sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status  Docker build started with log level >5 should save the image digest when finished": "should save the image digest when finished",
 

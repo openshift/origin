@@ -484,7 +484,6 @@
 // test/extended/testdata/test-cli-debug.yaml
 // test/extended/testdata/test-deployment-config.yaml
 // test/extended/testdata/test-env-pod.json
-// test/extended/testdata/test-gitserver.yaml
 // test/extended/testdata/test-replication-controller.yaml
 // test/extended/testdata/test-secret.json
 // test/extended/testdata/verifyservice-pipeline-template.yaml
@@ -19121,9 +19120,9 @@ func testExtendedTestdataBuildsStatusfailPushtoregistryYaml() (*asset, error) {
 var _testExtendedTestdataBuildsTestAuthBuildYaml = []byte(`apiVersion: v1
 kind: Template
 labels:
-  template: gitserver
+  template: gitauth
 metadata:
-  name: gitserver
+  name: gitauth
 parameters:
 - name: SOURCE_URL
   required: true
@@ -19137,7 +19136,7 @@ objects:
 - apiVersion: v1
   kind: BuildConfig
   metadata:
-    name: gitauthtest
+    name: gitauth
   spec:
     source:
       git:
@@ -19151,13 +19150,10 @@ objects:
         - name: BUILD_LOGLEVEL
           value: "5"
         from:
-          kind: DockerImage
-          name: quay.io/redhat-developer/test-build-simples2i:latest
+          kind: ImageStreamTag
+          name: nodejs:latest
+          namespace: openshift
       type: Source
-    # this test specifically does a push, to help exercise the code that sets
-    # environment variables on build pods (i.e., by having a source secret and
-    # a push secret, multiple environment variables need to be set correctly for
-    # the build to succeed).
     output:
       to:
         kind: ImageStreamTag
@@ -53101,201 +53097,6 @@ func testExtendedTestdataTestEnvPodJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataTestGitserverYaml = []byte(`apiVersion: v1
-kind: Template
-labels:
-  template: gitserver
-metadata:
-  name: gitserver
-objects:
-# The gitserver is deployed as a singleton pod and uses a very small amount
-# of resources. It can host or transiently serve Git repositories, as well
-# as automatically integrate with builds in a namespace.
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    name: gitserver
-    labels:
-      app: gitserver
-  spec:
-    replicas: 1 # the gitserver is not HA and should not be scaled past 1
-    selector:
-      run-container: gitserver
-    template:
-      metadata:
-        labels:
-          run-container: gitserver
-      spec:
-        containers:
-        - name: gitserver
-          image: openshift/origin-gitserver
-          readinessProbe:
-            tcpSocket:
-              port: 8080
-          ports:
-          - containerPort: 8080
-
-          env:
-          # Each environment variable matching GIT_INITIAL_CLONE_* will
-          # be cloned when the process starts; failures will be logged.
-          # <name> must be [A-Z0-9_\-\.], the cloned directory name will
-          # be lowercased. If the name is invalid the pod will halt. If
-          # the repository already exists on disk, it will be updated
-          # from the remote.
-          #
-          - name: GIT_INITIAL_CLONE_1
-            value: https://github.com/openshift/ruby-hello-world.git;ruby-hello-world
-
-
-          # The namespace of the pod is required for implicit config
-          # (passing '-' to AUTOLINK_KUBECONFIG or REQUIRE_SERVER_AUTH)
-          # and can also be used to target a specific namespace.
-          - name: POD_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
-
-          # The URL that builds must use to access the Git repositories
-          # stored in this app.
-          # TODO: support HTTPS
-          - name: PUBLIC_URL
-            value: http://gitserver.$(POD_NAMESPACE).svc.cluster.local:8080
-          # The directory to store Git repositories in. If not backed
-          # by a persistent volume, repositories will be lost when
-          # deployments occur. Use INITIAL_GIT_CLONE and AUTOLINK_*
-          # to remove the need to use a persistent volume.
-          - name: GIT_HOME
-            value: /var/lib/git
-          # The directory to use as the default hook directory for any
-          # cloned or autolinked directories.
-          - name: HOOK_PATH
-            value: /var/lib/git-hooks
-
-          # Authentication and authorization
-
-          # If 'yes', clients may push to the server with git push.
-          - name: ALLOW_GIT_PUSH
-            value: "yes"
-          # If 'yes', clients may set hooks via the API. However, unless
-          # the Git home is backed by a persistent volume, any deployment
-          # will result in the hooks being lost.
-          - name: ALLOW_GIT_HOOKS
-            value: "yes"
-          # If 'yes', clients can create new git repositories on demand
-          # by pushing. If the data on disk is not backed by a persistent
-          # volume, the Git repo will be deleted if the deployment is
-          # updated.
-          - name: ALLOW_LAZY_CREATE
-            value: "yes"
-          # If 'yes', clients can pull without being authenticated.
-          - name: ALLOW_ANON_GIT_PULL
-
-          # Provides the path to a kubeconfig file in the image that
-          # should be used to authorize against the server. The value
-          # '-' will use the pod's service account.
-          # May not be used in combination with REQUIRE_GIT_AUTH
-          #- name: REQUIRE_SERVER_AUTH
-          #  value: "-"
-          
-          # The namespace to check authorization against when
-          # REQUIRE_SERVICE_AUTH is used. Users must have 'get' on
-          # 'pods' to pull and 'create' on 'pods' to push.
-          - name: AUTH_NAMESPACE
-            value: $(POD_NAMESPACE)
-          # Require BASIC authentication with a username and password
-          # to push or pull.
-          # May not be used in combination with REQUIRE_SERVER_AUTH
-          - name: REQUIRE_GIT_AUTH
-            value: gituser:gituserpassword
-
-          # Autolinking:
-          #
-          # The gitserver can automatically clone Git repositories
-          # associated with a build config and replace the URL with
-          # a link to the repo on PUBLIC_URL. The default post-receive
-          # hook on the cloned repo will then trigger a build. You
-          # may customize the hook with AUTOLINK_HOOK (path to hook).
-          # To autolink, the account the pod runs under must have 'edit'
-          # on the AUTOLINK_NAMESPACE:
-          #
-          #    oc policy add-role-to-user \
-          #      system:serviceaccount:${namespace}:gitserver edit
-          #
-          # Links are checked every time the pod starts.
-
-          # The location to read auth configuration from for autolinking.
-          # If '-', use the service account token to link. The account
-          # represented by this config must have the edit role on the
-          # namespace.
-          #- name: AUTOLINK_KUBECONFIG
-          #  value: "-"
-
-          # The namespace to autolink
-          #- name: AUTOLINK_NAMESPACE
-          #  value: $(POD_NAMESPACE)
-
-          # The path to a script in the image to use as the default
-          # post-receive hook - only set during link, so has no effect
-          # on cloned repositories. See the "hooks" directory in the
-          # image for examples.
-          #- name: AUTOLINK_HOOK
-
-          # The master service host is not signed with the service IP
-          # so we override with the consistent DNS name. Required for
-          # connections to the server.
-          - name: KUBERNETES_SERVICE_HOST
-            value: kubernetes.default
-
-          volumeMounts:
-          - mountPath: /var/lib/git/
-            name: git
-        volumes:
-        - name: git
-    triggers:
-    - type: ConfigChange
-
-# The gitserver service is required for DNS resolution
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: gitserver
-    labels:
-      app: gitserver
-  spec:
-    ports:
-    - port: 8080
-      targetPort: 8080
-    selector:
-      run-container: gitserver
-- apiVersion: v1
-  kind: Route
-  metadata:
-    name: gitserver
-    labels:
-      app: gitserver
-  spec:
-    tls:
-      termination: edge
-    to:
-      kind: Service
-      name: gitserver
-`)
-
-func testExtendedTestdataTestGitserverYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataTestGitserverYaml, nil
-}
-
-func testExtendedTestdataTestGitserverYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataTestGitserverYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-gitserver.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataTestReplicationControllerYaml = []byte(`apiVersion: v1
 kind: ReplicationController
 metadata:
@@ -53974,7 +53775,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/test-cli-debug.yaml":                                                             testExtendedTestdataTestCliDebugYaml,
 	"test/extended/testdata/test-deployment-config.yaml":                                                     testExtendedTestdataTestDeploymentConfigYaml,
 	"test/extended/testdata/test-env-pod.json":                                                               testExtendedTestdataTestEnvPodJson,
-	"test/extended/testdata/test-gitserver.yaml":                                                             testExtendedTestdataTestGitserverYaml,
 	"test/extended/testdata/test-replication-controller.yaml":                                                testExtendedTestdataTestReplicationControllerYaml,
 	"test/extended/testdata/test-secret.json":                                                                testExtendedTestdataTestSecretJson,
 	"test/extended/testdata/verifyservice-pipeline-template.yaml":                                            testExtendedTestdataVerifyservicePipelineTemplateYaml,
@@ -54733,7 +54533,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"test-cli-debug.yaml":                  {testExtendedTestdataTestCliDebugYaml, map[string]*bintree{}},
 				"test-deployment-config.yaml":          {testExtendedTestdataTestDeploymentConfigYaml, map[string]*bintree{}},
 				"test-env-pod.json":                    {testExtendedTestdataTestEnvPodJson, map[string]*bintree{}},
-				"test-gitserver.yaml":                  {testExtendedTestdataTestGitserverYaml, map[string]*bintree{}},
 				"test-replication-controller.yaml":     {testExtendedTestdataTestReplicationControllerYaml, map[string]*bintree{}},
 				"test-secret.json":                     {testExtendedTestdataTestSecretJson, map[string]*bintree{}},
 				"verifyservice-pipeline-template.yaml": {testExtendedTestdataVerifyservicePipelineTemplateYaml, map[string]*bintree{}},
