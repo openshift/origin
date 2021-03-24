@@ -47,7 +47,7 @@
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "openshift",
-              "name": "perl:5.26"
+              "name": "perl:5.30-el7"
             }
           }
         },

@@ -3936,7 +3936,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
         "tags": [
           {
             "annotations": {
-              "description": "Build and run Perl applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.20/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Perl available on OpenShift, including major versions updates.",
+              "description": "Build and run Perl applications on UBI. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.30-mod_fcgid/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Perl available on OpenShift, including major version updates.",
               "iconClass": "icon-perl",
               "openshift.io/display-name": "Perl (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -3946,7 +3946,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "5.26"
+              "name": "5.30-ubi8"
             },
             "name": "latest",
             "referencePolicy": {
@@ -3954,30 +3954,55 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             }
           },
           {
+            "name": "5.30-ubi8",
             "annotations": {
-              "description": "Build and run Perl 5.24 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.24/README.md.",
+              "description": "Build and run Perl 5.30 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.30-mod_fcgid/README.md.",
               "iconClass": "icon-perl",
-              "openshift.io/display-name": "Perl 5.24",
+              "openshift.io/display-name": "Perl 5.30 (UBI 8)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
-              "supports": "perl:5.24,perl",
+              "supports": "perl:5.30,perl",
               "tags": "builder,perl",
-              "version": "5.24"
+              "version": "5.30"
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/perl-524-centos7:latest"
+              "name": "registry.access.redhat.com/ubi8/perl-530:latest"
             },
-            "name": "5.24",
+            "generation": null,
+            "importPolicy": {},
             "referencePolicy": {
               "type": "Local"
             }
           },
           {
+            "name": "5.30-el7",
             "annotations": {
-              "description": "Build and run Perl 5.26 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.26/README.md.",
+              "description": "Build and run Perl 5.30 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.30/README.md.",
               "iconClass": "icon-perl",
-              "openshift.io/display-name": "Perl 5.26",
+              "openshift.io/display-name": "Perl 5.30 (CentOS 7)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
+              "supports": "perl:5.30,perl",
+              "tags": "builder,perl",
+              "version": "5.30"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "quay.io/centos7/perl-530-centos7:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "5.26-ubi8",
+            "annotations": {
+              "description": "Build and run Perl 5.26 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.26-mod_fcgid/README.md.",
+              "iconClass": "icon-perl",
+              "openshift.io/display-name": "Perl 5.26 (UBI 8)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
               "supports": "perl:5.26,perl",
@@ -3986,9 +4011,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/perl-526-centos7:latest"
+              "name": "registry.access.redhat.com/ubi8/perl-526:latest"
             },
-            "name": "5.26",
+            "generation": null,
+            "importPolicy": {},
             "referencePolicy": {
               "type": "Local"
             }
@@ -7334,7 +7360,7 @@ var _examplesQuickstartsDancerMysqlPersistentJson = []byte(`{
                         ],
                         "from": {
                             "kind": "ImageStreamTag",
-                            "name": "perl:5.26",
+                            "name": "perl:5.26-ubi8",
                             "namespace": "${NAMESPACE}"
                         }
                     },
@@ -7749,7 +7775,8 @@ var _examplesQuickstartsDancerMysqlPersistentJson = []byte(`{
             "value": ""
         }
     ]
-}`)
+}
+`)
 
 func examplesQuickstartsDancerMysqlPersistentJsonBytes() ([]byte, error) {
 	return _examplesQuickstartsDancerMysqlPersistentJson, nil
@@ -7886,7 +7913,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
                         ],
                         "from": {
                             "kind": "ImageStreamTag",
-                            "name": "perl:5.26",
+                            "name": "perl:5.26-ubi8",
                             "namespace": "${NAMESPACE}"
                         }
                     },
@@ -8275,7 +8302,8 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
             "value": ""
         }
     ]
-}`)
+}
+`)
 
 func examplesQuickstartsDancerMysqlJsonBytes() ([]byte, error) {
 	return _examplesQuickstartsDancerMysqlJson, nil
@@ -23873,7 +23901,7 @@ var _testExtendedTestdataClusterQuickstartsDancerMysqlJson = []byte(`{
                         ],
                         "from": {
                             "kind": "ImageStreamTag",
-                            "name": "perl:5.26",
+                            "name": "perl:5.26-ubi8",
                             "namespace": "${NAMESPACE}"
                         }
                     },
@@ -30393,12 +30421,12 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/delete-istag"
 # test deleting a tag using oc delete
-os::cmd::expect_success_and_text "oc get is perl --template '{{(index .spec.tags 0).name}}'" '5.24'
-os::cmd::expect_success_and_text "oc get is perl --template '{{(index .status.tags 0).tag}}'" '5.24'
-os::cmd::expect_success_and_text "oc describe is perl | sed -n -e '0,/^Tags:/d' -e '/^\s\+/d' -e '/./p' | head -n 1" 'latest'
-os::cmd::expect_success "oc delete istag/perl:5.24 --context='${cluster_admin_context}'"
-os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.spec.tags}}' 'version:5.24'
-os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.status.tags}}' 'version:5.24'
+os::cmd::expect_success_and_text "oc get is perl --template '{{(index .spec.tags 0).name}}'" '5.26-ubi8'
+os::cmd::expect_success_and_text "oc get is perl --template '{{(index .status.tags 0).tag}}'" '5.26-ubi8'
+os::cmd::expect_success_and_text "oc describe is perl | sed -n -e '0,/^Tags:/d' -e '/^\s\+/d' -e '/./p' | head -n 1" '5.30-ubi8 \(latest\)'
+os::cmd::expect_success "oc delete istag/perl:5.30-ubi8 --context='${cluster_admin_context}'"
+os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.spec.tags}}' 'version:5.30-ubi8'
+os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.status.tags}}' 'version:5.30-ubi8'
 os::cmd::expect_success 'oc delete all --all'
 
 echo "delete istag: ok"
@@ -30727,7 +30755,7 @@ os::cmd::try_until_success 'oc get istag php:latest -n test-imagestreams'
 os::cmd::expect_success 'oc create istag php:latest --from=openshift/php:7.1 -n openshift'
 
 # create a new tag for an existing imagestream in the current namespace
-os::cmd::expect_success 'oc create istag perl:5.24 --from=openshift/perl:5.24'
+os::cmd::expect_success 'oc create istag perl:5.30 --from=openshift/perl:5.30'
 os::cmd::expect_success 'oc new-app --docker-image=library/perl https://github.com/sclorg/dancer-ex --strategy=source'
 os::cmd::try_until_success 'oc get istag perl:latest -n test-imagestreams'
 
@@ -31034,8 +31062,8 @@ os::cmd::try_until_success 'oc get imagestreamtags nodejs:latest'
 os::cmd::try_until_success 'oc get imagestreamtags nodejs:10'
 os::cmd::try_until_success 'oc get imagestreamtags nodejs:12'
 os::cmd::try_until_success 'oc get imagestreamtags perl:latest'
-os::cmd::try_until_success 'oc get imagestreamtags perl:5.24'
-os::cmd::try_until_success 'oc get imagestreamtags perl:5.26'
+os::cmd::try_until_success 'oc get imagestreamtags perl:5.30'
+os::cmd::try_until_success 'oc get imagestreamtags perl:5.26-ubi8'
 os::cmd::try_until_success 'oc get imagestreamtags php:latest'
 os::cmd::try_until_success 'oc get imagestreamtags php:7.0'
 os::cmd::try_until_success 'oc get imagestreamtags php:7.1'
@@ -31056,7 +31084,7 @@ os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mongodb' "T
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mysql' "Tags:\s+5.7, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=nginx' "Tags:\s+1.14, 1.16, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=nodejs' "Tags:\s+10, 12, latest"
-os::cmd::expect_success_and_text 'oc new-app --search --image-stream=perl' "Tags:\s+5.24, 5.26, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=perl' "Tags:\s+5.30-ubi8,latest,5.30-el7"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=php' "Tags:\s+7.0, 7.1, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=postgresql' "Tags:\s+9.5, 9.6, latest"
 os::cmd::expect_success_and_text 'oc new-app -S --image-stream=python' "Tags:\s+2.7, 3.6, latest"
@@ -35204,7 +35232,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
         "tags": [
           {
             "annotations": {
-              "description": "Build and run Perl applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.20/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Perl available on OpenShift, including major versions updates.",
+              "description": "Build and run Perl applications on UBI. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.30-mod_fcgid/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Perl available on OpenShift, including major version updates.",
               "iconClass": "icon-perl",
               "openshift.io/display-name": "Perl (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -35214,7 +35242,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "5.26"
+              "name": "5.30-ubi8"
             },
             "name": "latest",
             "referencePolicy": {
@@ -35222,30 +35250,55 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             }
           },
           {
+            "name": "5.30-ubi8",
             "annotations": {
-              "description": "Build and run Perl 5.24 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.24/README.md.",
+              "description": "Build and run Perl 5.30 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.30-mod_fcgid/README.md.",
               "iconClass": "icon-perl",
-              "openshift.io/display-name": "Perl 5.24",
+              "openshift.io/display-name": "Perl 5.30 (UBI 8)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
-              "supports": "perl:5.24,perl",
+              "supports": "perl:5.30,perl",
               "tags": "builder,perl",
-              "version": "5.24"
+              "version": "5.30"
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/perl-524-centos7:latest"
+              "name": "registry.access.redhat.com/ubi8/perl-530:latest"
             },
-            "name": "5.24",
+            "generation": null,
+            "importPolicy": {},
             "referencePolicy": {
               "type": "Local"
             }
           },
           {
+            "name": "5.30-el7",
             "annotations": {
-              "description": "Build and run Perl 5.26 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.26/README.md.",
+              "description": "Build and run Perl 5.30 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.30/README.md.",
               "iconClass": "icon-perl",
-              "openshift.io/display-name": "Perl 5.26",
+              "openshift.io/display-name": "Perl 5.30 (CentOS 7)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
+              "supports": "perl:5.30,perl",
+              "tags": "builder,perl",
+              "version": "5.30"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "quay.io/centos7/perl-530-centos7:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "5.26-ubi8",
+            "annotations": {
+              "description": "Build and run Perl 5.26 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.26-mod_fcgid/README.md.",
+              "iconClass": "icon-perl",
+              "openshift.io/display-name": "Perl 5.26 (UBI 8)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
               "supports": "perl:5.26,perl",
@@ -35254,9 +35307,10 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/perl-526-centos7:latest"
+              "name": "registry.access.redhat.com/ubi8/perl-526:latest"
             },
-            "name": "5.26",
+            "generation": null,
+            "importPolicy": {},
             "referencePolicy": {
               "type": "Local"
             }
@@ -43344,7 +43398,7 @@ var _testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "openshift",
-              "name": "perl:5.26"
+              "name": "perl:5.30-el7"
             }
           }
         },
