@@ -37,12 +37,7 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 		knownBrokenPods := map[string]string{
 			//"<apiVersion>/<kind>/<namespace>/<name>/(initContainer|container)/<container_name>/<violation_type>": "<url to bug>",
 
-			"apps/v1/DaemonSet/openshift-ovn-kubernetes/ovnkube-master/container/sbdb/request[cpu]":    "https://bugzilla.redhat.com/show_bug.cgi?id=1939752",
-			"apps/v1/DaemonSet/openshift-ovn-kubernetes/ovnkube-master/container/sbdb/request[memory]": "https://bugzilla.redhat.com/show_bug.cgi?id=1939752",
-
 			"apps/v1/DaemonSet/openshift-multus/multus-admission-controller/container/multus-admission-controller/request[memory]": "https://bugzilla.redhat.com/show_bug.cgi?id=1938469",
-
-			"apps/v1/Deployment/openshift-kube-scheduler-operator/openshift-kube-scheduler-operator/container/kube-scheduler-operator-container/request[cpu]": "https://bugzilla.redhat.com/show_bug.cgi?id=1938468",
 
 			"apps/v1/Deployment/openshift-machine-api/cluster-autoscaler-default/container/cluster-autoscaler/request[cpu]":    "https://bugzilla.redhat.com/show_bug.cgi?id=1938467",
 			"apps/v1/Deployment/openshift-machine-api/cluster-autoscaler-default/container/cluster-autoscaler/request[memory]": "https://bugzilla.redhat.com/show_bug.cgi?id=1938467",
@@ -52,26 +47,6 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 
 			"batch/v1/Job/openshift-marketplace/<batch_job>/container/extract/request[cpu]":    "https://bugzilla.redhat.com/show_bug.cgi?id=1938492",
 			"batch/v1/Job/openshift-marketplace/<batch_job>/container/extract/request[memory]": "https://bugzilla.redhat.com/show_bug.cgi?id=1938492",
-
-			// Some of these may be allowed to be retained, but proper approval is needed
-			"apps/v1/Deployment/openshift-machine-api/machine-api-controllers/container/kube-rbac-proxy-machine-mtrc/limit[cpu]":       "https://bugzilla.redhat.com/show_bug.cgi?id=1938493",
-			"apps/v1/Deployment/openshift-machine-api/machine-api-controllers/container/kube-rbac-proxy-machine-mtrc/limit[memory]":    "https://bugzilla.redhat.com/show_bug.cgi?id=1938493",
-			"apps/v1/Deployment/openshift-machine-api/machine-api-controllers/container/kube-rbac-proxy-machineset-mtrc/limit[cpu]":    "https://bugzilla.redhat.com/show_bug.cgi?id=1938493",
-			"apps/v1/Deployment/openshift-machine-api/machine-api-controllers/container/kube-rbac-proxy-machineset-mtrc/limit[memory]": "https://bugzilla.redhat.com/show_bug.cgi?id=1938493",
-			"apps/v1/Deployment/openshift-machine-api/machine-api-controllers/container/kube-rbac-proxy-mhc-mtrc/limit[cpu]":           "https://bugzilla.redhat.com/show_bug.cgi?id=1938493",
-			"apps/v1/Deployment/openshift-machine-api/machine-api-controllers/container/kube-rbac-proxy-mhc-mtrc/limit[memory]":        "https://bugzilla.redhat.com/show_bug.cgi?id=1938493",
-			"apps/v1/Deployment/openshift-machine-api/machine-api-controllers/container/machine-controller/limit[cpu]":                 "https://bugzilla.redhat.com/show_bug.cgi?id=1938493",
-			"apps/v1/Deployment/openshift-machine-api/machine-api-controllers/container/machine-controller/limit[memory]":              "https://bugzilla.redhat.com/show_bug.cgi?id=1938493",
-			"apps/v1/Deployment/openshift-machine-api/machine-api-controllers/container/machine-healthcheck-controller/limit[cpu]":     "https://bugzilla.redhat.com/show_bug.cgi?id=1938493",
-			"apps/v1/Deployment/openshift-machine-api/machine-api-controllers/container/machine-healthcheck-controller/limit[memory]":  "https://bugzilla.redhat.com/show_bug.cgi?id=1938493",
-			"apps/v1/Deployment/openshift-machine-api/machine-api-controllers/container/machineset-controller/limit[cpu]":              "https://bugzilla.redhat.com/show_bug.cgi?id=1938493",
-			"apps/v1/Deployment/openshift-machine-api/machine-api-controllers/container/machineset-controller/limit[memory]":           "https://bugzilla.redhat.com/show_bug.cgi?id=1938493",
-			"apps/v1/Deployment/openshift-machine-api/machine-api-controllers/container/nodelink-controller/limit[cpu]":                "https://bugzilla.redhat.com/show_bug.cgi?id=1938493",
-			"apps/v1/Deployment/openshift-machine-api/machine-api-controllers/container/nodelink-controller/limit[memory]":             "https://bugzilla.redhat.com/show_bug.cgi?id=1938493",
-			"apps/v1/Deployment/openshift-machine-api/machine-api-operator/container/kube-rbac-proxy/limit[cpu]":                       "https://bugzilla.redhat.com/show_bug.cgi?id=1938493",
-			"apps/v1/Deployment/openshift-machine-api/machine-api-operator/container/kube-rbac-proxy/limit[memory]":                    "https://bugzilla.redhat.com/show_bug.cgi?id=1938493",
-			"apps/v1/Deployment/openshift-machine-api/machine-api-operator/container/machine-api-operator/limit[cpu]":                  "https://bugzilla.redhat.com/show_bug.cgi?id=1938493",
-			"apps/v1/Deployment/openshift-machine-api/machine-api-operator/container/machine-api-operator/limit[memory]":               "https://bugzilla.redhat.com/show_bug.cgi?id=1938493",
 
 			"apps/v1/DaemonSet/openshift-machine-api/metal3-image-cache/container/metal3-httpd/request[cpu]":          "https://bugzilla.redhat.com/show_bug.cgi?id=1940518",
 			"apps/v1/DaemonSet/openshift-machine-api/metal3-image-cache/container/metal3-httpd/request[memory]":       "https://bugzilla.redhat.com/show_bug.cgi?id=1940518",

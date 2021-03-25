@@ -94,6 +94,44 @@ func LocatePrometheus(oc *exutil.CLI) (queryURL, prometheusURL, bearerToken stri
 	return "https://thanos-querier.openshift-monitoring.svc:9091", "https://prometheus-k8s.openshift-monitoring.svc:9091", bearerToken, true
 }
 
+type MetricCondition struct {
+	Selector map[string]string
+	Text     string
+}
+
+type MetricConditions []MetricCondition
+
+func (c MetricConditions) Matches(sample *model.Sample) *MetricCondition {
+	for i, condition := range c {
+		matches := true
+		for name, value := range condition.Selector {
+			if sample.Metric[model.LabelName(name)] != model.LabelValue(value) {
+				matches = false
+				break
+			}
+			if matches {
+				return &c[i]
+			}
+		}
+	}
+	return nil
+}
+
+func LabelsAsSelector(l model.LabelSet) string {
+	return l.String()
+}
+
+func StripLabels(m model.Metric, names ...string) model.LabelSet {
+	labels := make(model.LabelSet)
+	for k := range m {
+		labels[k] = m[k]
+	}
+	for _, name := range names {
+		delete(labels, model.LabelName(name))
+	}
+	return labels
+}
+
 func RunQuery(query, ns, execPodName, baseURL, bearerToken string) (*PrometheusResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/query?%s", baseURL, (url.Values{"query": []string{query}}).Encode())
 	contents, err := GetBearerTokenURLViaPod(ns, execPodName, url, bearerToken)
