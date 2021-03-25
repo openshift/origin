@@ -60,13 +60,6 @@ var s2iImages = map[string][]tc{
 	},
 	"nodejs": {
 		{
-			Version:  "10",
-			Cmd:      "node --version",
-			Expected: "v10",
-			Tag:      "10",
-			NonAMD:   true,
-		},
-		{
 			Version:  "12",
 			Cmd:      "node --version",
 			Expected: "v12",
@@ -76,10 +69,10 @@ var s2iImages = map[string][]tc{
 	},
 	"perl": {
 		{
-			Version:  "526",
+			Version:  "530",
 			Cmd:      "perl --version",
-			Expected: "v5.26",
-			Tag:      "5.26",
+			Expected: "v5.30",
+			Tag:      "5.30",
 			NonAMD:   true,
 		},
 	},
