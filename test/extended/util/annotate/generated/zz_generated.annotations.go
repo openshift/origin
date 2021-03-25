@@ -323,7 +323,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-api-machinery] API data in etcd should be stored at the correct location and version for all resources [Serial]": "should be stored at the correct location and version for all resources [Serial] [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [sig-api-machinery] API priority and fairness should ensure that requests can be classified by testing flow-schemas/priority-levels": "should ensure that requests can be classified by testing flow-schemas/priority-levels [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] API priority and fairness should ensure that requests can be classified by adding FlowSchema and PriorityLevelConfiguration": "should ensure that requests can be classified by adding FlowSchema and PriorityLevelConfiguration [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-api-machinery] API priority and fairness should ensure that requests can't be drowned out (fairness)": "should ensure that requests can't be drowned out (fairness) [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2467,9 +2467,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-scheduling] Multi-AZ Cluster Volumes [sig-storage] should schedule pods in the same zones as statically provisioned PVs": "should schedule pods in the same zones as statically provisioned PVs [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-scheduling] Multi-AZ Clusters should spread the pods of a replication controller across zones": "should spread the pods of a replication controller across zones [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-scheduling] Multi-AZ Clusters should spread the pods of a replication controller across zones [Serial]": "should spread the pods of a replication controller across zones [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[Top Level] [sig-scheduling] Multi-AZ Clusters should spread the pods of a service across zones": "should spread the pods of a service across zones [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-scheduling] Multi-AZ Clusters should spread the pods of a service across zones [Serial]": "should spread the pods of a service across zones [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[Top Level] [sig-scheduling] SchedulerPredicates [Serial] PodTopologySpread Filtering validates 4 pods with MaxSkew=1 are evenly distributed into 2 nodes": "validates 4 pods with MaxSkew=1 are evenly distributed into 2 nodes [Suite:openshift/conformance/serial] [Suite:k8s]",
 
