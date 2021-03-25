@@ -857,7 +857,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch] [Conformance] FIPS TestFIPS": "TestFIPS [Suite:openshift/conformance/parallel/minimal]",
 
-	"[Top Level] [sig-arch] ocp payload should be based on existing source [Serial] olm version should contain the source commit id": "[Serial] olm version should contain the source commit id [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-arch] ocp payload should be based on existing source OLM version should contain the source commit id": "OLM version should contain the source commit id [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][Early] Managed cluster should start all core operators": "start all core operators [Suite:openshift/conformance/parallel]",
 
