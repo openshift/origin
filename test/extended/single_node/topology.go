@@ -105,10 +105,6 @@ func isAllowedToFail(deployment appsv1.Deployment) bool {
 		"openshift-image-registry": {
 			"image-registry",
 		},
-		"openshift-monitoring": {
-			"prometheus-adapter",
-			"thanos-querier",
-		},
 		"openshift-operator-lifecycle-manager": {
 			"packageserver",
 		},
