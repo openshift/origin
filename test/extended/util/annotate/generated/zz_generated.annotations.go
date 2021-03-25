@@ -1663,6 +1663,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation] Stackdriver Monitoring should run Stackdriver Metadata Agent [Feature:StackdriverMetadataAgent]": "should run Stackdriver Metadata Agent [Feature:StackdriverMetadataAgent] [Disabled:Unimplemented] [Suite:k8s]",
 
+	"[Top Level] [sig-instrumentation][Late] Alerting rules should have a severity label equal to critical, warning or info except for Watchdog": "should have a severity label equal to critical, warning or info except for Watchdog [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster": "shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't report any alerts in firing or pending state apart from Watchdog and AlertmanagerReceiversNotConfigured and have no gaps in Watchdog firing": "shouldn't report any alerts in firing or pending state apart from Watchdog and AlertmanagerReceiversNotConfigured and have no gaps in Watchdog firing [Suite:openshift/conformance/parallel]",

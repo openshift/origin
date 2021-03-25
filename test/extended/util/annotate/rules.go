@@ -164,6 +164,7 @@ var (
 			`\[sig-instrumentation\] Prometheus when installed on the cluster shouldn't have failing rules evaluation`,
 			`\[sig-instrumentation\] Prometheus when installed on the cluster shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured \[Early\]`,
 			`\[sig-instrumentation\] Prometheus when installed on the cluster when using openshift-sdn should be able to get the sdn ovs flows`,
+			`\[sig-instrumentation\]\[Late\] Alerting rules should have a severity label equal to critical, warning or info except for Watchdog`,
 			`\[sig-instrumentation\]\[Late\] Alerts should have a Watchdog alert in firing state the entire cluster run`,
 			`\[sig-instrumentation\]\[Late\] Alerts shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster`,
 			`\[sig-instrumentation\]\[Late\] Alerts shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured`,

@@ -40,6 +40,149 @@ import (
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 )
 
+var _ = g.Describe("[sig-instrumentation][Late] Alerting rules", func() {
+	defer g.GinkgoRecover()
+	var (
+		oc = exutil.NewCLIWithoutNamespace("prometheus")
+
+		url, bearerToken string
+	)
+	g.BeforeEach(func() {
+		var ok bool
+		url, _, bearerToken, ok = helper.LocatePrometheus(oc)
+		if !ok {
+			e2e.Failf("Prometheus could not be located on this cluster, failing prometheus test")
+		}
+	})
+
+	g.It("should have a severity label equal to critical, warning or info except for Watchdog", func() {
+		ns := oc.SetupNamespace()
+		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
+		defer func() {
+			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+		}()
+
+		url = fmt.Sprintf("%s/api/v1/rules", url)
+		contents, err := helper.GetBearerTokenURLViaPod(ns, execPod.Name, url, bearerToken)
+		if err != nil {
+			e2e.Failf("unable to query %s: %v", url, err)
+		}
+
+		var result struct {
+			Status string        `json:"status"`
+			Data   ruleDiscovery `json:"data"`
+		}
+		if err := json.Unmarshal([]byte(contents), &result); err != nil {
+			e2e.Failf("unable to parse response %q from %s: %v", contents, url, err)
+		}
+
+		unexpectedViolations := sets.NewString()
+		severityRe := regexp.MustCompile("^critical|warning|info$")
+
+		for _, rg := range result.Data.RuleGroups {
+			e2e.Logf("group: %s", rg.Name)
+
+			for _, r := range rg.Rules {
+				var rule ruleType
+				if err := json.Unmarshal(r, &rule); err != nil {
+					e2e.Failf("%v: %q", err, string(r))
+				}
+
+				var ar alertingRule
+				switch rule.Type {
+				case alertingRuleType:
+					if err := json.Unmarshal(r, &ar); err != nil {
+						e2e.Failf("%v: %q", err, string(r))
+					}
+				case recordingRuleType:
+					continue
+				default:
+					e2e.Failf("unexpected rule of type %s", rule.Type)
+				}
+
+				// The Watchdog alert is special because it is only there to
+				// test the end-to-end alert flow and it isn't meant to be
+				// routed to cluster admins.
+				if ar.Name == "Watchdog" {
+					continue
+				}
+
+				severity, found := ar.Labels["severity"]
+				if !found {
+					unexpectedViolations.Insert(
+						fmt.Sprintf("alerting rule %q (group: %s) should have a 'severity' label", ar.Name, rg.Name),
+					)
+					continue
+				}
+
+				if !severityRe.MatchString(severity) {
+					unexpectedViolations.Insert(
+						fmt.Sprintf("alerting rule %q (group: %s) has a 'severity' label value of %q which doesn't match %q", ar.Name, rg.Name, severity, severityRe.String()),
+					)
+				}
+			}
+		}
+
+		if len(unexpectedViolations) > 0 {
+			e2e.Failf("Incompliant rules detected:\n\n%s", strings.Join(unexpectedViolations.List(), "\n"))
+		}
+	})
+})
+
+// RuleDiscovery has info for all rules
+type ruleDiscovery struct {
+	RuleGroups []*ruleGroup `json:"groups"`
+}
+
+// RuleGroup has info for rules which are part of a group
+type ruleGroup struct {
+	Name string `json:"name"`
+	File string `json:"file"`
+	// Rules contain alertingRule and recordingRule structs.
+	Rules          []json.RawMessage `json:"rules"`
+	Interval       float64           `json:"interval"`
+	EvaluationTime float64           `json:"evaluationTime"`
+	LastEvaluation time.Time         `json:"lastEvaluation"`
+}
+
+const (
+	alertingRuleType  = "alerting"
+	recordingRuleType = "recording"
+)
+
+type ruleType struct {
+	Type string `json:"type"`
+}
+
+type alertingRule struct {
+	// State can be "pending", "firing", "inactive".
+	State          string            `json:"state"`
+	Name           string            `json:"name"`
+	Query          string            `json:"query"`
+	Duration       float64           `json:"duration"`
+	Labels         map[string]string `json:"labels"`
+	Annotations    map[string]string `json:"annotations"`
+	Alerts         []interface{}     `json:"alerts"`
+	Health         string            `json:"health"`
+	LastError      string            `json:"lastError,omitempty"`
+	EvaluationTime float64           `json:"evaluationTime"`
+	LastEvaluation time.Time         `json:"lastEvaluation"`
+	// Type of an alertingRule is always "alerting".
+	Type string `json:"type"`
+}
+
+type recordingRule struct {
+	Name           string            `json:"name"`
+	Query          string            `json:"query"`
+	Labels         map[string]string `json:"labels,omitempty"`
+	Health         string            `json:"health"`
+	LastError      string            `json:"lastError,omitempty"`
+	EvaluationTime float64           `json:"evaluationTime"`
+	LastEvaluation time.Time         `json:"lastEvaluation"`
+	// Type of a recordingRule is always "recording".
+	Type string `json:"type"`
+}
+
 var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 	defer g.GinkgoRecover()
 	var (
