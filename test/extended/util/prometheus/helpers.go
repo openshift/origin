@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -12,8 +13,11 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 
 	v1 "k8s.io/api/core/v1"
@@ -256,4 +260,105 @@ func ExpectPrometheusEndpoint(namespace, podName, url string) {
 		time.Sleep(prometheusQueryRetrySleep)
 	}
 	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// FetchAlertingRules fetchs all alerting rules from the Prometheus at
+// the given URL using the given bearer token.  The results are returned
+// as a map of group names to lists of alerting rules.
+func FetchAlertingRules(oc *exutil.CLI, promURL, bearerToken string) (map[string][]promv1.AlertingRule, error) {
+	ns := oc.SetupNamespace()
+	execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
+	defer func() {
+		oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+	}()
+
+	url := fmt.Sprintf("%s/api/v1/rules", promURL)
+	contents, err := GetBearerTokenURLViaPod(ns, execPod.Name, url, bearerToken)
+	if err != nil {
+		return nil, fmt.Errorf("unable to query %s: %v", url, err)
+	}
+
+	var result struct {
+		Status string             `json:"status"`
+		Data   promv1.RulesResult `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(contents), &result); err != nil {
+		return nil, fmt.Errorf("unable to parse response %q from %s: %v", contents, url, err)
+	}
+
+	alertingRules := make(map[string][]promv1.AlertingRule)
+
+	for _, rg := range result.Data.Groups {
+		for _, r := range rg.Rules {
+			switch v := r.(type) {
+			case promv1.RecordingRule:
+				continue
+			case promv1.AlertingRule:
+				alertingRules[rg.Name] = append(alertingRules[rg.Name], v)
+			default:
+				return nil, fmt.Errorf("unexpected rule of type %T", r)
+			}
+		}
+	}
+
+	return alertingRules, nil
+}
+
+// ValidateURL takes a URL as a string and a timeout.  The URL is
+// parsed, then fetched until a 200 response is received or the timeout
+// is reached.
+func ValidateURL(rawURL string, timeout time.Duration) error {
+	if _, err := url.Parse(rawURL); err != nil {
+		return err
+	}
+
+	return wait.PollImmediate(1*time.Second, timeout, func() (done bool, err error) {
+		resp, err := http.Get(rawURL)
+		if err != nil {
+			framework.Logf("validateURL(%q) error: %v", err)
+			return false, nil
+		}
+
+		defer resp.Body.Close()
+
+		if resp.StatusCode == 200 {
+			return true, nil
+		}
+
+		framework.Logf("validateURL(%q) got non-200 response: %d", rawURL, resp.StatusCode)
+		return false, nil
+	})
+}
+
+// ForEachAlertingRule takes a map of rule group names to a list of
+// alerting rules, and for each rule in each group runs the given
+// function.  The function takes the alerting rule, and returns a set of
+// violations, which maye be empty or nil.  If after all rules are
+// checked, there are any violations, the calling test is failed, and
+// all violations are reported.
+func ForEachAlertingRule(rules map[string][]promv1.AlertingRule, f func(a promv1.AlertingRule) sets.String) {
+	allViolations := sets.NewString()
+
+	for group, alerts := range rules {
+		for _, alert := range alerts {
+			// The Watchdog alert is special because it is only there to
+			// test the end-to-end alert flow and it isn't meant to be
+			// routed to cluster admins.
+			if alert.Name == "Watchdog" {
+				continue
+			}
+
+			if violations := f(alert); violations != nil {
+				for _, v := range violations.List() {
+					allViolations.Insert(
+						fmt.Sprintf("Alerting rule %q (group: %s) %s", alert.Name, group, v),
+					)
+				}
+			}
+		}
+	}
+
+	if len(allViolations) > 0 {
+		framework.Failf("Incompliant rules detected:\n\n%s", strings.Join(allViolations.List(), "\n"))
+	}
 }
