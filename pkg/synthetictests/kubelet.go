@@ -6,12 +6,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+
 	"github.com/openshift/origin/pkg/test/ginkgo"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-func testKubeletToAPIServerGracefulTermination(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {
+func testKubeletToAPIServerGracefulTermination(events []*monitorapi.EventInterval) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-node] kubelet terminates kube-apiserver gracefully"
 
 	var failures []string
@@ -43,7 +44,7 @@ func testKubeletToAPIServerGracefulTermination(events []*monitor.EventInterval) 
 	return tests
 }
 
-func testKubeAPIServerGracefulTermination(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {
+func testKubeAPIServerGracefulTermination(events []*monitorapi.EventInterval) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-api-machinery] kube-apiserver terminates within graceful termination period"
 
 	var failures []string
@@ -71,7 +72,7 @@ func testKubeAPIServerGracefulTermination(events []*monitor.EventInterval) []*gi
 	return tests
 }
 
-func testPodTransitions(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {
+func testPodTransitions(events []*monitorapi.EventInterval) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-node] pods should never transition back to pending"
 	success := &ginkgo.JUnitTestCase{Name: testName}
 
@@ -104,7 +105,7 @@ func formatTimes(times []time.Time) []string {
 	return s
 }
 
-func testNodeUpgradeTransitions(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {
+func testNodeUpgradeTransitions(events []*monitorapi.EventInterval) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-node] nodes should not go unready after being upgraded and go unready only once"
 
 	var buf bytes.Buffer
@@ -125,13 +126,13 @@ func testNodeUpgradeTransitions(events []*monitor.EventInterval) []*ginkgo.JUnit
 				fmt.Fprintf(&buf, "DEBUG: found upgrade start event: %v\n", event.String())
 				break
 			}
-			if !strings.HasPrefix(event.Locator, "node/") {
+			if !monitorapi.IsNode(event.Locator) {
 				continue
 			}
 			if !strings.HasPrefix(event.Message, "condition/Ready ") || !strings.HasSuffix(event.Message, " changed") {
 				continue
 			}
-			node := strings.TrimPrefix(event.Locator, "node/")
+			node, _ := monitorapi.NodeFromLocator(event.Locator)
 			if strings.Contains(event.Message, " status/True ") {
 				if currentNodeReady[node] {
 					failures = append(failures, fmt.Sprintf("Node %s was reported ready twice in a row, this should be impossible", node))
@@ -205,7 +206,7 @@ func testNodeUpgradeTransitions(events []*monitor.EventInterval) []*ginkgo.JUnit
 	return testCases
 }
 
-func testSystemDTimeout(events []*monitor.EventInterval) []*ginkgo.JUnitTestCase {
+func testSystemDTimeout(events []*monitorapi.EventInterval) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-node] pods should not fail on systemd timeouts"
 	success := &ginkgo.JUnitTestCase{Name: testName}
 

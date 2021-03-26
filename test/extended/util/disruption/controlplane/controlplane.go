@@ -115,7 +115,7 @@ func (t *availableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 	if framework.ProviderIs("aws", "azure") {
 		toleratedDisruption = 0
 	}
-	disruption.ExpectNoDisruption(f, toleratedDisruption, end.Sub(start), m.Events(time.Time{}, time.Time{}), fmt.Sprintf("API %q was unreachable during disruption", t.name))
+	disruption.ExpectNoDisruption(f, toleratedDisruption, end.Sub(start), m.EventIntervals(time.Time{}, time.Time{}), fmt.Sprintf("API %q was unreachable during disruption", t.name))
 }
 
 // Teardown cleans up any remaining resources.

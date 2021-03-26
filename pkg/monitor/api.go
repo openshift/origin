@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+
 	"k8s.io/client-go/transport"
 
 	corev1 "k8s.io/api/core/v1"
@@ -133,7 +135,7 @@ func startServerMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.
 	}
 
 	m.AddSampler(
-		StartSampling(ctx, m, time.Second, func(previous bool) (condition *Condition, next bool) {
+		StartSampling(ctx, m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
 			resp, err := httpClient.Get(clusterConfig.Host + url)
 
 			// we don't have an error, but the response code was an error, then we have to set an artificial error for the logic below to work.
@@ -151,21 +153,21 @@ func startServerMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.
 
 			switch {
 			case err == nil && !previous:
-				condition = &Condition{
-					Level:   Info,
+				condition = &monitorapi.Condition{
+					Level:   monitorapi.Info,
 					Locator: resourceLocator,
 					Message: fmt.Sprintf("%s started responding to GET requests", resourceLocator),
 				}
 			case err != nil && previous:
-				condition = &Condition{
-					Level:   Error,
+				condition = &monitorapi.Condition{
+					Level:   monitorapi.Error,
 					Locator: resourceLocator,
 					Message: fmt.Sprintf("%s started failing: %v", resourceLocator, err),
 				}
 			}
 			return condition, err == nil
-		}).ConditionWhenFailing(&Condition{
-			Level:   Error,
+		}).ConditionWhenFailing(&monitorapi.Condition{
+			Level:   monitorapi.Error,
 			Locator: resourceLocator,
 			Message: fmt.Sprintf("%s is not responding to GET requests", resourceLocator),
 		}),
@@ -248,10 +250,6 @@ func locatePod(pod *corev1.Pod) string {
 	return fmt.Sprintf("ns/%s pod/%s node/%s", pod.Namespace, pod.Name, pod.Spec.NodeName)
 }
 
-func locateNode(node *corev1.Node) string {
-	return fmt.Sprintf("node/%s", node.Name)
-}
-
 func locatePodContainer(pod *corev1.Pod, containerName string) string {
 	return fmt.Sprintf("ns/%s pod/%s node/%s container/%s", pod.Namespace, pod.Name, pod.Spec.NodeName, containerName)
 }
@@ -301,8 +299,8 @@ func (w *errorRecordingListWatcher) handle(err error) {
 	defer w.lock.Unlock()
 	if err != nil {
 		if !w.receivedError {
-			w.recorder.Record(Condition{
-				Level:   Error,
+			w.recorder.Record(monitorapi.Condition{
+				Level:   monitorapi.Error,
 				Locator: "kube-apiserver",
 				Message: fmt.Sprintf("failed contacting the API: %v", err),
 			})

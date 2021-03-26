@@ -1,37 +1,20 @@
 package monitor
 
 import (
-	"fmt"
-	"strconv"
 	"strings"
 	"time"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
-func E2ETestLocator(testName string) string {
-	return fmt.Sprintf("e2e-test/%q", testName)
-}
-
-func E2ETestFromLocator(locator string) (string, bool) {
-	if !strings.HasPrefix(locator, "e2e-test/") {
-		return "", false
-	}
-	parts := strings.SplitN(locator, "/", 2)
-	quotedTestName := parts[1]
-	testName, err := strconv.Unquote(quotedTestName)
-	if err != nil {
-		return "", false
-	}
-	return testName, true
-}
-
 // EventsByE2ETest returns map keyed by e2e test name (may contain spaces).
-func EventsByE2ETest(events []*EventInterval) map[string][]*EventInterval {
-	eventsByE2ETest := map[string][]*EventInterval{}
+func EventsByE2ETest(events []*monitorapi.EventInterval) map[string][]*monitorapi.EventInterval {
+	eventsByE2ETest := map[string][]*monitorapi.EventInterval{}
 	for _, event := range events {
 		if !strings.Contains(event.Locator, "e2e-test/") {
 			continue
 		}
-		testName, ok := E2ETestFromLocator(event.Locator)
+		testName, ok := monitorapi.E2ETestFromLocator(event.Locator)
 		if !ok {
 			continue
 		}
@@ -41,8 +24,8 @@ func EventsByE2ETest(events []*EventInterval) map[string][]*EventInterval {
 }
 
 // E2ETestEvents returns only events for e2e tests
-func E2ETestEvents(events []*EventInterval) []*EventInterval {
-	e2eEvents := []*EventInterval{}
+func E2ETestEvents(events []*monitorapi.EventInterval) []*monitorapi.EventInterval {
+	e2eEvents := []*monitorapi.EventInterval{}
 	for i := range events {
 		event := events[i]
 		if !strings.Contains(event.Locator, "e2e-test/") {
@@ -54,13 +37,13 @@ func E2ETestEvents(events []*EventInterval) []*EventInterval {
 }
 
 // E2ETestsRunningBetween returns names of e2e test that were active during the timeframe
-func E2ETestsRunningBetween(events []*EventInterval, start, end time.Time) map[string][]*EventInterval {
-	activeTests := map[string][]*EventInterval{}
+func E2ETestsRunningBetween(events []*monitorapi.EventInterval, start, end time.Time) map[string][]*monitorapi.EventInterval {
+	activeTests := map[string][]*monitorapi.EventInterval{}
 	e2eTestsToEvents := EventsByE2ETest(events)
 	type activeInterval struct {
 		start  time.Time
 		end    time.Time
-		events []*EventInterval
+		events []*monitorapi.EventInterval
 	}
 	for testName, events := range e2eTestsToEvents {
 		runningIntervals := []activeInterval{}
@@ -68,10 +51,10 @@ func E2ETestsRunningBetween(events []*EventInterval, start, end time.Time) map[s
 		for _, event := range events {
 			switch {
 			case event.Message == "started":
-				currInterval.start = event.InitiatedAt
+				currInterval.start = event.From
 				currInterval.events = append(currInterval.events, event)
 			case strings.HasPrefix(event.Message, "finishedStatus/"):
-				currInterval.end = event.InitiatedAt
+				currInterval.end = event.From
 				currInterval.events = append(currInterval.events, event)
 				runningIntervals = append(runningIntervals, currInterval)
 
@@ -95,7 +78,7 @@ func E2ETestsRunningBetween(events []*EventInterval, start, end time.Time) map[s
 	return activeTests
 }
 
-func FindFailedTestsActiveBetween(events []*EventInterval, start, end time.Time) []string {
+func FindFailedTestsActiveBetween(events []*monitorapi.EventInterval, start, end time.Time) []string {
 	e2eTestEvents := E2ETestEvents(events)
 	e2eTestsActive := E2ETestsRunningBetween(e2eTestEvents, start, end)
 

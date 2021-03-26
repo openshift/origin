@@ -4,10 +4,12 @@ import (
 	"context"
 	"sync"
 	"time"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 type ConditionalSampler interface {
-	ConditionWhenFailing(*Condition) SamplerFunc
+	ConditionWhenFailing(*monitorapi.Condition) SamplerFunc
 }
 
 type sampler struct {
@@ -15,7 +17,7 @@ type sampler struct {
 	available bool
 }
 
-func StartSampling(ctx context.Context, recorder Recorder, interval time.Duration, sampleFn func(previous bool) (*Condition, bool)) ConditionalSampler {
+func StartSampling(ctx context.Context, recorder Recorder, interval time.Duration, sampleFn func(previous bool) (*monitorapi.Condition, bool)) ConditionalSampler {
 	s := &sampler{
 		available: true,
 	}
@@ -53,11 +55,11 @@ func (s *sampler) setAvailable(b bool) {
 	s.available = b
 }
 
-func (s *sampler) ConditionWhenFailing(condition *Condition) SamplerFunc {
-	return func(_ time.Time) []*Condition {
+func (s *sampler) ConditionWhenFailing(condition *monitorapi.Condition) SamplerFunc {
+	return func(_ time.Time) []*monitorapi.Condition {
 		if s.isAvailable() {
 			return nil
 		}
-		return []*Condition{condition}
+		return []*monitorapi.Condition{condition}
 	}
 }
