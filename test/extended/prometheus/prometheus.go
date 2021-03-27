@@ -20,6 +20,7 @@ import (
 
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	clientset "k8s.io/client-go/kubernetes"
@@ -27,9 +28,11 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/conditions"
+	"k8s.io/kubernetes/test/e2e/framework"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
+	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/ibmcloud"
@@ -51,7 +54,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		}
 	})
 
-	g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured", func() {
+	g.It("shouldn't report any alerts in firing or pending state apart from Watchdog and AlertmanagerReceiversNotConfigured and have no gaps in Watchdog firing", func() {
 		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
 			e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
 		}
@@ -61,42 +64,83 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 		}()
 
+		firingAlertsWithBugs := helper.MetricConditions{
+			{
+				Selector: map[string]string{"alertname": "AggregatedAPIDown", "name": "v1alpha1.wardle.example.com"},
+				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1933144",
+			},
+		}
+
+		pendingAlertsWithBugs := helper.MetricConditions{}
+		allowedPendingAlerts := helper.MetricConditions{}
+
+		knownViolations := sets.NewString()
+		unexpectedViolations := sets.NewString()
+		unexpectedViolationsAsFlakes := sets.NewString()
+		debug := sets.NewString()
+
 		// we only consider samples since the beginning of the test
 		testDuration := exutil.DurationSinceStartInSeconds().String()
 
-		tests := map[string]bool{
-			// Invariant: No alerts should have fired during the test run except the known alerts.
-			// 						Returns number of seconds the alerts were firing.
-			// * AggregatedAPIDown for {name="v1alpha1.wardle.example.com"} is excluded because of what
-			//   appears to be a teardown bug - the apiserver is not removed quickly, see https://bugzilla.redhat.com/show_bug.cgi?id=1933144
-			fmt.Sprintf(`
-sort_desc((
-count_over_time(ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured",alertstate="firing",severity!="info"}[%[1]s:1s]) unless
-count_over_time(ALERTS{alertname="AggregatedAPIDown",name="v1alpha1.wardle.example.com",alertstate="firing"}[%[1]s:1s])
-) > 0)`, testDuration): false,
+		// Invariant: The watchdog alert should be firing continuously during the whole test via the thanos
+		// querier (which should have no gaps when it queries the individual stores). Allow zero or one changes
+		// to the presence of this series (zero if data is preserved over test, one if data is lost over test).
+		// This would not catch the alert stopping firing, but we catch that in other places and tests.
+		watchdogQuery := fmt.Sprintf(`changes((max((ALERTS{alertstate="firing",alertname="Watchdog",severity="none"}) or (absent(ALERTS{alertstate="firing",alertname="Watchdog",severity="none"})*0)))[%s:1s]) > 1`, testDuration)
+		result, err := helper.RunQuery(watchdogQuery, ns, execPod.Name, url, bearerToken)
+		o.Expect(err).NotTo(o.HaveOccurred(), "unable to check watchdog alert over test window")
+		if len(result.Data.Result) > 0 {
+			unexpectedViolations.Insert("Watchdog alert had missing intervals during the run, which may be a sign of a Prometheus outage in violation of the prometheus query SLO of 100% uptime during normal execution")
 		}
-		err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
-		o.Expect(err).NotTo(o.HaveOccurred())
-	})
 
-	g.It("should have a Watchdog alert in firing state the entire cluster run", func() {
-		ns := oc.SetupNamespace()
-		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
-		defer func() {
-			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
-		}()
-
-		// we only consider series sent since the beginning of the test
-		testDuration := exutil.DurationSinceStartInSeconds().String()
-
-		tests := map[string]bool{
-			// should have constantly firing a watchdog alert
-			fmt.Sprintf(`count_over_time(ALERTS{alertstate="firing",alertname="Watchdog", severity="none"}[%s])`, testDuration): true,
+		// Invariant: No non-info level alerts should have fired during the test run
+		firingAlertQuery := fmt.Sprintf(`
+sort_desc(
+count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog|AlertmanagerReceiversNotConfigured"}[%[1]s:1s])
+) > 0
+`, testDuration)
+		result, err = helper.RunQuery(firingAlertQuery, ns, execPod.Name, url, bearerToken)
+		o.Expect(err).NotTo(o.HaveOccurred(), "unable to check firing alerts during test")
+		for _, series := range result.Data.Result {
+			labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
+			violation := fmt.Sprintf("alert %s fired for %s seconds with labels: %s", series.Metric["alertname"], series.Value, helper.LabelsAsSelector(labels))
+			if cause := firingAlertsWithBugs.Matches(series); cause != nil {
+				knownViolations.Insert(fmt.Sprintf("%s (open bug: %s)", violation, cause.Text))
+			} else {
+				unexpectedViolations.Insert(violation)
+			}
 		}
-		err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
-		o.Expect(err).NotTo(o.HaveOccurred())
 
-		e2e.Logf("Watchdog alert is firing")
+		// Invariant: There should be no pending alerts after the test run
+		pendingAlertQuery := `ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured",alertstate="pending",severity!="info"}`
+		result, err = helper.RunQuery(pendingAlertQuery, ns, execPod.Name, url, bearerToken)
+		o.Expect(err).NotTo(o.HaveOccurred(), "unable to retrieve pending alerts after upgrade")
+		for _, series := range result.Data.Result {
+			labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
+			violation := fmt.Sprintf("alert %s pending for %s seconds with labels: %s", series.Metric["alertname"], series.Value, helper.LabelsAsSelector(labels))
+			if cause := allowedPendingAlerts.Matches(series); cause != nil {
+				debug.Insert(fmt.Sprintf("%s (allowed: %s)", violation, cause.Text))
+				continue
+			}
+			if cause := pendingAlertsWithBugs.Matches(series); cause != nil {
+				knownViolations.Insert(fmt.Sprintf("%s (open bug: %s)", violation, cause.Text))
+			} else {
+				// treat pending errors as a flake right now because we are still trying to determine the scope
+				// TODO: move this to unexpectedViolations later
+				unexpectedViolationsAsFlakes.Insert(violation)
+			}
+		}
+
+		if len(debug) > 0 {
+			framework.Logf("Alerts were detected during test run which are allowed:\n\n%s", strings.Join(debug.List(), "\n"))
+		}
+		if len(unexpectedViolations) > 0 {
+			framework.Failf("Unexpected alerts fired or pending after the test run:\n\n%s", strings.Join(unexpectedViolations.List(), "\n"))
+		}
+		if flakes := sets.NewString().Union(knownViolations).Union(unexpectedViolations).Union(unexpectedViolationsAsFlakes); len(flakes) > 0 {
+			testresult.Flakef("Unexpected alert behavior during test:\n\n%s", strings.Join(flakes.List(), "\n"))
+		}
+		framework.Logf("No alerts fired during test run")
 	})
 
 	g.It("shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster", func() {

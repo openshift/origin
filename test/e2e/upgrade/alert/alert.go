@@ -8,7 +8,6 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	"github.com/prometheus/common/model"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
@@ -48,46 +47,12 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 	framework.Logf("Post-upgrade alert test setup complete")
 }
 
-type MetricCondition struct {
-	Selector map[string]string
-	Text     string
-}
-
-type MetricConditions []MetricCondition
-
-func (c MetricConditions) Matches(sample *model.Sample) *MetricCondition {
-	for i, condition := range c {
-		matches := true
-		for name, value := range condition.Selector {
-			if sample.Metric[model.LabelName(name)] != model.LabelValue(value) {
-				matches = false
-				break
-			}
-			if matches {
-				return &c[i]
-			}
-		}
-	}
-	return nil
-}
-
-func stripLabels(m model.Metric, names ...string) model.LabelSet {
-	labels := make(model.LabelSet)
-	for k := range m {
-		labels[k] = m[k]
-	}
-	for _, name := range names {
-		delete(labels, model.LabelName(name))
-	}
-	return labels
-}
-
 // Test checks if alerts are firing at various points during upgrade.
 // An alert firing during an upgrade is a high severity bug - it either points to a real issue in
 // a dependency, or a failure of the component, and therefore must be fixed.
 func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
 	tolerateDuringSkew := exutil.TolerateVersionSkewInTests()
-	firingAlertsWithBugs := MetricConditions{
+	firingAlertsWithBugs := helper.MetricConditions{
 		{
 			Selector: map[string]string{"alertname": "KubePodNotReady", "namespace": "openshift-kube-apiserver-operator"},
 			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1939580",
@@ -104,18 +69,9 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 			Selector: map[string]string{"alertname": "ClusterOperatorDegraded", "name": "authentication"},
 			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1939580",
 		},
-
-		{
-			Selector: map[string]string{"alertname": "FailingOperator", "name": "packageserver", "job": "olm-operator-metrics"},
-			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1932626",
-		},
-		{
-			Selector: map[string]string{"alertname": "ThanosSidecarUnhealthy", "job": "prometheus-k8s-thanos-sidecar"},
-			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1940262",
-		},
 	}
 
-	pendingAlertsWithBugs := MetricConditions{
+	pendingAlertsWithBugs := helper.MetricConditions{
 		{
 			Selector: map[string]string{"alertname": "ClusterMonitoringOperatorReconciliationErrors"},
 			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1932624",
@@ -125,7 +81,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1925698",
 		},
 	}
-	allowedPendingAlerts := MetricConditions{
+	allowedPendingAlerts := helper.MetricConditions{
 		{
 			Selector: map[string]string{"alertname": "etcdMemberCommunicationSlow"},
 			Text:     "Excluded because it triggers during upgrade (detects ~5m of high latency immediately preceeding the end of the test), and we don't want to change the alert because it is correct",
@@ -177,8 +133,8 @@ count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog
 	result, err = helper.RunQuery(firingAlertQuery, ns, execPod.Name, t.url, t.bearerToken)
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to check firing alerts during upgrade")
 	for _, series := range result.Data.Result {
-		labels := stripLabels(series.Metric, "alertname", "alertstate", "prometheus")
-		violation := fmt.Sprintf("alert %s fired for %s seconds with labels: %s", series.Metric["alertname"], series.Value, labelsAsSelector(labels))
+		labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
+		violation := fmt.Sprintf("alert %s fired for %s seconds with labels: %s", series.Metric["alertname"], series.Value, helper.LabelsAsSelector(labels))
 		if cause := firingAlertsWithBugs.Matches(series); cause != nil {
 			knownViolations.Insert(fmt.Sprintf("%s (open bug: %s)", violation, cause.Text))
 		} else {
@@ -191,8 +147,8 @@ count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog
 	result, err = helper.RunQuery(pendingAlertQuery, ns, execPod.Name, t.url, t.bearerToken)
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to retrieve pending alerts after upgrade")
 	for _, series := range result.Data.Result {
-		labels := stripLabels(series.Metric, "alertname", "alertstate", "prometheus")
-		violation := fmt.Sprintf("alert %s pending for %s seconds with labels: %s", series.Metric["alertname"], series.Value, labelsAsSelector(labels))
+		labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
+		violation := fmt.Sprintf("alert %s pending for %s seconds with labels: %s", series.Metric["alertname"], series.Value, helper.LabelsAsSelector(labels))
 		if cause := allowedPendingAlerts.Matches(series); cause != nil {
 			debug.Insert(fmt.Sprintf("%s (allowed: %s)", violation, cause.Text))
 			continue
@@ -223,8 +179,4 @@ count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog
 // Teardown cleans up any remaining resources.
 func (t *UpgradeTest) Teardown(f *framework.Framework) {
 	// rely on the namespace deletion to clean up everything
-}
-
-func labelsAsSelector(l model.LabelSet) string {
-	return l.String()
 }
