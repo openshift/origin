@@ -8,18 +8,25 @@ import (
 	"time"
 )
 
-type EventLevel string
+type EventLevel int
 
 const (
-	Info    EventLevel = "Info"
-	Warning EventLevel = "Warning"
-	Error   EventLevel = "Error"
+	Info EventLevel = iota
+	Warning
+	Error
 )
 
-var eventString = map[EventLevel]string{
-	Info:    "I",
-	Warning: "W",
-	Error:   "E",
+func (e EventLevel) String() string {
+	switch e {
+	case Info:
+		return "Info"
+	case Warning:
+		return "Warning"
+	case Error:
+		return "Error"
+	default:
+		panic(fmt.Sprintf("did not define event level string for %d", e))
+	}
 }
 
 type Event struct {
@@ -29,7 +36,7 @@ type Event struct {
 }
 
 func (e *Event) String() string {
-	return fmt.Sprintf("%s.%03d %s %s %s", e.At.Format("Jan 02 15:04:05"), e.At.Nanosecond()/1000000, eventString[e.Level], e.Locator, strings.Replace(e.Message, "\n", "\\n", -1))
+	return fmt.Sprintf("%s.%03d %s %s %s", e.At.Format("Jan 02 15:04:05"), e.At.Nanosecond()/1000000, e.Level.String()[:1], e.Locator, strings.Replace(e.Message, "\n", "\\n", -1))
 }
 
 type Condition struct {
@@ -48,13 +55,13 @@ type EventInterval struct {
 
 func (i *EventInterval) String() string {
 	if i.From.Equal(i.To) {
-		return fmt.Sprintf("%s.%03d %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), eventString[i.Level], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
+		return fmt.Sprintf("%s.%03d %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), i.Level.String()[:1], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
 	}
 	duration := i.To.Sub(i.From)
 	if duration < time.Second {
-		return fmt.Sprintf("%s.%03d - %-5s %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(duration/time.Millisecond))+"ms", eventString[i.Level], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
+		return fmt.Sprintf("%s.%03d - %-5s %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(duration/time.Millisecond))+"ms", i.Level.String()[:1], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
 	}
-	return fmt.Sprintf("%s.%03d - %-5s %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(duration/time.Second))+"s", eventString[i.Level], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
+	return fmt.Sprintf("%s.%03d - %-5s %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(duration/time.Second))+"s", i.Level.String()[:1], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
 }
 
 type EventIntervals []*EventInterval
