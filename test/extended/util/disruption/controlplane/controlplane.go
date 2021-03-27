@@ -106,16 +106,11 @@ func (t *availableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 	cancel()
 	end := time.Now()
 
-	// AWS and Azure in 4.7 reached the point of having no disruption and thus
-	// now lock in that requirement. GCP has a known issue with health checking
-	// https://bugzilla.redhat.com/show_bug.cgi?id=1925698 that when fixed will
-	// relax. Having two providers lock in the requirement ensures we block
-	// regression and ratchet
 	toleratedDisruption := 0.08
-	if framework.ProviderIs("aws", "azure") {
+	if framework.ProviderIs("azure", "gcp") {
 		toleratedDisruption = 0
 	}
-	disruption.ExpectNoDisruption(f, toleratedDisruption, end.Sub(start), m.EventIntervals(time.Time{}, time.Time{}), fmt.Sprintf("API %q was unreachable during disruption", t.name))
+	disruption.ExpectNoDisruption(f, toleratedDisruption, end.Sub(start), m.EventIntervals(time.Time{}, time.Time{}), fmt.Sprintf("API %q was unreachable during disruption (AWS has a known issue: https://bugzilla.redhat.com/show_bug.cgi?id=1943804)", t.name))
 }
 
 // Teardown cleans up any remaining resources.
