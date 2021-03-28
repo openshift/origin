@@ -47,5 +47,11 @@ func SystemUpgradeEventInvariants(events monitorapi.EventIntervals, duration tim
 // machine, even if the machine crashes.
 func SystemEventInvariants(events monitorapi.EventIntervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase) {
 	tests = append(tests, testSystemDTimeout(events)...)
+	tests = append(tests, testServerAvailability(monitor.LocatorKubeAPIServerNewConnection, events, duration)...)
+	tests = append(tests, testServerAvailability(monitor.LocatorOpenshiftAPIServerNewConnection, events, duration)...)
+	tests = append(tests, testServerAvailability(monitor.LocatorOAuthAPIServerNewConnection, events, duration)...)
+	tests = append(tests, testServerAvailability(monitor.LocatorKubeAPIServerReusedConnection, events, duration)...)
+	tests = append(tests, testServerAvailability(monitor.LocatorOpenshiftAPIServerReusedConnection, events, duration)...)
+	tests = append(tests, testServerAvailability(monitor.LocatorOAuthAPIServerReusedConnection, events, duration)...)
 	return tests
 }
