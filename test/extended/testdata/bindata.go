@@ -452,6 +452,10 @@
 // test/extended/testdata/router/reencrypt-serving-cert.yaml
 // test/extended/testdata/router/router-common.yaml
 // test/extended/testdata/router/router-config-manager.yaml
+// test/extended/testdata/router/router-grpc-interop-gomod.data
+// test/extended/testdata/router/router-grpc-interop-gosum.data
+// test/extended/testdata/router/router-grpc-interop-routes.yaml
+// test/extended/testdata/router/router-grpc-interop-server.data
 // test/extended/testdata/router/router-grpc-interop.yaml
 // test/extended/testdata/router/router-h2spec.yaml
 // test/extended/testdata/router/router-http-echo-server.yaml
@@ -49642,302 +49646,122 @@ func testExtendedTestdataRouterRouterConfigManagerYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterRouterGrpcInteropYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterGrpcInteropGomodData = []byte(`module server
+
+go 1.15
+
+require	google.golang.org/grpc v1.27.1
+`)
+
+func testExtendedTestdataRouterRouterGrpcInteropGomodDataBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterGrpcInteropGomodData, nil
+}
+
+func testExtendedTestdataRouterRouterGrpcInteropGomodData() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterGrpcInteropGomodDataBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-grpc-interop-gomod.data", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterRouterGrpcInteropGosumData = []byte(`cloud.google.com/go v0.26.0 h1:e0WKqKTd5BnrG8aKH3J3h+QvEIQtSUcf2n5UZ5ZgLtQ=
+cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
+github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
+github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
+github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
+github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
+github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b h1:VKtxabqXZkF25pY9ekfRL6a582T4P37/31XEstQ5p58=
+github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b/go.mod h1:SBH7ygxi8pfUlaOkMMuAQtPIUF8ecWP5IEl/CR7VP2Q=
+github.com/golang/mock v1.1.1/go.mod h1:oTYuIxOrZwtPieC+H1uAHpcLFnEyAGVDL/k47Jfbm0A=
+github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
+github.com/golang/protobuf v1.3.2 h1:6nsPYzhq5kReh6QImI3k5qWzO4PEbvbIW2cwSfR/6xs=
+github.com/golang/protobuf v1.3.2/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
+github.com/google/go-cmp v0.2.0 h1:+dTQ8DZQJz0Mb/HjFlkptS1FeQ4cWSnN941F8aEG4SQ=
+github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5aqRK0M=
+github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
+golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
+golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
+golang.org/x/lint v0.0.0-20181026193005-c67002cb31c3/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=
+golang.org/x/lint v0.0.0-20190227174305-5b3e6a55c961/go.mod h1:wehouNa3lNwaWXcvxsM5YxQ5yQlVC4a0KAMCusXpPoU=
+golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3/go.mod h1:6SW0HCj/g11FgYtHlgUYUwCkIfeOF89ocIRzGO/8vkc=
+golang.org/x/net v0.0.0-20180724234803-3673e40ba225/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
+golang.org/x/net v0.0.0-20180826012351-8a410e7b638d/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
+golang.org/x/net v0.0.0-20190213061140-3a22650c66bd/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
+golang.org/x/net v0.0.0-20190311183353-d8887717615a h1:oWX7TPOiFAMXLq8o0ikBYfCJVlRHBcsciT5bXOrH628=
+golang.org/x/net v0.0.0-20190311183353-d8887717615a/go.mod h1:t9HGtf8HONx5eT2rtn7q6eTqICYqUVnKs3thJo3Qplg=
+golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be h1:vEDujvNQGv4jgYKudGeI/+DAX4Jffq6hpD55MmoEvKs=
+golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
+golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
+golang.org/x/sync v0.0.0-20181108010431-42b317875d0f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
+golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
+golang.org/x/sys v0.0.0-20180830151530-49385e6e1522/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a h1:1BGLXjeY4akVXGgbC9HugT3Jv3hCI0z56oJR5vAMgBU=
+golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+golang.org/x/text v0.3.0 h1:g61tztE5qeGQ89tm6NTjjM9VPIm088od1l6aSorWRWg=
+golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
+golang.org/x/tools v0.0.0-20190114222345-bf090417da8b/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
+golang.org/x/tools v0.0.0-20190226205152-f727befe758c/go.mod h1:9Yl7xja0Znq3iFh3HoIrodX9oNMXvdceNzlUR8zjMvY=
+golang.org/x/tools v0.0.0-20190311212946-11955173bddd/go.mod h1:LCzVGOaR6xXOjkQ3onu1FJEFr0SW1gC7cKk1uF8kGRs=
+golang.org/x/tools v0.0.0-20190524140312-2c0ae7006135/go.mod h1:RgjU9mgBXZiqYHBnxXauZ1Gv1EHHAz9KjViQ78xBX0Q=
+google.golang.org/appengine v1.1.0/go.mod h1:EbEs0AVv82hx2wNQdGPgUI5lhzA/G0D9YwlJXL52JkM=
+google.golang.org/appengine v1.4.0 h1:/wp5JvzpHIxhs/dumFmF7BXTf3Z+dd4uXta4kVyO508=
+google.golang.org/appengine v1.4.0/go.mod h1:xpcJRLb0r/rnEns0DIKYYv+WjYCduHsrkT7/EB5XEv4=
+google.golang.org/genproto v0.0.0-20180817151627-c66870c02cf8/go.mod h1:JiN7NxoALGmiZfu7CAH4rXhgtRTLTxftemlI0sWmxmc=
+google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55 h1:gSJIx1SDwno+2ElGhA4+qG2zF97qiUzTM+rQ0klBOcE=
+google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55/go.mod h1:DMBHOl98Agz4BDEuKkezgsaosCRResVns1a3J2ZsMNc=
+google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=
+google.golang.org/grpc v1.23.0/go.mod h1:Y5yQAOtifL1yxbo5wqy6BxZv8vAUGQwXBOALyacEbxg=
+google.golang.org/grpc v1.27.1 h1:zvIju4sqAGvwKspUQOhwnpcqSbzi7/H6QomNNjTL4sk=
+google.golang.org/grpc v1.27.1/go.mod h1:qbnxyOmOxrQa7FizSgH+ReBfzJrCY1pSN7KXBS8abTk=
+honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
+honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
+`)
+
+func testExtendedTestdataRouterRouterGrpcInteropGosumDataBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterGrpcInteropGosumData, nil
+}
+
+func testExtendedTestdataRouterRouterGrpcInteropGosumData() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterGrpcInteropGosumDataBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-grpc-interop-gosum.data", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterRouterGrpcInteropRoutesYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
+parameters:
+- name: DOMAIN
+- name: TLS_CRT
+- name: TLS_KEY
+- name: TYPE
 objects:
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: grpc-interop
-    annotations:
-      service.beta.openshift.io/serving-cert-secret-name: service-certs
-  spec:
-    selector:
-      app: grpc-interop
-    ports:
-      - port: 8443
-        name: https
-        targetPort: 8443
-        protocol: TCP
-      - port: 1110
-        name: h2c
-        targetPort: 1110
-        protocol: TCP
-- apiVersion: v1
-  kind: ConfigMap
-  labels:
-    app: grpc-interop
-  metadata:
-    name: src-config
-  data:
-    data.base64: |
-      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
-- apiVersion: v1
-  kind: ConfigMap
-  metadata:
-    annotations:
-      service.beta.openshift.io/inject-cabundle: "true"
-    labels:
-      app: grpc-interop
-    name: service-ca
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: grpc-interop
-    labels:
-      app: grpc-interop
-  spec:
-    containers:
-    - image: golang:1.14
-      name: server
-      command: ["/workdir/grpc-server"]
-      env:
-      - name: GRPC_GO_LOG_VERBOSITY_LEVEL
-        value: "99"
-      - name: GRPC_GO_LOG_SEVERITY_LEVEL
-        value: "info"
-      - name: GODEBUG
-        value: http2debug=1
-      readinessProbe:
-        httpGet:
-          path: /healthz
-          port: 8080
-        initialDelaySeconds: 10
-        periodSeconds: 3
-      ports:
-      - containerPort: 8443
-        protocol: TCP
-      - containerPort: 1110
-        protocol: TCP
-      - containerPort: 8080
-        protocol: TCP
-      volumeMounts:
-      - name: service-certs
-        mountPath: /etc/service-certs
-      - name: tmp
-        mountPath: /var/run
-      - name: workdir
-        mountPath: /workdir
-      readOnly: true
-    - image: golang:1.14
-      name: client-shell
-      command: ["/bin/bash"]
-      args: ["-c", "sleep 100000"]
-      readinessProbe:
-        httpGet:
-          path: /healthz
-          port: 8080
-        initialDelaySeconds: 10
-        periodSeconds: 3
-      ports:
-      - containerPort: 8080
-        protocol: TCP
-      volumeMounts:
-      - name: service-certs
-        secret:
-          secretName: service-certs
-        mountPath: /etc/service-certs
-      - name: tmp
-        mountPath: /var/run
-      - name: workdir
-        mountPath: /workdir
-      - name: service-ca
-        mountPath: /etc/service-ca
-    initContainers:
-    - image: golang:1.14
-      name: builder
-      command: ["/bin/bash", "-c"]
-      args:
-        - set -e;
-          cd /workdir;
-          base64 -d /go/src/data.base64 | tar zxf -;
-          go build -v -mod=readonly -o /workdir/grpc-client client.go;
-          go build -v -mod=readonly -o /workdir/grpc-server server.go;
-      env:
-      - name: GO111MODULE
-        value: "auto"
-      - name: GOCACHE
-        value: "/tmp"
-      - name: GOPROXY
-        value: "https://goproxy.golang.org,direct"
-      volumeMounts:
-      - name: src-volume
-        mountPath: /go/src
-      - name: tmp
-        mountPath: /var/run
-      - name: workdir
-        mountPath: /workdir
-    volumes:
-    - name: src-volume
-      configMap:
-        name: src-config
-    - name: service-certs
-      secret:
-        secretName: service-certs
-    - name: tmp
-      emptyDir: {}
-    - name: workdir
-      emptyDir: {}
-    - configMap:
-        items:
-        - key: service-ca.crt
-          path: service-ca.crt
-        name: service-ca
-      name: service-ca
-  labels:
-    app: grpc-interop
 - apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
-    annotations:
-      haproxy.router.openshift.io/enable-h2c: "true"
-    labels:
-      app: grpc-interop
-    name: grpc-interop-edge
-  spec:
-    port:
-      targetPort: 1110
-    tls:
-      termination: edge
-      insecureEdgeTerminationPolicy: Redirect
-      key: |-
-        -----BEGIN EC PRIVATE KEY-----
-        MHcCAQEEILIc8XqIk7IYA4rXr88Vm/h2uor640AdLH1pa8Fny+kOoAoGCCqGSM49
-        AwEHoUQDQgAEEwTH3nocuTpgDmVYN2Ep9DqTIyErsPeeY+mVJB/rzLHI+00cTRBf
-        pxb9UEx7a+fWhG7/yONFcKEv5ZlIGbFG8w==
-        -----END EC PRIVATE KEY-----
-      certificate: |-
-        -----BEGIN CERTIFICATE-----
-        MIIBizCCATGgAwIBAgIQTEs2NjcG/9z0WyA5M0LrWTAKBggqhkjOPQQDAjAoMRQw
-        EgYDVQQKEwtDZXJ0IEdlbiBDbzEQMA4GA1UEAxMHUm9vdCBDQTAgFw0yMDA1MTgw
-        OTU1MTFaGA8yMTIwMDQyNDA5NTUxMVowLjEZMBcGA1UEChMQQ2VydCBHZW4gQ29t
-        cGFueTERMA8GA1UEAxMIdGVzdGNlcnQwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNC
-        AAQTBMfeehy5OmAOZVg3YSn0OpMjISuw955j6ZUkH+vMscj7TRxNEF+nFv1QTHtr
-        59aEbv/I40VwoS/lmUgZsUbzozUwMzAOBgNVHQ8BAf8EBAMCBaAwEwYDVR0lBAww
-        CgYIKwYBBQUHAwEwDAYDVR0TAQH/BAIwADAKBggqhkjOPQQDAgNIADBFAiEAxsUz
-        yNl/2DJktyy7xDmBeZPybPbyWv4ApnpaaoQoVUMCIFEwJtfwGEO+NN4HAbPKQTOS
-        pK6nUhQqHPWhu7t15yec
-        -----END CERTIFICATE-----
-    to:
-      kind: Service
-      name: grpc-interop
-      weight: 100
-    wildcardPolicy: None
-- apiVersion: route.openshift.io/v1
-  kind: Route
-  metadata:
-    labels:
-      app: grpc-interop
     name: grpc-interop-reencrypt
+    labels:
+      type: ${TYPE}
   spec:
+    host: grpc-interop-reencrypt.${DOMAIN}
     port:
       targetPort: 8443
     tls:
       termination: reencrypt
       insecureEdgeTerminationPolicy: Redirect
       key: |-
-        -----BEGIN EC PRIVATE KEY-----
-        MHcCAQEEILY+Vji+NywGUmWhjLGf0teANh5t8CVSl7yNCQ/1v05woAoGCCqGSM49
-        AwEHoUQDQgAEqHrMdKmzQfVZiBUHX0AI9vdMp5/GGLNc7nOA7xNmsGHUq642Av3x
-        k3gJlKJOd3Il6gbP+Dd8jLVaVcPHQY/d0g==
-        -----END EC PRIVATE KEY-----
-      certificate: |
-        -----BEGIN CERTIFICATE-----
-        MIIBjDCCATKgAwIBAgIRAJGHhBTYpRl7nsRAVtlKPbAwCgYIKoZIzj0EAwIwKDEU
-        MBIGA1UEChMLQ2VydCBHZW4gQ28xEDAOBgNVBAMTB1Jvb3QgQ0EwIBcNMjAwNTE4
-        MDk1NTI4WhgPMjEyMDA0MjQwOTU1MjhaMC4xGTAXBgNVBAoTEENlcnQgR2VuIENv
-        bXBhbnkxETAPBgNVBAMTCHRlc3RjZXJ0MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcD
-        QgAEqHrMdKmzQfVZiBUHX0AI9vdMp5/GGLNc7nOA7xNmsGHUq642Av3xk3gJlKJO
-        d3Il6gbP+Dd8jLVaVcPHQY/d0qM1MDMwDgYDVR0PAQH/BAQDAgWgMBMGA1UdJQQM
-        MAoGCCsGAQUFBwMBMAwGA1UdEwEB/wQCMAAwCgYIKoZIzj0EAwIDSAAwRQIhAKqc
-        1sgVy/pkQzVK+qY3wL2jgvMFlNNrCNWT2utyFws7AiAVKaAxGN0cSMpx+sB/HD/X
-        vYc0adnWNkSLc62dIXsA7Q==
-        -----END CERTIFICATE-----
+        ${TLS_KEY}
+      certificate: |-
+        ${TLS_CRT}
     to:
       kind: Service
       name: grpc-interop
@@ -49946,10 +49770,11 @@ objects:
 - apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
-    labels:
-      app: grpc-interop
     name: grpc-interop-passthrough
+    labels:
+      type: ${TYPE}
   spec:
+    host: grpc-interop-passthrough.${DOMAIN}
     port:
       targetPort: 8443
     tls:
@@ -49960,6 +49785,134 @@ objects:
       name: grpc-interop
       weight: 100
     wildcardPolicy: None
+`)
+
+func testExtendedTestdataRouterRouterGrpcInteropRoutesYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterGrpcInteropRoutesYaml, nil
+}
+
+func testExtendedTestdataRouterRouterGrpcInteropRoutesYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterGrpcInteropRoutesYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-grpc-interop-routes.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterRouterGrpcInteropServerData = []byte(`package main
+
+import (
+	"log"
+	"net"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/interop"
+
+	testpb "google.golang.org/grpc/interop/grpc_testing"
+)
+
+func main() {
+	creds, err := credentials.NewServerTLSFromFile("/etc/serving-cert/tls.crt", "/etc/serving-cert/tls.key")
+	if err != nil {
+		log.Fatalf("NewServerTLSFromFile failed: %v", err)
+	}
+	server := grpc.NewServer(grpc.Creds(creds))
+	testpb.RegisterTestServiceServer(server, interop.NewTestServer())
+	lis, err := net.Listen("tcp", ":8443")
+	if err != nil {
+		log.Fatalf("listen failed: %v", err)
+	}
+	log.Printf("Serving h2 at: %v", lis.Addr())
+	if err = server.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
+}
+`)
+
+func testExtendedTestdataRouterRouterGrpcInteropServerDataBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterRouterGrpcInteropServerData, nil
+}
+
+func testExtendedTestdataRouterRouterGrpcInteropServerData() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterRouterGrpcInteropServerDataBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/router-grpc-interop-server.data", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterRouterGrpcInteropYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: BASE64_SRC_TGZ
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: grpc-interop
+    annotations:
+      service.beta.openshift.io/serving-cert-secret-name: service-cert-grpc-interop
+  spec:
+    selector:
+      app: grpc-interop
+    ports:
+      - port: 8443
+        name: https
+        targetPort: 8443
+        protocol: TCP
+- apiVersion: v1
+  kind: ConfigMap
+  labels:
+    app: grpc-interop
+  metadata:
+    name: src-config
+  data:
+    data.base64: |-
+      ${BASE64_SRC_TGZ}
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: grpc-interop
+    labels:
+      app: grpc-interop
+  spec:
+    containers:
+    - image: openshift/origin-release:golang-1.15
+      name: server
+      command: ["/bin/bash", "-c"]
+      args:
+        - set -ex;
+          date;
+          cd /var/tmp;
+          base64 -d /src/data.base64 | tar -zxf -;
+          mv router-grpc-interop-gomod.data go.mod;
+          mv router-grpc-interop-gosum.data go.sum;
+          mv router-grpc-interop-server.data server.go;
+          GOPROXY=https://goproxy.golang.org,direct time go mod vendor;
+          GRPC_GO_LOG_VERBOSITY_LEVEL=99 GRPC_GO_LOG_SEVERITY_LEVEL=info GODEBUG=http2debug=1 go run server.go
+      ports:
+      - containerPort: 8443
+        protocol: TCP
+      volumeMounts:
+      - mountPath: /src
+        name: src-volume
+      - mountPath: /etc/serving-cert
+        name: cert
+    volumes:
+    - name: src-volume
+      configMap:
+        name: src-config
+    - name: cert
+      secret:
+        secretName: service-cert-grpc-interop
+    terminationGracePeriodSeconds: 1
 `)
 
 func testExtendedTestdataRouterRouterGrpcInteropYamlBytes() ([]byte, error) {
@@ -50518,60 +50471,23 @@ func testExtendedTestdataRouterRouterHttp2RoutesYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterRouterHttp2ServerBackend = []byte(`package main
+var _testExtendedTestdataRouterRouterHttp2ServerBackend = []byte(`// -*- mode:go -*-
+package main
 
 import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 )
-
-const (
-	defaultHTTPPort  = "8080"
-	defaultHTTPSPort = "8443"
-	defaultTLSCrt    = "/etc/serving-cert/tls.crt"
-	defaultTLSKey    = "/etc/serving-cert/tls.key"
-)
-
-func lookupEnv(key, defaultVal string) string {
-	if val, ok := os.LookupEnv(key); ok {
-		return val
-	}
-	return defaultVal
-}
 
 func main() {
-	crtFile := lookupEnv("TLS_CRT", defaultTLSCrt)
-	keyFile := lookupEnv("TLS_KEY", defaultTLSKey)
-
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		fmt.Fprint(w, req.Proto)
 	})
-
-	http.HandleFunc("/healthz", func(w http.ResponseWriter, req *http.Request) {
-		fmt.Fprint(w, "ready")
-	})
-
-	go func() {
-		port := lookupEnv("HTTP_PORT", defaultHTTPPort)
-		log.Printf("Listening on port %v\n", port)
-
-		if err := http.ListenAndServe(":"+port, nil); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	go func() {
-		port := lookupEnv("HTTPS_PORT", defaultHTTPSPort)
-		log.Printf("Listening securely on port %v\n", port)
-
-		if err := http.ListenAndServeTLS(":"+port, crtFile, keyFile, nil); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	select {}
+	log.Println("Listening on port 8443")
+	if err := http.ListenAndServeTLS(":8443", "/etc/serving-cert/tls.crt", "/etc/serving-cert/tls.key", nil); err != nil {
+		log.Fatal(err)
+	}
 }
 `)
 
@@ -54121,6 +54037,10 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/router/reencrypt-serving-cert.yaml":                                              testExtendedTestdataRouterReencryptServingCertYaml,
 	"test/extended/testdata/router/router-common.yaml":                                                       testExtendedTestdataRouterRouterCommonYaml,
 	"test/extended/testdata/router/router-config-manager.yaml":                                               testExtendedTestdataRouterRouterConfigManagerYaml,
+	"test/extended/testdata/router/router-grpc-interop-gomod.data":                                           testExtendedTestdataRouterRouterGrpcInteropGomodData,
+	"test/extended/testdata/router/router-grpc-interop-gosum.data":                                           testExtendedTestdataRouterRouterGrpcInteropGosumData,
+	"test/extended/testdata/router/router-grpc-interop-routes.yaml":                                          testExtendedTestdataRouterRouterGrpcInteropRoutesYaml,
+	"test/extended/testdata/router/router-grpc-interop-server.data":                                          testExtendedTestdataRouterRouterGrpcInteropServerData,
 	"test/extended/testdata/router/router-grpc-interop.yaml":                                                 testExtendedTestdataRouterRouterGrpcInteropYaml,
 	"test/extended/testdata/router/router-h2spec.yaml":                                                       testExtendedTestdataRouterRouterH2specYaml,
 	"test/extended/testdata/router/router-http-echo-server.yaml":                                             testExtendedTestdataRouterRouterHttpEchoServerYaml,
@@ -54868,23 +54788,27 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"policy-roles.yaml":        {testExtendedTestdataRolesPolicyRolesYaml, map[string]*bintree{}},
 				}},
 				"router": {nil, map[string]*bintree{
-					"ingress.yaml":                 {testExtendedTestdataRouterIngressYaml, map[string]*bintree{}},
-					"reencrypt-serving-cert.yaml":  {testExtendedTestdataRouterReencryptServingCertYaml, map[string]*bintree{}},
-					"router-common.yaml":           {testExtendedTestdataRouterRouterCommonYaml, map[string]*bintree{}},
-					"router-config-manager.yaml":   {testExtendedTestdataRouterRouterConfigManagerYaml, map[string]*bintree{}},
-					"router-grpc-interop.yaml":     {testExtendedTestdataRouterRouterGrpcInteropYaml, map[string]*bintree{}},
-					"router-h2spec.yaml":           {testExtendedTestdataRouterRouterH2specYaml, map[string]*bintree{}},
-					"router-http-echo-server.yaml": {testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
-					"router-http2-routes.yaml":     {testExtendedTestdataRouterRouterHttp2RoutesYaml, map[string]*bintree{}},
-					"router-http2-server.backend":  {testExtendedTestdataRouterRouterHttp2ServerBackend, map[string]*bintree{}},
-					"router-http2.yaml":            {testExtendedTestdataRouterRouterHttp2Yaml, map[string]*bintree{}},
-					"router-idle.yaml":             {testExtendedTestdataRouterRouterIdleYaml, map[string]*bintree{}},
-					"router-metrics.yaml":          {testExtendedTestdataRouterRouterMetricsYaml, map[string]*bintree{}},
-					"router-override-domains.yaml": {testExtendedTestdataRouterRouterOverrideDomainsYaml, map[string]*bintree{}},
-					"router-override.yaml":         {testExtendedTestdataRouterRouterOverrideYaml, map[string]*bintree{}},
-					"router-scoped.yaml":           {testExtendedTestdataRouterRouterScopedYaml, map[string]*bintree{}},
-					"router-shard.yaml":            {testExtendedTestdataRouterRouterShardYaml, map[string]*bintree{}},
-					"weighted-router.yaml":         {testExtendedTestdataRouterWeightedRouterYaml, map[string]*bintree{}},
+					"ingress.yaml":                    {testExtendedTestdataRouterIngressYaml, map[string]*bintree{}},
+					"reencrypt-serving-cert.yaml":     {testExtendedTestdataRouterReencryptServingCertYaml, map[string]*bintree{}},
+					"router-common.yaml":              {testExtendedTestdataRouterRouterCommonYaml, map[string]*bintree{}},
+					"router-config-manager.yaml":      {testExtendedTestdataRouterRouterConfigManagerYaml, map[string]*bintree{}},
+					"router-grpc-interop-gomod.data":  {testExtendedTestdataRouterRouterGrpcInteropGomodData, map[string]*bintree{}},
+					"router-grpc-interop-gosum.data":  {testExtendedTestdataRouterRouterGrpcInteropGosumData, map[string]*bintree{}},
+					"router-grpc-interop-routes.yaml": {testExtendedTestdataRouterRouterGrpcInteropRoutesYaml, map[string]*bintree{}},
+					"router-grpc-interop-server.data": {testExtendedTestdataRouterRouterGrpcInteropServerData, map[string]*bintree{}},
+					"router-grpc-interop.yaml":        {testExtendedTestdataRouterRouterGrpcInteropYaml, map[string]*bintree{}},
+					"router-h2spec.yaml":              {testExtendedTestdataRouterRouterH2specYaml, map[string]*bintree{}},
+					"router-http-echo-server.yaml":    {testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
+					"router-http2-routes.yaml":        {testExtendedTestdataRouterRouterHttp2RoutesYaml, map[string]*bintree{}},
+					"router-http2-server.backend":     {testExtendedTestdataRouterRouterHttp2ServerBackend, map[string]*bintree{}},
+					"router-http2.yaml":               {testExtendedTestdataRouterRouterHttp2Yaml, map[string]*bintree{}},
+					"router-idle.yaml":                {testExtendedTestdataRouterRouterIdleYaml, map[string]*bintree{}},
+					"router-metrics.yaml":             {testExtendedTestdataRouterRouterMetricsYaml, map[string]*bintree{}},
+					"router-override-domains.yaml":    {testExtendedTestdataRouterRouterOverrideDomainsYaml, map[string]*bintree{}},
+					"router-override.yaml":            {testExtendedTestdataRouterRouterOverrideYaml, map[string]*bintree{}},
+					"router-scoped.yaml":              {testExtendedTestdataRouterRouterScopedYaml, map[string]*bintree{}},
+					"router-shard.yaml":               {testExtendedTestdataRouterRouterShardYaml, map[string]*bintree{}},
+					"weighted-router.yaml":            {testExtendedTestdataRouterWeightedRouterYaml, map[string]*bintree{}},
 				}},
 				"run_policy": {nil, map[string]*bintree{
 					"parallel-bc.yaml":           {testExtendedTestdataRun_policyParallelBcYaml, map[string]*bintree{}},
