@@ -49884,7 +49884,7 @@ objects:
       app: grpc-interop
   spec:
     containers:
-    - image: openshift/origin-release:golang-1.15
+    - image: registry.ci.openshift.org/openshift/release:golang-1.16
       name: server
       command: ["/bin/bash", "-c"]
       args:
@@ -50544,7 +50544,7 @@ objects:
       name: http2
   spec:
     containers:
-    - image: openshift/origin-release:golang-1.15
+    - image: registry.ci.openshift.org/openshift/release:golang-1.16
       name: server
       command: ["/bin/bash", "-c"]
       args:
