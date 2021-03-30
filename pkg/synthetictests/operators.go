@@ -13,13 +13,20 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-func testOperatorStateTransitions(events []*monitorapi.EventInterval) []*ginkgo.JUnitTestCase {
+func testStableSystemOperatorStateTransitions(events []*monitorapi.EventInterval) []*ginkgo.JUnitTestCase {
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded, configv1.OperatorProgressing})
+}
+
+func testUpgradeOperatorStateTransitions(events []*monitorapi.EventInterval) []*ginkgo.JUnitTestCase {
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded})
+}
+func testOperatorStateTransitions(events []*monitorapi.EventInterval, conditionTypes []configv1.ClusterStatusConditionType) []*ginkgo.JUnitTestCase {
 	ret := []*ginkgo.JUnitTestCase{}
 
 	knownOperators := allOperators(events)
 	eventsByOperator := getEventsByOperator(events)
 	e2eEvents := monitor.E2ETestEvents(events)
-	for _, condition := range []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded, configv1.OperatorProgressing} {
+	for _, condition := range conditionTypes {
 		for _, operatorName := range knownOperators.List() {
 			bzComponent := GetBugzillaComponentForOperator(operatorName)
 			if bzComponent == "Unknown" {
