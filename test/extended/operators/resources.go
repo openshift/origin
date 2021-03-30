@@ -37,8 +37,6 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 		knownBrokenPods := map[string]string{
 			//"<apiVersion>/<kind>/<namespace>/<name>/(initContainer|container)/<container_name>/<violation_type>": "<url to bug>",
 
-			"apps/v1/DaemonSet/openshift-multus/multus-admission-controller/container/multus-admission-controller/request[memory]": "https://bugzilla.redhat.com/show_bug.cgi?id=1938469",
-
 			"apps/v1/Deployment/openshift-machine-api/cluster-autoscaler-default/container/cluster-autoscaler/request[cpu]":    "https://bugzilla.redhat.com/show_bug.cgi?id=1938467",
 			"apps/v1/Deployment/openshift-machine-api/cluster-autoscaler-default/container/cluster-autoscaler/request[memory]": "https://bugzilla.redhat.com/show_bug.cgi?id=1938467",
 			"apps/v1/Deployment/openshift-monitoring/thanos-querier/container/thanos-query/request[cpu]":                       "https://bugzilla.redhat.com/show_bug.cgi?id=1938465",
