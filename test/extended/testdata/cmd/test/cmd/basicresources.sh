@@ -285,7 +285,7 @@ os::cmd::expect_success_and_text 'oc create deploymentconfig --dry-run foo --ima
 os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --restart=Never'                'pod/foo'
 os::cmd::expect_success_and_text 'oc create job --dry-run foo --image=bar -o name'              'job.batch/foo'
 os::cmd::expect_success_and_text 'oc create deploymentconfig --dry-run foo --image=bar -o name' 'deploymentconfig.apps.openshift.io/foo'
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=run-pod/v1'          'pod/foo'
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name'          'pod/foo'
 
 os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-stibuild.json -l name=mytemplate | oc create -f -'
 os::cmd::expect_success 'oc delete all -l name=mytemplate'

@@ -28899,7 +28899,7 @@ os::cmd::expect_success_and_text 'oc create deploymentconfig --dry-run foo --ima
 os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --restart=Never'                'pod/foo'
 os::cmd::expect_success_and_text 'oc create job --dry-run foo --image=bar -o name'              'job.batch/foo'
 os::cmd::expect_success_and_text 'oc create deploymentconfig --dry-run foo --image=bar -o name' 'deploymentconfig.apps.openshift.io/foo'
-os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name --generator=run-pod/v1'          'pod/foo'
+os::cmd::expect_success_and_text 'oc run --dry-run foo --image=bar -o name'          'pod/foo'
 
 os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-stibuild.json -l name=mytemplate | oc create -f -'
 os::cmd::expect_success 'oc delete all -l name=mytemplate'
@@ -30077,7 +30077,7 @@ os::test::junit::declare_suite_start "cmd/image-lookup"
 os::cmd::expect_success_and_text "oc import-image --confirm --from=nginx:latest nginx:latest" "sha256:"
 os::cmd::expect_success_and_text "oc set image-lookup is/nginx" "updated"
 ## Image lookup works for pods
-os::cmd::expect_success          "oc run --generator=run-pod/v1 --restart=Never --image=nginx:latest nginx"
+os::cmd::expect_success          "oc run --restart=Never --image=nginx:latest nginx"
 os::cmd::expect_success_and_text "oc get pod/nginx -o jsonpath='{.spec.containers[0].image}'" "nginx@sha256:"
 ## Image lookup works for jobs
 os::cmd::expect_success          "oc create job --image=nginx:latest nginx"
@@ -30106,7 +30106,7 @@ os::cmd::expect_success "oc delete deploy,dc,rs,rc,pods --all"
 os::cmd::expect_success          "oc tag nginx:latest alternate:latest"
 rc='{"kind":"Deployment","apiVersion":"apps/v1","metadata":{"name":"alternate"},"spec":{"selector":{"matchLabels":{"app":"test"}},"template":{"metadata":{"labels":{"app":"test"}},"spec":{"containers":[{"name":"main","image":"alternate:latest"}]}}}}'
 os::cmd::expect_success          "echo '${rc}' | oc set image-lookup --local -f - -o json | oc create -f -"
-os::cmd::expect_success          "oc run --generator=run-pod/v1 --restart=Never --image=alternate:latest alternate"
+os::cmd::expect_success          "oc run --restart=Never --image=alternate:latest alternate"
 os::cmd::expect_success_and_text "oc get pod/alternate -o jsonpath='{.spec.containers[0].image}'" "alternate:latest"
 os::cmd::expect_success_and_text "oc get rs -o jsonpath='{..spec.template.spec.containers[0].image}'" "nginx@sha256:"
 
