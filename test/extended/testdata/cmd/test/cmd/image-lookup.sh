@@ -21,7 +21,7 @@ os::test::junit::declare_suite_start "cmd/image-lookup"
 os::cmd::expect_success_and_text "oc import-image --confirm --from=nginx:latest nginx:latest" "sha256:"
 os::cmd::expect_success_and_text "oc set image-lookup is/nginx" "updated"
 ## Image lookup works for pods
-os::cmd::expect_success          "oc run --generator=run-pod/v1 --restart=Never --image=nginx:latest nginx"
+os::cmd::expect_success          "oc run --restart=Never --image=nginx:latest nginx"
 os::cmd::expect_success_and_text "oc get pod/nginx -o jsonpath='{.spec.containers[0].image}'" "nginx@sha256:"
 ## Image lookup works for jobs
 os::cmd::expect_success          "oc create job --image=nginx:latest nginx"
@@ -50,7 +50,7 @@ os::cmd::expect_success "oc delete deploy,dc,rs,rc,pods --all"
 os::cmd::expect_success          "oc tag nginx:latest alternate:latest"
 rc='{"kind":"Deployment","apiVersion":"apps/v1","metadata":{"name":"alternate"},"spec":{"selector":{"matchLabels":{"app":"test"}},"template":{"metadata":{"labels":{"app":"test"}},"spec":{"containers":[{"name":"main","image":"alternate:latest"}]}}}}'
 os::cmd::expect_success          "echo '${rc}' | oc set image-lookup --local -f - -o json | oc create -f -"
-os::cmd::expect_success          "oc run --generator=run-pod/v1 --restart=Never --image=alternate:latest alternate"
+os::cmd::expect_success          "oc run --restart=Never --image=alternate:latest alternate"
 os::cmd::expect_success_and_text "oc get pod/alternate -o jsonpath='{.spec.containers[0].image}'" "alternate:latest"
 os::cmd::expect_success_and_text "oc get rs -o jsonpath='{..spec.template.spec.containers[0].image}'" "nginx@sha256:"
 
