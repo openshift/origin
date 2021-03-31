@@ -1,0 +1,27 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: NAME
+- name: DOMAIN
+- name: NAMESPACE
+- name: TYPE
+objects:
+- apiVersion: operator.openshift.io/v1
+  kind: IngressController
+  metadata:
+    name: ${TYPE}
+    namespace: ${NAMESPACE}
+    annotations:
+      ingress.operator.openshift.io/default-enable-http2: "true"
+  spec:
+    replicas: 1
+    domain: ${DOMAIN}
+    endpointPublishingStrategy:
+      type: LoadBalancerService
+    nodePlacement:
+      nodeSelector:
+        matchLabels:
+          node-role.kubernetes.io/worker: ""
+    namespaceSelector:
+      matchLabels:
+        type: ${TYPE}
