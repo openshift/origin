@@ -101,6 +101,7 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 		}
 
 		reNormalizeRunOnceNames := regexp.MustCompile(`^(installer-|revision-pruner-)[\d]+-`)
+		reNormalizeRetryNames := regexp.MustCompile(`-retry-[\d]+-`)
 
 		waitingForFix := sets.NewString()
 		notAllowed := sets.NewString()
@@ -162,6 +163,9 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 					controller = fmt.Sprintf("v1/Pod/%s/%s", pod.Namespace, name)
 				}
 			}
+
+			// Remove -retry-#- for, e.g. openshift-etcd/installer-<revision>-retry-1-<node>
+			controller = reNormalizeRetryNames.ReplaceAllString(controller, "-")
 
 			// These rules apply to both init and regular containers
 			for containerType, containers := range map[string][]v1.Container{
