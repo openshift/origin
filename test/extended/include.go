@@ -17,6 +17,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/cluster"
 	_ "github.com/openshift/origin/test/extended/cmd"
 	_ "github.com/openshift/origin/test/extended/controller_manager"
+	_ "github.com/openshift/origin/test/extended/coreos"
 	_ "github.com/openshift/origin/test/extended/crdvalidation"
 	_ "github.com/openshift/origin/test/extended/csrapprover"
 	_ "github.com/openshift/origin/test/extended/deployments"
