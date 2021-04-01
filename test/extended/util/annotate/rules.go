@@ -37,6 +37,12 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1908645
 			`\[sig-network\] Networking Granular Checks: Services should function for service endpoints using hostNetwork`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1945085
+			`API data in etcd should be stored at the correct location and version for all resources`,
+
+			// // https://bugzilla.redhat.com/show_bug.cgi?id=1945091
+			`\[Feature:GenericEphemeralVolume\]`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},
