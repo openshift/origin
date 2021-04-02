@@ -2,8 +2,8 @@ package router
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"sort"
 	"strconv"
@@ -13,11 +13,11 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	routev1 "github.com/openshift/api/route/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/origin/test/extended/router/h2spec"
+	"github.com/openshift/origin/test/extended/router/shard"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/url"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -31,18 +31,16 @@ type h2specFailingTest struct {
 	TestNumber int
 }
 
-type h2specRouteTypeTest struct {
-	routeType     routev1.TLSTerminationType
-	hostname      string
-	knownFailures map[string]bool
-}
-
 var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		configPath = exutil.FixturePath("testdata", "router", "router-h2spec.yaml")
-		oc         = exutil.NewCLI("router-h2spec")
+		h2specServiceConfigPath     = exutil.FixturePath("testdata", "router", "router-h2spec.yaml")
+		h2specRoutesConfigPath      = exutil.FixturePath("testdata", "router", "router-h2spec-routes.yaml")
+		h2specRouterShardConfigPath = exutil.FixturePath("testdata", "router", "router-shard.yaml")
+
+		oc              = exutil.NewCLI("router-h2spec")
+		shardConfigPath string // computed
 	)
 
 	// this hook must be registered before the framework namespace teardown
@@ -55,46 +53,88 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			}
 			exutil.DumpPodLogsStartingWith("h2spec", oc)
 		}
+		if len(shardConfigPath) > 0 {
+			if err := oc.AsAdmin().Run("delete").Args("-n", "openshift-ingress-operator", "-f", shardConfigPath).Execute(); err != nil {
+				e2e.Logf("deleting ingress controller failed: %v\n", err)
+			}
+		}
 	})
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should pass the h2spec conformance tests", func() {
-			g.Skip("disabled for https://bugzilla.redhat.com/show_bug.cgi?id=1853711")
-			g.By(fmt.Sprintf("creating routes from a config file %q", configPath))
+			infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster-wide infrastructure")
+			switch infra.Status.PlatformStatus.Type {
+			case configv1.OvirtPlatformType, configv1.KubevirtPlatformType, configv1.LibvirtPlatformType, configv1.VSpherePlatformType, configv1.BareMetalPlatformType, configv1.NonePlatformType:
+				g.Skip("Skip on platforms where the default router is not exposed by a load balancer service.")
+			}
+
+			g.By("Getting the default domain")
+			defaultDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to find default domain name")
+
+			g.By("Locating the router image reference")
 			routerImage, err := exutil.FindRouterImage(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = oc.Run("new-app").Args("-f", configPath, "-p", "HAPROXY_IMAGE="+routerImage).Execute()
+			g.By("Locating the canary image reference")
+			canaryImage, err := getCanaryImage(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Creating h2spec test service")
+			err = oc.Run("new-app").Args("-f", h2specServiceConfigPath,
+				"-p", "HAPROXY_IMAGE="+routerImage,
+				"-p", "H2SPEC_IMAGE="+canaryImage).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			e2e.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(oc.KubeClient(), "h2spec-haproxy", oc.KubeFramework().Namespace.Name))
+			e2e.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(oc.KubeClient(), "h2spec", oc.KubeFramework().Namespace.Name))
 
-			routeTypeTests := []h2specRouteTypeTest{{
-				routeType: routev1.TLSTerminationEdge,
-				knownFailures: map[string]bool{
-					"http2/4.2.3": true,
-				},
-			}, {
-				routeType: routev1.TLSTerminationPassthrough,
-				knownFailures: map[string]bool{
-					"http2/4.2.3": true,
-				},
-			}, {
-				routeType: routev1.TLSTerminationReencrypt,
-				knownFailures: map[string]bool{
-					"http2/4.2.3": true,
-				},
-			}}
+			shardFQDN := oc.Namespace() + "." + defaultDomain
 
-			g.By("verifying accessing the host returns a 200 status code")
-			for i := 0; i < len(routeTypeTests); i++ {
-				urlTester := url.NewTester(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name).WithErrorPassthrough(true)
-				defer urlTester.Close()
-				hostname, err := getHostnameForRoute(oc, fmt.Sprintf("h2spec-haproxy-%s", routeTypeTests[i].routeType))
+			// The new router shard is using a namespace
+			// selector so label this test namespace to
+			// match.
+			g.By("By labelling the namespace")
+			err = oc.AsAdmin().Run("label").Args("namespace", oc.Namespace(), "type="+oc.Namespace()).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Creating routes to test for h2spec compliance")
+			err = oc.Run("new-app").Args("-f", h2specRoutesConfigPath,
+				"-p", "DOMAIN="+shardFQDN,
+				"-p", "TYPE="+oc.Namespace()).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Creating a test-specific router shard")
+			shardConfigPath, err = shard.DeployNewRouterShard(oc, 10*time.Minute, shard.Config{
+				FixturePath: h2specRouterShardConfigPath,
+				Domain:      shardFQDN,
+				Type:        oc.Namespace(),
+			})
+			o.Expect(err).NotTo(o.HaveOccurred(), "new router shard did not rollout")
+
+			g.By("Getting LB service")
+			shardService, err := getRouterService(oc, 5*time.Minute, "router-"+oc.Namespace())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(shardService).NotTo(o.BeNil())
+			o.Expect(shardService.Status.LoadBalancer.Ingress).ShouldNot(o.BeEmpty())
+
+			var addrs []string
+
+			if len(shardService.Status.LoadBalancer.Ingress[0].Hostname) > 0 {
+				g.By("Waiting for LB hostname to register in DNS")
+				addrs, err = resolveHost(oc, time.Minute, 15*time.Minute, shardService.Status.LoadBalancer.Ingress[0].Hostname)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				urlTester.Within(30*time.Second, url.Expect("GET", "https://"+hostname).Through(hostname).SkipTLSVerification().HasStatusCode(200))
-				routeTypeTests[i].hostname = hostname // now valid for the remaining tests
+				o.Expect(addrs).NotTo(o.BeEmpty())
+			} else {
+				addrs = append(addrs, shardService.Status.LoadBalancer.Ingress[0].IP)
 			}
+
+			g.By("Waiting for route hostname to register in DNS")
+			host := "h2spec-passthrough." + shardFQDN
+			addrs, err = resolveHostAsAddress(oc, time.Minute, 15*time.Minute, host, addrs[0])
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(addrs).NotTo(o.BeEmpty())
 
 			// ROUTER_H2SPEC_SAMPLE when set runs the
 			// conformance tests for N iterations to
@@ -108,30 +148,53 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			if iterations := lookupEnv("ROUTER_H2SPEC_SAMPLE", ""); iterations != "" {
 				n, err := strconv.Atoi(iterations)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				runConformanceTestsAndLogAggregateFailures(oc, routeTypeTests, n)
+				o.Expect(n).To(o.BeNumerically(">", 0))
+				runConformanceTestsAndLogAggregateFailures(oc, host, "h2spec", n)
 				return
 			}
 
-			for _, t := range routeTypeTests {
-				g.By(fmt.Sprintf("[%s] Running h2spec conformance tests against %q", t.routeType, t.hostname))
+			testSuites, err := runConformanceTests(oc, host, "h2spec")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(testSuites).ShouldNot(o.BeEmpty())
 
-				testSuites := runConformanceTests(oc, t)
-				o.Expect(testSuites).ShouldNot(o.BeEmpty())
+			failures := failingTests(testSuites)
+			failureCount := len(failures)
 
-				failures := failingTests(testSuites)
-				failureCount := len(failures)
-
-				g.By("Analyzing results")
-				for _, f := range failures {
-					if _, exists := t.knownFailures[f.ID()]; exists {
-						failureCount -= 1
-						e2e.Logf("[%s] TestCase ID: %q is a known failure; ignoring", t.routeType, f.ID())
-					} else {
-						e2e.Logf("[%s] TestCase ID: %q (%q) ****FAILED****", t.routeType, f.ID(), f.TestCase.ClassName)
-					}
-				}
-				o.Expect(failureCount).Should(o.BeZero(), "expected zero failures")
+			g.By("Analyzing results")
+			// https://github.com/haproxy/haproxy/issues/471#issuecomment-591420924
+			//
+			// 5. Streams and Multiplexing
+			//   5.4. Error Handling
+			//     5.4.1. Connection Error Handling
+			//       using source address 10.131.0.37:34742
+			//       × 2: Sends an invalid PING frame to receive GOAWAY frame
+			//         -> An endpoint that encounters a connection error SHOULD first send a GOAWAY frame
+			//            Expected: GOAWAY Frame (Error Code: PROTOCOL_ERROR)
+			//              Actual: Connection closed
+			//
+			// 6. Frame Definitions
+			//   6.9. WINDOW_UPDATE
+			//     6.9.1. The Flow-Control Window
+			//       using source address 10.131.0.37:34816
+			//       × 2: Sends multiple WINDOW_UPDATE frames increasing the flow control window to above 2^31-1
+			//         -> The endpoint MUST sends a GOAWAY frame with a FLOW_CONTROL_ERROR code.
+			//            Expected: GOAWAY Frame (Error Code: FLOW_CONTROL_ERROR)
+			//              Actual: Connection closed
+			//
+			// 147 tests, 145 passed, 0 skipped, 2 failed
+			knownFailures := map[string]bool{
+				"http2/5.4.1.2": true,
+				"http2/6.9.1.2": true,
 			}
+			for _, f := range failures {
+				if _, exists := knownFailures[f.ID()]; exists {
+					failureCount -= 1
+					e2e.Logf("TestCase ID: %q is a known failure; ignoring", f.ID())
+				} else {
+					e2e.Logf("TestCase ID: %q (%q) ****FAILED****", f.ID(), f.TestCase.ClassName)
+				}
+			}
+			o.Expect(failureCount).Should(o.BeZero(), "expected zero failures")
 		})
 	})
 })
@@ -153,63 +216,43 @@ func failingTests(testSuites []*h2spec.JUnitTestSuite) []h2specFailingTest {
 	return failures
 }
 
-func runConformanceTests(oc *exutil.CLI, t h2specRouteTypeTest) []*h2spec.JUnitTestSuite {
-	podName := "h2spec"
-	e2e.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(oc.KubeClient(), podName, oc.KubeFramework().Namespace.Name))
+func runConformanceTests(oc *exutil.CLI, host, podName string) ([]*h2spec.JUnitTestSuite, error) {
+	g.By("Running the h2spec CLI test")
 
-	var results []*h2spec.JUnitTestSuite
+	// this is the output file in the pod
+	outputFile := "/tmp/h2spec-results"
 
-	o.Expect(wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
-		g.By("Running the h2spec CLI test")
+	// h2spec will exit with non-zero if _any_ test in the suite
+	// fails, or if there is a dial timeout, so we ignore the
+	// error. If we can fetch the results and if we can decode the
+	// results and we have > 0 test suites from the decoded
+	// results then assume the test ran.
+	output, _ := e2e.RunHostCmd(oc.Namespace(), podName, h2specCommand(h2specDialTimeoutInSeconds, host, outputFile))
 
-		ns := oc.KubeFramework().Namespace.Name
-		outputFile, err := ioutil.TempFile("", "runConformanceTests")
-		if err != nil {
-			e2e.Logf("[%s] error: failed to generate tmp file: %v; retrying...", t.routeType, err)
-			return false, nil
-		}
-		defer os.Remove(outputFile.Name())
+	g.By("Copying results")
+	data, err := e2e.RunHostCmd(oc.Namespace(), podName, fmt.Sprintf("cat %q", outputFile))
+	if err != nil {
+		return nil, err
+	}
+	if len(data) == 0 {
+		return nil, errors.New("zero length results file")
+	}
 
-		output, _ := e2e.RunHostCmd(ns, podName, h2specCommand(h2specDialTimeoutInSeconds, t.hostname, outputFile.Name()))
-		// h2spec will exit with non-zero if _any_ test in the
-		// suite fails, or if there is a dial timeout, so we
-		// ignore the error. We can exit from this loop if we
-		// can fetch the results, if we can decode the results
-		// and we have > 0 test suites from the decoded
-		// results.
+	g.By("Decoding results")
+	testSuites, err := h2spec.DecodeJUnitReport(strings.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	if len(testSuites) == 0 {
+		return nil, errors.New("no test results found")
+	}
 
-		g.By(fmt.Sprintf("[%s] Copying results from %s:%q", t.routeType, podName, outputFile.Name()))
-		data, err := e2e.RunHostCmd(ns, podName, fmt.Sprintf("cat %q", outputFile.Name()))
-		if err != nil {
-			e2e.Logf("[%s] error: failed to copy results: %v; retrying...", t.routeType, err)
-			return false, nil
-		}
-		if data == "" {
-			e2e.Logf("[%s] error: zero length results file; retrying...", t.routeType)
-			return false, nil
-		}
-
-		g.By(fmt.Sprintf("[%s] Decoding results", t.routeType))
-		testSuites, err := h2spec.DecodeJUnitReport(strings.NewReader(data))
-		if err != nil {
-			e2e.Logf("[%s] error: decoding results: %v; retrying...", t.routeType, err)
-			return false, nil
-		}
-		if len(testSuites) == 0 {
-			e2e.Logf("[%s] error: no test results found; retrying...", t.routeType)
-			return false, nil
-		}
-
-		// Log what we consider a successful run
-		e2e.Logf("[%s] h2spec results\n%s", t.routeType, output)
-		results = testSuites
-		return true, nil
-	})).NotTo(o.HaveOccurred())
-
-	return results
+	// Log what we consider a successful run
+	e2e.Logf("h2spec results\n%s", output)
+	return testSuites, nil
 }
 
-func runConformanceTestsAndLogAggregateFailures(oc *exutil.CLI, tests []h2specRouteTypeTest, iterations int) {
+func runConformanceTestsAndLogAggregateFailures(oc *exutil.CLI, host, podName string, iterations int) {
 	sortKeys := func(m map[string]int) []string {
 		var index []string
 		for k := range m {
@@ -219,34 +262,35 @@ func runConformanceTestsAndLogAggregateFailures(oc *exutil.CLI, tests []h2specRo
 		return index
 	}
 
-	printFailures := func(t h2specRouteTypeTest, prefix string, m map[string]int) {
+	printFailures := func(prefix string, m map[string]int) {
 		for _, id := range sortKeys(m) {
-			e2e.Logf("[%s] %sTestCase ID: %q, cumulative failures: %v", t.routeType, prefix, id, m[id])
+			e2e.Logf("%sTestCase ID: %q, cumulative failures: %v", prefix, id, m[id])
 		}
 	}
 
 	failuresByTestCaseID := map[string]int{}
 
-	for _, t := range tests {
-		for i := 1; i <= iterations; i++ {
-			failures := failingTests(runConformanceTests(oc, t))
-			e2e.Logf("[%s] Iteration %v/%v: had %v failures", t.routeType, i, iterations, len(failures))
-
-			// Aggregate any new failures
-			for _, f := range failures {
-				failuresByTestCaseID[f.ID()]++
-			}
-
-			// Dump the current state at every iteration should
-			// you wish to interrupt/abort the running test.
-			printFailures(t, "\t", failuresByTestCaseID)
+	for i := 1; i <= iterations; i++ {
+		testResults, err := runConformanceTests(oc, host, podName)
+		if err != nil {
+			e2e.Logf(err.Error())
+			continue
 		}
+		failures := failingTests(testResults)
+		e2e.Logf("Iteration %v/%v: had %v failures", i, iterations, len(failures))
+
+		// Aggregate any new failures
+		for _, f := range failures {
+			failuresByTestCaseID[f.ID()]++
+		}
+
+		// Dump the current state at every iteration should
+		// you wish to interrupt/abort the running test.
+		printFailures("\t", failuresByTestCaseID)
 	}
 
-	for _, t := range tests {
-		e2e.Logf("[%s] Sampling completed: %v test cases failed", t.routeType, len(failuresByTestCaseID))
-		printFailures(t, "\t", failuresByTestCaseID)
-	}
+	e2e.Logf("Sampling completed: %v test cases failed", len(failuresByTestCaseID))
+	printFailures("\t", failuresByTestCaseID)
 }
 
 func getHostnameForRoute(oc *exutil.CLI, routeName string) (string, error) {
@@ -270,7 +314,7 @@ func getHostnameForRoute(oc *exutil.CLI, routeName string) (string, error) {
 }
 
 func h2specCommand(timeout int, hostname, results string) string {
-	return fmt.Sprintf("h2spec --timeout=%v --tls --insecure --strict --host=%q --junit-report=%q", timeout, hostname, results)
+	return fmt.Sprintf("ingress-operator h2spec --timeout=%v --tls --insecure --strict --host=%q --junit-report=%q", timeout, hostname, results)
 }
 
 func (f h2specFailingTest) ID() string {
