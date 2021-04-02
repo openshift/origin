@@ -25,7 +25,7 @@ func StableSystemEventInvariants(events monitorapi.EventIntervals, duration time
 	tests = append(tests, testServerAvailability(monitor.LocatorKubeAPIServerReusedConnection, events, duration)...)
 	tests = append(tests, testServerAvailability(monitor.LocatorOpenshiftAPIServerReusedConnection, events, duration)...)
 	tests = append(tests, testServerAvailability(monitor.LocatorOAuthAPIServerReusedConnection, events, duration)...)
-	tests = append(tests, testOperatorStateTransitions(events)...)
+	tests = append(tests, testStableSystemOperatorStateTransitions(events)...)
 
 	return tests
 }
@@ -39,6 +39,7 @@ func SystemUpgradeEventInvariants(events monitorapi.EventIntervals, duration tim
 	tests = append(tests, testPodTransitions(events)...)
 	tests = append(tests, testPodSandboxCreation(events)...)
 	tests = append(tests, testNodeUpgradeTransitions(events)...)
+	tests = append(tests, testUpgradeOperatorStateTransitions(events)...)
 	return tests
 }
 
