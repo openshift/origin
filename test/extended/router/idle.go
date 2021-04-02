@@ -60,7 +60,8 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			o.Expect(err).NotTo(o.HaveOccurred(), "pods not running")
 
 			g.By("Getting a 200 status code when accessing the route")
-			hostname := getHostnameForRoute(oc, "idle-test")
+			hostname, err := getHostnameForRoute(oc, "idle-test")
+			o.Expect(err).NotTo(o.HaveOccurred())
 			err = waitHTTPGetStatus(hostname, http.StatusOK, timeout)
 			o.Expect(err).NotTo(o.HaveOccurred(), "expected status 200 from the GET request")
 

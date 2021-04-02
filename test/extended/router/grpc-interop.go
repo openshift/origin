@@ -166,8 +166,13 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 
 // grpcExecTestCases run gRPC interop test cases.
 func grpcExecTestCases(oc *exutil.CLI, routeType routev1.TLSTerminationType, timeout time.Duration, testCases ...string) error {
+	host, err := getHostnameForRoute(oc, fmt.Sprintf("grpc-interop-%s", routeType))
+	if err != nil {
+		return err
+	}
+
 	dialParams := grpcinterop.DialParams{
-		Host:     getHostnameForRoute(oc, fmt.Sprintf("grpc-interop-%s", routeType)),
+		Host:     host,
 		Port:     443,
 		UseTLS:   true,
 		Insecure: true,
