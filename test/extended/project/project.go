@@ -19,7 +19,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
@@ -572,8 +571,9 @@ func GetScopedClientForUser(oc *exutil.CLI, username string, scopes []string) (*
 		return nil, err
 	}
 
+	tokenStr, sha256TokenStr := exutil.GenerateOAuthTokenPair()
 	token := &oauthv1.OAuthAccessToken{
-		ObjectMeta:  metav1.ObjectMeta{Name: fmt.Sprintf("%s-token-plus-some-padding-here-to-make-the-limit-%d", username, rand.Int())},
+		ObjectMeta:  metav1.ObjectMeta{Name: sha256TokenStr},
 		ClientName:  "openshift-challenging-client",
 		ExpiresIn:   86400,
 		Scopes:      scopes,
@@ -587,6 +587,6 @@ func GetScopedClientForUser(oc *exutil.CLI, username string, scopes []string) (*
 	oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), token)
 
 	scopedConfig := rest.AnonymousClientConfig(oc.AdminConfig())
-	scopedConfig.BearerToken = token.Name
+	scopedConfig.BearerToken = tokenStr
 	return scopedConfig, nil
 }

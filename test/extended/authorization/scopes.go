@@ -59,8 +59,9 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
+			whoamiOnlyTokenStr, sha256WhoamiOnlyTokenStr := exutil.GenerateOAuthTokenPair()
 			whoamiOnlyToken := &oauthv1.OAuthAccessToken{
-				ObjectMeta:  metav1.ObjectMeta{Name: "whoami-token-plus-some-padding-here-to-make-the-limit-" + oc.Namespace()},
+				ObjectMeta:  metav1.ObjectMeta{Name: sha256WhoamiOnlyTokenStr},
 				ClientName:  "openshift-challenging-client",
 				ExpiresIn:   200,
 				Scopes:      []string{scope.UserInfo},
@@ -74,7 +75,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 			oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), whoamiOnlyToken)
 
 			whoamiConfig := rest.AnonymousClientConfig(oc.AdminConfig())
-			whoamiConfig.BearerToken = whoamiOnlyToken.Name
+			whoamiConfig.BearerToken = whoamiOnlyTokenStr
 
 			if _, err := buildv1client.NewForConfigOrDie(whoamiConfig).BuildV1().Builds(projectName).List(context.Background(), metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
 				t.Fatalf("unexpected error: %v", err)
@@ -155,8 +156,9 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
+			nonEscalatingEditTokenStr, sha256NonEscalatingEditTokenStr := exutil.GenerateOAuthTokenPair()
 			nonEscalatingEditToken := &oauthv1.OAuthAccessToken{
-				ObjectMeta:  metav1.ObjectMeta{Name: "non-escalating-edit-plus-some-padding-here-to-make-the-limit-" + oc.Namespace()},
+				ObjectMeta:  metav1.ObjectMeta{Name: sha256NonEscalatingEditTokenStr},
 				ClientName:  "openshift-challenging-client",
 				ExpiresIn:   200,
 				Scopes:      []string{scope.ClusterRoleIndicator + "edit:*"},
@@ -170,7 +172,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 			oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), nonEscalatingEditToken)
 
 			nonEscalatingEditConfig := rest.AnonymousClientConfig(oc.AdminConfig())
-			nonEscalatingEditConfig.BearerToken = nonEscalatingEditToken.Name
+			nonEscalatingEditConfig.BearerToken = nonEscalatingEditTokenStr
 			nonEscalatingEditClient, err := kclientset.NewForConfig(nonEscalatingEditConfig)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -180,8 +182,9 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
+			escalatingEditTokenStr, sha256EscalatingEditToken := exutil.GenerateOAuthTokenPair()
 			escalatingEditToken := &oauthv1.OAuthAccessToken{
-				ObjectMeta:  metav1.ObjectMeta{Name: "escalating-edit-plus-some-padding-here-to-make-the-limit-" + oc.Namespace()},
+				ObjectMeta:  metav1.ObjectMeta{Name: sha256EscalatingEditToken},
 				ClientName:  "openshift-challenging-client",
 				ExpiresIn:   200,
 				Scopes:      []string{scope.ClusterRoleIndicator + "edit:*:!"},
@@ -195,7 +198,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 			oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), escalatingEditToken)
 
 			escalatingEditConfig := rest.AnonymousClientConfig(oc.AdminConfig())
-			escalatingEditConfig.BearerToken = escalatingEditToken.Name
+			escalatingEditConfig.BearerToken = escalatingEditTokenStr
 			escalatingEditClient, err := kclientset.NewForConfig(escalatingEditConfig)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -308,7 +311,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 					name: "no scopes",
 					fail: true,
 					obj: &oauthv1.OAuthAccessToken{
-						ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing-" + oc.Namespace()},
+						ObjectMeta:  metav1.ObjectMeta{Name: "sha256~tokenlongenoughtobecreatedwithoutfailing-" + oc.Namespace()},
 						ClientName:  client.Name,
 						UserName:    "name",
 						UserUID:     "uid",
@@ -319,7 +322,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 					name: "denied literal",
 					fail: true,
 					obj: &oauthv1.OAuthAccessToken{
-						ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing-" + oc.Namespace()},
+						ObjectMeta:  metav1.ObjectMeta{Name: "sha256~tokenlongenoughtobecreatedwithoutfailing-" + oc.Namespace()},
 						ClientName:  client.Name,
 						UserName:    "name",
 						UserUID:     "uid",
@@ -331,7 +334,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 					name: "denied role",
 					fail: true,
 					obj: &oauthv1.OAuthAccessToken{
-						ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing-" + oc.Namespace()},
+						ObjectMeta:  metav1.ObjectMeta{Name: "sha256~tokenlongenoughtobecreatedwithoutfailing-" + oc.Namespace()},
 						ClientName:  client.Name,
 						UserName:    "name",
 						UserUID:     "uid",
@@ -342,7 +345,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 				{
 					name: "ok role",
 					obj: &oauthv1.OAuthAccessToken{
-						ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing-" + oc.Namespace()},
+						ObjectMeta:  metav1.ObjectMeta{Name: "sha256~tokenlongenoughtobecreatedwithoutfailing-" + oc.Namespace()},
 						ClientName:  client.Name,
 						UserName:    "name",
 						UserUID:     "uid",
@@ -374,7 +377,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 					name: "no scopes",
 					fail: true,
 					obj: &oauthv1.OAuthAuthorizeToken{
-						ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing-" + oc.Namespace()},
+						ObjectMeta:  metav1.ObjectMeta{Name: "sha256~tokenlongenoughtobecreatedwithoutfailing-" + oc.Namespace()},
 						ClientName:  client.Name,
 						ExpiresIn:   86400,
 						UserName:    "name",
@@ -386,7 +389,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 					name: "denied literal",
 					fail: true,
 					obj: &oauthv1.OAuthAuthorizeToken{
-						ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing-" + oc.Namespace()},
+						ObjectMeta:  metav1.ObjectMeta{Name: "sha256~tokenlongenoughtobecreatedwithoutfailing-" + oc.Namespace()},
 						ClientName:  client.Name,
 						ExpiresIn:   86400,
 						UserName:    "name",
@@ -399,7 +402,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 					name: "denied role",
 					fail: true,
 					obj: &oauthv1.OAuthAuthorizeToken{
-						ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing-" + oc.Namespace()},
+						ObjectMeta:  metav1.ObjectMeta{Name: "sha256~tokenlongenoughtobecreatedwithoutfailing-" + oc.Namespace()},
 						ClientName:  client.Name,
 						ExpiresIn:   86400,
 						UserName:    "name",
@@ -411,7 +414,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 				{
 					name: "ok role",
 					obj: &oauthv1.OAuthAuthorizeToken{
-						ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing-" + oc.Namespace()},
+						ObjectMeta:  metav1.ObjectMeta{Name: "sha256~tokenlongenoughtobecreatedwithoutfailing-" + oc.Namespace()},
 						ClientName:  client.Name,
 						ExpiresIn:   86400,
 						UserName:    "name",
