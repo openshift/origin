@@ -13,8 +13,9 @@ import (
 // Monitor records events that have occurred in memory and can also periodically
 // sample results.
 type Monitor struct {
-	interval time.Duration
-	samplers []SamplerFunc
+	interval            time.Duration
+	samplers            []SamplerFunc
+	intervalCreationFns []IntervalCreationFunc
 
 	lock    sync.Mutex
 	events  []*monitorapi.Event
@@ -134,6 +135,11 @@ func (m *Monitor) EventIntervals(from, to time.Time) monitorapi.EventIntervals {
 	samples, events := m.snapshot()
 	intervals := filterSamples(samples, from, to)
 	events = filterEvents(events, from, to)
+
+	// create additional intervals from events
+	for _, createIntervals := range m.intervalCreationFns {
+		intervals = append(intervals, createIntervals(events, from, to)...)
+	}
 
 	// merge the two sets of inputs
 	mustSort := len(intervals) > 0

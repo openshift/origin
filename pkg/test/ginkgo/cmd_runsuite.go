@@ -8,16 +8,19 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
 	"syscall"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor"
-	"k8s.io/apimachinery/pkg/util/sets"
+	"github.com/openshift/origin/test/extended/testdata"
 
 	"github.com/onsi/ginkgo/config"
+	"github.com/openshift/origin/pkg/monitor"
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 // Options is used to run a suite of tests by invoking each test
@@ -280,7 +283,25 @@ func (opt *Options) Run(suite *TestSuite) error {
 	// monitor the cluster while the tests are running and report any detected anomalies
 	var syntheticTestResults []*JUnitTestCase
 	var syntheticFailure bool
-	if events := m.EventIntervals(time.Time{}, time.Time{}); len(events) > 0 {
+	events := m.EventIntervals(time.Time{}, time.Time{})
+	if err = monitorserialization.EventsToFile(path.Join(os.Getenv("ARTIFACT_DIR"), "e2e-events.json"), events); err != nil {
+		fmt.Fprintf(opt.Out, "Failed to write event file: %v\n", err)
+	}
+	if err = monitorserialization.EventsIntervalsToFile(path.Join(os.Getenv("ARTIFACT_DIR"), "e2e-intervals.json"), events); err != nil {
+		fmt.Fprintf(opt.Out, "Failed to write event file: %v\n", err)
+	}
+	if eventIntervalsJSON, err := monitorserialization.EventsIntervalsToJSON(events); err == nil {
+		e2eChartTemplate := testdata.MustAsset("e2echart/e2e-chart-template.html")
+		e2eChartHTML := bytes.ReplaceAll(e2eChartTemplate, []byte("EVENT_INTERVAL_JSON_GOES_HERE"), eventIntervalsJSON)
+		e2eChartHTMLPath := path.Join(os.Getenv("ARTIFACT_DIR"), "e2e-intervals.html")
+		if err := ioutil.WriteFile(e2eChartHTMLPath, e2eChartHTML, 0644); err != nil {
+			fmt.Fprintf(opt.Out, "Failed to write event html: %v\n", err)
+		}
+	} else {
+		fmt.Fprintf(opt.Out, "Failed to write event html: %v\n", err)
+	}
+
+	if len(events) > 0 {
 		eventsForTests := createEventsForTests(tests)
 
 		var buf *bytes.Buffer

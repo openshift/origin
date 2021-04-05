@@ -488,6 +488,7 @@
 // test/extended/testdata/test-replication-controller.yaml
 // test/extended/testdata/test-secret.json
 // test/extended/testdata/verifyservice-pipeline-template.yaml
+// e2echart/e2e-chart-template.html
 package testdata
 
 import (
@@ -53492,6 +53493,210 @@ func testExtendedTestdataVerifyservicePipelineTemplateYaml() (*asset, error) {
 	return a, nil
 }
 
+var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>e2e-chart</title>
+    <script src="https://unpkg.com/timelines-chart"></script>
+    <script src="https://d3js.org/d3-array.v1.min.js"></script>
+    <script src="https://d3js.org/d3-collection.v1.min.js"></script>
+    <script src="https://d3js.org/d3-color.v1.min.js"></script>
+    <script src="https://d3js.org/d3-format.v1.min.js"></script>
+    <script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+    <script src="https://d3js.org/d3-time.v1.min.js"></script>
+    <script src="https://d3js.org/d3-time-format.v2.min.js"></script>
+    <script src="https://d3js.org/d3-scale.v2.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="chart"></div>
+
+<div class="modal" id="myModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Resource</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <pre><code id="myModalContent"></code></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var eventIntervals = EVENT_INTERVAL_JSON_GOES_HERE
+</script>
+
+<script>
+    var loc = window.location.href;
+
+    const el = document.querySelector('#chart');
+
+    var timelineGroups = []
+    timelineGroups.push({group: "operator-unavailable", data: []})
+    createTimelineData("OperatorUnavailable", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorAvailable)
+
+    timelineGroups.push({group: "operator-degraded", data: []})
+    createTimelineData("OperatorDegraded", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorDegraded)
+
+    timelineGroups.push({group: "operator-progressing", data: []})
+    createTimelineData("OperatorProgressing", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorProgressing)
+
+    timelineGroups.push({group: "apiserver-availability", data: []})
+    createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAPIServerConnectivity)
+
+    timelineGroups.push({group: "e2e-test-failed", data: []})
+    createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFailed)
+
+    timelineGroups.push({group: "e2e-test-flaked", data: []})
+    createTimelineData("Flaked", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFlaked)
+
+    timelineGroups.push({group: "e2e-test-passed", data: []})
+    createTimelineData("Passed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EPassed)
+
+    var segmentFunc = function (segment) {
+        // for (var i in data) {
+        //     if (data[i].group == segment.group) {
+        //         var groupdata = data[i].data
+        //         for (var j in groupdata) {
+        //             if (groupdata[j].label == segment.label) {
+        //                 labeldata = groupdata[j].data
+        //                 for (var k in labeldata) {
+        //                     var startDate = new Date(labeldata[k].timeRange[0])
+        //                     var endDate = new Date(labeldata[k].timeRange[1])
+        //                     if (startDate.getTime() == segment.timeRange[0].getTime() &&
+        //                         endDate.getTime() == segment.timeRange[1].getTime()) {
+        //                         $('#myModalContent').text(labeldata[k].extended)
+        //                         $('#myModal').modal()
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+    }
+    const myChart = TimelinesChart();
+    var ordinalScale = d3.scaleOrdinal()
+        .domain(['OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', 'Passed', 'Skipped', 'Flaked', 'Failed', 'Degraded', 'Upgradeable', 'False', 'Unknown'])
+        .range(['#d0312d', '#ffa500', '#fada5e', '#3cb043', '#ceba76', '#ffa500', '#d0312d', '#b65049', '#32b8b6', '#ffffff', '#bbbbbb']);
+    myChart.data(timelineGroups).zQualitative(true).enableAnimations(false).leftMargin(320).rightMargin(550).maxLineHeight(20).maxHeight(10000).zColorScale(ordinalScale).onSegmentClick(segmentFunc)
+    (el);
+
+    function isOperatorAvailable(eventInterval) {
+        if (eventInterval.locator.startsWith("clusteroperator/") && eventInterval.message.includes("condition/Available") && eventInterval.message.includes("status/False")) {
+            return true
+        }
+        return false
+    }
+
+    function isOperatorDegraded(eventInterval) {
+        if (eventInterval.locator.startsWith("clusteroperator/") && eventInterval.message.includes("condition/Degraded") && eventInterval.message.includes("status/True")) {
+            return true
+        }
+        return false
+    }
+
+    function isOperatorProgressing(eventInterval) {
+        if (eventInterval.locator.startsWith("clusteroperator/") && eventInterval.message.includes("condition/Progressing") && eventInterval.message.includes("status/True")) {
+            return true
+        }
+        return false
+    }
+
+    function isE2EFailed(eventInterval) {
+        if (eventInterval.locator.startsWith("e2e-test/") && eventInterval.message.includes("finished As \"Failed")) {
+            return true
+        }
+        return false
+    }
+
+    function isE2EFlaked(eventInterval) {
+        if (eventInterval.locator.startsWith("e2e-test/") && eventInterval.message.includes("finished As \"Flaked")) {
+            return true
+        }
+        return false
+    }
+
+    function isE2EPassed(eventInterval) {
+        if (eventInterval.locator.startsWith("e2e-test/") && eventInterval.message.includes("finished As \"Passed")) {
+            return true
+        }
+        return false
+    }
+
+    function isAPIServerConnectivity(eventInterval) {
+        if (eventInterval.locator == "kube-apiserver-new-connection" || eventInterval.locator == "kube-apiserver-reused-connection") {
+            return true
+        }
+        if (eventInterval.locator == "oauth-apiserver-new-connection" || eventInterval.locator == "oauth-apiserver-reused-connection") {
+            return true
+        }
+        if (eventInterval.locator == "openshift-apiserver-new-connection" || eventInterval.locator == "openshift-apiserver-reused-connection") {
+            return true
+        }
+        return false
+    }
+
+    function createTimelineData(timelineVal, timelineData, rawEventIntervals, preconditionFunc) {
+        const data = {}
+        rawEventIntervals.items.forEach((item) => {
+            if (!preconditionFunc(item)) {
+                return
+            }
+            var startDate = new Date(item.from)
+            var endDate = new Date(item.to)
+            if (!data[item.locator]) {
+                data[item.locator] = []
+            }
+            data[item.locator].push({
+                timeRange: [startDate, endDate],
+                val: timelineVal
+            });
+        });
+        for (const label in data) {
+            timelineData.push({label, data: data[label]})
+        }
+    }
+
+</script>
+</body>
+</html>
+`)
+
+func e2echartE2eChartTemplateHtmlBytes() ([]byte, error) {
+	return _e2echartE2eChartTemplateHtml, nil
+}
+
+func e2echartE2eChartTemplateHtml() (*asset, error) {
+	bytes, err := e2echartE2eChartTemplateHtmlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "e2echart/e2e-chart-template.html", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 // Asset loads and returns the asset for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -54032,6 +54237,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/test-replication-controller.yaml":                                                testExtendedTestdataTestReplicationControllerYaml,
 	"test/extended/testdata/test-secret.json":                                                                testExtendedTestdataTestSecretJson,
 	"test/extended/testdata/verifyservice-pipeline-template.yaml":                                            testExtendedTestdataVerifyservicePipelineTemplateYaml,
+	"e2echart/e2e-chart-template.html":                                                                       e2echartE2eChartTemplateHtml,
 }
 
 // AssetDir returns the file names below a certain
@@ -54075,6 +54281,9 @@ type bintree struct {
 }
 
 var _bintree = &bintree{nil, map[string]*bintree{
+	"e2echart": {nil, map[string]*bintree{
+		"e2e-chart-template.html": {e2echartE2eChartTemplateHtml, map[string]*bintree{}},
+	}},
 	"examples": {nil, map[string]*bintree{
 		"db-templates": {nil, map[string]*bintree{
 			"mariadb-ephemeral-template.json":     {examplesDbTemplatesMariadbEphemeralTemplateJson, map[string]*bintree{}},
