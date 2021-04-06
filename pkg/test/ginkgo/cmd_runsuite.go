@@ -283,17 +283,18 @@ func (opt *Options) Run(suite *TestSuite) error {
 	// monitor the cluster while the tests are running and report any detected anomalies
 	var syntheticTestResults []*JUnitTestCase
 	var syntheticFailure bool
+	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 	events := m.EventIntervals(time.Time{}, time.Time{})
-	if err = monitorserialization.EventsToFile(path.Join(os.Getenv("ARTIFACT_DIR"), "e2e-events.json"), events); err != nil {
+	if err = monitorserialization.EventsToFile(path.Join(os.Getenv("ARTIFACT_DIR"), fmt.Sprintf("e2e-events%s.json", timeSuffix)), events); err != nil {
 		fmt.Fprintf(opt.Out, "Failed to write event file: %v\n", err)
 	}
-	if err = monitorserialization.EventsIntervalsToFile(path.Join(os.Getenv("ARTIFACT_DIR"), "e2e-intervals.json"), events); err != nil {
+	if err = monitorserialization.EventsIntervalsToFile(path.Join(os.Getenv("ARTIFACT_DIR"), fmt.Sprintf("e2e-intervals%s.json", timeSuffix)), events); err != nil {
 		fmt.Fprintf(opt.Out, "Failed to write event file: %v\n", err)
 	}
 	if eventIntervalsJSON, err := monitorserialization.EventsIntervalsToJSON(events); err == nil {
 		e2eChartTemplate := testdata.MustAsset("e2echart/e2e-chart-template.html")
 		e2eChartHTML := bytes.ReplaceAll(e2eChartTemplate, []byte("EVENT_INTERVAL_JSON_GOES_HERE"), eventIntervalsJSON)
-		e2eChartHTMLPath := path.Join(os.Getenv("ARTIFACT_DIR"), "e2e-intervals.html")
+		e2eChartHTMLPath := path.Join(os.Getenv("ARTIFACT_DIR"), fmt.Sprintf("e2e-intervals%s.html", timeSuffix))
 		if err := ioutil.WriteFile(e2eChartHTMLPath, e2eChartHTML, 0644); err != nil {
 			fmt.Fprintf(opt.Out, "Failed to write event html: %v\n", err)
 		}
