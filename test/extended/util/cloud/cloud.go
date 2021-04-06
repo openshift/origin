@@ -30,6 +30,8 @@ type ClusterConfiguration struct {
 	Zones       []string
 	ConfigFile  string
 
+	// Network-related configurations
+	Disconnected     bool
 	NetworkPluginIDs []string
 }
 
@@ -64,6 +66,7 @@ func LoadConfig(clientConfig *rest.Config) (*ClusterConfiguration, error) {
 		if networkConfig.Spec.DefaultNetwork.OpenShiftSDNConfig != nil && networkConfig.Spec.DefaultNetwork.OpenShiftSDNConfig.Mode != "" {
 			networkPluginIDs = append(networkPluginIDs, string(networkConfig.Spec.DefaultNetwork.Type)+"/"+string(networkConfig.Spec.DefaultNetwork.OpenShiftSDNConfig.Mode))
 		}
+
 	}
 
 	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
