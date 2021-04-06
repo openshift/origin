@@ -39,7 +39,6 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 
 			"apps/v1/Deployment/openshift-machine-api/cluster-autoscaler-default/container/cluster-autoscaler/request[cpu]":    "https://bugzilla.redhat.com/show_bug.cgi?id=1938467",
 			"apps/v1/Deployment/openshift-machine-api/cluster-autoscaler-default/container/cluster-autoscaler/request[memory]": "https://bugzilla.redhat.com/show_bug.cgi?id=1938467",
-			"apps/v1/Deployment/openshift-monitoring/thanos-querier/container/thanos-query/request[cpu]":                       "https://bugzilla.redhat.com/show_bug.cgi?id=1938465",
 			"apps/v1/Deployment/openshift-operator-lifecycle-manager/packageserver/container/packageserver/request[cpu]":       "https://bugzilla.redhat.com/show_bug.cgi?id=1938466",
 			"apps/v1/Deployment/openshift-operator-lifecycle-manager/packageserver/container/packageserver/request[memory]":    "https://bugzilla.redhat.com/show_bug.cgi?id=1938466",
 
