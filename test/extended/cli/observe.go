@@ -26,7 +26,7 @@ var _ = g.Describe("[sig-cli] oc observe", func() {
 
 		out, err = oc.Run("observe").Args("daemonsets", "--once").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("Nothing to sync, exiting immediately"))
+		o.Expect(out).To(o.Or(o.ContainSubstring("Sync ended"), o.ContainSubstring("Nothing to sync, exiting immediately")))
 
 		out, err = oc.Run("observe").Args("clusteroperators", "--once").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -68,11 +68,11 @@ var _ = g.Describe("[sig-cli] oc observe", func() {
 		g.By("argument templates")
 		out, err = oc.Run("observe").Args("services", "--once", "--all-namespaces", "--template='{ .spec.clusterIP }'").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("172.30.0.1"))
+		o.Expect(out).To(o.Or(o.ContainSubstring("172.30.0.1"), o.ContainSubstring("fd02::1")))
 
 		out, err = oc.Run("observe").Args("services", "--once", "--all-namespaces", "--template='{{ .spec.clusterIP }}'", "--output=go-template").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("172.30.0.1"))
+		o.Expect(out).To(o.Or(o.ContainSubstring("172.30.0.1"), o.ContainSubstring("fd02::1")))
 
 		out, err = oc.Run("observe").Args("services", "--once", "--all-namespaces", "--template='bad{ .missingkey }key'").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
