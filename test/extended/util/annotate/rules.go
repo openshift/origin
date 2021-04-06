@@ -41,8 +41,11 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1945085
 			`API data in etcd should be stored at the correct location and version for all resources`,
 
-			// // https://bugzilla.redhat.com/show_bug.cgi?id=1945091
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1945091
 			`\[Feature:GenericEphemeralVolume\]`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1946479
+			`Image signature workflow`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},
