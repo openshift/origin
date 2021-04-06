@@ -53374,12 +53374,27 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
     function createTimelineData(timelineVal, timelineData, rawEventIntervals, preconditionFunc) {
         const data = {}
+        var now = new Date();
+        var earliest = rawEventIntervals.items.reduce(
+            (accumulator, currentValue) => !currentValue.from || accumulator < new Date(currentValue.from) ? accumulator : new Date(currentValue.from),
+            new Date(now.getTime() + 1),
+        );
+        var latest = rawEventIntervals.items.reduce(
+            (accumulator, currentValue) => !currentValue.to || accumulator > new Date(currentValue.to) ? accumulator : new Date(currentValue.to),
+            new Date(now.getTime() - 1),
+        );
         rawEventIntervals.items.forEach((item) => {
             if (!preconditionFunc(item)) {
                 return
             }
             var startDate = new Date(item.from)
+            if (!item.from) {
+                startDate = earliest;
+            }
             var endDate = new Date(item.to)
+            if (!item.to) {
+                endDate = latest
+            }
             let label = item.locator
             let sub = ""
             let val = timelineVal
