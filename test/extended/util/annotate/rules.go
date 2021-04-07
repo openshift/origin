@@ -41,6 +41,9 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1945085
 			`API data in etcd should be stored at the correct location and version for all resources`,
 
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1929248, can be enabled after rebase
+			`API priority and fairness should ensure that requests can be classified by testing flow-schemas/priority-levels`,
+
 			// // https://bugzilla.redhat.com/show_bug.cgi?id=1945091
 			`\[Feature:GenericEphemeralVolume\]`,
 		},

@@ -323,7 +323,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-api-machinery] API data in etcd should be stored at the correct location and version for all resources [Serial]": "should be stored at the correct location and version for all resources [Serial] [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery] API priority and fairness should ensure that requests can be classified by testing flow-schemas/priority-levels": "should ensure that requests can be classified by testing flow-schemas/priority-levels [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] API priority and fairness should ensure that requests can be classified by testing flow-schemas/priority-levels": "should ensure that requests can be classified by testing flow-schemas/priority-levels [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-api-machinery] API priority and fairness should ensure that requests can't be drowned out (fairness)": "should ensure that requests can't be drowned out (fairness) [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
