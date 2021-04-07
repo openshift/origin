@@ -280,8 +280,6 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	etcdStorageData := etcddata.GetEtcdStorageData()
 
 	removeStorageData(t, etcdStorageData,
-		// these alphas resources are not enabled in a real cluster but worked fine in the integration test
-		gvr("batch", "v2alpha1", "cronjobs"),
 		gvr("node.k8s.io", "v1alpha1", "runtimeclasses"),
 		gvr("rbac.authorization.k8s.io", "v1alpha1", "clusterrolebindings"),
 		gvr("rbac.authorization.k8s.io", "v1alpha1", "clusterroles"),
@@ -289,6 +287,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		gvr("rbac.authorization.k8s.io", "v1alpha1", "roles"),
 		gvr("scheduling.k8s.io", "v1alpha1", "priorityclasses"),
 		gvr("storage.k8s.io", "v1alpha1", "volumeattachments"),
+		gvr("storage.k8s.io", "v1alpha1", "csistoragecapacities"),
 		gvr("internal.apiserver.k8s.io", "v1alpha1", "storageversions"),
 	)
 
@@ -505,7 +504,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 }
 
 func getCRDs(t g.GinkgoTInterface, crdClient *apiextensionsclientset.Clientset) map[schema.GroupVersionResource]empty {
-	crdList, err := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
+	crdList, err := crdClient.ApiextensionsV1().CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -517,9 +516,6 @@ func getCRDs(t g.GinkgoTInterface, crdClient *apiextensionsclientset.Clientset) 
 		}
 		group := crd.Spec.Group
 		resource := crd.Spec.Names.Plural
-		if len(crd.Spec.Version) != 0 {
-			crds[gvr(group, crd.Spec.Version, resource)] = empty{}
-		}
 		for _, version := range crd.Spec.Versions {
 			if !version.Served {
 				continue
