@@ -32,24 +32,30 @@ func init() {
 		"k8s.gcr.io/sig-storage/csi-attacher:v3.0.0":              -1,
 		"k8s.gcr.io/sig-storage/csi-node-driver-registrar:v1.2.0": -1,
 		"k8s.gcr.io/sig-storage/csi-node-driver-registrar:v1.3.0": -1,
+		"k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.1.0": -1,
 		"k8s.gcr.io/sig-storage/csi-provisioner:v1.6.0":           -1,
 		"k8s.gcr.io/sig-storage/csi-provisioner:v2.0.0":           -1,
+		"k8s.gcr.io/sig-storage/csi-provisioner:v2.1.0":           -1,
 		"k8s.gcr.io/sig-storage/csi-resizer:v0.4.0":               -1,
 		"k8s.gcr.io/sig-storage/csi-resizer:v0.5.0":               -1,
+		"k8s.gcr.io/sig-storage/csi-resizer:v1.1.0":               -1,
 		"k8s.gcr.io/sig-storage/csi-snapshotter:v2.0.1":           -1,
 		"k8s.gcr.io/sig-storage/csi-snapshotter:v2.1.0":           -1,
 		"k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.2":           -1,
 		"k8s.gcr.io/sig-storage/hostpathplugin:v1.4.0":            -1,
 		"k8s.gcr.io/sig-storage/livenessprobe:v1.1.0":             -1,
 		"k8s.gcr.io/sig-storage/mock-driver:v4.0.2":               -1,
+		"k8s.gcr.io/sig-storage/mock-driver:v4.1.0":               -1,
 		"k8s.gcr.io/sig-storage/snapshot-controller:v2.1.1":       -1,
+		"k8s.gcr.io/sig-storage/snapshot-controller:v3.0.2":       -1,
 
 		// allowed upstream kube images - index and value must match upstream or
-		// tests will fail
-		"k8s.gcr.io/e2e-test-images/agnhost:2.21": 1,
-		"docker.io/library/nginx:1.14-alpine":     23,
-		"docker.io/library/nginx:1.15-alpine":     24,
-		"docker.io/library/redis:5.0.5-alpine":    31,
+		// tests will fail (vendor/k8s.io/kubernetes/test/utils/image/manifest.go)
+		"k8s.gcr.io/e2e-test-images/agnhost:2.30":       1,
+		"k8s.gcr.io/e2e-test-images/busybox:1.29-1":     7,
+		"k8s.gcr.io/e2e-test-images/nginx:1.14-1":       23,
+		"k8s.gcr.io/e2e-test-images/nginx:1.15-1":       24,
+		"k8s.gcr.io/e2e-test-images/redis:5.0.5-alpine": 34,
 	}
 
 	images = GetMappedImages(allowedImages, os.Getenv("KUBE_TEST_REPO"))

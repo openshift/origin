@@ -136,7 +136,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.30
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -151,7 +151,7 @@ objects:
       app: secure-endpoint
   spec:
     containers:
-    - image: docker.io/library/nginx:1.15-alpine
+    - image: k8s.gcr.io/e2e-test-images/nginx:1.15-1
       name: serve
       command:
         - /usr/sbin/nginx
