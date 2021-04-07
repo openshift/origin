@@ -73,12 +73,10 @@ func TestExampleObjectSchemas(t *testing.T) {
 		"../examples/db-templates": {
 			"mysql-persistent-template":      &templatev1.Template{},
 			"postgresql-persistent-template": &templatev1.Template{},
-			"mongodb-persistent-template":    &templatev1.Template{},
 			"mariadb-persistent-template":    &templatev1.Template{},
 			"redis-persistent-template":      &templatev1.Template{},
 			"mysql-ephemeral-template":       &templatev1.Template{},
 			"postgresql-ephemeral-template":  &templatev1.Template{},
-			"mongodb-ephemeral-template":     &templatev1.Template{},
 			"mariadb-ephemeral-template":     &templatev1.Template{},
 			"redis-ephemeral-template":       &templatev1.Template{},
 		},

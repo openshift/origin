@@ -48,7 +48,6 @@ QUICKSTARTS_DIR="${OS_ROOT}/examples/quickstarts"
   mv django-psql-persistent.json django-postgresql-persistent.json
   mv django-psql.json django-postgresql.json
   mv rails-pgsql-persistent.json rails-postgresql-persistent.json
-  mv nodejs-mongo-persistent.json nodejs-mongodb-persistent.json
 
 
 )
