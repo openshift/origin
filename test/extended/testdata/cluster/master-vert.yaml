@@ -28,12 +28,12 @@ ClusterLoader:
           file: ./quickstarts/django-postgresql.json
   
     - num: 1
-      basename: clusterloader-nodejs-mongodb
+      basename: clusterloader-nodejs-postgresql
       ifexists: delete
       tuning: default
       templates:
         - num: 1
-          file: ./quickstarts/nodejs-mongodb.json
+          file: ./quickstarts/nodejs-postgresql.json
   
     - num: 1
       basename: clusterloader-rails-postgresql
