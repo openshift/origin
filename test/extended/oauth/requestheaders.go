@@ -348,57 +348,8 @@ func generateCert(caCert *x509.Certificate, caKey *rsa.PrivateKey, cn string, ek
 }
 
 func waitForNewOAuthConfig(oc *exutil.CLI, caCerts *x509.CertPool, oauthURL string, configChanged time.Time) {
-	// check that the pods running in openshift-authentication NS already reflect our changes
-	err := wait.PollImmediate(time.Second, 2*time.Minute, func() (bool, error) {
-		pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-authentication").List(context.Background(), metav1.ListOptions{})
-		if err != nil {
-			e2e.Logf("Error listing openshift-authentication pods: %v", err)
-			return false, err
-		}
-
-		podsReady := true
-		for _, p := range pods.Items {
-			tstamp := p.GetCreationTimestamp()
-			if !tstamp.After(configChanged) {
-				e2e.Logf("Pod %q not ready (creation timestamp: %s, config changed: %s)", p.Name, p.GetCreationTimestamp(), configChanged)
-				e2e.Logf("Pod %q status: %s", p.Name, spew.Sdump(p.Status))
-				podsReady = false
-			}
-			if podsReady {
-				return true, nil
-			}
-		}
-		return false, nil
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	err = wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
-		authn, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(context.Background(), "authentication", metav1.GetOptions{})
-		if err != nil {
-			e2e.Logf("Error getting authentication operator: %v", err)
-			return false, err
-		}
-
-		if clusteroperatorhelpers.IsStatusConditionTrue(authn.Status.Conditions, configv1.OperatorProgressing) {
-			e2e.Logf("Waiting for progressing condition: %s", spew.Sdump(authn.Status.Conditions))
-			return false, nil
-		}
-
-		// it seems that if we do anonymous request too early, it still does not see the IdP as configured
-		resp, err := oauthHTTPRequest(caCerts, oauthURL, "/oauth/authorize?client_id=openshift-challenging-client&response_type=token", "", nil, nil)
-		if err != nil {
-			e2e.Logf("Error making OAuth request: %v", err)
-			return false, nil
-		}
-
-		if resp.StatusCode != 302 {
-			bodyBytes, _ := ioutil.ReadAll(resp.Body)
-			e2e.Logf("OAuth HTTP request response is not 302: %q (%s)", resp.Status, string(bodyBytes))
-			return false, nil
-		}
-		return true, nil
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
+	waitForAuthenticationProgressing(oc, configv1.ConditionTrue)
+	waitForAuthenticationProgressing(oc, configv1.ConditionFalse)
 }
 
 // oauthHTTPRequestOrFail wraps oauthHTTPRequest and fails the test if the request failed
@@ -487,4 +438,33 @@ func getTokenFromResponse(resp *http.Response) string {
 	}
 
 	return ""
+}
+
+func waitForAuthenticationProgressing(oc *exutil.CLI, expectedProgressing configv1.ConditionStatus) {
+	err := wait.PollImmediate(time.Second, 10*time.Minute, func() (bool, error) {
+		authn, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(context.Background(), "authentication", metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Error getting authentication operator: %v", err)
+			return false, err
+		}
+
+		progressing := clusteroperatorhelpers.FindStatusCondition(authn.Status.Conditions, configv1.OperatorProgressing)
+		if progressing == nil || progressing.Status != expectedProgressing {
+			e2e.Logf("Waiting for progressing condition to be %q: %s", expectedProgressing, spew.Sdump(authn.Status.Conditions))
+			return false, nil
+		}
+
+		if expectedProgressing == configv1.ConditionFalse {
+			// make additional checkes on availability and degraded status
+			if clusteroperatorhelpers.IsStatusConditionFalse(authn.Status.Conditions, configv1.OperatorAvailable) ||
+				clusteroperatorhelpers.IsStatusConditionTrue(authn.Status.Conditions, configv1.OperatorDegraded) {
+				e2e.Logf("Waiting for available==True, progressing==False, degraded==False: %s", spew.Sdump(authn.Status.Conditions))
+				return false, nil
+			}
+
+		}
+
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
 }
