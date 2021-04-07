@@ -70,6 +70,7 @@ var (
 			`\[sig-builds\]\[Feature:Builds\]\[timing\] capture build stages and durations  should record build stages and durations for docker`,
 			`\[sig-builds\]\[Feature:Builds\]\[timing\] capture build stages and durations  should record build stages and durations for s2i`,
 			`\[sig-builds\]\[Feature:Builds\]\[valueFrom\] process valueFrom in build strategy environment variables  should successfully resolve valueFrom in s2i build environment variables`,
+			`\[sig-network\] Networking should provide Internet connection for containers`,
 
 			// ICSP
 			`\[sig-apps\]\[Feature:DeploymentConfig\] deploymentconfigs  should adhere to Three Laws of Controllers`,
