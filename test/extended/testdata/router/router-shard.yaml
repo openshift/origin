@@ -1,7 +1,6 @@
 apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
-- name: NAME
 - name: DOMAIN
 - name: NAMESPACE
 - name: TYPE

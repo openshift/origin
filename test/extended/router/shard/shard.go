@@ -18,9 +18,6 @@ type Config struct {
 	// FixturePath is the path to the ingresscontroller fixture.
 	FixturePath string
 
-	// Name is the name of the ingresscontroller
-	Name string
-
 	// Domain is the domain for the ingresscontroller to host
 	Domain string
 
@@ -39,7 +36,6 @@ var ingressControllerNonDefaultAvailableConditions = []operatorv1.OperatorCondit
 
 func DeployNewRouterShard(oc *exutil.CLI, timeout time.Duration, cfg Config) (string, error) {
 	jsonCfg, err := oc.AsAdmin().Run("process").Args("-f", cfg.FixturePath, "-p",
-		"NAME="+cfg.Name,
 		"NAMESPACE=openshift-ingress-operator",
 		"DOMAIN="+cfg.Domain,
 		"TYPE="+cfg.Type).OutputToFile("config.json")
