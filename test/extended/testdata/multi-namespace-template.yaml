@@ -1,47 +1,58 @@
+kind: Template
 apiVersion: v1
-items:
-- apiVersion: template.openshift.io/v1
-  kind: Template
-  labels:
-    template: mongodb-ephemeral-template
-  metadata:
-    name: mongodb-ephemeral
-  objects:
+metadata:
+  name: mariadb-ephemeral
+  creationTimestamp: null
+  annotations:
+    description: |-
+      MariaDB database service, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/blob/master/10.3/root/usr/share/container-scripts/mysql/README.md.
+
+      WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing
+    iconClass: icon-mariadb
+    openshift.io/display-name: MariaDB (Ephemeral)
+    openshift.io/documentation-url: https://github.com/sclorg/mariadb-container/blob/master/10.3/root/usr/share/container-scripts/mysql/README.md
+    openshift.io/long-description: This template provides a standalone MariaDB server with a database created.  The database is not stored on persistent storage, so any restart of the service will result in all data being lost.  The database name, username, and password are chosen via parameters when provisioning this service.
+    openshift.io/provider-display-name: Red Hat, Inc.
+    openshift.io/support-url: https://access.redhat.com
+    tags: database,mariadb
+message: |-
+  The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.
+
+         Username: ${MYSQL_USER}
+         Password: ${MYSQL_PASSWORD}
+    Database Name: ${MYSQL_DATABASE}
+   Connection URL: mysql://${DATABASE_SERVICE_NAME}:3306/
+
+  For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/blob/master/10.3/root/usr/share/container-scripts/mysql/README.md.
+objects:
   - apiVersion: v1
     kind: Secret
     metadata:
       annotations:
-        template.openshift.io/expose-admin_password: '{.data[''database-admin-password'']}'
         template.openshift.io/expose-database_name: '{.data[''database-name'']}'
         template.openshift.io/expose-password: '{.data[''database-password'']}'
+        template.openshift.io/expose-root_password: '{.data[''database-root-password'']}'
         template.openshift.io/expose-username: '{.data[''database-user'']}'
       name: ${DATABASE_SERVICE_NAME}
       namespace: ${NAMESPACE2}
     stringData:
-      database-admin-password: ${MONGODB_ADMIN_PASSWORD}
-      database-name: ${MONGODB_DATABASE}
-      database-password: ${MONGODB_PASSWORD}
-      database-user: ${MONGODB_USER}
+      database-name: ${MYSQL_DATABASE}
+      database-password: ${MYSQL_PASSWORD}
+      database-root-password: ${MYSQL_ROOT_PASSWORD}
+      database-user: ${MYSQL_USER}
   - apiVersion: v1
     kind: Service
     metadata:
       annotations:
-        template.openshift.io/expose-uri: mongodb://{.spec.clusterIP}:{.spec.ports[?(.name=="mongo")].port}
+        template.openshift.io/expose-uri: mysql://{.spec.clusterIP}:{.spec.ports[?(.name=="mariadb")].port}
       name: ${DATABASE_SERVICE_NAME}
       namespace: ${NAMESPACE3}
     spec:
       ports:
-      - name: mongo
-        nodePort: 0
-        port: 27017
-        protocol: TCP
-        targetPort: 27017
+        - name: mariadb
+          port: 3306
       selector:
         name: ${DATABASE_SERVICE_NAME}
-      sessionAffinity: None
-      type: ClusterIP
-    status:
-      loadBalancer: {}
   - apiVersion: v1
     kind: DeploymentConfig
     metadata:
@@ -61,130 +72,121 @@ items:
             name: ${DATABASE_SERVICE_NAME}
         spec:
           containers:
-          - capabilities: {}
-            env:
-            - name: MONGODB_USER
-              valueFrom:
-                secretKeyRef:
-                  key: database-user
-                  name: ${DATABASE_SERVICE_NAME}
-            - name: MONGODB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  key: database-password
-                  name: ${DATABASE_SERVICE_NAME}
-            - name: MONGODB_ADMIN_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  key: database-admin-password
-                  name: ${DATABASE_SERVICE_NAME}
-            - name: MONGODB_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  key: database-name
-                  name: ${DATABASE_SERVICE_NAME}
-            image: ' '
-            imagePullPolicy: IfNotPresent
-            livenessProbe:
-              initialDelaySeconds: 30
-              tcpSocket:
-                port: 27017
-              timeoutSeconds: 1
-            name: mongodb
-            ports:
-            - containerPort: 27017
-              protocol: TCP
-            readinessProbe:
-              exec:
-                command:
-                - /bin/sh
-                - -i
-                - -c
-                - mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD
-                  --eval="quit()"
-              initialDelaySeconds: 3
-              timeoutSeconds: 1
-            resources:
-              limits:
-                memory: ${MEMORY_LIMIT}
-            securityContext:
-              capabilities: {}
-              privileged: false
-            terminationMessagePath: /dev/termination-log
-            volumeMounts:
-            - mountPath: /var/lib/mongodb/data
-              name: ${DATABASE_SERVICE_NAME}-data
-          dnsPolicy: ClusterFirst
-          restartPolicy: Always
+            - env:
+                - name: MYSQL_USER
+                  valueFrom:
+                    secretKeyRef:
+                      key: database-user
+                      name: ${DATABASE_SERVICE_NAME}
+                - name: MYSQL_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      key: database-password
+                      name: ${DATABASE_SERVICE_NAME}
+                - name: MYSQL_ROOT_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      key: database-root-password
+                      name: ${DATABASE_SERVICE_NAME}
+                - name: MYSQL_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      key: database-name
+                      name: ${DATABASE_SERVICE_NAME}
+              image: ' '
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                exec:
+                  command:
+                    - /bin/sh
+                    - -i
+                    - -c
+                    - MYSQL_PWD="$MYSQL_PASSWORD" mysqladmin -u $MYSQL_USER ping
+                initialDelaySeconds: 30
+                timeoutSeconds: 1
+              name: mariadb
+              ports:
+                - containerPort: 3306
+              readinessProbe:
+                exec:
+                  command:
+                    - /bin/sh
+                    - -i
+                    - -c
+                    - MYSQL_PWD="$MYSQL_PASSWORD" mysqladmin -u $MYSQL_USER ping
+                initialDelaySeconds: 5
+                timeoutSeconds: 1
+              resources:
+                limits:
+                  memory: ${MEMORY_LIMIT}
+              volumeMounts:
+                - mountPath: /var/lib/mysql/data
+                  name: ${DATABASE_SERVICE_NAME}-data
           volumes:
-          - emptyDir:
-              medium: ""
-            name: ${DATABASE_SERVICE_NAME}-data
+            - emptyDir:
+                medium: ""
+              name: ${DATABASE_SERVICE_NAME}-data
       triggers:
-      - imageChangeParams:
-          automatic: true
-          containerNames:
-          - mongodb
-          from:
-            kind: ImageStreamTag
-            name: mongodb:${MONGODB_VERSION}
-            namespace: ${NAMESPACE}
-          lastTriggeredImage: ""
-        type: ImageChange
-      - type: ConfigChange
-    status: {}
-  parameters:
-  - description: Maximum amount of memory the container can use.
+        - imageChangeParams:
+            automatic: true
+            containerNames:
+              - mariadb
+            from:
+              kind: ImageStreamTag
+              name: mariadb:${MARIADB_VERSION}
+              namespace: ${NAMESPACE}
+          type: ImageChange
+        - type: ConfigChange
+parameters:
+  - name: MEMORY_LIMIT
     displayName: Memory Limit
-    name: MEMORY_LIMIT
-    required: true
+    description: Maximum amount of memory the container can use.
     value: 512Mi
-  - description: The OpenShift Namespace where the ImageStream resides.
+    required: true
+  - name: NAMESPACE
     displayName: Namespace
-    name: NAMESPACE
+    description: The OpenShift Namespace where the ImageStream resides.
     value: openshift
-  - description: The OpenShift Namespace where the ImageStream resides.
+  - name: NAMESPACE2
     displayName: Namespace2
-    name: NAMESPACE2
+    description: The OpenShift Namespace where the DeploymentConfig will reside.
     value: ggm-namespace
-  - description: The OpenShift Namespace where the ImageStream resides.
+  - name: NAMESPACE3
     displayName: Namespace3
-    name: NAMESPACE3
+    description: The OpenShift Namespace where the Service will reside.
     value: myproject
-  - description: The name of the OpenShift Service exposed for the database.
+  - name: DATABASE_SERVICE_NAME
     displayName: Database Service Name
-    name: DATABASE_SERVICE_NAME
+    description: The name of the OpenShift Service exposed for the database.
+    value: mariadb
     required: true
-    value: mongodb
-  - description: Username for MongoDB user that will be used for accessing the database.
-    displayName: MongoDB Connection Username
+  - name: MYSQL_USER
+    displayName: MariaDB Connection Username
+    description: Username for MariaDB user that will be used for accessing the database.
+    generate: expression
     from: user[A-Z0-9]{3}
-    generate: expression
-    name: MONGODB_USER
     required: true
-  - description: Password for the MongoDB connection user.
-    displayName: MongoDB Connection Password
+  - name: MYSQL_PASSWORD
+    displayName: MariaDB Connection Password
+    description: Password for the MariaDB connection user.
+    generate: expression
     from: '[a-zA-Z0-9]{16}'
+    required: true
+  - name: MYSQL_ROOT_PASSWORD
+    displayName: MariaDB root Password
+    description: Password for the MariaDB root user.
     generate: expression
-    name: MONGODB_PASSWORD
+    from: '[a-zA-Z0-9]{16}'
     required: true
-  - description: Name of the MongoDB database accessed.
-    displayName: MongoDB Database Name
-    name: MONGODB_DATABASE
-    required: true
+  - name: MYSQL_DATABASE
+    displayName: MariaDB Database Name
+    description: Name of the MariaDB database accessed.
     value: sampledb
-  - description: Password for the database admin user.
-    displayName: MongoDB Admin Password
-    from: '[a-zA-Z0-9]{16}'
-    generate: expression
-    name: MONGODB_ADMIN_PASSWORD
     required: true
-  - description: Version of MongoDB image to be used (2.4, 2.6, 3.2 or latest).
-    displayName: Version of MongoDB Image
-    name: MONGODB_VERSION
+  - name: MARIADB_VERSION
+    displayName: Version of MariaDB Image
+    description: Version of MariaDB image to be used (10.3-el7, 10.3-el8, or latest).
+    value: 10.3-el8
     required: true
-    value: "3.2"
-kind: List
-metadata:
-  resourceVersion: ""
-  selfLink: ""
+labels:
+  template: mariadb-ephemeral-template
