@@ -24,7 +24,7 @@ parameters:
   displayName: Name
   name: NAME
   required: true
-  value: nodejs-mongodb-example
+  value: nodejs-mariadb-example
 - description: The exposed hostname that will route to the Node.js service, if left
     blank a value will be defaulted.
   displayName: Application Hostname
@@ -38,13 +38,13 @@ parameters:
   name: DATABASE_NAME
   required: true
   value: sampledb
-- description: Username for MongoDB user that will be used for accessing the database.
-  displayName: MongoDB Username
+- description: Username for MariaDB user that will be used for accessing the database.
+  displayName: MariaDB Username
   from: user[A-Z0-9]{3}
   generate: expression
   name: DATABASE_USER
-- description: Password for the MongoDB user.
-  displayName: MongoDB Password
+- description: Password for the MariaDB user.
+  displayName: MariaDB Password
   from: '[a-zA-Z0-9]{16}'
   generate: expression
   name: DATABASE_PASSWORD
@@ -53,20 +53,20 @@ parameters:
   name: MEMORY_LIMIT
   required: true
   value: 512Mi
-- description: Maximum amount of memory the MongoDB container can use.
-  displayName: Memory Limit (MongoDB)
-  name: MEMORY_MONGODB_LIMIT
+- description: Maximum amount of memory the MariaDB container can use.
+  displayName: Memory Limit (MariaDB)
+  name: MEMORY_MARIADB_LIMIT
   required: true
   value: 512Mi
 - displayName: Database Service Name
   name: DATABASE_SERVICE_NAME
   required: true
-  value: mongodb
+  value: mariadb
 - description: Password for the database admin user.
   displayName: Database Administrator Password
   from: '[a-zA-Z0-9]{16}'
   generate: expression
-  name: DATABASE_ADMIN_PASSWORD
+  name: DATABASE_ROOT_PASSWORD
 - description: Set this to a branch name, tag or other ref of your repository if you
     are not using the default branch.
   displayName: Git Reference
@@ -88,7 +88,7 @@ parameters:
 - description: The custom NPM mirror URL
   displayName: Custom NPM Mirror URL
   name: NPM_MIRROR
-- description: The OpenShift Namespace where the NodeJS and MongoDB ImageStreams reside.
+- description: The OpenShift Namespace where the NodeJS and MariaDB ImageStreams reside.
   displayName: Namespace
   name: NAMESPACE
   required: true
@@ -198,7 +198,7 @@ objects:
           value: ${NPM_MIRROR}
         from:
           kind: ImageStreamTag
-          name: nodejs:12
+          name: nodejs:12-ubi8
           namespace: ${NAMESPACE}
       type: Source
     triggers:
@@ -230,14 +230,14 @@ objects:
         - env:
           - name: DATABASE_SERVICE_NAME
             value: ${DATABASE_SERVICE_NAME}
-          - name: MONGODB_USER
+          - name: MYSQL_USER
             value: ${DATABASE_USER}
-          - name: MONGODB_PASSWORD
+          - name: MYSQL_PASSWORD
             value: ${DATABASE_PASSWORD}
-          - name: MONGODB_DATABASE
+          - name: MYSQL_DATABASE
             value: ${DATABASE_NAME}
-          - name: MONGODB_ADMIN_PASSWORD
-            value: ${DATABASE_ADMIN_PASSWORD}
+          - name: MYSQL_ROOT_PASSWORD
+            value: ${DATABASE_ROOT_PASSWORD}
           image: ' '
           livenessProbe:
             httpGet:
@@ -245,7 +245,7 @@ objects:
               port: 8080
             initialDelaySeconds: 30
             timeoutSeconds: 3
-          name: nodejs-mongodb-example
+          name: nodejs-mariadb-example
           ports:
           - containerPort: 8080
           readinessProbe:
@@ -261,7 +261,7 @@ objects:
     - imageChangeParams:
         automatic: false
         containerNames:
-        - nodejs-mongodb-example
+        - nodejs-mariadb-example
         from:
           kind: ImageStreamTag
           name: ${NAME}:latest
@@ -275,9 +275,9 @@ objects:
     name: ${DATABASE_SERVICE_NAME}
   spec:
     ports:
-    - name: mongodb
-      port: 27017
-      targetPort: 27017
+    - name: mariadb
+      port: 3306
+      targetPort: 3306
     selector:
       name: ${DATABASE_SERVICE_NAME}
 - apiVersion: v1
@@ -300,21 +300,21 @@ objects:
       spec:
         containers:
         - env:
-          - name: MONGODB_USER
+          - name: MYSQL_USER
             value: ${DATABASE_USER}
-          - name: MONGODB_PASSWORD
+          - name: MYSQLB_PASSWORD
             value: ${DATABASE_PASSWORD}
-          - name: MONGODB_DATABASE
+          - name: MYSQL_DATABASE
             value: ${DATABASE_NAME}
-          - name: MONGODB_ADMIN_PASSWORD
-            value: ${DATABASE_ADMIN_PASSWORD}
+          - name: MYSQL_ROOT_PASSWORD
+            value: ${DATABASE_ROOT_PASSWORD}
           image: ' '
           livenessProbe:
             initialDelaySeconds: 30
             tcpSocket:
               port: 27017
             timeoutSeconds: 1
-          name: mongodb
+          name: mariadb
           ports:
           - containerPort: 27017
           readinessProbe:
@@ -323,15 +323,14 @@ objects:
               - /bin/sh
               - -i
               - -c
-              - mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD
-                --eval="quit()"
+              - MYSQL_PWD=\"$MYSQL_PASSWORD\" mysqladmin -u $MYSQL_USER ping
             initialDelaySeconds: 3
             timeoutSeconds: 1
           resources:
             limits:
-              memory: ${MEMORY_MONGODB_LIMIT}
+              memory: ${MEMORY_MARIADB_LIMIT}
           volumeMounts:
-          - mountPath: /var/lib/mongodb/data
+          - mountPath: /var/lib/mysql/data
             name: ${DATABASE_SERVICE_NAME}-data
         volumes:
         - emptyDir:
@@ -341,10 +340,10 @@ objects:
     - imageChangeParams:
         automatic: true
         containerNames:
-        - mongodb
+        - mariadb
         from:
           kind: ImageStreamTag
-          name: mongodb:3.2
+          name: mariadb:10.3-el8
           namespace: ${NAMESPACE}
       type: ImageChange
     - type: ConfigChange

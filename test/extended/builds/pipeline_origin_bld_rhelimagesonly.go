@@ -188,9 +188,9 @@ var _ = g.Describe("[sig-devex][Feature:JenkinsRHELImagesOnly][Slow] openshift p
 					o.Expect(err).NotTo(o.HaveOccurred())
 					err = oc.Run("delete").Args("is", "--all").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					err = oc.Run("delete").Args("dc,svc", "mongodb", "--ignore-not-found").Execute()
+					err = oc.Run("delete").Args("dc,svc", "postgresql", "--ignore-not-found").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					err = oc.Run("delete").Args("dc,svc,secret,route", "nodejs-mongodb-example", "--ignore-not-found").Execute()
+					err = oc.Run("delete").Args("dc,svc,secret,route", "nodejs-postgresql-example", "--ignore-not-found").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 				})

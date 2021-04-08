@@ -308,19 +308,19 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 					oc.SetNamespace(namespace2)
 					output, err := oc.AsAdmin().Run("get").Args("all").Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(output).To(o.ContainSubstring("deploymentconfig.apps.openshift.io/mongodb"))
+					o.Expect(output).To(o.ContainSubstring("deploymentconfig.apps.openshift.io/mariadb"))
 					oc.SetNamespace(namespace3)
 					output, err = oc.AsAdmin().Run("get").Args("all").Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(output).To(o.ContainSubstring("service/mongodb"))
+					o.Expect(output).To(o.ContainSubstring("service/mariadb"))
 
 					g.By("clean up openshift resources for next potential run")
 					oc.SetNamespace(namespace)
 					err = oc.Run("delete").Args("bc", "multi-namespace-pipeline").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					err = oc.AsAdmin().Run("delete").Args("all", "-l", "template=mongodb-ephemeral-template").Execute()
+					err = oc.AsAdmin().Run("delete").Args("all", "-l", "template=mariadb-ephemeral-template").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					err = oc.Run("delete").Args("template", "mongodb-ephemeral").Execute()
+					err = oc.Run("delete").Args("template", "mariadb-ephemeral").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 				})
 			})
@@ -364,9 +364,9 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 
 					g.By("clean up openshift resources for next potential run")
 					// doing this as admin to avoid errors like this:
-					// Dec 14 13:13:02.275: INFO: Error running &{/usr/bin/oc [oc delete --config=/tmp/configfile590595709 --namespace=e2e-test-jenkins-pipeline-2z82q all -l template=mongodb-ephemeral-template] []   replicationcontroller "mongodb-1" deleted
-					// service "mongodb" deleted
-					// deploymentconfig.apps.openshift.io "mongodb" deleted
+					// Dec 14 13:13:02.275: INFO: Error running &{/usr/bin/oc [oc delete --config=/tmp/configfile590595709 --namespace=e2e-test-jenkins-pipeline-2z82q all -l template=mariadb-ephemeral-template] []   replicationcontroller "mariadb-1" deleted
+					// service "mariadb" deleted
+					// deploymentconfig.apps.openshift.io "mariadb" deleted
 					// Error from server (Forbidden): clusterserviceversions.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list clusterserviceversions.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
 					// Error from server (Forbidden): catalogsources.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list catalogsources.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
 					// Error from server (Forbidden): installplans.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list installplans.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
