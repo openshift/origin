@@ -21,7 +21,7 @@ spec:
         - containerPort: 8080
           protocol: TCP
       - imagePullPolicy: IfNotPresent
-        name: mongodb
+        name: postgresql
         command:
         - /bin/sleep
         - "100"
@@ -43,9 +43,9 @@ spec:
   - imageChangeParams:
       automatic: true
       containerNames:
-      - mongodb
+      - postgresql
       from:
         kind: ImageStreamTag
-        name: mongodb:latest
+        name: postgresql:latest
         namespace: openshift
     type: ImageChange
