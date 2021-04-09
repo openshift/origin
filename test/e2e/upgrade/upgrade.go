@@ -307,6 +307,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 				return err
 			}
 			updated = cv
+			var observedGeneration int64
 
 			// wait until the cluster acknowledges the update
 			if err := wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
@@ -314,10 +315,13 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 				if err != nil || cv == nil {
 					return false, err
 				}
+				observedGeneration = cv.Status.ObservedGeneration
 				return cv.Status.ObservedGeneration >= updated.Generation, nil
 
 			}); err != nil {
-				return fmt.Errorf("timed out waiting for cluster to acknowledge upgrade: %v", err)
+				return fmt.Errorf(
+					"Timed out waiting for cluster to acknowledge upgrade: %v; observedGeneration: %d; updated.Generation: %d",
+					err, observedGeneration, updated.Generation)
 			}
 			return nil
 		},
