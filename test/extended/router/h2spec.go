@@ -90,7 +90,8 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			for i := 0; i < len(routeTypeTests); i++ {
 				urlTester := url.NewTester(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name).WithErrorPassthrough(true)
 				defer urlTester.Close()
-				hostname := getHostnameForRoute(oc, fmt.Sprintf("h2spec-haproxy-%s", routeTypeTests[i].routeType))
+				hostname, err := getHostnameForRoute(oc, fmt.Sprintf("h2spec-haproxy-%s", routeTypeTests[i].routeType))
+				o.Expect(err).NotTo(o.HaveOccurred())
 				urlTester.Within(30*time.Second, url.Expect("GET", "https://"+hostname).Through(hostname).SkipTLSVerification().HasStatusCode(200))
 				routeTypeTests[i].hostname = hostname // now valid for the remaining tests
 			}
@@ -248,10 +249,10 @@ func runConformanceTestsAndLogAggregateFailures(oc *exutil.CLI, tests []h2specRo
 	}
 }
 
-func getHostnameForRoute(oc *exutil.CLI, routeName string) string {
+func getHostnameForRoute(oc *exutil.CLI, routeName string) (string, error) {
 	var hostname string
 	ns := oc.KubeFramework().Namespace.Name
-	err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
+	if err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
 		route, err := oc.RouteClient().RouteV1().Routes(ns).Get(context.Background(), routeName, metav1.GetOptions{})
 		if err != nil {
 			e2e.Logf("Error getting hostname for route %q: %v", routeName, err)
@@ -262,9 +263,10 @@ func getHostnameForRoute(oc *exutil.CLI, routeName string) string {
 		}
 		hostname = route.Status.Ingress[0].Host
 		return true, nil
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	return hostname
+	}); err != nil {
+		return "", err
+	}
+	return hostname, nil
 }
 
 func h2specCommand(timeout int, hostname, results string) string {
