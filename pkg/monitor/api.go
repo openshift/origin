@@ -80,9 +80,9 @@ func Start(ctx context.Context) (*Monitor, error) {
 		intervalcreation.IntervalsFromEvents_OperatorAvailable,
 		intervalcreation.IntervalsFromEvents_OperatorProgressing,
 		intervalcreation.IntervalsFromEvents_OperatorDegraded,
+		intervalcreation.IntervalsFromEvents_E2ETests,
+		intervalcreation.IntervalsFromEvents_NodeChanges,
 	)
-
-	m.intervalCreationFns = append(m.intervalCreationFns, intervalcreation.IntervalsFromEvents_E2ETests)
 
 	m.StartSampling(ctx)
 	return m, nil

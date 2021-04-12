@@ -40,6 +40,30 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 			}
 			return conditions
 		},
+		func(node, oldNode *corev1.Node) []monitorapi.Condition {
+			var conditions []monitorapi.Condition
+
+			oldConfig := oldNode.Annotations["machineconfiguration.openshift.io/currentConfig"]
+			newConfig := node.Annotations["machineconfiguration.openshift.io/currentConfig"]
+			oldDesired := oldNode.Annotations["machineconfiguration.openshift.io/desiredConfig"]
+			newDesired := node.Annotations["machineconfiguration.openshift.io/desiredConfig"]
+
+			if newDesired != oldDesired {
+				conditions = append(conditions, monitorapi.Condition{
+					Level:   monitorapi.Info,
+					Locator: monitorapi.NodeLocator(node.Name),
+					Message: fmt.Sprintf("reason/MachineConfigChange config/%s config change requested", newDesired),
+				})
+			}
+			if oldConfig != newConfig && newDesired == newConfig {
+				conditions = append(conditions, monitorapi.Condition{
+					Level:   monitorapi.Info,
+					Locator: monitorapi.NodeLocator(node.Name),
+					Message: fmt.Sprintf("reason/MachineConfigReached config/%s reached desired config", newDesired),
+				})
+			}
+			return conditions
+		},
 	}
 
 	nodeInformer := informercorev1.NewNodeInformer(client, time.Hour, nil)

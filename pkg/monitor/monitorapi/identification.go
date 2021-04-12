@@ -41,8 +41,8 @@ func NodeFromLocator(locator string) (string, bool) {
 	if !strings.HasPrefix(locator, "node/") {
 		return "", false
 	}
-	parts := strings.SplitN(locator, "/", 2)
-	return parts[1], true
+	parts := strings.SplitN(strings.TrimPrefix(locator, "node/"), " ", 2)
+	return parts[0], true
 }
 
 func OperatorLocator(testName string) string {
@@ -58,6 +58,6 @@ func OperatorFromLocator(locator string) (string, bool) {
 	if !strings.HasPrefix(locator, "clusteroperator/") {
 		return "", false
 	}
-	parts := strings.SplitN(locator, "/", 2)
-	return parts[1], true
+	parts := strings.SplitN(strings.TrimPrefix(locator, "clusteroperator/"), " ", 2)
+	return parts[0], true
 }

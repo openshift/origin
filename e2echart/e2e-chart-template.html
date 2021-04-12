@@ -52,60 +52,6 @@
 </script>
 
 <script>
-    var loc = window.location.href;
-
-    const el = document.querySelector('#chart');
-
-    var timelineGroups = []
-    timelineGroups.push({group: "operator-unavailable", data: []})
-    createTimelineData("OperatorUnavailable", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorAvailable)
-
-    timelineGroups.push({group: "operator-degraded", data: []})
-    createTimelineData("OperatorDegraded", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorDegraded)
-
-    timelineGroups.push({group: "operator-progressing", data: []})
-    createTimelineData("OperatorProgressing", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorProgressing)
-
-    timelineGroups.push({group: "apiserver-availability", data: []})
-    createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAPIServerConnectivity)
-
-    timelineGroups.push({group: "e2e-test-failed", data: []})
-    createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFailed)
-
-    timelineGroups.push({group: "e2e-test-flaked", data: []})
-    createTimelineData("Flaked", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFlaked)
-
-    timelineGroups.push({group: "e2e-test-passed", data: []})
-    createTimelineData("Passed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EPassed)
-
-    var segmentFunc = function (segment) {
-        // for (var i in data) {
-        //     if (data[i].group == segment.group) {
-        //         var groupdata = data[i].data
-        //         for (var j in groupdata) {
-        //             if (groupdata[j].label == segment.label) {
-        //                 labeldata = groupdata[j].data
-        //                 for (var k in labeldata) {
-        //                     var startDate = new Date(labeldata[k].timeRange[0])
-        //                     var endDate = new Date(labeldata[k].timeRange[1])
-        //                     if (startDate.getTime() == segment.timeRange[0].getTime() &&
-        //                         endDate.getTime() == segment.timeRange[1].getTime()) {
-        //                         $('#myModalContent').text(labeldata[k].extended)
-        //                         $('#myModal').modal()
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-    }
-    const myChart = TimelinesChart();
-    var ordinalScale = d3.scaleOrdinal()
-        .domain(['OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', 'Passed', 'Skipped', 'Flaked', 'Failed', 'Degraded', 'Upgradeable', 'False', 'Unknown'])
-        .range(['#d0312d', '#ffa500', '#fada5e', '#3cb043', '#ceba76', '#ffa500', '#d0312d', '#b65049', '#32b8b6', '#ffffff', '#bbbbbb']);
-    myChart.data(timelineGroups).zQualitative(true).enableAnimations(false).leftMargin(320).rightMargin(550).maxLineHeight(20).maxHeight(10000).zColorScale(ordinalScale).onSegmentClick(segmentFunc)
-    (el);
-
     function isOperatorAvailable(eventInterval) {
         if (eventInterval.locator.startsWith("clusteroperator/") && eventInterval.message.includes("condition/Available") && eventInterval.message.includes("status/False")) {
             return true
@@ -161,6 +107,25 @@
         return false
     }
 
+    function isNodeState(eventInterval) {
+        if (eventInterval.locator.startsWith("node/")) {
+            return (eventInterval.message.startsWith("reason/NodeUpdate ") || eventInterval.message == "node is not ready")
+        }
+        return false
+    }
+
+    const rePhase = new RegExp("(^| )phase/([^ ]+)")
+    function nodeStateValue(item) {
+        if (item.message == "node is not ready") {
+            return [item.locator, " (not ready)", "NodeNotReady"]
+        }
+        let m = item.message.match(rePhase);
+        if (m && m[2] != "Update") {
+            return [item.locator, " (update phases)", m[2]];
+        }
+        return [item.locator, " (updates)", "Update"];
+    }
+
     function createTimelineData(timelineVal, timelineData, rawEventIntervals, preconditionFunc) {
         const data = {}
         rawEventIntervals.items.forEach((item) => {
@@ -169,19 +134,91 @@
             }
             var startDate = new Date(item.from)
             var endDate = new Date(item.to)
-            if (!data[item.locator]) {
-                data[item.locator] = []
+            let label = item.locator
+            let sub = ""
+            let val = timelineVal
+            if (typeof val === "function") {
+                [label, sub, val] = timelineVal(item)
             }
-            data[item.locator].push({
+            let section = data[label]
+            if (!section) {
+                section = {};
+                data[label] = section
+            }
+            let ranges = section[sub]
+            if (!ranges) {
+                ranges = [];
+                section[sub] = ranges
+            }
+            ranges.push({
                 timeRange: [startDate, endDate],
-                val: timelineVal
+                val: val,
             });
         });
         for (const label in data) {
-            timelineData.push({label, data: data[label]})
+            const section = data[label]
+            for (const sub in section) {
+                timelineData.push({label: label+sub, data: section[sub]})
+            }
         }
     }
 
+    var loc = window.location.href;
+
+    var timelineGroups = []
+    timelineGroups.push({group: "operator-unavailable", data: []})
+    createTimelineData("OperatorUnavailable", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorAvailable)
+
+    timelineGroups.push({group: "operator-degraded", data: []})
+    createTimelineData("OperatorDegraded", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorDegraded)
+
+    timelineGroups.push({group: "operator-progressing", data: []})
+    createTimelineData("OperatorProgressing", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorProgressing)
+
+    timelineGroups.push({group: "node-state", data: []})
+    createTimelineData(nodeStateValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isNodeState)
+
+    timelineGroups.push({group: "apiserver-availability", data: []})
+    createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAPIServerConnectivity)
+
+    timelineGroups.push({group: "e2e-test-failed", data: []})
+    createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFailed)
+
+    timelineGroups.push({group: "e2e-test-flaked", data: []})
+    createTimelineData("Flaked", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFlaked)
+
+    timelineGroups.push({group: "e2e-test-passed", data: []})
+    createTimelineData("Passed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EPassed)
+
+    var segmentFunc = function (segment) {
+        // for (var i in data) {
+        //     if (data[i].group == segment.group) {
+        //         var groupdata = data[i].data
+        //         for (var j in groupdata) {
+        //             if (groupdata[j].label == segment.label) {
+        //                 labeldata = groupdata[j].data
+        //                 for (var k in labeldata) {
+        //                     var startDate = new Date(labeldata[k].timeRange[0])
+        //                     var endDate = new Date(labeldata[k].timeRange[1])
+        //                     if (startDate.getTime() == segment.timeRange[0].getTime() &&
+        //                         endDate.getTime() == segment.timeRange[1].getTime()) {
+        //                         $('#myModalContent').text(labeldata[k].extended)
+        //                         $('#myModal').modal()
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+    }
+
+    const el = document.querySelector('#chart');
+    const myChart = TimelinesChart();
+    var ordinalScale = d3.scaleOrdinal()
+        .domain(['OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', 'Update', 'Drain', 'Reboot', 'OperatingSystemUpdate', 'NodeNotReady', 'Passed', 'Skipped', 'Flaked', 'Failed', 'Degraded', 'Upgradeable', 'False', 'Unknown'])
+        .range(['#d0312d', '#ffa500', '#fada5e', '#1e7bd9', '#4294e6', '#6aaef2', '#96cbff', '#fada5e', '#3cb043', '#ceba76', '#ffa500', '#d0312d', '#b65049', '#32b8b6', '#ffffff', '#bbbbbb']);
+    myChart.data(timelineGroups).zQualitative(true).enableAnimations(false).leftMargin(320).rightMargin(550).maxLineHeight(20).maxHeight(10000).zColorScale(ordinalScale).onSegmentClick(segmentFunc)
+    (el);
 </script>
 </body>
 </html>
