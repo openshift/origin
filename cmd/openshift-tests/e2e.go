@@ -347,13 +347,18 @@ var staticSuites = testSuites{
 		Set of highly reliable tests.
 		`),
 			Matches: func(name string) bool {
+
 				_, exists := minimal[name]
-				return exists && !isDisabled(name)
+				if !exists {
+					return false
+				}
+				return !isDisabled(name) && strings.Contains(name, "[Suite:openshift/conformance")
 			},
 			Parallelism:          20,
 			MaximumAllowedFlakes: 15,
 			SyntheticEventTests:  ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
 		},
+		PreSuite: suiteWithKubeTestInitializationPreSuite,
 	},
 	{
 		TestSuite: ginkgo.TestSuite{
