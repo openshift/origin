@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	watchtools "k8s.io/client-go/tools/watch"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	imageutils "k8s.io/kubernetes/test/utils/image"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -41,7 +42,7 @@ func createDNSPod(namespace, probeCmd string) *kapiv1.Pod {
 			Containers: []kapiv1.Container{
 				{
 					Name:    "querier",
-					Image:   "gcr.io/google_containers/dnsutils:e2e",
+					Image:   imageutils.GetE2EImage(imageutils.JessieDnsutils),
 					Command: []string{"sh", "-c", probeCmd},
 				},
 			},
