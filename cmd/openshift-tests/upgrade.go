@@ -77,6 +77,8 @@ func upgradeTestPreTest() error {
 	parseUpgradeOptions(opt.TestOptions)
 	upgrade.SetToImage(opt.ToImage)
 	switch opt.Suite {
+	case "none":
+		return filterUpgrade(upgrade.NoTests(), func(string) bool { return true })
 	case "platform":
 		return filterUpgrade(upgrade.AllTests(), func(name string) bool {
 			return name == controlplane.NewKubeAvailableWithNewConnectionsTest().Name() || name == controlplane.NewKubeAvailableWithNewConnectionsTest().Name()
