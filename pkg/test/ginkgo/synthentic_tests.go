@@ -3,12 +3,9 @@ package ginkgo
 import (
 	"bytes"
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
-	"github.com/openshift/origin/pkg/monitor"
 )
 
 // JUnitsForEvents returns a set of JUnit results for the provided events encountered
@@ -43,42 +40,8 @@ func (a JUnitsForAllEvents) JUnitsForEvents(events monitorapi.EventIntervals, du
 	return all
 }
 
-func createEventsForTests(tests []*testCase) []*monitorapi.EventInterval {
-	eventsForTests := []*monitorapi.EventInterval{}
-	for _, test := range tests {
-		if !test.failed {
-			continue
-		}
-		eventsForTests = append(eventsForTests,
-			&monitorapi.EventInterval{
-				From: test.start,
-				To:   test.end,
-				Condition: &monitorapi.Condition{
-					Level:   monitorapi.Info,
-					Locator: fmt.Sprintf("test=%q", test.name),
-					Message: "running",
-				},
-			},
-			&monitorapi.EventInterval{
-				From: test.end,
-				To:   test.end,
-				Condition: &monitorapi.Condition{
-					Level:   monitorapi.Info,
-					Locator: fmt.Sprintf("test=%q", test.name),
-					Message: "failed",
-				},
-			},
-		)
-	}
-	return eventsForTests
-}
-
-func createSyntheticTestsFromMonitor(m *monitor.Monitor, eventsForTests []*monitorapi.EventInterval, monitorDuration time.Duration) ([]*JUnitTestCase, *bytes.Buffer, *bytes.Buffer) {
+func createSyntheticTestsFromMonitor(events monitorapi.EventIntervals, monitorDuration time.Duration) ([]*JUnitTestCase, *bytes.Buffer, *bytes.Buffer) {
 	var syntheticTestResults []*JUnitTestCase
-
-	events := m.EventIntervals(time.Time{}, time.Time{})
-	events = append(events, eventsForTests...)
-	sort.Sort(events)
 
 	buf, errBuf := &bytes.Buffer{}, &bytes.Buffer{}
 	fmt.Fprintf(buf, "\nTimeline:\n\n")
