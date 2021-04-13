@@ -7,6 +7,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 func init() {
@@ -149,6 +151,12 @@ func OriginalImages() map[string]int {
 	}
 	return images
 }
+
+// Exceptions is a list of images we don't mirror temporarily due to various
+// problems. This list should ideally be empty.
+var Exceptions = sets.NewString(
+	"mcr.microsoft.com/windows:1809", // https://issues.redhat.com/browse/PROJQUAY-1874
+)
 
 // Images returns a map of all images known to the test package.
 func Images() map[string]struct{} {
