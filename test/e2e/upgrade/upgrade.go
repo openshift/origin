@@ -317,7 +317,6 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			desired = configv1.Update{
 				Version: version.Version.String(),
 				Image:   version.NodeImage,
-				Force:   true,
 			}
 			monitor.oldVersion = original.Status.Desired.Version
 
@@ -378,7 +377,6 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 					framework.Logf("Instructing the cluster to return to %s / %s", original.Status.Desired.Version, original.Status.Desired.Image)
 					desired = configv1.Update{
 						Image: original.Status.Desired.Image,
-						Force: true,
 					}
 					if err := retry.RetryOnConflict(wait.Backoff{Steps: 10, Duration: time.Second}, func() error {
 						cv, err := c.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
