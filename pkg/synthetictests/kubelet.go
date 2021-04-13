@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-func testKubeletToAPIServerGracefulTermination(events []*monitorapi.EventInterval) []*ginkgo.JUnitTestCase {
+func testKubeletToAPIServerGracefulTermination(events monitorapi.EventIntervals) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-node] kubelet terminates kube-apiserver gracefully"
 
 	var failures []string
@@ -44,7 +44,7 @@ func testKubeletToAPIServerGracefulTermination(events []*monitorapi.EventInterva
 	return tests
 }
 
-func testKubeAPIServerGracefulTermination(events []*monitorapi.EventInterval) []*ginkgo.JUnitTestCase {
+func testKubeAPIServerGracefulTermination(events monitorapi.EventIntervals) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-api-machinery] kube-apiserver terminates within graceful termination period"
 
 	var failures []string
@@ -72,7 +72,7 @@ func testKubeAPIServerGracefulTermination(events []*monitorapi.EventInterval) []
 	return tests
 }
 
-func testPodTransitions(events []*monitorapi.EventInterval) []*ginkgo.JUnitTestCase {
+func testPodTransitions(events monitorapi.EventIntervals) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-node] pods should never transition back to pending"
 	success := &ginkgo.JUnitTestCase{Name: testName}
 
@@ -105,7 +105,7 @@ func formatTimes(times []time.Time) []string {
 	return s
 }
 
-func testNodeUpgradeTransitions(events []*monitorapi.EventInterval) []*ginkgo.JUnitTestCase {
+func testNodeUpgradeTransitions(events monitorapi.EventIntervals) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-node] nodes should not go unready after being upgraded and go unready only once"
 
 	var buf bytes.Buffer
@@ -206,7 +206,7 @@ func testNodeUpgradeTransitions(events []*monitorapi.EventInterval) []*ginkgo.JU
 	return testCases
 }
 
-func testSystemDTimeout(events []*monitorapi.EventInterval) []*ginkgo.JUnitTestCase {
+func testSystemDTimeout(events monitorapi.EventIntervals) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-node] pods should not fail on systemd timeouts"
 	success := &ginkgo.JUnitTestCase{Name: testName}
 

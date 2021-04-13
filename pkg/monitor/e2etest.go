@@ -7,8 +7,8 @@ import (
 )
 
 // E2ETestEventIntervals returns only EventIntervals for e2e tests
-func E2ETestEventIntervals(events []*monitorapi.EventInterval) []*monitorapi.EventInterval {
-	e2eEventIntervals := []*monitorapi.EventInterval{}
+func E2ETestEventIntervals(events monitorapi.EventIntervals) monitorapi.EventIntervals {
+	e2eEventIntervals := monitorapi.EventIntervals{}
 	for i := range events {
 		event := events[i]
 		if event.From == event.To {
@@ -23,8 +23,8 @@ func E2ETestEventIntervals(events []*monitorapi.EventInterval) []*monitorapi.Eve
 }
 
 // FindOverlap finds intervals that overlap with the time between start and end.
-func FindOverlap(intervals []*monitorapi.EventInterval, start, end time.Time) []*monitorapi.EventInterval {
-	overlappingIntervals := []*monitorapi.EventInterval{}
+func FindOverlap(intervals monitorapi.EventIntervals, start, end time.Time) monitorapi.EventIntervals {
+	overlappingIntervals := monitorapi.EventIntervals{}
 	for i := range intervals {
 		interval := intervals[i]
 		switch {

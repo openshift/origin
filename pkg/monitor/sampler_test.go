@@ -57,18 +57,17 @@ func TestStartSampling(t *testing.T) {
 	events := m.EventIntervals(time.Time{}, time.Time{})
 	for _, interval := range events {
 		i := interval.To.Sub(interval.From)
-		describe = append(describe, fmt.Sprintf("%v %s", *interval.Condition, i))
-		log = append(log, fmt.Sprintf("%v", *interval.Condition))
+		describe = append(describe, fmt.Sprintf("%v %s", interval.Condition, i))
+		log = append(log, fmt.Sprintf("%v", interval.Condition))
 	}
 
-	zero := time.Time{}.String()
 	expected := []string{
-		fmt.Sprintf("{2 tester dying %s}", zero),
-		fmt.Sprintf("{2 tester down %s}", zero),
-		fmt.Sprintf("{0 tester recovering %s}", zero),
-		fmt.Sprintf("{2 tester dying 2 %s}", zero),
-		fmt.Sprintf("{2 tester down %s}", zero),
-		fmt.Sprintf("{0 tester recovering 2 %s}", zero),
+		fmt.Sprintf("{Error tester dying}"),
+		fmt.Sprintf("{Error tester down}"),
+		fmt.Sprintf("{Info tester recovering}"),
+		fmt.Sprintf("{Error tester dying 2}"),
+		fmt.Sprintf("{Error tester down}"),
+		fmt.Sprintf("{Info tester recovering 2}"),
 	}
 	if !reflect.DeepEqual(log, expected) {
 		t.Fatalf("%s", diff.ObjectReflectDiff(log, expected))

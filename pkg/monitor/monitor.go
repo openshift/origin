@@ -154,8 +154,8 @@ func (m *Monitor) EventIntervals(from, to time.Time) monitorapi.EventIntervals {
 			from = to
 		}
 
-		condition := &events[i].Condition
-		intervals = append(intervals, &monitorapi.EventInterval{
+		condition := events[i].Condition
+		intervals = append(intervals, monitorapi.EventInterval{
 			From:      from,
 			To:        to,
 			Condition: condition,
@@ -204,13 +204,12 @@ func filterSamples(samples []*sample, from, to time.Time) monitorapi.EventInterv
 				next[*condition] = interval
 				continue
 			}
-			interval = &monitorapi.EventInterval{
-				Condition: condition,
+			intervals = append(intervals, monitorapi.EventInterval{
+				Condition: *condition,
 				From:      sample.at,
 				To:        sample.at,
-			}
-			next[*condition] = interval
-			intervals = append(intervals, interval)
+			})
+			next[*condition] = &intervals[len(intervals)-1]
 		}
 		for k := range last {
 			delete(last, k)

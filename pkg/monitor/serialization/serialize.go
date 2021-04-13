@@ -27,7 +27,7 @@ type EventIntervalList struct {
 	Items []EventInterval `json:"items"`
 }
 
-func EventsToFile(filename string, events []*monitorapi.EventInterval) error {
+func EventsToFile(filename string, events monitorapi.EventIntervals) error {
 	json, err := EventsToJSON(events)
 	if err != nil {
 		return err
@@ -35,7 +35,36 @@ func EventsToFile(filename string, events []*monitorapi.EventInterval) error {
 	return ioutil.WriteFile(filename, json, 0644)
 }
 
-func EventsToJSON(events []*monitorapi.EventInterval) ([]byte, error) {
+func EventsFromFile(filename string) (monitorapi.EventIntervals, error) {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	var list EventIntervalList
+	if err := json.Unmarshal(data, &list); err != nil {
+		return nil, err
+	}
+	events := make(monitorapi.EventIntervals, len(list.Items))
+	for _, interval := range list.Items {
+		level, err := monitorapi.EventLevelFromString(interval.Level)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, monitorapi.EventInterval{
+			Condition: monitorapi.Condition{
+				Level:   level,
+				Locator: interval.Locator,
+				Message: interval.Message,
+			},
+
+			From: interval.From.Time,
+			To:   interval.To.Time,
+		})
+	}
+	return events, nil
+}
+
+func EventsToJSON(events monitorapi.EventIntervals) ([]byte, error) {
 	outputEvents := []EventInterval{}
 	for _, curr := range events {
 		outputEvents = append(outputEvents, monitorEventIntervalToEventInterval(curr))
@@ -46,7 +75,7 @@ func EventsToJSON(events []*monitorapi.EventInterval) ([]byte, error) {
 	return json.MarshalIndent(list, "", "    ")
 }
 
-func EventsIntervalsToFile(filename string, events []*monitorapi.EventInterval) error {
+func EventsIntervalsToFile(filename string, events monitorapi.EventIntervals) error {
 	json, err := EventsIntervalsToJSON(events)
 	if err != nil {
 		return err
@@ -54,7 +83,7 @@ func EventsIntervalsToFile(filename string, events []*monitorapi.EventInterval) 
 	return ioutil.WriteFile(filename, json, 0644)
 }
 
-func EventsIntervalsToJSON(events []*monitorapi.EventInterval) ([]byte, error) {
+func EventsIntervalsToJSON(events monitorapi.EventIntervals) ([]byte, error) {
 	outputEvents := []EventInterval{}
 	for _, curr := range events {
 		if curr.From == curr.To {
@@ -68,7 +97,7 @@ func EventsIntervalsToJSON(events []*monitorapi.EventInterval) ([]byte, error) {
 	return json.MarshalIndent(list, "", "    ")
 }
 
-func monitorEventIntervalToEventInterval(interval *monitorapi.EventInterval) EventInterval {
+func monitorEventIntervalToEventInterval(interval monitorapi.EventInterval) EventInterval {
 	ret := EventInterval{
 		Level:   fmt.Sprintf("%v", interval.Level),
 		Locator: interval.Locator,

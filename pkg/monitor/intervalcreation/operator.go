@@ -71,8 +71,8 @@ func intervalsFromEvents_OperatorStatus(events []*monitorapi.Event, beginning, e
 				lastStatus = "True"
 			}
 		}
-		ret = append(ret, &monitorapi.EventInterval{
-			Condition: &monitorapi.Condition{
+		ret = append(ret, monitorapi.EventInterval{
+			Condition: monitorapi.Condition{
 				Level:   level,
 				Locator: event.Locator,
 				Message: fmt.Sprintf("condition/%s status/%s reason/%s", conditionType, lastStatus, lastMessage),
@@ -83,8 +83,8 @@ func intervalsFromEvents_OperatorStatus(events []*monitorapi.Event, beginning, e
 	}
 
 	for operatorName, lastCondition := range operatorToInterestingBadCondition {
-		ret = append(ret, &monitorapi.EventInterval{
-			Condition: &monitorapi.Condition{
+		ret = append(ret, monitorapi.EventInterval{
+			Condition: monitorapi.Condition{
 				Level:   level,
 				Locator: monitorapi.OperatorLocator(operatorName),
 				Message: fmt.Sprintf("condition/%s status/%s reason/%s", conditionType, lastCondition.Status, lastCondition.Message),

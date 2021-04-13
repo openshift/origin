@@ -24,8 +24,8 @@ func IntervalsFromEvents_NodeChanges(events []*monitorapi.Event, beginning, end 
 		if !ok {
 			return
 		}
-		intervals = append(intervals, &monitorapi.EventInterval{
-			Condition: &monitorapi.Condition{
+		intervals = append(intervals, monitorapi.EventInterval{
+			Condition: monitorapi.Condition{
 				Level:   level,
 				Locator: locator,
 				Message: message,

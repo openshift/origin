@@ -50,8 +50,8 @@ func IntervalsFromEvents_E2ETests(events []*monitorapi.Event, beginning, end tim
 		}
 
 		delete(testNameToLastStart, testName)
-		ret = append(ret, &monitorapi.EventInterval{
-			Condition: &monitorapi.Condition{
+		ret = append(ret, monitorapi.EventInterval{
+			Condition: monitorapi.Condition{
 				Level:   level,
 				Locator: event.Locator,
 				Message: fmt.Sprintf("e2e test finished As %q", endState),
@@ -62,8 +62,8 @@ func IntervalsFromEvents_E2ETests(events []*monitorapi.Event, beginning, end tim
 	}
 
 	for testName, testStart := range testNameToLastStart {
-		ret = append(ret, &monitorapi.EventInterval{
-			Condition: &monitorapi.Condition{
+		ret = append(ret, monitorapi.EventInterval{
+			Condition: monitorapi.Condition{
 				Level:   monitorapi.Warning,
 				Locator: monitorapi.OperatorLocator(testName),
 				Message: fmt.Sprintf("e2e test did not finish %q", "DidNotFinish"),

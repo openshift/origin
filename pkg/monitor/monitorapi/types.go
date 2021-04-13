@@ -29,6 +29,20 @@ func (e EventLevel) String() string {
 	}
 }
 
+func EventLevelFromString(s string) (EventLevel, error) {
+	switch s {
+	case "Info":
+		return Info, nil
+	case "Warning":
+		return Warning, nil
+	case "Error":
+		return Error, nil
+	default:
+		return Error, fmt.Errorf("did not define event level string for %q", s)
+	}
+
+}
+
 type Event struct {
 	Condition
 
@@ -47,13 +61,13 @@ type Condition struct {
 }
 
 type EventInterval struct {
-	*Condition
+	Condition
 
 	From time.Time
 	To   time.Time
 }
 
-func (i *EventInterval) String() string {
+func (i EventInterval) String() string {
 	if i.From.Equal(i.To) {
 		return fmt.Sprintf("%s.%03d %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), i.Level.String()[:1], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
 	}
@@ -64,7 +78,7 @@ func (i *EventInterval) String() string {
 	return fmt.Sprintf("%s.%03d - %-5s %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(duration/time.Second))+"s", i.Level.String()[:1], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
 }
 
-type EventIntervals []*EventInterval
+type EventIntervals []EventInterval
 
 var _ sort.Interface = EventIntervals{}
 
