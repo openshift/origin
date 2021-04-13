@@ -200,21 +200,30 @@ func condition(cv objx.Map, condition string) objx.Map {
 // It also returns a slice of types for which a condition entry was
 // expected but not supplied on the ClusterOperator.
 func surprisingConditions(co objx.Map) ([]configv1.ClusterOperatorStatusCondition, []configv1.ClusterStatusConditionType) {
+	name := co.Get("metadata.name").String()
 	var badConditions []configv1.ClusterOperatorStatusCondition
 	var missingTypes []configv1.ClusterStatusConditionType
 	for _, conditionType := range []configv1.ClusterStatusConditionType{
 		configv1.OperatorAvailable,
 		configv1.OperatorDegraded,
+		configv1.OperatorUpgradeable,
 	} {
 		cond := condition(co, string(conditionType))
 		if len(cond) == 0 {
-			missingTypes = append(missingTypes, conditionType)
+			if conditionType != configv1.OperatorUpgradeable {
+				missingTypes = append(missingTypes, conditionType)
+			}
 		} else {
 			expected := configv1.ConditionFalse
-			if conditionType == configv1.OperatorAvailable {
+			if conditionType == configv1.OperatorAvailable || conditionType == configv1.OperatorUpgradeable {
 				expected = configv1.ConditionTrue
 			}
 			if cond.Get("status").String() != string(expected) {
+				if conditionType == configv1.OperatorUpgradeable && (name == "kube-storage-version-migrator" || // https://bugzilla.redhat.com/show_bug.cgi?id=1928141
+					name == "openshift-controller-manager" || // https://bugzilla.redhat.com/show_bug.cgi?id=1948011
+					name == "service-ca") { // https://bugzilla.redhat.com/show_bug.cgi?id=1948012
+					continue
+				}
 				badConditions = append(badConditions, configv1.ClusterOperatorStatusCondition{
 					Type:    conditionType,
 					Status:  configv1.ConditionStatus(cond.Get("status").String()),
