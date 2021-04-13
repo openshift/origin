@@ -1,0 +1,25 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+parameters:
+- name: DOMAIN
+- name: TYPE
+objects:
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    labels:
+      app: h2spec-haproxy
+      type: ${TYPE}
+    name: h2spec-passthrough
+  spec:
+    host: h2spec-passthrough.${DOMAIN}
+    port:
+      targetPort: 8443
+    tls:
+      termination: passthrough
+      insecureEdgeTerminationPolicy: Redirect
+    to:
+      kind: Service
+      name: h2spec-haproxy
+      weight: 100
+    wildcardPolicy: None
