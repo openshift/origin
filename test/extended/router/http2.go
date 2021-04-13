@@ -90,8 +90,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 		g.It("should pass the http2 tests", func() {
 			infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster-wide infrastructure")
-			switch infra.Status.PlatformStatus.Type {
-			case configv1.OvirtPlatformType, configv1.KubevirtPlatformType, configv1.LibvirtPlatformType, configv1.VSpherePlatformType, configv1.BareMetalPlatformType, configv1.NonePlatformType:
+			if !platformHasHTTP2LoadBalancerService(infra.Status.PlatformStatus.Type) {
 				g.Skip("Skip on platforms where the default router is not exposed by a load balancer service.")
 			}
 
@@ -377,4 +376,16 @@ func resolveHostAsAddress(oc *exutil.CLI, interval, timeout time.Duration, host,
 	}
 
 	return result, nil
+}
+
+// platformHasHTTP2LoadBalancerService returns true where the default
+// router is exposed by a load balancer service and can support http/2
+// clients.
+func platformHasHTTP2LoadBalancerService(platformType configv1.PlatformType) bool {
+	switch platformType {
+	case configv1.AWSPlatformType, configv1.AzurePlatformType, configv1.GCPPlatformType:
+		return true
+	default:
+		return false
+	}
 }

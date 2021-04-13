@@ -13,7 +13,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	configv1 "github.com/openshift/api/config/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/origin/test/extended/router/h2spec"
 	"github.com/openshift/origin/test/extended/router/shard"
@@ -64,8 +63,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 		g.It("should pass the h2spec conformance tests", func() {
 			infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster-wide infrastructure")
-			switch infra.Status.PlatformStatus.Type {
-			case configv1.OvirtPlatformType, configv1.KubevirtPlatformType, configv1.LibvirtPlatformType, configv1.VSpherePlatformType, configv1.BareMetalPlatformType, configv1.NonePlatformType:
+			if !platformHasHTTP2LoadBalancerService(infra.Status.PlatformStatus.Type) {
 				g.Skip("Skip on platforms where the default router is not exposed by a load balancer service.")
 			}
 
