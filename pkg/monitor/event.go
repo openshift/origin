@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
@@ -25,6 +26,11 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 				return
 			default:
 			}
+
+			// filter out events written "now" but with significantly older start times (events
+			// created in test jobs are the most common)
+			significantlyBeforeNow := time.Now().Add(-15 * time.Minute)
+
 			events, err := client.CoreV1().Events("").List(ctx, metav1.ListOptions{Limit: 1})
 			if err != nil {
 				continue
@@ -54,6 +60,18 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 							if !ok {
 								continue
 							}
+
+							t := obj.LastTimestamp.Time
+							if t.IsZero() {
+								t = obj.EventTime.Time
+							}
+							if t.IsZero() {
+								t = obj.CreationTimestamp.Time
+							}
+							if t.Before(significantlyBeforeNow) {
+								break
+							}
+
 							message := obj.Message
 							if obj.Count > 1 {
 								message += fmt.Sprintf(" (%d times)", obj.Count)
@@ -101,7 +119,7 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 							if obj.Type == corev1.EventTypeWarning {
 								condition.Level = monitorapi.Warning
 							}
-							m.Record(condition)
+							m.RecordAt(t, condition)
 						case watch.Error:
 							var message string
 							if status, ok := event.Object.(*metav1.Status); ok {

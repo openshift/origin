@@ -101,3 +101,22 @@ func (intervals EventIntervals) Len() int { return len(intervals) }
 func (intervals EventIntervals) Swap(i, j int) {
 	intervals[i], intervals[j] = intervals[j], intervals[i]
 }
+
+type Events []*Event
+
+var _ sort.Interface = Events{}
+
+func (events Events) Less(i, j int) bool {
+	switch d := events[i].At.Sub(events[j].At); {
+	case d < 0:
+		return true
+	case d > 0:
+		return false
+	default:
+		return true
+	}
+}
+func (events Events) Len() int { return len(events) }
+func (events Events) Swap(i, j int) {
+	events[i], events[j] = events[j], events[i]
+}
