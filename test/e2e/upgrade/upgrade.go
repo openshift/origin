@@ -38,6 +38,12 @@ import (
 	"github.com/openshift/origin/test/extended/util/operator"
 )
 
+// NoTests is an empty list of tests
+func NoTests() []upgrades.Test {
+	return []upgrades.Test{}
+}
+
+// AllTests includes all tests (minimal + disruption)
 func AllTests() []upgrades.Test {
 	return []upgrades.Test{
 		controlplane.NewKubeAvailableWithNewConnectionsTest(),
