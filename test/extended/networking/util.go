@@ -49,8 +49,28 @@ const (
 	DIFFERENT_NODE NodeType = iota
 )
 
+// IsIPv6 returns true if a group of ips are ipv6.
+func isIpv6(ip []string) bool {
+	ipv6 := false
+
+	for _, ip := range ip {
+		netIP := net.ParseIP(ip)
+		if netIP != nil && netIP.To4() == nil {
+			ipv6 = true
+		} else {
+			ipv6 = false
+		}
+	}
+
+	return ipv6
+}
+
 func expectNoError(err error, explain ...interface{}) {
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), explain...)
+}
+
+func expectError(err error, explain ...interface{}) {
+	ExpectWithOffset(1, err).To(HaveOccurred(), explain...)
 }
 
 func launchWebserverService(f *e2e.Framework, serviceName string, nodeName string) (serviceAddr string) {
