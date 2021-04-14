@@ -28880,7 +28880,7 @@ os::test::junit::declare_suite_end
 
 # Test OAuth access token describer
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/oauthaccesstoken.yaml'
-os::cmd::expect_success_and_text "oc describe oauthaccesstoken DYGZDLucARCPIfUeKPhsgPfn0WBLR_9KdeREH0c9iod" "DYGZDLucARCPIfUeKPhsgPfn0WBLR_9KdeREH0c9iod"
+os::cmd::expect_success_and_text "oc describe oauthaccesstoken sha256~efaca6fab897953ffcb4f857eb5cbf2cf3a4c33f1314b4922656303426b1cfc9" "efaca6fab897953ffcb4f857eb5cbf2cf3a4c33f1314b4922656303426b1cfc9"
 echo "OAuth descriptor: ok"
 
 os::cmd::expect_success 'oc delete all --all'
@@ -37991,12 +37991,12 @@ func testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappParamsEnv() (*asse
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYaml = []byte(`apiVersion: oauth.openshift.io/v1
 clientName: openshift-challenging-client
 expiresIn: 15552000
 kind: OAuthAccessToken
 metadata:
-  name: DYGZDLucARCPIfUeKPhsgPfn0WBLR_9KdeREH0c9iod
+  name: sha256~efaca6fab897953ffcb4f857eb5cbf2cf3a4c33f1314b4922656303426b1cfc9
 redirectURI: https://localhost:8443/oauth/token/implicit
 userName: test
 userUID: 322b236b-22b9-11e6-b307-080027242396
