@@ -53493,8 +53493,11 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     var ordinalScale = d3.scaleOrdinal()
         .domain(['OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', 'Update', 'Drain', 'Reboot', 'OperatingSystemUpdate', 'NodeNotReady', 'Passed', 'Skipped', 'Flaked', 'Failed', 'Degraded', 'Upgradeable', 'False', 'Unknown'])
         .range(['#d0312d', '#ffa500', '#fada5e', '#1e7bd9', '#4294e6', '#6aaef2', '#96cbff', '#fada5e', '#3cb043', '#ceba76', '#ffa500', '#d0312d', '#b65049', '#32b8b6', '#ffffff', '#bbbbbb']);
-    myChart.data(timelineGroups).zQualitative(true).enableAnimations(false).leftMargin(320).rightMargin(550).maxLineHeight(20).maxHeight(10000).zColorScale(ordinalScale).onSegmentClick(segmentFunc)
+    myChart.data(timelineGroups).zQualitative(true).enableAnimations(false).leftMargin(240).rightMargin(550).maxLineHeight(20).maxHeight(10000).zColorScale(ordinalScale).onSegmentClick(segmentFunc)
     (el);
+
+    // force a minimum width for smaller devices (which otherwise get an unusable display)
+    setTimeout(() => { if (myChart.width() < 1300) { myChart.width(1300) }}, 1)
 </script>
 </body>
 </html>
