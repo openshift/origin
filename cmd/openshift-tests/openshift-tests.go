@@ -385,7 +385,7 @@ func newRunTestCommand() *cobra.Command {
 		Use:   "run-test NAME",
 		Short: "Run a single test by name",
 		Long: templates.LongDesc(`
-		Execute a single test 
+		Execute a single test
 
 		This executes a single test by name. It is used by the run command during suite execution but may also
 		be used to test in isolation while developing new tests.
@@ -474,6 +474,7 @@ func bindTestOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {
 	flags.StringVarP(&opt.TestFile, "file", "f", opt.TestFile, "Create a suite from the newline-delimited test names in this file.")
 	flags.StringVar(&opt.Regex, "run", opt.Regex, "Regular expression of tests to run.")
 	flags.StringVarP(&opt.OutFile, "output-file", "o", opt.OutFile, "Write all test output to this file.")
+	flags.StringVar(&opt.ArtifactsDir, "artifacts-dir", opt.ArtifactsDir, "Artifacts directory for writting additional files.")
 	flags.IntVar(&opt.Count, "count", opt.Count, "Run each test a specified number of times. Defaults to 1 or the suite's preferred value. -1 will run forever.")
 	flags.BoolVar(&opt.FailFast, "fail-fast", opt.FailFast, "If a test fails, exit immediately.")
 	flags.DurationVar(&opt.Timeout, "timeout", opt.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")

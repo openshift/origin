@@ -26,13 +26,14 @@ import (
 // Options is used to run a suite of tests by invoking each test
 // as a call to a child worker (the run-tests command).
 type Options struct {
-	Parallelism int
-	Count       int
-	FailFast    bool
-	Timeout     time.Duration
-	JUnitDir    string
-	TestFile    string
-	OutFile     string
+	Parallelism  int
+	Count        int
+	FailFast     bool
+	Timeout      time.Duration
+	JUnitDir     string
+	TestFile     string
+	OutFile      string
+	ArtifactsDir string
 
 	// Regex allows a selection of a subset of tests
 	Regex string
