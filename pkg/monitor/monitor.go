@@ -142,7 +142,7 @@ func (m *Monitor) snapshot() ([]*sample, []*monitorapi.Event, monitorapi.Events)
 // unless a sampling interval did not report that value.
 func (m *Monitor) Conditions(from, to time.Time) monitorapi.EventIntervals {
 	samples, _, _ := m.snapshot()
-	return filterSamples(samples, from, to)
+	return filterSamples(samples, from, to, m.interval)
 }
 
 // Events returns all events that occur between from and to, including
@@ -150,7 +150,7 @@ func (m *Monitor) Conditions(from, to time.Time) monitorapi.EventIntervals {
 // EventIntervals are returned in order of their occurrence.
 func (m *Monitor) EventIntervals(from, to time.Time) monitorapi.EventIntervals {
 	samples, events, unsortedEvents := m.snapshot()
-	intervals := filterSamples(samples, from, to)
+	intervals := filterSamples(samples, from, to, m.interval)
 	events = mergeEvents(filterEvents(events, from, to), filterAndSortEvents(unsortedEvents, from, to))
 
 	// create additional intervals from events
@@ -184,7 +184,7 @@ func (m *Monitor) EventIntervals(from, to time.Time) monitorapi.EventIntervals {
 	return intervals
 }
 
-func filterSamples(samples []*sample, from, to time.Time) monitorapi.EventIntervals {
+func filterSamples(samples []*sample, from, to time.Time, sampleInterval time.Duration) monitorapi.EventIntervals {
 	if len(samples) == 0 {
 		return nil
 	}
@@ -224,7 +224,9 @@ func filterSamples(samples []*sample, from, to time.Time) monitorapi.EventInterv
 			intervals = append(intervals, monitorapi.EventInterval{
 				Condition: *condition,
 				From:      sample.at,
-				To:        sample.at,
+				// we don't know exactly how long this happened, but given our sampling interval, we assume it lasted at
+				// least one sample interval.  The logic above can make it last longer.
+				To: sample.at.Add(sampleInterval),
 			})
 			next[*condition] = &intervals[len(intervals)-1]
 		}
