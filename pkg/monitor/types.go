@@ -17,6 +17,7 @@ type Interface interface {
 
 type Recorder interface {
 	Record(conditions ...monitorapi.Condition)
+	RecordAt(t time.Time, conditions ...monitorapi.Condition)
 	AddSampler(fn SamplerFunc)
 }
 

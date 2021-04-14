@@ -16,7 +16,7 @@ const (
 	tolerateDisruptionPercent = 0.01
 )
 
-func testServerAvailability(locator string, events []*monitorapi.EventInterval, duration time.Duration) []*ginkgo.JUnitTestCase {
+func testServerAvailability(locator string, events monitorapi.EventIntervals, duration time.Duration) []*ginkgo.JUnitTestCase {
 	errDuration, errMessages := disruption.GetDisruption(events, locator)
 
 	testName := fmt.Sprintf("[sig-api-machinery] %s should be available", locator)
