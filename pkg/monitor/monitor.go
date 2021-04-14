@@ -212,13 +212,17 @@ func filterSamples(samples []*sample, from, to time.Time) monitorapi.EventInterv
 	}
 
 	intervals := make(monitorapi.EventIntervals, 0, len(samples)*2)
-	last, next := make(map[monitorapi.Condition]*monitorapi.EventInterval), make(map[monitorapi.Condition]*monitorapi.EventInterval)
+	activeConditions := map[monitorapi.Condition]*monitorapi.EventInterval{}
 	for _, sample := range samples {
+		nextActionConditions := map[monitorapi.Condition]*monitorapi.EventInterval{}
+
 		for _, condition := range sample.conditions {
-			interval, ok := last[*condition]
-			if ok {
-				interval.To = sample.at
-				next[*condition] = interval
+			// if a condition was previously active and is still active now, then we need to adjust the .To to reflect
+			// that the condition is ongoing and we need to ensure we track it for active conditions next sample.
+			if existingInterval, conditionIsPreviouslyActive := activeConditions[*condition]; conditionIsPreviouslyActive {
+				// this mutation is actually modifying the pointer value already present in the returned intervals slice.
+				existingInterval.To = sample.at
+				nextActionConditions[*condition] = existingInterval
 				continue
 			}
 			intervals = append(intervals, monitorapi.EventInterval{
@@ -226,12 +230,10 @@ func filterSamples(samples []*sample, from, to time.Time) monitorapi.EventInterv
 				From:      sample.at,
 				To:        sample.at,
 			})
-			next[*condition] = &intervals[len(intervals)-1]
+			nextActionConditions[*condition] = &intervals[len(intervals)-1]
 		}
-		for k := range last {
-			delete(last, k)
-		}
-		last, next = next, last
+
+		activeConditions = nextActionConditions
 	}
 	return intervals
 }

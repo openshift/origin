@@ -17,7 +17,10 @@ type sampler struct {
 	available bool
 }
 
-func StartSampling(ctx context.Context, recorder Recorder, interval time.Duration, sampleFn func(previous bool) (*monitorapi.Condition, bool)) ConditionalSampler {
+// samplerFunc accepts the previously returned Available and returns an optional condition and Available (bool)
+type samplerFunc func(previous bool) (*monitorapi.Condition, bool)
+
+func StartSampling(ctx context.Context, recorder Recorder, interval time.Duration, sampleFn samplerFunc) ConditionalSampler {
 	s := &sampler{
 		available: true,
 	}
