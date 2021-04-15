@@ -52,6 +52,23 @@ var upgradeSuites = testSuites{
 		},
 		PreSuite: upgradeTestPreSuite,
 	},
+	{
+		TestSuite: ginkgo.TestSuite{
+			Name: "none",
+			Description: templates.LongDesc(`
+	Don't run disruption tests.
+		`),
+			Matches: func(name string) bool {
+				if isStandardEarlyTest(name) {
+					return true
+				}
+				return strings.Contains(name, "[Feature:ClusterUpgrade]") && !strings.Contains(name, "[Suite:k8s]")
+			},
+			TestTimeout:         240 * time.Minute,
+			SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.SystemUpgradeEventInvariants),
+		},
+		PreSuite: upgradeTestPreSuite,
+	},
 }
 
 // upgradeTestPreSuite validates the test options.
