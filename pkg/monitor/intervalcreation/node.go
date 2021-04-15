@@ -8,8 +8,8 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
-func IntervalsFromEvents_NodeChanges(events []*monitorapi.Event, beginning, end time.Time) monitorapi.EventIntervals {
-	var intervals monitorapi.EventIntervals
+func IntervalsFromEvents_NodeChanges(events monitorapi.Intervals, beginning, end time.Time) monitorapi.Intervals {
+	var intervals monitorapi.Intervals
 	nodeChangeToLastStart := map[string]map[string]time.Time{}
 
 	openInterval := func(state map[string]time.Time, name string, from time.Time) bool {
@@ -62,22 +62,22 @@ func IntervalsFromEvents_NodeChanges(events []*monitorapi.Event, beginning, end 
 		// a new interval).
 		switch reason {
 		case "MachineConfigChange":
-			openInterval(state, "Update", event.At)
+			openInterval(state, "Update", event.From)
 		case "MachineConfigReached":
-			closeInterval(state, "Update", monitorapi.Info, event.Locator, strings.ReplaceAll(event.Message, "reason/MachineConfigReached ", "reason/NodeUpdate phase/Update "), event.At)
+			closeInterval(state, "Update", monitorapi.Info, event.Locator, strings.ReplaceAll(event.Message, "reason/MachineConfigReached ", "reason/NodeUpdate phase/Update "), event.From)
 		case "Cordon", "Drain":
-			openInterval(state, "Drain", event.At)
+			openInterval(state, "Drain", event.From)
 		case "OSUpdateStarted":
-			closeInterval(state, "Drain", monitorapi.Info, event.Locator, "reason/NodeUpdate phase/Drain drained node", event.At)
-			openInterval(state, "OperatingSystemUpdate", event.At)
+			closeInterval(state, "Drain", monitorapi.Info, event.Locator, "reason/NodeUpdate phase/Drain drained node", event.From)
+			openInterval(state, "OperatingSystemUpdate", event.From)
 		case "Reboot":
-			closeInterval(state, "Drain", monitorapi.Info, event.Locator, "reason/NodeUpdate phase/Drain drained node", event.At)
-			closeInterval(state, "OperatingSystemUpdate", monitorapi.Info, event.Locator, "reason/NodeUpdate phase/OperatingSystemUpdate updated operating system", event.At)
-			openInterval(state, "Reboot", event.At)
+			closeInterval(state, "Drain", monitorapi.Info, event.Locator, "reason/NodeUpdate phase/Drain drained node", event.From)
+			closeInterval(state, "OperatingSystemUpdate", monitorapi.Info, event.Locator, "reason/NodeUpdate phase/OperatingSystemUpdate updated operating system", event.From)
+			openInterval(state, "Reboot", event.From)
 		case "Starting":
-			closeInterval(state, "Drain", monitorapi.Info, event.Locator, "reason/NodeUpdate phase/Drain drained node", event.At)
-			closeInterval(state, "OperatingSystemUpdate", monitorapi.Info, event.Locator, "reason/NodeUpdate phase/OperatingSystemUpdate updated operating system", event.At)
-			closeInterval(state, "Reboot", monitorapi.Info, event.Locator, "reason/NodeUpdate phase/Reboot rebooted and kubelet started", event.At)
+			closeInterval(state, "Drain", monitorapi.Info, event.Locator, "reason/NodeUpdate phase/Drain drained node", event.From)
+			closeInterval(state, "OperatingSystemUpdate", monitorapi.Info, event.Locator, "reason/NodeUpdate phase/OperatingSystemUpdate updated operating system", event.From)
+			closeInterval(state, "Reboot", monitorapi.Info, event.Locator, "reason/NodeUpdate phase/Reboot rebooted and kubelet started", event.From)
 		}
 	}
 

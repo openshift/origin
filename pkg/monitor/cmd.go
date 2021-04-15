@@ -54,7 +54,7 @@ func (opt *Options) Run() error {
 			case <-ctx.Done():
 				done = true
 			}
-			events := m.EventIntervals(last, time.Time{})
+			events := m.Intervals(last, time.Time{})
 			if len(events) > 0 {
 				for _, event := range events {
 					if !event.From.Equal(event.To) {

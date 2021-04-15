@@ -14,13 +14,13 @@ type JUnitsForEvents interface {
 	// JUnitsForEvents returns a set of additional test passes or failures implied by the
 	// events sent during the test suite run. If passed is false, the entire suite is failed.
 	// To set a test as flaky, return a passing and failing JUnitTestCase with the same name.
-	JUnitsForEvents(events monitorapi.EventIntervals, duration time.Duration) []*JUnitTestCase
+	JUnitsForEvents(events monitorapi.Intervals, duration time.Duration) []*JUnitTestCase
 }
 
 // JUnitForEventsFunc converts a function into the JUnitForEvents interface.
-type JUnitForEventsFunc func(events monitorapi.EventIntervals, duration time.Duration) []*JUnitTestCase
+type JUnitForEventsFunc func(events monitorapi.Intervals, duration time.Duration) []*JUnitTestCase
 
-func (fn JUnitForEventsFunc) JUnitsForEvents(events monitorapi.EventIntervals, duration time.Duration) []*JUnitTestCase {
+func (fn JUnitForEventsFunc) JUnitsForEvents(events monitorapi.Intervals, duration time.Duration) []*JUnitTestCase {
 	return fn(events, duration)
 }
 
@@ -28,7 +28,7 @@ func (fn JUnitForEventsFunc) JUnitsForEvents(events monitorapi.EventIntervals, d
 // the result of all invocations. It ignores nil interfaces.
 type JUnitsForAllEvents []JUnitsForEvents
 
-func (a JUnitsForAllEvents) JUnitsForEvents(events monitorapi.EventIntervals, duration time.Duration) []*JUnitTestCase {
+func (a JUnitsForAllEvents) JUnitsForEvents(events monitorapi.Intervals, duration time.Duration) []*JUnitTestCase {
 	var all []*JUnitTestCase
 	for _, obj := range a {
 		if obj == nil {
@@ -40,7 +40,7 @@ func (a JUnitsForAllEvents) JUnitsForEvents(events monitorapi.EventIntervals, du
 	return all
 }
 
-func createSyntheticTestsFromMonitor(events monitorapi.EventIntervals, monitorDuration time.Duration) ([]*JUnitTestCase, *bytes.Buffer, *bytes.Buffer) {
+func createSyntheticTestsFromMonitor(events monitorapi.Intervals, monitorDuration time.Duration) ([]*JUnitTestCase, *bytes.Buffer, *bytes.Buffer) {
 	var syntheticTestResults []*JUnitTestCase
 
 	buf, errBuf := &bytes.Buffer{}, &bytes.Buffer{}

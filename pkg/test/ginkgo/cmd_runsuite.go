@@ -273,7 +273,8 @@ func (opt *Options) Run(suite *TestSuite) error {
 	// calculate the effective test set we ran, excluding any incompletes
 	tests, _ = splitTests(tests, func(t *testCase) bool { return t.success || t.failed || t.skipped })
 
-	duration := time.Now().Sub(start).Round(time.Second / 10)
+	end := time.Now()
+	duration := end.Sub(start).Round(time.Second / 10)
 	if duration > time.Minute {
 		duration = duration.Round(time.Second)
 	}
@@ -284,7 +285,8 @@ func (opt *Options) Run(suite *TestSuite) error {
 	var syntheticTestResults []*JUnitTestCase
 	var syntheticFailure bool
 	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
-	events := m.EventIntervals(time.Time{}, time.Time{})
+	events := m.Intervals(time.Time{}, time.Time{})
+	events.Clamp(start, end)
 	if err = monitorserialization.EventsToFile(path.Join(os.Getenv("ARTIFACT_DIR"), fmt.Sprintf("e2e-events%s.json", timeSuffix)), events); err != nil {
 		fmt.Fprintf(opt.Out, "Failed to write event file: %v\n", err)
 	}

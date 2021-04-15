@@ -2,7 +2,6 @@ package monitor
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -18,9 +17,9 @@ type Monitor struct {
 	intervalCreationFns []IntervalCreationFunc
 
 	lock           sync.Mutex
-	events         []*monitorapi.Event
+	events         monitorapi.Intervals
+	unsortedEvents monitorapi.Intervals
 	samples        []*sample
-	unsortedEvents []*monitorapi.Event
 }
 
 // NewMonitor creates a monitor with the default sampling interval.
@@ -70,7 +69,7 @@ func (m *Monitor) AddSampler(fn SamplerFunc) {
 }
 
 // Record captures one or more conditions at the current time. All conditions are recorded
-// in monotonic order as Event objects.
+// in monotonic order as EventInterval objects.
 func (m *Monitor) Record(conditions ...monitorapi.Condition) {
 	if len(conditions) == 0 {
 		return
@@ -79,15 +78,16 @@ func (m *Monitor) Record(conditions ...monitorapi.Condition) {
 	defer m.lock.Unlock()
 	t := time.Now().UTC()
 	for _, condition := range conditions {
-		m.events = append(m.events, &monitorapi.Event{
-			At:        t,
+		m.events = append(m.events, monitorapi.EventInterval{
 			Condition: condition,
+			From:      t,
+			To:        t,
 		})
 	}
 }
 
 // RecordAt captures one or more conditions at the provided time. All conditions are recorded
-// as Event objects.
+// as EventInterval objects.
 func (m *Monitor) RecordAt(t time.Time, conditions ...monitorapi.Condition) {
 	if len(conditions) == 0 {
 		return
@@ -95,9 +95,10 @@ func (m *Monitor) RecordAt(t time.Time, conditions ...monitorapi.Condition) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	for _, condition := range conditions {
-		m.unsortedEvents = append(m.unsortedEvents, &monitorapi.Event{
-			At:        t,
+		m.unsortedEvents = append(m.unsortedEvents, monitorapi.EventInterval{
 			Condition: condition,
+			From:      t,
+			To:        t,
 		})
 	}
 }
@@ -128,7 +129,7 @@ func (m *Monitor) sample(hasPrevious bool) bool {
 	return len(conditions) > 0
 }
 
-func (m *Monitor) snapshot() ([]*sample, []*monitorapi.Event, monitorapi.Events) {
+func (m *Monitor) snapshot() ([]*sample, monitorapi.Intervals, monitorapi.Intervals) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	return m.samples, m.events, m.unsortedEvents
@@ -136,55 +137,43 @@ func (m *Monitor) snapshot() ([]*sample, []*monitorapi.Event, monitorapi.Events)
 
 // Conditions returns all conditions that were sampled in the interval
 // between from and to. If that does not include a sample interval, no
-// results will be returned. EventIntervals are returned in order of
+// results will be returned. Intervals are returned in order of
 // their first sampling. A condition that was only sampled once is
 // returned with from == to. No duplicate conditions are returned
 // unless a sampling interval did not report that value.
-func (m *Monitor) Conditions(from, to time.Time) monitorapi.EventIntervals {
+func (m *Monitor) Conditions(from, to time.Time) monitorapi.Intervals {
 	samples, _, _ := m.snapshot()
-	return filterSamples(samples, from, to, m.interval)
+	return filterSamples(samples, from, to)
 }
 
-// Events returns all events that occur between from and to, including
+// EventIntervals returns all events that occur between from and to, including
 // any sampled conditions that were encountered during that period.
-// EventIntervals are returned in order of their occurrence.
-func (m *Monitor) EventIntervals(from, to time.Time) monitorapi.EventIntervals {
-	samples, events, unsortedEvents := m.snapshot()
-	intervals := filterSamples(samples, from, to, m.interval)
-	events = mergeEvents(filterEvents(events, from, to), filterAndSortEvents(unsortedEvents, from, to))
+// Intervals are returned in order of their occurrence. The returned slice
+// is a copy of the monitor's state and is safe to update.
+func (m *Monitor) Intervals(from, to time.Time) monitorapi.Intervals {
+	samples, sortedEvents, unsortedEvents := m.snapshot()
+
+	intervals := mergeIntervals(sortedEvents.Slice(from, to), unsortedEvents.CopyAndSort(from, to), filterSamples(samples, from, to))
+	originalLen := len(intervals)
 
 	// create additional intervals from events
 	for _, createIntervals := range m.intervalCreationFns {
-		intervals = append(intervals, createIntervals(events, from, to)...)
+		intervals = append(intervals, createIntervals(intervals, from, to)...)
 	}
 
-	// merge the two sets of inputs
-	mustSort := len(intervals) > 0
-	for i := range events {
-		if i > 0 && events[i-1].At.After(events[i].At) {
-			fmt.Printf("ERROR: event %d out of order\n  %#v\n  %#v\n", i, events[i-1], events[i])
-		}
-
-		to := events[i].At
-		from := events[i].At
-		if from.IsZero() {
-			from = to
-		}
-
-		condition := events[i].Condition
-		intervals = append(intervals, monitorapi.EventInterval{
-			From:      from,
-			To:        to,
-			Condition: condition,
-		})
-	}
-	if mustSort {
+	// we must sort the result
+	if len(intervals) != originalLen {
 		sort.Sort(intervals)
 	}
+
 	return intervals
 }
 
-func filterSamples(samples []*sample, from, to time.Time, sampleInterval time.Duration) monitorapi.EventIntervals {
+// filterSamples converts the sorted samples that are within [from,to) to a set of
+// intervals.
+// TODO: simplify this by having the monitor samplers produce intervals themselves
+//   and make the streaming print logic simply show transitions.
+func filterSamples(samples []*sample, from, to time.Time) monitorapi.Intervals {
 	if len(samples) == 0 {
 		return nil
 	}
@@ -211,7 +200,7 @@ func filterSamples(samples []*sample, from, to time.Time, sampleInterval time.Du
 		return nil
 	}
 
-	intervals := make(monitorapi.EventIntervals, 0, len(samples)*2)
+	intervals := make(monitorapi.Intervals, 0, len(samples)*2)
 	last, next := make(map[monitorapi.Condition]*monitorapi.EventInterval), make(map[monitorapi.Condition]*monitorapi.EventInterval)
 	for _, sample := range samples {
 		for _, condition := range sample.conditions {
@@ -224,9 +213,7 @@ func filterSamples(samples []*sample, from, to time.Time, sampleInterval time.Du
 			intervals = append(intervals, monitorapi.EventInterval{
 				Condition: *condition,
 				From:      sample.at,
-				// we don't know exactly how long this happened, but given our sampling interval, we assume it lasted at
-				// least one sample interval.  The logic above can make it last longer.
-				To: sample.at.Add(sampleInterval),
+				To:        sample.at.Add(time.Second),
 			})
 			next[*condition] = &intervals[len(intervals)-1]
 		}
@@ -238,65 +225,18 @@ func filterSamples(samples []*sample, from, to time.Time, sampleInterval time.Du
 	return intervals
 }
 
-func filterEvents(events []*monitorapi.Event, from, to time.Time) []*monitorapi.Event {
-	if from.IsZero() && to.IsZero() {
-		return events
-	}
-
-	first := sort.Search(len(events), func(i int) bool {
-		return events[i].At.After(from)
-	})
-	if first == -1 {
-		return nil
-	}
-	if to.IsZero() {
-		return events[first:]
-	}
-	for i := first; i < len(events); i++ {
-		if events[i].At.After(to) {
-			return events[first:i]
-		}
-	}
-	return events[first:]
-}
-
 // mergeEvents returns a sorted list of all events provided as sources. This could be
-// more efficient by requiring all sources to be sorted (would be O(n)).
-func mergeEvents(events ...[]*monitorapi.Event) []*monitorapi.Event {
+// more efficient by requiring all sources to be sorted and then performing a zipper
+// merge.
+func mergeIntervals(sets ...monitorapi.Intervals) monitorapi.Intervals {
 	total := 0
-	for _, event := range events {
-		total += len(event)
+	for _, set := range sets {
+		total += len(set)
 	}
-	merged := make([]*monitorapi.Event, 0, total)
-	for _, event := range events {
-		merged = append(merged, event...)
+	merged := make(monitorapi.Intervals, 0, total)
+	for _, set := range sets {
+		merged = append(merged, set...)
 	}
-	sort.Sort(monitorapi.Events(merged))
+	sort.Sort(merged)
 	return merged
-}
-
-// filterAndSortEvents returns events before to and after from in sorted order, assuming
-// the input events are unsorted.
-func filterAndSortEvents(events monitorapi.Events, from, to time.Time) monitorapi.Events {
-	copied := make(monitorapi.Events, 0, len(events))
-
-	if from.IsZero() && to.IsZero() {
-		for _, e := range events {
-			copied = append(copied, e)
-		}
-		sort.Sort(monitorapi.Events(copied))
-		return copied
-	}
-
-	for _, e := range events {
-		if !e.At.After(from) {
-			continue
-		}
-		if !to.IsZero() && !e.At.Before(to) {
-			continue
-		}
-		copied = append(copied, e)
-	}
-	sort.Sort(monitorapi.Events(copied))
-	return copied
 }

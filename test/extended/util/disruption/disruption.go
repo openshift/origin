@@ -279,7 +279,7 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 // ExpectNoDisruption fails if the sum of the duration of all events exceeds tolerate as a fraction ([0-1]) of total, reports a
 // disruption flake if any disruption occurs, and uses reason to prefix the message. I.e. tolerate 0.1 of 10m total will fail
 // if the sum of the intervals is greater than 1m, or report a flake if any interval is found.
-func ExpectNoDisruption(f *framework.Framework, tolerate float64, total time.Duration, events monitorapi.EventIntervals, reason string) {
+func ExpectNoDisruption(f *framework.Framework, tolerate float64, total time.Duration, events monitorapi.Intervals, reason string) {
 	duration, describe := GetDisruption(events, "")
 	if percent := float64(duration) / float64(total); percent > tolerate {
 		framework.Failf("%s for at least %s of %s (%0.0f%%):\n\n%s", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, strings.Join(describe, "\n"))
@@ -290,7 +290,7 @@ func ExpectNoDisruption(f *framework.Framework, tolerate float64, total time.Dur
 
 // GetDisruption returns total duration of all error events and array of event description for printing.
 // When requiredLocator is specified (non-empty), only events matching this locator are considered.
-func GetDisruption(events monitorapi.EventIntervals, requiredLocator string) (time.Duration, []string) {
+func GetDisruption(events monitorapi.Intervals, requiredLocator string) (time.Duration, []string) {
 	var duration time.Duration
 	var describe []string
 	for _, interval := range events {
