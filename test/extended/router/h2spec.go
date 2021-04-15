@@ -23,7 +23,7 @@ import (
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 )
 
-const h2specDialTimeoutInSeconds = 15
+const h2specDialTimeoutInSeconds = 30
 
 type h2specFailingTest struct {
 	TestCase   *h2spec.JUnitTestCase
@@ -151,7 +151,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				return
 			}
 
-			testSuites, err := runConformanceTests(oc, host, "h2spec")
+			testSuites, err := runConformanceTests(oc, host, "h2spec", 5*time.Minute)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(testSuites).ShouldNot(o.BeEmpty())
 
@@ -214,39 +214,54 @@ func failingTests(testSuites []*h2spec.JUnitTestSuite) []h2specFailingTest {
 	return failures
 }
 
-func runConformanceTests(oc *exutil.CLI, host, podName string) ([]*h2spec.JUnitTestSuite, error) {
-	g.By("Running the h2spec CLI test")
+func runConformanceTests(oc *exutil.CLI, host, podName string, timeout time.Duration) ([]*h2spec.JUnitTestSuite, error) {
+	var testSuites []*h2spec.JUnitTestSuite
 
-	// this is the output file in the pod
-	outputFile := "/tmp/h2spec-results"
+	if err := wait.Poll(time.Second, timeout, func() (bool, error) {
+		g.By("Running the h2spec CLI test")
 
-	// h2spec will exit with non-zero if _any_ test in the suite
-	// fails, or if there is a dial timeout, so we ignore the
-	// error. If we can fetch the results and if we can decode the
-	// results and we have > 0 test suites from the decoded
-	// results then assume the test ran.
-	output, _ := e2e.RunHostCmd(oc.Namespace(), podName, h2specCommand(h2specDialTimeoutInSeconds, host, outputFile))
+		// this is the output file in the pod
+		outputFile := "/tmp/h2spec-results"
 
-	g.By("Copying results")
-	data, err := e2e.RunHostCmd(oc.Namespace(), podName, fmt.Sprintf("cat %q", outputFile))
-	if err != nil {
+		// h2spec will exit with non-zero if _any_ test in the suite
+		// fails, or if there is a dial timeout, so we log the
+		// error. But if we can fetch the results and if we can decode the
+		// results and we have > 0 test suites from the decoded
+		// results then assume the test ran.
+		output, err := e2e.RunHostCmd(oc.Namespace(), podName, h2specCommand(h2specDialTimeoutInSeconds, host, outputFile))
+		if err != nil {
+			e2e.Logf("error running h2spec: %v, but checking on result content", err)
+		}
+
+		g.By("Copying results")
+		data, err := e2e.RunHostCmd(oc.Namespace(), podName, fmt.Sprintf("cat %q", outputFile))
+		if err != nil {
+			e2e.Logf("error copying results: %v, retrying...", err)
+			return false, err
+		}
+		if len(data) == 0 {
+			e2e.Logf("results file is zero length, retrying...")
+			return false, errors.New("empty results")
+		}
+
+		g.By("Decoding results")
+		testSuites, err = h2spec.DecodeJUnitReport(strings.NewReader(data))
+		if err != nil {
+			e2e.Logf("error decoding results: %v, retrying...", err)
+			return false, err
+		}
+		if len(testSuites) == 0 {
+			e2e.Logf("expected len(testSuites) > 0, retrying...")
+			return false, errors.New("no test results found")
+		}
+
+		// Log what we consider a successful run
+		e2e.Logf("h2spec results\n%s", output)
+		return true, nil
+	}); err != nil {
 		return nil, err
 	}
-	if len(data) == 0 {
-		return nil, errors.New("zero length results file")
-	}
 
-	g.By("Decoding results")
-	testSuites, err := h2spec.DecodeJUnitReport(strings.NewReader(data))
-	if err != nil {
-		return nil, err
-	}
-	if len(testSuites) == 0 {
-		return nil, errors.New("no test results found")
-	}
-
-	// Log what we consider a successful run
-	e2e.Logf("h2spec results\n%s", output)
 	return testSuites, nil
 }
 
@@ -269,7 +284,7 @@ func runConformanceTestsAndLogAggregateFailures(oc *exutil.CLI, host, podName st
 	failuresByTestCaseID := map[string]int{}
 
 	for i := 1; i <= iterations; i++ {
-		testResults, err := runConformanceTests(oc, host, podName)
+		testResults, err := runConformanceTests(oc, host, podName, 5*time.Minute)
 		if err != nil {
 			e2e.Logf(err.Error())
 			continue
