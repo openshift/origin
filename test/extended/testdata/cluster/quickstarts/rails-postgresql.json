@@ -442,7 +442,7 @@
                             ],
                             "from": {
                                 "kind": "ImageStreamTag",
-                                "name": "postgresql:10",
+                                "name": "postgresql:12",
                                 "namespace": "${NAMESPACE}"
                             }
                         },
