@@ -61,6 +61,12 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should pass the h2spec conformance tests", func() {
+			isProxyJob, err := exutil.IsClusterProxyEnabled(oc)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get proxy configuration")
+			if isProxyJob {
+				g.Skip("Skip on proxy jobs")
+			}
+
 			infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster-wide infrastructure")
 			if !platformHasHTTP2LoadBalancerService(infra.Status.PlatformStatus.Type) {
