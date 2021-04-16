@@ -2,7 +2,6 @@ package router
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -243,22 +242,22 @@ func runConformanceTests(oc *exutil.CLI, host, podName string, timeout time.Dura
 		data, err := e2e.RunHostCmd(oc.Namespace(), podName, fmt.Sprintf("cat %q", outputFile))
 		if err != nil {
 			e2e.Logf("error copying results: %v, retrying...", err)
-			return false, err
+			return false, nil
 		}
 		if len(data) == 0 {
 			e2e.Logf("results file is zero length, retrying...")
-			return false, errors.New("empty results")
+			return false, nil
 		}
 
 		g.By("Decoding results")
 		testSuites, err = h2spec.DecodeJUnitReport(strings.NewReader(data))
 		if err != nil {
 			e2e.Logf("error decoding results: %v, retrying...", err)
-			return false, err
+			return false, nil
 		}
 		if len(testSuites) == 0 {
 			e2e.Logf("expected len(testSuites) > 0, retrying...")
-			return false, errors.New("no test results found")
+			return false, nil
 		}
 
 		// Log what we consider a successful run
