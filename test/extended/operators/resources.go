@@ -37,10 +37,8 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 		knownBrokenPods := map[string]string{
 			//"<apiVersion>/<kind>/<namespace>/<name>/(initContainer|container)/<container_name>/<violation_type>": "<url to bug>",
 
-			"apps/v1/Deployment/openshift-machine-api/cluster-autoscaler-default/container/cluster-autoscaler/request[cpu]":    "https://bugzilla.redhat.com/show_bug.cgi?id=1938467",
-			"apps/v1/Deployment/openshift-machine-api/cluster-autoscaler-default/container/cluster-autoscaler/request[memory]": "https://bugzilla.redhat.com/show_bug.cgi?id=1938467",
-			"apps/v1/Deployment/openshift-operator-lifecycle-manager/packageserver/container/packageserver/request[cpu]":       "https://bugzilla.redhat.com/show_bug.cgi?id=1938466",
-			"apps/v1/Deployment/openshift-operator-lifecycle-manager/packageserver/container/packageserver/request[memory]":    "https://bugzilla.redhat.com/show_bug.cgi?id=1938466",
+			"apps/v1/Deployment/openshift-operator-lifecycle-manager/packageserver/container/packageserver/request[cpu]":    "https://bugzilla.redhat.com/show_bug.cgi?id=1938466",
+			"apps/v1/Deployment/openshift-operator-lifecycle-manager/packageserver/container/packageserver/request[memory]": "https://bugzilla.redhat.com/show_bug.cgi?id=1938466",
 
 			"apps/v1/DaemonSet/openshift-machine-api/metal3-image-cache/container/metal3-httpd/request[cpu]":          "https://bugzilla.redhat.com/show_bug.cgi?id=1940518",
 			"apps/v1/DaemonSet/openshift-machine-api/metal3-image-cache/container/metal3-httpd/request[memory]":       "https://bugzilla.redhat.com/show_bug.cgi?id=1940518",
