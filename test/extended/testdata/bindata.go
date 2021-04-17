@@ -4001,28 +4001,6 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "referencePolicy": {
               "type": "Local"
             }
-          },
-          {
-            "name": "5.26-ubi8",
-            "annotations": {
-              "description": "Build and run Perl 5.26 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.26-mod_fcgid/README.md.",
-              "iconClass": "icon-perl",
-              "openshift.io/display-name": "Perl 5.26 (UBI 8)",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
-              "supports": "perl:5.26,perl",
-              "tags": "builder,perl",
-              "version": "5.26"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.access.redhat.com/ubi8/perl-526:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
           }
         ]
       }
@@ -7365,7 +7343,7 @@ var _examplesQuickstartsDancerMysqlPersistentJson = []byte(`{
                         ],
                         "from": {
                             "kind": "ImageStreamTag",
-                            "name": "perl:5.26-ubi8",
+                            "name": "perl:5.30-ubi8",
                             "namespace": "${NAMESPACE}"
                         }
                     },
@@ -7918,7 +7896,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
                         ],
                         "from": {
                             "kind": "ImageStreamTag",
-                            "name": "perl:5.26-ubi8",
+                            "name": "perl:5.30-ubi8",
                             "namespace": "${NAMESPACE}"
                         }
                     },
@@ -12574,7 +12552,7 @@ var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
                             ],
                             "from": {
                                 "kind": "ImageStreamTag",
-                                "name": "postgresql:10",
+                                "name": "postgresql:12",
                                 "namespace": "${NAMESPACE}"
                             }
                         },
@@ -12862,7 +12840,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
                         ],
                         "from": {
                             "kind": "ImageStreamTag",
-                            "name": "ruby:2.5",
+                            "name": "ruby:2.7",
                             "namespace": "${NAMESPACE}"
                         }
                     },
@@ -13184,7 +13162,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
                             ],
                             "from": {
                                 "kind": "ImageStreamTag",
-                                "name": "postgresql:10",
+                                "name": "postgresql:12",
                                 "namespace": "${NAMESPACE}"
                             }
                         },
@@ -18690,7 +18668,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/nodejs:10
+        name: image-registry.openshift-image-registry.svc:5000/openshift/nodejs:latest
 `)
 
 func testExtendedTestdataBuildsPullsecretLinkedNodejsBcYamlBytes() ([]byte, error) {
@@ -23906,7 +23884,7 @@ var _testExtendedTestdataClusterQuickstartsDancerMysqlJson = []byte(`{
                         ],
                         "from": {
                             "kind": "ImageStreamTag",
-                            "name": "perl:5.26-ubi8",
+                            "name": "perl:5.30-ubi8",
                             "namespace": "${NAMESPACE}"
                         }
                     },
@@ -25883,7 +25861,7 @@ var _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson = []byte(`{
                             ],
                             "from": {
                                 "kind": "ImageStreamTag",
-                                "name": "postgresql:10",
+                                "name": "postgresql:12",
                                 "namespace": "${NAMESPACE}"
                             }
                         },
@@ -30426,8 +30404,8 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/delete-istag"
 # test deleting a tag using oc delete
-os::cmd::expect_success_and_text "oc get is perl --template '{{(index .spec.tags 0).name}}'" '5.26-ubi8'
-os::cmd::expect_success_and_text "oc get is perl --template '{{(index .status.tags 0).tag}}'" '5.26-ubi8'
+os::cmd::expect_success_and_text "oc get is perl --template '{{(index .spec.tags 0).name}}'" '5.30-ubi8'
+os::cmd::expect_success_and_text "oc get is perl --template '{{(index .status.tags 0).tag}}'" '5.30-ubi8'
 os::cmd::expect_success_and_text "oc describe is perl | sed -n -e '0,/^Tags:/d' -e '/^\s\+/d' -e '/./p' | head -n 1" '5.30-ubi8 \(latest\)'
 os::cmd::expect_success "oc delete istag/perl:5.30-ubi8 --context='${cluster_admin_context}'"
 os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.spec.tags}}' 'version:5.30-ubi8'
@@ -31064,11 +31042,9 @@ os::cmd::try_until_success 'oc get imagestreamtags nginx:latest'
 os::cmd::try_until_success 'oc get imagestreamtags nginx:1.14'
 os::cmd::try_until_success 'oc get imagestreamtags nginx:1.16'
 os::cmd::try_until_success 'oc get imagestreamtags nodejs:latest'
-os::cmd::try_until_success 'oc get imagestreamtags nodejs:10'
 os::cmd::try_until_success 'oc get imagestreamtags nodejs:12'
 os::cmd::try_until_success 'oc get imagestreamtags perl:latest'
 os::cmd::try_until_success 'oc get imagestreamtags perl:5.30'
-os::cmd::try_until_success 'oc get imagestreamtags perl:5.26-ubi8'
 os::cmd::try_until_success 'oc get imagestreamtags php:latest'
 os::cmd::try_until_success 'oc get imagestreamtags php:7.0'
 os::cmd::try_until_success 'oc get imagestreamtags php:7.1'
@@ -35291,28 +35267,6 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             "from": {
               "kind": "DockerImage",
               "name": "quay.io/centos7/perl-530-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "5.26-ubi8",
-            "annotations": {
-              "description": "Build and run Perl 5.26 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.26-mod_fcgid/README.md.",
-              "iconClass": "icon-perl",
-              "openshift.io/display-name": "Perl 5.26 (UBI 8)",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
-              "supports": "perl:5.26,perl",
-              "tags": "builder,perl",
-              "version": "5.26"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.access.redhat.com/ubi8/perl-526:latest"
             },
             "generation": null,
             "importPolicy": {},

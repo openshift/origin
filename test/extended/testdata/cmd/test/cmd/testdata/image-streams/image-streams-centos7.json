@@ -610,28 +610,6 @@
             "referencePolicy": {
               "type": "Local"
             }
-          },
-          {
-            "name": "5.26-ubi8",
-            "annotations": {
-              "description": "Build and run Perl 5.26 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.26-mod_fcgid/README.md.",
-              "iconClass": "icon-perl",
-              "openshift.io/display-name": "Perl 5.26 (UBI 8)",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
-              "supports": "perl:5.26,perl",
-              "tags": "builder,perl",
-              "version": "5.26"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.access.redhat.com/ubi8/perl-526:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
           }
         ]
       }

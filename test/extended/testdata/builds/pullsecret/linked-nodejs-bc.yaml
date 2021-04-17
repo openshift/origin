@@ -11,4 +11,4 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/nodejs:10
+        name: image-registry.openshift-image-registry.svc:5000/openshift/nodejs:latest
