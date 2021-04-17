@@ -2,7 +2,6 @@ package router
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -61,6 +60,12 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should pass the h2spec conformance tests", func() {
+			isProxyJob, err := exutil.IsClusterProxyEnabled(oc)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get proxy configuration")
+			if isProxyJob {
+				g.Skip("Skip on proxy jobs")
+			}
+
 			infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster-wide infrastructure")
 			if !platformHasHTTP2LoadBalancerService(infra.Status.PlatformStatus.Type) {
@@ -237,22 +242,22 @@ func runConformanceTests(oc *exutil.CLI, host, podName string, timeout time.Dura
 		data, err := e2e.RunHostCmd(oc.Namespace(), podName, fmt.Sprintf("cat %q", outputFile))
 		if err != nil {
 			e2e.Logf("error copying results: %v, retrying...", err)
-			return false, err
+			return false, nil
 		}
 		if len(data) == 0 {
 			e2e.Logf("results file is zero length, retrying...")
-			return false, errors.New("empty results")
+			return false, nil
 		}
 
 		g.By("Decoding results")
 		testSuites, err = h2spec.DecodeJUnitReport(strings.NewReader(data))
 		if err != nil {
 			e2e.Logf("error decoding results: %v, retrying...", err)
-			return false, err
+			return false, nil
 		}
 		if len(testSuites) == 0 {
 			e2e.Logf("expected len(testSuites) > 0, retrying...")
-			return false, errors.New("no test results found")
+			return false, nil
 		}
 
 		// Log what we consider a successful run
