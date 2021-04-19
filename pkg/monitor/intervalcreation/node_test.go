@@ -17,13 +17,13 @@ func TestIntervalsFromEvents_NodeChanges(t *testing.T) {
 	if len(changes) != 3 {
 		t.Fatalf("unexpected changes: %s", string(out))
 	}
-	if changes[0].Message != "reason/NodeUpdate phase/Drain drained node" {
+	if changes[0].Message != "reason/NodeUpdate phase/Drain roles/worker drained node" {
 		t.Errorf("unexpected event: %s", string(out))
 	}
-	if changes[1].Message != "reason/NodeUpdate phase/OperatingSystemUpdate updated operating system" {
+	if changes[1].Message != "reason/NodeUpdate phase/OperatingSystemUpdate roles/worker updated operating system" {
 		t.Errorf("unexpected event: %s", string(out))
 	}
-	if changes[2].Message != "reason/NodeUpdate phase/Reboot rebooted and kubelet started" {
+	if changes[2].Message != "reason/NodeUpdate phase/Reboot roles/worker rebooted and kubelet started" {
 		t.Errorf("unexpected event: %s", string(out))
 	}
 }

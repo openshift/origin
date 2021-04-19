@@ -76,6 +76,13 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 							if obj.Count > 1 {
 								message += fmt.Sprintf(" (%d times)", obj.Count)
 							}
+
+							if obj.InvolvedObject.Kind == "Node" {
+								if node, err := client.CoreV1().Nodes().Get(ctx, obj.InvolvedObject.Name, metav1.GetOptions{}); err == nil {
+									message = fmt.Sprintf("roles/%s %s", nodeRoles(node), message)
+								}
+							}
+
 							// special case some very common events
 							switch obj.Reason {
 							case "":

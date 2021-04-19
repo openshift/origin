@@ -8,9 +8,17 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
+const (
+	msgPhaseDrain          = "reason/NodeUpdate phase/Drain roles/%s drained node"
+	msgPhaseOSUpdate       = "reason/NodeUpdate phase/OperatingSystemUpdate roles/%s updated operating system"
+	msgPhaseReboot         = "reason/NodeUpdate phase/Reboot roles/%s rebooted and kubelet started"
+	msgPhaseNeverCompleted = "reason/NodeUpdate phase/%s roles/%s phase never completed"
+)
+
 func IntervalsFromEvents_NodeChanges(events monitorapi.Intervals, beginning, end time.Time) monitorapi.Intervals {
 	var intervals monitorapi.Intervals
 	nodeChangeToLastStart := map[string]map[string]time.Time{}
+	nodeNameToRoles := map[string]string{}
 
 	openInterval := func(state map[string]time.Time, name string, from time.Time) bool {
 		if _, ok := state[name]; !ok {
@@ -46,6 +54,8 @@ func IntervalsFromEvents_NodeChanges(events monitorapi.Intervals, beginning, end
 		}
 		reason := strings.SplitN(strings.TrimPrefix(event.Message, "reason/"), " ", 2)[0]
 
+		roles := monitorapi.GetNodeRoles(event)
+		nodeNameToRoles[node] = roles
 		state, ok := nodeChangeToLastStart[node]
 		if !ok {
 			state = make(map[string]time.Time)
@@ -64,26 +74,27 @@ func IntervalsFromEvents_NodeChanges(events monitorapi.Intervals, beginning, end
 		case "MachineConfigChange":
 			openInterval(state, "Update", event.From)
 		case "MachineConfigReached":
-			closeInterval(state, "Update", monitorapi.Info, event.Locator, strings.ReplaceAll(event.Message, "reason/MachineConfigReached ", "reason/NodeUpdate phase/Update "), event.From)
+			message := strings.ReplaceAll(event.Message, "reason/MachineConfigReached ", "reason/NodeUpdate phase/Update ") + " roles/" + roles
+			closeInterval(state, "Update", monitorapi.Info, event.Locator, message, event.From)
 		case "Cordon", "Drain":
 			openInterval(state, "Drain", event.From)
 		case "OSUpdateStarted":
-			closeInterval(state, "Drain", monitorapi.Info, event.Locator, "reason/NodeUpdate phase/Drain drained node", event.From)
+			closeInterval(state, "Drain", monitorapi.Info, event.Locator, fmt.Sprintf(msgPhaseDrain, roles), event.From)
 			openInterval(state, "OperatingSystemUpdate", event.From)
 		case "Reboot":
-			closeInterval(state, "Drain", monitorapi.Info, event.Locator, "reason/NodeUpdate phase/Drain drained node", event.From)
-			closeInterval(state, "OperatingSystemUpdate", monitorapi.Info, event.Locator, "reason/NodeUpdate phase/OperatingSystemUpdate updated operating system", event.From)
+			closeInterval(state, "Drain", monitorapi.Info, event.Locator, fmt.Sprintf(msgPhaseDrain, roles), event.From)
+			closeInterval(state, "OperatingSystemUpdate", monitorapi.Info, event.Locator, fmt.Sprintf(msgPhaseOSUpdate, roles), event.From)
 			openInterval(state, "Reboot", event.From)
 		case "Starting":
-			closeInterval(state, "Drain", monitorapi.Info, event.Locator, "reason/NodeUpdate phase/Drain drained node", event.From)
-			closeInterval(state, "OperatingSystemUpdate", monitorapi.Info, event.Locator, "reason/NodeUpdate phase/OperatingSystemUpdate updated operating system", event.From)
-			closeInterval(state, "Reboot", monitorapi.Info, event.Locator, "reason/NodeUpdate phase/Reboot rebooted and kubelet started", event.From)
+			closeInterval(state, "Drain", monitorapi.Info, event.Locator, fmt.Sprintf(msgPhaseDrain, roles), event.From)
+			closeInterval(state, "OperatingSystemUpdate", monitorapi.Info, event.Locator, fmt.Sprintf(msgPhaseOSUpdate, roles), event.From)
+			closeInterval(state, "Reboot", monitorapi.Info, event.Locator, fmt.Sprintf(msgPhaseReboot, roles), event.From)
 		}
 	}
 
 	for nodeName, state := range nodeChangeToLastStart {
 		for name := range state {
-			closeInterval(state, name, monitorapi.Warning, monitorapi.NodeLocator(nodeName), fmt.Sprintf("reason/NodeUpdate phase/%s phase never completed", name), end)
+			closeInterval(state, name, monitorapi.Warning, monitorapi.NodeLocator(nodeName), fmt.Sprintf(msgPhaseNeverCompleted, name, nodeNameToRoles[nodeName]), end)
 		}
 	}
 

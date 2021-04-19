@@ -53153,21 +53153,31 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
     function isNodeState(eventInterval) {
         if (eventInterval.locator.startsWith("node/")) {
-            return (eventInterval.message.startsWith("reason/NodeUpdate ") || eventInterval.message == "node is not ready")
+            return (eventInterval.message.startsWith("reason/NodeUpdate ") || eventInterval.message.includes("node is not ready"))
         }
         return false
     }
 
     const rePhase = new RegExp("(^| )phase/([^ ]+)")
     function nodeStateValue(item) {
-        if (item.message == "node is not ready") {
-            return [item.locator, " (not ready)", "NodeNotReady"]
+        let roles = ""
+        let i = item.message.indexOf("roles/")
+        if (i != -1) {
+          roles = item.message.substring(i+"roles/".length)
+          let j = roles.indexOf(" ")
+          if (j != -1) {
+            roles = roles.substring(0, j)
+          }
+        }
+
+        if (item.message.includes("node is not ready")) {
+            return [item.locator, ` + "`" + ` (${roles},not ready)` + "`" + `, "NodeNotReady"]
         }
         let m = item.message.match(rePhase);
         if (m && m[2] != "Update") {
-            return [item.locator, " (update phases)", m[2]];
+            return [item.locator, ` + "`" + ` (${roles},update phases)` + "`" + `, m[2]];
         }
-        return [item.locator, " (updates)", "Update"];
+        return [item.locator, ` + "`" + ` (${roles},updates)` + "`" + `, "Update"];
     }
 
     function createTimelineData(timelineVal, timelineData, rawEventIntervals, preconditionFunc) {
@@ -53221,6 +53231,12 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
     timelineGroups.push({group: "node-state", data: []})
     createTimelineData(nodeStateValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isNodeState)
+    timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
+      if (e1.label.includes("master") && e2.label.includes("worker")) {
+        return -1
+      }
+      return 0
+    })
 
     timelineGroups.push({group: "apiserver-availability", data: []})
     createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAPIServerConnectivity)

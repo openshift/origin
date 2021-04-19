@@ -3,6 +3,8 @@ package monitor
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -17,6 +19,8 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 	nodeChangeFns := []func(node, oldNode *corev1.Node) []monitorapi.Condition{
 		func(node, oldNode *corev1.Node) []monitorapi.Condition {
 			var conditions []monitorapi.Condition
+			roles := nodeRoles(node)
+
 			for i := range node.Status.Conditions {
 				c := &node.Status.Conditions[i]
 				previous := findNodeCondition(oldNode.Status.Conditions, c.Type, i)
@@ -27,7 +31,7 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Warning,
 						Locator: monitorapi.NodeLocator(node.Name),
-						Message: fmt.Sprintf("condition/%s status/%s reason/%s changed", c.Type, c.Status, c.Reason),
+						Message: fmt.Sprintf("condition/%s status/%s reason/%s roles/%s changed", c.Type, c.Status, c.Reason, roles),
 					})
 				}
 			}
@@ -35,13 +39,14 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 				conditions = append(conditions, monitorapi.Condition{
 					Level:   monitorapi.Error,
 					Locator: monitorapi.NodeLocator(node.Name),
-					Message: fmt.Sprintf("node was deleted and recreated"),
+					Message: fmt.Sprintf("roles/%s node was deleted and recreated", roles),
 				})
 			}
 			return conditions
 		},
 		func(node, oldNode *corev1.Node) []monitorapi.Condition {
 			var conditions []monitorapi.Condition
+			roles := nodeRoles(node)
 
 			oldConfig := oldNode.Annotations["machineconfiguration.openshift.io/currentConfig"]
 			newConfig := node.Annotations["machineconfiguration.openshift.io/currentConfig"]
@@ -52,14 +57,14 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 				conditions = append(conditions, monitorapi.Condition{
 					Level:   monitorapi.Info,
 					Locator: monitorapi.NodeLocator(node.Name),
-					Message: fmt.Sprintf("reason/MachineConfigChange config/%s config change requested", newDesired),
+					Message: fmt.Sprintf("reason/MachineConfigChange config/%s roles/%s config change requested", newDesired, roles),
 				})
 			}
 			if oldConfig != newConfig && newDesired == newConfig {
 				conditions = append(conditions, monitorapi.Condition{
 					Level:   monitorapi.Info,
 					Locator: monitorapi.NodeLocator(node.Name),
-					Message: fmt.Sprintf("reason/MachineConfigReached config/%s reached desired config", newDesired),
+					Message: fmt.Sprintf("reason/MachineConfigReached config/%s roles/%s reached desired config", newDesired, roles),
 				})
 			}
 			return conditions
@@ -78,7 +83,7 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 				m.Record(monitorapi.Condition{
 					Level:   monitorapi.Warning,
 					Locator: monitorapi.NodeLocator(node.Name),
-					Message: "deleted",
+					Message: fmt.Sprintf("roles/%s deleted", nodeRoles(node)),
 				})
 			},
 			UpdateFunc: func(old, obj interface{}) {
@@ -112,7 +117,7 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 				conditions = append(conditions, &monitorapi.Condition{
 					Level:   monitorapi.Warning,
 					Locator: monitorapi.NodeLocator(node.Name),
-					Message: "node is not ready",
+					Message: fmt.Sprintf("roles/%s node is not ready", nodeRoles(node)),
 				})
 			}
 		}
@@ -120,4 +125,17 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 	})
 
 	go nodeInformer.Run(ctx.Done())
+}
+
+func nodeRoles(node *corev1.Node) string {
+	const roleLabel = "node-role.kubernetes.io"
+	var roles []string
+	for label := range node.Labels {
+		if strings.Contains(label, roleLabel) {
+			roles = append(roles, label[len(roleLabel)+1:])
+		}
+	}
+
+	sort.Strings(roles)
+	return strings.Join(roles, ",")
 }
