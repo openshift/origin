@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/kubernetes/test/e2e/framework/volume"
+	"github.com/openshift/origin/test/extended/util/image"
 
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
+	"k8s.io/kubernetes/test/e2e/framework/volume"
 )
 
 // SetupK8SNFSServerAndVolume sets up an nfs server pod with count number of persistent volumes
@@ -31,7 +32,7 @@ func SetupK8SNFSServerAndVolume(oc *CLI, count int) (*kapiv1.Pod, []*kapiv1.Pers
 		// additional nfs mounts to allow for openshift extended tests with
 		// replicas and shared state (formerly mongo, postgresql, mysql, etc., now only jenkins); defined
 		// in repo https://github.com/redhat-developer/nfs-server
-		ServerImage:   "quay.io/redhat-developer/nfs-server:latest",
+		ServerImage:   image.LocationFor("quay.io/redhat-developer/nfs-server:1.0"),
 		ServerPorts:   []int{2049},
 		ServerVolumes: map[string]string{"": "/exports"},
 	}
