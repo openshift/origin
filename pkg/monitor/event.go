@@ -17,7 +17,7 @@ import (
 )
 
 func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Interface) {
-	reMatchFirstQuote := regexp.MustCompile(`"([^"]+)"`)
+	reMatchFirstQuote := regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)
 
 	go func() {
 		for {
@@ -102,6 +102,12 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 								if obj.InvolvedObject.Kind == "Pod" {
 									if containerName, ok := eventForContainer(obj.InvolvedObject.FieldPath); ok {
 										if m := reMatchFirstQuote.FindStringSubmatch(obj.Message); m != nil {
+											if len(m) > 3 {
+												if d, err := time.ParseDuration(m[3]); err == nil {
+													message = fmt.Sprintf("container/%s reason/%s duration/%.3fs image/%s", containerName, obj.Reason, d.Seconds(), m[1])
+													break
+												}
+											}
 											message = fmt.Sprintf("container/%s reason/%s image/%s", containerName, obj.Reason, m[1])
 											break
 										}
