@@ -53,8 +53,6 @@ objects:
       verbs:
       - create
   - apiVersion: rbac.authorization.k8s.io/v1
-    groupNames:
-    - system:authenticated
     kind: RoleBinding
     metadata:
       namespace: ${NAMESPACE}

@@ -7,6 +7,7 @@ objects:
   apiVersion: v1
   metadata:
     name: ${required_param}
+  groups: null
 parameters:
 - name: optional_param
 - name: required_param

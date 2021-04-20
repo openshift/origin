@@ -3,6 +3,7 @@ kind: StatefulSet
 metadata:
   name: testapp
 spec:
+  serviceName: frontend
   selector:
     matchLabels:
       app: testapp

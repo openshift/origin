@@ -23,11 +23,11 @@ metadata:
 spec:
   runPolicy: Serial
   source:
+    type: Dockerfile
     dockerfile: |-
       FROM %s
       RUN chmod -R uga+rwx /run
       USER 1001
-  type: Dockerfile
   strategy:
     dockerStrategy:
       env:
@@ -44,11 +44,11 @@ metadata:
 spec:
   runPolicy: Serial
   source:
+    type: Dockerfile
     dockerfile: |-
       FROM %s
       RUN ls -R /run
       USER 1001
-  type: Dockerfile
   strategy:
     dockerStrategy:
       env:

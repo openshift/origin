@@ -6,7 +6,7 @@ metadata:
   resourceVersion: "327"
   selfLink: /oapi/v1/namespaces/test/imagestreams/test-stream
   uid: 15be89a8-70db-11e5-ae32-080027c5bfa9
-spec: 
+spec:
   dockerImageRepository: 172.30.30.30:5000/test/test-stream
   tags:
   - name: latest
@@ -16,4 +16,3 @@ spec:
       name: openshift/origin:v1.0.6
     annotations:
       io.openshift.generate.job: "true"
-status: {}

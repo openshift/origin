@@ -145,10 +145,12 @@ echo "create subcommands: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/statefulsets"
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-service.json'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/statefulset.yaml'
 os::cmd::try_until_success 'oc get pods testapp-0'
 os::cmd::expect_success_and_text 'oc describe statefulset testapp' 'app=testapp'
 os::cmd::expect_success 'oc delete -f ${TEST_DATA}/statefulset.yaml'
+os::cmd::expect_success 'oc delete services frontend'
 echo "statefulsets: ok"
 os::test::junit::declare_suite_end
 
