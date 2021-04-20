@@ -121,7 +121,7 @@ func (t *AvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 	cancel()
 	end := time.Now()
 
-	disruption.ExpectNoDisruption(f, 0.20, end.Sub(start), m.EventIntervals(time.Time{}, time.Time{}), "Image registry was unreachable during disruption")
+	disruption.ExpectNoDisruption(f, 0.20, end.Sub(start), m.Intervals(time.Time{}, time.Time{}), "Image registry was unreachable during disruption")
 }
 
 // Teardown cleans up any remaining resources.

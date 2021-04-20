@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 )
 
@@ -13,14 +12,7 @@ func TestIntervalsFromEvents_NodeChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	events := make([]*monitorapi.Event, 0, len(intervals))
-	for _, i := range intervals {
-		events = append(events, &monitorapi.Event{
-			Condition: i.Condition,
-			At:        i.From,
-		})
-	}
-	changes := IntervalsFromEvents_NodeChanges(events, time.Time{}, time.Now())
+	changes := IntervalsFromEvents_NodeChanges(intervals, time.Time{}, time.Now())
 	out, _ := monitorserialization.EventsIntervalsToJSON(changes)
 	if len(changes) != 3 {
 		t.Fatalf("unexpected changes: %s", string(out))

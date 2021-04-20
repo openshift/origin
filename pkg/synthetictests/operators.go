@@ -12,14 +12,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-func testStableSystemOperatorStateTransitions(events monitorapi.EventIntervals) []*ginkgo.JUnitTestCase {
+func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
 	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded, configv1.OperatorProgressing})
 }
 
-func testUpgradeOperatorStateTransitions(events monitorapi.EventIntervals) []*ginkgo.JUnitTestCase {
+func testUpgradeOperatorStateTransitions(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
 	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded})
 }
-func testOperatorStateTransitions(events monitorapi.EventIntervals, conditionTypes []configv1.ClusterStatusConditionType) []*ginkgo.JUnitTestCase {
+func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType) []*ginkgo.JUnitTestCase {
 	ret := []*ginkgo.JUnitTestCase{}
 
 	knownOperators := allOperators(events)
@@ -56,7 +56,7 @@ func testOperatorStateTransitions(events monitorapi.EventIntervals, conditionTyp
 	return ret
 }
 
-func allOperators(events monitorapi.EventIntervals) sets.String {
+func allOperators(events monitorapi.Intervals) sets.String {
 	// start with a list of known values
 	knownOperators := sets.NewString(KnownOperators.List()...)
 
@@ -72,8 +72,8 @@ func allOperators(events monitorapi.EventIntervals) sets.String {
 }
 
 // getEventsByOperator returns map keyed by operator locator with all events associated with it.
-func getEventsByOperator(events monitorapi.EventIntervals) map[string]monitorapi.EventIntervals {
-	eventsByClusterOperator := map[string]monitorapi.EventIntervals{}
+func getEventsByOperator(events monitorapi.Intervals) map[string]monitorapi.Intervals {
+	eventsByClusterOperator := map[string]monitorapi.Intervals{}
 	for _, event := range events {
 		operatorName, ok := monitorapi.OperatorFromLocator(event.Locator)
 		if !ok {
@@ -84,7 +84,7 @@ func getEventsByOperator(events monitorapi.EventIntervals) map[string]monitorapi
 	return eventsByClusterOperator
 }
 
-func testOperatorState(interestingCondition configv1.ClusterStatusConditionType, eventIntervals monitorapi.EventIntervals, e2eEventIntervals monitorapi.EventIntervals) []string {
+func testOperatorState(interestingCondition configv1.ClusterStatusConditionType, eventIntervals monitorapi.Intervals, e2eEventIntervals monitorapi.Intervals) []string {
 	failures := []string{}
 
 	for _, eventInterval := range eventIntervals {

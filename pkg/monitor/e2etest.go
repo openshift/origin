@@ -6,9 +6,9 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
-// E2ETestEventIntervals returns only EventIntervals for e2e tests
-func E2ETestEventIntervals(events monitorapi.EventIntervals) monitorapi.EventIntervals {
-	e2eEventIntervals := monitorapi.EventIntervals{}
+// E2ETestEventIntervals returns only Intervals for e2e tests
+func E2ETestEventIntervals(events monitorapi.Intervals) monitorapi.Intervals {
+	e2eEventIntervals := monitorapi.Intervals{}
 	for i := range events {
 		event := events[i]
 		if event.From == event.To {
@@ -23,8 +23,8 @@ func E2ETestEventIntervals(events monitorapi.EventIntervals) monitorapi.EventInt
 }
 
 // FindOverlap finds intervals that overlap with the time between start and end.
-func FindOverlap(intervals monitorapi.EventIntervals, start, end time.Time) monitorapi.EventIntervals {
-	overlappingIntervals := monitorapi.EventIntervals{}
+func FindOverlap(intervals monitorapi.Intervals, start, end time.Time) monitorapi.Intervals {
+	overlappingIntervals := monitorapi.Intervals{}
 	for i := range intervals {
 		interval := intervals[i]
 		switch {

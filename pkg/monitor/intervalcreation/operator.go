@@ -8,23 +8,23 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
-func IntervalsFromEvents_OperatorAvailable(events []*monitorapi.Event, beginning, end time.Time) monitorapi.EventIntervals {
-	return intervalsFromEvents_OperatorStatus(events, beginning, end, configv1.OperatorAvailable, configv1.ConditionTrue, monitorapi.Error)
+func IntervalsFromEvents_OperatorAvailable(intervals monitorapi.Intervals, beginning, end time.Time) monitorapi.Intervals {
+	return intervalsFromEvents_OperatorStatus(intervals, beginning, end, configv1.OperatorAvailable, configv1.ConditionTrue, monitorapi.Error)
 }
 
-func IntervalsFromEvents_OperatorProgressing(events []*monitorapi.Event, beginning, end time.Time) monitorapi.EventIntervals {
-	return intervalsFromEvents_OperatorStatus(events, beginning, end, configv1.OperatorProgressing, configv1.ConditionFalse, monitorapi.Warning)
+func IntervalsFromEvents_OperatorProgressing(intervals monitorapi.Intervals, beginning, end time.Time) monitorapi.Intervals {
+	return intervalsFromEvents_OperatorStatus(intervals, beginning, end, configv1.OperatorProgressing, configv1.ConditionFalse, monitorapi.Warning)
 }
 
-func IntervalsFromEvents_OperatorDegraded(events []*monitorapi.Event, beginning, end time.Time) monitorapi.EventIntervals {
-	return intervalsFromEvents_OperatorStatus(events, beginning, end, configv1.OperatorDegraded, configv1.ConditionFalse, monitorapi.Error)
+func IntervalsFromEvents_OperatorDegraded(intervals monitorapi.Intervals, beginning, end time.Time) monitorapi.Intervals {
+	return intervalsFromEvents_OperatorStatus(intervals, beginning, end, configv1.OperatorDegraded, configv1.ConditionFalse, monitorapi.Error)
 }
 
-func intervalsFromEvents_OperatorStatus(events []*monitorapi.Event, beginning, end time.Time, conditionType configv1.ClusterStatusConditionType, conditionGoodState configv1.ConditionStatus, level monitorapi.EventLevel) monitorapi.EventIntervals {
-	ret := monitorapi.EventIntervals{}
+func intervalsFromEvents_OperatorStatus(intervals monitorapi.Intervals, beginning, end time.Time, conditionType configv1.ClusterStatusConditionType, conditionGoodState configv1.ConditionStatus, level monitorapi.EventLevel) monitorapi.Intervals {
+	ret := monitorapi.Intervals{}
 	operatorToInterestingBadCondition := map[string]*configv1.ClusterOperatorStatusCondition{}
 
-	for _, event := range events {
+	for _, event := range intervals {
 		operatorName, ok := monitorapi.OperatorFromLocator(event.Locator)
 		if !ok {
 			continue
@@ -47,7 +47,7 @@ func intervalsFromEvents_OperatorStatus(events []*monitorapi.Event, beginning, e
 			// don't overwrite a previous condition in a bad state
 			if lastCondition == nil {
 				// force teh last transition time, sinc we think we just transitioned at this instant
-				currentCondition.LastTransitionTime.Time = event.At
+				currentCondition.LastTransitionTime.Time = event.From
 				operatorToInterestingBadCondition[operatorName] = currentCondition
 			}
 			continue
@@ -78,7 +78,7 @@ func intervalsFromEvents_OperatorStatus(events []*monitorapi.Event, beginning, e
 				Message: fmt.Sprintf("condition/%s status/%s reason/%s", conditionType, lastStatus, lastMessage),
 			},
 			From: from,
-			To:   event.At,
+			To:   event.From,
 		})
 	}
 

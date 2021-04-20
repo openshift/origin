@@ -8,8 +8,8 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
-func IntervalsFromEvents_E2ETests(events []*monitorapi.Event, beginning, end time.Time) monitorapi.EventIntervals {
-	ret := monitorapi.EventIntervals{}
+func IntervalsFromEvents_E2ETests(events monitorapi.Intervals, beginning, end time.Time) monitorapi.Intervals {
+	ret := monitorapi.Intervals{}
 	testNameToLastStart := map[string]time.Time{}
 
 	for _, event := range events {
@@ -18,7 +18,7 @@ func IntervalsFromEvents_E2ETests(events []*monitorapi.Event, beginning, end tim
 			continue
 		}
 		if event.Message == "started" {
-			testNameToLastStart[testName] = event.At
+			testNameToLastStart[testName] = event.From
 			continue
 		}
 		if !strings.Contains(event.Message, "finishedStatus/") {
@@ -57,7 +57,7 @@ func IntervalsFromEvents_E2ETests(events []*monitorapi.Event, beginning, end tim
 				Message: fmt.Sprintf("e2e test finished As %q", endState),
 			},
 			From: from,
-			To:   event.At,
+			To:   event.From,
 		})
 	}
 
