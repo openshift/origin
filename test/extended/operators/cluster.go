@@ -40,13 +40,13 @@ func recyclerPod(pod *corev1.Pod) bool {
 	return strings.HasPrefix(pod.Name, "recycler-for-nfs-")
 }
 
-var _ = g.Describe("[sig-arch] Managed cluster should", func() {
+/*var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
 	g.It("have no crashlooping pods in core namespaces over four minutes", func() {
 		crashloopingContainerCheck(inCoreNamespaces, not(recyclerPod))
 	})
-})
+})*/
 
 func crashloopingContainerCheck(podFilters ...podFilter) {
 	c, err := e2e.LoadClientset()
