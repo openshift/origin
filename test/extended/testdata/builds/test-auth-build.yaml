@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Template
 labels:
-  template: gitserver
+  template: gitauth
 metadata:
-  name: gitserver
+  name: gitauth
 parameters:
 - name: SOURCE_URL
   required: true
@@ -17,7 +17,7 @@ objects:
 - apiVersion: v1
   kind: BuildConfig
   metadata:
-    name: gitauthtest
+    name: gitauth
   spec:
     source:
       git:
@@ -31,13 +31,10 @@ objects:
         - name: BUILD_LOGLEVEL
           value: "5"
         from:
-          kind: DockerImage
-          name: quay.io/redhat-developer/test-build-simples2i:latest
+          kind: ImageStreamTag
+          name: nodejs:latest
+          namespace: openshift
       type: Source
-    # this test specifically does a push, to help exercise the code that sets
-    # environment variables on build pods (i.e., by having a source secret and
-    # a push secret, multiple environment variables need to be set correctly for
-    # the build to succeed).
     output:
       to:
         kind: ImageStreamTag
