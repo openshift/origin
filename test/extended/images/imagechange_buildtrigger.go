@@ -2,13 +2,17 @@ package images
 
 import (
 	"context"
+	"encoding/json"
+	"time"
 
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	watchapi "k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -469,23 +473,11 @@ func TestMultipleImageChangeBuildTriggers(t g.GinkgoTInterface, oc *exutil.CLI) 
 	projectAdminBuildClient := buildv1client.NewForConfigOrDie(oc.UserConfig()).BuildV1()
 	projectAdminImageClient := imagev1client.NewForConfigOrDie(oc.UserConfig()).ImageV1()
 
-	created, err := projectAdminBuildClient.BuildConfigs(oc.Namespace()).Create(context.Background(), config, metav1.CreateOptions{})
+	_, err := projectAdminBuildClient.BuildConfigs(oc.Namespace()).Create(context.Background(), config, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
-
-	buildWatch, err := projectAdminBuildClient.Builds(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{ResourceVersion: created.ResourceVersion})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	defer buildWatch.Stop()
-
-	buildConfigWatch, err := projectAdminBuildClient.BuildConfigs(oc.Namespace()).Watch(context.Background(), metav1.ListOptions{ResourceVersion: created.ResourceVersion})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	defer buildConfigWatch.Stop()
-
-	// Builds can continue to produce new events that we don't care about for this test,
-	// so once we've seen the last event we care about for a build, we add it to this
-	// list so we can ignore additional events from that build.
-	ignoreBuilds := make(map[string]struct{})
 
 	for _, tc := range triggersToTest {
+		e2e.Logf("testing trigger %s:%s", tc.name, tc.tag)
 		imageStream := mockImageStream(tc.name, tc.tag)
 		imageStreamMapping := mockStreamMapping(tc.name, tc.tag)
 		imageStream, err = projectAdminImageClient.ImageStreams(oc.Namespace()).Create(context.Background(), imageStream, metav1.CreateOptions{})
@@ -494,60 +486,74 @@ func TestMultipleImageChangeBuildTriggers(t g.GinkgoTInterface, oc *exutil.CLI) 
 		_, err = projectAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(context.Background(), imageStreamMapping, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		var newBuild *buildv1.Build
-		var event watchapi.Event
-		// wait for initial build event from the creation of the imagerepo
-		newBuild, event = filterEvents(t, ignoreBuilds, buildWatch)
-		o.Expect(event.Type).To(o.Equal(watchapi.Added))
-
 		trigger := config.Spec.Triggers[tc.triggerIndex]
-		if trigger.ImageChange.From == nil {
-			strategy := newBuild.Spec.Strategy
-			expectedFromName := "registry:5000/openshift/" + tc.name + ":" + tc.tag
-			var actualFromName string
-			switch {
-			case strategy.SourceStrategy != nil:
-				actualFromName = strategy.SourceStrategy.From.Name
-			case strategy.DockerStrategy != nil:
-				actualFromName = strategy.DockerStrategy.From.Name
-			case strategy.CustomStrategy != nil:
-				actualFromName = strategy.CustomStrategy.From.Name
 
+		err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
+			list, err := projectAdminBuildClient.Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
+			if err != nil {
+				e2e.Logf("error list builds: %s", err.Error())
+				// don't quit, should be able to list builds eventually
+				return false, nil
 			}
-			o.Expect(actualFromName).To(o.Equal(expectedFromName))
-		}
-		newBuild, event = filterEvents(t, ignoreBuilds, buildWatch)
-		o.Expect(event.Type).To(o.Equal(watchapi.Modified))
+			// do not need to wait for build to complete to valiate what we need
+			for _, bld := range list.Items {
+				if trigger.ImageChange.From == nil {
+					strategy := bld.Spec.Strategy
+					expectedFromName := "registry:5000/openshift/" + tc.name + ":" + tc.tag
+					var actualFromName string
+					switch {
+					case strategy.SourceStrategy != nil:
+						actualFromName = strategy.SourceStrategy.From.Name
+					case strategy.DockerStrategy != nil:
+						actualFromName = strategy.DockerStrategy.From.Name
+					case strategy.CustomStrategy != nil:
+						actualFromName = strategy.CustomStrategy.From.Name
 
-		// Make sure the resolution of the build's container image pushspec didn't mutate the persisted API object
-		o.Expect(newBuild.Spec.Output.To.Name).To(o.Equal("image1:outputtag"))
+					}
+					o.Expect(actualFromName).To(o.Equal(expectedFromName))
+				}
+				// Make sure the resolution of the build's container image pushspec didn't mutate the persisted API object
+				o.Expect(bld.Spec.Output.To.Name).To(o.Equal("image1:outputtag"))
+				bcSpecBytes, _ := json.MarshalIndent(bld.Spec.TriggeredBy, "", "    ")
+				e2e.Logf("build %s has triggered by:\n%s", bld.Name, string(bcSpecBytes))
+			}
 
-		// wait for build config to be updated
-		<-buildConfigWatch.ResultChan()
-		updatedConfig, err := projectAdminBuildClient.BuildConfigs(oc.Namespace()).Get(context.Background(), config.Name, metav1.GetOptions{})
+			// see if bc properly updated with image trigger IDs
+			updatedConfig, err := projectAdminBuildClient.BuildConfigs(oc.Namespace()).Get(context.Background(), config.Name, metav1.GetOptions{})
+			if err != nil {
+				// don't quit, should be able to get bc eventually
+				return false, nil
+			}
+			foundInSpec := false
+			foundInStatus := false
+
+			bcJSONBytes, _ := json.MarshalIndent(updatedConfig.Spec.Triggers, "", "    ")
+			e2e.Logf("updated bc trigger:\n%s", string(bcJSONBytes))
+
+			expectedImageTag := "registry:5000/openshift/" + tc.name + ":" + tc.tag
+			for _, specTrigger := range updatedConfig.Spec.Triggers {
+				if specTrigger.ImageChange == nil {
+					continue
+				}
+				if specTrigger.ImageChange.LastTriggeredImageID == expectedImageTag {
+					e2e.Logf("found %s:%s in spec last triggered image IDs", tc.name, tc.tag)
+					foundInSpec = true
+					break
+				}
+			}
+			for _, statusTrigger := range updatedConfig.Status.ImageChangeTriggers {
+				if statusTrigger.LastTriggeredImageID == expectedImageTag {
+					e2e.Logf("found %s:%s in status last triggered image IDs", tc.name, tc.tag)
+					foundInStatus = true
+					break
+				}
+			}
+			if foundInSpec && foundInStatus {
+				return true, nil
+			}
+			e2e.Logf("did not find lastTriggeredImageID information in bc for %s/%s", tc.name, tc.tag)
+			return false, nil
+		})
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// the first tag did not have an image id, so the last trigger field is the pull spec
-		lastTriggeredImageId := updatedConfig.Spec.Triggers[tc.triggerIndex].ImageChange.LastTriggeredImageID
-		expectedImageTag := "registry:5000/openshift/" + tc.name + ":" + tc.tag
-		o.Expect(lastTriggeredImageId).To(o.Equal(expectedImageTag))
-
-		ignoreBuilds[newBuild.Name] = struct{}{}
-
 	}
-}
-
-func filterEvents(t g.GinkgoTInterface, ignoreBuilds map[string]struct{}, buildWatch watchapi.Interface) (newBuild *buildv1.Build, event watchapi.Event) {
-	for {
-		event = <-buildWatch.ResultChan()
-		var ok bool
-		newBuild, ok = event.Object.(*buildv1.Build)
-		if !ok {
-			t.Errorf("unexpected event type (not a Build): %v", event.Object)
-		}
-		if _, exists := ignoreBuilds[newBuild.Name]; !exists {
-			break
-		}
-	}
-	return
 }
