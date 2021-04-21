@@ -148,24 +148,23 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 				nonHAPrefix := "non-HA/"
 				key = nonHAPrefix + key
 
-				if replicas != 1 {
-					rule := fmt.Sprintf("%s/%s", key, "use_single_replica_non_ha")
-					violation := fmt.Sprintf("%s must set replicas to 1 in non-HA mode", rule)
-					if bug, ok := knownBugs[key]; ok {
-						knownBroken = append(knownBroken, fmt.Sprintf("%s (bug %s)", violation, bug))
-					} else {
-						invalidWorkloads = append(invalidWorkloads, violation)
-					}
-				} else if !isSoftAntiAffinity(template.Spec.Affinity, template.Spec.TopologySpreadConstraints) && replicas >= 2 {
-					rule := fmt.Sprintf("%s/%s", key, "use_soft_anti_affinity_non_ha")
-					violation := fmt.Sprintf("%s must set pod anti-affinity preferred during scheduling, with topologyKey 'kubernetes.io/hostname'", rule)
-					if bug, ok := knownBugs[key]; ok {
-						knownBroken = append(knownBroken, fmt.Sprintf("%s (bug %s)", violation, bug))
-					} else {
-						invalidWorkloads = append(invalidWorkloads, violation)
+				// Single replica validation is done via single node topology test
+				if !isSoftAntiAffinity(template.Spec.Affinity, template.Spec.TopologySpreadConstraints) {
+					if replicas > 1 {
+						if meta.Name == "image-registry" && meta.Namespace == "openshift-image-registry" {
+							e2e.Logf("Image registry can have more than one replica even when the cluster " +
+								"is running in non-HA mode")
+							continue
+						}
+						rule := fmt.Sprintf("%s/%s", key, "use_soft_anti_affinity_non_ha")
+						violation := fmt.Sprintf("%s must set pod anti-affinity preferred during scheduling, with topologyKey 'kubernetes.io/hostname'", rule)
+						if bug, ok := knownBugs[key]; ok {
+							knownBroken = append(knownBroken, fmt.Sprintf("%s (bug %s)", violation, bug))
+						} else {
+							invalidWorkloads = append(invalidWorkloads, violation)
+						}
 					}
 				}
-
 			}
 		}
 
@@ -202,6 +201,8 @@ func isSoftAntiAffinity(affinity *corev1.Affinity, spread []corev1.TopologySprea
 				return true
 			}
 		}
+	} else if affinity == nil || affinity.PodAffinity == nil {
+		return true
 	}
 	return false
 }
