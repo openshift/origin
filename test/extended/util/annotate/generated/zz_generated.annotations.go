@@ -863,6 +863,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch][Feature:ClusterUpgrade] Cluster should remain functional during upgrade [Disruptive]": "Cluster should remain functional during upgrade [Disruptive] [Serial]",
 
+	"[Top Level] [sig-arch][Late] clients should not use APIs that are removed in upcoming releases": "clients should not use APIs that are removed in upcoming releases [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-auth] Certificates API [Privileged:ClusterAdmin] should support CSR API operations [Conformance]": "should support CSR API operations [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-auth] Certificates API [Privileged:ClusterAdmin] should support building a client with a CSR": "should support building a client with a CSR [Suite:openshift/conformance/parallel] [Suite:k8s]",
