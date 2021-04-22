@@ -14,6 +14,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	configv1 "github.com/openshift/api/config/v1"
 	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
 	exutil "github.com/openshift/origin/test/extended/util"
 
@@ -38,10 +39,20 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should be able to connect to a service that is idled because a GET on the route will unidle it", func() {
+			infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster-wide infrastructure")
+			switch infra.Status.PlatformStatus.Type {
+			case configv1.OvirtPlatformType, configv1.LibvirtPlatformType, configv1.VSpherePlatformType:
+				// Skip on platforms where the default
+				// router is not exposed by a load
+				// balancer service.
+				g.Skip("https://bugzilla.redhat.com/show_bug.cgi?id=1933114")
+			}
+
 			timeout := 15 * time.Minute
 
 			g.By(fmt.Sprintf("creating test fixture from a config file %q", configPath))
-			err := oc.Run("new-app").Args("-f", configPath).Execute()
+			err = oc.Run("new-app").Args("-f", configPath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to create test fixture")
 
 			g.By("Waiting for pods to be running")
