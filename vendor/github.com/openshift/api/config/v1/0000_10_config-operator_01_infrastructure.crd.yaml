@@ -107,6 +107,10 @@ spec:
                     description: BareMetal contains settings specific to the BareMetal
                       platform.
                     type: object
+                  equinixMetal:
+                    description: EquinixMetal contains settings specific to the Equinix
+                      Metal infrastructure provider.
+                    type: object
                   gcp:
                     description: GCP contains settings specific to the Google Cloud
                       Platform infrastructure provider.
@@ -134,9 +138,10 @@ spec:
                       machine creation and deletion, and other integrations are enabled.
                       If None, no infrastructure automation is enabled. Allowed values
                       are "AWS", "Azure", "BareMetal", "GCP", "Libvirt", "OpenStack",
-                      "VSphere", "oVirt", "KubeVirt" and "None". Individual components
-                      may not support all platforms, and must handle unrecognized
-                      platforms as None if they do not support that platform.
+                      "VSphere", "oVirt", "KubeVirt", "EquinixMetal", and "None".
+                      Individual components may not support all platforms, and must
+                      handle unrecognized platforms as None if they do not support
+                      that platform.
                     type: string
                     enum:
                     - ""
@@ -151,6 +156,7 @@ spec:
                     - oVirt
                     - IBMCloud
                     - KubeVirt
+                    - EquinixMetal
                   vsphere:
                     description: VSphere contains settings specific to the VSphere
                       infrastructure provider.
@@ -227,6 +233,7 @@ spec:
                 - oVirt
                 - IBMCloud
                 - KubeVirt
+                - EquinixMetal
               platformStatus:
                 description: platformStatus holds status information specific to the
                   underlying infrastructure provider.
@@ -241,6 +248,37 @@ spec:
                         description: region holds the default AWS region for new AWS
                           resources created by the cluster.
                         type: string
+                      resourceTags:
+                        description: resourceTags is a list of additional tags to
+                          apply to AWS resources created for the cluster. See https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html
+                          for information on tagging AWS resources. AWS supports a
+                          maximum of 50 tags per resource. OpenShift reserves 25 tags
+                          for its use, leaving 25 tags available for the user.
+                        type: array
+                        maxItems: 25
+                        items:
+                          description: AWSResourceTag is a tag to apply to AWS resources
+                            created for the cluster.
+                          type: object
+                          required:
+                          - key
+                          - value
+                          properties:
+                            key:
+                              description: key is the key of the tag
+                              type: string
+                              maxLength: 128
+                              minLength: 1
+                              pattern: ^[0-9A-Za-z_.:/=+-@]+$
+                            value:
+                              description: value is the value of the tag. Some AWS
+                                service do not support empty values. Since tags are
+                                added to resources in many services, the length of
+                                the tag value must meet the requirements of all services.
+                              type: string
+                              maxLength: 256
+                              minLength: 1
+                              pattern: ^[0-9A-Za-z_.:/=+-@]+$
                       serviceEndpoints:
                         description: ServiceEndpoints list contains custom endpoints
                           which will override default service endpoint of AWS Services.
@@ -317,6 +355,26 @@ spec:
                           In order to minimize necessary changes to the datacenter
                           DNS, a DNS service is hosted as a static pod to serve those
                           hostnames to the nodes in the cluster.
+                        type: string
+                  equinixMetal:
+                    description: EquinixMetal contains settings specific to the Equinix
+                      Metal infrastructure provider.
+                    type: object
+                    properties:
+                      apiServerInternalIP:
+                        description: apiServerInternalIP is an IP address to contact
+                          the Kubernetes API server that can be used by components
+                          inside the cluster, like kubelets using the infrastructure
+                          rather than Kubernetes networking. It is the IP that the
+                          Infrastructure.status.apiServerInternalURI points to. It
+                          is the IP for a self-hosted load balancer in front of the
+                          API servers.
+                        type: string
+                      ingressIP:
+                        description: ingressIP is an external IP which routes to the
+                          default ingress controller. The IP is a suitable target
+                          of a wildcard DNS record used to resolve default route host
+                          names.
                         type: string
                   gcp:
                     description: GCP contains settings specific to the Google Cloud
@@ -431,11 +489,12 @@ spec:
                       machine creation and deletion, and other integrations are enabled.
                       If None, no infrastructure automation is enabled. Allowed values
                       are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"Libvirt\",
-                      \"OpenStack\", \"VSphere\", \"oVirt\", and \"None\". Individual
-                      components may not support all platforms, and must handle unrecognized
-                      platforms as None if they do not support that platform. \n This
-                      value will be synced with to the `status.platform` and `status.platformStatus.type`.
-                      Currently this value cannot be changed once set."
+                      \"OpenStack\", \"VSphere\", \"oVirt\", \"EquinixMetal\", and
+                      \"None\". Individual components may not support all platforms,
+                      and must handle unrecognized platforms as None if they do not
+                      support that platform. \n This value will be synced with to
+                      the `status.platform` and `status.platformStatus.type`. Currently
+                      this value cannot be changed once set."
                     type: string
                     enum:
                     - ""
@@ -450,6 +509,7 @@ spec:
                     - oVirt
                     - IBMCloud
                     - KubeVirt
+                    - EquinixMetal
                   vsphere:
                     description: VSphere contains settings specific to the VSphere
                       infrastructure provider.

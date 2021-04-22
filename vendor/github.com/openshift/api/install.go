@@ -14,7 +14,6 @@ import (
 	kautoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
 	kbatchv1 "k8s.io/api/batch/v1"
 	kbatchv1beta1 "k8s.io/api/batch/v1beta1"
-	kbatchv2alpha1 "k8s.io/api/batch/v2alpha1"
 	kcertificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	kcorev1 "k8s.io/api/core/v1"
 	keventsv1beta1 "k8s.io/api/events/v1beta1"
@@ -32,15 +31,18 @@ import (
 	kstoragev1beta1 "k8s.io/api/storage/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/openshift/api/apiserver"
 	"github.com/openshift/api/apps"
 	"github.com/openshift/api/authorization"
 	"github.com/openshift/api/build"
+	"github.com/openshift/api/cloudnetwork"
 	"github.com/openshift/api/config"
 	"github.com/openshift/api/helm"
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/imageregistry"
 	"github.com/openshift/api/kubecontrolplane"
 	"github.com/openshift/api/network"
+	"github.com/openshift/api/networkoperator"
 	"github.com/openshift/api/oauth"
 	"github.com/openshift/api/openshiftcontrolplane"
 	"github.com/openshift/api/operator"
@@ -61,6 +63,7 @@ import (
 
 var (
 	schemeBuilder = runtime.NewSchemeBuilder(
+		apiserver.Install,
 		apps.Install,
 		authorization.Install,
 		build.Install,
@@ -69,7 +72,9 @@ var (
 		image.Install,
 		imageregistry.Install,
 		kubecontrolplane.Install,
+		cloudnetwork.Install,
 		network.Install,
+		networkoperator.Install,
 		oauth.Install,
 		openshiftcontrolplane.Install,
 		operator.Install,
@@ -101,7 +106,6 @@ var (
 		kautoscalingv2beta1.AddToScheme,
 		kbatchv1.AddToScheme,
 		kbatchv1beta1.AddToScheme,
-		kbatchv2alpha1.AddToScheme,
 		kcertificatesv1beta1.AddToScheme,
 		kcorev1.AddToScheme,
 		keventsv1beta1.AddToScheme,

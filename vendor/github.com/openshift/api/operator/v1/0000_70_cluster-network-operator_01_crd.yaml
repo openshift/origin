@@ -207,6 +207,16 @@ spec:
                           Kuryr keeps a number of ports ready to be attached to pods.
                           By default port prepopulation is disabled.
                         type: boolean
+                      mtu:
+                        description: mtu is the MTU that Kuryr should use when creating
+                          pod networks in Neutron. The value has to be lower or equal
+                          to the MTU of the nodes network and Neutron has to allow
+                          creation of tenant networks with such MTU. If unset Pod
+                          networks will be created with the same MTU as the nodes
+                          network has.
+                        type: integer
+                        format: int32
+                        minimum: 0
                       openStackServiceNetwork:
                         description: openStackServiceNetwork contains the CIDR of
                           network from which to allocate IPs for OpenStack Octavia's
@@ -331,6 +341,45 @@ spec:
                         type: integer
                         format: int32
                         minimum: 0
+                      policyAuditConfig:
+                        description: policyAuditConfig is the configuration for network
+                          policy audit events. If unset, reported defaults are used.
+                        type: object
+                        properties:
+                          destination:
+                            description: 'destination is the location for policy log
+                              messages. Regardless of this config, persistent logs
+                              will always be dumped to the host at /var/log/ovn/ however
+                              Additionally syslog output may be configured as follows.
+                              Valid values are: - "libc" -> to use the libc syslog()
+                              function of the host node''s journdald process - "udp:host:port"
+                              -> for sending syslog over UDP - "unix:file" -> for
+                              using the UNIX domain socket directly - "null" -> to
+                              discard all messages logged to syslog The default is
+                              "null"'
+                            type: string
+                            default: "null"
+                          maxFileSize:
+                            description: maxFilesSize is the max size an ACL_audit
+                              log file is allowed to reach before rotation occurs
+                              Units are in MB and the Default is 50MB
+                            type: integer
+                            format: int32
+                            default: 50
+                            minimum: 1
+                          rateLimit:
+                            description: rateLimit is the approximate maximum number
+                              of messages to generate per-second per-node. If unset
+                              the default of 20 msg/sec is used.
+                            type: integer
+                            format: int32
+                            default: 20
+                            minimum: 1
+                          syslogFacility:
+                            description: syslogFacility the RFC5424 facility for generated
+                              messages, e.g. "kern". Default is "local0"
+                            type: string
+                            default: local0
                   type:
                     description: type is the type of network All NetworkTypes are
                       supported except for NetworkTypeRaw
@@ -355,6 +404,53 @@ spec:
                   additional load of the pods performing the checks.
                 type: boolean
                 default: false
+              exportNetworkFlows:
+                description: exportNetworkFlows enables and configures the export
+                  of network flow metadata from the pod network by using protocols
+                  NetFlow, SFlow or IPFIX. Currently only supported on OVN-Kubernetes
+                  plugin. If unset, flows will not be exported to any collector.
+                type: object
+                properties:
+                  ipfix:
+                    description: ipfix defines IPFIX configuration.
+                    type: object
+                    properties:
+                      collectors:
+                        description: ipfixCollectors is list of strings formatted
+                          as ip:port with a maximum of ten items
+                        type: array
+                        maxItems: 10
+                        minItems: 1
+                        items:
+                          type: string
+                          pattern: ^(([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]):[0-9]+$
+                  netFlow:
+                    description: netFlow defines the NetFlow configuration.
+                    type: object
+                    properties:
+                      collectors:
+                        description: netFlow defines the NetFlow collectors that will
+                          consume the flow data exported from OVS. It is a list of
+                          strings formatted as ip:port with a maximum of ten items
+                        type: array
+                        maxItems: 10
+                        minItems: 1
+                        items:
+                          type: string
+                          pattern: ^(([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]):[0-9]+$
+                  sFlow:
+                    description: sFlow defines the SFlow configuration.
+                    type: object
+                    properties:
+                      collectors:
+                        description: sFlowCollectors is list of strings formatted
+                          as ip:port with a maximum of ten items
+                        type: array
+                        maxItems: 10
+                        minItems: 1
+                        items:
+                          type: string
+                          pattern: ^(([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]):[0-9]+$
               kubeProxyConfig:
                 description: kubeProxyConfig lets us configure desired proxy configuration.
                   If not specified, sensible defaults will be chosen by OpenShift
@@ -401,6 +497,17 @@ spec:
                   should manage the component
                 type: string
                 pattern: ^(Managed|Unmanaged|Force|Removed)$
+              migration:
+                description: migration enables and configures the cluster network
+                  migration. Setting this to the target network type to allow changing
+                  the default network. If unset, the operation of changing cluster
+                  default network plugin will be rejected.
+                type: object
+                properties:
+                  networkType:
+                    description: networkType is the target type of network migration
+                      The supported values are OpenShiftSDN, OVNKubernetes
+                    type: string
               observedConfig:
                 description: observedConfig holds a sparse config that controller
                   has observed from the cluster state.  It exists in spec because
@@ -437,6 +544,17 @@ spec:
                 type: object
                 nullable: true
                 x-kubernetes-preserve-unknown-fields: true
+              useMultiNetworkPolicy:
+                description: useMultiNetworkPolicy enables a controller which allows
+                  for MultiNetworkPolicy objects to be used on additional networks
+                  as created by Multus CNI. MultiNetworkPolicy are similar to NetworkPolicy
+                  objects, but NetworkPolicy objects only apply to the primary interface.
+                  With MultiNetworkPolicy, you can control the traffic that a pod
+                  can receive over the secondary interfaces. If unset, this property
+                  defaults to 'false' and MultiNetworkPolicy objects are ignored.
+                  If 'disableMultiNetwork' is 'true' then the value of this field
+                  is ignored.
+                type: boolean
           status:
             description: NetworkStatus is detailed operator status, which is distilled
               up to the Network clusteroperator object.

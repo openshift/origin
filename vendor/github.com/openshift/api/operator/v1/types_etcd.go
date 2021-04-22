@@ -8,7 +8,7 @@ import (
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Etcd provides information to configure an operator to manage kube-apiserver.
+// Etcd provides information to configure an operator to manage etcd.
 type Etcd struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`

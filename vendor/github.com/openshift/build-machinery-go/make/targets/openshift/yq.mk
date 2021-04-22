@@ -1,3 +1,5 @@
+ifndef _YQ_MK_
+_YQ_MK_ := defined
 self_dir :=$(dir $(lastword $(MAKEFILE_LIST)))
 
 YQ ?=$(PERMANENT_TMP_GOPATH)/bin/yq
@@ -30,3 +32,4 @@ include $(addprefix $(self_dir), \
 	../../lib/golang.mk \
 	../../lib/tmp.mk \
 )
+endif

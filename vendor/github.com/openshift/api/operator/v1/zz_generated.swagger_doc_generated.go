@@ -120,8 +120,7 @@ func (AuthenticationList) SwaggerDoc() map[string]string {
 }
 
 var map_AuthenticationStatus = map[string]string{
-	"managingOAuthAPIServer": "ManagingOAuthAPIServer indicates whether this operator is managing OAuth related APIs. Setting this field to true will cause OAS-O to step down. Note that this field will be removed in the future releases, once https://github.com/openshift/enhancements/blob/master/enhancements/authentication/separate-oauth-resources.md is fully implemented",
-	"oauthAPIServer":         "OAuthAPIServer holds status specific only to oauth-apiserver",
+	"oauthAPIServer": "OAuthAPIServer holds status specific only to oauth-apiserver",
 }
 
 func (AuthenticationStatus) SwaggerDoc() map[string]string {
@@ -205,6 +204,8 @@ var map_ConsoleCustomization = map[string]string{
 	"customProductName":    "customProductName is the name that will be displayed in page titles, logo alt text, and the about dialog instead of the normal OpenShift product name.",
 	"customLogoFile":       "customLogoFile replaces the default OpenShift logo in the masthead and about dialog. It is a reference to a ConfigMap in the openshift-config namespace. This can be created with a command like 'oc create configmap custom-logo --from-file=/path/to/file -n openshift-config'. Image size must be less than 1 MB due to constraints on the ConfigMap size. The ConfigMap key should include a file extension so that the console serves the file with the correct MIME type. Recommended logo specifications: Dimensions: Max height of 68px and max width of 200px SVG format preferred",
 	"developerCatalog":     "developerCatalog allows to configure the shown developer catalog categories.",
+	"projectAccess":        "projectAccess allows customizing the available list of ClusterRoles in the Developer perspective Project access page which can be used by a project admin to specify roles to other users and restrict access within the project. If set, the list will replace the default ClusterRole options.",
+	"quickStarts":          "quickStarts allows customization of available ConsoleQuickStart resources in console.",
 }
 
 func (ConsoleCustomization) SwaggerDoc() map[string]string {
@@ -267,6 +268,24 @@ var map_DeveloperConsoleCatalogCustomization = map[string]string{
 
 func (DeveloperConsoleCatalogCustomization) SwaggerDoc() map[string]string {
 	return map_DeveloperConsoleCatalogCustomization
+}
+
+var map_ProjectAccess = map[string]string{
+	"":                      "ProjectAccess contains options for project access roles",
+	"availableClusterRoles": "availableClusterRoles is the list of ClusterRole names that are assignable to users through the project access tab.",
+}
+
+func (ProjectAccess) SwaggerDoc() map[string]string {
+	return map_ProjectAccess
+}
+
+var map_QuickStarts = map[string]string{
+	"":         "QuickStarts allow cluster admins to customize available ConsoleQuickStart resources.",
+	"disabled": "disabled is a list of ConsoleQuickStart resource names that are not shown to users.",
+}
+
+func (QuickStarts) SwaggerDoc() map[string]string {
+	return map_QuickStarts
 }
 
 var map_StatuspageProvider = map[string]string{
@@ -364,9 +383,20 @@ func (DNSList) SwaggerDoc() map[string]string {
 	return map_DNSList
 }
 
+var map_DNSNodePlacement = map[string]string{
+	"":             "DNSNodePlacement describes the node scheduling configuration for DNS pods.",
+	"nodeSelector": "nodeSelector is the node selector applied to DNS pods.\n\nIf empty, the default is used, which is currently the following:\n\n  kubernetes.io/os: linux\n\nThis default is subject to change.\n\nIf set, the specified selector is used and replaces the default.",
+	"tolerations":  "tolerations is a list of tolerations applied to DNS pods.\n\nThe default is an empty list.  This default is subject to change.\n\nSee https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/",
+}
+
+func (DNSNodePlacement) SwaggerDoc() map[string]string {
+	return map_DNSNodePlacement
+}
+
 var map_DNSSpec = map[string]string{
-	"":        "DNSSpec is the specification of the desired behavior of the DNS.",
-	"servers": "servers is a list of DNS resolvers that provide name query delegation for one or more subdomains outside the scope of the cluster domain. If servers consists of more than one Server, longest suffix match will be used to determine the Server.\n\nFor example, if there are two Servers, one for \"foo.com\" and another for \"a.foo.com\", and the name query is for \"www.a.foo.com\", it will be routed to the Server with Zone \"a.foo.com\".\n\nIf this field is nil, no servers are created.",
+	"":              "DNSSpec is the specification of the desired behavior of the DNS.",
+	"servers":       "servers is a list of DNS resolvers that provide name query delegation for one or more subdomains outside the scope of the cluster domain. If servers consists of more than one Server, longest suffix match will be used to determine the Server.\n\nFor example, if there are two Servers, one for \"foo.com\" and another for \"a.foo.com\", and the name query is for \"www.a.foo.com\", it will be routed to the Server with Zone \"a.foo.com\".\n\nIf this field is nil, no servers are created.",
+	"nodePlacement": "nodePlacement provides explicit control over the scheduling of DNS pods.\n\nGenerally, it is useful to run a DNS pod on every node so that DNS queries are always handled by a local DNS pod instead of going over the network to a DNS pod on another node.  However, security policies may require restricting the placement of DNS pods to specific nodes. For example, if a security policy prohibits pods on arbitrary nodes from communicating with the API, a node selector can be specified to restrict DNS pods to nodes that are permitted to communicate with the API.  Conversely, if running DNS pods on nodes with a particular taint is desired, a toleration can be specified for that taint.\n\nIf unset, defaults are used. See nodePlacement for more details.",
 }
 
 func (DNSSpec) SwaggerDoc() map[string]string {
@@ -405,7 +435,7 @@ func (Server) SwaggerDoc() map[string]string {
 }
 
 var map_Etcd = map[string]string{
-	"": "Etcd provides information to configure an operator to manage kube-apiserver.",
+	"": "Etcd provides information to configure an operator to manage etcd.",
 }
 
 func (Etcd) SwaggerDoc() map[string]string {
@@ -481,8 +511,18 @@ func (EndpointPublishingStrategy) SwaggerDoc() map[string]string {
 	return map_EndpointPublishingStrategy
 }
 
+var map_GCPLoadBalancerParameters = map[string]string{
+	"":             "GCPLoadBalancerParameters provides configuration settings that are specific to GCP load balancers.",
+	"clientAccess": "clientAccess describes how client access is restricted for internal load balancers.\n\nValid values are: * \"Global\": Specifying an internal load balancer with Global client access\n  allows clients from any region within the VPC to communicate with the load\n  balancer.\n\n    https://cloud.google.com/kubernetes-engine/docs/how-to/internal-load-balancing#global_access\n\n* \"Local\": Specifying an internal load balancer with Local client access\n  means only clients within the same region (and VPC) as the GCP load balancer\n  can communicate with the load balancer. Note that this is the default behavior.\n\n    https://cloud.google.com/load-balancing/docs/internal#client_access",
+}
+
+func (GCPLoadBalancerParameters) SwaggerDoc() map[string]string {
+	return map_GCPLoadBalancerParameters
+}
+
 var map_HostNetworkStrategy = map[string]string{
-	"": "HostNetworkStrategy holds parameters for the HostNetwork endpoint publishing strategy.",
+	"":         "HostNetworkStrategy holds parameters for the HostNetwork endpoint publishing strategy.",
+	"protocol": "protocol specifies whether the IngressController expects incoming connections to use plain TCP or whether the IngressController expects PROXY protocol.\n\nPROXY protocol can be used with load balancers that support it to communicate the source addresses of client connections when forwarding those connections to the IngressController.  Using PROXY protocol enables the IngressController to report those source addresses instead of reporting the load balancer's address in HTTP headers and logs.  Note that enabling PROXY protocol on the IngressController will cause connections to fail if you are not using a load balancer that uses PROXY protocol to forward connections to the IngressController.  See http://www.haproxy.org/download/2.2/doc/proxy-protocol.txt for information about PROXY protocol.\n\nThe following values are valid for this field:\n\n* The empty string. * \"TCP\". * \"PROXY\".\n\nThe empty string specifies the default, which is TCP without PROXY protocol.  Note that the default is subject to change.",
 }
 
 func (HostNetworkStrategy) SwaggerDoc() map[string]string {
@@ -580,6 +620,7 @@ func (IngressControllerLogging) SwaggerDoc() map[string]string {
 var map_IngressControllerSpec = map[string]string{
 	"":                           "IngressControllerSpec is the specification of the desired behavior of the IngressController.",
 	"domain":                     "domain is a DNS name serviced by the ingress controller and is used to configure multiple features:\n\n* For the LoadBalancerService endpoint publishing strategy, domain is\n  used to configure DNS records. See endpointPublishingStrategy.\n\n* When using a generated default certificate, the certificate will be valid\n  for domain and its subdomains. See defaultCertificate.\n\n* The value is published to individual Route statuses so that end-users\n  know where to target external DNS records.\n\ndomain must be unique among all IngressControllers, and cannot be updated.\n\nIf empty, defaults to ingress.config.openshift.io/cluster .spec.domain.",
+	"httpErrorCodePages":         "httpErrorCodePages specifies a configmap with custom error pages. The administrator must create this configmap in the openshift-config namespace. This configmap should have keys in the format \"error-page-<error code>.http\", where <error code> is an HTTP error code. For example, \"error-page-503.http\" defines an error page for HTTP 503 responses. Currently only error pages for 503 and 404 responses can be customized. Each value in the configmap should be the full response, including HTTP headers. Eg- https://raw.githubusercontent.com/openshift/router/fadab45747a9b30cc3f0a4b41ad2871f95827a93/images/router/haproxy/conf/error-page-503.http If this field is empty, the ingress controller uses the default error pages.",
 	"replicas":                   "replicas is the desired number of ingress controller replicas. If unset, defaults to 2.",
 	"endpointPublishingStrategy": "endpointPublishingStrategy is used to publish the ingress controller endpoints to other networks, enable load balancer integrations, etc.\n\nIf unset, the default is based on infrastructure.config.openshift.io/cluster .status.platform:\n\n  AWS:      LoadBalancerService (with External scope)\n  Azure:    LoadBalancerService (with External scope)\n  GCP:      LoadBalancerService (with External scope)\n  IBMCloud: LoadBalancerService (with External scope)\n  Libvirt:  HostNetwork\n\nAny other platform types (including None) default to HostNetwork.\n\nendpointPublishingStrategy cannot be updated.",
 	"defaultCertificate":         "defaultCertificate is a reference to a secret containing the default certificate served by the ingress controller. When Routes don't specify their own certificate, defaultCertificate is used.\n\nThe secret must contain the following keys and data:\n\n  tls.crt: certificate file contents\n  tls.key: key file contents\n\nIf unset, a wildcard certificate is automatically generated and used. The certificate is valid for the ingress controller domain (and subdomains) and the generated certificate's CA will be automatically integrated with the cluster's trust store.\n\nIf a wildcard certificate is used and shared by multiple HTTP/2 enabled routes (which implies ALPN) then clients (i.e., notably browsers) are at liberty to reuse open connections. This means a client can reuse a connection to another route and that is likely to fail. This behaviour is generally known as connection coalescing.\n\nThe in-use certificate (whether generated or user-specified) will be automatically integrated with OpenShift's built-in OAuth server.",
@@ -590,6 +631,8 @@ var map_IngressControllerSpec = map[string]string{
 	"routeAdmission":             "routeAdmission defines a policy for handling new route claims (for example, to allow or deny claims across namespaces).\n\nIf empty, defaults will be applied. See specific routeAdmission fields for details about their defaults.",
 	"logging":                    "logging defines parameters for what should be logged where.  If this field is empty, operational logs are enabled but access logs are disabled.",
 	"httpHeaders":                "httpHeaders defines policy for HTTP headers.\n\nIf this field is empty, the default values are used.",
+	"tuningOptions":              "tuningOptions defines parameters for adjusting the performance of ingress controller pods. All fields are optional and will use their respective defaults if not set. See specific tuningOptions fields for more details.\n\nSetting fields within tuningOptions is generally not recommended. The default values are suitable for most configurations.",
+	"unsupportedConfigOverrides": "unsupportedConfigOverrides allows specifying unsupported configuration options.  Its use is unsupported.",
 }
 
 func (IngressControllerSpec) SwaggerDoc() map[string]string {
@@ -609,6 +652,17 @@ var map_IngressControllerStatus = map[string]string{
 
 func (IngressControllerStatus) SwaggerDoc() map[string]string {
 	return map_IngressControllerStatus
+}
+
+var map_IngressControllerTuningOptions = map[string]string{
+	"":                            "IngressControllerTuningOptions specifies options for tuning the performance of ingress controller pods",
+	"headerBufferBytes":           "headerBufferBytes describes how much memory should be reserved (in bytes) for IngressController connection sessions. Note that this value must be at least 16384 if HTTP/2 is enabled for the IngressController (https://tools.ietf.org/html/rfc7540). If this field is empty, the IngressController will use a default value of 32768 bytes.\n\nSetting this field is generally not recommended as headerBufferBytes values that are too small may break the IngressController and headerBufferBytes values that are too large could cause the IngressController to use significantly more memory than necessary.",
+	"headerBufferMaxRewriteBytes": "headerBufferMaxRewriteBytes describes how much memory should be reserved (in bytes) from headerBufferBytes for HTTP header rewriting and appending for IngressController connection sessions. Note that incoming HTTP requests will be limited to (headerBufferBytes - headerBufferMaxRewriteBytes) bytes, meaning headerBufferBytes must be greater than headerBufferMaxRewriteBytes. If this field is empty, the IngressController will use a default value of 8192 bytes.\n\nSetting this field is generally not recommended as headerBufferMaxRewriteBytes values that are too small may break the IngressController and headerBufferMaxRewriteBytes values that are too large could cause the IngressController to use significantly more memory than necessary.",
+	"threadCount":                 "threadCount defines the number of threads created per HAProxy process. Creating more threads allows each ingress controller pod to handle more connections, at the cost of more system resources being used. If this field is empty, the IngressController will use the default value.  The current default is 4 threads, but this may change in future releases.\n\nSetting this field is generally not recommended. Increasing the number of HAProxy threads allows ingress controller pods to utilize more CPU time under load, potentially starving other pods if set too high. Reducing the number of threads may cause the ingress controller to perform poorly.",
+}
+
+func (IngressControllerTuningOptions) SwaggerDoc() map[string]string {
+	return map_IngressControllerTuningOptions
 }
 
 var map_LoadBalancerStrategy = map[string]string{
@@ -634,7 +688,7 @@ func (LoggingDestination) SwaggerDoc() map[string]string {
 
 var map_NodePlacement = map[string]string{
 	"":             "NodePlacement describes node scheduling configuration for an ingress controller.",
-	"nodeSelector": "nodeSelector is the node selector applied to ingress controller deployments.\n\nIf unset, the default is:\n\n  beta.kubernetes.io/os: linux\n  node-role.kubernetes.io/worker: ''\n\nIf set, the specified selector is used and replaces the default.",
+	"nodeSelector": "nodeSelector is the node selector applied to ingress controller deployments.\n\nIf unset, the default is:\n\n  kubernetes.io/os: linux\n  node-role.kubernetes.io/worker: ''\n\nIf set, the specified selector is used and replaces the default.",
 	"tolerations":  "tolerations is a list of tolerations applied to ingress controller deployments.\n\nThe default is an empty list.\n\nSee https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/",
 }
 
@@ -643,7 +697,8 @@ func (NodePlacement) SwaggerDoc() map[string]string {
 }
 
 var map_NodePortStrategy = map[string]string{
-	"": "NodePortStrategy holds parameters for the NodePortService endpoint publishing strategy.",
+	"":         "NodePortStrategy holds parameters for the NodePortService endpoint publishing strategy.",
+	"protocol": "protocol specifies whether the IngressController expects incoming connections to use plain TCP or whether the IngressController expects PROXY protocol.\n\nPROXY protocol can be used with load balancers that support it to communicate the source addresses of client connections when forwarding those connections to the IngressController.  Using PROXY protocol enables the IngressController to report those source addresses instead of reporting the load balancer's address in HTTP headers and logs.  Note that enabling PROXY protocol on the IngressController will cause connections to fail if you are not using a load balancer that uses PROXY protocol to forward connections to the IngressController.  See http://www.haproxy.org/download/2.2/doc/proxy-protocol.txt for information about PROXY protocol.\n\nThe following values are valid for this field:\n\n* The empty string. * \"TCP\". * \"PROXY\".\n\nThe empty string specifies the default, which is TCP without PROXY protocol.  Note that the default is subject to change.",
 }
 
 func (NodePortStrategy) SwaggerDoc() map[string]string {
@@ -662,6 +717,7 @@ var map_ProviderLoadBalancerParameters = map[string]string{
 	"":     "ProviderLoadBalancerParameters holds desired load balancer information specific to the underlying infrastructure provider.",
 	"type": "type is the underlying infrastructure provider for the load balancer. Allowed values are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"OpenStack\", and \"VSphere\".",
 	"aws":  "aws provides configuration settings that are specific to AWS load balancers.\n\nIf empty, defaults will be applied. See specific aws fields for details about their defaults.",
+	"gcp":  "gcp provides configuration settings that are specific to GCP load balancers.\n\nIf empty, defaults will be applied. See specific gcp fields for details about their defaults.",
 }
 
 func (ProviderLoadBalancerParameters) SwaggerDoc() map[string]string {
@@ -777,6 +833,16 @@ func (DefaultNetworkDefinition) SwaggerDoc() map[string]string {
 	return map_DefaultNetworkDefinition
 }
 
+var map_ExportNetworkFlows = map[string]string{
+	"netFlow": "netFlow defines the NetFlow configuration.",
+	"sFlow":   "sFlow defines the SFlow configuration.",
+	"ipfix":   "ipfix defines IPFIX configuration.",
+}
+
+func (ExportNetworkFlows) SwaggerDoc() map[string]string {
+	return map_ExportNetworkFlows
+}
+
 var map_HybridOverlayConfig = map[string]string{
 	"hybridClusterNetwork":   "HybridClusterNetwork defines a network space given to nodes on an additional overlay network.",
 	"hybridOverlayVXLANPort": "HybridOverlayVXLANPort defines the VXLAN port number to be used by the additional overlay network. Default is 4789",
@@ -796,6 +862,14 @@ func (IPAMConfig) SwaggerDoc() map[string]string {
 	return map_IPAMConfig
 }
 
+var map_IPFIXConfig = map[string]string{
+	"collectors": "ipfixCollectors is list of strings formatted as ip:port with a maximum of ten items",
+}
+
+func (IPFIXConfig) SwaggerDoc() map[string]string {
+	return map_IPFIXConfig
+}
+
 var map_KuryrConfig = map[string]string{
 	"":                             "KuryrConfig configures the Kuryr-Kubernetes SDN",
 	"daemonProbesPort":             "The port kuryr-daemon will listen for readiness and liveness requests.",
@@ -805,10 +879,19 @@ var map_KuryrConfig = map[string]string{
 	"poolMaxPorts":                 "poolMaxPorts sets a maximum number of free ports that are being kept in a port pool. If the number of ports exceeds this setting, free ports will get deleted. Setting 0 will disable this upper bound, effectively preventing pools from shrinking and this is the default value. For more information about port pools see enablePortPoolsPrepopulation setting.",
 	"poolMinPorts":                 "poolMinPorts sets a minimum number of free ports that should be kept in a port pool. If the number of ports is lower than this setting, new ports will get created and added to pool. The default is 1. For more information about port pools see enablePortPoolsPrepopulation setting.",
 	"poolBatchPorts":               "poolBatchPorts sets a number of ports that should be created in a single batch request to extend the port pool. The default is 3. For more information about port pools see enablePortPoolsPrepopulation setting.",
+	"mtu":                          "mtu is the MTU that Kuryr should use when creating pod networks in Neutron. The value has to be lower or equal to the MTU of the nodes network and Neutron has to allow creation of tenant networks with such MTU. If unset Pod networks will be created with the same MTU as the nodes network has.",
 }
 
 func (KuryrConfig) SwaggerDoc() map[string]string {
 	return map_KuryrConfig
+}
+
+var map_NetFlowConfig = map[string]string{
+	"collectors": "netFlow defines the NetFlow collectors that will consume the flow data exported from OVS. It is a list of strings formatted as ip:port with a maximum of ten items",
+}
+
+func (NetFlowConfig) SwaggerDoc() map[string]string {
+	return map_NetFlowConfig
 }
 
 var map_Network = map[string]string{
@@ -827,6 +910,15 @@ func (NetworkList) SwaggerDoc() map[string]string {
 	return map_NetworkList
 }
 
+var map_NetworkMigration = map[string]string{
+	"":            "NetworkMigration represents the cluster network configuration.",
+	"networkType": "networkType is the target type of network migration The supported values are OpenShiftSDN, OVNKubernetes",
+}
+
+func (NetworkMigration) SwaggerDoc() map[string]string {
+	return map_NetworkMigration
+}
+
 var map_NetworkSpec = map[string]string{
 	"":                          "NetworkSpec is the top-level network configuration object.",
 	"clusterNetwork":            "clusterNetwork is the IP address pool to use for pod IPs. Some network providers, e.g. OpenShift SDN, support multiple ClusterNetworks. Others only support one. This is equivalent to the cluster-cidr.",
@@ -834,9 +926,12 @@ var map_NetworkSpec = map[string]string{
 	"defaultNetwork":            "defaultNetwork is the \"default\" network that all pods will receive",
 	"additionalNetworks":        "additionalNetworks is a list of extra networks to make available to pods when multiple networks are enabled.",
 	"disableMultiNetwork":       "disableMultiNetwork specifies whether or not multiple pod network support should be disabled. If unset, this property defaults to 'false' and multiple network support is enabled.",
+	"useMultiNetworkPolicy":     "useMultiNetworkPolicy enables a controller which allows for MultiNetworkPolicy objects to be used on additional networks as created by Multus CNI. MultiNetworkPolicy are similar to NetworkPolicy objects, but NetworkPolicy objects only apply to the primary interface. With MultiNetworkPolicy, you can control the traffic that a pod can receive over the secondary interfaces. If unset, this property defaults to 'false' and MultiNetworkPolicy objects are ignored. If 'disableMultiNetwork' is 'true' then the value of this field is ignored.",
 	"deployKubeProxy":           "deployKubeProxy specifies whether or not a standalone kube-proxy should be deployed by the operator. Some network providers include kube-proxy or similar functionality. If unset, the plugin will attempt to select the correct value, which is false when OpenShift SDN and ovn-kubernetes are used and true otherwise.",
 	"disableNetworkDiagnostics": "disableNetworkDiagnostics specifies whether or not PodNetworkConnectivityCheck CRs from a test pod to every node, apiserver and LB should be disabled or not. If unset, this property defaults to 'false' and network diagnostics is enabled. Setting this to 'true' would reduce the additional load of the pods performing the checks.",
 	"kubeProxyConfig":           "kubeProxyConfig lets us configure desired proxy configuration. If not specified, sensible defaults will be chosen by OpenShift directly. Not consumed by all network providers - currently only openshift-sdn.",
+	"exportNetworkFlows":        "exportNetworkFlows enables and configures the export of network flow metadata from the pod network by using protocols NetFlow, SFlow or IPFIX. Currently only supported on OVN-Kubernetes plugin. If unset, flows will not be exported to any collector.",
+	"migration":                 "migration enables and configures the cluster network migration. Setting this to the target network type to allow changing the default network. If unset, the operation of changing cluster default network plugin will be rejected.",
 }
 
 func (NetworkSpec) SwaggerDoc() map[string]string {
@@ -857,6 +952,7 @@ var map_OVNKubernetesConfig = map[string]string{
 	"genevePort":          "geneve port is the UDP port to be used by geneve encapulation. Default is 6081",
 	"hybridOverlayConfig": "HybridOverlayConfig configures an additional overlay network for peers that are not using OVN.",
 	"ipsecConfig":         "ipsecConfig enables and configures IPsec for pods on the pod network within the cluster.",
+	"policyAuditConfig":   "policyAuditConfig is the configuration for network policy audit events. If unset, reported defaults are used.",
 }
 
 func (OVNKubernetesConfig) SwaggerDoc() map[string]string {
@@ -876,6 +972,17 @@ func (OpenShiftSDNConfig) SwaggerDoc() map[string]string {
 	return map_OpenShiftSDNConfig
 }
 
+var map_PolicyAuditConfig = map[string]string{
+	"rateLimit":      "rateLimit is the approximate maximum number of messages to generate per-second per-node. If unset the default of 20 msg/sec is used.",
+	"maxFileSize":    "maxFilesSize is the max size an ACL_audit log file is allowed to reach before rotation occurs Units are in MB and the Default is 50MB",
+	"destination":    "destination is the location for policy log messages. Regardless of this config, persistent logs will always be dumped to the host at /var/log/ovn/ however Additionally syslog output may be configured as follows. Valid values are: - \"libc\" -> to use the libc syslog() function of the host node's journdald process - \"udp:host:port\" -> for sending syslog over UDP - \"unix:file\" -> for using the UNIX domain socket directly - \"null\" -> to discard all messages logged to syslog The default is \"null\"",
+	"syslogFacility": "syslogFacility the RFC5424 facility for generated messages, e.g. \"kern\". Default is \"local0\"",
+}
+
+func (PolicyAuditConfig) SwaggerDoc() map[string]string {
+	return map_PolicyAuditConfig
+}
+
 var map_ProxyConfig = map[string]string{
 	"":                   "ProxyConfig defines the configuration knobs for kubeproxy All of these are optional and have sensible defaults",
 	"iptablesSyncPeriod": "An internal kube-proxy parameter. In older releases of OCP, this sometimes needed to be adjusted in large clusters for performance reasons, but this is no longer necessary, and there is no reason to change this from the default value. Default: 30s",
@@ -885,6 +992,14 @@ var map_ProxyConfig = map[string]string{
 
 func (ProxyConfig) SwaggerDoc() map[string]string {
 	return map_ProxyConfig
+}
+
+var map_SFlowConfig = map[string]string{
+	"collectors": "sFlowCollectors is list of strings formatted as ip:port with a maximum of ten items",
+}
+
+func (SFlowConfig) SwaggerDoc() map[string]string {
+	return map_SFlowConfig
 }
 
 var map_SimpleMacvlanConfig = map[string]string{

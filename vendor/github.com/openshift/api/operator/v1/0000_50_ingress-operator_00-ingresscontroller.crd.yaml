@@ -93,6 +93,30 @@ spec:
                   hostNetwork:
                     description: hostNetwork holds parameters for the HostNetwork
                       endpoint publishing strategy. Present only if type is HostNetwork.
+                    properties:
+                      protocol:
+                        description: "protocol specifies whether the IngressController
+                          expects incoming connections to use plain TCP or whether
+                          the IngressController expects PROXY protocol. \n PROXY protocol
+                          can be used with load balancers that support it to communicate
+                          the source addresses of client connections when forwarding
+                          those connections to the IngressController.  Using PROXY
+                          protocol enables the IngressController to report those source
+                          addresses instead of reporting the load balancer's address
+                          in HTTP headers and logs.  Note that enabling PROXY protocol
+                          on the IngressController will cause connections to fail
+                          if you are not using a load balancer that uses PROXY protocol
+                          to forward connections to the IngressController.  See http://www.haproxy.org/download/2.2/doc/proxy-protocol.txt
+                          for information about PROXY protocol. \n The following values
+                          are valid for this field: \n * The empty string. * \"TCP\".
+                          * \"PROXY\". \n The empty string specifies the default,
+                          which is TCP without PROXY protocol.  Note that the default
+                          is subject to change."
+                        enum:
+                        - ""
+                        - TCP
+                        - PROXY
+                        type: string
                     type: object
                   loadBalancer:
                     description: loadBalancer holds parameters for the load balancer.
@@ -137,6 +161,29 @@ spec:
                             required:
                             - type
                             type: object
+                          gcp:
+                            description: "gcp provides configuration settings that
+                              are specific to GCP load balancers. \n If empty, defaults
+                              will be applied. See specific gcp fields for details
+                              about their defaults."
+                            properties:
+                              clientAccess:
+                                description: "clientAccess describes how client access
+                                  is restricted for internal load balancers. \n Valid
+                                  values are: * \"Global\": Specifying an internal
+                                  load balancer with Global client access   allows
+                                  clients from any region within the VPC to communicate
+                                  with the load   balancer. \n     https://cloud.google.com/kubernetes-engine/docs/how-to/internal-load-balancing#global_access
+                                  \n * \"Local\": Specifying an internal load balancer
+                                  with Local client access   means only clients within
+                                  the same region (and VPC) as the GCP load balancer
+                                  \  can communicate with the load balancer. Note
+                                  that this is the default behavior. \n     https://cloud.google.com/load-balancing/docs/internal#client_access"
+                                enum:
+                                - Global
+                                - Local
+                                type: string
+                            type: object
                           type:
                             description: type is the underlying infrastructure provider
                               for the load balancer. Allowed values are "AWS", "Azure",
@@ -166,6 +213,30 @@ spec:
                   nodePort:
                     description: nodePort holds parameters for the NodePortService
                       endpoint publishing strategy. Present only if type is NodePortService.
+                    properties:
+                      protocol:
+                        description: "protocol specifies whether the IngressController
+                          expects incoming connections to use plain TCP or whether
+                          the IngressController expects PROXY protocol. \n PROXY protocol
+                          can be used with load balancers that support it to communicate
+                          the source addresses of client connections when forwarding
+                          those connections to the IngressController.  Using PROXY
+                          protocol enables the IngressController to report those source
+                          addresses instead of reporting the load balancer's address
+                          in HTTP headers and logs.  Note that enabling PROXY protocol
+                          on the IngressController will cause connections to fail
+                          if you are not using a load balancer that uses PROXY protocol
+                          to forward connections to the IngressController.  See http://www.haproxy.org/download/2.2/doc/proxy-protocol.txt
+                          for information about PROXY protocol. \n The following values
+                          are valid for this field: \n * The empty string. * \"TCP\".
+                          * \"PROXY\". \n The empty string specifies the default,
+                          which is TCP without PROXY protocol.  Note that the default
+                          is subject to change."
+                        enum:
+                        - ""
+                        - TCP
+                        - PROXY
+                        type: string
                     type: object
                   private:
                     description: private holds parameters for the Private endpoint
@@ -207,6 +278,25 @@ spec:
                     type: string
                 required:
                 - type
+                type: object
+              httpErrorCodePages:
+                description: httpErrorCodePages specifies a configmap with custom
+                  error pages. The administrator must create this configmap in the
+                  openshift-config namespace. This configmap should have keys in the
+                  format "error-page-<error code>.http", where <error code> is an
+                  HTTP error code. For example, "error-page-503.http" defines an error
+                  page for HTTP 503 responses. Currently only error pages for 503
+                  and 404 responses can be customized. Each value in the configmap
+                  should be the full response, including HTTP headers. Eg- https://raw.githubusercontent.com/openshift/router/fadab45747a9b30cc3f0a4b41ad2871f95827a93/images/router/haproxy/conf/error-page-503.http
+                  If this field is empty, the ingress controller uses the default
+                  error pages.
+                properties:
+                  name:
+                    description: name is the metadata.name of the referenced config
+                      map
+                    type: string
+                required:
+                - name
                 type: object
               httpHeaders:
                 description: "httpHeaders defines policy for HTTP headers. \n If this
@@ -577,7 +667,7 @@ spec:
                 properties:
                   nodeSelector:
                     description: "nodeSelector is the node selector applied to ingress
-                      controller deployments. \n If unset, the default is: \n   beta.kubernetes.io/os:
+                      controller deployments. \n If unset, the default is: \n   kubernetes.io/os:
                       linux   node-role.kubernetes.io/worker: '' \n If set, the specified
                       selector is used and replaces the default."
                     properties:
@@ -849,6 +939,66 @@ spec:
                     - Custom
                     type: string
                 type: object
+              tuningOptions:
+                description: "tuningOptions defines parameters for adjusting the performance
+                  of ingress controller pods. All fields are optional and will use
+                  their respective defaults if not set. See specific tuningOptions
+                  fields for more details. \n Setting fields within tuningOptions
+                  is generally not recommended. The default values are suitable for
+                  most configurations."
+                properties:
+                  headerBufferBytes:
+                    description: "headerBufferBytes describes how much memory should
+                      be reserved (in bytes) for IngressController connection sessions.
+                      Note that this value must be at least 16384 if HTTP/2 is enabled
+                      for the IngressController (https://tools.ietf.org/html/rfc7540).
+                      If this field is empty, the IngressController will use a default
+                      value of 32768 bytes. \n Setting this field is generally not
+                      recommended as headerBufferBytes values that are too small may
+                      break the IngressController and headerBufferBytes values that
+                      are too large could cause the IngressController to use significantly
+                      more memory than necessary."
+                    format: int32
+                    minimum: 16384
+                    type: integer
+                  headerBufferMaxRewriteBytes:
+                    description: "headerBufferMaxRewriteBytes describes how much memory
+                      should be reserved (in bytes) from headerBufferBytes for HTTP
+                      header rewriting and appending for IngressController connection
+                      sessions. Note that incoming HTTP requests will be limited to
+                      (headerBufferBytes - headerBufferMaxRewriteBytes) bytes, meaning
+                      headerBufferBytes must be greater than headerBufferMaxRewriteBytes.
+                      If this field is empty, the IngressController will use a default
+                      value of 8192 bytes. \n Setting this field is generally not
+                      recommended as headerBufferMaxRewriteBytes values that are too
+                      small may break the IngressController and headerBufferMaxRewriteBytes
+                      values that are too large could cause the IngressController
+                      to use significantly more memory than necessary."
+                    format: int32
+                    minimum: 4096
+                    type: integer
+                  threadCount:
+                    description: "threadCount defines the number of threads created
+                      per HAProxy process. Creating more threads allows each ingress
+                      controller pod to handle more connections, at the cost of more
+                      system resources being used. If this field is empty, the IngressController
+                      will use the default value.  The current default is 4 threads,
+                      but this may change in future releases. \n Setting this field
+                      is generally not recommended. Increasing the number of HAProxy
+                      threads allows ingress controller pods to utilize more CPU time
+                      under load, potentially starving other pods if set too high.
+                      Reducing the number of threads may cause the ingress controller
+                      to perform poorly."
+                    format: int32
+                    minimum: 1
+                    type: integer
+                type: object
+              unsupportedConfigOverrides:
+                description: unsupportedConfigOverrides allows specifying unsupported
+                  configuration options.  Its use is unsupported.
+                nullable: true
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
             type: object
           status:
             description: status is the most recently observed status of the IngressController.
@@ -903,6 +1053,30 @@ spec:
                   hostNetwork:
                     description: hostNetwork holds parameters for the HostNetwork
                       endpoint publishing strategy. Present only if type is HostNetwork.
+                    properties:
+                      protocol:
+                        description: "protocol specifies whether the IngressController
+                          expects incoming connections to use plain TCP or whether
+                          the IngressController expects PROXY protocol. \n PROXY protocol
+                          can be used with load balancers that support it to communicate
+                          the source addresses of client connections when forwarding
+                          those connections to the IngressController.  Using PROXY
+                          protocol enables the IngressController to report those source
+                          addresses instead of reporting the load balancer's address
+                          in HTTP headers and logs.  Note that enabling PROXY protocol
+                          on the IngressController will cause connections to fail
+                          if you are not using a load balancer that uses PROXY protocol
+                          to forward connections to the IngressController.  See http://www.haproxy.org/download/2.2/doc/proxy-protocol.txt
+                          for information about PROXY protocol. \n The following values
+                          are valid for this field: \n * The empty string. * \"TCP\".
+                          * \"PROXY\". \n The empty string specifies the default,
+                          which is TCP without PROXY protocol.  Note that the default
+                          is subject to change."
+                        enum:
+                        - ""
+                        - TCP
+                        - PROXY
+                        type: string
                     type: object
                   loadBalancer:
                     description: loadBalancer holds parameters for the load balancer.
@@ -947,6 +1121,29 @@ spec:
                             required:
                             - type
                             type: object
+                          gcp:
+                            description: "gcp provides configuration settings that
+                              are specific to GCP load balancers. \n If empty, defaults
+                              will be applied. See specific gcp fields for details
+                              about their defaults."
+                            properties:
+                              clientAccess:
+                                description: "clientAccess describes how client access
+                                  is restricted for internal load balancers. \n Valid
+                                  values are: * \"Global\": Specifying an internal
+                                  load balancer with Global client access   allows
+                                  clients from any region within the VPC to communicate
+                                  with the load   balancer. \n     https://cloud.google.com/kubernetes-engine/docs/how-to/internal-load-balancing#global_access
+                                  \n * \"Local\": Specifying an internal load balancer
+                                  with Local client access   means only clients within
+                                  the same region (and VPC) as the GCP load balancer
+                                  \  can communicate with the load balancer. Note
+                                  that this is the default behavior. \n     https://cloud.google.com/load-balancing/docs/internal#client_access"
+                                enum:
+                                - Global
+                                - Local
+                                type: string
+                            type: object
                           type:
                             description: type is the underlying infrastructure provider
                               for the load balancer. Allowed values are "AWS", "Azure",
@@ -976,6 +1173,30 @@ spec:
                   nodePort:
                     description: nodePort holds parameters for the NodePortService
                       endpoint publishing strategy. Present only if type is NodePortService.
+                    properties:
+                      protocol:
+                        description: "protocol specifies whether the IngressController
+                          expects incoming connections to use plain TCP or whether
+                          the IngressController expects PROXY protocol. \n PROXY protocol
+                          can be used with load balancers that support it to communicate
+                          the source addresses of client connections when forwarding
+                          those connections to the IngressController.  Using PROXY
+                          protocol enables the IngressController to report those source
+                          addresses instead of reporting the load balancer's address
+                          in HTTP headers and logs.  Note that enabling PROXY protocol
+                          on the IngressController will cause connections to fail
+                          if you are not using a load balancer that uses PROXY protocol
+                          to forward connections to the IngressController.  See http://www.haproxy.org/download/2.2/doc/proxy-protocol.txt
+                          for information about PROXY protocol. \n The following values
+                          are valid for this field: \n * The empty string. * \"TCP\".
+                          * \"PROXY\". \n The empty string specifies the default,
+                          which is TCP without PROXY protocol.  Note that the default
+                          is subject to change."
+                        enum:
+                        - ""
+                        - TCP
+                        - PROXY
+                        type: string
                     type: object
                   private:
                     description: private holds parameters for the Private endpoint
