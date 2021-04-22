@@ -17,45 +17,6 @@ import (
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 )
 
-// condition/Degraded status/True reason/DNSDegraded changed: DNS default is degraded
-func GetOperatorConditionStatus(message string) *configv1.ClusterOperatorStatusCondition {
-	if !strings.HasPrefix(message, "condition/") {
-		return nil
-	}
-	stanzas := strings.Split(message, " ")
-	condition := &configv1.ClusterOperatorStatusCondition{}
-
-	for _, stanza := range stanzas {
-		keyValue := strings.SplitN(stanza, "/", 2)
-		if len(keyValue) != 2 {
-			continue
-		}
-
-		switch keyValue[0] {
-		case "condition":
-			if condition.Type == "" {
-				condition.Type = configv1.ClusterStatusConditionType(keyValue[1])
-			}
-		case "status":
-			if condition.Status == "" {
-				condition.Status = configv1.ConditionStatus(keyValue[1])
-			}
-		case "reason":
-			if condition.Reason == "" {
-				condition.Reason = keyValue[1]
-			}
-		}
-	}
-
-	messages := strings.SplitN(message, ": ", 2)
-	if len(messages) < 2 {
-		return condition
-	}
-	condition.Message = messages[1]
-
-	return condition
-}
-
 func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client configclientset.Interface) {
 	coInformer := cache.NewSharedIndexInformer(
 		NewErrorRecordingListWatcher(m, &cache.ListWatch{
@@ -76,11 +37,10 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 			var conditions []monitorapi.Condition
 			for i := range co.Status.Conditions {
 				c := &co.Status.Conditions[i]
-				previous := findOperatorStatusCondition(oldCO.Status.Conditions, c.Type)
-				if previous == nil {
-					continue
-				}
-				if c.Status != previous.Status {
+				previousCondition := findOperatorStatusCondition(oldCO.Status.Conditions, c.Type)
+				// If we don't have a previous state, then we should always mark the starting state with an event.
+				// We recently had a PR that caused the kube-apiserver operator be permanently degraded and it didn't show up.
+				if previousCondition == nil || c.Status != previousCondition.Status {
 					var msg string
 					switch {
 					case len(c.Reason) > 0 && len(c.Message) > 0:
