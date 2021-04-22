@@ -28754,10 +28754,12 @@ echo "create subcommands: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/statefulsets"
+os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-service.json'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/statefulset.yaml'
 os::cmd::try_until_success 'oc get pods testapp-0'
 os::cmd::expect_success_and_text 'oc describe statefulset testapp' 'app=testapp'
 os::cmd::expect_success 'oc delete -f ${TEST_DATA}/statefulset.yaml'
+os::cmd::expect_success 'oc delete services frontend'
 echo "statefulsets: ok"
 os::test::junit::declare_suite_end
 
@@ -33668,8 +33670,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
             "dnsPolicy": "ClusterFirst"
           }
         }
-      },
-      "status": {}
+      }
     },
     {
       "kind": "Service",
@@ -33788,8 +33789,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
             "dnsPolicy": "ClusterFirst"
           }
         }
-      },
-      "status": {}
+      }
     }
   ],
   "parameters": [
@@ -38614,6 +38614,7 @@ kind: StatefulSet
 metadata:
   name: testapp
 spec:
+  serviceName: frontend
   selector:
     matchLabels:
       app: testapp
@@ -39542,6 +39543,7 @@ objects:
   apiVersion: v1
   metadata:
     name: ${required_param}
+  groups: null
 parameters:
 - name: optional_param
 - name: required_param
@@ -39985,7 +39987,6 @@ spec:
         resources: {}
       dnsPolicy: ClusterFirst
       restartPolicy: Always
-status: {}
 `)
 
 func testExtendedTestdataCmdTestCmdTestdataTestReplicationControllerYamlBytes() ([]byte, error) {
@@ -40163,7 +40164,7 @@ metadata:
   resourceVersion: "327"
   selfLink: /oapi/v1/namespaces/test/imagestreams/test-stream
   uid: 15be89a8-70db-11e5-ae32-080027c5bfa9
-spec: 
+spec:
   dockerImageRepository: 172.30.30.30:5000/test/test-stream
   tags:
   - name: latest
@@ -40173,7 +40174,6 @@ spec:
       name: openshift/origin:v1.0.6
     annotations:
       io.openshift.generate.job: "true"
-status: {}
 `)
 
 func testExtendedTestdataCmdTestCmdTestdataTestStreamYamlBytes() ([]byte, error) {
@@ -48930,8 +48930,6 @@ objects:
       verbs:
       - create
   - apiVersion: rbac.authorization.k8s.io/v1
-    groupNames:
-    - system:authenticated
     kind: RoleBinding
     metadata:
       namespace: ${NAMESPACE}
@@ -51475,7 +51473,6 @@ items:
          ]
       }
     dockerImageManifestMediaType: application/vnd.docker.distribution.manifest.v2+json
-    dockerImageLayers: []
     dockerImageMetadata:
       Architecture: amd64
       Config:
@@ -51533,6 +51530,7 @@ items:
       metadata:
         name: sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
       dockerImageReference: busybox@sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
+      dockerImageLayers: []
 `)
 
 func testExtendedTestdataStableBusyboxYamlBytes() ([]byte, error) {
@@ -52933,7 +52931,6 @@ spec:
         resources: {}
       dnsPolicy: ClusterFirst
       restartPolicy: Always
-status: {}
 `)
 
 func testExtendedTestdataTestReplicationControllerYamlBytes() ([]byte, error) {
