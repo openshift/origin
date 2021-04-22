@@ -79,7 +79,7 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 						o.Expect(err).NotTo(o.HaveOccurred())
 
 						g.By("expecting the db service is available")
-						serviceIP, err := oc.Run("get").Args("service", c.dbServiceName).Template("{{ .spec.clusterIP }}").Output()
+						serviceIP, err := oc.Run("get").Args("service", c.dbServiceName, "--output=template", "--template={{ .spec.clusterIP }}").Output()
 						o.Expect(err).NotTo(o.HaveOccurred())
 						o.Expect(serviceIP).ShouldNot(o.Equal(""))
 
@@ -89,7 +89,7 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 					}
 
 					g.By("expecting the app service is available")
-					serviceIP, err := oc.Run("get").Args("service", c.serviceName).Template("{{ .spec.clusterIP }}").Output()
+					serviceIP, err := oc.Run("get").Args("service", c.serviceName, "--output=template", "--template={{ .spec.clusterIP }}").Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(serviceIP).ShouldNot(o.Equal(""))
 
@@ -147,20 +147,19 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][Slow] openshift sample a
 		},
 	))
 
-	// disable temporarily, to be replaced with a postgresql based example
-	/*g.Describe("[sig-devex][Feature:ImageEcosystem][nodejs] test nodejs images with nodejs-ex db repo", NewSampleRepoTest(
+	g.Describe("[sig-devex][Feature:ImageEcosystem][nodejs] test nodejs images with nodejs-rest-http-crud db repo", NewSampleRepoTest(
 		sampleRepoConfig{
-			repoName:               "nodejs-mongodb",
-			templateURL:            "nodejs-mongodb-example",
-			buildConfigName:        "nodejs-mongodb-example",
-			serviceName:            "nodejs-mongodb-example",
-			deploymentConfigName:   "nodejs-mongodb-example",
-			expectedString:         htmlCountValueNonZeroRegexp,
+			repoName:               "nodejs-postgresql",
+			templateURL:            "nodejs-postgresql-example",
+			buildConfigName:        "nodejs-postgresql-example",
+			serviceName:            "nodejs-postgresql-example",
+			deploymentConfigName:   "nodejs-postgresql-example",
+			expectedString:         "Fruit List",
 			appPath:                "",
-			dbDeploymentConfigName: "mongodb",
-			dbServiceName:          "mongodb",
+			dbDeploymentConfigName: "postgresql",
+			dbServiceName:          "postgresql",
 		},
-	))*/
+	))
 
 	var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][php] test php images with cakephp-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{

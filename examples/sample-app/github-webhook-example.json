@@ -77,7 +77,7 @@
     "git_commits_url": "https://api.github.com/repos/anonUser/anonRepo/git/commits{/sha}",
     "git_refs_url": "https://api.github.com/repos/anonUser/anonRepo/git/refs{/sha}",
     "git_tags_url": "https://api.github.com/repos/anonUser/anonRepo/git/tags{/sha}",
-    "git_url": "git://github.com/anonUser/anonRepo.git",
+    "git_url": "https://github.com/anonUser/anonRepo.git",
     "has_downloads": true,
     "has_issues": true,
     "has_wiki": true,

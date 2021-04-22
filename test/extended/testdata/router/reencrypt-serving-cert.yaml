@@ -9,7 +9,7 @@ items:
       app: serving-cert
   spec:
     containers:
-    - image: nginx:1.15.3
+    - image: docker.io/library/nginx:1.15-alpine
       name: serve
       command:
         - /usr/sbin/nginx

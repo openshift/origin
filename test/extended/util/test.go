@@ -14,7 +14,7 @@ import (
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	kapiv1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"

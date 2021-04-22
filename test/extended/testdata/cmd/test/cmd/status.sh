@@ -81,8 +81,8 @@ os::cmd::try_until_not_text "oc get projects" "project-bar-2"
 os::cmd::expect_success "oc new-project project-status --display-name='my project' --description='test project'"
 
 # Verify jobs are showing in status
-os::cmd::expect_success "oc create job pi --image=perl -- perl -Mbignum=bpi -wle 'print bpi(2000)'"
-os::cmd::expect_success_and_text "oc status" "job/pi manages perl"
+os::cmd::expect_success "oc create job pi --image=image-registry.openshift-image-registry.svc:5000/openshift/tools:latest -- perl -Mbignum=bpi -wle 'print bpi(2000)'"
+os::cmd::expect_success_and_text "oc status" "job/pi manages image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
 
 # logout
 #os::cmd::expect_success "oc logout"

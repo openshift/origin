@@ -26,7 +26,9 @@ os::cmd::expect_success_and_text 'oc get secret/from-file --template="{{ .type }
 os::cmd::expect_success_and_text 'oc create secret docker-registry dockerconfigjson --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org --dry-run -o yaml' 'kubernetes.io/dockerconfigjson'
 os::cmd::expect_success_and_text 'oc create secret generic from-file-again --from-file=.dockerconfigjson=${HOME}/dockerconfigjson --type=kubernetes.io/dockerconfigjson -o yaml' 'kubernetes.io/dockerconfigjson'
 # check to make sure malformed names fail as expected
-os::cmd::expect_failure_and_text 'oc create secret generic bad-name --from-file=.docker=cfg=${HOME}/dockerconfigjson' "error: Key names or file paths cannot contain '='"
+# TODO(jchaloup): "error: Key names or file paths cannot contain '='" changed into "error: key names or file paths cannot contain '='" (s/K/k)
+# Once oc rebase to 1.20 is merged, enable this test again with s/K/k
+# os::cmd::expect_failure_and_text 'oc create secret generic bad-name --from-file=.docker=cfg=${HOME}/dockerconfigjson' "error: key names or file paths cannot contain '='"
 
 workingdir="$( mktemp -d )"
 os::cmd::try_until_success "oc get secret/dockerconfigjson"

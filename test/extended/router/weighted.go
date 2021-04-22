@@ -44,9 +44,9 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			}()
 
 			ns := oc.KubeFramework().Namespace.Name
-			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
-				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
 
 			g.By(fmt.Sprintf("creating a weighted router from a config file %q", configPath))
@@ -71,24 +71,24 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 
 			g.By("waiting for the healthz endpoint to respond")
 			healthzURI := fmt.Sprintf("http://%s:1936/healthz", routerIP)
-			err = waitForRouterOKResponseExec(ns, execPodName, healthzURI, routerIP, changeTimeoutSeconds)
+			err = waitForRouterOKResponseExec(ns, execPod.Name, healthzURI, routerIP, changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			host := "weighted.example.com"
 			times := 100
 			g.By(fmt.Sprintf("checking that %d requests go through successfully", times))
 			// wait for the request to stabilize
-			err = waitForRouterOKResponseExec(ns, execPodName, routerURL, "weighted.example.com", changeTimeoutSeconds)
+			err = waitForRouterOKResponseExec(ns, execPod.Name, routerURL, "weighted.example.com", changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			// all requests should now succeed
-			err = expectRouteStatusCodeRepeatedExec(ns, execPodName, routerURL, "weighted.example.com", http.StatusOK, times, false)
+			err = expectRouteStatusCodeRepeatedExec(ns, execPod.Name, routerURL, "weighted.example.com", http.StatusOK, times, false)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("checking that there are three weighted backends in the router stats"))
 			var trafficValues []string
 			err = wait.PollImmediate(100*time.Millisecond, changeTimeoutSeconds*time.Second, func() (bool, error) {
 				statsURL := fmt.Sprintf("http://%s:1936/;csv", routerIP)
-				stats, err := getAuthenticatedRouteURLViaPod(ns, execPodName, statsURL, host, "admin", "password")
+				stats, err := getAuthenticatedRouteURLViaPod(ns, execPod.Name, statsURL, host, "admin", "password")
 				o.Expect(err).NotTo(o.HaveOccurred())
 				trafficValues, err = parseStats(stats, "weightedroute", 7)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -108,7 +108,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 
 			g.By(fmt.Sprintf("checking that zero weights are also respected by the router"))
 			host = "zeroweight.example.com"
-			err = expectRouteStatusCodeExec(ns, execPodName, routerURL, host, http.StatusServiceUnavailable)
+			err = expectRouteStatusCodeExec(ns, execPod.Name, routerURL, host, http.StatusServiceUnavailable)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})

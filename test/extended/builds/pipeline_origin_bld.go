@@ -213,488 +213,490 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 		}
 	)
 
-	g.Context("jenkins-client-plugin tests", func() {
-
-		g.It("using the ephemeral template", func() {
-			defer cleanup(jenkinsEphemeralTemplatePath)
-			setupJenkins(jenkinsEphemeralTemplatePath)
-
-			g.By("Pipeline using jenkins-client-plugin")
-
-			g.By("should verify services successfully", func() {
-				redisTemplate := "redis-ephemeral"
-				redisAppName := "redis"
-				verifyServiceBuildConfig := "jenkins-verifyservice-pipeline"
-
-				newAppRedisEphemeralArgs := []string{redisTemplate, "--name", redisAppName, "-p", "MEMORY_LIMIT=128Mi"}
-
-				// Redis deployment with the redis service
-				g.By("instantiate the test application")
-				err := oc.Run("new-app").Args(newAppRedisEphemeralArgs...).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), redisAppName, 1, false, oc)
-				if err != nil {
-					exutil.DumpApplicationPodLogs(redisAppName, oc)
-				}
-
-				// Redis headless service and jenkinsFile which runs verify service on both the services
-				g.By("create the jenkins pipeline strategy build config that leverages openshift client plugin")
-				err = oc.Run("new-app").Args("-f", verifyServiceClientPluginPipelinePath).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				brservices, err := exutil.StartBuildAndWait(oc, verifyServiceBuildConfig)
-				if err != nil || !brservices.BuildSuccess {
-					debugAnyJenkinsFailure(brservices, oc.Namespace()+"-"+verifyServiceBuildConfig, oc, true)
-					exutil.DumpBuilds(oc)
-					exutil.DumpDeploymentLogs(redisAppName, 1, oc)
-					exutil.DumpBuildLogs(verifyServiceBuildConfig, oc)
-				}
-				brservices.AssertSuccess()
-
-				g.By("get build console logs and see if succeeded")
-				_, err = j.GetJobConsoleLogsAndMatchViaBuildResult(brservices, "Finished: SUCCESS")
-				o.Expect(err).NotTo(o.HaveOccurred())
-				g.By("clean up openshift resources for next potential run")
-				err = oc.Run("delete").Args("bc", verifyServiceBuildConfig).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("dc", redisAppName).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.AsAdmin().Run("delete").Args("all", "-l", fmt.Sprintf("app=%v", redisAppName)).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-			})
-
-			g.By("should handle multi-namespace templates", func() {
-				g.By("create additional projects")
-				namespace := oc.Namespace()
-				namespace2 := oc.Namespace() + "-2"
-				namespace3 := oc.Namespace() + "-3"
-
-				err := oc.Run("new-project").Args(namespace2).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("new-project").Args(namespace3).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				// no calls to delete these two projects here; leads to timing
-				// issues with the framework deleting all namespaces
-
-				g.By("set up policy for jenkins jobs in " + namespace2)
-				err = oc.Run("policy").Args("add-role-to-user", "edit", "system:serviceaccount:"+namespace+":jenkins", "-n", namespace2).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				g.By("set up policy for jenkins jobs in " + namespace3)
-				err = oc.Run("policy").Args("add-role-to-user", "edit", "system:serviceaccount:"+namespace+":jenkins", "-n", namespace3).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				// instantiate the bc
-				g.By("instantiate the jenkins pipeline strategy build config that leverages openshift client plugin with multiple namespaces")
-				err = oc.Run("new-app").Args("-f", multiNamespaceClientPluginPipelinePath, "-p", "NAMESPACE="+namespace, "-p", "NAMESPACE2="+namespace2, "-p", "NAMESPACE3="+namespace3).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				// run the build
-				g.By("starting the pipeline build and waiting for it to complete")
-				br, err := exutil.StartBuildAndWait(oc, "multi-namespace-pipeline")
-				if err != nil || !br.BuildSuccess {
-					debugAnyJenkinsFailure(br, oc.Namespace()+"-multi-namespace-pipeline", oc, true)
-					exutil.DumpBuilds(oc)
-				}
-				br.AssertSuccess()
-
-				g.By("get build console logs and see if succeeded")
-				_, err = j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("confirm there are objects in second and third namespaces")
-				defer oc.SetNamespace(namespace)
-				oc.SetNamespace(namespace2)
-				output, err := oc.AsAdmin().Run("get").Args("all").Output()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(output).To(o.ContainSubstring("deploymentconfig.apps.openshift.io/mongodb"))
-				oc.SetNamespace(namespace3)
-				output, err = oc.AsAdmin().Run("get").Args("all").Output()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(output).To(o.ContainSubstring("service/mongodb"))
-
-				g.By("clean up openshift resources for next potential run")
-				oc.SetNamespace(namespace)
-				err = oc.Run("delete").Args("bc", "multi-namespace-pipeline").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.AsAdmin().Run("delete").Args("all", "-l", "template=mongodb-ephemeral-template").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("template", "mongodb-ephemeral").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-			})
-		})
-	})
-
-	g.Context("Sync plugin tests", func() {
-
-		g.It("using the ephemeral template", func() {
-			defer cleanup(jenkinsEphemeralTemplatePath)
-			setupJenkins(jenkinsEphemeralTemplatePath)
-
-			g.By("Deleted pipeline strategy buildconfigs")
-
-			g.By("should not be recreated by the sync plugin", func() {
-				// create the bc
-				g.By(fmt.Sprintf("calling oc new-app -f %q", origPipelinePath))
-				err := oc.Run("new-app").Args("-f", origPipelinePath).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("verify job is in jenkins")
-				_, err = j.WaitForContent("", 200, 30*time.Second, "job/%s/job/%s-sample-pipeline/", oc.Namespace(), oc.Namespace())
-				if err != nil {
-					exutil.DumpApplicationPodLogs("jenkins", oc)
-				}
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By(fmt.Sprintf("delete pipeline strategy bc %q", origPipelinePath))
-				err = oc.Run("delete").Args("bc", "sample-pipeline").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("verify job is not in jenkins")
-				_, err = j.WaitForContent("", 404, 30*time.Second, "job/%s/job/%s-sample-pipeline/", oc.Namespace(), oc.Namespace())
-				if err != nil {
-					exutil.DumpApplicationPodLogs("jenkins", oc)
-				}
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("verify bc is still deleted")
-				err = oc.Run("get").Args("bc", "sample-pipeline").Execute()
-				o.Expect(err).To(o.HaveOccurred())
-
-				g.By("clean up openshift resources for next potential run")
-				// doing this as admin to avoid errors like this:
-				// Dec 14 13:13:02.275: INFO: Error running &{/usr/bin/oc [oc delete --config=/tmp/configfile590595709 --namespace=e2e-test-jenkins-pipeline-2z82q all -l template=mongodb-ephemeral-template] []   replicationcontroller "mongodb-1" deleted
-				// service "mongodb" deleted
-				// deploymentconfig.apps.openshift.io "mongodb" deleted
-				// Error from server (Forbidden): clusterserviceversions.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list clusterserviceversions.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
-				// Error from server (Forbidden): catalogsources.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list catalogsources.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
-				// Error from server (Forbidden): installplans.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list installplans.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
-				// Error from server (Forbidden): subscriptions.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list subscriptions.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
-				err = oc.AsAdmin().Run("delete").Args("all", "-l", "app=jenkins-pipeline-example").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-			})
-
-			g.By("Sync secret to credential")
-
-			g.By("should map openshift secret to a jenkins credential as the secret is manipulated", func() {
-				g.By("create secret for jenkins credential")
-				err := oc.Run("create").Args("-f", secretPath).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("verify credential created since label should be there")
-				// NOTE, for the credential URL in Jenkins
-				// it returns rc 200 with no output if credential exists and a 404 if it does not exists
-				_, err = j.WaitForContent("", 200, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
-				if err != nil {
-					exutil.DumpApplicationPodLogs("jenkins", oc)
-				}
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("verify credential deleted when label removed")
-				err = oc.Run("label").Args("secret", secretName, secretCredentialSyncLabel+"-").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				_, err = j.WaitForContent("", 404, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
-				if err != nil {
-					exutil.DumpApplicationPodLogs("jenkins", oc)
-				}
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("verify credential added when label added")
-				err = oc.Run("label").Args("secret", secretName, secretCredentialSyncLabel+"=true").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				_, err = j.WaitForContent("", 200, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
-				if err != nil {
-					exutil.DumpApplicationPodLogs("jenkins", oc)
-				}
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("verify credential deleted when secret deleted")
-				err = oc.Run("delete").Args("secret", secretName).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				_, err = j.WaitForContent("", 404, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
-				if err != nil {
-					exutil.DumpApplicationPodLogs("jenkins", oc)
-				}
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				// no need to clean up, last operation above deleted the secret
-			})
-
-			//TODO - for these config map slave tests, as well and the imagestream/imagestreamtag
-			// tests ... rather than actually running the pipelines, we could just inspect the config in jenkins
-			// to make sure the k8s pod templates are there.
-			// In general, while we want at least one verification somewhere in pipeline.go that the agent
-			// images work, we should minimize the actually running of pipelines using them to only one
-			// for each maven/nodejs
-			g.By("Pipeline using config map slave")
-
-			g.By("should build and complete successfully", func() {
-				g.By("create the pod template with config map")
-				err := oc.Run("create").Args("-f", configMapPodTemplatePath).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By(fmt.Sprintf("calling oc new-app -f %q", podTemplateSlavePipelinePath))
-				err = oc.Run("new-app").Args("-f", podTemplateSlavePipelinePath).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("starting the pipeline build and waiting for it to complete")
-				// this just does sh "mvn --version"
-				br, err := exutil.StartBuildAndWait(oc, "openshift-jee-sample")
-				if err != nil || !br.BuildSuccess {
-					debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
-					exutil.DumpBuilds(oc)
-				}
-				br.AssertSuccess()
-
-				g.By("getting job log, make sure has success message")
-				out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
-				o.Expect(err).NotTo(o.HaveOccurred())
-				g.By("making sure job log ran with our config map slave pod template")
-				o.Expect(out).To(o.ContainSubstring("Running on jenkins-slave"))
-
-				g.By("clean up openshift resources for next potential run")
-				err = oc.Run("delete").Args("configmap", "jenkins-slave").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("bc", "openshift-jee-sample").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-			})
-
-			g.By("Pipeline using imagestream slave")
-
-			g.By("should build and complete successfully", func() {
-				g.By("create the pod template with imagestream")
-				err := oc.Run("create").Args("-f", imagestreamPodTemplatePath).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By(fmt.Sprintf("calling oc new-app -f %q", podTemplateSlavePipelinePath))
-				err = oc.Run("new-app").Args("-f", podTemplateSlavePipelinePath).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("starting the pipeline build and waiting for it to complete")
-				// this just does sh "mvn --version"
-				br, err := exutil.StartBuildAndWait(oc, "openshift-jee-sample")
-				if err != nil || !br.BuildSuccess {
-					debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
-					exutil.DumpBuilds(oc)
-				}
-				br.AssertSuccess()
-
-				g.By("getting job log, making sure job log has success message")
-				out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
-				o.Expect(err).NotTo(o.HaveOccurred())
-				g.By("making sure job log ran with our config map slave pod template")
-				o.Expect(out).To(o.ContainSubstring("Running on jenkins-slave"))
-
-				g.By("clean up openshift resources for next potential run")
-				err = oc.Run("delete").Args("is", "jenkins-slave").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("bc", "openshift-jee-sample").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-			})
-
-			g.By("Pipeline using imagestreamtag slave")
-
-			g.By("should build and complete successfully", func() {
-				g.By("create the pod template with imagestream")
-				err := oc.Run("create").Args("-f", imagestreamtagPodTemplatePath).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By(fmt.Sprintf("calling oc new-app -f %q", podTemplateSlavePipelinePath))
-				err = oc.Run("new-app").Args("-f", podTemplateSlavePipelinePath).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("starting the pipeline build and waiting for it to complete")
-				// this just does sh "mvn --version"
-				br, err := exutil.StartBuildAndWait(oc, "openshift-jee-sample")
-				if err != nil || !br.BuildSuccess {
-					debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
-					exutil.DumpBuilds(oc)
-				}
-				br.AssertSuccess()
-
-				g.By("getting job log, making sure job log has success message")
-				out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
-				o.Expect(err).NotTo(o.HaveOccurred())
-				g.By("making sure job log ran with our config map slave pod template")
-				o.Expect(out).To(o.ContainSubstring("Running on slave-jenkins"))
-
-				g.By("clean up openshift resources for next potential run")
-				err = oc.Run("delete").Args("is", "slave-jenkins").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("bc", "openshift-jee-sample").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-			})
-
-			g.By("Pipeline with env vars")
-
-			g.By("should build and complete successfully", func() {
-				// instantiate the bc
-				g.By(fmt.Sprintf("calling oc new-app -f %q", envVarsPipelinePath))
-				err := oc.Run("new-app").Args("-f", envVarsPipelinePath).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				// start the build
-				g.By("starting the pipeline build, including env var, and waiting for it to complete")
-				br, err := exutil.StartBuildAndWait(oc, "-e", "FOO2=BAR2", "sample-pipeline-withenvs")
-				if err != nil || !br.BuildSuccess {
-					debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-withenvs", oc, true)
-					exutil.DumpBuilds(oc)
-				}
-				br.AssertSuccess()
-
-				g.By("confirm all the log annotations are there")
-				_, err = jenkins.ProcessLogURLAnnotations(oc, br)
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("get build console logs and see if succeeded")
-				out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
-				if err != nil {
-					exutil.DumpApplicationPodLogs("jenkins", oc)
-					exutil.DumpBuilds(oc)
-				}
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("and see if env is set")
-				if !strings.Contains(out, "FOO2 is BAR2") {
-					exutil.DumpApplicationPodLogs("jenkins", oc)
-					exutil.DumpBuilds(oc)
-					o.Expect(out).To(o.ContainSubstring("FOO2 is BAR2"))
-				}
-
-				// start the nextbuild
-				g.By("starting the pipeline build and waiting for it to complete")
-				br, err = exutil.StartBuildAndWait(oc, "sample-pipeline-withenvs")
-				if err != nil || !br.BuildSuccess {
-					debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-withenvs", oc, true)
-					exutil.DumpApplicationPodLogs("jenkins", oc)
-					exutil.DumpBuilds(oc)
-				}
-				br.AssertSuccess()
-
-				g.By("get build console logs and see if succeeded")
-				out, err = j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
-				if err != nil {
-					exutil.DumpApplicationPodLogs("jenkins", oc)
-					exutil.DumpBuilds(oc)
-				}
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("and see if env FOO1 is set")
-				if !strings.Contains(out, "FOO1 is BAR1") {
-					exutil.DumpApplicationPodLogs("jenkins", oc)
-					exutil.DumpBuilds(oc)
-					o.Expect(out).To(o.ContainSubstring("FOO1 is BAR1"))
-				}
-
-				g.By("and see if env FOO2 is still not set")
-				if !strings.Contains(out, "FOO2 is null") {
-					exutil.DumpApplicationPodLogs("jenkins", oc)
-					exutil.DumpBuilds(oc)
-					o.Expect(out).To(o.ContainSubstring("FOO2 is null"))
-				}
-
-				g.By("clean up openshift resources for next potential run")
-				err = oc.Run("delete").Args("bc", "sample-pipeline-withenvs").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-			})
-
-			g.By("delete jenkins job runs when the associated build is deleted")
-
-			g.By("should prune pipeline builds based on the buildConfig settings", func() {
-
-				g.By("creating successful test pipeline")
-				err := oc.Run("create").Args("-f", successfulPipeline).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("starting four test builds")
-				// builds only do sh 'exit 0'
-				for i := 0; i < 4; i++ {
-					br, _ := exutil.StartBuildAndWait(oc, "successful-pipeline")
+	g.Context("", func() {
+
+		g.Describe("jenkins-client-plugin tests", func() {
+			g.It("using the ephemeral template", func() {
+				defer cleanup(jenkinsEphemeralTemplatePath)
+				setupJenkins(jenkinsEphemeralTemplatePath)
+
+				g.By("Pipeline using jenkins-client-plugin")
+
+				g.By("should verify services successfully", func() {
+					redisTemplate := "redis-ephemeral"
+					redisAppName := "redis"
+					verifyServiceBuildConfig := "jenkins-verifyservice-pipeline"
+
+					newAppRedisEphemeralArgs := []string{redisTemplate, "--name", redisAppName, "-p", "MEMORY_LIMIT=128Mi"}
+
+					// Redis deployment with the redis service
+					g.By("instantiate the test application")
+					err := oc.Run("new-app").Args(newAppRedisEphemeralArgs...).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), redisAppName, 1, false, oc)
+					if err != nil {
+						exutil.DumpApplicationPodLogs(redisAppName, oc)
+					}
+
+					// Redis headless service and jenkinsFile which runs verify service on both the services
+					g.By("create the jenkins pipeline strategy build config that leverages openshift client plugin")
+					err = oc.Run("new-app").Args("-f", verifyServiceClientPluginPipelinePath).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					brservices, err := exutil.StartBuildAndWait(oc, verifyServiceBuildConfig)
+					if err != nil || !brservices.BuildSuccess {
+						debugAnyJenkinsFailure(brservices, oc.Namespace()+"-"+verifyServiceBuildConfig, oc, true)
+						exutil.DumpBuilds(oc)
+						exutil.DumpDeploymentLogs(redisAppName, 1, oc)
+						exutil.DumpBuildLogs(verifyServiceBuildConfig, oc)
+					}
+					brservices.AssertSuccess()
+
+					g.By("get build console logs and see if succeeded")
+					_, err = j.GetJobConsoleLogsAndMatchViaBuildResult(brservices, "Finished: SUCCESS")
+					o.Expect(err).NotTo(o.HaveOccurred())
+					g.By("clean up openshift resources for next potential run")
+					err = oc.Run("delete").Args("bc", verifyServiceBuildConfig).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.Run("delete").Args("dc", redisAppName).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.AsAdmin().Run("delete").Args("all", "-l", fmt.Sprintf("app=%v", redisAppName)).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+				})
+
+				g.By("should handle multi-namespace templates", func() {
+					g.By("create additional projects")
+					namespace := oc.Namespace()
+					namespace2 := oc.Namespace() + "-2"
+					namespace3 := oc.Namespace() + "-3"
+
+					err := oc.Run("new-project").Args(namespace2).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.Run("new-project").Args(namespace3).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					// no calls to delete these two projects here; leads to timing
+					// issues with the framework deleting all namespaces
+
+					g.By("set up policy for jenkins jobs in " + namespace2)
+					err = oc.Run("policy").Args("add-role-to-user", "edit", "system:serviceaccount:"+namespace+":jenkins", "-n", namespace2).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					g.By("set up policy for jenkins jobs in " + namespace3)
+					err = oc.Run("policy").Args("add-role-to-user", "edit", "system:serviceaccount:"+namespace+":jenkins", "-n", namespace3).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					// instantiate the bc
+					g.By("instantiate the jenkins pipeline strategy build config that leverages openshift client plugin with multiple namespaces")
+					err = oc.Run("new-app").Args("-f", multiNamespaceClientPluginPipelinePath, "-p", "NAMESPACE="+namespace, "-p", "NAMESPACE2="+namespace2, "-p", "NAMESPACE3="+namespace3).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					// run the build
+					g.By("starting the pipeline build and waiting for it to complete")
+					br, err := exutil.StartBuildAndWait(oc, "multi-namespace-pipeline")
+					if err != nil || !br.BuildSuccess {
+						debugAnyJenkinsFailure(br, oc.Namespace()+"-multi-namespace-pipeline", oc, true)
+						exutil.DumpBuilds(oc)
+					}
 					br.AssertSuccess()
-				}
 
-				buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "successful-pipeline", metav1.GetOptions{})
-				if err != nil {
-					fmt.Fprintf(g.GinkgoWriter, "%v", err)
-				}
+					g.By("get build console logs and see if succeeded")
+					_, err = j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
+					o.Expect(err).NotTo(o.HaveOccurred())
 
-				var builds *buildv1.BuildList
+					g.By("confirm there are objects in second and third namespaces")
+					defer oc.SetNamespace(namespace)
+					oc.SetNamespace(namespace2)
+					output, err := oc.AsAdmin().Run("get").Args("all").Output()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(output).To(o.ContainSubstring("deploymentconfig.apps.openshift.io/mongodb"))
+					oc.SetNamespace(namespace3)
+					output, err = oc.AsAdmin().Run("get").Args("all").Output()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(output).To(o.ContainSubstring("service/mongodb"))
 
-				g.By("waiting up to one minute for pruning to complete")
-				err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{LabelSelector: BuildConfigSelector("successful-pipeline").String()})
+					g.By("clean up openshift resources for next potential run")
+					oc.SetNamespace(namespace)
+					err = oc.Run("delete").Args("bc", "multi-namespace-pipeline").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.AsAdmin().Run("delete").Args("all", "-l", "template=mongodb-ephemeral-template").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.Run("delete").Args("template", "mongodb-ephemeral").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+				})
+			})
+
+		})
+
+		g.Describe("Sync plugin tests", func() {
+			g.It("using the ephemeral template", func() {
+				defer cleanup(jenkinsEphemeralTemplatePath)
+				setupJenkins(jenkinsEphemeralTemplatePath)
+
+				g.By("Deleted pipeline strategy buildconfigs")
+
+				g.By("should not be recreated by the sync plugin", func() {
+					// create the bc
+					g.By(fmt.Sprintf("calling oc new-app -f %q", origPipelinePath))
+					err := oc.Run("new-app").Args("-f", origPipelinePath).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("verify job is in jenkins")
+					_, err = j.WaitForContent("", 200, 30*time.Second, "job/%s/job/%s-sample-pipeline/", oc.Namespace(), oc.Namespace())
 					if err != nil {
-						fmt.Fprintf(g.GinkgoWriter, "%v", err)
-						return false, err
+						exutil.DumpApplicationPodLogs("jenkins", oc)
 					}
-					if int32(len(builds.Items)) == *buildConfig.Spec.SuccessfulBuildsHistoryLimit {
-						fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
-						return true, nil
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By(fmt.Sprintf("delete pipeline strategy bc %q", origPipelinePath))
+					err = oc.Run("delete").Args("bc", "sample-pipeline").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("verify job is not in jenkins")
+					_, err = j.WaitForContent("", 404, 30*time.Second, "job/%s/job/%s-sample-pipeline/", oc.Namespace(), oc.Namespace())
+					if err != nil {
+						exutil.DumpApplicationPodLogs("jenkins", oc)
 					}
-					return false, nil
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("verify bc is still deleted")
+					err = oc.Run("get").Args("bc", "sample-pipeline").Execute()
+					o.Expect(err).To(o.HaveOccurred())
+
+					g.By("clean up openshift resources for next potential run")
+					// doing this as admin to avoid errors like this:
+					// Dec 14 13:13:02.275: INFO: Error running &{/usr/bin/oc [oc delete --config=/tmp/configfile590595709 --namespace=e2e-test-jenkins-pipeline-2z82q all -l template=mongodb-ephemeral-template] []   replicationcontroller "mongodb-1" deleted
+					// service "mongodb" deleted
+					// deploymentconfig.apps.openshift.io "mongodb" deleted
+					// Error from server (Forbidden): clusterserviceversions.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list clusterserviceversions.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
+					// Error from server (Forbidden): catalogsources.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list catalogsources.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
+					// Error from server (Forbidden): installplans.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list installplans.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
+					// Error from server (Forbidden): subscriptions.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list subscriptions.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
+					err = oc.AsAdmin().Run("delete").Args("all", "-l", "app=jenkins-pipeline-example").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
 				})
 
-				if err != nil {
-					fmt.Fprintf(g.GinkgoWriter, "%v", err)
-				}
+				g.By("Sync secret to credential")
 
-				passed := false
-				if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
-					passed = true
-				}
-				o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
+				g.By("should map openshift secret to a jenkins credential as the secret is manipulated", func() {
+					g.By("create secret for jenkins credential")
+					err := oc.Run("create").Args("-f", secretPath).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("creating failed test pipeline")
-				err = oc.Run("create").Args("-f", failedPipeline).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("starting four test builds")
-				for i := 0; i < 4; i++ {
-					br, _ := exutil.StartBuildAndWait(oc, "failed-pipeline")
-					br.AssertFailure()
-				}
-
-				buildConfig, err = oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "failed-pipeline", metav1.GetOptions{})
-				if err != nil {
-					fmt.Fprintf(g.GinkgoWriter, "%v", err)
-				}
-
-				g.By("waiting up to one minute for pruning to complete")
-				err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-					builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{LabelSelector: BuildConfigSelector("successful-pipeline").String()})
+					g.By("verify credential created since label should be there")
+					// NOTE, for the credential URL in Jenkins
+					// it returns rc 200 with no output if credential exists and a 404 if it does not exists
+					_, err = j.WaitForContent("", 200, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
 					if err != nil {
-						fmt.Fprintf(g.GinkgoWriter, "%v", err)
-						return false, err
+						exutil.DumpApplicationPodLogs("jenkins", oc)
 					}
-					if int32(len(builds.Items)) == *buildConfig.Spec.FailedBuildsHistoryLimit {
-						fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
-						return true, nil
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("verify credential deleted when label removed")
+					err = oc.Run("label").Args("secret", secretName, secretCredentialSyncLabel+"-").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					_, err = j.WaitForContent("", 404, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
+					if err != nil {
+						exutil.DumpApplicationPodLogs("jenkins", oc)
 					}
-					return false, nil
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("verify credential added when label added")
+					err = oc.Run("label").Args("secret", secretName, secretCredentialSyncLabel+"=true").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					_, err = j.WaitForContent("", 200, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
+					if err != nil {
+						exutil.DumpApplicationPodLogs("jenkins", oc)
+					}
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("verify credential deleted when secret deleted")
+					err = oc.Run("delete").Args("secret", secretName).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					_, err = j.WaitForContent("", 404, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
+					if err != nil {
+						exutil.DumpApplicationPodLogs("jenkins", oc)
+					}
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					// no need to clean up, last operation above deleted the secret
 				})
 
-				if err != nil {
-					fmt.Fprintf(g.GinkgoWriter, "%v", err)
-				}
+				//TODO - for these config map slave tests, as well and the imagestream/imagestreamtag
+				// tests ... rather than actually running the pipelines, we could just inspect the config in jenkins
+				// to make sure the k8s pod templates are there.
+				// In general, while we want at least one verification somewhere in pipeline.go that the agent
+				// images work, we should minimize the actually running of pipelines using them to only one
+				// for each maven/nodejs
+				g.By("Pipeline using config map slave")
 
-				passed = false
-				if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
-					passed = true
-				}
-				o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
+				g.By("should build and complete successfully", func() {
+					g.By("create the pod template with config map")
+					err := oc.Run("create").Args("-f", configMapPodTemplatePath).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("clean up openshift resources for next potential run")
-				err = oc.Run("delete").Args("bc", "successful-pipeline").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = oc.Run("delete").Args("bc", "failed-pipeline").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
+					g.By(fmt.Sprintf("calling oc new-app -f %q", podTemplateSlavePipelinePath))
+					err = oc.Run("new-app").Args("-f", podTemplateSlavePipelinePath).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("starting the pipeline build and waiting for it to complete")
+					// this just does sh "mvn --version"
+					br, err := exutil.StartBuildAndWait(oc, "openshift-jee-sample")
+					if err != nil || !br.BuildSuccess {
+						debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
+						exutil.DumpBuilds(oc)
+					}
+					br.AssertSuccess()
+
+					g.By("getting job log, make sure has success message")
+					out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
+					o.Expect(err).NotTo(o.HaveOccurred())
+					g.By("making sure job log ran with our config map slave pod template")
+					o.Expect(out).To(o.ContainSubstring("Running on jenkins-slave"))
+
+					g.By("clean up openshift resources for next potential run")
+					err = oc.Run("delete").Args("configmap", "jenkins-slave").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.Run("delete").Args("bc", "openshift-jee-sample").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+				})
+
+				g.By("Pipeline using imagestream slave")
+
+				g.By("should build and complete successfully", func() {
+					g.By("create the pod template with imagestream")
+					err := oc.Run("create").Args("-f", imagestreamPodTemplatePath).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By(fmt.Sprintf("calling oc new-app -f %q", podTemplateSlavePipelinePath))
+					err = oc.Run("new-app").Args("-f", podTemplateSlavePipelinePath).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("starting the pipeline build and waiting for it to complete")
+					// this just does sh "mvn --version"
+					br, err := exutil.StartBuildAndWait(oc, "openshift-jee-sample")
+					if err != nil || !br.BuildSuccess {
+						debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
+						exutil.DumpBuilds(oc)
+					}
+					br.AssertSuccess()
+
+					g.By("getting job log, making sure job log has success message")
+					out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
+					o.Expect(err).NotTo(o.HaveOccurred())
+					g.By("making sure job log ran with our config map slave pod template")
+					o.Expect(out).To(o.ContainSubstring("Running on jenkins-slave"))
+
+					g.By("clean up openshift resources for next potential run")
+					err = oc.Run("delete").Args("is", "jenkins-slave").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.Run("delete").Args("bc", "openshift-jee-sample").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+				})
+
+				g.By("Pipeline using imagestreamtag slave")
+
+				g.By("should build and complete successfully", func() {
+					g.By("create the pod template with imagestream")
+					err := oc.Run("create").Args("-f", imagestreamtagPodTemplatePath).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By(fmt.Sprintf("calling oc new-app -f %q", podTemplateSlavePipelinePath))
+					err = oc.Run("new-app").Args("-f", podTemplateSlavePipelinePath).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("starting the pipeline build and waiting for it to complete")
+					// this just does sh "mvn --version"
+					br, err := exutil.StartBuildAndWait(oc, "openshift-jee-sample")
+					if err != nil || !br.BuildSuccess {
+						debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
+						exutil.DumpBuilds(oc)
+					}
+					br.AssertSuccess()
+
+					g.By("getting job log, making sure job log has success message")
+					out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
+					o.Expect(err).NotTo(o.HaveOccurred())
+					g.By("making sure job log ran with our config map slave pod template")
+					o.Expect(out).To(o.ContainSubstring("Running on slave-jenkins"))
+
+					g.By("clean up openshift resources for next potential run")
+					err = oc.Run("delete").Args("is", "slave-jenkins").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.Run("delete").Args("bc", "openshift-jee-sample").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+				})
+
+				g.By("Pipeline with env vars")
+
+				g.By("should build and complete successfully", func() {
+					// instantiate the bc
+					g.By(fmt.Sprintf("calling oc new-app -f %q", envVarsPipelinePath))
+					err := oc.Run("new-app").Args("-f", envVarsPipelinePath).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					// start the build
+					g.By("starting the pipeline build, including env var, and waiting for it to complete")
+					br, err := exutil.StartBuildAndWait(oc, "-e", "FOO2=BAR2", "sample-pipeline-withenvs")
+					if err != nil || !br.BuildSuccess {
+						debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-withenvs", oc, true)
+						exutil.DumpBuilds(oc)
+					}
+					br.AssertSuccess()
+
+					g.By("confirm all the log annotations are there")
+					_, err = jenkins.ProcessLogURLAnnotations(oc, br)
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("get build console logs and see if succeeded")
+					out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
+					if err != nil {
+						exutil.DumpApplicationPodLogs("jenkins", oc)
+						exutil.DumpBuilds(oc)
+					}
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("and see if env is set")
+					if !strings.Contains(out, "FOO2 is BAR2") {
+						exutil.DumpApplicationPodLogs("jenkins", oc)
+						exutil.DumpBuilds(oc)
+						o.Expect(out).To(o.ContainSubstring("FOO2 is BAR2"))
+					}
+
+					// start the nextbuild
+					g.By("starting the pipeline build and waiting for it to complete")
+					br, err = exutil.StartBuildAndWait(oc, "sample-pipeline-withenvs")
+					if err != nil || !br.BuildSuccess {
+						debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-withenvs", oc, true)
+						exutil.DumpApplicationPodLogs("jenkins", oc)
+						exutil.DumpBuilds(oc)
+					}
+					br.AssertSuccess()
+
+					g.By("get build console logs and see if succeeded")
+					out, err = j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
+					if err != nil {
+						exutil.DumpApplicationPodLogs("jenkins", oc)
+						exutil.DumpBuilds(oc)
+					}
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("and see if env FOO1 is set")
+					if !strings.Contains(out, "FOO1 is BAR1") {
+						exutil.DumpApplicationPodLogs("jenkins", oc)
+						exutil.DumpBuilds(oc)
+						o.Expect(out).To(o.ContainSubstring("FOO1 is BAR1"))
+					}
+
+					g.By("and see if env FOO2 is still not set")
+					if !strings.Contains(out, "FOO2 is null") {
+						exutil.DumpApplicationPodLogs("jenkins", oc)
+						exutil.DumpBuilds(oc)
+						o.Expect(out).To(o.ContainSubstring("FOO2 is null"))
+					}
+
+					g.By("clean up openshift resources for next potential run")
+					err = oc.Run("delete").Args("bc", "sample-pipeline-withenvs").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+				})
+
+				g.By("delete jenkins job runs when the associated build is deleted")
+
+				g.By("should prune pipeline builds based on the buildConfig settings", func() {
+
+					g.By("creating successful test pipeline")
+					err := oc.Run("create").Args("-f", successfulPipeline).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("starting four test builds")
+					// builds only do sh 'exit 0'
+					for i := 0; i < 4; i++ {
+						br, _ := exutil.StartBuildAndWait(oc, "successful-pipeline")
+						br.AssertSuccess()
+					}
+
+					buildConfig, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "successful-pipeline", metav1.GetOptions{})
+					if err != nil {
+						fmt.Fprintf(g.GinkgoWriter, "%v", err)
+					}
+
+					var builds *buildv1.BuildList
+
+					g.By("waiting up to one minute for pruning to complete")
+					err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
+						builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{LabelSelector: BuildConfigSelector("successful-pipeline").String()})
+						if err != nil {
+							fmt.Fprintf(g.GinkgoWriter, "%v", err)
+							return false, err
+						}
+						if int32(len(builds.Items)) == *buildConfig.Spec.SuccessfulBuildsHistoryLimit {
+							fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
+							return true, nil
+						}
+						return false, nil
+					})
+
+					if err != nil {
+						fmt.Fprintf(g.GinkgoWriter, "%v", err)
+					}
+
+					passed := false
+					if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
+						passed = true
+					}
+					o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
+
+					g.By("creating failed test pipeline")
+					err = oc.Run("create").Args("-f", failedPipeline).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("starting four test builds")
+					for i := 0; i < 4; i++ {
+						br, _ := exutil.StartBuildAndWait(oc, "failed-pipeline")
+						br.AssertFailure()
+					}
+
+					buildConfig, err = oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "failed-pipeline", metav1.GetOptions{})
+					if err != nil {
+						fmt.Fprintf(g.GinkgoWriter, "%v", err)
+					}
+
+					g.By("waiting up to one minute for pruning to complete")
+					err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
+						builds, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{LabelSelector: BuildConfigSelector("successful-pipeline").String()})
+						if err != nil {
+							fmt.Fprintf(g.GinkgoWriter, "%v", err)
+							return false, err
+						}
+						if int32(len(builds.Items)) == *buildConfig.Spec.FailedBuildsHistoryLimit {
+							fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
+							return true, nil
+						}
+						return false, nil
+					})
+
+					if err != nil {
+						fmt.Fprintf(g.GinkgoWriter, "%v", err)
+					}
+
+					passed = false
+					if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
+						passed = true
+					}
+					o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
+
+					g.By("clean up openshift resources for next potential run")
+					err = oc.Run("delete").Args("bc", "successful-pipeline").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.Run("delete").Args("bc", "failed-pipeline").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+				})
 
 			})
 
 		})
 
 	})
-
 })
 
 // BuildConfigSelector returns a label Selector which can be used to find all

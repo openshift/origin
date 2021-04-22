@@ -256,7 +256,7 @@ function os::cleanup::dump_events() {
 	os::log::info "[CLEANUP] Dumping cluster events to $( os::util::repository_relative_path "${ARTIFACT_DIR}/events.txt" )"
 	local kubeconfig
 	if [[ -n "${ADMIN_KUBECONFIG:-}" ]]; then
-		kubeconfig="--config=${ADMIN_KUBECONFIG}"
+		kubeconfig="--kubeconfig=${ADMIN_KUBECONFIG}"
 	fi
 	oc login -u system:admin ${kubeconfig:-}
 	oc get events --all-namespaces ${kubeconfig:-} > "${ARTIFACT_DIR}/events.txt" 2>&1
