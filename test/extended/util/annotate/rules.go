@@ -39,6 +39,9 @@ var (
 			`\[sig-network\] Networking Granular Checks: Services should function for service endpoints using hostNetwork`,
 			`\[sig-network\] Networking Granular Checks: Services should function for pod-Service\(hostNetwork\)`,
 
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1952460
+			`\[sig-network\] Firewall rule control plane should not expose well-known ports`,
+
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1952457
 			`\[sig-node\] crictl should be able to run crictl on the node`,
 
