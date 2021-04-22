@@ -72,7 +72,12 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		}
 
 		pendingAlertsWithBugs := helper.MetricConditions{}
-		allowedPendingAlerts := helper.MetricConditions{}
+		allowedPendingAlerts := helper.MetricConditions{
+			{
+				Selector: map[string]string{"alertname": "HighOverallControlPlaneCPU"},
+				Text:     "high CPU utilization during e2e runs is normal",
+			},
+		}
 
 		knownViolations := sets.NewString()
 		unexpectedViolations := sets.NewString()
