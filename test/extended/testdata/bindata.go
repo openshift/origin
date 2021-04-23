@@ -221,8 +221,6 @@
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-custombuild.json
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild.json
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-stibuild.json
-// test/extended/testdata/cmd/test/cmd/testdata/convert/job-v1.yaml
-// test/extended/testdata/cmd/test/cmd/testdata/convert/job-v2.json
 // test/extended/testdata/cmd/test/cmd/testdata/external-service.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/hello-openshift/hello-pod.json
 // test/extended/testdata/cmd/test/cmd/testdata/idling-dc.yaml
@@ -34342,100 +34340,6 @@ func testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson() (*a
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataConvertJobV1Yaml = []byte(`apiVersion: batch/v1
-kind: Job
-metadata:
-  name: pi
-spec:
-  template:
-    metadata:
-      name: pi
-    spec:
-      containers:
-      - name: pi
-        image: perl
-        command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(2000)"]
-      restartPolicy: Never
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataConvertJobV1YamlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataConvertJobV1Yaml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataConvertJobV1Yaml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataConvertJobV1YamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/convert/job-v1.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataConvertJobV2Json = []byte(`{
-    "kind": "CronJob",
-    "apiVersion": "batch/v2alpha1",
-    "metadata": {
-        "name": "hello",
-        "creationTimestamp": null
-    },
-    "spec": {
-        "schedule": "0/1 * * * ?",
-        "concurrencyPolicy": "Allow",
-        "suspend": false,
-        "jobTemplate": {
-            "metadata": {
-                "creationTimestamp": null
-            },
-            "spec": {
-                "template": {
-                    "metadata": {
-                        "creationTimestamp": null
-                    },
-                    "spec": {
-                        "containers": [
-                            {
-                                "name": "hello",
-                                "image": "busybox",
-                                "args": [
-                                    "/bin/sh",
-                                    "-c",
-                                    "date; echo Hello from the Kubernetes cluster"
-                                ],
-                                "resources": {},
-                                "terminationMessagePath": "/dev/termination-log",
-                                "imagePullPolicy": "Always"
-                            }
-                        ],
-                        "restartPolicy": "OnFailure",
-                        "terminationGracePeriodSeconds": 30,
-                        "dnsPolicy": "ClusterFirst",
-                        "securityContext": {}
-                    }
-                }
-            }
-        }
-    },
-    "status": {}
-}
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataConvertJobV2JsonBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataConvertJobV2Json, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataConvertJobV2Json() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataConvertJobV2JsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/convert/job-v2.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml = []byte(`apiVersion: v1
 kind: Service
 metadata:
@@ -34486,7 +34390,7 @@ var _testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson = []byte(`
     "containers": [
       {
         "name": "hello-openshift",
-        "image": "k8s.gcr.io/e2e-test-images/agnhost:2.21",
+        "image": "k8s.gcr.io/e2e-test-images/agnhost:2.30",
         "args": ["netexec"],
         "ports": [
           {
@@ -36047,7 +35951,7 @@ items:
           run: v1-job
       spec:
         containers:
-        - image: k8s.gcr.io/e2e-test-images/agnhost:2.21
+        - image: k8s.gcr.io/e2e-test-images/agnhost:2.30
           name: hello-container
         restartPolicy: Never
 
@@ -38690,7 +38594,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: k8s.gcr.io/e2e-test-images/agnhost:2.21
+                image: k8s.gcr.io/e2e-test-images/agnhost:2.30
       - kind: Route
         apiVersion: v1
         metadata:
@@ -49041,7 +48945,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.30
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -49059,7 +48963,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.30
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -49094,7 +48998,7 @@ items:
       app: serving-cert
   spec:
     containers:
-    - image: docker.io/library/nginx:1.15-alpine
+    - image: k8s.gcr.io/e2e-test-images/nginx:1.15-1
       name: serve
       command:
         - /usr/sbin/nginx
@@ -49292,7 +49196,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.30
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -49454,7 +49358,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.30
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -49469,7 +49373,7 @@ objects:
       app: secure-endpoint
   spec:
     containers:
-    - image: docker.io/library/nginx:1.15-alpine
+    - image: k8s.gcr.io/e2e-test-images/nginx:1.15-1
       name: serve
       command:
         - /usr/sbin/nginx
@@ -50483,7 +50387,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.30
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -50501,7 +50405,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.30
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -50884,7 +50788,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.30
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -50902,7 +50806,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.30
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -50920,7 +50824,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.21
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.30
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -52316,7 +52220,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: k8s.gcr.io/e2e-test-images/agnhost:2.21
+                image: k8s.gcr.io/e2e-test-images/agnhost:2.30
 `)
 
 func testExtendedTestdataTemplatesTemplateinstance_badobjectYamlBytes() ([]byte, error) {
@@ -52376,7 +52280,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: k8s.gcr.io/e2e-test-images/agnhost:2.21
+                image: k8s.gcr.io/e2e-test-images/agnhost:2.30
       - kind: Route
         apiVersion: v1
         metadata:
@@ -53559,8 +53463,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/testdata/application-template-custombuild.json":                     testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild.json":                     testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/application-template-stibuild.json":                        testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/convert/job-v1.yaml":                                       testExtendedTestdataCmdTestCmdTestdataConvertJobV1Yaml,
-	"test/extended/testdata/cmd/test/cmd/testdata/convert/job-v2.json":                                       testExtendedTestdataCmdTestCmdTestdataConvertJobV2Json,
 	"test/extended/testdata/cmd/test/cmd/testdata/external-service.yaml":                                     testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/hello-openshift/hello-pod.json":                            testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/idling-dc.yaml":                                            testExtendedTestdataCmdTestCmdTestdataIdlingDcYaml,
@@ -54211,11 +54113,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 								"application-template-custombuild.json": {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson, map[string]*bintree{}},
 								"application-template-dockerbuild.json": {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson, map[string]*bintree{}},
 								"application-template-stibuild.json":    {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson, map[string]*bintree{}},
-								"convert": {nil, map[string]*bintree{
-									"job-v1.yaml": {testExtendedTestdataCmdTestCmdTestdataConvertJobV1Yaml, map[string]*bintree{}},
-									"job-v2.json": {testExtendedTestdataCmdTestCmdTestdataConvertJobV2Json, map[string]*bintree{}},
-								}},
-								"external-service.yaml": {testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml, map[string]*bintree{}},
+								"external-service.yaml":                 {testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml, map[string]*bintree{}},
 								"hello-openshift": {nil, map[string]*bintree{
 									"hello-pod.json": {testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson, map[string]*bintree{}},
 								}},
