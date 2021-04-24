@@ -31,10 +31,10 @@ require (
 	github.com/onsi/ginkgo v4.7.0-origin.0+incompatible
 	github.com/onsi/gomega v1.7.0
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/openshift/api v0.0.0-20210208192252-670ac3fc997c
+	github.com/openshift/api v0.0.0-20210420151714-a3c8fa53e01b
 	github.com/openshift/apiserver-library-go v0.0.0-20201214145556-6f1013f42f98
-	github.com/openshift/build-machinery-go v0.0.0-20200917070002-f171684f77ab
-	github.com/openshift/client-go v0.0.0-20201214125552-e615e336eb49
+	github.com/openshift/build-machinery-go v0.0.0-20210209125900-0da259a2c359
+	github.com/openshift/client-go v0.0.0-20210416122133-a6ef8fb5934b
 	github.com/openshift/library-go v0.0.0-20201214135256-d265f469e75b
 	github.com/pborman/uuid v1.2.0
 	github.com/pquerna/cachecontrol v0.0.0-20201205024021-ac21108117ac // indirect
@@ -56,15 +56,15 @@ require (
 	gopkg.in/ldap.v2 v2.5.1
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v2 v2.3.0
-	k8s.io/api v0.20.0
+	k8s.io/api v0.21.0-rc.0
 	k8s.io/apiextensions-apiserver v0.20.0
-	k8s.io/apimachinery v0.20.0
+	k8s.io/apimachinery v0.21.0-rc.0
 	k8s.io/apiserver v0.20.0
 	k8s.io/cli-runtime v0.20.0
-	k8s.io/client-go v0.20.0
+	k8s.io/client-go v0.21.0-rc.0
 	k8s.io/component-base v0.20.0
 	k8s.io/component-helpers v0.0.0
-	k8s.io/klog/v2 v2.4.0
+	k8s.io/klog/v2 v2.8.0
 	k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd
 	k8s.io/kubectl v0.20.0
 	k8s.io/kubelet v0.20.0
@@ -76,7 +76,6 @@ require (
 replace (
 	github.com/onsi/ginkgo => github.com/openshift/onsi-ginkgo v4.7.0-origin.0+incompatible
 	github.com/openshift/apiserver-library-go => github.com/openshift/apiserver-library-go v0.0.0-20201214145556-6f1013f42f98
-	github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20201214125552-e615e336eb49
 	github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20201214135256-d265f469e75b
 	k8s.io/api => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20210208155256-e509061a6d18
 	k8s.io/apiextensions-apiserver => github.com/openshift/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20210208155256-e509061a6d18

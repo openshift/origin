@@ -60,6 +60,16 @@ type NetworkSpec struct {
 	// 'false' and multiple network support is enabled.
 	DisableMultiNetwork *bool `json:"disableMultiNetwork,omitempty"`
 
+	// useMultiNetworkPolicy enables a controller which allows for
+	// MultiNetworkPolicy objects to be used on additional networks as
+	// created by Multus CNI. MultiNetworkPolicy are similar to NetworkPolicy
+	// objects, but NetworkPolicy objects only apply to the primary interface.
+	// With MultiNetworkPolicy, you can control the traffic that a pod can receive
+	// over the secondary interfaces. If unset, this property defaults to 'false'
+	// and MultiNetworkPolicy objects are ignored. If 'disableMultiNetwork' is
+	// 'true' then the value of this field is ignored.
+	UseMultiNetworkPolicy *bool `json:"useMultiNetworkPolicy,omitempty"`
+
 	// deployKubeProxy specifies whether or not a standalone kube-proxy should
 	// be deployed by the operator. Some network providers include kube-proxy
 	// or similar functionality. If unset, the plugin will attempt to select
@@ -80,6 +90,26 @@ type NetworkSpec struct {
 	// If not specified, sensible defaults will be chosen by OpenShift directly.
 	// Not consumed by all network providers - currently only openshift-sdn.
 	KubeProxyConfig *ProxyConfig `json:"kubeProxyConfig,omitempty"`
+
+	// exportNetworkFlows enables and configures the export of network flow metadata from the pod network
+	// by using protocols NetFlow, SFlow or IPFIX. Currently only supported on OVN-Kubernetes plugin.
+	// If unset, flows will not be exported to any collector.
+	// +optional
+	// +kubebuilder:validation:MinProperties=1
+	ExportNetworkFlows *ExportNetworkFlows `json:"exportNetworkFlows,omitempty"`
+
+	// migration enables and configures the cluster network migration.
+	// Setting this to the target network type to allow changing the default network.
+	// If unset, the operation of changing cluster default network plugin will be rejected.
+	// +optional
+	Migration *NetworkMigration `json:"migration,omitempty"`
+}
+
+// NetworkMigration represents the cluster network configuration.
+type NetworkMigration struct {
+	// networkType is the target type of network migration
+	// The supported values are OpenShiftSDN, OVNKubernetes
+	NetworkType NetworkType `json:"networkType"`
 }
 
 // ClusterNetworkEntry is a subnet from which to allocate PodIPs. A network of size
@@ -301,6 +331,14 @@ type KuryrConfig struct {
 	// +kubebuilder:validation:Minimum=0
 	// +optional
 	PoolBatchPorts *uint `json:"poolBatchPorts,omitempty"`
+
+	// mtu is the MTU that Kuryr should use when creating pod networks in Neutron.
+	// The value has to be lower or equal to the MTU of the nodes network and Neutron has
+	// to allow creation of tenant networks with such MTU. If unset Pod networks will be
+	// created with the same MTU as the nodes network has.
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	MTU *uint32 `json:"mtu,omitempty"`
 }
 
 // ovnKubernetesConfig contains the configuration parameters for networks
@@ -325,6 +363,10 @@ type OVNKubernetesConfig struct {
 	// cluster.
 	// +optional
 	IPsecConfig *IPsecConfig `json:"ipsecConfig,omitempty"`
+	// policyAuditConfig is the configuration for network policy audit events. If unset,
+	// reported defaults are used.
+	// +optional
+	PolicyAuditConfig *PolicyAuditConfig `json:"policyAuditConfig,omitempty"`
 }
 
 type HybridOverlayConfig struct {
@@ -337,6 +379,80 @@ type HybridOverlayConfig struct {
 }
 
 type IPsecConfig struct {
+}
+
+type ExportNetworkFlows struct {
+	// netFlow defines the NetFlow configuration.
+	// +optional
+	NetFlow *NetFlowConfig `json:"netFlow,omitempty"`
+	// sFlow defines the SFlow configuration.
+	// +optional
+	SFlow *SFlowConfig `json:"sFlow,omitempty"`
+	// ipfix defines IPFIX configuration.
+	// +optional
+	IPFIX *IPFIXConfig `json:"ipfix,omitempty"`
+}
+
+type NetFlowConfig struct {
+	// netFlow defines the NetFlow collectors that will consume the flow data exported from OVS.
+	// It is a list of strings formatted as ip:port with a maximum of ten items
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
+	Collectors []IPPort `json:"collectors,omitempty"`
+}
+
+type SFlowConfig struct {
+	// sFlowCollectors is list of strings formatted as ip:port with a maximum of ten items
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
+	Collectors []IPPort `json:"collectors,omitempty"`
+}
+
+type IPFIXConfig struct {
+	// ipfixCollectors is list of strings formatted as ip:port with a maximum of ten items
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
+	Collectors []IPPort `json:"collectors,omitempty"`
+}
+
+// +kubebuilder:validation:Pattern=`^(([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]):[0-9]+$`
+type IPPort string
+
+type PolicyAuditConfig struct {
+	// rateLimit is the approximate maximum number of messages to generate per-second per-node. If
+	// unset the default of 20 msg/sec is used.
+	// +kubebuilder:default=20
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	RateLimit *uint32 `json:"rateLimit,omitempty"`
+
+	// maxFilesSize is the max size an ACL_audit log file is allowed to reach before rotation occurs
+	// Units are in MB and the Default is 50MB
+	// +kubebuilder:default=50
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	MaxFileSize *uint32 `json:"maxFileSize,omitempty"`
+
+	// destination is the location for policy log messages.
+	// Regardless of this config, persistent logs will always be dumped to the host
+	// at /var/log/ovn/ however
+	// Additionally syslog output may be configured as follows.
+	// Valid values are:
+	// - "libc" -> to use the libc syslog() function of the host node's journdald process
+	// - "udp:host:port" -> for sending syslog over UDP
+	// - "unix:file" -> for using the UNIX domain socket directly
+	// - "null" -> to discard all messages logged to syslog
+	// The default is "null"
+	// +kubebuilder:default=null
+	// +kubebuilder:pattern='^libc$|^null$|^udp:(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]):([0-9]){0,5}$|^unix:(\/[^\/ ]*)+([^\/\s])$'
+	// +optional
+	Destination string `json:"destination,omitempty"`
+
+	// syslogFacility the RFC5424 facility for generated messages, e.g. "kern". Default is "local0"
+	// +kubebuilder:default=local0
+	// +kubebuilder:Enum=kern;user;mail;daemon;auth;syslog;lpr;news;uucp;clock;ftp;ntp;audit;alert;clock2;local0;local1;local2;local3;local4;local5;local6;local7
+	// +optional
+	SyslogFacility string `json:"syslogFacility,omitempty"`
 }
 
 // NetworkType describes the network plugin type to configure

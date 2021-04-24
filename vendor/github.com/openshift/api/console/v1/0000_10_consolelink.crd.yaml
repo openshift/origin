@@ -1,4 +1,4 @@
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: consolelinks.console.openshift.io
@@ -10,150 +10,149 @@ metadata:
     include.release.openshift.io/single-node-developer: "true"
 spec:
   scope: Cluster
-  preserveUnknownFields: false
   group: console.openshift.io
-  versions:
-  - name: v1
-    served: true
-    storage: true
   names:
     plural: consolelinks
     singular: consolelink
     kind: ConsoleLink
     listKind: ConsoleLinkList
-  additionalPrinterColumns:
-  - name: Text
-    type: string
-    JSONPath: .spec.text
-  - name: URL
-    type: string
-    JSONPath: .spec.href
-  - name: Menu
-    type: string
-    JSONPath: .spec.menu
-  - name: Age
-    type: date
-    JSONPath: .metadata.creationTimestamp
-  subresources:
-    status: {}
-  "validation":
-    "openAPIV3Schema":
-      description: ConsoleLink is an extension for customizing OpenShift web console
-        links.
-      type: object
-      required:
-      - spec
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: ConsoleLinkSpec is the desired console link configuration.
-          type: object
-          required:
-          - href
-          - location
-          - text
-          properties:
-            applicationMenu:
-              description: applicationMenu holds information about section and icon
-                used for the link in the application menu, and it is applicable only
-                when location is set to ApplicationMenu.
-              type: object
-              required:
-              - section
-              properties:
-                imageURL:
-                  description: imageUrl is the URL for the icon used in front of the
-                    link in the application menu. The URL must be an HTTPS URL or
-                    a Data URI. The image should be square and will be shown at 24x24
-                    pixels.
-                  type: string
-                section:
-                  description: section is the section of the application menu in which
-                    the link should appear. This can be any text that will appear
-                    as a subheading in the application menu dropdown. A new section
-                    will be created if the text does not match text of an existing
-                    section.
-                  type: string
-            href:
-              description: href is the absolute secure URL for the link (must use
-                https)
-              type: string
-              pattern: ^https://
-            location:
-              description: location determines which location in the console the link
-                will be appended to (ApplicationMenu, HelpMenu, UserMenu, NamespaceDashboard).
-              type: string
-              pattern: ^(ApplicationMenu|HelpMenu|UserMenu|NamespaceDashboard)$
-            namespaceDashboard:
-              description: namespaceDashboard holds information about namespaces in
-                which the dashboard link should appear, and it is applicable only
-                when location is set to NamespaceDashboard. If not specified, the
-                link will appear in all namespaces.
-              type: object
-              properties:
-                namespaceSelector:
-                  description: namespaceSelector is used to select the Namespaces
-                    that should contain dashboard link by label. If the namespace
-                    labels match, dashboard link will be shown for the namespaces.
-                  type: object
-                  properties:
-                    matchExpressions:
-                      description: matchExpressions is a list of label selector requirements.
-                        The requirements are ANDed.
-                      type: array
-                      items:
-                        description: A label selector requirement is a selector that
-                          contains values, a key, and an operator that relates the
-                          key and values.
-                        type: object
-                        required:
-                        - key
-                        - operator
-                        properties:
-                          key:
-                            description: key is the label key that the selector applies
-                              to.
-                            type: string
-                          operator:
-                            description: operator represents a key's relationship
-                              to a set of values. Valid operators are In, NotIn, Exists
-                              and DoesNotExist.
-                            type: string
-                          values:
-                            description: values is an array of string values. If the
-                              operator is In or NotIn, the values array must be non-empty.
-                              If the operator is Exists or DoesNotExist, the values
-                              array must be empty. This array is replaced during a
-                              strategic merge patch.
-                            type: array
-                            items:
-                              type: string
-                    matchLabels:
-                      description: matchLabels is a map of {key,value} pairs. A single
-                        {key,value} in the matchLabels map is equivalent to an element
-                        of matchExpressions, whose key field is "key", the operator
-                        is "In", and the values array contains only "value". The requirements
-                        are ANDed.
-                      type: object
-                      additionalProperties:
-                        type: string
-                namespaces:
-                  description: namespaces is an array of namespace names in which
-                    the dashboard link should appear.
-                  type: array
-                  items:
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    additionalPrinterColumns:
+    - name: Text
+      type: string
+      jsonPath: .spec.text
+    - name: URL
+      type: string
+      jsonPath: .spec.href
+    - name: Menu
+      type: string
+      jsonPath: .spec.menu
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp
+    subresources:
+      status: {}
+    schema:
+      openAPIV3Schema:
+        description: ConsoleLink is an extension for customizing OpenShift web console
+          links.
+        type: object
+        required:
+        - spec
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ConsoleLinkSpec is the desired console link configuration.
+            type: object
+            required:
+            - href
+            - location
+            - text
+            properties:
+              applicationMenu:
+                description: applicationMenu holds information about section and icon
+                  used for the link in the application menu, and it is applicable
+                  only when location is set to ApplicationMenu.
+                type: object
+                required:
+                - section
+                properties:
+                  imageURL:
+                    description: imageUrl is the URL for the icon used in front of
+                      the link in the application menu. The URL must be an HTTPS URL
+                      or a Data URI. The image should be square and will be shown
+                      at 24x24 pixels.
                     type: string
-            text:
-              description: text is the display text for the link
-              type: string
+                  section:
+                    description: section is the section of the application menu in
+                      which the link should appear. This can be any text that will
+                      appear as a subheading in the application menu dropdown. A new
+                      section will be created if the text does not match text of an
+                      existing section.
+                    type: string
+              href:
+                description: href is the absolute secure URL for the link (must use
+                  https)
+                type: string
+                pattern: ^https://
+              location:
+                description: location determines which location in the console the
+                  link will be appended to (ApplicationMenu, HelpMenu, UserMenu, NamespaceDashboard).
+                type: string
+                pattern: ^(ApplicationMenu|HelpMenu|UserMenu|NamespaceDashboard)$
+              namespaceDashboard:
+                description: namespaceDashboard holds information about namespaces
+                  in which the dashboard link should appear, and it is applicable
+                  only when location is set to NamespaceDashboard. If not specified,
+                  the link will appear in all namespaces.
+                type: object
+                properties:
+                  namespaceSelector:
+                    description: namespaceSelector is used to select the Namespaces
+                      that should contain dashboard link by label. If the namespace
+                      labels match, dashboard link will be shown for the namespaces.
+                    type: object
+                    properties:
+                      matchExpressions:
+                        description: matchExpressions is a list of label selector
+                          requirements. The requirements are ANDed.
+                        type: array
+                        items:
+                          description: A label selector requirement is a selector
+                            that contains values, a key, and an operator that relates
+                            the key and values.
+                          type: object
+                          required:
+                          - key
+                          - operator
+                          properties:
+                            key:
+                              description: key is the label key that the selector
+                                applies to.
+                              type: string
+                            operator:
+                              description: operator represents a key's relationship
+                                to a set of values. Valid operators are In, NotIn,
+                                Exists and DoesNotExist.
+                              type: string
+                            values:
+                              description: values is an array of string values. If
+                                the operator is In or NotIn, the values array must
+                                be non-empty. If the operator is Exists or DoesNotExist,
+                                the values array must be empty. This array is replaced
+                                during a strategic merge patch.
+                              type: array
+                              items:
+                                type: string
+                      matchLabels:
+                        description: matchLabels is a map of {key,value} pairs. A
+                          single {key,value} in the matchLabels map is equivalent
+                          to an element of matchExpressions, whose key field is "key",
+                          the operator is "In", and the values array contains only
+                          "value". The requirements are ANDed.
+                        type: object
+                        additionalProperties:
+                          type: string
+                  namespaces:
+                    description: namespaces is an array of namespace names in which
+                      the dashboard link should appear.
+                    type: array
+                    items:
+                      type: string
+              text:
+                description: text is the display text for the link
+                type: string

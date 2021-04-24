@@ -294,7 +294,7 @@ github.com/ghodss/yaml
 ## explicit
 github.com/go-bindata/go-bindata
 github.com/go-bindata/go-bindata/go-bindata
-# github.com/go-logr/logr v0.2.0
+# github.com/go-logr/logr v0.4.0
 github.com/go-logr/logr
 # github.com/go-openapi/jsonpointer v0.19.3
 github.com/go-openapi/jsonpointer
@@ -310,7 +310,7 @@ github.com/go-ozzo/ozzo-validation
 github.com/go-ozzo/ozzo-validation/is
 # github.com/godbus/dbus/v5 v5.0.3
 github.com/godbus/dbus/v5
-# github.com/gogo/protobuf v1.3.1
+# github.com/gogo/protobuf v1.3.2
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
@@ -635,16 +635,20 @@ github.com/opencontainers/runtime-spec/specs-go
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
-# github.com/openshift/api v0.0.0-20210208192252-670ac3fc997c
+# github.com/openshift/api v0.0.0-20210420151714-a3c8fa53e01b
 ## explicit
 github.com/openshift/api
 github.com/openshift/api/annotations
+github.com/openshift/api/apiserver
+github.com/openshift/api/apiserver/v1
 github.com/openshift/api/apps
 github.com/openshift/api/apps/v1
 github.com/openshift/api/authorization
 github.com/openshift/api/authorization/v1
 github.com/openshift/api/build
 github.com/openshift/api/build/v1
+github.com/openshift/api/cloudnetwork
+github.com/openshift/api/cloudnetwork/v1
 github.com/openshift/api/config
 github.com/openshift/api/config/v1
 github.com/openshift/api/console
@@ -663,6 +667,8 @@ github.com/openshift/api/kubecontrolplane/v1
 github.com/openshift/api/legacyconfig/v1
 github.com/openshift/api/network
 github.com/openshift/api/network/v1
+github.com/openshift/api/networkoperator
+github.com/openshift/api/networkoperator/v1
 github.com/openshift/api/oauth
 github.com/openshift/api/oauth/v1
 github.com/openshift/api/openshiftcontrolplane
@@ -711,7 +717,7 @@ github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/selinux
 github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/user
 github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/util
 github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/util/sort
-# github.com/openshift/build-machinery-go v0.0.0-20200917070002-f171684f77ab
+# github.com/openshift/build-machinery-go v0.0.0-20210209125900-0da259a2c359
 ## explicit
 github.com/openshift/build-machinery-go
 github.com/openshift/build-machinery-go/make
@@ -721,8 +727,10 @@ github.com/openshift/build-machinery-go/make/targets/golang
 github.com/openshift/build-machinery-go/make/targets/openshift
 github.com/openshift/build-machinery-go/make/targets/openshift/operator
 github.com/openshift/build-machinery-go/scripts
-# github.com/openshift/client-go v0.0.0-20201214125552-e615e336eb49 => github.com/openshift/client-go v0.0.0-20201214125552-e615e336eb49
+# github.com/openshift/client-go v0.0.0-20210416122133-a6ef8fb5934b
 ## explicit
+github.com/openshift/client-go/apiserver/clientset/versioned/scheme
+github.com/openshift/client-go/apiserver/clientset/versioned/typed/apiserver/v1
 github.com/openshift/client-go/apps/clientset/versioned
 github.com/openshift/client-go/apps/clientset/versioned/scheme
 github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1
@@ -1145,7 +1153,7 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+# golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
 # golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c
@@ -1180,7 +1188,7 @@ golang.org/x/text/unicode/norm
 golang.org/x/text/width
 # golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20200616133436-c1934b75d054
+# golang.org/x/tools v0.1.0
 golang.org/x/tools/container/intsets
 # google.golang.org/api v0.20.0
 google.golang.org/api/compute/v0.alpha
@@ -1374,7 +1382,7 @@ gopkg.in/warnings.v0
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 gopkg.in/yaml.v3
-# k8s.io/api v0.20.0 => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20210208155256-e509061a6d18
+# k8s.io/api v0.21.0-rc.0 => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20210208155256-e509061a6d18
 ## explicit
 k8s.io/api/admission/v1
 k8s.io/api/admission/v1beta1
@@ -1466,7 +1474,7 @@ k8s.io/apiextensions-apiserver/pkg/registry/customresource/tableconvertor
 k8s.io/apiextensions-apiserver/pkg/registry/customresourcedefinition
 k8s.io/apiextensions-apiserver/test/integration
 k8s.io/apiextensions-apiserver/test/integration/fixtures
-# k8s.io/apimachinery v0.20.0 => github.com/openshift/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20210208155256-e509061a6d18
+# k8s.io/apimachinery v0.21.0-rc.0 => github.com/openshift/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20210208155256-e509061a6d18
 ## explicit
 k8s.io/apimachinery/pkg/api/apitesting
 k8s.io/apimachinery/pkg/api/equality
@@ -1685,7 +1693,7 @@ k8s.io/cli-runtime/pkg/kustomize/k8sdeps/transformer/patch
 k8s.io/cli-runtime/pkg/kustomize/k8sdeps/validator
 k8s.io/cli-runtime/pkg/printers
 k8s.io/cli-runtime/pkg/resource
-# k8s.io/client-go v0.20.0 => github.com/openshift/kubernetes/staging/src/k8s.io/client-go v0.0.0-20210208155256-e509061a6d18
+# k8s.io/client-go v0.21.0-rc.0 => github.com/openshift/kubernetes/staging/src/k8s.io/client-go v0.0.0-20210208155256-e509061a6d18
 ## explicit
 k8s.io/client-go/discovery
 k8s.io/client-go/discovery/cached
@@ -1987,7 +1995,7 @@ k8s.io/cri-api/pkg/apis/runtime/v1alpha2
 # k8s.io/csi-translation-lib v0.0.0 => github.com/openshift/kubernetes/staging/src/k8s.io/csi-translation-lib v0.0.0-20210208155256-e509061a6d18
 k8s.io/csi-translation-lib
 k8s.io/csi-translation-lib/plugins
-# k8s.io/klog/v2 v2.4.0
+# k8s.io/klog/v2 v2.8.0
 ## explicit
 k8s.io/klog/v2
 # k8s.io/kube-aggregator v0.20.0 => github.com/openshift/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20210208155256-e509061a6d18
@@ -2922,7 +2930,6 @@ sigs.k8s.io/structured-merge-diff/v4/value
 sigs.k8s.io/yaml
 # github.com/onsi/ginkgo => github.com/openshift/onsi-ginkgo v4.7.0-origin.0+incompatible
 # github.com/openshift/apiserver-library-go => github.com/openshift/apiserver-library-go v0.0.0-20201214145556-6f1013f42f98
-# github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20201214125552-e615e336eb49
 # github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20201214135256-d265f469e75b
 # k8s.io/api => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20210208155256-e509061a6d18
 # k8s.io/apiextensions-apiserver => github.com/openshift/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20210208155256-e509061a6d18

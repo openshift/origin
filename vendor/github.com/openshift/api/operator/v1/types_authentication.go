@@ -25,11 +25,6 @@ type AuthenticationSpec struct {
 }
 
 type AuthenticationStatus struct {
-	// ManagingOAuthAPIServer indicates whether this operator is managing OAuth related APIs. Setting this field to true will cause OAS-O to step down.
-	// Note that this field will be removed in the future releases, once https://github.com/openshift/enhancements/blob/master/enhancements/authentication/separate-oauth-resources.md is fully implemented
-	// +optional
-	ManagingOAuthAPIServer bool `json:"managingOAuthAPIServer,omitempty"`
-
 	// OAuthAPIServer holds status specific only to oauth-apiserver
 	// +optional
 	OAuthAPIServer OAuthAPIServerStatus `json:"oauthAPIServer,omitempty"`

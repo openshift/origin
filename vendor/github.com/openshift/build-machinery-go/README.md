@@ -35,3 +35,10 @@ Extends [#Default]().
 
 ## Scripts
 `scripts` contain more complicated logic that is used in some make targets.
+
+## Contributing
+### Updating generated files
+We track the log output from the makefile tests to make sure any change is visible and can be audited. Unfortunately due to subtle linux tooling differences in distributions and versions, `make update` may not get you the exact output as the CI. To avoid it, just run the command in the same container as CI:   
+```
+podman run -it --rm --pull=always -v $( pwd ):/go/src/$( go list -m ) --workdir=/go/src/$( go list -m ) registry.svc.ci.openshift.org/openshift/release:rhel-8-release-golang-1.15-openshift-4.7 make update
+```

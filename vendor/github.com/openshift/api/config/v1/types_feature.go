@@ -105,7 +105,12 @@ var FeatureSets = map[FeatureSet]*FeatureGateEnabledDisabled{
 		Enabled:  []string{},
 		Disabled: []string{},
 	},
-	TechPreviewNoUpgrade: newDefaultFeatures().toFeatures(),
+	TechPreviewNoUpgrade: newDefaultFeatures().
+		with("CSIDriverAzureDisk").    // sig-storage, jsafrane, OCP specific
+		with("CSIDriverVSphere").      // sig-storage, jsafrane, OCP specific
+		with("CSIMigrationAWS").       // sig-storage, jsafrane, Kubernetes feature gate
+		with("CSIMigrationOpenStack"). // sig-storage, jsafrane, Kubernetes feature gate
+		toFeatures(),
 	LatencySensitive: newDefaultFeatures().
 		with(
 			"TopologyManager", // sig-pod, sjenning
@@ -125,11 +130,10 @@ var defaultFeatures = &FeatureGateEnabledDisabled{
 		"SupportPodPidsLimit",            // sig-pod, sjenning
 		"NodeDisruptionExclusion",        // sig-scheduling, ccoleman
 		"ServiceNodeExclusion",           // sig-scheduling, ccoleman
-		"SCTPSupport",                    // sig-network, ccallend
+		"DownwardAPIHugePages",           // sig-node, rphillips
 	},
 	Disabled: []string{
 		"LegacyNodeRoleBehavior", // sig-scheduling, ccoleman
-		"RemoveSelfLink",         // kuryr needs updating, deads2k will personally remove in 4.8
 	},
 }
 

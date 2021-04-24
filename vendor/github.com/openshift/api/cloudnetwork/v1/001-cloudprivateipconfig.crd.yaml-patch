@@ -1,0 +1,10 @@
+- op: add
+  path: /spec/versions/name=v1/schema/openAPIV3Schema/properties/metadata
+  value:
+    type: object
+    properties:
+      name:
+        type: string
+        anyOf:
+        - format: ipv4
+        - format: ipv6

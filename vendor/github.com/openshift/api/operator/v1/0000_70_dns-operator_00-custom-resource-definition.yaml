@@ -45,6 +45,73 @@ spec:
               DNS.
             type: object
             properties:
+              nodePlacement:
+                description: "nodePlacement provides explicit control over the scheduling
+                  of DNS pods. \n Generally, it is useful to run a DNS pod on every
+                  node so that DNS queries are always handled by a local DNS pod instead
+                  of going over the network to a DNS pod on another node.  However,
+                  security policies may require restricting the placement of DNS pods
+                  to specific nodes. For example, if a security policy prohibits pods
+                  on arbitrary nodes from communicating with the API, a node selector
+                  can be specified to restrict DNS pods to nodes that are permitted
+                  to communicate with the API.  Conversely, if running DNS pods on
+                  nodes with a particular taint is desired, a toleration can be specified
+                  for that taint. \n If unset, defaults are used. See nodePlacement
+                  for more details."
+                type: object
+                properties:
+                  nodeSelector:
+                    description: "nodeSelector is the node selector applied to DNS
+                      pods. \n If empty, the default is used, which is currently the
+                      following: \n   kubernetes.io/os: linux \n This default is subject
+                      to change. \n If set, the specified selector is used and replaces
+                      the default."
+                    type: object
+                    additionalProperties:
+                      type: string
+                  tolerations:
+                    description: "tolerations is a list of tolerations applied to
+                      DNS pods. \n The default is an empty list.  This default is
+                      subject to change. \n See https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/"
+                    type: array
+                    items:
+                      description: The pod this Toleration is attached to tolerates
+                        any taint that matches the triple <key,value,effect> using
+                        the matching operator <operator>.
+                      type: object
+                      properties:
+                        effect:
+                          description: Effect indicates the taint effect to match.
+                            Empty means match all taint effects. When specified, allowed
+                            values are NoSchedule, PreferNoSchedule and NoExecute.
+                          type: string
+                        key:
+                          description: Key is the taint key that the toleration applies
+                            to. Empty means match all taint keys. If the key is empty,
+                            operator must be Exists; this combination means to match
+                            all values and all keys.
+                          type: string
+                        operator:
+                          description: Operator represents a key's relationship to
+                            the value. Valid operators are Exists and Equal. Defaults
+                            to Equal. Exists is equivalent to wildcard for value,
+                            so that a pod can tolerate all taints of a particular
+                            category.
+                          type: string
+                        tolerationSeconds:
+                          description: TolerationSeconds represents the period of
+                            time the toleration (which must be of effect NoExecute,
+                            otherwise this field is ignored) tolerates the taint.
+                            By default, it is not set, which means tolerate the taint
+                            forever (do not evict). Zero and negative values will
+                            be treated as 0 (evict immediately) by the system.
+                          type: integer
+                          format: int64
+                        value:
+                          description: Value is the taint value the toleration matches
+                            to. If the operator is Exists, the value should be empty,
+                            otherwise just a regular string.
+                          type: string
               servers:
                 description: "servers is a list of DNS resolvers that provide name
                   query delegation for one or more subdomains outside the scope of
