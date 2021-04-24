@@ -23,6 +23,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
+const (
+	// Dump pod displacements with at least 3 instances
+	minChainLen = 3
+
+	setupEvent       = "Setup"
+	upgradeEvent     = "Upgrade"
+	postUpgradeEvent = "PostUpgrade"
+)
+
 // Options is used to run a suite of tests by invoking each test
 // as a call to a child worker (the run-tests command).
 type Options struct {
@@ -217,6 +226,15 @@ func (opt *Options) Run(suite *TestSuite) error {
 	if err != nil {
 		return err
 	}
+
+	pc, err := SetupNewPodCollector(ctx)
+	if err != nil {
+		return err
+	}
+
+	pc.SetEvents([]string{setupEvent})
+	pc.Run(ctx)
+
 	// if we run a single test, always include success output
 	includeSuccess := opt.IncludeSuccessOutput
 	if len(tests) == 1 && count == 1 {
@@ -259,6 +277,7 @@ func (opt *Options) Run(suite *TestSuite) error {
 	q.Execute(testCtx, early, parallelism, status.Run)
 	tests = append(tests, early...)
 
+	pc.SetEvents([]string{upgradeEvent})
 	// repeat the normal suite until context cancel when in the forever loop
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
 		copied := copyTests(normal)
@@ -266,9 +285,29 @@ func (opt *Options) Run(suite *TestSuite) error {
 		tests = append(tests, copied...)
 	}
 
+	pc.SetEvents([]string{postUpgradeEvent})
 	// run Late test suits after everything else
 	q.Execute(testCtx, late, parallelism, status.Run)
 	tests = append(tests, late...)
+
+	pc.ComputePodTransitions()
+
+	if os.Getenv("ARTIFACT_DIR") != "" {
+		fmt.Fprintf(opt.Out, "Dumping pod placement data\n")
+		data, err := pc.JsonDump()
+		if err != nil {
+			fmt.Fprintf(opt.ErrOut, "Unable to dump pod placement data: %v\n", err)
+		} else {
+			if err := ioutil.WriteFile(path.Join(os.Getenv("ARTIFACT_DIR"), "pod-placement-data.json"), data, 0644); err != nil {
+				fmt.Fprintf(opt.ErrOut, "Unable to write pod placement data: %v\n", err)
+			}
+		}
+		fmt.Fprintf(opt.Out, "Dumping pod transitions\n")
+		chains := pc.PodDisplacements().Dump(minChainLen)
+		if err := ioutil.WriteFile(path.Join(os.Getenv("ARTIFACT_DIR"), "pod-transitions.txt"), []byte(chains), 0644); err != nil {
+			fmt.Fprintf(opt.ErrOut, "Unable to write pod placement data: %v\n", err)
+		}
+	}
 
 	// calculate the effective test set we ran, excluding any incompletes
 	tests, _ = splitTests(tests, func(t *testCase) bool { return t.success || t.failed || t.skipped })
