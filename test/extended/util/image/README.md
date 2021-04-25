@@ -75,7 +75,7 @@ New images should be added when:
   1. Ask whether the upstream image is a better image (i.e. is it better managed, more generic, well built, kept up to date by some process)
 2. A new test is added and needs an image AND none of the existing images are sufficient AND none of the existing images can be extended to solve it
   1. I.e. agnhost is a generic tool for simulating clients inside a pod, and so it is better to use that function OR extend it than adding a separate test simulation
-  2. The shell image is the ultimate catch all - ANY bash code that isn't wierd should use that.  If the bash code needs a novel new command we should add it to the `tools` image (which shell image points to) if it matches the criteria for tools (small Linux utilities that are useful for debugging an openshift cluster / node that are likely to be useful in a wide range of areas)
+  2. The shell image is the ultimate catch all - ANY bash code that isn't weird should use that.  If the bash code needs a novel new command we should add it to the `tools` image (which shell image points to) if it matches the criteria for tools (small Linux utilities that are useful for debugging an openshift cluster / node that are likely to be useful in a wide range of areas)
   3. Don't introduce new versions of an existing image unless there is no choice - i.e. if you need `redis` and are not testing a specific version of redis, just use the existing image
 
 ### Mirroring images for approved changes before the PR is merged
