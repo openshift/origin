@@ -29,7 +29,7 @@ import (
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/pkg/version"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/cloud"
+	"github.com/openshift/origin/test/extended/util/cluster"
 )
 
 func main() {
@@ -204,7 +204,7 @@ type runOptions struct {
 	TestOptions  []string
 
 	// Shared by initialization code
-	config *cloud.ClusterConfiguration
+	config *cluster.ClusterConfiguration
 }
 
 func (opt *runOptions) AsEnv() []string {
@@ -406,7 +406,7 @@ func newRunTestCommand() *cobra.Command {
 			ginkgo.GlobalSuite().ClearBeforeSuiteNode()
 			ginkgo.GlobalSuite().ClearAfterSuiteNode()
 
-			config, err := decodeProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun, false)
+			config, err := decodeProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun, false, nil)
 			if err != nil {
 				return err
 			}
