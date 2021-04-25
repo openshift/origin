@@ -234,6 +234,16 @@ func (c *fakeOperatorClient) UpdateOperatorStatus(resourceVersion string, status
 	c.fakeOperatorStatus = status
 	return c.fakeOperatorStatus, nil
 }
-func (c *fakeOperatorClient) UpdateOperatorSpec(string, *operatorv1.OperatorSpec) (spec *operatorv1.OperatorSpec, resourceVersion string, err error) {
-	panic("not supported")
+
+func (c *fakeOperatorClient) UpdateOperatorSpec(resourceVersion string, spec *operatorv1.OperatorSpec) (*operatorv1.OperatorSpec, string, error) {
+	if c.resourceVersion != resourceVersion {
+		return nil, c.resourceVersion, errors.NewConflict(schema.GroupResource{Group: operatorv1.GroupName, Resource: "TestOperatorConfig"}, "instance", fmt.Errorf("invalid resourceVersion"))
+	}
+	rv, err := strconv.Atoi(resourceVersion)
+	if err != nil {
+		return nil, c.resourceVersion, err
+	}
+	c.resourceVersion = strconv.Itoa(rv + 1)
+	c.fakeOperatorSpec = spec
+	return c.fakeOperatorSpec, c.resourceVersion, nil
 }

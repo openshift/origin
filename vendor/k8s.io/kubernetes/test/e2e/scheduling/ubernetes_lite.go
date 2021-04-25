@@ -24,7 +24,7 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -69,11 +69,11 @@ var _ = SIGDescribe("Multi-AZ Clusters", func() {
 			cleanUp()
 		}
 	})
-	ginkgo.It("should spread the pods of a service across zones", func() {
+	ginkgo.It("should spread the pods of a service across zones [Serial]", func() {
 		SpreadServiceOrFail(f, 5*zoneCount, imageutils.GetPauseImageName())
 	})
 
-	ginkgo.It("should spread the pods of a replication controller across zones", func() {
+	ginkgo.It("should spread the pods of a replication controller across zones [Serial]", func() {
 		SpreadRCOrFail(f, int32(5*zoneCount), framework.ServeHostnameImage, []string{"serve-hostname"})
 	})
 })
@@ -136,13 +136,13 @@ func SpreadServiceOrFail(f *framework.Framework, replicaCount int, image string)
 
 // Find the name of the zone in which a Node is running
 func getZoneNameForNode(node v1.Node) (string, error) {
-	for key, value := range node.Labels {
-		if key == v1.LabelFailureDomainBetaZone {
-			return value, nil
-		}
+	if z, ok := node.Labels[v1.LabelFailureDomainBetaZone]; ok {
+		return z, nil
+	} else if z, ok := node.Labels[v1.LabelTopologyZone]; ok {
+		return z, nil
 	}
-	return "", fmt.Errorf("node %s doesn't have zone label %s",
-		node.Name, v1.LabelFailureDomainBetaZone)
+	return "", fmt.Errorf("node %s doesn't have zone label %s or %s",
+		node.Name, v1.LabelFailureDomainBetaZone, v1.LabelTopologyZone)
 }
 
 // Return the number of zones in which we have nodes in this cluster.

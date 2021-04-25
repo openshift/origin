@@ -6,6 +6,7 @@ self_dir :=$(dir $(lastword $(MAKEFILE_LIST)))
 # $3 - output file
 define patch-manifest-yq
 	$(YQ) m -x '$(2)' '$(1)' > '$(3)'
+	sed -i '$(3)' -e '1s/^/# *** AUTOMATICALLY GENERATED FILE - DO NOT EDIT ***\n/'
 
 endef
 
@@ -15,6 +16,7 @@ endef
 # $3 - output file
 define patch-manifest-yaml-patch
 	$(YAML_PATCH) -o '$(1)' < '$(2)' > '$(3)'
+	sed -i '$(3)' -e '1s/^/# *** AUTOMATICALLY GENERATED FILE - DO NOT EDIT ***\n/'
 
 endef
 

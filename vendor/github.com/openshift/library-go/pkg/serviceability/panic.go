@@ -54,23 +54,6 @@ func behaviorOnPanic(mode string, productVersion version.Info) func() {
 		utilruntime.PanicHandlers = append(utilruntime.PanicHandlers, crashOnDelay(delayDuration, delayDurationString))
 		return doNothing
 
-	case strings.HasPrefix(mode, "sentry:"):
-		url := strings.TrimPrefix(mode, "sentry:")
-		m, err := NewSentryMonitor(url, productVersion)
-		if err != nil {
-			klog.Errorf("Unable to start Sentry for panic tracing: %v", err)
-			return doNothing
-		}
-		klog.Infof("Process will log all panics and errors to Sentry.")
-		utilruntime.ReallyCrash = false
-		utilruntime.PanicHandlers = append(utilruntime.PanicHandlers, m.CapturePanic)
-		utilruntime.ErrorHandlers = append(utilruntime.ErrorHandlers, m.CaptureError)
-		return func() {
-			if r := recover(); r != nil {
-				m.CapturePanicAndWait(r, 2*time.Second)
-				panic(r)
-			}
-		}
 	case len(mode) == 0:
 		// default panic behavior
 		utilruntime.ReallyCrash = false

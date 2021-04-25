@@ -20,7 +20,7 @@ import (
 // +k8s:openapi-gen=true
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=cloudprivateipconfig,scope=Cluster
+// +kubebuilder:resource:path=cloudprivateipconfigs,scope=Cluster
 type CloudPrivateIPConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`

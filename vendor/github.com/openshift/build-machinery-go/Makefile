@@ -19,7 +19,7 @@ define update-makefile-log
 mkdir -p "$(3)"
 set -o pipefail; $(MAKE) -j 1 -C "$(dir $(1))" -f "$(notdir $(1))" --no-print-directory --warn-undefined-variables $(2) 2>&1 | \
    sed 's/\.\(buildDate\|versionFromGit\|commitFromGit\|gitTreeState\)="[^"]*" /.\1="<redacted_for_diff>" /g' | \
-   sed -E 's~/.*/(github.com/openshift/build-machinery-go/.*)~/\1~g' | \
+   sed -E 's~/[^ ]*/(github.com/openshift/build-machinery-go/[^ ]*)~/\1~g' | \
    sed '/\/tmp\/tmp./d' | \
    sed '/git checkout -b/d' | \
    sed -E 's~^[<> ]*((\+\+\+|\-\-\-) \./(testing/)?manifests/.*.yaml).*~\1~' | \
