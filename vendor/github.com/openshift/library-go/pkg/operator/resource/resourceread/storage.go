@@ -33,3 +33,11 @@ func ReadCSIDriverV1Beta1OrDie(objBytes []byte) *storagev1beta1.CSIDriver {
 	}
 	return requiredObj.(*storagev1beta1.CSIDriver)
 }
+
+func ReadCSIDriverV1OrDie(objBytes []byte) *storagev1.CSIDriver {
+	requiredObj, err := runtime.Decode(storageCodecs.UniversalDecoder(storagev1.SchemeGroupVersion), objBytes)
+	if err != nil {
+		panic(err)
+	}
+	return requiredObj.(*storagev1.CSIDriver)
+}

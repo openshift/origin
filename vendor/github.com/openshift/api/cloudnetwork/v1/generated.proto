@@ -28,7 +28,7 @@ option go_package = "v1";
 // +k8s:openapi-gen=true
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=cloudprivateipconfig,scope=Cluster
+// +kubebuilder:resource:path=cloudprivateipconfigs,scope=Cluster
 message CloudPrivateIPConfig {
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 

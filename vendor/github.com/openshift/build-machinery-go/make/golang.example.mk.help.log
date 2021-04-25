@@ -10,5 +10,6 @@ update
 update-gofmt
 verify
 verify-gofmt
+verify-golang-versions
 verify-golint
 verify-govet

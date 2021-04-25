@@ -6,6 +6,7 @@ self_dir := $(dir $(lastword $(MAKEFILE_LIST)))
 
 verify: verify-gofmt
 verify: verify-govet
+verify: verify-golang-versions
 .PHONY: verify
 
 update: update-gofmt

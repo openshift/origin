@@ -236,6 +236,12 @@ func (f *Factory) ToController(name string, eventRecorder events.Recorder) Contr
 		cacheSyncTimeout:   defaultCacheSyncTimeout,
 	}
 
+	// Warn about too fast resyncs as they might drain the operators QPS.
+	// This event is cheap as it is only emitted on operator startup.
+	if c.resyncEvery.Seconds() < 60 {
+		ctx.Recorder().Warningf("FastControllerResync", "Controller %q resync interval is set to %s which might lead to client request throttling", name, c.resyncEvery)
+	}
+
 	for i := range f.informerQueueKeys {
 		for d := range f.informerQueueKeys[i].informers {
 			informer := f.informerQueueKeys[i].informers[d]
