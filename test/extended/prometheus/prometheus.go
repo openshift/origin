@@ -66,6 +66,14 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 
 		firingAlertsWithBugs := helper.MetricConditions{
 			{
+				Selector: map[string]string{"alertname": "ClusterOperatorDown", "name": "authentication"},
+				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1939580",
+			},
+			{
+				Selector: map[string]string{"alertname": "ClusterOperatorDegraded", "name": "authentication"},
+				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1939580",
+			},
+			{
 				Selector: map[string]string{"alertname": "AggregatedAPIDown", "name": "v1alpha1.wardle.example.com"},
 				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1933144",
 			},
