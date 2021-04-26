@@ -45,8 +45,11 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1952457
 			`\[sig-node\] crictl should be able to run crictl on the node`,
 
-			// // https://bugzilla.redhat.com/show_bug.cgi?id=1945091
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1945091
 			`\[Feature:GenericEphemeralVolume\]`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1953478
+			`\[sig-storage\] Dynamic Provisioning Invalid AWS KMS key should report an error and create no PV`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},
