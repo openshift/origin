@@ -70,11 +70,25 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1933144",
 			},
 		}
+		allowedFiringAlerts := helper.MetricConditions{
+			{
+				Selector: map[string]string{"alertname": "HighOverallControlPlaneCPU"},
+				Text:     "high CPU utilization during e2e runs is normal",
+			},
+			{
+				Selector: map[string]string{"alertname": "ExtremelyHighIndividualControlPlaneCPU"},
+				Text:     "high CPU utilization during e2e runs is normal",
+			},
+		}
 
 		pendingAlertsWithBugs := helper.MetricConditions{}
 		allowedPendingAlerts := helper.MetricConditions{
 			{
 				Selector: map[string]string{"alertname": "HighOverallControlPlaneCPU"},
+				Text:     "high CPU utilization during e2e runs is normal",
+			},
+			{
+				Selector: map[string]string{"alertname": "ExtremelyHighIndividualControlPlaneCPU"},
 				Text:     "high CPU utilization during e2e runs is normal",
 			},
 		}
@@ -109,6 +123,10 @@ count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog
 		for _, series := range result.Data.Result {
 			labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
 			violation := fmt.Sprintf("alert %s fired for %s seconds with labels: %s", series.Metric["alertname"], series.Value, helper.LabelsAsSelector(labels))
+			if cause := allowedFiringAlerts.Matches(series); cause != nil {
+				debug.Insert(fmt.Sprintf("%s (allowed: %s)", violation, cause.Text))
+				continue
+			}
 			if cause := firingAlertsWithBugs.Matches(series); cause != nil {
 				knownViolations.Insert(fmt.Sprintf("%s (open bug: %s)", violation, cause.Text))
 			} else {
