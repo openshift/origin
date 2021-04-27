@@ -130,6 +130,7 @@ func NewCLIWithoutNamespace(project string) *CLI {
 				ClientQPS:   20,
 				ClientBurst: 50,
 			},
+			Timeouts: framework.NewTimeoutContextWithDefaults(),
 		},
 		username:         "admin",
 		execPath:         "oc",
