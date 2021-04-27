@@ -107,7 +107,7 @@ func (t *availableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 	end := time.Now()
 
 	toleratedDisruption := 0.08
-	if framework.ProviderIs("azure", "gcp") {
+	if framework.ProviderIs("azure") {
 		toleratedDisruption = 0
 	}
 	disruption.ExpectNoDisruption(f, toleratedDisruption, end.Sub(start), m.Intervals(time.Time{}, time.Time{}), fmt.Sprintf("API %q was unreachable during disruption (AWS has a known issue: https://bugzilla.redhat.com/show_bug.cgi?id=1943804)", t.name))
