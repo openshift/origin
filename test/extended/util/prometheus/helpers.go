@@ -97,6 +97,7 @@ func LocatePrometheus(oc *exutil.CLI) (queryURL, prometheusURL, bearerToken stri
 type MetricCondition struct {
 	Selector map[string]string
 	Text     string
+	Matches  func(sample *model.Sample) bool
 }
 
 type MetricConditions []MetricCondition
@@ -109,9 +110,9 @@ func (c MetricConditions) Matches(sample *model.Sample) *MetricCondition {
 				matches = false
 				break
 			}
-			if matches {
-				return &c[i]
-			}
+		}
+		if matches && (condition.Matches == nil || condition.Matches(sample)) {
+			return &c[i]
 		}
 	}
 	return nil
