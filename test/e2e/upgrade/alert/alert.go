@@ -8,6 +8,7 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	"github.com/prometheus/common/model"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
@@ -72,6 +73,13 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 		{
 			Selector: map[string]string{"alertname": "KubeDaemonSetRolloutStuck"},
 			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1943667",
+		},
+		{
+			Selector: map[string]string{"alertname": "KubeAPIErrorBudgetBurn"},
+			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1953798",
+			Matches: func(_ *model.Sample) bool {
+				return framework.ProviderIs("gce")
+			},
 		},
 	}
 
