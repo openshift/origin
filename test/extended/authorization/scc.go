@@ -30,7 +30,12 @@ var _ = g.Describe("[sig-auth][Feature:SCC][Early]", func() {
 		suiteStartTime := exutil.SuiteStartTime()
 		var preTestDenialStrings, duringTestDenialStrings []string
 
+		eventsAfterTime := exutil.LimitTestsToStartTime()
 		for _, event := range events.Items {
+			if event.LastTimestamp.Time.Before(eventsAfterTime) {
+				continue
+			}
+
 			if !strings.Contains(event.Message, "unable to validate against any security context constraint") {
 				continue
 			}
