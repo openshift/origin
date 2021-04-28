@@ -191,6 +191,13 @@ func hasImagePullError(pod *corev1.Pod) bool {
 }
 
 func hasFailingContainer(pod *corev1.Pod) bool {
+	// Catalog update pods are deliberately terminated with non-zero exit codes, so this check does not apply to them
+	if _, ok := pod.Labels["catalogsource.operators.coreos.com/update"]; ok {
+		return false
+	}
+	if pod.Status.Phase == corev1.PodFailed {
+		return true
+	}
 	for _, status := range append(append([]corev1.ContainerStatus{}, pod.Status.InitContainerStatuses...), pod.Status.ContainerStatuses...) {
 		if status.State.Terminated != nil && status.State.Terminated.ExitCode != 0 {
 			pod.Status.Message = status.State.Terminated.Message
@@ -200,7 +207,7 @@ func hasFailingContainer(pod *corev1.Pod) bool {
 			return true
 		}
 	}
-	return pod.Status.Phase == corev1.PodFailed
+	return false
 }
 
 func isCrashLooping(pod *corev1.Pod) bool {
