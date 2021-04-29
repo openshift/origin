@@ -3,6 +3,7 @@ package synthetictests
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -70,6 +71,103 @@ func testKubeAPIServerGracefulTermination(events monitorapi.Intervals) []*ginkgo
 		tests = append(tests, &ginkgo.JUnitTestCase{Name: testName})
 	}
 	return tests
+}
+
+func testContainerFailures(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+	containerExits := make(map[string][]string)
+	failures := []string{}
+	for _, event := range events {
+		if !strings.Contains(event.Locator, "ns/openshift-") {
+			continue
+		}
+		switch {
+		// errors during container start should be highlighted because they are unexpected
+		case strings.Contains(event.Message, "reason/ContainerWait "):
+			// excluded https://bugzilla.redhat.com/show_bug.cgi?id=1933760
+			if strings.Contains(event.Message, "possible container status clear") || strings.Contains(event.Message, "cause/ContainerCreating ") {
+				continue
+			}
+			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
+
+		// workload containers should never exit non-zero during normal operations
+		case strings.Contains(event.Message, "reason/ContainerExit") && !strings.Contains(event.Message, "code/0"):
+			containerExits[event.Locator] = append(containerExits[event.Locator], event.Message)
+		}
+	}
+
+	var excessiveExits []string
+	for locator, messages := range containerExits {
+		if len(messages) > 1 {
+			messageSet := sets.NewString(messages...)
+			excessiveExits = append(excessiveExits, fmt.Sprintf("%s restarted %d times:\n%s", locator, len(messages), strings.Join(messageSet.List(), "\n")))
+		}
+	}
+	sort.Strings(excessiveExits)
+
+	var testCases []*ginkgo.JUnitTestCase
+
+	// mark flaky for now while we debug
+	const failToStartTestName = "[sig-architecture] platform pods should not fail to start"
+	testCases = append(testCases, &ginkgo.JUnitTestCase{Name: failToStartTestName})
+	if len(failures) > 0 {
+		testCases = append(testCases, &ginkgo.JUnitTestCase{
+			Name:      failToStartTestName,
+			SystemOut: strings.Join(failures, "\n"),
+			FailureOutput: &ginkgo.FailureOutput{
+				Output: fmt.Sprintf("%d container starts had issues\n\n%s", len(failures), strings.Join(failures, "\n")),
+			},
+		})
+	}
+
+	// mark flaky for now while we debug
+	const excessiveRestartTestName = "[sig-architecture] platform pods should not restart exit more than once with a non-zero exit code"
+	testCases = append(testCases, &ginkgo.JUnitTestCase{Name: excessiveRestartTestName})
+	if len(excessiveExits) > 0 {
+		testCases = append(testCases, &ginkgo.JUnitTestCase{
+			Name:      excessiveRestartTestName,
+			SystemOut: strings.Join(excessiveExits, "\n"),
+			FailureOutput: &ginkgo.FailureOutput{
+				Output: fmt.Sprintf("%d containers with multiple restarts\n\n%s", len(excessiveExits), strings.Join(excessiveExits, "\n\n")),
+			},
+		})
+	}
+
+	return testCases
+}
+
+func testDeleteGracePeriodZero(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+	const testName = "[sig-architecture] platform pods should not be force deleted with gracePeriod 0"
+	success := &ginkgo.JUnitTestCase{Name: testName}
+
+	failures := []string{}
+	for _, event := range events {
+		if !strings.Contains(event.Message, "reason/ForceDelete") {
+			continue
+		}
+		if !strings.Contains(event.Locator, "ns/openshift-") {
+			continue
+		}
+		if strings.Contains(event.Message, "mirrored/true") {
+			continue
+		}
+		if strings.Contains(event.Message, "node/ ") {
+			continue
+		}
+		failures = append(failures, event.Locator)
+	}
+	if len(failures) == 0 {
+		return []*ginkgo.JUnitTestCase{success}
+	}
+
+	failure := &ginkgo.JUnitTestCase{
+		Name:      testName,
+		SystemOut: strings.Join(failures, "\n"),
+		FailureOutput: &ginkgo.FailureOutput{
+			Output: fmt.Sprintf("The following pods were force deleted and should not be:\n\n%s", strings.Join(failures, "\n")),
+		},
+	}
+	// TODO: marked flaky until has been thoroughly debugged
+	return []*ginkgo.JUnitTestCase{failure, success}
 }
 
 func testPodTransitions(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {

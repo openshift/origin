@@ -843,8 +843,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch] Managed cluster should ensure pods use downstream images from our release image with proper ImagePullPolicy": "should ensure pods use downstream images from our release image with proper ImagePullPolicy [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-arch] Managed cluster should have no crashlooping pods in core namespaces over four minutes": "have no crashlooping pods in core namespaces over four minutes [Suite:openshift/conformance/parallel]",
-
 	"[Top Level] [sig-arch] Managed cluster should have operators on the cluster version": "have operators on the cluster version [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch] Managed cluster should only include cluster daemonsets that have maxUnavailable update of 10 or 33 percent": "should only include cluster daemonsets that have maxUnavailable update of 10 or 33 percent [Suite:openshift/conformance/parallel]",

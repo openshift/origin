@@ -15,6 +15,8 @@ import (
 // etcd, or apis).
 func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase) {
 	tests = SystemEventInvariants(events, duration)
+	tests = append(tests, testContainerFailures(events)...)
+	tests = append(tests, testDeleteGracePeriodZero(events)...)
 	tests = append(tests, testKubeAPIServerGracefulTermination(events)...)
 	tests = append(tests, testKubeletToAPIServerGracefulTermination(events)...)
 	tests = append(tests, testPodTransitions(events)...)
@@ -34,6 +36,8 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 // that is being upgraded without induced disruption
 func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase) {
 	tests = SystemEventInvariants(events, duration)
+	tests = append(tests, testContainerFailures(events)...)
+	tests = append(tests, testDeleteGracePeriodZero(events)...)
 	tests = append(tests, testKubeAPIServerGracefulTermination(events)...)
 	tests = append(tests, testKubeletToAPIServerGracefulTermination(events)...)
 	tests = append(tests, testPodTransitions(events)...)
