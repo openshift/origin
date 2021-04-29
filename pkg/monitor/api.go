@@ -70,6 +70,11 @@ func Start(ctx context.Context) (*Monitor, error) {
 		return nil, err
 	}
 	startPodMonitoring(ctx, m, client)
+	m.intervalCreationFns = append(
+		m.intervalCreationFns,
+		intervalcreation.IntervalsFromEvents_NonGracefulTermination,
+		intervalcreation.IntervalsFromEvents_OpenShiftPodNotReady,
+	)
 	startNodeMonitoring(ctx, m, client)
 	startEventMonitoring(ctx, m, client)
 
@@ -252,26 +257,6 @@ func locateEvent(event *corev1.Event) string {
 		return fmt.Sprintf("%s/%s node/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
 	}
 	return fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
-}
-
-func locatePod(pod *corev1.Pod) string {
-	return fmt.Sprintf("ns/%s pod/%s node/%s", pod.Namespace, pod.Name, pod.Spec.NodeName)
-}
-
-func locatePodContainer(pod *corev1.Pod, containerName string) string {
-	return fmt.Sprintf("ns/%s pod/%s node/%s container/%s", pod.Namespace, pod.Name, pod.Spec.NodeName, containerName)
-}
-
-func filterToSystemNamespaces(obj runtime.Object) bool {
-	m, ok := obj.(metav1.Object)
-	if !ok {
-		return true
-	}
-	ns := m.GetNamespace()
-	if len(ns) == 0 {
-		return true
-	}
-	return strings.HasPrefix(ns, "kube-") || strings.HasPrefix(ns, "openshift-") || ns == "default"
 }
 
 type errorRecordingListWatcher struct {
