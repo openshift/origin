@@ -153,6 +153,9 @@ RUN touch /test-image
 		err = oc.Run("policy").Args("add-role-to-user", "testrole", "-z", "testsa", "--role-namespace="+oc.Namespace()).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		err = exutil.WaitForServiceAccount(oc.AdminKubeClient().CoreV1().ServiceAccounts(oc.Namespace()), "testsa")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		token, err := oc.Run("serviceaccounts").Args("get-token", "testsa").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
