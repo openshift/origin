@@ -155,18 +155,25 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 		func(pod, oldPod *corev1.Pod) []monitorapi.Condition {
 			var conditions []monitorapi.Condition
 			if pod.DeletionGracePeriodSeconds != nil && oldPod.DeletionGracePeriodSeconds == nil {
-				if *pod.DeletionGracePeriodSeconds == 0 {
-					conditions = append(conditions, monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Locator: locatePod(pod),
-						Message: fmt.Sprintf("reason/ForceDelete mirrored/%t", isMirrorPod(pod)),
-					})
-				} else {
-					conditions = append(conditions, monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Locator: locatePod(pod),
-						Message: fmt.Sprintf("reason/GracefulDelete duration/%ds", *pod.DeletionGracePeriodSeconds),
-					})
+				switch {
+				case len(pod.Spec.NodeName) == 0:
+					// pods that have not been assigned to a node are deleted immediately
+				case pod.Status.Phase == corev1.PodFailed, pod.Status.Phase == corev1.PodSucceeded:
+					// terminal pods are immediately deleted (do not undergo graceful deletion)
+				default:
+					if *pod.DeletionGracePeriodSeconds == 0 {
+						conditions = append(conditions, monitorapi.Condition{
+							Level:   monitorapi.Info,
+							Locator: locatePod(pod),
+							Message: fmt.Sprintf("reason/ForceDelete mirrored/%t", isMirrorPod(pod)),
+						})
+					} else {
+						conditions = append(conditions, monitorapi.Condition{
+							Level:   monitorapi.Info,
+							Locator: locatePod(pod),
+							Message: fmt.Sprintf("reason/GracefulDelete duration/%ds", *pod.DeletionGracePeriodSeconds),
+						})
+					}
 				}
 			}
 			if pod.DeletionGracePeriodSeconds == nil && oldPod.DeletionGracePeriodSeconds != nil {
@@ -311,14 +318,20 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 		// check for transitions to being deleted
 		func(pod *corev1.Pod) []monitorapi.Condition {
 			var conditions []monitorapi.Condition
-			if len(pod.Spec.NodeName) == 0 {
+			switch {
+			case len(pod.Spec.NodeName) == 0:
 				conditions = append(conditions, monitorapi.Condition{
 					Level:   monitorapi.Info,
 					Locator: locatePod(pod),
 					Message: "reason/DeletedBeforeScheduling",
 				})
-			}
-			if len(conditions) == 0 {
+			case pod.Status.Phase == corev1.PodFailed, pod.Status.Phase == corev1.PodSucceeded:
+				conditions = append(conditions, monitorapi.Condition{
+					Level:   monitorapi.Info,
+					Locator: locatePod(pod),
+					Message: "reason/DeletedAfterCompletion",
+				})
+			default:
 				conditions = append(conditions, monitorapi.Condition{
 					Level:   monitorapi.Info,
 					Locator: locatePod(pod),
