@@ -120,7 +120,8 @@ func decodeProvider(provider string, dryRun, discover bool, clusterState *exutil
 			if clusterState != nil {
 				config, _ = exutilcluster.LoadConfig(clusterState)
 			}
-		} else {
+		}
+		if config == nil {
 			config = &exutilcluster.ClusterConfiguration{}
 		}
 
