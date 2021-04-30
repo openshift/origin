@@ -418,11 +418,13 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		// Test deleting and recreating a project
 		o.Expect(oc.Run("adm", "new-project").Args("recreated-project", "--admin=createuser1").Execute()).To(o.Succeed())
 		o.Expect(oc.Run("delete").Args("project", "recreated-project").Execute()).To(o.Succeed())
+		var lastOut string
 		err := wait.Poll(cliInterval, cliTimeout, func() (bool, error) {
 			out, err := ocns.Run("get").Args("project/recreated-project").Output()
+			lastOut = out
 			return err != nil && strings.Contains(out, "not found"), nil
 		})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("project did not report not found, got:\n\n%s", lastOut))
 
 		o.Expect(oc.Run("adm", "new-project").Args("recreated-project", "--admin=createuser2").Execute()).To(o.Succeed())
 		var out string
