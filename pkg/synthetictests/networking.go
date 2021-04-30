@@ -38,6 +38,10 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*ginkgo.JUnitTestCase
 		if !strings.Contains(event.Message, "reason/FailedCreatePodSandBox Failed to create pod sandbox") {
 			continue
 		}
+		if strings.Contains(event.Message, "Multus") && strings.Contains(event.Message, "error getting pod") && strings.Contains(event.Message, "connection refused") {
+			flakes = append(flakes, fmt.Sprintf("%v - multus is unable to get pods due to LB disruption https://bugzilla.redhat.com/show_bug.cgi?id=1927264 - %v", event.Locator, event.Message))
+			continue
+		}
 		deletionTime := getPodDeletionTime(eventsForPods[event.Locator], event.Locator)
 		if deletionTime == nil {
 			// this indicates a failure to create the sandbox that should not happen
