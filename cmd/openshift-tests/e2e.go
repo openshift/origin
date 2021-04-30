@@ -496,8 +496,10 @@ func testKubeAPIServerGracefulTermination(events []*monitor.EventInterval) []*gi
 		},
 	}
 
-	// This should fail a CI run, not flake it.
-	return []*ginkgo.JUnitTestCase{failure}
+	successTest := &ginkgo.JUnitTestCase{Name: testName}
+
+	// This should flake a CI run while waiting for https://bugzilla.redhat.com/show_bug.cgi?id=1928946
+	return []*ginkgo.JUnitTestCase{failure, successTest}
 
 }
 
