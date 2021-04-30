@@ -106,9 +106,7 @@ func testContainerFailures(events monitorapi.Intervals) []*ginkgo.JUnitTestCase 
 
 	var testCases []*ginkgo.JUnitTestCase
 
-	// mark flaky for now while we debug
 	const failToStartTestName = "[sig-architecture] platform pods should not fail to start"
-	testCases = append(testCases, &ginkgo.JUnitTestCase{Name: failToStartTestName})
 	if len(failures) > 0 {
 		testCases = append(testCases, &ginkgo.JUnitTestCase{
 			Name:      failToStartTestName,
@@ -118,10 +116,10 @@ func testContainerFailures(events monitorapi.Intervals) []*ginkgo.JUnitTestCase 
 			},
 		})
 	}
-
 	// mark flaky for now while we debug
-	const excessiveRestartTestName = "[sig-architecture] platform pods should not restart exit more than once with a non-zero exit code"
-	testCases = append(testCases, &ginkgo.JUnitTestCase{Name: excessiveRestartTestName})
+	testCases = append(testCases, &ginkgo.JUnitTestCase{Name: failToStartTestName})
+
+	const excessiveRestartTestName = "[sig-architecture] platform pods should not exit more than once with a non-zero exit code"
 	if len(excessiveExits) > 0 {
 		testCases = append(testCases, &ginkgo.JUnitTestCase{
 			Name:      excessiveRestartTestName,
@@ -131,6 +129,8 @@ func testContainerFailures(events monitorapi.Intervals) []*ginkgo.JUnitTestCase 
 			},
 		})
 	}
+	// mark flaky for now while we debug
+	testCases = append(testCases, &ginkgo.JUnitTestCase{Name: excessiveRestartTestName})
 
 	return testCases
 }
