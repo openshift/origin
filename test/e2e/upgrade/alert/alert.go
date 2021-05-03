@@ -67,6 +67,10 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1939580",
 		},
 		{
+			Selector: map[string]string{"alertname": "ClusterOperatorDown", "name": "machine-config"},
+			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1955300",
+		},
+		{
 			Selector: map[string]string{"alertname": "ClusterOperatorDegraded", "name": "authentication"},
 			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1939580",
 		},
