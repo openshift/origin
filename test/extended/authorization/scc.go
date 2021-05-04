@@ -8,6 +8,7 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -28,6 +29,14 @@ var _ = g.Describe("[sig-auth][Feature:SCC][Early]", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		suiteStartTime := exutil.SuiteStartTime()
+		var suppressPreTestFailure bool
+		if t := exutil.LimitTestsToStartTime(); !t.IsZero() {
+			suppressPreTestFailure = true
+			if t.After(suiteStartTime) {
+				suiteStartTime = t
+			}
+		}
+
 		var preTestDenialStrings, duringTestDenialStrings []string
 
 		for _, event := range events.Items {
@@ -58,7 +67,11 @@ var _ = g.Describe("[sig-auth][Feature:SCC][Early]", func() {
 
 		if numFailingPods := len(preTestDenialStrings); numFailingPods > numFailuresForFail {
 			failMessage := fmt.Sprintf("%d pods failed before test on SCC errors\n%s\n", numFailingPods, strings.Join(preTestDenialStrings, "\n"))
-			g.Fail(failMessage)
+			if suppressPreTestFailure {
+				result.Flakef("pre-test environment had disruption and limited this test, suppressing failure: %s", failMessage)
+			} else {
+				g.Fail(failMessage)
+			}
 		}
 		if numFailingPods := len(duringTestDenialStrings); numFailingPods > 0 {
 			failMessage := fmt.Sprintf("%d pods failed during test on SCC errors\n%s\n", numFailingPods, strings.Join(duringTestDenialStrings, "\n"))
