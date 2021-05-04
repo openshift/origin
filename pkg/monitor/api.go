@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"errors"
 
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/intervalcreation"
@@ -17,7 +18,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
+	kubeinformers "k8s.io/client-go/informers"
+	informersv1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
+	listersv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
@@ -25,12 +29,14 @@ import (
 )
 
 const (
-	LocatorKubeAPIServerNewConnection         = "kube-apiserver-new-connection"
-	LocatorOpenshiftAPIServerNewConnection    = "openshift-apiserver-new-connection"
-	LocatorOAuthAPIServerNewConnection        = "oauth-apiserver-new-connection"
-	LocatorKubeAPIServerReusedConnection      = "kube-apiserver-reused-connection"
-	LocatorOpenshiftAPIServerReusedConnection = "openshift-apiserver-reused-connection"
-	LocatorOAuthAPIServerReusedConnection     = "oauth-apiserver-reused-connection"
+	LocatorKubeAPIServerNewConnection          = "kube-apiserver-new-connection"
+	LocatorKubeAPIServerNewConnectionNodeIP    = "kube-apiserver-new-connection-node-ips"
+	LocatorOpenshiftAPIServerNewConnection     = "openshift-apiserver-new-connection"
+	LocatorOAuthAPIServerNewConnection         = "oauth-apiserver-new-connection"
+	LocatorKubeAPIServerReusedConnection       = "kube-apiserver-reused-connection"
+	LocatorKubeAPIServerReusedConnectionNodeIP = "kube-apiserver-reused-connection-node-ips"
+	LocatorOpenshiftAPIServerReusedConnection  = "openshift-apiserver-reused-connection"
+	LocatorOAuthAPIServerReusedConnection      = "oauth-apiserver-reused-connection"
 )
 
 // Start begins monitoring the cluster referenced by the default kube configuration until
@@ -54,6 +60,9 @@ func Start(ctx context.Context) (*Monitor, error) {
 	if err := StartKubeAPIMonitoringWithNewConnections(ctx, m, clusterConfig, 5*time.Second); err != nil {
 		return nil, err
 	}
+	if err := StartKubeAPIMonitoringWithNewConnectionsForNodeIPs(ctx, m, clusterConfig, 5*time.Second); err != nil {
+		return nil, err
+	}
 	if err := StartOpenShiftAPIMonitoringWithNewConnections(ctx, m, clusterConfig, 5*time.Second); err != nil {
 		return nil, err
 	}
@@ -61,6 +70,9 @@ func Start(ctx context.Context) (*Monitor, error) {
 		return nil, err
 	}
 	if err := StartKubeAPIMonitoringWithConnectionReuse(ctx, m, clusterConfig, 5*time.Second); err != nil {
+		return nil, err
+	}
+	if err := StartKubeAPIMonitoringWithConnectionReuseForNodeIPs(ctx, m, clusterConfig, 5*time.Second); err != nil {
 		return nil, err
 	}
 	if err := StartOpenShiftAPIMonitoringWithConnectionReuse(ctx, m, clusterConfig, 5*time.Second); err != nil {
@@ -138,6 +150,10 @@ func startServerMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.
 
 	}
 
+	if kubeTransportConfig.WrapTransport != nil {
+		roundTripper = kubeTransportConfig.WrapTransport(roundTripper)
+	}
+
 	httpClient := http.Client{
 		Transport: roundTripper,
 	}
@@ -188,6 +204,24 @@ func StartKubeAPIMonitoringWithNewConnections(ctx context.Context, m *Monitor, c
 	return StartServerMonitoringWithNewConnections(ctx, m, clusterConfig, timeout, LocatorKubeAPIServerNewConnection, "/api/v1/namespaces/default")
 }
 
+func StartKubeAPIMonitoringWithNewConnectionsForNodeIPs(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
+	client, err := kubernetes.NewForConfig(clusterConfig)
+	if err != nil {
+		return err
+	}
+	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(client, time.Second*30)
+	endpointsInformer := kubeInformerFactory.Core().V1().Endpoints()
+	newClusterConfig := kubeAPIMonitoringConfigForNodeIPs(endpointsInformer, clusterConfig)
+
+	// default gets auto-created, so this should always exist
+	if err := StartServerMonitoringWithNewConnections(ctx, m, newClusterConfig, timeout, LocatorKubeAPIServerNewConnectionNodeIP, "/api/v1/namespaces/default"); err != nil {
+		return err
+	}
+
+	kubeInformerFactory.Start(ctx.Done())
+	return nil
+}
+
 func StartOpenShiftAPIMonitoringWithNewConnections(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
 	// this request should never 404, but should be empty/small
 	return StartServerMonitoringWithNewConnections(ctx, m, clusterConfig, timeout, LocatorOpenshiftAPIServerNewConnection, "/apis/image.openshift.io/v1/namespaces/default/imagestreams")
@@ -203,6 +237,24 @@ func StartKubeAPIMonitoringWithConnectionReuse(ctx context.Context, m *Monitor, 
 	return StartServerMonitoringWithConnectionReuse(ctx, m, clusterConfig, timeout, LocatorKubeAPIServerReusedConnection, "/api/v1/namespaces/default")
 }
 
+func StartKubeAPIMonitoringWithConnectionReuseForNodeIPs(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
+	client, err := kubernetes.NewForConfig(clusterConfig)
+	if err != nil {
+		return err
+	}
+	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(client, time.Second*30)
+	endpointsInformer := kubeInformerFactory.Core().V1().Endpoints()
+
+	newClusterConfig := kubeAPIMonitoringConfigForNodeIPs(endpointsInformer, clusterConfig)
+	// default gets auto-created, so this should always exist
+	if err := StartServerMonitoringWithConnectionReuse(ctx, m, newClusterConfig, timeout, LocatorKubeAPIServerReusedConnectionNodeIP, "/api/v1/namespaces/default"); err != nil {
+		return err
+	}
+
+	kubeInformerFactory.Start(ctx.Done())
+	return nil
+}
+
 func StartOpenShiftAPIMonitoringWithConnectionReuse(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
 	// this request should never 404, but should be empty/small
 	return StartServerMonitoringWithConnectionReuse(ctx, m, clusterConfig, timeout, LocatorOpenshiftAPIServerReusedConnection, "/apis/image.openshift.io/v1/namespaces/default/imagestreams")
@@ -211,6 +263,13 @@ func StartOpenShiftAPIMonitoringWithConnectionReuse(ctx context.Context, m *Moni
 func StartOAuthAPIMonitoringWithConnectionReuse(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
 	// this should be relatively small and should not ever 404
 	return StartServerMonitoringWithConnectionReuse(ctx, m, clusterConfig, timeout, LocatorOAuthAPIServerReusedConnection, "/apis/oauth.openshift.io/v1/oauthclients")
+}
+
+func kubeAPIMonitoringConfigForNodeIPs(endpointsInformer informersv1.EndpointsInformer, clusterConfig *rest.Config) *rest.Config {
+	clusterConfigCopy := *clusterConfig
+	clusterConfigCopy.TLSClientConfig.ServerName = "kubernetes.default.svc"
+	clusterConfigCopy.Wrap(newKubeAPIEndpointsAwareRoundTripper(endpointsInformer))
+	return &clusterConfigCopy
 }
 
 func findContainerStatus(status []corev1.ContainerStatus, name string, position int) *corev1.ContainerStatus {
@@ -317,4 +376,83 @@ func (w *errorRecordingListWatcher) handle(err error) {
 	} else {
 		w.receivedError = false
 	}
+}
+
+// newKubeAPIEndpointsAwareRoundTripper creates a new HTTP round tripper for changing the destination host for each request to NodeIPs.
+// The list of available servers is taken from the provided lister.
+//
+// See RoundTrip for more details.
+func newKubeAPIEndpointsAwareRoundTripper(endpointsInformer informersv1.EndpointsInformer) func(http.RoundTripper) http.RoundTripper {
+	return func(rt http.RoundTripper) http.RoundTripper {
+		return &kubeAPIEndpointsAwareRT{delegate: rt, endpointsLister: endpointsInformer.Lister(), hasEndpointInformerSynced: endpointsInformer.Informer().HasSynced}
+	}
+}
+
+type kubeAPIEndpointsAwareRT struct {
+	delegate http.RoundTripper
+
+	hasEndpointInformerSynced func() bool
+	endpointsLister           listersv1.EndpointsLister
+
+	index     int
+	endpoints []string
+
+	lock sync.Mutex
+}
+
+// RoundTrip sends the given request to a new Kube API Server on each invocation in a round robin fashion.
+//
+// It reads the current list of available servers from the lister.
+// This seems to be okay since rolling a new kas instance is a slow process and might take many minutes.
+// There is a huge window between starting the termination process and closing a socket.
+// During that time we expect the server to process the requests without any disruption.
+// In practice that window will be very short because the server removes the endpoint from the service upon receiving the SIGTERM.
+func (rt *kubeAPIEndpointsAwareRT) RoundTrip(r *http.Request) (*http.Response, error) {
+	if !rt.hasEndpointInformerSynced() {
+		return nil, errors.New("unable to get the list of kubernetes endpoints since the cache hasn't been synced yet")
+	}
+
+	nextEndpoint, err := rt.nextEndpointLocked()
+	if err != nil {
+		return nil, err
+	}
+	r.Host = nextEndpoint
+	r.URL.Host = nextEndpoint
+
+	return rt.delegate.RoundTrip(r)
+}
+
+func (rt *kubeAPIEndpointsAwareRT) nextEndpointLocked() (string, error) {
+	rt.lock.Lock()
+	defer rt.lock.Unlock()
+
+	eps, err := rt.endpointsLister.Endpoints(metav1.NamespaceDefault).Get("kubernetes")
+	if err != nil {
+		return "", err
+	}
+	kubeAPIEndpoints := []string{}
+	for _, s := range eps.Subsets {
+		var port int32
+		for _, p := range s.Ports {
+			if p.Name == "https" {
+				port = p.Port
+				break
+			}
+		}
+		if port == 0 {
+			continue
+		}
+		for _, ep := range s.Addresses {
+			kubeAPIEndpoints = append(kubeAPIEndpoints, fmt.Sprintf("%s:%d", ep.IP, port))
+		}
+		break
+	}
+	if len(kubeAPIEndpoints) == 0 {
+		return "", fmt.Errorf("%s/%s doesn't contain any valid endpoints", eps.Namespace, eps.Name)
+	}
+
+	// pick up a next server in a round robin fashion (approximation - when the list of endpoints changes)
+	rt.endpoints = kubeAPIEndpoints
+	rt.index = (rt.index + 1) % len(rt.endpoints)
+	return rt.endpoints[rt.index], nil
 }
