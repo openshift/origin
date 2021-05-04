@@ -50,6 +50,11 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1953478
 			`\[sig-storage\] Dynamic Provisioning Invalid AWS KMS key should report an error and create no PV`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1956989
+			`\[sig-network\] Services should be possible to connect to a service via ExternalIP when the external IP is not assigned to a node`,
+			`\[sig-network\] Networking IPerf2 \[Feature:Networking-Performance\] should run iperf2`,
+			`\[sig-network\] HostPort validates that there is no conflict between pods with same hostPort but different hostIP and protocol`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},
