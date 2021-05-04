@@ -7,7 +7,7 @@ RUN make; \
 
 FROM registry.ci.openshift.org/ocp/4.7:tools
 COPY --from=builder /tmp/build/openshift-tests /usr/bin/
-RUN yum install --setopt=tsflags=nodocs -y git gzip util-linux && yum clean all && rm -rf /var/cache/yum/* && \
+RUN yum install --setopt=tsflags=nodocs -y git gzip util-linux python3-cinderclient && yum clean all && rm -rf /var/cache/yum/* && \
     git config --system user.name test && \
     git config --system user.email test@test.com && \
     chmod g+w /etc/passwd
