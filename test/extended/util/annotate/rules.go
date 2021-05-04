@@ -57,7 +57,9 @@ var (
 			`\[sig-network\] HostPort validates that there is no conflict between pods with same hostPort but different hostIP and protocol`,
 		},
 		// tests that may work, but we don't support them
-		"[Disabled:Unsupported]": {},
+		"[Disabled:Unsupported]": {
+			`Volumes GlusterFS`, // OpenShift 4.x does not support Gluster
+		},
 		// tests too slow to be part of conformance
 		"[Slow]": {},
 		// tests that are known flaky
