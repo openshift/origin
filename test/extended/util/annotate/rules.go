@@ -55,6 +55,9 @@ var (
 			`\[sig-network\] Services should be possible to connect to a service via ExternalIP when the external IP is not assigned to a node`,
 			`\[sig-network\] Networking IPerf2 \[Feature:Networking-Performance\] should run iperf2`,
 			`\[sig-network\] HostPort validates that there is no conflict between pods with same hostPort but different hostIP and protocol`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1957886
+			`\[sig-apps\] \[Feature:TTLAfterFinished\] job should be deleted once it finishes after TTL seconds`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
