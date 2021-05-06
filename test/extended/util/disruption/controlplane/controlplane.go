@@ -23,6 +23,15 @@ func NewKubeAvailableWithNewConnectionsTest() upgrades.Test {
 	}
 }
 
+// NewKubeAvailableWithNewConnectionsNodeIPsTest tests that the Kubernetes control plane remains available during and after a cluster upgrade.
+func NewKubeAvailableWithNewConnectionsNodeIPsTest() upgrades.Test {
+	return &availableTest{
+		testName:        "[sig-api-machinery] Kubernetes APIs remain available for new connections over NodeIPs",
+		name:            "kube-apiserver-new-connection-node-ips",
+		startMonitoring: monitor.StartKubeAPIMonitoringWithNewConnectionsForNodeIPs,
+	}
+}
+
 // NewOpenShiftAvailableNewConnectionsTest tests that the OpenShift APIs remains available during and after a cluster upgrade.
 func NewOpenShiftAvailableNewConnectionsTest() upgrades.Test {
 	return &availableTest{
@@ -47,6 +56,15 @@ func NewKubeAvailableWithConnectionReuseTest() upgrades.Test {
 		testName:        "[sig-api-machinery] Kubernetes APIs remain available with reused connections",
 		name:            "kubernetes-api-available-reused-connections",
 		startMonitoring: monitor.StartKubeAPIMonitoringWithConnectionReuse,
+	}
+}
+
+// NewKubeAvailableWithConnectionReuseNodeIPsTest tests that the Kubernetes control plane remains available during and after a cluster upgrade.
+func NewKubeAvailableWithConnectionReuseNodeIPsTest() upgrades.Test {
+	return &availableTest{
+		testName:        "[sig-api-machinery] Kubernetes APIs remain available with reused connections over NodeIPs",
+		name:            "kube-apiserver-reused-connection-node-ips",
+		startMonitoring: monitor.StartKubeAPIMonitoringWithConnectionReuseForNodeIPs,
 	}
 }
 

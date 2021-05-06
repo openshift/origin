@@ -47,9 +47,11 @@ func NoTests() []upgrades.Test {
 func AllTests() []upgrades.Test {
 	return []upgrades.Test{
 		controlplane.NewKubeAvailableWithNewConnectionsTest(),
+		controlplane.NewKubeAvailableWithNewConnectionsNodeIPsTest(),
 		controlplane.NewOpenShiftAvailableNewConnectionsTest(),
 		controlplane.NewOAuthAvailableNewConnectionsTest(),
 		controlplane.NewKubeAvailableWithConnectionReuseTest(),
+		controlplane.NewKubeAvailableWithConnectionReuseNodeIPsTest(),
 		controlplane.NewOpenShiftAvailableWithConnectionReuseTest(),
 		controlplane.NewOAuthAvailableWithConnectionReuseTest(),
 		&alert.UpgradeTest{},
