@@ -19,9 +19,11 @@ import (
 	"github.com/openshift/client-go/image/clientset/versioned"
 	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
+	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/ibmcloud"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
@@ -200,7 +202,10 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 						return nil
 					}
 
-					if (strings.Contains(path, "-termination-") && strings.HasSuffix(path, ".log.gz")) || strings.HasSuffix(path, "termination.log.gz") {
+					if (strings.Contains(path, "-termination-") && strings.HasSuffix(path, ".log.gz")) ||
+						strings.HasSuffix(path, "termination.log.gz") ||
+						path == ".lock" ||
+						path == "lock.log" {
 						// these are expected, but have unstructured log format
 						return nil
 					}
@@ -284,6 +289,59 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		if len(emptyFiles) > 0 {
 			o.Expect(fmt.Errorf("expected files should not be empty: %s", strings.Join(emptyFiles, ","))).NotTo(o.HaveOccurred())
 		}
+	})
+
+	g.When("looking at the audit logs", func() {
+		g.Describe("[sig-node] kubelet", func() {
+			g.It("runs apiserver processes strictly sequentially in order to not risk audit log corruption", func() {
+				// On IBM ROKS, events will not be part of the output, since audit logs do not include control plane logs.
+				if e2e.TestContext.Provider == ibmcloud.ProviderName {
+					g.Skip("ROKs doesn't have audit logs")
+				}
+
+				tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
+				o.Expect(err).NotTo(o.HaveOccurred())
+				defer os.RemoveAll(tempDir)
+
+				args := []string{
+					"--dest-dir", tempDir,
+					"--",
+					"/usr/bin/gather_audit_logs",
+				}
+
+				o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
+
+				pluginOutputDir := getPluginOutputDir(oc, tempDir)
+				expectedAuditSubDirs := []string{"kube-apiserver", "openshift-apiserver", "oauth-apiserver"}
+
+				seen := sets.String{}
+				for _, apiserver := range expectedAuditSubDirs {
+					err := filepath.Walk(filepath.Join(pluginOutputDir, "audit_logs", apiserver), func(path string, info os.FileInfo, err error) error {
+						g.By(path)
+						o.Expect(err).NotTo(o.HaveOccurred())
+						if info.IsDir() {
+							return nil
+						}
+
+						seen.Insert(apiserver)
+
+						if filepath.Base(path) != "lock.log" {
+							return nil
+						}
+
+						lockLog, err := ioutil.ReadFile(path)
+						o.Expect(err).NotTo(o.HaveOccurred())
+
+						// TODO: turn this into a failure as soon as kubelet is fixed
+						result.Flakef("kubelet launched %s without waiting for the old process to terminate (lock was still hold): \n\n%s", apiserver, string(lockLog))
+						return nil
+					})
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}
+
+				o.Expect(seen.HasAll(expectedAuditSubDirs...), o.BeTrue())
+			})
+		})
 	})
 })
 
