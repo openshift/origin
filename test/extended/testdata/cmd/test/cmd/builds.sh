@@ -9,114 +9,9 @@ trap os::test::junit::reconcile_output EXIT
   exit 0
 ) &>/dev/null
 
-
-url=":${API_PORT:-6443}"
-project="$(oc project -q)"
-
 os::test::junit::declare_suite_start "cmd/builds"
-# This test validates builds and build related commands
-# Disabled because git is required in the container running the test
-#os::cmd::expect_success 'oc new-build centos/ruby-26-centos7 https://github.com/openshift/ruby-hello-world.git'
-#os::cmd::expect_success 'oc get bc/ruby-hello-world'
 
-#os::cmd::expect_success "cat '${OS_ROOT}/examples/hello-openshift/Dockerfile' | oc new-build -D - --name=test"
-#os::cmd::expect_success 'oc get bc/test'
-
-template='{{with .spec.output.to}}{{.kind}} {{.name}}{{end}}'
-
-# Build from Dockerfile with output to ImageStreamTag
-os::cmd::expect_success "oc new-build --to=tests:custom --dockerfile=\$'FROM image-registry.openshift-image-registry.svc:5000/openshift/tests:latest\nRUN yum install -y httpd'"
-os::cmd::expect_success_and_text "oc get bc/tests --template '${template}'" '^ImageStreamTag tests:custom$'
-
-# Build from a binary with no inputs requires name
-os::cmd::expect_failure_and_text "oc new-build --binary" "you must provide a --name"
-
-# Build from a binary with inputs creates a binary build
-os::cmd::expect_success "oc new-build --binary --name=binary-test"
-os::cmd::expect_success_and_text "oc get bc/binary-test" 'Binary'
-
-os::cmd::expect_success 'oc delete is/binary-test bc/binary-test is/tests bc/tests'
-
-# Build from Dockerfile with output to DockerImage
-os::cmd::expect_success "oc new-build -D \$'FROM image-registry.openshift-image-registry.svc:5000/openshift/tests:latest' --to-docker"
-os::cmd::expect_success_and_text "oc get bc/tests --template '${template}'" '^DockerImage tests:latest$'
-
-os::cmd::expect_success 'oc delete is/tests bc/tests'
-
-# Build from Dockerfile with given output ImageStreamTag spec
-os::cmd::expect_success "oc new-build -D \$'FROM image-registry.openshift-image-registry.svc:5000/openshift/tests:latest\nENV ok=1' --to origin-test:v1.1"
-os::cmd::expect_success_and_text "oc get bc/origin-test --template '${template}'" '^ImageStreamTag origin-test:v1.1$'
-
-os::cmd::expect_success 'oc delete is/tests bc/origin-test'
-
-# Build from Dockerfile with given output DockerImage spec
-os::cmd::expect_success "oc new-build -D \$'FROM image-registry.openshift-image-registry.svc:5000/openshift/tests:latest\nENV ok=1' --to-docker --to openshift/origin:v1.1-test"
-os::cmd::expect_success_and_text "oc get bc/origin --template '${template}'" '^DockerImage openshift/origin:v1.1-test$'
-
-os::cmd::expect_success 'oc delete is/tests'
-
-# Build from Dockerfile with custom name and given output ImageStreamTag spec
-os::cmd::expect_success "oc new-build -D \$'FROM image-registry.openshift-image-registry.svc:5000/openshift/tests:latest\nENV ok=1' --to origin-name-test --name origin-test2"
-os::cmd::expect_success_and_text "oc get bc/origin-test2 --template '${template}'" '^ImageStreamTag origin-name-test:latest$'
-
-#os::cmd::try_until_text 'oc get is ruby-26-centos7' 'latest'
-#os::cmd::expect_failure_and_text 'oc new-build ruby-26-centos7~https://github.com/sclorg/ruby-ex ruby-26-centos7~https://github.com/sclorg/ruby-ex --to invalid/argument' 'error: only one component with source can be used when specifying an output image reference'
-
-os::cmd::expect_success 'oc delete all --all'
-
-os::cmd::expect_success "oc new-build -D \$'FROM image-registry.openshift-image-registry.svc:5000/openshift/tests:latest' --no-output"
-os::cmd::expect_success_and_not_text 'oc get bc/tests -o=jsonpath="{.spec.output.to}"' '.'
-
-# Ensure output is valid JSON
-#os::cmd::expect_success 'oc new-build -D "FROM image-registry.openshift-image-registry.svc:5000/openshift/tests:latest" -o json | python -m json.tool'
-
-os::cmd::expect_success 'oc delete all --all'
-os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-dockerbuild.json -l build=docker | oc create -f -'
-os::cmd::expect_success 'oc get buildConfigs'
-os::cmd::expect_success 'oc get bc'
-os::cmd::expect_success 'oc get builds'
-
-# make sure the imagestream has the latest tag before trying to test it or start a build with it
-os::cmd::try_until_success 'oc get istag ruby-27-centos7:latest'
-
-os::test::junit::declare_suite_start "cmd/builds/patch-anon-fields"
-REAL_OUTPUT_TO=$(oc get bc/ruby-sample-build --template='{{ .spec.output.to.name }}')
-os::cmd::expect_success "oc patch bc/ruby-sample-build -p '{\"spec\":{\"output\":{\"to\":{\"name\":\"different:tag1\"}}}}'"
-os::cmd::expect_success_and_text "oc get bc/ruby-sample-build --template='{{ .spec.output.to.name }}'" 'different'
-os::cmd::expect_success "oc patch bc/ruby-sample-build -p '{\"spec\":{\"output\":{\"to\":{\"name\":\"${REAL_OUTPUT_TO}\"}}}}'"
-echo "patchAnonFields: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/builds/config"
-os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "${url}/apis/build.openshift.io/v1/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/<secret>/github"
-os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "Webhook GitHub"
-os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "${url}/apis/build.openshift.io/v1/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/<secret>/generic"
-os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "Webhook Generic"
-os::cmd::expect_success_and_text 'oc set triggers bc/ruby-sample-build --from-gitlab' "triggers updated"
-os::cmd::expect_success_and_text 'oc set triggers bc/ruby-sample-build --from-bitbucket' "triggers updated"
-os::cmd::expect_success 'oc start-build --list-webhooks=all ruby-sample-build'
-os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all bc/ruby-sample-build' 'generic'
-os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all ruby-sample-build' 'github'
-os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all ruby-sample-build' 'gitlab'
-os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all ruby-sample-build' 'bitbucket'
-os::cmd::expect_success_and_text 'oc start-build --list-webhooks=github ruby-sample-build' '<secret>'
-os::cmd::expect_failure 'oc start-build --list-webhooks=blah'
-hook=$(oc start-build --list-webhooks='generic' ruby-sample-build | head -n 1)
-hook=${hook/<secret>/secret101}
-os::cmd::expect_success_and_text "oc start-build --from-webhook=${hook}" "build.build.openshift.io/ruby-sample-build-[0-9] started"
-os::cmd::expect_failure_and_text "oc start-build --from-webhook=${hook}/foo" "error: server rejected our request"
-os::cmd::expect_success "oc patch bc/ruby-sample-build -p '{\"spec\":{\"strategy\":{\"dockerStrategy\":{\"from\":{\"name\":\"asdf:7\"}}}}}'"
-os::cmd::expect_failure_and_text "oc start-build --from-webhook=${hook}" "Error resolving ImageStreamTag asdf:7"
-os::cmd::expect_success 'oc get builds'
-os::cmd::expect_success 'oc set triggers bc/ruby-sample-build --from-github --remove'
-os::cmd::expect_success_and_not_text 'oc describe buildConfigs ruby-sample-build' "Webhook GitHub"
-# make sure we describe webhooks using secretReferences properly
-os::cmd::expect_success "oc patch bc/ruby-sample-build -p '{\"spec\":{\"triggers\":[{\"github\":{\"secretReference\":{\"name\":\"mysecret\"}},\"type\":\"GitHub\"}]}}'"
-os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "Webhook GitHub"
-os::cmd::expect_success 'oc delete all -l build=docker'
-
-echo "buildConfig: ok"
-os::test::junit::declare_suite_end
+# TODO move this file to test/extended/cli/builds.go
 
 os::test::junit::declare_suite_start "cmd/builds/start-build"
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-buildcli.json'
@@ -175,7 +70,6 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/builds/cancel-build"
 os::cmd::expect_success_and_text "oc cancel-build ${started} --dump-logs --restart" "build.build.openshift.io/${started} restarted"
 os::cmd::expect_success 'oc delete all --all'
-os::cmd::expect_success 'oc delete secret dbsecret'
 os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-dockerbuild.json -l build=docker | oc create -f -'
 os::cmd::try_until_success 'oc get build/ruby-sample-build-1'
 # Uses type/name resource syntax to cancel the build and check for proper message
