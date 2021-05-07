@@ -14,6 +14,23 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
+var (
+	// Component name as keys and BZ's as values
+	knownBugs = map[string]string{
+		"community-operators":  "https://bugzilla.redhat.com/show_bug.cgi?id=1954869",
+		"redhat-marketplace":   "https://bugzilla.redhat.com/show_bug.cgi?id=1954869",
+		"redhat-operators":     "https://bugzilla.redhat.com/show_bug.cgi?id=1954869",
+		"certified-operators":  "https://bugzilla.redhat.com/show_bug.cgi?id=1954869",
+		"image-pruner":         "https://bugzilla.redhat.com/show_bug.cgi?id=1954891",
+		"ingress-canary":       "https://bugzilla.redhat.com/show_bug.cgi?id=1954892",
+		"network-check-source": "https://bugzilla.redhat.com/show_bug.cgi?id=1954870",
+		"network-check-target": "https://bugzilla.redhat.com/show_bug.cgi?id=1954870",
+		"migrator":             "https://bugzilla.redhat.com/show_bug.cgi?id=1954868",
+		"downloads":            "https://bugzilla.redhat.com/show_bug.cgi?id=1954866",
+		"pod-identity-webhook": "https://bugzilla.redhat.com/show_bug.cgi?id=1954865",
+	}
+)
+
 var _ = Describe("[sig-arch] Managed cluster should", func() {
 	oc := exutil.NewCLIWithoutNamespace("pod")
 
@@ -24,20 +41,6 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 			e2e.Failf("unable to list pods: %v", err)
 		}
 
-		//Component name as keys and BZ's as values
-		knownBugs := map[string]string{
-			"community-operators":  "https://bugzilla.redhat.com/show_bug.cgi?id=1954869",
-			"redhat-marketplace":   "https://bugzilla.redhat.com/show_bug.cgi?id=1954869",
-			"redhat-operators":     "https://bugzilla.redhat.com/show_bug.cgi?id=1954869",
-			"certified-operators":  "https://bugzilla.redhat.com/show_bug.cgi?id=1954869",
-			"image-pruner":         "https://bugzilla.redhat.com/show_bug.cgi?id=1954891",
-			"ingress-canary":       "https://bugzilla.redhat.com/show_bug.cgi?id=1954892",
-			"network-check-source": "https://bugzilla.redhat.com/show_bug.cgi?id=1954870",
-			"network-check-target": "https://bugzilla.redhat.com/show_bug.cgi?id=1954870",
-			"migrator":             "https://bugzilla.redhat.com/show_bug.cgi?id=1954868",
-			"downloads":            "https://bugzilla.redhat.com/show_bug.cgi?id=1954866",
-			"pod-identity-webhook": "https://bugzilla.redhat.com/show_bug.cgi?id=1954865",
-		}
 		// list of pods that use images not in the release payload
 		invalidPodPriority := sets.NewString()
 		knownBugList := sets.NewString()
@@ -57,6 +60,10 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 				// OpenShift marketplace can have workloads pods that are created from Jobs which just have hashes
 				// They can be safely ignored as they're not part of core platform.
 				// In future, if this assumption changes, we can revisit it.
+				continue
+			}
+			if componentName == "must-gather" {
+				// we can safely ignore must-gather which might sometimes be picked up
 				continue
 			}
 			knownBugKey = componentName
