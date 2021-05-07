@@ -61,6 +61,12 @@ func initializeTestFramework(context *e2e.TestContextType, config *exutilcluster
 
 	e2e.AfterReadingAllFlags(context)
 	context.DumpLogsOnFailure = true
+
+	// these constants are taken from kube e2e and used by tests
+	context.IPFamily = "ipv4"
+	if config.HasIPv6 && !config.HasIPv4 {
+		context.IPFamily = "ipv6"
+	}
 	return nil
 }
 

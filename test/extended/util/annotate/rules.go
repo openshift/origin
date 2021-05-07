@@ -51,12 +51,6 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1953478
 			`\[sig-storage\] Dynamic Provisioning Invalid AWS KMS key should report an error and create no PV`,
 
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1956989
-			`\[sig-network\] Services should be possible to connect to a service via ExternalIP when the external IP is not assigned to a node`,
-			`\[sig-network\] Networking IPerf2 \[Feature:Networking-Performance\] should run iperf2`,
-			`\[sig-network\] HostPort validates that there is no conflict between pods with same hostPort but different hostIP and protocol`,
-			`\[sig-network\] Networking should provide Internet connection for containers`,
-
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1957894
 			`\[sig-node\] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret`,
 		},
@@ -188,6 +182,7 @@ var (
 			`\[sig-network\]\[Feature:Router\] The HAProxy router should serve the correct routes when scoped to a single namespace and label set`,
 			`\[sig-network\]\[Feature:Router\] The HAProxy router should set Forwarded headers appropriately`,
 			`\[sig-network\]\[Feature:Router\] The HAProxy router should support reencrypt to services backed by a serving certificate automatically`,
+			`\[sig-network\] Networking should provide Internet connection for containers \[Feature:Networking-IPv6\]`,
 			`\[sig-node\] Managed cluster should report ready nodes the entire duration of the test run`,
 			`\[sig-storage\]\[Late\] Metrics should report short attach times`,
 			`\[sig-storage\]\[Late\] Metrics should report short mount times`,
