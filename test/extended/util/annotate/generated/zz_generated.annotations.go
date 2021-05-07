@@ -1291,6 +1291,16 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc adm who-can": "who-can [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc builds complex build start-build": "start-build [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc builds complex build webhooks CRUD": "webhooks CRUD [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc builds get buildconfig": "get buildconfig [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc builds new-build": "new-build [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc builds patch buildconfig": "patch buildconfig [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc debug deployment configs from a build": "deployment configs from a build [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc debug dissect deployment config debug": "dissect deployment config debug [Suite:openshift/conformance/parallel]",
