@@ -327,20 +327,20 @@ func (opt *Options) Run(suite *TestSuite) error {
 	events := m.Intervals(time.Time{}, time.Time{})
 	events.Clamp(start, end)
 	if err = monitorserialization.EventsToFile(path.Join(os.Getenv("ARTIFACT_DIR"), fmt.Sprintf("e2e-events%s.json", timeSuffix)), events); err != nil {
-		fmt.Fprintf(opt.Out, "Failed to write event file: %v\n", err)
+		fmt.Fprintf(opt.ErrOut, "error: Failed to write event html: %v\n", err)
 	}
 	if err = monitorserialization.EventsIntervalsToFile(path.Join(os.Getenv("ARTIFACT_DIR"), fmt.Sprintf("e2e-intervals%s.json", timeSuffix)), events); err != nil {
-		fmt.Fprintf(opt.Out, "Failed to write event file: %v\n", err)
+		fmt.Fprintf(opt.ErrOut, "error: Failed to write event html: %v\n", err)
 	}
 	if eventIntervalsJSON, err := monitorserialization.EventsIntervalsToJSON(events); err == nil {
 		e2eChartTemplate := testdata.MustAsset("e2echart/e2e-chart-template.html")
 		e2eChartHTML := bytes.ReplaceAll(e2eChartTemplate, []byte("EVENT_INTERVAL_JSON_GOES_HERE"), eventIntervalsJSON)
 		e2eChartHTMLPath := path.Join(os.Getenv("ARTIFACT_DIR"), fmt.Sprintf("e2e-intervals%s.html", timeSuffix))
 		if err := ioutil.WriteFile(e2eChartHTMLPath, e2eChartHTML, 0644); err != nil {
-			fmt.Fprintf(opt.Out, "Failed to write event html: %v\n", err)
+			fmt.Fprintf(opt.ErrOut, "error: Failed to write event html: %v\n", err)
 		}
 	} else {
-		fmt.Fprintf(opt.Out, "Failed to write event html: %v\n", err)
+		fmt.Fprintf(opt.ErrOut, "error: Failed to write event html: %v\n", err)
 	}
 
 	if len(events) > 0 {

@@ -8,7 +8,6 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
 	"github.com/openshift/origin/pkg/test/ginkgo"
-	"github.com/openshift/origin/test/extended/util/disruption"
 )
 
 const (
@@ -17,7 +16,9 @@ const (
 )
 
 func testServerAvailability(locator string, events monitorapi.Intervals, duration time.Duration) []*ginkgo.JUnitTestCase {
-	errDuration, errMessages := disruption.GetDisruption(events, locator)
+	events = events.Filter(func(i monitorapi.EventInterval) bool { return i.Locator == locator })
+	errDuration := events.Duration(0)
+	errMessages := events.Strings()
 
 	testName := fmt.Sprintf("[sig-api-machinery] %s should be available", locator)
 	successTest := &ginkgo.JUnitTestCase{

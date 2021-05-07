@@ -142,44 +142,43 @@ func startServerMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.
 		Transport: roundTripper,
 	}
 
-	m.AddSampler(
-		StartSampling(ctx, m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
-			resp, err := httpClient.Get(clusterConfig.Host + url)
+	go NewSampler(m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
+		resp, err := httpClient.Get(clusterConfig.Host + url)
 
-			// we don't have an error, but the response code was an error, then we have to set an artificial error for the logic below to work.
-			if err == nil && (resp.StatusCode < 200 || resp.StatusCode > 399) {
-				body, err := ioutil.ReadAll(resp.Body)
-				if err == nil {
-					err = fmt.Errorf("error running request: %v: %v", resp.Status, string(body))
-				} else {
-					err = fmt.Errorf("error running request: %v", resp.Status)
-				}
+		// we don't have an error, but the response code was an error, then we have to set an artificial error for the logic below to work.
+		if err == nil && (resp.StatusCode < 200 || resp.StatusCode > 399) {
+			body, err := ioutil.ReadAll(resp.Body)
+			if err == nil {
+				err = fmt.Errorf("error running request: %v: %v", resp.Status, string(body))
+			} else {
+				err = fmt.Errorf("error running request: %v", resp.Status)
 			}
-			if resp != nil && resp.Body != nil {
-				defer resp.Body.Close()
-			}
+		}
+		if resp != nil && resp.Body != nil {
+			defer resp.Body.Close()
+		}
 
-			switch {
-			case err == nil && !previous:
-				condition = &monitorapi.Condition{
-					Level:   monitorapi.Info,
-					Locator: resourceLocator,
-					Message: fmt.Sprintf("%s started responding to GET requests", resourceLocator),
-				}
-			case err != nil && previous:
-				condition = &monitorapi.Condition{
-					Level:   monitorapi.Error,
-					Locator: resourceLocator,
-					Message: fmt.Sprintf("%s started failing: %v", resourceLocator, err),
-				}
+		switch {
+		case err == nil && !previous:
+			condition = &monitorapi.Condition{
+				Level:   monitorapi.Info,
+				Locator: resourceLocator,
+				Message: fmt.Sprintf("%s started responding to GET requests", resourceLocator),
 			}
-			return condition, err == nil
-		}).ConditionWhenFailing(&monitorapi.Condition{
-			Level:   monitorapi.Error,
-			Locator: resourceLocator,
-			Message: fmt.Sprintf("%s is not responding to GET requests", resourceLocator),
-		}),
-	)
+		case err != nil && previous:
+			condition = &monitorapi.Condition{
+				Level:   monitorapi.Error,
+				Locator: resourceLocator,
+				Message: fmt.Sprintf("%s started failing: %v", resourceLocator, err),
+			}
+		}
+		return condition, err == nil
+	}).WhenFailing(ctx, &monitorapi.Condition{
+		Level:   monitorapi.Error,
+		Locator: resourceLocator,
+		Message: fmt.Sprintf("%s is not responding to GET requests", resourceLocator),
+	})
+
 	return nil
 }
 

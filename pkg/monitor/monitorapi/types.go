@@ -68,6 +68,30 @@ func (i EventInterval) String() string {
 	return fmt.Sprintf("%s.%03d - %-5s %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(duration/time.Second))+"s", i.Level.String()[:1], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
 }
 
+type IntervalFilter func(i EventInterval) bool
+
+type IntervalFilters []IntervalFilter
+
+func (filters IntervalFilters) All(i EventInterval) bool {
+	for _, filter := range filters {
+		if !filter(i) {
+			return false
+		}
+	}
+	return true
+}
+
+func (filters IntervalFilters) Any(i EventInterval) bool {
+	for _, filter := range filters {
+		if filter(i) {
+			return true
+		}
+	}
+	return false
+}
+
+func HasDuration(i EventInterval) bool { return i.To.After(i.From) }
+
 type Intervals []EventInterval
 
 var _ sort.Interface = Intervals{}
@@ -90,6 +114,49 @@ func (intervals Intervals) Less(i, j int) bool {
 func (intervals Intervals) Len() int { return len(intervals) }
 func (intervals Intervals) Swap(i, j int) {
 	intervals[i], intervals[j] = intervals[j], intervals[i]
+}
+
+// Strings returns the result of String() on each included interval.
+func (intervals Intervals) Strings() []string {
+	if len(intervals) == 0 {
+		return []string(nil)
+	}
+	s := make([]string, 0, len(intervals))
+	for _, interval := range intervals {
+		s = append(s, interval.String())
+	}
+	return s
+}
+
+// Duration returns the sum of all intervals in the range. If To is less than or
+// equal to From, defaultDuration is used instead (use Clamp() if open intervals
+// should be not considered instant).
+func (intervals Intervals) Duration(defaultDuration time.Duration) time.Duration {
+	var duration time.Duration
+	for _, interval := range intervals {
+		d := interval.To.Sub(interval.From)
+		if d <= 0 {
+			duration += defaultDuration
+		} else {
+			duration += d
+		}
+	}
+	return duration
+}
+
+// Filter returns a copy of intervals with only intervals that match the provided
+// function.
+func (intervals Intervals) Filter(fn func(i EventInterval) bool) Intervals {
+	if len(intervals) == 0 {
+		return Intervals(nil)
+	}
+	copied := make(Intervals, 0, len(intervals))
+	for _, interval := range intervals {
+		if fn(interval) {
+			copied = append(copied, interval)
+		}
+	}
+	return copied
 }
 
 // CopyAndSort assumes intervals is unsorted and returns a sorted copy of intervals

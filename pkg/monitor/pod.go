@@ -342,7 +342,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 		},
 	}
 
-	startTime := time.Now().Add(-time.Minute)
+	startTime := time.Now().UTC().Add(-time.Minute)
 	podInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
@@ -446,7 +446,7 @@ func conditionsForTransitioningContainer(pod *corev1.Pod, current, previous *cor
 			cause = fmt.Sprintf(" cause/%s", cause)
 		}
 		if currentTime.IsZero() {
-			currentTime = time.Now()
+			currentTime = time.Now().UTC()
 		}
 		switch seconds := currentTime.Sub(lastContainerTime).Seconds(); {
 		case lastContainerTime.IsZero():
