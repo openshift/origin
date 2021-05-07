@@ -1,7 +1,6 @@
 package builds
 
 import (
-
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/validation"
 
@@ -21,7 +20,6 @@ const (
 	secretCredentialSyncLabel            = "credential.sync.jenkins.openshift.io"
 	envVarsPipelineGitRepoBuildConfig    = "test-build-app-pipeline"
 )
-
 
 // BuildConfigSelector returns a label Selector which can be used to find all
 // builds for a BuildConfig.
