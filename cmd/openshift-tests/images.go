@@ -47,7 +47,17 @@ const defaultTestImageMirrorLocation = "quay.io/openshift/community-e2e-images"
 func createImageMirrorForInternalImages(prefix string, ref reference.DockerImageReference, mirrored bool) ([]string, error) {
 	source := ref.Exact()
 
-	defaults := k8simage.GetOriginalImageConfigs()
+	initialDefaults := k8simage.GetOriginalImageConfigs()
+	exceptions := image.Exceptions.List()
+	defaults := map[int]k8simage.Config{}
+	for i, config := range initialDefaults {
+		for _, exception := range exceptions {
+			if strings.Contains(config.GetE2EImage(), exception) {
+				continue
+			}
+			defaults[i] = config
+		}
+	}
 	updated := k8simage.GetMappedImageConfigs(defaults, ref.Exact())
 
 	openshiftDefaults := image.OriginalImages()

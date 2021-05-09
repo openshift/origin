@@ -22,7 +22,8 @@ import (
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
-	apps "k8s.io/kubernetes/test/e2e/upgrades/apps"
+	"k8s.io/kubernetes/test/e2e/upgrades/apps"
+	"k8s.io/kubernetes/test/e2e/upgrades/node"
 
 	g "github.com/onsi/ginkgo"
 	"github.com/pborman/uuid"
@@ -55,12 +56,12 @@ func AllTests() []upgrades.Test {
 		&alert.UpgradeTest{},
 		&frontends.AvailableTest{},
 		&service.UpgradeTest{},
-		&upgrades.SecretUpgradeTest{},
+		&node.SecretUpgradeTest{},
 		&apps.ReplicaSetUpgradeTest{},
 		&apps.StatefulSetUpgradeTest{},
 		&apps.DeploymentUpgradeTest{},
 		&apps.JobUpgradeTest{},
-		&upgrades.ConfigMapUpgradeTest{},
+		&node.ConfigMapUpgradeTest{},
 		&apps.DaemonSetUpgradeTest{},
 		&imageregistry.AvailableTest{},
 	}

@@ -20,5 +20,6 @@ verify-codegen
 verify-deps
 verify-generated
 verify-gofmt
+verify-golang-versions
 verify-golint
 verify-govet

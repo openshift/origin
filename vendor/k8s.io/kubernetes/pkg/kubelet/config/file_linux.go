@@ -28,9 +28,10 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"k8s.io/klog/v2"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/flowcontrol"
+	"k8s.io/kubernetes/pkg/kubelet/managed"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 
@@ -57,7 +58,7 @@ func (s *sourceFile) startWatch() {
 		}
 
 		if err := s.doWatch(); err != nil {
-			klog.Errorf("Unable to read config path %q: %v", s.path, err)
+			klog.ErrorS(err, "Unable to read config path", "path", s.path)
 			if _, retryable := err.(*retryableError); !retryable {
 				backOff.Next(backOffID, time.Now())
 			}
@@ -102,7 +103,7 @@ func (s *sourceFile) doWatch() error {
 func (s *sourceFile) produceWatchEvent(e *fsnotify.Event) error {
 	// Ignore file start with dots
 	if strings.HasPrefix(filepath.Base(e.Name), ".") {
-		klog.V(4).Infof("Ignored pod manifest: %s, because it starts with dots", e.Name)
+		klog.V(4).InfoS("Ignored pod manifest, because it starts with dots", "eventName", e.Name)
 		return nil
 	}
 	var eventType podEventType
@@ -132,6 +133,9 @@ func (s *sourceFile) consumeWatchEvent(e *watchEvent) error {
 		pod, err := s.extractFromFile(e.fileName)
 		if err != nil {
 			return fmt.Errorf("can't process config file %q: %v", e.fileName, err)
+		}
+		if managed.IsEnabled() {
+			managed.ModifyStaticPodForPinnedManagement(pod)
 		}
 		return s.store.Add(pod)
 	case podDelete:

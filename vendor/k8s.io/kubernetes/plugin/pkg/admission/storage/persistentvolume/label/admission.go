@@ -24,9 +24,12 @@ import (
 	"io"
 	"sync"
 
+	genericadmissioninitializer "k8s.io/apiserver/pkg/admission/initializer"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/client-go/informers"
 	cloudprovider "k8s.io/cloud-provider"
 	cloudvolume "k8s.io/cloud-provider/volume"
 	volumehelpers "k8s.io/cloud-provider/volume/helpers"
@@ -51,12 +54,14 @@ func Register(plugins *admission.Plugins) {
 }
 
 var _ = admission.Interface(&persistentVolumeLabel{})
+var _ = genericadmissioninitializer.WantsExternalKubeInformerFactory(&persistentVolumeLabel{})
 
 type persistentVolumeLabel struct {
 	*admission.Handler
 
 	mutex              sync.Mutex
 	cloudConfig        []byte
+	sharedInformer     informers.SharedInformerFactory
 	awsPVLabeler       cloudprovider.PVLabeler
 	gcePVLabeler       cloudprovider.PVLabeler
 	azurePVLabeler     cloudprovider.PVLabeler
@@ -84,6 +89,20 @@ func newPersistentVolumeLabel() *persistentVolumeLabel {
 
 func (l *persistentVolumeLabel) SetCloudConfig(cloudConfig []byte) {
 	l.cloudConfig = cloudConfig
+}
+
+func (l *persistentVolumeLabel) SetExternalKubeInformerFactory(f informers.SharedInformerFactory) {
+	secretInformer := f.Core().V1().Secrets()
+	l.sharedInformer = f
+	l.SetReadyFunc(secretInformer.Informer().HasSynced)
+}
+
+// ValidateInitialization ensures lister is set.
+func (l *persistentVolumeLabel) ValidateInitialization() error {
+	if l.sharedInformer == nil {
+		return fmt.Errorf("missing shared informer")
+	}
+	return nil
 }
 
 func nodeSelectorRequirementKeysExistInNodeSelectorTerms(reqs []api.NodeSelectorRequirement, terms []api.NodeSelectorTerm) bool {
@@ -130,7 +149,7 @@ func (l *persistentVolumeLabel) Admit(ctx context.Context, a admission.Attribute
 
 			// Set NodeSelectorRequirements based on the labels
 			var values []string
-			if k == v1.LabelFailureDomainBetaZone {
+			if k == v1.LabelTopologyZone || k == v1.LabelFailureDomainBetaZone {
 				zones, err := volumehelpers.LabelZonesToSet(v)
 				if err != nil {
 					return admission.NewForbidden(a, fmt.Errorf("failed to convert label string for Zone: %s to a Set", v))
@@ -172,15 +191,31 @@ func (l *persistentVolumeLabel) findVolumeLabels(volume *api.PersistentVolume) (
 	existingLabels := volume.Labels
 
 	// All cloud providers set only these two labels.
-	domain, domainOK := existingLabels[v1.LabelFailureDomainBetaZone]
-	region, regionOK := existingLabels[v1.LabelFailureDomainBetaRegion]
+	topologyLabelGA := true
+	domain, domainOK := existingLabels[v1.LabelTopologyZone]
+	region, regionOK := existingLabels[v1.LabelTopologyRegion]
+	// If they dont have GA labels we should check for failuredomain beta labels
+	// TODO: remove this once all the cloud provider change to GA topology labels
+	if !domainOK || !regionOK {
+		topologyLabelGA = false
+		domain, domainOK = existingLabels[v1.LabelFailureDomainBetaZone]
+		region, regionOK = existingLabels[v1.LabelFailureDomainBetaRegion]
+	}
+
 	isDynamicallyProvisioned := metav1.HasAnnotation(volume.ObjectMeta, persistentvolume.AnnDynamicallyProvisioned)
 	if isDynamicallyProvisioned && domainOK && regionOK {
 		// PV already has all the labels and we can trust the dynamic provisioning that it provided correct values.
+		if topologyLabelGA {
+			return map[string]string{
+				v1.LabelTopologyZone:   domain,
+				v1.LabelTopologyRegion: region,
+			}, nil
+		}
 		return map[string]string{
 			v1.LabelFailureDomainBetaZone:   domain,
 			v1.LabelFailureDomainBetaRegion: region,
 		}, nil
+
 	}
 
 	// Either missing labels or we don't trust the user provided correct values.
@@ -378,6 +413,11 @@ func (l *persistentVolumeLabel) getOpenStackPVLabeler() (cloudprovider.PVLabeler
 		cloudProvider, err := cloudprovider.GetCloudProvider("openstack", cloudConfigReader)
 		if err != nil || cloudProvider == nil {
 			return nil, err
+		}
+
+		cloudProviderWithInformer, ok := cloudProvider.(cloudprovider.InformerUser)
+		if ok {
+			cloudProviderWithInformer.SetInformers(l.sharedInformer)
 		}
 
 		openStackPVLabeler, ok := cloudProvider.(cloudprovider.PVLabeler)

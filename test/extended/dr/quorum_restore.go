@@ -8,14 +8,13 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -27,7 +26,9 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/kubernetes/test/e2e/upgrades"
-	apps "k8s.io/kubernetes/test/e2e/upgrades/apps"
+	"k8s.io/kubernetes/test/e2e/upgrades/apps"
+	"k8s.io/kubernetes/test/e2e/upgrades/network"
+	"k8s.io/kubernetes/test/e2e/upgrades/node"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
@@ -38,8 +39,8 @@ const (
 )
 
 var disruptionTests []upgrades.Test = []upgrades.Test{
-	&upgrades.ServiceUpgradeTest{},
-	&upgrades.SecretUpgradeTest{},
+	&network.ServiceUpgradeTest{},
+	&node.SecretUpgradeTest{},
 	&apps.ReplicaSetUpgradeTest{},
 	&apps.StatefulSetUpgradeTest{},
 	&apps.DeploymentUpgradeTest{},

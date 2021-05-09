@@ -9,29 +9,28 @@ import (
 	"sync"
 	"time"
 
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/tools/record"
-	"k8s.io/component-base/metrics"
-	"k8s.io/component-base/metrics/legacyregistry"
-	"k8s.io/klog/v2"
-
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/version"
-	genericapiserver "k8s.io/apiserver/pkg/server"
-	"k8s.io/apiserver/pkg/server/healthz"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/leaderelection"
-
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
-
+	"github.com/openshift/library-go/pkg/authorization/hardcodedauthorizer"
 	"github.com/openshift/library-go/pkg/config/client"
 	"github.com/openshift/library-go/pkg/config/configdefaults"
 	leaderelectionconverter "github.com/openshift/library-go/pkg/config/leaderelection"
 	"github.com/openshift/library-go/pkg/config/serving"
 	"github.com/openshift/library-go/pkg/controller/fileobserver"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/version"
+	"k8s.io/apiserver/pkg/authorization/union"
+	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/apiserver/pkg/server/healthz"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/leaderelection"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/component-base/metrics"
+	"k8s.io/component-base/metrics/legacyregistry"
+	"k8s.io/klog/v2"
 )
 
 // StartFunc is the function to call on leader election start
@@ -53,6 +52,9 @@ type ControllerContext struct {
 
 	// Server is the GenericAPIServer serving healthz checks and debug info
 	Server *genericapiserver.GenericAPIServer
+
+	// Namespace where the operator runs. Either specified on the command line or autodetected.
+	OperatorNamespace string
 }
 
 // defaultObserverInterval specifies the default interval that file observer will do rehash the files it watches and react to any changes
@@ -249,6 +251,12 @@ func (b *ControllerBuilder) Run(ctx context.Context, config *unstructured.Unstru
 		if err != nil {
 			return err
 		}
+		serverConfig.Authorization.Authorizer = union.New(
+			// prefix the authorizer with the permissions for metrics scraping which are well known.
+			// openshift RBAC policy will always allow this user to read metrics.
+			hardcodedauthorizer.NewHardCodedMetricsAuthorizer(),
+			serverConfig.Authorization.Authorizer,
+		)
 		serverConfig.HealthzChecks = append(serverConfig.HealthzChecks, b.healthChecks...)
 
 		server, err = serverConfig.Complete(nil).New(b.componentName, genericapiserver.NewEmptyDelegate())
@@ -269,11 +277,12 @@ func (b *ControllerBuilder) Run(ctx context.Context, config *unstructured.Unstru
 	protoConfig.ContentType = "application/vnd.kubernetes.protobuf"
 
 	controllerContext := &ControllerContext{
-		ComponentConfig: config,
-		KubeConfig:      clientConfig,
-		ProtoKubeConfig: protoConfig,
-		EventRecorder:   eventRecorder,
-		Server:          server,
+		ComponentConfig:   config,
+		KubeConfig:        clientConfig,
+		ProtoKubeConfig:   protoConfig,
+		EventRecorder:     eventRecorder,
+		Server:            server,
+		OperatorNamespace: namespace,
 	}
 
 	if b.leaderElection == nil {

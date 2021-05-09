@@ -37,15 +37,35 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1908645
 			`\[sig-network\] Networking Granular Checks: Services should function for service endpoints using hostNetwork`,
+			`\[sig-network\] Networking Granular Checks: Services should function for pod-Service\(hostNetwork\)`,
 
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1945085
-			`API data in etcd should be stored at the correct location and version for all resources`,
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1952460
+			`\[sig-network\] Firewall rule control plane should not expose well-known ports`,
 
-			// // https://bugzilla.redhat.com/show_bug.cgi?id=1945091
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1952457
+			`\[sig-node\] crictl should be able to run crictl on the node`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1945091
 			`\[Feature:GenericEphemeralVolume\]`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1953478
+			`\[sig-storage\] Dynamic Provisioning Invalid AWS KMS key should report an error and create no PV`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1956989
+			`\[sig-network\] Services should be possible to connect to a service via ExternalIP when the external IP is not assigned to a node`,
+			`\[sig-network\] Networking IPerf2 \[Feature:Networking-Performance\] should run iperf2`,
+			`\[sig-network\] HostPort validates that there is no conflict between pods with same hostPort but different hostIP and protocol`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1957886
+			`\[sig-apps\] \[Feature:TTLAfterFinished\] job should be deleted once it finishes after TTL seconds`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1957894
+			`\[sig-node\] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret`,
 		},
 		// tests that may work, but we don't support them
-		"[Disabled:Unsupported]": {},
+		"[Disabled:Unsupported]": {
+			`Volumes GlusterFS`, // OpenShift 4.x does not support Gluster
+		},
 		// tests too slow to be part of conformance
 		"[Slow]": {},
 		// tests that are known flaky

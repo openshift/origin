@@ -271,6 +271,7 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 				ClientQPS:   20,
 				ClientBurst: 50,
 			},
+			Timeouts: framework.NewTimeoutContextWithDefaults(),
 		}
 	}
 	return testFrameworks
