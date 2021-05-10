@@ -1263,6 +1263,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc adm must-gather runs successfully": "runs successfully [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc adm must-gather when looking at the audit logs [sig-node] kubelet runs apiserver processes strictly sequentially in order to not risk audit log corruption": "runs apiserver processes strictly sequentially in order to not risk audit log corruption [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc adm new-project": "new-project [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc adm node-logs": "node-logs [Suite:openshift/conformance/parallel]",
