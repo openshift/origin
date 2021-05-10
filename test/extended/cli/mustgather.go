@@ -162,7 +162,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 
 		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		// defer os.RemoveAll(tempDir)
+		defer os.RemoveAll(tempDir)
 
 		args := []string{
 			"--dest-dir", tempDir,
