@@ -179,11 +179,13 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		expectedDirectoriesToExpectedCount := map[string]int{
 			path.Join(pluginOutputDir, "audit_logs", "kube-apiserver"):      1000,
 			path.Join(pluginOutputDir, "audit_logs", "openshift-apiserver"): 10, // openshift apiservers don't necessarily get much traffic.  Especially early in a run
+			path.Join(pluginOutputDir, "audit_logs", "oauth-apiserver"):     10, // oauth apiservers don't necessarily get much traffic.  Especially early in a run
 		}
 
 		expectedFiles := [][]string{
 			{pluginOutputDir, "audit_logs", "kube-apiserver.audit_logs_listing"},
 			{pluginOutputDir, "audit_logs", "openshift-apiserver.audit_logs_listing"},
+			{pluginOutputDir, "audit_logs", "oauth-apiserver.audit_logs_listing"},
 		}
 
 		// for some crazy reason, it seems that the files from must-gather take time to appear on disk for reading.  I don't understand why
