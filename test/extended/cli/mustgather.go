@@ -204,15 +204,16 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 						return nil
 					}
 
-					if (strings.Contains(path, "-termination-") && strings.HasSuffix(path, ".log.gz")) ||
-						strings.HasSuffix(path, "termination.log.gz") ||
-						path == ".lock" ||
-						path == "lock.log" {
+					fileName := filepath.Base(path)
+					if (strings.Contains(fileName, "-termination-") && strings.HasSuffix(fileName, ".log.gz")) ||
+						strings.HasSuffix(fileName, "termination.log.gz") ||
+						fileName == ".lock" ||
+						fileName == "lock.log" {
 						// these are expected, but have unstructured log format
 						return nil
 					}
 
-					isAuditFile := (strings.Contains(path, "-audit-") && strings.HasSuffix(path, ".log.gz")) || strings.HasSuffix(path, "audit.log.gz")
+					isAuditFile := (strings.Contains(fileName, "-audit-") && strings.HasSuffix(fileName, ".log.gz")) || strings.HasSuffix(fileName, "audit.log.gz")
 					o.Expect(isAuditFile).To(o.BeTrue())
 
 					// at this point, we expect only audit files with json events, one per line
