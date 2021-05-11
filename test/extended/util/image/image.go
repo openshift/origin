@@ -29,6 +29,9 @@ func init() {
 		// the github.com/openshift/build-test-images repo is built out of github.com/openshift/release
 		"registry.ci.openshift.org/ocp/4.8:test-build-roots2i": -1,
 
+		// used by all the rest build s2s e2e tests
+		"registry.ci.openshift.org/ocp/4.8:test-build-simples2i": -1,
+
 		// moved to GCR
 		"k8s.gcr.io/sig-storage/csi-attacher:v2.2.0":              -1,
 		"k8s.gcr.io/sig-storage/csi-attacher:v3.0.0":              -1,

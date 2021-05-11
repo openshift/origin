@@ -61,3 +61,4 @@ k8s.gcr.io/sig-storage/snapshot-controller:v2.1.1 quay.io/openshift/community-e2
 k8s.gcr.io/sig-storage/snapshot-controller:v3.0.2 quay.io/openshift/community-e2e-images:e2e-k8s-gcr-io-sig-storage-snapshot-controller-v3-0-2-IVmgAhsROusslTdY
 quay.io/redhat-developer/nfs-server:1.0 quay.io/openshift/community-e2e-images:e2e-quay-io-redhat-developer-nfs-server-1-0-Wz4GFQ2IuhYmh2mB
 registry.ci.openshift.org/ocp/4.8:test-build-roots2i quay.io/openshift/community-e2e-images:e2e-registry-ci-openshift-org-ocp-4-8-test-build-roots2i-FmW7zebvtGKkls4B
+registry.ci.openshift.org/ocp/4.8:test-build-simples2i quay.io/openshift/community-e2e-images:e2e-registry-ci-openshift-org-ocp-4-8-test-build-simples2i-7A9bkBd9X4G-ELh0

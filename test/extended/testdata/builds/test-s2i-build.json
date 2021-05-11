@@ -26,7 +26,7 @@
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "quay.io/redhat-developer/test-build-simples2i:latest"
+          "name": "registry.ci.openshift.org/ocp/4.8:test-build-simples2i"
         }
       }
     },
