@@ -426,7 +426,13 @@ func (rt *kubeAPIEndpointsAwareRT) RoundTrip(r *http.Request) (*http.Response, e
 	r.Host = nextEndpoint
 	r.URL.Host = nextEndpoint
 
-	return rt.delegate.RoundTrip(r)
+	resp, err := rt.delegate.RoundTrip(r)
+	if err == nil {
+		fmt.Println(fmt.Sprintf("status %v", resp.StatusCode))
+	} else {
+		fmt.Println(err)
+	}
+	return resp, err
 }
 
 func (rt *kubeAPIEndpointsAwareRT) nextEndpointLocked() (string, error) {
