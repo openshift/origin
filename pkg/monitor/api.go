@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -9,7 +10,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"errors"
 
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/intervalcreation"
@@ -211,14 +211,18 @@ func StartKubeAPIMonitoringWithNewConnectionsForNodeIPs(ctx context.Context, m *
 	}
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(client, time.Second*30)
 	endpointsInformer := kubeInformerFactory.Core().V1().Endpoints()
-	newClusterConfig := kubeAPIMonitoringConfigForNodeIPs(endpointsInformer, clusterConfig)
 
+	newClusterConfig := kubeAPIMonitoringConfigForNodeIPs(endpointsInformer, clusterConfig)
 	// default gets auto-created, so this should always exist
 	if err := StartServerMonitoringWithNewConnections(ctx, m, newClusterConfig, timeout, LocatorKubeAPIServerNewConnectionNodeIP, "/api/v1/namespaces/default"); err != nil {
 		return err
 	}
 
 	kubeInformerFactory.Start(ctx.Done())
+	if ok := cache.WaitForCacheSync(ctx.Done(), endpointsInformer.Informer().HasSynced); !ok {
+		return fmt.Errorf("failed to wait for the endpoints informer to sync")
+	}
+
 	return nil
 }
 
@@ -252,6 +256,9 @@ func StartKubeAPIMonitoringWithConnectionReuseForNodeIPs(ctx context.Context, m 
 	}
 
 	kubeInformerFactory.Start(ctx.Done())
+	if ok := cache.WaitForCacheSync(ctx.Done(), endpointsInformer.Informer().HasSynced); !ok {
+		return fmt.Errorf("failed to wait for the endpoints informer to sync")
+	}
 	return nil
 }
 
