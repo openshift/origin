@@ -275,6 +275,16 @@ func (nm *NodeManager) removeNode(node *v1.Node) {
 	nm.nodeInfoLock.Unlock()
 }
 
+func (nm *NodeManager) getNodes() map[string]*v1.Node {
+	nm.registeredNodesLock.RLock()
+	defer nm.registeredNodesLock.RUnlock()
+	registeredNodes := make(map[string]*v1.Node, len(nm.registeredNodes))
+	for nodeName, node := range nm.registeredNodes {
+		registeredNodes[nodeName] = node
+	}
+	return registeredNodes
+}
+
 // GetNodeInfo returns a NodeInfo which datacenter, vm and vc server ip address.
 // This method returns an error if it is unable find node VCs and DCs listed in vSphere.conf
 // NodeInfo returned may not be updated to reflect current VM location.
