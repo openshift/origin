@@ -99,9 +99,6 @@ func isAllowedToFail(deployment appsv1.Deployment) bool {
 	// We will slowly remove deployments from this list once their operators have been made
 	// aware until this list is empty and this function will be removed.
 	allowedToFail := map[string][]string{
-		"openshift-image-registry": {
-			"image-registry",
-		},
 		"openshift-operator-lifecycle-manager": {
 			"packageserver",
 		},
