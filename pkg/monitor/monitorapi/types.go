@@ -159,6 +159,39 @@ func (intervals Intervals) Filter(fn func(i EventInterval) bool) Intervals {
 	return copied
 }
 
+// Cut creates a copy of intervals where all events (empty To) are
+// within [from,to) and all intervals that overlap [from,to) are
+// included, but with their from/to fields limited to that range.
+func (intervals Intervals) Cut(from, to time.Time) Intervals {
+	if len(intervals) == 0 {
+		return Intervals(nil)
+	}
+	copied := make(Intervals, 0, len(intervals))
+	for _, interval := range intervals {
+		if interval.To.IsZero() {
+			if interval.From.IsZero() {
+				continue
+			}
+			if interval.From.Before(from) || !interval.From.Before(to) {
+				continue
+			}
+		} else {
+			if interval.To.Before(from) || !interval.From.Before(to) {
+				continue
+			}
+			// limit the interval to the provided range
+			if interval.To.After(to) {
+				interval.To = to
+			}
+			if interval.From.Before(from) {
+				interval.From = from
+			}
+		}
+		copied = append(copied, interval)
+	}
+	return copied
+}
+
 // CopyAndSort assumes intervals is unsorted and returns a sorted copy of intervals
 // for all intervals between from and to.
 func (intervals Intervals) CopyAndSort(from, to time.Time) Intervals {
