@@ -305,7 +305,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			updated = cv
 
 			// wait until the cluster acknowledges the update
-			if err := wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
+			if err := wait.PollImmediate(5*time.Second, 4*time.Minute, func() (bool, error) {
 				cv, _, err := monitor.Check(updated.Generation, desired)
 				if err != nil || cv == nil {
 					return false, err
