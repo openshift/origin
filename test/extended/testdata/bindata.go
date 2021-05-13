@@ -53042,6 +53042,17 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
+    function isEndpointConnectivity(eventInterval) {
+        if (eventInterval.locator.startsWith("ns/e2e-k8s-service-lb-available")) {
+            return true
+        }
+        if (eventInterval.locator.includes(" route/")) {
+            return true
+        }
+        return false
+
+    }
+
     function isAPIServerConnectivity(eventInterval) {
         if (eventInterval.locator == "kube-apiserver-new-connection" || eventInterval.locator == "kube-apiserver-reused-connection") {
             return true
@@ -53159,6 +53170,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
     timelineGroups.push({group: "apiserver-availability", data: []})
     createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAPIServerConnectivity)
+
+    timelineGroups.push({group: "endpoint-availability", data: []})
+    createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity)
 
     timelineGroups.push({group: "e2e-test-failed", data: []})
     createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFailed)
