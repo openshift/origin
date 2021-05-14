@@ -19,7 +19,7 @@ func TestStartSampling(t *testing.T) {
 
 	doneCh := make(chan struct{})
 	var count int
-	m.AddSampler(StartSampling(ctx, m, 21*time.Millisecond, func(previous bool) (condition *monitorapi.Condition, next bool) {
+	m.AddSampler(NewSampler(m, 21*time.Millisecond, func(previous bool) (condition *monitorapi.Condition, next bool) {
 		defer func() { count++ }()
 		switch {
 		case count <= 5:
@@ -42,7 +42,7 @@ func TestStartSampling(t *testing.T) {
 			doneCh <- struct{}{}
 			return nil, true
 		}
-	}).ConditionWhenFailing(&monitorapi.Condition{
+	}).ConditionWhenFailing(ctx, &monitorapi.Condition{
 		Level:   monitorapi.Error,
 		Locator: "tester",
 		Message: "down",

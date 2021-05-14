@@ -3,6 +3,7 @@ package imageregistry
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net"
 	"net/http"
 	"time"
@@ -141,7 +142,7 @@ func (t *AvailableTest) startEndpointMonitoring(ctx context.Context, m *monitor.
 	var (
 		url     = "https://" + t.host
 		path    = "/healthz"
-		locator = "image-registry"
+		locator = locateRoute("openshift-image-registry", "test-disruption")
 	)
 
 	// this client reuses connections and detects abrupt breaks
@@ -162,34 +163,33 @@ func (t *AvailableTest) startEndpointMonitoring(ctx context.Context, m *monitor.
 	if err != nil {
 		return err
 	}
-	m.AddSampler(
-		monitor.StartSampling(ctx, m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
-			_, err := continuousClient.Get().AbsPath(path).DoRaw(ctx)
-			switch {
-			case err == nil && !previous:
-				condition = &monitorapi.Condition{
-					Level:   monitorapi.Info,
-					Locator: locator,
-					Message: "Route started responding to GET requests on reused connections",
-				}
-			case err != nil && previous:
-				framework.Logf("Route for image-registry is unreachable on reused connections: %v", err)
-				r.Eventf(t.routeRef, nil, corev1.EventTypeWarning, "Unreachable", "detected", "on reused connections")
-				condition = &monitorapi.Condition{
-					Level:   monitorapi.Error,
-					Locator: locator,
-					Message: "Route stopped responding to GET requests on reused connections",
-				}
-			case err != nil:
-				framework.Logf("Route for image-registry is unreachable on reused connections: %v", err)
+
+	go monitor.NewSampler(m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
+		_, err := continuousClient.Get().AbsPath(path).DoRaw(ctx)
+		switch {
+		case err == nil && !previous:
+			condition = &monitorapi.Condition{
+				Level:   monitorapi.Info,
+				Locator: locator,
+				Message: "Route started responding to GET requests on reused connections",
 			}
-			return condition, err == nil
-		}).ConditionWhenFailing(&monitorapi.Condition{
-			Level:   monitorapi.Error,
-			Locator: locator,
-			Message: "Route is not responding to GET requests on reused connections",
-		}),
-	)
+		case err != nil && previous:
+			framework.Logf("Route for image-registry is unreachable on reused connections: %v", err)
+			r.Eventf(t.routeRef, nil, corev1.EventTypeWarning, "Unreachable", "detected", "on reused connections")
+			condition = &monitorapi.Condition{
+				Level:   monitorapi.Error,
+				Locator: locator,
+				Message: "Route stopped responding to GET requests on reused connections",
+			}
+		case err != nil:
+			framework.Logf("Route for image-registry is unreachable on reused connections: %v", err)
+		}
+		return condition, err == nil
+	}).WhenFailing(ctx, &monitorapi.Condition{
+		Level:   monitorapi.Error,
+		Locator: locator,
+		Message: "Route is not responding to GET requests on reused connections",
+	})
 
 	// this client creates fresh connections and detects failure to establish connections
 	client, err := rest.UnversionedRESTClientFor(&rest.Config{
@@ -212,34 +212,37 @@ func (t *AvailableTest) startEndpointMonitoring(ctx context.Context, m *monitor.
 	if err != nil {
 		return err
 	}
-	m.AddSampler(
-		monitor.StartSampling(ctx, m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
-			_, err := client.Get().AbsPath(path).DoRaw(ctx)
-			switch {
-			case err == nil && !previous:
-				condition = &monitorapi.Condition{
-					Level:   monitorapi.Info,
-					Locator: locator,
-					Message: "Route started responding to GET requests over new connections",
-				}
-			case err != nil && previous:
-				framework.Logf("Route for image-registry is unreachable on new connections: %v", err)
-				r.Eventf(t.routeRef, nil, corev1.EventTypeWarning, "Unreachable", "detected", "on new connections")
-				condition = &monitorapi.Condition{
-					Level:   monitorapi.Error,
-					Locator: locator,
-					Message: "Route stopped responding to GET requests over new connections",
-				}
-			case err != nil:
-				framework.Logf("Route for image-registry is unreachable on new connections: %v", err)
+
+	go monitor.NewSampler(m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
+		_, err := client.Get().AbsPath(path).DoRaw(ctx)
+		switch {
+		case err == nil && !previous:
+			condition = &monitorapi.Condition{
+				Level:   monitorapi.Info,
+				Locator: locator,
+				Message: "Route started responding to GET requests over new connections",
 			}
-			return condition, err == nil
-		}).ConditionWhenFailing(&monitorapi.Condition{
-			Level:   monitorapi.Error,
-			Locator: locator,
-			Message: "Route is not responding to GET requests over new connections",
-		}),
-	)
+		case err != nil && previous:
+			framework.Logf("Route for image-registry is unreachable on new connections: %v", err)
+			r.Eventf(t.routeRef, nil, corev1.EventTypeWarning, "Unreachable", "detected", "on new connections")
+			condition = &monitorapi.Condition{
+				Level:   monitorapi.Error,
+				Locator: locator,
+				Message: "Route stopped responding to GET requests over new connections",
+			}
+		case err != nil:
+			framework.Logf("Route for image-registry is unreachable on new connections: %v", err)
+		}
+		return condition, err == nil
+	}).WhenFailing(ctx, &monitorapi.Condition{
+		Level:   monitorapi.Error,
+		Locator: locator,
+		Message: "Route is not responding to GET requests over new connections",
+	})
 
 	return nil
+}
+
+func locateRoute(ns, name string) string {
+	return fmt.Sprintf("ns/%s route/%s", ns, name)
 }

@@ -5,10 +5,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"os/signal"
-	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -19,6 +19,7 @@ import (
 
 	"github.com/onsi/ginkgo/config"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -277,7 +278,9 @@ func (opt *Options) Run(suite *TestSuite) error {
 	q.Execute(testCtx, early, parallelism, status.Run)
 	tests = append(tests, early...)
 
+	// TODO: will move to the monitor
 	pc.SetEvents([]string{upgradeEvent})
+
 	// repeat the normal suite until context cancel when in the forever loop
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
 		copied := copyTests(normal)
@@ -285,26 +288,26 @@ func (opt *Options) Run(suite *TestSuite) error {
 		tests = append(tests, copied...)
 	}
 
+	// TODO: will move to the monitor
 	pc.SetEvents([]string{postUpgradeEvent})
+
 	// run Late test suits after everything else
 	q.Execute(testCtx, late, parallelism, status.Run)
 	tests = append(tests, late...)
 
-	pc.ComputePodTransitions()
-
-	if os.Getenv("ARTIFACT_DIR") != "" {
-		fmt.Fprintf(opt.Out, "Dumping pod placement data\n")
+	// TODO: will move to the monitor
+	if len(opt.JUnitDir) > 0 {
+		pc.ComputePodTransitions()
 		data, err := pc.JsonDump()
 		if err != nil {
 			fmt.Fprintf(opt.ErrOut, "Unable to dump pod placement data: %v\n", err)
 		} else {
-			if err := ioutil.WriteFile(path.Join(os.Getenv("ARTIFACT_DIR"), "pod-placement-data.json"), data, 0644); err != nil {
+			if err := ioutil.WriteFile(filepath.Join(opt.JUnitDir, "pod-placement-data.json"), data, 0644); err != nil {
 				fmt.Fprintf(opt.ErrOut, "Unable to write pod placement data: %v\n", err)
 			}
 		}
-		fmt.Fprintf(opt.Out, "Dumping pod transitions\n")
 		chains := pc.PodDisplacements().Dump(minChainLen)
-		if err := ioutil.WriteFile(path.Join(os.Getenv("ARTIFACT_DIR"), "pod-transitions.txt"), []byte(chains), 0644); err != nil {
+		if err := ioutil.WriteFile(filepath.Join(opt.JUnitDir, "pod-transitions.txt"), []byte(chains), 0644); err != nil {
 			fmt.Fprintf(opt.ErrOut, "Unable to write pod placement data: %v\n", err)
 		}
 	}
@@ -325,22 +328,47 @@ func (opt *Options) Run(suite *TestSuite) error {
 	var syntheticFailure bool
 	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 	events := m.Intervals(time.Time{}, time.Time{})
-	events.Clamp(start, end)
-	if err = monitorserialization.EventsToFile(path.Join(os.Getenv("ARTIFACT_DIR"), fmt.Sprintf("e2e-events%s.json", timeSuffix)), events); err != nil {
-		fmt.Fprintf(opt.Out, "Failed to write event file: %v\n", err)
-	}
-	if err = monitorserialization.EventsIntervalsToFile(path.Join(os.Getenv("ARTIFACT_DIR"), fmt.Sprintf("e2e-intervals%s.json", timeSuffix)), events); err != nil {
-		fmt.Fprintf(opt.Out, "Failed to write event file: %v\n", err)
-	}
-	if eventIntervalsJSON, err := monitorserialization.EventsIntervalsToJSON(events); err == nil {
-		e2eChartTemplate := testdata.MustAsset("e2echart/e2e-chart-template.html")
-		e2eChartHTML := bytes.ReplaceAll(e2eChartTemplate, []byte("EVENT_INTERVAL_JSON_GOES_HERE"), eventIntervalsJSON)
-		e2eChartHTMLPath := path.Join(os.Getenv("ARTIFACT_DIR"), fmt.Sprintf("e2e-intervals%s.html", timeSuffix))
-		if err := ioutil.WriteFile(e2eChartHTMLPath, e2eChartHTML, 0644); err != nil {
-			fmt.Fprintf(opt.Out, "Failed to write event html: %v\n", err)
+
+	if len(opt.JUnitDir) > 0 {
+		var additionalEvents monitorapi.Intervals
+		filepath.WalkDir(opt.JUnitDir, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return nil
+			}
+			if d.IsDir() {
+				return nil
+			}
+			if !strings.HasPrefix(d.Name(), "AdditionalEvents_") {
+				return nil
+			}
+			saved, _ := monitorserialization.EventsFromFile(path)
+			additionalEvents = append(additionalEvents, saved...)
+			return nil
+		})
+		if len(additionalEvents) > 0 {
+			events = append(events, additionalEvents.Cut(start, end)...)
+			sort.Sort(events)
 		}
-	} else {
-		fmt.Fprintf(opt.Out, "Failed to write event html: %v\n", err)
+	}
+	events.Clamp(start, end)
+
+	if len(opt.JUnitDir) > 0 {
+		if err = monitorserialization.EventsToFile(filepath.Join(opt.JUnitDir, fmt.Sprintf("e2e-events%s.json", timeSuffix)), events); err != nil {
+			fmt.Fprintf(opt.ErrOut, "error: Failed to write event html: %v\n", err)
+		}
+		if err = monitorserialization.EventsIntervalsToFile(filepath.Join(opt.JUnitDir, fmt.Sprintf("e2e-intervals%s.json", timeSuffix)), events); err != nil {
+			fmt.Fprintf(opt.ErrOut, "error: Failed to write event html: %v\n", err)
+		}
+		if eventIntervalsJSON, err := monitorserialization.EventsIntervalsToJSON(events); err == nil {
+			e2eChartTemplate := testdata.MustAsset("e2echart/e2e-chart-template.html")
+			e2eChartHTML := bytes.ReplaceAll(e2eChartTemplate, []byte("EVENT_INTERVAL_JSON_GOES_HERE"), eventIntervalsJSON)
+			e2eChartHTMLPath := filepath.Join(opt.JUnitDir, fmt.Sprintf("e2e-intervals%s.html", timeSuffix))
+			if err := ioutil.WriteFile(e2eChartHTMLPath, e2eChartHTML, 0644); err != nil {
+				fmt.Fprintf(opt.ErrOut, "error: Failed to write event html: %v\n", err)
+			}
+		} else {
+			fmt.Fprintf(opt.ErrOut, "error: Failed to write event html: %v\n", err)
+		}
 	}
 
 	if len(events) > 0 {

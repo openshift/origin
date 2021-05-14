@@ -86,6 +86,30 @@ func (m *Monitor) Record(conditions ...monitorapi.Condition) {
 	}
 }
 
+// StartInterval inserts a record at time t with the provided condition and returns an opaque
+// locator to the interval. The caller may close the sample at any point by invoking EndInterval().
+func (m *Monitor) StartInterval(t time.Time, condition monitorapi.Condition) int {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	m.unsortedEvents = append(m.unsortedEvents, monitorapi.EventInterval{
+		Condition: condition,
+		From:      t,
+	})
+	return len(m.unsortedEvents) - 1
+}
+
+// EndInterval updates the To of the interval started by StartInterval if t is greater than
+// the from.
+func (m *Monitor) EndInterval(startedInterval int, t time.Time) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	if startedInterval < len(m.unsortedEvents) {
+		if m.unsortedEvents[startedInterval].From.Before(t) {
+			m.unsortedEvents[startedInterval].To = t
+		}
+	}
+}
+
 // RecordAt captures one or more conditions at the provided time. All conditions are recorded
 // as EventInterval objects.
 func (m *Monitor) RecordAt(t time.Time, conditions ...monitorapi.Condition) {
@@ -121,9 +145,8 @@ func (m *Monitor) sample(hasPrevious bool) bool {
 
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	t := time.Now().UTC()
 	m.samples = append(m.samples, &sample{
-		at:         t,
+		at:         now,
 		conditions: conditions,
 	})
 	return len(conditions) > 0

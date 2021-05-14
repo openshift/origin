@@ -81,7 +81,7 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 		},
 	}
 
-	startTime := time.Now().Add(-time.Minute)
+	startTime := time.Now().UTC().Add(-time.Minute)
 	coInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {

@@ -29,7 +29,7 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 
 			// filter out events written "now" but with significantly older start times (events
 			// created in test jobs are the most common)
-			significantlyBeforeNow := time.Now().Add(-15 * time.Minute)
+			significantlyBeforeNow := time.Now().UTC().Add(-15 * time.Minute)
 
 			events, err := client.CoreV1().Events("").List(ctx, metav1.ListOptions{Limit: 1})
 			if err != nil {
