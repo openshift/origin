@@ -39,6 +39,13 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should be able to connect to a service that is idled because a GET on the route will unidle it", func() {
+			network, err := oc.AdminConfigClient().ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster network configuration")
+			if !(network.Status.NetworkType == "OVNKubernetes" || network.Status.NetworkType == "OpenShiftSDN") {
+				g.Skip("idle feature only supported on OVNKubernetes or OpenShiftSDN")
+				return
+			}
+
 			infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster-wide infrastructure")
 			switch infra.Status.PlatformStatus.Type {
