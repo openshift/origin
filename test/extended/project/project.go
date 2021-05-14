@@ -326,7 +326,7 @@ func waitForOnlyDelete(projectName string, w watch.Interface) {
 				}
 				g.Fail(fmt.Sprintf("got unexpected project %v", project.Name))
 
-			case <-time.After(time.Minute):
+			case <-time.After(3 * time.Minute): // namespace deletions can take a while during busy e2e runs
 				g.Fail(fmt.Sprintf("timeout: %v", projectName))
 			}
 		}

@@ -225,6 +225,11 @@ func (c *CLI) SetupNamespace() string {
 	c.kubeFramework.AddNamespacesToDelete(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: newNamespace}})
 
 	WaitForNamespaceSCCAnnotations(c.AdminKubeClient().CoreV1(), newNamespace)
+	for _, sa := range []string{"default"} {
+		framework.Logf("Waiting for ServiceAccount %q to be provisioned...", sa)
+		err = WaitForServiceAccount(c.AdminKubeClient().CoreV1().ServiceAccounts(newNamespace), sa)
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
 	return newNamespace
 }
 
