@@ -22,7 +22,7 @@ items:
           name: inputimage:latest
         paths:
         - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby27/root/usr/bin/ruby
+          sourcePath: /usr/bin/ruby
     strategy:
       dockerStrategy:
         from:

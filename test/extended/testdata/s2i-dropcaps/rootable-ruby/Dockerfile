@@ -1,4 +1,4 @@
-FROM centos/ruby-27-centos7:latest
+FROM registry.access.redhat.com/ubi8/ruby-27:latest
 USER root
 RUN rm -f /usr/bin/ls
 RUN echo "root:redhat" | chpasswd
