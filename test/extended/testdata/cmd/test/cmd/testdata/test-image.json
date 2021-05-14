@@ -5,7 +5,7 @@
     "name": "test",
     "creationTimestamp": null
   },
-  "dockerImageReference": "registry.redhat.io/rhscl/ruby-27-rhel7:latest",
+  "dockerImageReference": "registry.redhat.io/ubi8/ruby-27:latest",
   "dockerImageMetadata": {
     "kind": "DockerImage",
     "apiVersion": "1.0",
