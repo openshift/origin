@@ -48868,7 +48868,7 @@ var _testExtendedTestdataRouterIngressYaml = []byte(`kind: List
 apiVersion: v1
 items:
 # an ingress that should be captured as individual routes
-- apiVersion: networking.k8s.io/v1beta1
+- apiVersion: networking.k8s.io/v1
   kind: Ingress
   metadata:
     name: test
@@ -48882,27 +48882,39 @@ items:
       http:
         paths:
         - path: /test
+          pathType: Prefix
           backend:
-            serviceName: ingress-endpoint-1
-            servicePort: 80
+            service:
+              name: ingress-endpoint-1
+              port:
+                number: 80
         - path: /other
+          pathType: Prefix
           backend:
-            serviceName: ingress-endpoint-2
-            servicePort: 80
+            service:
+              name: ingress-endpoint-2
+              port:
+                number: 80
     - host: 2.ingress-test.com
       http:
         paths:
         - path: /
+          pathType: Prefix
           backend:
-            serviceName: ingress-endpoint-1
-            servicePort: 80
+            service:
+              name: ingress-endpoint-1
+              port:
+                number: 80
     - host: 3.ingress-test.com
       http:
         paths:
         - path: /
+          pathType: Prefix
           backend:
-            serviceName: ingress-endpoint-1
-            servicePort: 80
+            service:
+              name: ingress-endpoint-1
+              port:
+                number: 80
 # an empty secret
 - apiVersion: v1
   kind: Secret
