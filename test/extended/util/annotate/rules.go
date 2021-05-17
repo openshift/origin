@@ -65,6 +65,7 @@ var (
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
 			`Volumes GlusterFS`, // OpenShift 4.x does not support Gluster
+			`\[Driver: gluster\]`,
 		},
 		// tests too slow to be part of conformance
 		"[Slow]": {},
