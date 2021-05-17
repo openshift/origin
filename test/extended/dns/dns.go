@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 
 	kapiv1 "k8s.io/api/core/v1"
-	discoveryv1beta1 "k8s.io/api/discovery/v1beta1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -245,7 +245,7 @@ func validateDNSResults(f *e2e.Framework, pod *kapiv1.Pod, fileNames sets.String
 	}
 
 	// Try to find results for each expected name.
-	By("looking for the results for each expected name from probiers")
+	By("looking for the results for each expected name from probers")
 
 	if err := assertLinesExist(fileNames, expect, bytes.NewBuffer(out)); err != nil {
 		e2e.Logf("Got results from pod:\n%s", out)
@@ -314,32 +314,32 @@ func createEndpointSpec(name string) *kapiv1.Endpoints {
 	}
 }
 
-func createEndpointSliceSpec(name, serviceName string, addressType discoveryv1beta1.AddressType) *discoveryv1beta1.EndpointSlice {
+func createEndpointSliceSpec(name, serviceName string, addressType discoveryv1.AddressType) *discoveryv1.EndpointSlice {
 	port := int32(80)
-	es := &discoveryv1beta1.EndpointSlice{
+	es := &discoveryv1.EndpointSlice{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name + strings.ToLower(string(addressType)),
 			Labels: map[string]string{
-				discoveryv1beta1.LabelServiceName: serviceName,
+				discoveryv1.LabelServiceName: serviceName,
 			},
 		},
 		AddressType: addressType,
-		Ports: []discoveryv1beta1.EndpointPort{{
+		Ports: []discoveryv1.EndpointPort{{
 			Port: &port,
 		}},
 	}
 
 	switch addressType {
-	case discoveryv1beta1.AddressTypeIPv4:
-		es.Endpoints = []discoveryv1beta1.Endpoint{{
+	case discoveryv1.AddressTypeIPv4:
+		es.Endpoints = []discoveryv1.Endpoint{{
 			Addresses: []string{
 				"3.3.3.3",
 				"4.4.4.4",
 			},
 			Hostname: stringPtr(strings.ToLower(string(addressType))),
 		}}
-	case discoveryv1beta1.AddressTypeIPv6:
-		es.Endpoints = []discoveryv1beta1.Endpoint{{
+	case discoveryv1.AddressTypeIPv6:
+		es.Endpoints = []discoveryv1.Endpoint{{
 			Addresses: []string{
 				"2001:4860:4860::3333",
 				"2001:4860:4860::4444",
@@ -365,7 +365,7 @@ func ipsForEndpoints(ep *kapiv1.Endpoints) []string {
 	return ips.List()
 }
 
-func ipsForEndpointSlice(es *discoveryv1beta1.EndpointSlice) []string {
+func ipsForEndpointSlice(es *discoveryv1.EndpointSlice) []string {
 	ips := sets.NewString()
 	for _, endpoint := range es.Endpoints {
 		ips.Insert(endpoint.Addresses...)
@@ -496,13 +496,13 @@ var _ = Describe("[sig-network-edge] DNS", func() {
 			e2e.Failf("unable to create dual-stack service: %v", err)
 		}
 
-		v4 := createEndpointSliceSpec("dns-test", serviceName, discoveryv1beta1.AddressTypeIPv4)
-		if _, err := f.ClientSet.DiscoveryV1beta1().EndpointSlices(f.Namespace.Name).Create(ctx, v4, createOpts); err != nil {
+		v4 := createEndpointSliceSpec("dns-test", serviceName, discoveryv1.AddressTypeIPv4)
+		if _, err := f.ClientSet.DiscoveryV1().EndpointSlices(f.Namespace.Name).Create(ctx, v4, createOpts); err != nil {
 			e2e.Failf("unable to create endpointslice %s: %v", v4.Name, err)
 		}
 
-		v6 := createEndpointSliceSpec("dns-test", serviceName, discoveryv1beta1.AddressTypeIPv6)
-		if _, err := f.ClientSet.DiscoveryV1beta1().EndpointSlices(f.Namespace.Name).Create(ctx, v6, createOpts); err != nil {
+		v6 := createEndpointSliceSpec("dns-test", serviceName, discoveryv1.AddressTypeIPv6)
+		if _, err := f.ClientSet.DiscoveryV1().EndpointSlices(f.Namespace.Name).Create(ctx, v6, createOpts); err != nil {
 			e2e.Failf("unable to create endpointslice %s: %v", v6.Name, err)
 		}
 
