@@ -17,8 +17,6 @@ var (
 			// Their enablement is tracked via bz's targeted at 4.8.
 			`\[Feature:SCTPConnectivity\]`, // https://bugzilla.redhat.com/show_bug.cgi?id=1861606
 
-			`\[Feature:NetworkPolicy\]`,
-
 			`\[Feature:CrossNamespacePodAffinity\]`,
 
 			`\[Feature:DaemonSetUpdateSurge\]`,
@@ -67,7 +65,6 @@ var (
 			`unchanging, static URL paths for kubernetes api services`,  // the test needs to exclude URLs that are not part of conformance (/logs)
 			`Services should be able to up and down services`,           // we don't have wget installed on nodes
 			`KubeProxy should set TCP CLOSE_WAIT timeout`,               // the test require communication to port 11302 in the cluster nodes
-			`\[NodeFeature:Sysctls\]`,                                   // needs SCC support
 			`should check kube-proxy urls`,                              // previously this test was skipped b/c we reported -1 as the number of nodes, now we report proper number and test fails
 			`SSH`,                                                       // TRIAGE
 			`should implement service.kubernetes.io/service-proxy-name`, // this is an optional test that requires SSH. sig-network
@@ -112,6 +109,9 @@ var (
 		"[Disabled:Unsupported]": {
 			`\[Driver: rbd\]`,               // OpenShift 4.x does not support Ceph RBD (use CSI instead)
 			`\[Driver: ceph\]`,              // OpenShift 4.x does not support CephFS (use CSI instead)
+			`\[Driver: gluster\]`,           // OpenShift 4.x does not support Gluster
+			`Volumes GlusterFS`,             // OpenShift 4.x does not support Gluster
+			`GlusterDynamicProvisioner`,     // OpenShift 4.x does not support Gluster
 			`\[Feature:PodSecurityPolicy\]`, // OpenShift 4.x does not enable PSP by default
 		},
 		// tests too slow to be part of conformance
@@ -208,7 +208,8 @@ var (
 			`NetworkPolicy.*[Ee]gress`,  // feature is not supported by openshift-sdn
 			`NetworkPolicy.*named port`, // feature is not supported by openshift-sdn
 
-			`NetworkPolicy between server and client should support a 'default-deny-all' policy`, // uses egress feature
+			`NetworkPolicy between server and client should support a 'default-deny-all' policy`,            // uses egress feature
+			`NetworkPolicy between server and client should stop enforcing policies after they are deleted`, // uses egress feature
 		},
 	}
 
