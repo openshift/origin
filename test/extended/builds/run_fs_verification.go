@@ -35,7 +35,7 @@ spec:
           value: "10"
       imageOptimizationPolicy: SkipLayers
     type: Docker
-`, image.ShellImage())
+`, image.LimitedShellImage())
 		testVerifyRunFSContentsBuildConfigYaml = fmt.Sprintf(`
 apiVersion: build.openshift.io/v1
 kind: BuildConfig
@@ -56,7 +56,7 @@ spec:
           value: "10"
       imageOptimizationPolicy: SkipLayers
     type: Docker
-`, image.ShellImage())
+`, image.LimitedShellImage())
 		lsRSlashRun = `
 /run:
 lock
@@ -144,7 +144,6 @@ valid_fields.json
 
 		g.Describe("do not have unexpected content", func() {
 			g.It("using a simple Docker Strategy Build", func() {
-				g.Skip("Bug 1959564: skipping while additional content in /run is investigated")
 				g.By("calling oc create with yaml")
 				err := oc.Run("create").Args("-f", "-").InputString(testVerifyRunFSContentsBuildConfigYaml).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -171,7 +170,6 @@ valid_fields.json
 
 		g.Describe("are writeable", func() {
 			g.It("using a simple Docker Strategy Build", func() {
-				g.Skip("Bug 1959564: skipping while additional content in /run is investigated")
 				g.By("calling oc create with yaml")
 				err := oc.Run("create").Args("-f", "-").InputString(testVerityRunFSWriteableBuildConfigYaml).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
