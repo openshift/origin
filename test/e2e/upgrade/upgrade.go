@@ -32,6 +32,7 @@ import (
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/test/e2e/upgrade/alert"
 	"github.com/openshift/origin/test/e2e/upgrade/service"
+	"github.com/openshift/origin/test/extended/prometheus"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
@@ -64,6 +65,7 @@ func AllTests() []upgrades.Test {
 		&node.ConfigMapUpgradeTest{},
 		&apps.DaemonSetUpgradeTest{},
 		&imageregistry.AvailableTest{},
+		&prometheus.MetricsAvailableAfterUpgradeTest{},
 	}
 }
 
