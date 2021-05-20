@@ -63,10 +63,7 @@ var (
 			`\[sig-node\] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret`,
 		},
 		// tests that may work, but we don't support them
-		"[Disabled:Unsupported]": {
-			`Volumes GlusterFS`, // OpenShift 4.x does not support Gluster
-			`\[Driver: gluster\]`,
-		},
+		"[Disabled:Unsupported]": {},
 		// tests too slow to be part of conformance
 		"[Slow]": {},
 		// tests that are known flaky
