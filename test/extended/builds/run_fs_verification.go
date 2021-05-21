@@ -35,7 +35,7 @@ spec:
           value: "10"
       imageOptimizationPolicy: SkipLayers
     type: Docker
-`, image.ShellImage())
+`, image.LimitedShellImage())
 		testVerifyRunFSContentsBuildConfigYaml = fmt.Sprintf(`
 apiVersion: build.openshift.io/v1
 kind: BuildConfig
@@ -56,7 +56,7 @@ spec:
           value: "10"
       imageOptimizationPolicy: SkipLayers
     type: Docker
-`, image.ShellImage())
+`, image.LimitedShellImage())
 		lsRSlashRun = `
 /run:
 lock
