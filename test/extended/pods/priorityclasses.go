@@ -71,8 +71,8 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 				knownBugList.Insert(fmt.Sprintf("Component %v has a bug associated already: %v", knownBugKey, bz))
 				continue
 			}
-			if !strings.Contains(pod.Spec.PriorityClassName, "system-") && !strings.EqualFold(pod.Spec.PriorityClassName, "openshift-user-critical") {
-				invalidPodPriority.Insert(pod.Namespace + "/" + pod.Name)
+			if !strings.HasPrefix(pod.Spec.PriorityClassName, "system-") && !strings.EqualFold(pod.Spec.PriorityClassName, "openshift-user-critical") {
+				invalidPodPriority.Insert(fmt.Sprintf("%s/%s (currently %q)", pod.Namespace, pod.Name, pod.Spec.PriorityClassName))
 			}
 		}
 		if len(knownBugList) > 0 {
@@ -81,7 +81,7 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 
 		numInvalidPodPriorities := len(invalidPodPriority)
 		if numInvalidPodPriorities > 0 {
-			e2e.Failf("\n%d pods found with invalid tolerations:\n%s", numInvalidPodPriorities, strings.Join(invalidPodPriority.List(), "\n"))
+			e2e.Failf("\n%d pods found with invalid priority class (should be openshift-user-critical or begin with system-):\n%s", numInvalidPodPriorities, strings.Join(invalidPodPriority.List(), "\n"))
 		}
 	})
 })
