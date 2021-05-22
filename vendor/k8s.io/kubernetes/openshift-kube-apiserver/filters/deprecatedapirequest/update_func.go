@@ -12,7 +12,7 @@ import (
 // IncrementRequestCounts add additional api request counts to the log.
 // countsToPersist must not be mutated
 func SetRequestCountsForNode(nodeName string, currentHour, expiredHour int, countsToPersist *resourceRequestCounts) v1helpers.UpdateStatusFunc {
-	return func(status *apiv1.APIRequestCountStatus) {
+	return func(maxNumUsers int, status *apiv1.APIRequestCountStatus) {
 		existingLogsFromAPI := apiStatusToRequestCount(countsToPersist.resource, status)
 		existingNodeLogFromAPI := existingLogsFromAPI.Node(nodeName)
 		existingNodeLogFromAPI.ExpireOldestCounts(expiredHour)
@@ -21,7 +21,7 @@ func SetRequestCountsForNode(nodeName string, currentHour, expiredHour int, coun
 		// our input data.
 		updatedCounts := existingNodeLogFromAPI.Resource(countsToPersist.resource)
 		updatedCounts.Add(countsToPersist)
-		hourlyRequestLogs := resourceRequestCountToHourlyNodeRequestLog(nodeName, updatedCounts)
+		hourlyRequestLogs := resourceRequestCountToHourlyNodeRequestLog(nodeName, maxNumUsers, updatedCounts)
 
 		newStatus := setRequestCountsForNode(status, nodeName, currentHour, expiredHour, hourlyRequestLogs)
 		status.Last24h = newStatus.Last24h
@@ -72,10 +72,8 @@ func setRequestCountsForNode(status *apiv1.APIRequestCountStatus, nodeName strin
 	return newStatus
 }
 
-const numberOfUsersInAPI = 10
-
 // in this function we have exclusive access to resourceRequestCounts, so do the easy map navigation
-func resourceRequestCountToHourlyNodeRequestLog(nodeName string, resourceRequestCounts *resourceRequestCounts) []apiv1.PerNodeAPIRequestLog {
+func resourceRequestCountToHourlyNodeRequestLog(nodeName string, maxNumUsers int, resourceRequestCounts *resourceRequestCounts) []apiv1.PerNodeAPIRequestLog {
 	hourlyNodeRequests := []apiv1.PerNodeAPIRequestLog{}
 	for i := 0; i < 24; i++ {
 		hourlyNodeRequests = append(hourlyNodeRequests,
@@ -89,9 +87,10 @@ func resourceRequestCountToHourlyNodeRequestLog(nodeName string, resourceRequest
 	for hour, hourlyCount := range resourceRequestCounts.hourToRequestCount {
 		// be sure to suppress the "extra" added back into memory so we don't double count requests
 		totalRequestsThisHour := int64(0) - hourlyCount.countToSuppress
-		for user, userCount := range hourlyCount.usersToRequestCounts {
+		for userKey, userCount := range hourlyCount.usersToRequestCounts {
 			apiUserStatus := apiv1.PerUserAPIRequestCount{
-				UserName:     user,
+				UserName:     userKey.user,
+				UserAgent:    userKey.userAgent,
 				RequestCount: 0,
 				ByVerb:       nil,
 			}
@@ -108,7 +107,7 @@ func resourceRequestCountToHourlyNodeRequestLog(nodeName string, resourceRequest
 			totalRequestsThisHour += totalCount
 
 			// the api resource has an interesting property of only keeping the last few.  Having a short list makes the sort faster
-			hasMaxEntries := len(hourlyNodeRequests[hour].ByUser) >= numberOfUsersInAPI
+			hasMaxEntries := len(hourlyNodeRequests[hour].ByUser) >= maxNumUsers
 			if hasMaxEntries {
 				currentSmallestCount := hourlyNodeRequests[hour].ByUser[len(hourlyNodeRequests[hour].ByUser)-1].RequestCount
 				if apiUserStatus.RequestCount <= currentSmallestCount {
@@ -135,7 +134,10 @@ func apiStatusToRequestCount(resource schema.GroupVersionResource, status *apiv1
 						hourlyNodeCount.NodeName,
 						resource,
 						hour,
-						hourNodeUserCount.UserName,
+						userKey{
+							user:      hourNodeUserCount.UserName,
+							userAgent: hourNodeUserCount.UserAgent,
+						},
 						hourlyNodeUserVerbCount.Verb,
 						hourlyNodeUserVerbCount.RequestCount,
 					)
