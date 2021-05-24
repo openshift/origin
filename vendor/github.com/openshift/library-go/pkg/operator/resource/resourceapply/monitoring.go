@@ -3,23 +3,22 @@ package resourceapply
 import (
 	"context"
 
-	"github.com/imdario/mergo"
-	"k8s.io/klog/v2"
-
+	"github.com/openshift/library-go/pkg/operator/events"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-
-	"github.com/openshift/library-go/pkg/operator/events"
+	"k8s.io/klog/v2"
 )
 
 var serviceMonitorGVR = schema.GroupVersionResource{Group: "monitoring.coreos.com", Version: "v1", Resource: "servicemonitors"}
 
-func ensureGenericSpec(required, existing *unstructured.Unstructured) (*unstructured.Unstructured, bool, error) {
-	requiredSpec, _, err := unstructured.NestedMap(required.UnstructuredContent(), "spec")
+func ensureGenericSpec(required, existing *unstructured.Unstructured, mimicDefaultingFn mimicDefaultingFunc, equalityChecker equalityChecker) (*unstructured.Unstructured, bool, error) {
+	requiredCopy := required.DeepCopy()
+	mimicDefaultingFn(requiredCopy)
+	requiredSpec, _, err := unstructured.NestedMap(requiredCopy.UnstructuredContent(), "spec")
 	if err != nil {
 		return nil, false, err
 	}
@@ -28,20 +27,31 @@ func ensureGenericSpec(required, existing *unstructured.Unstructured) (*unstruct
 		return nil, false, err
 	}
 
-	if err := mergo.Merge(&existingSpec, &requiredSpec); err != nil {
-		return nil, false, err
-	}
-
-	if equality.Semantic.DeepEqual(existingSpec, requiredSpec) {
+	if equalityChecker.DeepEqual(existingSpec, requiredSpec) {
 		return existing, false, nil
 	}
 
 	existingCopy := existing.DeepCopy()
-	if err := unstructured.SetNestedMap(existingCopy.UnstructuredContent(), existingSpec, "spec"); err != nil {
+	if err := unstructured.SetNestedMap(existingCopy.UnstructuredContent(), requiredSpec, "spec"); err != nil {
 		return nil, true, err
 	}
 
 	return existingCopy, true, nil
+}
+
+// mimicDefaultingFunc is used to set fields that are defaulted.  This allows for sparse manifests to apply correctly.
+// For instance, if field .spec.foo is set to 10 if not set, then a function of this type could be used to set
+// the field to 10 to match the comparison.  This is soemtimes (often?) easier than updating the semantic equality.
+// We often see this in places like RBAC and CRD.  Logically it can happen generically too.
+type mimicDefaultingFunc func(obj *unstructured.Unstructured)
+
+func noDefaulting(obj *unstructured.Unstructured) {}
+
+// equalityChecker allows for custom equality comparisons.  This can be used to allow equality checks to skip certain
+// operator managed fields.  This capability allows something like .spec.scale to be specified or changed by a component
+// like HPA.  Use this capability sparingly.  Most places ought to just use `equality.Semantic`
+type equalityChecker interface {
+	DeepEqual(a1, a2 interface{}) bool
 }
 
 // ApplyServiceMonitor applies the Prometheus service monitor.
@@ -64,20 +74,20 @@ func ApplyServiceMonitor(client dynamic.Interface, recorder events.Recorder, req
 
 	existingCopy := existing.DeepCopy()
 
-	updated, endpointsModified, err := ensureGenericSpec(required, existingCopy)
+	toUpdate, modified, err := ensureGenericSpec(required, existingCopy, noDefaulting, equality.Semantic)
 	if err != nil {
 		return nil, false, err
 	}
 
-	if !endpointsModified {
+	if !modified {
 		return nil, false, nil
 	}
 
 	if klog.V(4).Enabled() {
-		klog.Infof("ServiceMonitor %q changes: %v", namespace+"/"+required.GetName(), JSONPatchNoError(existing, existingCopy))
+		klog.Infof("ServiceMonitor %q changes: %v", namespace+"/"+required.GetName(), JSONPatchNoError(existing, toUpdate))
 	}
 
-	newObj, err := client.Resource(serviceMonitorGVR).Namespace(namespace).Update(context.TODO(), updated, metav1.UpdateOptions{})
+	newObj, err := client.Resource(serviceMonitorGVR).Namespace(namespace).Update(context.TODO(), toUpdate, metav1.UpdateOptions{})
 	if err != nil {
 		recorder.Warningf("ServiceMonitorUpdateFailed", "Failed to update ServiceMonitor.monitoring.coreos.com/v1: %v", err)
 		return nil, true, err
@@ -109,20 +119,20 @@ func ApplyPrometheusRule(client dynamic.Interface, recorder events.Recorder, req
 
 	existingCopy := existing.DeepCopy()
 
-	updated, endpointsModified, err := ensureGenericSpec(required, existingCopy)
+	toUpdate, modified, err := ensureGenericSpec(required, existingCopy, noDefaulting, equality.Semantic)
 	if err != nil {
 		return nil, false, err
 	}
 
-	if !endpointsModified {
+	if !modified {
 		return nil, false, nil
 	}
 
 	if klog.V(4).Enabled() {
-		klog.Infof("PrometheusRule %q changes: %v", namespace+"/"+required.GetName(), JSONPatchNoError(existing, existingCopy))
+		klog.Infof("PrometheusRule %q changes: %v", namespace+"/"+required.GetName(), JSONPatchNoError(existing, toUpdate))
 	}
 
-	newObj, err := client.Resource(prometheusRuleGVR).Namespace(namespace).Update(context.TODO(), updated, metav1.UpdateOptions{})
+	newObj, err := client.Resource(prometheusRuleGVR).Namespace(namespace).Update(context.TODO(), toUpdate, metav1.UpdateOptions{})
 	if err != nil {
 		recorder.Warningf("PrometheusRuleUpdateFailed", "Failed to update PrometheusRule.monitoring.coreos.com/v1: %v", err)
 		return nil, true, err
