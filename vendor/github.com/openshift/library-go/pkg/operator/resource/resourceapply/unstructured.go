@@ -17,6 +17,8 @@ func ApplyKnownUnstructured(client dynamic.Interface, recorder events.Recorder, 
 		return ApplyServiceMonitor(client, recorder, obj)
 	case schema.GroupKind{Group: "monitoring.coreos.com", Kind: "PrometheusRule"}:
 		return ApplyPrometheusRule(client, recorder, obj)
+	case schema.GroupKind{Group: "snapshot.storage.k8s.io", Kind: "VolumeSnapshotClass"}:
+		return ApplyVolumeSnapshotClass(client, recorder, obj)
 
 	}
 

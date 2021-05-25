@@ -50,6 +50,19 @@ spec:
                   of customization options to the web console.
                 type: object
                 properties:
+                  addPage:
+                    description: addPage allows customizing actions on the Add page
+                      in developer perspective.
+                    type: object
+                    properties:
+                      disabledActions:
+                        description: disabledActions is a list of actions that are
+                          not shown to users. Each action in the list is represented
+                          by its ID.
+                        type: array
+                        minItems: 1
+                        items:
+                          type: string
                   brand:
                     description: brand is the default branding of the web console
                       which can be overridden by providing the brand field.  There
@@ -256,7 +269,7 @@ spec:
                   domain, manual DNS configurations steps are necessary. The default
                   console route will be maintained to reserve the default hostname
                   for console if the custom route is removed. If not specified, default
-                  route will be used.
+                  route will be used. DEPRECATED
                 type: object
                 properties:
                   hostname:
