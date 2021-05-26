@@ -219,9 +219,7 @@ func surprisingConditions(co objx.Map) ([]configv1.ClusterOperatorStatusConditio
 				expected = configv1.ConditionTrue
 			}
 			if cond.Get("status").String() != string(expected) {
-				if conditionType == configv1.OperatorUpgradeable && (name == "kube-storage-version-migrator" || // https://bugzilla.redhat.com/show_bug.cgi?id=1928141
-					name == "openshift-controller-manager" || // https://bugzilla.redhat.com/show_bug.cgi?id=1948011
-					name == "service-ca") { // https://bugzilla.redhat.com/show_bug.cgi?id=1948012
+				if conditionType == configv1.OperatorUpgradeable && name == "kube-storage-version-migrator" { // https://bugzilla.redhat.com/show_bug.cgi?id=1928141
 					continue
 				}
 				badConditions = append(badConditions, configv1.ClusterOperatorStatusCondition{
