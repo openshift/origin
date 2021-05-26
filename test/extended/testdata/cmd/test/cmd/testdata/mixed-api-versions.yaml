@@ -34,7 +34,7 @@ items:
           run: v1-job
       spec:
         containers:
-        - image: k8s.gcr.io/e2e-test-images/agnhost:2.30
+        - image: k8s.gcr.io/e2e-test-images/agnhost:2.32
           name: hello-container
         restartPolicy: Never
 
