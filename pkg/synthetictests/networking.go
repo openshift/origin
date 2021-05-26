@@ -38,7 +38,7 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*ginkgo.JUnitTestCase
 		if !strings.Contains(event.Message, "reason/FailedCreatePodSandBox Failed to create pod sandbox") {
 			continue
 		}
-		if strings.Contains(event.Message, "Multus") && strings.Contains(event.Message, "error getting pod") && strings.Contains(event.Message, "connection refused") {
+		if strings.Contains(event.Message, "Multus") && strings.Contains(event.Message, "error getting pod") && (strings.Contains(event.Message, "connection refused") || strings.Contains(event.Message, "i/o timeout")) {
 			flakes = append(flakes, fmt.Sprintf("%v - multus is unable to get pods due to LB disruption https://bugzilla.redhat.com/show_bug.cgi?id=1927264 - %v", event.Locator, event.Message))
 			continue
 		}
