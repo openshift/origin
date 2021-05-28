@@ -9,16 +9,13 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	oauthv1 "github.com/openshift/api/oauth/v1"
-	"github.com/openshift/client-go/image/clientset/versioned"
 	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
-	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/ibmcloud"
@@ -45,7 +42,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		defer os.RemoveAll(tempDir)
 		o.Expect(oc.Run("adm", "must-gather").Args("--dest-dir", tempDir).Execute()).To(o.Succeed())
 
-		pluginOutputDir := getPluginOutputDir(oc, tempDir)
+		pluginOutputDir := getPluginOutputDir(tempDir)
 
 		expectedDirectories := [][]string{
 			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io"},
@@ -110,7 +107,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			"ls -l > /artifacts/ls.log",
 		}
 		o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
-		expectedFilePath := path.Join(getPluginOutputDir(oc, tempDir), "ls.log")
+		expectedFilePath := path.Join(getPluginOutputDir(tempDir), "ls.log")
 		o.Expect(expectedFilePath).To(o.BeAnExistingFile())
 		stat, err := os.Stat(expectedFilePath)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -174,7 +171,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		// wait for the contents to show up in the plugin output directory, avoiding EOF errors
 		time.Sleep(10 * time.Second)
 
-		pluginOutputDir := getPluginOutputDir(oc, tempDir)
+		pluginOutputDir := getPluginOutputDir(tempDir)
 
 		expectedDirectoriesToExpectedCount := map[string]int{
 			path.Join(pluginOutputDir, "audit_logs", "kube-apiserver"):      1000,
@@ -314,7 +311,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 
 				o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
 
-				pluginOutputDir := getPluginOutputDir(oc, tempDir)
+				pluginOutputDir := getPluginOutputDir(tempDir)
 				expectedAuditSubDirs := []string{"kube-apiserver", "openshift-apiserver", "oauth-apiserver"}
 
 				seen := sets.String{}
@@ -348,16 +345,29 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 	})
 })
 
-func getPluginOutputDir(oc *exutil.CLI, tempDir string) string {
-	imageClient := versioned.NewForConfigOrDie(oc.AdminConfig())
-	stream, err := imageClient.ImageV1().ImageStreams("openshift").Get(context.Background(), "must-gather", metav1.GetOptions{})
+// getPluginOutputDir returns the directory containing must-gather assets.
+// Before [1], the assets were placed directly in tempDir.  Since [1],
+// they have been placed in a subdirectory named after the must-gather
+// image.
+//
+// [1]: https://github.com/openshift/oc/pull/84
+func getPluginOutputDir(tempDir string) string {
+	files, err := os.ReadDir(tempDir)
 	o.Expect(err).NotTo(o.HaveOccurred())
-	imageId, ok := imageutil.ResolveLatestTaggedImage(stream, "latest")
-	o.Expect(ok).To(o.BeTrue())
-	pluginOutputDir := path.Join(tempDir, regexp.MustCompile("[^A-Za-z0-9]+").ReplaceAllString(imageId, "-"))
-	fileInfo, err := os.Stat(pluginOutputDir)
-	if err != nil || !fileInfo.IsDir() {
-		pluginOutputDir = tempDir
+	dir := ""
+	for _, file := range files {
+		if file.IsDir() {
+			if dir != "" {
+				e2e.Logf("found multiple directories in %q, so assuming it is an old-style must-gather", tempDir)
+				return tempDir
+			}
+			dir = path.Join(tempDir, file.Name())
+		}
 	}
-	return pluginOutputDir
+	if dir == "" {
+		e2e.Logf("found no directories in %q, so assuming it is an old-style must-gather", tempDir)
+		return tempDir
+	}
+	e2e.Logf("found a single subdirectory %q, so assuming it is a new-style must-gather", dir)
+	return dir
 }
