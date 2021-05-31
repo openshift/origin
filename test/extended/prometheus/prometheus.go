@@ -266,7 +266,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			g.By("checking the prometheus metrics path")
 			var metrics map[string]*dto.MetricFamily
 			o.Expect(wait.PollImmediate(10*time.Second, 2*time.Minute, func() (bool, error) {
-				results, err := getInsecureURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/metrics", prometheusURL))
+				results, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/metrics", prometheusURL), bearerToken)
 				if err != nil {
 					e2e.Logf("unable to get metrics: %v", err)
 					return false, nil
