@@ -11,10 +11,12 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo"
-
+	configv1 "github.com/openshift/api/config/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/events"
@@ -29,6 +31,8 @@ import (
 type UpgradeTest struct {
 	jig        *service.TestJig
 	tcpService *v1.Service
+
+	unsupportedPlatform bool
 }
 
 func (UpgradeTest) Name() string { return "k8s-service-lb-available" }
@@ -40,6 +44,18 @@ func shouldTestPDBs() bool { return true }
 
 // Setup creates a service with a load balancer and makes sure it's reachable.
 func (t *UpgradeTest) Setup(f *framework.Framework) {
+	configClient, err := configclient.NewForConfig(f.ClientConfig())
+	framework.ExpectNoError(err)
+	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	framework.ExpectNoError(err)
+	// ovirt does not support service type loadbalancer because it doesn't program a cloud.
+	if infra.Status.PlatformStatus.Type == configv1.OvirtPlatformType {
+		t.unsupportedPlatform = true
+	}
+	if t.unsupportedPlatform {
+		return
+	}
+
 	serviceName := "service-test"
 	jig := service.NewTestJig(f.ClientSet, f.Namespace.Name, serviceName)
 
@@ -106,6 +122,10 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 
 // Test runs a connectivity check to the service.
 func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
+	if t.unsupportedPlatform {
+		return
+	}
+
 	client, err := framework.LoadClientset()
 	framework.ExpectNoError(err)
 
