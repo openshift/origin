@@ -13,8 +13,10 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -286,4 +288,21 @@ func waitForReadyEtcdPods(client kubernetes.Interface, masterCount int) {
 		masterCount,
 		40*time.Minute,
 	)
+}
+
+func waitForPodsTolerateClientTimeout(c corev1client.PodInterface, label labels.Selector, predicate func(corev1.Pod) bool, count int, timeout time.Duration) {
+	err := wait.Poll(10*time.Second, timeout, func() (bool, error) {
+		p, e := exutil.GetPodNamesByFilter(c, label, predicate)
+		if e != nil {
+			framework.Logf("Saw an error waiting for etcd pods to become available: %v", e)
+			// TODO tolerate transient etcd timeout only and fail other errors
+			return false, nil
+		}
+		if len(p) != count {
+			framework.Logf("Only %d of %d expected pods are ready", len(p), count)
+			return false, nil
+		}
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
 }
