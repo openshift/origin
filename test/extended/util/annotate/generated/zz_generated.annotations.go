@@ -257,7 +257,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-api-machinery] Watchers should observe an object deletion if it stops meeting the requirements of the selector [Conformance]": "should observe an object deletion if it stops meeting the requirements of the selector [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Watchers should receive events on concurrent watches in same order [Conformance]": "should receive events on concurrent watches in same order [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Watchers should receive events on concurrent watches in same order [Conformance]": "should receive events on concurrent watches in same order [Conformance] [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-api-machinery] client-go should negotiate watch and report errors with accept \"application/json,application/vnd.kubernetes.protobuf\"": "watch and report errors with accept \"application/json,application/vnd.kubernetes.protobuf\" [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
