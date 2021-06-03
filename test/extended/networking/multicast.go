@@ -30,7 +30,7 @@ var _ = Describe("[sig-network] multicast", func() {
 	// plugins should implement multicast in the way that we test. For third-party
 	// plugins, the behavior is unspecified and we should not run either test.
 
-	InPluginContext([]string{networkutils.SingleTenantPluginName},
+	InopenshiftSDNModeContext([]string{networkutils.SingleTenantPluginName},
 		func() {
 			It("should block multicast traffic", func() {
 				oc := exutil.NewCLI("multicast")
@@ -40,7 +40,7 @@ var _ = Describe("[sig-network] multicast", func() {
 		},
 	)
 
-	InPluginContext([]string{networkutils.MultiTenantPluginName, networkutils.NetworkPolicyPluginName},
+	InopenshiftSDNModeContext([]string{networkutils.MultiTenantPluginName, networkutils.NetworkPolicyPluginName},
 		func() {
 			It("should block multicast traffic in namespaces where it is disabled", func() {
 				f := oc.KubeFramework()
