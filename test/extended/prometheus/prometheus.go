@@ -15,7 +15,6 @@ import (
 	o "github.com/onsi/gomega"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
-	"github.com/prometheus/common/model"
 
 	v1 "k8s.io/api/core/v1"
 
@@ -71,19 +70,8 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1939580",
 			},
 			{
-				Selector: map[string]string{"alertname": "ClusterOperatorDegraded", "name": "authentication"},
-				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1939580",
-			},
-			{
 				Selector: map[string]string{"alertname": "AggregatedAPIDown", "name": "v1alpha1.wardle.example.com"},
 				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1933144",
-			},
-			{
-				Selector: map[string]string{"alertname": "KubeAPIErrorBudgetBurn"},
-				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1953798",
-				Matches: func(_ *model.Sample) bool {
-					return framework.ProviderIs("gce")
-				},
 			},
 		}
 		allowedFiringAlerts := helper.MetricConditions{
