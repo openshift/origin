@@ -66,6 +66,11 @@ var (
 			// Broken for metal-ipi-ovn-ipv6
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1962950
 			`\[Feature:NetworkPolicy\]`,
+
+			// Flakey against master, broken by the addition of a service ca configmap in every
+			// namespace introduced by https://github.com/openshift/kubernetes/pull/714. Will be
+			// re-enabled by https://github.com/openshift/origin/pull/26186 once 714 merges.
+			`\[sig-api-machinery\] Watchers should receive events on concurrent watches in same order`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},
