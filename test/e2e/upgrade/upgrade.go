@@ -424,9 +424,9 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			upgradeEnded := time.Now()
 			upgradeDuration := upgradeEnded.Sub(upgradeStarted)
 			if upgradeDuration > durationToSoftFailure {
-				disruption.RecordJUnitResult(f, "[sig-cluster-lifecycle] cluster upgrade should complete in 60m (90m on AWS)", upgradeDuration, fmt.Sprintf("%s to %s took too long: %v", action, versionString(desired), upgradeDuration.Minutes()))
+				disruption.RecordJUnitResult(f, "[sig-cluster-lifecycle] cluster upgrade should complete in 75m (90m on AWS)", upgradeDuration, fmt.Sprintf("%s to %s took too long: %0.2f minutes", action, versionString(desired), upgradeDuration.Minutes()))
 			} else {
-				disruption.RecordJUnitResult(f, "[sig-cluster-lifecycle] cluster upgrade should complete in 60m (90m on AWS)", upgradeDuration, "")
+				disruption.RecordJUnitResult(f, "[sig-cluster-lifecycle] cluster upgrade should complete in 75m (90m on AWS)", upgradeDuration, "")
 			}
 
 			return nil
