@@ -97,6 +97,26 @@ $ hack/update-kube-vendor.sh <branch name or SHA> github.com/myname/kubernetes
 Once the script has executed, the vendoring changes will need to be
 committed and proposed to the repo.
 
+#### Working around '410 Gone' error
+
+If the script returns '410 Gone' as per the error that follows, it may
+be that the golang checksum server does not yet know about the target
+SHA.
+
+```
+go: k8s.io/kubernetes@v1.21.1 (replaced by github.com/openshift/kubernetes@v1.21.2-0.20210603185452-2dfc46b23003): verifying go.mod: g
+ithub.com/openshift/kubernetes@v1.21.2-0.20210603185452-2dfc46b23003/go.mod: reading https://sum.golang.org/lookup/github.com/openshif
+t/kubernetes@v1.21.2-0.20210603185452-2dfc46b23003: 410 Gone
+        server response: not found:
+```
+
+The workaround is to set `GOSUMDB=off` to disable the checksum
+database for the vendoring update:
+
+```bash
+$ GOSUMDB=off hack/update-kube-vendor.sh <branch name or SHA>
+```
+
 ## Maintenance of release-4.5, release-4.4 and release-4.3
 
 Releases prior to 4.6 continue to maintain hyperkube in the `origin`
