@@ -27,8 +27,11 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/api/core/v1"
 	iptablesproxy "k8s.io/kubernetes/pkg/proxy/iptables"
+	"k8s.io/kubernetes/pkg/util/conntrack"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
+	"k8s.io/utils/exec"
 )
 
 // HostportSyncer takes a list of PodPortMappings and implements hostport all at once
@@ -43,17 +46,25 @@ type HostportSyncer interface {
 }
 
 type hostportSyncer struct {
-	hostPortMap map[hostport]closeable
-	iptables    utiliptables.Interface
-	portOpener  hostportOpener
+	hostPortMap    map[hostport]closeable
+	iptables       utiliptables.Interface
+	portOpener     hostportOpener
+	execer         exec.Interface
+	conntrackFound bool
 }
 
 func NewHostportSyncer(iptables utiliptables.Interface) HostportSyncer {
-	return &hostportSyncer{
+	h := &hostportSyncer{
 		hostPortMap: make(map[hostport]closeable),
 		iptables:    iptables,
 		portOpener:  openLocalPort,
+		execer:      exec.New(),
 	}
+	h.conntrackFound = conntrack.Exists(h.execer)
+	if !h.conntrackFound {
+		glog.Warningf("The binary conntrack is not installed, this can cause failures in network connection cleanup.")
+	}
+	return h
 }
 
 type targetPod struct {
@@ -211,9 +222,13 @@ func (h *hostportSyncer) SyncHostports(natInterfaceName string, activePodPortMap
 
 	// Accumulate NAT chains to keep.
 	activeNATChains := map[utiliptables.Chain]bool{} // use a map as a set
+	conntrackPortsToRemove := []int{}
 
 	for port, target := range hostportPodMap {
 		protocol := strings.ToLower(string(port.Protocol))
+		if port.Protocol == v1.ProtocolUDP {
+			conntrackPortsToRemove = append(conntrackPortsToRemove, int(port.HostPort))
+		}
 		hostportChain := hostportChainName(port, target.podFullName)
 		if chain, ok := existingNATChains[hostportChain]; ok {
 			writeLine(natChains, chain)
@@ -277,6 +292,20 @@ func (h *hostportSyncer) SyncHostports(natInterfaceName string, activePodPortMap
 		return fmt.Errorf("Failed to execute iptables-restore: %v", err)
 	}
 
+	// Remove conntrack entries just after adding the new iptables rules. If the conntrack entry is removed along with
+	// the IP tables rule, it can be the case that the packets received by the node after iptables rule removal will
+	// create a new conntrack entry without any DNAT. That will result in blackhole of the traffic even after correct
+	// iptables rules have been added back.
+	isIpv6 := false // Only IPv4 supported
+	if h.execer != nil && h.conntrackFound {
+		glog.Infof("Starting to delete udp conntrack entries: %v, isIPv6 - %v", conntrackPortsToRemove, isIpv6)
+		for _, port := range conntrackPortsToRemove {
+			err = conntrack.ClearEntriesForPort(h.execer, port, isIpv6, v1.ProtocolUDP)
+			if err != nil {
+				glog.Errorf("Failed to clear udp conntrack for port %d, error: %v", port, err)
+			}
+		}
+	}
 	h.cleanupHostportMap(hostportPodMap)
 	return nil
 }
