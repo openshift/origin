@@ -10,8 +10,11 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 
+	"github.com/blang/semver"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/test/extended/util/disruption"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // NewKubeAvailableWithNewConnectionsTest tests that the Kubernetes control plane remains available during and after a cluster upgrade.
@@ -106,13 +109,55 @@ func (t *availableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 	cancel()
 	end := time.Now()
 
+	// starting from 4.8, enforce the requirement that control plane remains available
+	hasAllFixes, err := allClusterVersionsAreGTE(semver.Version{Major: 4, Minor: 8}, config)
+	if err != nil {
+		framework.Logf("Cannot require full control plane availability, some versions could not be checked: %v", err)
+	}
+
 	toleratedDisruption := 0.08
-	if framework.ProviderIs("azure") || framework.ProviderIs("aws") {
-		toleratedDisruption = 0
+	switch {
+	case framework.ProviderIs("azure"), framework.ProviderIs("aws"), framework.ProviderIs("gce"):
+		if hasAllFixes {
+			framework.Logf("Cluster contains no versions older than 4.8, tolerating no disruption")
+			toleratedDisruption = 0
+		}
 	}
 	disruption.ExpectNoDisruption(f, toleratedDisruption, end.Sub(start), m.Intervals(time.Time{}, time.Time{}), fmt.Sprintf("API %q was unreachable during disruption (AWS has a known issue: https://bugzilla.redhat.com/show_bug.cgi?id=1943804)", t.name))
 }
 
 // Teardown cleans up any remaining resources.
 func (t *availableTest) Teardown(f *framework.Framework) {
+}
+
+// allClusterVersionsAreGTE returns true if all historical versions on the cluster version are
+// at or newer than the provided semver, ignoring prerelease status. If no versions are found
+// an error is returned.
+func allClusterVersionsAreGTE(version semver.Version, config *rest.Config) (bool, error) {
+	c, err := configv1client.NewForConfig(config)
+	if err != nil {
+		return false, err
+	}
+	cv, err := c.ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+	if len(cv.Status.History) == 0 {
+		return false, fmt.Errorf("no versions in cluster version history")
+	}
+	for _, v := range cv.Status.History {
+		ver, err := semver.Parse(v.Version)
+		if err != nil {
+			return false, err
+		}
+
+		// ignore prerelease version matching here
+		ver.Pre = nil
+		ver.Build = nil
+
+		if ver.LT(version) {
+			return false, nil
+		}
+	}
+	return true, nil
 }
