@@ -309,7 +309,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.HaveSuffix("yes"))
 
-		oc.Run("delete").Args("policy-can-i").Execute()
+		oc.Run("delete").Args("project/policy-can-i").Execute()
 	})
 
 	g.It("role-reapers", func() {
