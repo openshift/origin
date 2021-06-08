@@ -505,7 +505,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-apps] StatefulSet Deploy clustered applications [Feature:StatefulSet] [Slow] should creating a working zookeeper cluster": "should creating a working zookeeper cluster [Suite:k8s]",
 
-	"[Top Level] [sig-apps] [Feature:TTLAfterFinished] job should be deleted once it finishes after TTL seconds": "job should be deleted once it finishes after TTL seconds [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-apps] [Feature:TTLAfterFinished] job should be deleted once it finishes after TTL seconds": "job should be deleted once it finishes after TTL seconds [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs  should adhere to Three Laws of Controllers": "should adhere to Three Laws of Controllers [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 

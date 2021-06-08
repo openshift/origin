@@ -57,9 +57,6 @@ var (
 			`\[sig-network\] HostPort validates that there is no conflict between pods with same hostPort but different hostIP and protocol`,
 			`\[sig-network\] Networking should provide Internet connection for containers`,
 
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1957886
-			`\[sig-apps\] \[Feature:TTLAfterFinished\] job should be deleted once it finishes after TTL seconds`,
-
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1957894
 			`\[sig-node\] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret`,
 		},
