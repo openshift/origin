@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
 	"github.com/openshift/origin/pkg/test/ginkgo"
@@ -33,6 +34,10 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*ginkgo.JUnitTestCase
 
 	failures := []string{}
 	flakes := []string{}
+	operatorsProgressing := intervalcreation.IntervalsFromEvents_OperatorProgressing(events, time.Time{}, time.Time{})
+	networkOperatorProgressing := operatorsProgressing.Filter(func(ev monitorapi.EventInterval) bool {
+		return ev.Locator == "clusteroperator/network" || ev.Locator == "clusteroperator/machine-config"
+	})
 	eventsForPods := getEventsByPod(events)
 	for _, event := range events {
 		if !strings.Contains(event.Message, "reason/FailedCreatePodSandBox Failed to create pod sandbox") {
@@ -48,8 +53,21 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*ginkgo.JUnitTestCase
 		}
 		deletionTime := getPodDeletionTime(eventsForPods[event.Locator], event.Locator)
 		if deletionTime == nil {
-			// this indicates a failure to create the sandbox that should not happen
-			failures = append(failures, fmt.Sprintf("%v - never deleted - %v", event.Locator, event.Message))
+			// mark sandboxes errors as flakes if networking is being updated
+			match := -1
+			for i := range networkOperatorProgressing {
+				matchesFrom := event.From.After(networkOperatorProgressing[i].From)
+				matchesTo := event.To.Before(networkOperatorProgressing[i].To)
+				if matchesFrom && matchesTo {
+					match = i
+					break
+				}
+			}
+			if match != -1 {
+				flakes = append(flakes, fmt.Sprintf("%v - never deleted - network rollout - %v", event.Locator, event.Message))
+			} else {
+				failures = append(failures, fmt.Sprintf("%v - never deleted - %v", event.Locator, event.Message))
+			}
 		} else {
 			timeBetweenDeleteAndFailure := event.From.Sub(*deletionTime)
 			switch {
@@ -57,7 +75,7 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*ginkgo.JUnitTestCase
 				// nothing here, one second is close enough to be ok, the kubelet and CNI just didn't know
 			case timeBetweenDeleteAndFailure < 5*time.Second:
 				// withing five seconds, it ought to be long enough to know, but it's close enough to flake and not fail
-				flakes = append(failures, fmt.Sprintf("%v - %0.2f seconds after deletion - %v", event.Locator, timeBetweenDeleteAndFailure.Seconds(), event.Message))
+				flakes = append(flakes, fmt.Sprintf("%v - %0.2f seconds after deletion - %v", event.Locator, timeBetweenDeleteAndFailure.Seconds(), event.Message))
 			case deletionTime.Before(event.From):
 				// something went wrong.  More than five seconds after the pod ws deleted, the CNI is trying to set up pod sandboxes and can't
 				failures = append(failures, fmt.Sprintf("%v - %0.2f seconds after deletion - %v", event.Locator, timeBetweenDeleteAndFailure.Seconds(), event.Message))
