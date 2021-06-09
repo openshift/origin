@@ -86,7 +86,13 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 			},
 		},
 	}
-
+	allowedFiringAlerts := helper.MetricConditions{
+		{
+			// TODO: Add all the control-plane components once all of them have PDBs configured
+			Selector: map[string]string{"alertname": "PodDisruptionBudgetAtLimit", "namespace": "openshift-etcd"},
+			Text:     "Excluded because PodDisruptionBudgetAtLimit is a warning level that is bound to trigger during upgrades as we upgrade one node at a time and desired number of healthy pods match current number of healthy pods as maxUnavailable is set to 1",
+		},
+	}
 	pendingAlertsWithBugs := helper.MetricConditions{
 		{
 			Selector: map[string]string{"alertname": "ClusterMonitoringOperatorReconciliationErrors"},
@@ -153,6 +159,9 @@ count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog
 		violation := fmt.Sprintf("alert %s fired for %s seconds with labels: %s", series.Metric["alertname"], series.Value, helper.LabelsAsSelector(labels))
 		if cause := firingAlertsWithBugs.Matches(series); cause != nil {
 			knownViolations.Insert(fmt.Sprintf("%s (open bug: %s)", violation, cause.Text))
+		} else if cause = allowedFiringAlerts.Matches(series); cause != nil {
+			debug.Insert(fmt.Sprintf("%s (allowed: %s)", violation, cause.Text))
+			continue
 		} else {
 			unexpectedViolations.Insert(violation)
 		}
