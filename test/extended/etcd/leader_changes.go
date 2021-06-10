@@ -28,7 +28,7 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 		o.Expect(err).ToNot(o.HaveOccurred())
 		leaderChanges := result.(model.Vector)[0].Value
 		if leaderChanges != 0 {
-			o.Expect(fmt.Errorf("Observed %s leader changes in %s: Leader changes are a result of stopping the etcd leader process or from latency (disk or network), review etcd performance metrics", leaderChanges, testDuration)).ToNot(o.HaveOccurred())
+			o.Expect(fmt.Errorf("Observed %s leader changes (expected 0) in %s: Leader changes are a result of stopping the etcd leader process or from latency (disk or network), review etcd performance metrics", leaderChanges, testDuration)).ToNot(o.HaveOccurred())
 		}
 	})
 })
