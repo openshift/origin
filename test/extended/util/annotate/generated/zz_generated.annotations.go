@@ -1141,6 +1141,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables  should successfully resolve valueFrom in s2i build environment variables": "should successfully resolve valueFrom in s2i build environment variables [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-builds][Feature:Builds][volumes] build volumes  should mount given secrets and configmaps into the build pod for docker strategy builds": "should mount given secrets and configmaps into the build pod for docker strategy builds [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-builds][Feature:Builds][volumes] build volumes  should mount given secrets and configmaps into the build pod for source strategy builds": "should mount given secrets and configmaps into the build pod for source strategy builds [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-builds][Feature:Builds][webhook] TestWebhook": "TestWebhook [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-builds][Feature:Builds][webhook] TestWebhookGitHubPing": "TestWebhookGitHubPing [Suite:openshift/conformance/parallel]",
