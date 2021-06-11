@@ -50329,7 +50329,6 @@ items:
       test: router
       select: weighted
   spec:
-    host: weighted.metrics.example.com
     to:
       name: weightedendpoints1
       kind: Service
@@ -50350,7 +50349,6 @@ items:
       test: router
       select: weighted
   spec:
-    host: zeroweight.metrics.example.com
     to:
       name: weightedendpoints1
       kind: Service

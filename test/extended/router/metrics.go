@@ -31,6 +31,8 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 
 	configv1 "github.com/openshift/api/config/v1"
+	routev1 "github.com/openshift/api/route/v1"
+	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 )
 
 var _ = g.Describe("[sig-network][Feature:Router]", func() {
@@ -113,6 +115,10 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			err := oc.Run("create").Args("-f", configPath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
+			g.By("waiting for the route to be admitted")
+			routeHost, err := waitForAdmittedRoute(2*time.Minute, oc.AdminRouteClient().RouteV1(), ns, "weightedroute", "default", true)
+			o.Expect(err).NotTo(o.HaveOccurred(), "route was not admitted")
+
 			execPodName = exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod").Name
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPodName, *metav1.NewDeleteOptions(1))
@@ -148,7 +154,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 					}
 					// send a burst of traffic to the router
 					g.By("sending traffic to a weighted route")
-					err = expectRouteStatusCodeRepeatedExec(ns, execPodName, fmt.Sprintf("http://%s", host), "weighted.metrics.example.com", http.StatusOK, times, proxyProtocol)
+					err = expectRouteStatusCodeRepeatedExec(ns, execPodName, fmt.Sprintf("http://%s", host), routeHost, http.StatusOK, times, proxyProtocol)
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 				g.By("retrying metrics until all backend servers appear")
@@ -219,73 +225,10 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(findGaugesWithLabels(updatedMetrics["haproxy_backend_connections_total"], routeLabels)[0]).To(o.BeNumerically(">=", findGaugesWithLabels(metrics["haproxy_backend_connections_total"], routeLabels)[0]))
 			o.Expect(findGaugesWithLabels(updatedMetrics["haproxy_server_bytes_in_total"], serverLabels)[0]).To(o.BeNumerically(">=", findGaugesWithLabels(metrics["haproxy_server_bytes_in_total"], serverLabels)[0]))
-
-			// haxproxy_server_max_sessions needs to be
-			// greater than zero over two successive
-			// scrapes once the first scrape shows an
-			// increase in total connections.
-			err = wait.PollImmediate(2*time.Second, 5*time.Minute, func() (bool, error) {
-				refreshMetrics := func() (map[string]*dto.MetricFamily, error) {
-					startTime := time.Now()
-					results, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), bearerToken)
-					if err != nil {
-						return nil, err
-					}
-					metrics, err := p.TextToMetricFamilies(bytes.NewBufferString(results))
-					e2e.Logf("metrics refresh completed in %s", time.Now().Sub(startTime).Round(time.Second).String())
-					return metrics, err
-				}
-
-				maxSessionsInvariant := func(v []float64) bool {
-					return len(v) == 1 && v[0] > 0
-				}
-
-				updatedMetrics, err := refreshMetrics()
-				if err != nil {
-					e2e.Logf("refresh metrics error: %v", err)
-					return false, err
-				}
-
-				if len(findGaugesWithLabels(updatedMetrics["haproxy_server_up"], serverLabels)) != 1 {
-					e2e.Logf("haproxy_server_up: %v", findGaugesWithLabels(updatedMetrics["haproxy_server_up"], serverLabels))
-					g.By("sending traffic to a weighted route")
-					return false, expectRouteStatusCodeRepeatedExec(ns, execPodName, fmt.Sprintf("http://%s", host), "weighted.metrics.example.com", http.StatusOK, times, proxyProtocol)
-				}
-
-				if findGaugesWithLabels(updatedMetrics["haproxy_backend_connections_total"], routeLabels)[0] < float64(times) {
-					e2e.Logf("haproxy_backend_connections_total: %+v", findGaugesWithLabels(updatedMetrics["haproxy_backend_connections_total"], routeLabels)[0])
-					g.By("sending traffic to a weighted route")
-					return false, expectRouteStatusCodeRepeatedExec(ns, execPodName, fmt.Sprintf("http://%s", host), "weighted.metrics.example.com", http.StatusOK, times, proxyProtocol)
-				}
-
-				if !maxSessionsInvariant(findGaugesWithLabels(updatedMetrics["haproxy_server_max_sessions"], serverLabels)) {
-					e2e.Logf("scrape 0: max_sessions invariant not held, got: %+v", findGaugesWithLabels(updatedMetrics["haproxy_server_max_sessions"], serverLabels))
-					g.By("sending traffic to a weighted route")
-					return false, expectRouteStatusCodeRepeatedExec(ns, execPodName, fmt.Sprintf("http://%s", host), "weighted.metrics.example.com", http.StatusOK, times, proxyProtocol)
-				}
-
-				updatedMetrics, err = refreshMetrics()
-				if err != nil {
-					e2e.Logf("refresh metrics error: %v", err)
-					return false, err
-				}
-				if !maxSessionsInvariant(findGaugesWithLabels(updatedMetrics["haproxy_server_max_sessions"], serverLabels)) {
-					e2e.Logf("scrape 1: max_sessions invariant not held, got: %+v", findGaugesWithLabels(updatedMetrics["haproxy_server_max_sessions"], serverLabels))
-					return false, nil
-				}
-
-				updatedMetrics, err = refreshMetrics()
-				if err != nil {
-					e2e.Logf("refresh metrics error: %v", err)
-					return false, err
-				}
-				success := maxSessionsInvariant(findGaugesWithLabels(updatedMetrics["haproxy_server_max_sessions"], serverLabels))
-				if !success {
-					e2e.Logf("scrape 2: max_sessions invariant not held, got: %+v", findGaugesWithLabels(updatedMetrics["haproxy_server_max_sessions"], serverLabels))
-				}
-				return success, nil
-			})
-			o.Expect(err).NotTo(o.HaveOccurred())
+			// max_sessions should reset after a reload, it is not possible to deterministically ensure max sessions is captured due to the
+			// 30s scrape interval of router + the likelihood the router is being reloaded is high. Just verify that the value is reset
+			// because no one else should be hitting this server.
+			o.Expect(findGaugesWithLabels(updatedMetrics["haproxy_server_max_sessions"], serverLabels)[0]).To(o.Equal(float64(0)))
 		})
 
 		g.It("should expose the profiling endpoints", func() {
@@ -532,4 +475,30 @@ func findMetricsBearerToken(oc *exutil.CLI) (string, error) {
 		return "", fmt.Errorf("secret 'openshift-monitoring/%s' does not contain bearer token", secretName)
 	}
 	return string(token), nil
+}
+
+func waitForAdmittedRoute(maxInterval time.Duration, client routev1client.RouteV1Interface, ns, name, ingressName string, errorOnRejection bool) (string, error) {
+	var routeHost string
+	err := wait.PollImmediate(time.Second, maxInterval, func() (bool, error) {
+		route, err := client.Routes(ns).Get(context.Background(), name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		ingress := findIngress(route, ingressName)
+		if ingress == nil {
+			return false, nil
+		}
+		if len(ingress.Conditions) == 0 || ingress.Conditions[0].Type != routev1.RouteAdmitted {
+			return false, nil
+		}
+		if errorOnRejection && ingress.Conditions[0].Status == corev1.ConditionFalse {
+			return false, fmt.Errorf("router rejected route: %#v", ingress)
+		}
+		if ingress.Conditions[0].Status != corev1.ConditionTrue {
+			return false, nil
+		}
+		routeHost = ingress.Host
+		return true, nil
+	})
+	return routeHost, err
 }
