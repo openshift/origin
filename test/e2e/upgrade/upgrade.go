@@ -273,6 +273,13 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 	// if upgrades take longer than this, then we will have a junit marker indicating failure.
 	durationToSoftFailure := 75 * time.Minute
 
+	infra, err := c.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	framework.ExpectNoError(err)
+	if infra.Status.PlatformStatus.Type == configv1.AWSPlatformType {
+		// due to https://bugzilla.redhat.com/show_bug.cgi?id=1943804 upgrades take ~12 extra minutes on AWS
+		durationToSoftFailure = 90 * time.Minute
+	}
+
 	framework.Logf("Starting upgrade to version=%s image=%s attempt=%s", version.Version.String(), version.NodeImage, uid)
 	recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeStarted", fmt.Sprintf("version/%s image/%s", version.Version.String(), version.NodeImage), false)
 
@@ -417,9 +424,9 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			upgradeEnded := time.Now()
 			upgradeDuration := upgradeEnded.Sub(upgradeStarted)
 			if upgradeDuration > durationToSoftFailure {
-				disruption.RecordJUnitResult(f, "[sig-cluster-lifecycle] cluster upgrade should be fast", upgradeDuration, fmt.Sprintf("%s to %s took too long: %v", action, versionString(desired), upgradeDuration.Minutes()))
+				disruption.RecordJUnitResult(f, "[sig-cluster-lifecycle] cluster upgrade should complete in 60m (90m on AWS)", upgradeDuration, fmt.Sprintf("%s to %s took too long: %v", action, versionString(desired), upgradeDuration.Minutes()))
 			} else {
-				disruption.RecordJUnitResult(f, "[sig-cluster-lifecycle] cluster upgrade should be fast", upgradeDuration, "")
+				disruption.RecordJUnitResult(f, "[sig-cluster-lifecycle] cluster upgrade should complete in 60m (90m on AWS)", upgradeDuration, "")
 			}
 
 			return nil
