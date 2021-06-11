@@ -59,6 +59,10 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1939580",
 		},
 		{
+			Selector: map[string]string{"alertname": "KubePodNotReady", "namespace": "openshift-kube-apiserver-operator"},
+			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1939580",
+		},
+		{
 			Selector: map[string]string{"alertname": "ClusterOperatorDegraded", "name": "openshift-apiserver"},
 			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1939580",
 		},
@@ -81,6 +85,13 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 		{
 			Selector: map[string]string{"alertname": "KubeAPIErrorBudgetBurn"},
 			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1953798",
+			Matches: func(_ *model.Sample) bool {
+				return framework.ProviderIs("gce")
+			},
+		},
+		{
+			Selector: map[string]string{"alertname": "AggregatedAPIDown", "namespace": "default", "name": "v1beta1.metrics.k8s.io"},
+			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1970624",
 			Matches: func(_ *model.Sample) bool {
 				return framework.ProviderIs("gce")
 			},
