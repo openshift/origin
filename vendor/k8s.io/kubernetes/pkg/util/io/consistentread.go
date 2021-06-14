@@ -25,6 +25,9 @@ import (
 // ConsistentRead repeatedly reads a file until it gets the same content twice.
 // This is useful when reading files in /proc that are larger than page size
 // and kernel may modify them between individual read() syscalls.
+// It returns InconsistentReadError when it cannot get a consistent read in
+// given nr. of attempts. Caller should retry, kernel is probably under heavy
+// mount/unmount load.
 func ConsistentRead(filename string, attempts int) ([]byte, error) {
 	oldContent, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -41,5 +44,26 @@ func ConsistentRead(filename string, attempts int) ([]byte, error) {
 		// Files are different, continue reading
 		oldContent = newContent
 	}
-	return nil, fmt.Errorf("could not get consistent content of %s after %d attempts", filename, attempts)
+	return nil, InconsistentReadError{filename, attempts}
+}
+
+// InconsistentReadError is returned from ConsistentRead when it cannot get
+// a consistent read in given nr. of attempts. Caller should retry, kernel is
+// probably under heavy mount/unmount load.
+type InconsistentReadError struct {
+	filename string
+	attempts int
+}
+
+func (i InconsistentReadError) Error() string {
+	return fmt.Sprintf("could not get consistent content of %s after %d attempts", i.filename, i.attempts)
+}
+
+var _ error = InconsistentReadError{}
+
+func IsInconsistentReadError(err error) bool {
+	if _, ok := err.(InconsistentReadError); ok {
+		return true
+	}
+	return false
 }
