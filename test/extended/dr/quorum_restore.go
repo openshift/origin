@@ -54,6 +54,8 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 	// Validate backing up and restoring to the same node on a cluster
 	// that has lost quorum after the backup was taken.
 	g.It("[Feature:EtcdRecovery] Cluster should restore itself after quorum loss", func() {
+		e2eskipper.Skipf("Machine approver is not compatible with quorum restoration")
+
 		config, err := framework.LoadConfig()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		dynamicClient := dynamic.NewForConfigOrDie(config)
