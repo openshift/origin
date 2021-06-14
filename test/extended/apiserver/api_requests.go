@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -22,6 +23,13 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 	oc := exutil.NewCLIWithoutNamespace("api-requests")
 
 	g.It("clients should not use APIs that are removed in upcoming releases", func() {
+
+		// API name as keys and BZ's as values
+		knownBugs := map[string]string{
+			"ingresses.v1beta1.extensions": "https://bugzilla.redhat.com/show_bug.cgi?id=1971617",
+		}
+		knownBugList := sets.NewString()
+
 		ctx := context.Background()
 		apirequestCountClient, err := apiserverclientv1.NewForConfig(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -39,6 +47,9 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 
 				details := fmt.Sprintf("api %v, removed in release %s, was accessed %d times", apiRequestCount.Name, apiRequestCount.Status.RemovedInRelease, apiRequestCount.Status.RequestCount)
 				failureOutput = append(failureOutput, details)
+				if bz, ok := knownBugs[apiRequestCount.Name]; ok {
+					knownBugList.Insert(fmt.Sprintf("Api %v has a bug associated already: %v", apiRequestCount.Name, bz))
+				}
 				framework.Logf(details)
 			}
 		}
@@ -80,6 +91,10 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		}
 
 		sort.Strings(failureOutput)
+
+		if len(knownBugList) > 0 {
+			failureOutput = append(failureOutput, fmt.Sprintf("APIs with outstanding bugs:\n%s", strings.Join(knownBugList.List(), "\n")))
+		}
 
 		if len(failureOutput) > 0 {
 			// don't insta-fail all of CI
