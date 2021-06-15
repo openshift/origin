@@ -151,7 +151,17 @@ count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog
 		}
 
 		// Invariant: There should be no pending alerts after the test run
-		pendingAlertQuery := `ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured",alertstate="pending",severity!="info"}`
+		pendingAlertQuery := fmt.Sprintf(`
+sort_desc(
+  time() * ALERTS + 1
+  -
+  last_over_time((
+    time() * ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured",alertstate="pending",severity!="info"}
+    unless
+    ALERTS offset 1s
+  )[%[1]s:1s])
+)
+`, testDuration)
 		result, err = helper.RunQuery(pendingAlertQuery, ns, execPod.Name, url, bearerToken)
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to retrieve pending alerts after upgrade")
 		for _, series := range result.Data.Result {
