@@ -277,7 +277,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 	framework.ExpectNoError(err)
 	if infra.Status.PlatformStatus.Type == configv1.AWSPlatformType {
 		// due to https://bugzilla.redhat.com/show_bug.cgi?id=1943804 upgrades take ~12 extra minutes on AWS
-		durationToSoftFailure = 90 * time.Minute
+		durationToSoftFailure = 105 * time.Minute
 	}
 
 	framework.Logf("Starting upgrade to version=%s image=%s attempt=%s", version.Version.String(), version.NodeImage, uid)
@@ -424,9 +424,9 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			upgradeEnded := time.Now()
 			upgradeDuration := upgradeEnded.Sub(upgradeStarted)
 			if upgradeDuration > durationToSoftFailure {
-				disruption.RecordJUnitResult(f, "[sig-cluster-lifecycle] cluster upgrade should complete in 75m (90m on AWS)", upgradeDuration, fmt.Sprintf("%s to %s took too long: %0.2f minutes", action, versionString(desired), upgradeDuration.Minutes()))
+				disruption.RecordJUnitResult(f, "[sig-cluster-lifecycle] cluster upgrade should complete in 75m (105m on AWS)", upgradeDuration, fmt.Sprintf("%s to %s took too long: %0.2f minutes", action, versionString(desired), upgradeDuration.Minutes()))
 			} else {
-				disruption.RecordJUnitResult(f, "[sig-cluster-lifecycle] cluster upgrade should complete in 75m (90m on AWS)", upgradeDuration, "")
+				disruption.RecordJUnitResult(f, "[sig-cluster-lifecycle] cluster upgrade should complete in 75m (105m on AWS)", upgradeDuration, "")
 			}
 
 			return nil
