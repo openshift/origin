@@ -430,12 +430,14 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			ns := oc.SetupNamespace()
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
+				time.Sleep(80 * time.Second)
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
 
 			tests := map[string]bool{
 				`container_cpu_usage_seconds_total{id!~"/kubepods.slice/.*"} >= 1`: true,
 			}
+			time.Sleep(80 * time.Second)
 			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
