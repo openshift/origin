@@ -42,26 +42,26 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 	defer g.GinkgoRecover()
 
 	var (
-		jenkinsEphemeralTemplatePath           = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
-		jenkinsPersistentTemplatePath          = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-persistent-template.json")
-		envVarsPipelinePath                    = exutil.FixturePath("testdata", "samplepipeline-withenvs.yaml")
-		origPipelinePath                       = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "samplepipeline.yaml")
-		configMapPodTemplatePath               = exutil.FixturePath("testdata", "config-map-jenkins-slave-pods.yaml")
-		imagestreamPodTemplatePath             = exutil.FixturePath("testdata", "imagestream-jenkins-slave-pods.yaml")
-		imagestreamtagPodTemplatePath          = exutil.FixturePath("testdata", "imagestreamtag-jenkins-slave-pods.yaml")
-		podTemplateSlavePipelinePath           = exutil.FixturePath("testdata", "jenkins-slave-template.yaml")
-		secretPath                             = exutil.FixturePath("testdata", "openshift-secret-to-jenkins-credential.yaml")
-		successfulPipeline                     = exutil.FixturePath("testdata", "builds", "build-pruning", "successful-pipeline.yaml")
-		failedPipeline                         = exutil.FixturePath("testdata", "builds", "build-pruning", "failed-pipeline.yaml")
-		multiNamespaceClientPluginPipelinePath = exutil.FixturePath("testdata", "multi-namespace-pipeline.yaml")
-		verifyServiceClientPluginPipelinePath  = exutil.FixturePath("testdata", "verifyservice-pipeline-template.yaml")
-		pollingInterval                        = time.Second
-		timeout                                = time.Minute
-		oc                                     = exutil.NewCLI("jenkins-pipeline")
-		ticker                                 *time.Ticker
-		j                                      *jenkins.JenkinsRef
-		pvs                                    = []*corev1.PersistentVolume{}
-		nfspod                                 = &corev1.Pod{}
+		//multiNamespaceClientPluginPipelinePath = exutil.FixturePath("testdata", "multi-namespace-pipeline.yaml")
+		jenkinsEphemeralTemplatePath          = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
+		jenkinsPersistentTemplatePath         = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-persistent-template.json")
+		envVarsPipelinePath                   = exutil.FixturePath("testdata", "samplepipeline-withenvs.yaml")
+		origPipelinePath                      = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "samplepipeline.yaml")
+		configMapPodTemplatePath              = exutil.FixturePath("testdata", "config-map-jenkins-slave-pods.yaml")
+		imagestreamPodTemplatePath            = exutil.FixturePath("testdata", "imagestream-jenkins-slave-pods.yaml")
+		imagestreamtagPodTemplatePath         = exutil.FixturePath("testdata", "imagestreamtag-jenkins-slave-pods.yaml")
+		podTemplateSlavePipelinePath          = exutil.FixturePath("testdata", "jenkins-slave-template.yaml")
+		secretPath                            = exutil.FixturePath("testdata", "openshift-secret-to-jenkins-credential.yaml")
+		successfulPipeline                    = exutil.FixturePath("testdata", "builds", "build-pruning", "successful-pipeline.yaml")
+		failedPipeline                        = exutil.FixturePath("testdata", "builds", "build-pruning", "failed-pipeline.yaml")
+		verifyServiceClientPluginPipelinePath = exutil.FixturePath("testdata", "verifyservice-pipeline-template.yaml")
+		pollingInterval                       = time.Second
+		timeout                               = time.Minute
+		oc                                    = exutil.NewCLI("jenkins-pipeline")
+		ticker                                *time.Ticker
+		j                                     *jenkins.JenkinsRef
+		pvs                                   = []*corev1.PersistentVolume{}
+		nfspod                                = &corev1.Pod{}
 
 		cleanup = func(jenkinsTemplatePath string) {
 			if g.CurrentGinkgoTestDescription().Failed {
@@ -265,6 +265,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 
 				})
 
+				/* to be moved to jenkins client plugin e2e
 				g.By("should handle multi-namespace templates", func() {
 					g.By("create additional projects")
 					namespace := oc.Namespace()
@@ -323,6 +324,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 					err = oc.Run("delete").Args("template", "mariadb-ephemeral").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 				})
+				*/
 			})
 
 		})
