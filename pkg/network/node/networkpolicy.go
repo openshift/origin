@@ -406,9 +406,21 @@ func (np *networkPolicyPlugin) selectPods(npns *npNamespace, lsel *metav1.LabelS
 		utilruntime.HandleError(fmt.Errorf("ValidateNetworkPolicy() failure! Invalid PodSelector: %v", err))
 		return ips
 	}
-	for _, pod := range np.pods {
-		if (npns.name == pod.Namespace) && sel.Matches(labels.Set(pod.Labels)) {
-			ips = append(ips, pod.Status.PodIP)
+
+	// Bug 1963160 shows that this function is the more expensive:
+	// Showing top 5 nodes out of 97
+	// flat  flat%   sum%        cum   cum%
+	// 18620ms 55.62% 55.62%    18620ms 55.62%  runtime.duffcopy
+	// 4700ms 14.04% 69.65%     7420ms 22.16%  runtime.mapiternext
+	// 1870ms  5.59% 75.24%     1870ms  5.59%  runtime.aeshashbody
+	// 850ms  2.54% 77.78%    28180ms 84.17%  github.com/openshift/origin/pkg/network/node.(*networkPolicyPlugin).selectPods
+	// 780ms  2.33% 80.11%      780ms  2.33%  runtime.memeqbody
+	//
+	// Pods can be very big objects, in order to avoid excessive copies of data
+	// better to iterate over the key than the value
+	for key, _ := range np.pods {
+		if (npns.name == np.pods[key].Namespace) && sel.Matches(labels.Set(np.pods[key].Labels)) {
+			ips = append(ips, np.pods[key].Status.PodIP)
 		}
 	}
 	return ips
