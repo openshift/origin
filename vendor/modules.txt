@@ -330,7 +330,7 @@ github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes/wrappers
 # github.com/google/btree v1.0.0
 github.com/google/btree
-# github.com/google/cadvisor v0.39.0
+# github.com/google/cadvisor v0.39.0 => github.com/openshift/google-cadvisor v0.33.2-0.20210610135131-57b941c7657a
 github.com/google/cadvisor/accelerators
 github.com/google/cadvisor/cache/memory
 github.com/google/cadvisor/collector
@@ -3058,6 +3058,7 @@ sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.2.0
 ## explicit
 sigs.k8s.io/yaml
+# github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.33.2-0.20210610135131-57b941c7657a
 # github.com/onsi/ginkgo => github.com/openshift/onsi-ginkgo v4.7.0-origin.0+incompatible
 # k8s.io/api => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20210603185452-2dfc46b23003
 # k8s.io/apiextensions-apiserver => github.com/openshift/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20210603185452-2dfc46b23003
