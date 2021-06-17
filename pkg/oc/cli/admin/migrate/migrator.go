@@ -316,7 +316,7 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 	if o.Unstructured {
 		o.Builder.Unstructured()
 	} else {
-		o.Builder.WithScheme(ocscheme.ReadingInternalScheme)
+		o.Builder.WithScheme(ocscheme.ReadingInternalScheme, ocscheme.ReadingInternalScheme.PrioritizedVersionsAllGroups()...)
 	}
 
 	if !allNamespaces {
