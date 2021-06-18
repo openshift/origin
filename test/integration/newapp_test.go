@@ -677,7 +677,7 @@ func TestNewAppRunAll(t *testing.T) {
 				Resolvers: cmd.Resolvers{
 					DockerSearcher: app.DockerClientSearcher{
 						Client: &apptest.FakeDockerClient{
-							Images: []docker.APIImages{{RepoTags: []string{"centos/ruby-27-centos7"}}},
+							Images: []docker.APIImages{{RepoTags: []string{"quay.io/centos7/ruby-27-centos7"}}},
 							Image:  dockerBuilderImage(),
 						},
 						Insecure:         true,
@@ -1020,7 +1020,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 			config: &cmd.AppConfig{
 				ComponentInputs: cmd.ComponentInputs{
 					SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
-					DockerImages:       []string{"centos/ruby-27-centos7", "openshift/nodejs-010-centos7"},
+					DockerImages:       []string{"quay.io/centos7/ruby-27-centos7", "openshift/nodejs-010-centos7"},
 				},
 				GenerationInputs: cmd.GenerationInputs{
 					OutputDocker: true,
@@ -1126,7 +1126,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 					SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
 				},
 				GenerationInputs: cmd.GenerationInputs{
-					Dockerfile: "FROM centos/ruby-27-centos7\nRUN false",
+					Dockerfile: "FROM quay.io/centos7/ruby-27-centos7\nRUN false",
 				},
 			},
 			expected: map[string][]string{
@@ -1151,7 +1151,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 				if bc.Spec.Source.Dockerfile != nil {
 					got = *bc.Spec.Source.Dockerfile
 				}
-				want := "FROM centos/ruby-27-centos7\nRUN false"
+				want := "FROM quay.io/centos7/ruby-27-centos7\nRUN false"
 				if got != want {
 					return fmt.Errorf("bc.Spec.Source.Dockerfile = %q; want %q", got, want)
 				}
@@ -1192,7 +1192,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 					},
 				},
 				GenerationInputs: cmd.GenerationInputs{
-					Dockerfile: "FROM centos/ruby-27-centos7\nRUN false",
+					Dockerfile: "FROM quay.io/centos7/ruby-27-centos7\nRUN false",
 				},
 			},
 			expectedErr: func(err error) bool {
@@ -1208,13 +1208,13 @@ func TestNewAppRunBuilds(t *testing.T) {
 					},
 				},
 				GenerationInputs: cmd.GenerationInputs{
-					SourceImage:     "centos/mongodb-26-centos7",
+					SourceImage:     "registry.centos.org/centos/mongodb-34-centos7",
 					SourceImagePath: "/src:dst",
 				},
 			},
 			expected: map[string][]string{
 				"buildConfig": {"ruby-hello-world"},
-				"imageStream": {"mongodb-26-centos7", "ruby-27", "ruby-hello-world"},
+				"imageStream": {"mongodb-34-centos7", "ruby-27", "ruby-hello-world"},
 			},
 			checkResult: func(res *cmd.AppResult) error {
 				var bc *buildapi.BuildConfig
@@ -1232,7 +1232,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 				}
 				var got string
 
-				want := "mongodb-26-centos7:latest"
+				want := "mongodb-34-centos7:latest"
 				got = bc.Spec.Source.Images[0].From.Name
 				if got != want {
 					return fmt.Errorf("bc.Spec.Source.Image.From.Name = %q; want %q", got, want)
@@ -1266,13 +1266,13 @@ func TestNewAppRunBuilds(t *testing.T) {
 				},
 				GenerationInputs: cmd.GenerationInputs{
 					To:              "outputimage",
-					SourceImage:     "centos/mongodb-26-centos7",
+					SourceImage:     "registry.centos.org/centos/mongodb-34-centos7",
 					SourceImagePath: "/src:dst",
 				},
 			},
 			expected: map[string][]string{
 				"buildConfig": {"outputimage"},
-				"imageStream": {"mongodb-26-centos7", "nodejs-010-centos7", "outputimage"},
+				"imageStream": {"mongodb-34-centos7", "nodejs-010-centos7", "outputimage"},
 			},
 			checkResult: func(res *cmd.AppResult) error {
 				var bc *buildapi.BuildConfig
@@ -1290,7 +1290,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 				}
 				var got string
 
-				want := "mongodb-26-centos7:latest"
+				want := "mongodb-34-centos7:latest"
 				got = bc.Spec.Source.Images[0].From.Name
 				if got != want {
 					return fmt.Errorf("bc.Spec.Source.Image.From.Name = %q; want %q", got, want)
@@ -1361,7 +1361,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 			config: &cmd.AppConfig{
 				ComponentInputs: cmd.ComponentInputs{
 					Components: []string{
-						"centos/nodejs-4-centos7~https://github.com/sclorg/nodejs-ex",
+						"registry.centos.org/centos/nodejs-12-centos7~https://github.com/sclorg/nodejs-ex",
 					},
 				},
 				GenerationInputs: cmd.GenerationInputs{
@@ -1521,8 +1521,8 @@ func TestNewAppBuildOutputCycleDetection(t *testing.T) {
 			config: &cmd.AppConfig{
 				GenerationInputs: cmd.GenerationInputs{
 					OutputDocker: true,
-					To:           "centos/ruby-27-centos7",
-					Dockerfile:   "FROM centos/ruby-27-centos7:latest",
+					To:           "quay.io/centos7/ruby-27-centos7",
+					Dockerfile:   "FROM quay.io/centos7/ruby-27-centos7:latest",
 				},
 			},
 			expected: map[string][]string{
@@ -1534,7 +1534,7 @@ func TestNewAppBuildOutputCycleDetection(t *testing.T) {
 				if err != nil {
 					return err
 				}
-				want := "--> WARNING: output image of \"centos/ruby-27-centos7:latest\" should be different than input\n"
+				want := "--> WARNING: output image of \"quay.io/centos7/ruby-27-centos7:latest\" should be different than input\n"
 				if string(got) != want {
 					return fmt.Errorf("stderr: got %q; want %q", got, want)
 				}
@@ -1569,7 +1569,7 @@ func TestNewAppBuildOutputCycleDetection(t *testing.T) {
 			name: "successful build from dockerfile with identical input and output image references with warning(2)",
 			config: &cmd.AppConfig{
 				GenerationInputs: cmd.GenerationInputs{
-					Dockerfile: "FROM centos/ruby-27-centos7\nRUN yum install -y httpd",
+					Dockerfile: "FROM quay.io/centos7/ruby-27-centos7\nRUN yum install -y httpd",
 					To:         "ruby-27-centos7",
 				},
 			},
@@ -1582,7 +1582,7 @@ func TestNewAppBuildOutputCycleDetection(t *testing.T) {
 				if err != nil {
 					return err
 				}
-				want := "--> WARNING: output image of \"centos/ruby-27-centos7:latest\" should be different than input\n"
+				want := "--> WARNING: output image of \"quay.io/centos7/ruby-27-centos7:latest\" should be different than input\n"
 				if string(got) != want {
 					return fmt.Errorf("stderr: got %q; want %q", got, want)
 				}
@@ -1607,12 +1607,12 @@ func TestNewAppBuildOutputCycleDetection(t *testing.T) {
 			name: "unsuccessful build from dockerfile due to identical input and output image references(2)",
 			config: &cmd.AppConfig{
 				GenerationInputs: cmd.GenerationInputs{
-					Dockerfile: "FROM centos/ruby-27-centos7\nRUN yum install -y httpd",
+					Dockerfile: "FROM quay.io/centos7/ruby-27-centos7\nRUN yum install -y httpd",
 				},
 			},
 			expectedErr: func(err error) bool {
 				e := app.CircularOutputReferenceError{
-					Reference: "centos/ruby-27-centos7:latest",
+					Reference: "quay.io/centos7/ruby-27-centos7:latest",
 				}
 				return err.Error() == fmt.Errorf("%v, set a different tag with --to", e).Error()
 			},
@@ -1622,8 +1622,8 @@ func TestNewAppBuildOutputCycleDetection(t *testing.T) {
 			config: &cmd.AppConfig{
 				GenerationInputs: cmd.GenerationInputs{
 					OutputDocker: true,
-					To:           "centos/ruby-27-centos7",
-					Dockerfile:   "FROM centos/ruby-27-centos7",
+					To:           "quay.io/centos7/ruby-27-centos7",
+					Dockerfile:   "FROM quay.io/centos7/ruby-27-centos7",
 				},
 				Resolvers: cmd.Resolvers{
 					DockerSearcher: app.DockerClientSearcher{
@@ -1642,7 +1642,7 @@ func TestNewAppBuildOutputCycleDetection(t *testing.T) {
 				if err != nil {
 					return err
 				}
-				want := "--> WARNING: output image of \"centos/ruby-27-centos7:latest\" should be different than input\n"
+				want := "--> WARNING: output image of \"quay.io/centos7/ruby-27-centos7:latest\" should be different than input\n"
 				if string(got) != want {
 					return fmt.Errorf("stderr: got %q; want %q", got, want)
 				}
@@ -1654,8 +1654,8 @@ func TestNewAppBuildOutputCycleDetection(t *testing.T) {
 			config: &cmd.AppConfig{
 				GenerationInputs: cmd.GenerationInputs{
 					OutputDocker: true,
-					To:           "centos/ruby-27-centos7",
-					Dockerfile:   "FROM centos/ruby-27-centos7:latest",
+					To:           "quay.io/centos7/ruby-27-centos7",
+					Dockerfile:   "FROM quay.io/centos7/ruby-27-centos7:latest",
 				},
 				Resolvers: cmd.Resolvers{
 					DockerSearcher: app.DockerClientSearcher{
@@ -1674,7 +1674,7 @@ func TestNewAppBuildOutputCycleDetection(t *testing.T) {
 				if err != nil {
 					return err
 				}
-				want := "--> WARNING: output image of \"centos/ruby-27-centos7:latest\" should be different than input\n"
+				want := "--> WARNING: output image of \"quay.io/centos7/ruby-27-centos7:latest\" should be different than input\n"
 				if string(got) != want {
 					return fmt.Errorf("stderr: got %q; want %q", got, want)
 				}
@@ -1756,7 +1756,7 @@ func TestNewAppNewBuildEnvVars(t *testing.T) {
 			config: &cmd.AppConfig{
 				ComponentInputs: cmd.ComponentInputs{
 					SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
-					DockerImages:       []string{"centos/ruby-27-centos7", "openshift/nodejs-010-centos7"},
+					DockerImages:       []string{"quay.io/centos7/ruby-27-centos7", "openshift/nodejs-010-centos7"},
 				},
 				GenerationInputs: cmd.GenerationInputs{
 					OutputDocker:     true,
@@ -1831,7 +1831,7 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 			config: &cmd.AppConfig{
 				ComponentInputs: cmd.ComponentInputs{
 					SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
-					DockerImages:       []string{"centos/ruby-27-centos7", "centos/mongodb-26-centos7"},
+					DockerImages:       []string{"quay.io/centos7/ruby-27-centos7", "centos/mongodb-26-centos7"},
 				},
 				GenerationInputs: cmd.GenerationInputs{
 					OutputDocker: true,
@@ -2289,7 +2289,7 @@ func fakeDockerSearcher() app.Searcher {
 func fakeSimpleDockerSearcher() app.Searcher {
 	return app.DockerClientSearcher{
 		Client: &apptest.FakeDockerClient{
-			Images: []docker.APIImages{{RepoTags: []string{"centos/ruby-27-centos7"}}},
+			Images: []docker.APIImages{{RepoTags: []string{"quay.io/centos7/ruby-27-centos7"}}},
 			Image: &docker.Image{
 				ID: "ruby",
 				Config: &docker.Config{
