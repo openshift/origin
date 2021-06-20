@@ -60,9 +60,6 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1957886
 			`\[sig-apps\] \[Feature:TTLAfterFinished\] job should be deleted once it finishes after TTL seconds`,
 
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1957894
-			`\[sig-node\] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret`,
-
 			// Broken for metal-ipi-ovn-ipv6
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1962950
 			`\[Feature:NetworkPolicy\]`,
