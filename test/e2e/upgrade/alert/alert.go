@@ -148,7 +148,11 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	result, err := helper.RunQuery(watchdogQuery, ns, execPod.Name, t.url, t.bearerToken)
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to check watchdog alert over upgrade window")
 	if len(result.Data.Result) > 0 {
-		unexpectedViolations.Insert("Watchdog alert had missing intervals during the run, which may be a sign of a Prometheus outage in violation of the prometheus query SLO of 100% uptime during upgrade")
+		if result.Data.Result[0].Value <= 8 {
+			unexpectedViolations.Insert(fmt.Sprintf("Watchdog alert had %s changes during the run, which may be a sign of a Prometheus outage in violation of the prometheus query SLO of 100%% uptime during upgrade", result.Data.Result[0].Value))
+		} else {
+			knownViolations.Insert(fmt.Sprintf("Watchdog alert had %s changes during the run, which may be a sign of a Prometheus outage in violation of the prometheus query SLO of 100%% uptime during upgrade, but is being tracked in https://bugzilla.redhat.com/show_bug.cgi?id=1949262 and is acceptable while that is open", result.Data.Result[0].Value))
+		}
 	}
 
 	// Invariant: No non-info level alerts should have fired during the upgrade
