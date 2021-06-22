@@ -411,7 +411,9 @@ func (np *networkPolicyPlugin) selectPods(npns *npNamespace, lsel *metav1.LabelS
 		return ips
 	}
 	for _, pod := range pods {
-		ips = append(ips, pod.Status.PodIP)
+		if isOnPodNetwork(pod) {
+			ips = append(ips, pod.Status.PodIP)
+		}
 	}
 	return ips
 }
@@ -599,16 +601,19 @@ func (np *networkPolicyPlugin) watchPods() {
 	np.node.kubeInformers.Core().InternalVersion().Pods().Informer().AddEventHandler(funcs)
 }
 
+func isOnPodNetwork(pod *kapi.Pod) bool {
+	// Ignore pods with HostNetwork=true, SDN is not involved in this case
+	if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostNetwork {
+		return false
+	}
+	return pod.Status.PodIP != ""
+}
+
 func (np *networkPolicyPlugin) handleAddOrUpdatePod(obj, old interface{}, eventType watch.EventType) {
 	pod := obj.(*kapi.Pod)
 	glog.V(5).Infof("Watch %s event for Pod %q", eventType, getPodFullName(pod))
 
-	// Ignore pods with HostNetwork=true, SDN is not involved in this case
-	if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostNetwork {
-		return
-	}
-	if pod.Status.PodIP == "" {
-		glog.V(5).Infof("PodIP is not set for pod %q; ignoring", getPodFullName(pod))
+	if !isOnPodNetwork(pod) {
 		return
 	}
 
