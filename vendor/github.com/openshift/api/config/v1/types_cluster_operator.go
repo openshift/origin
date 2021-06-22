@@ -170,7 +170,7 @@ const (
 	// unexpected errors are handled as operators mature.
 	OperatorDegraded ClusterStatusConditionType = "Degraded"
 
-	// Upgradeable indicates whether the operator is in a state that is safe to upgrade. When status is `False`
+	// Upgradeable indicates whether the operator safe to upgrade based on the current cluster state. When status is `False`
 	// administrators should not upgrade their cluster and the message field should contain a human readable description
 	// of what the administrator should do to allow the operator to successfully update.  A missing condition, True,
 	// and Unknown are all treated by the CVO as allowing an upgrade.
