@@ -12035,7 +12035,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] Mounted volume expand Should verify mounted devices can be resized": "Should verify mounted devices can be resized [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] Multi-AZ Cluster Volumes should only be allowed to provision PDs in zones where nodes exist": "should only be allowed to provision PDs in zones where nodes exist [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-storage] Multi-AZ Cluster Volumes should only be allowed to provision PDs in zones where nodes exist": "should only be allowed to provision PDs in zones where nodes exist [Skipped:gce] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] Multi-AZ Cluster Volumes should schedule pods in the same zones as statically provisioned PVs": "should schedule pods in the same zones as statically provisioned PVs [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -12543,7 +12543,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] [Serial] Volume metrics should create volume metrics in Volume Manager": "should create volume metrics in Volume Manager [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] [Serial] Volume metrics should create volume metrics with the correct PVC ref": "should create volume metrics with the correct PVC ref [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-storage] [Serial] Volume metrics should create volume metrics with the correct BlockMode PVC ref": "should create volume metrics with the correct BlockMode PVC ref [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[Top Level] [sig-storage] [Serial] Volume metrics should create volume metrics with the correct FilesystemMode PVC ref": "should create volume metrics with the correct FilesystemMode PVC ref [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] vcp at scale [Feature:vsphere]  vsphere scale tests": "vsphere scale tests [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
