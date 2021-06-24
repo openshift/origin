@@ -44,7 +44,7 @@ var _ = g.Describe("[sig-scalability][Feature:Performance] Load cluster", func()
 		_                 = exutil.FixturePath("testdata", "cluster", "quickstarts", "cakephp-mysql.json")
 		_                 = exutil.FixturePath("testdata", "cluster", "quickstarts", "dancer-mysql.json")
 		_                 = exutil.FixturePath("testdata", "cluster", "quickstarts", "django-postgresql.json")
-		_                 = exutil.FixturePath("testdata", "cluster", "quickstarts", "nodejs-mongodb.json")
+		_                 = exutil.FixturePath("testdata", "cluster", "quickstarts", "nodejs-postgresql.json")
 		_                 = exutil.FixturePath("testdata", "cluster", "quickstarts", "rails-postgresql.json")
 	)
 

@@ -16,16 +16,16 @@ IMAGESTREAMS_DIR="${OS_ROOT}/examples/image-streams"
   # Specifically look for a line containing https://raw.githubusercontent.com, then
   # look for the first content in ()s on that line, which will be the actual url of the file,
   # then use curl to pull that file down.
-  curl -# $(grep -E '\(https://raw.githubusercontent.com.*centos7.*\)' README.md | sed -E 's/.*\((.*)\)/\1 -O/')
+  curl -# $(grep -E '\(https://raw.githubusercontent.com.*centos.*\)' README.md | sed -E 's/.*\((.*)\)/\1 -O/')
   jq . -s *.json | jq '. | {"kind": "ImageStreamList","apiVersion": "v1", "items": .}' > images-centos.tmp
   rm -vf *.{json,yaml,yml}
 
-  curl -# $(grep -E '\(https://raw.githubusercontent.com.*rhel7.*\)' README.md | sed -E 's/.*\((.*)\)/\1 -O/')
-  jq . -s *.json | jq '. | {"kind": "ImageStreamList","apiVersion": "v1", "items": .}' > images-rhel.tmp
-  rm -vf *.{json,yaml,yml}
+#  curl -# $(grep -E '\(https://raw.githubusercontent.com.*rhel.*\)' README.md | sed -E 's/.*\((.*)\)/\1 -O/')
+#  jq . -s *.json | jq '. | {"kind": "ImageStreamList","apiVersion": "v1", "items": .}' > images-rhel.tmp
+#  rm -vf *.{json,yaml,yml}
 
   mv images-centos.tmp image-streams-centos7.json
-  mv images-rhel.tmp image-streams-rhel7.json
+#  mv images-rhel.tmp image-streams-rhel7.json
 
 )
 
@@ -48,7 +48,6 @@ QUICKSTARTS_DIR="${OS_ROOT}/examples/quickstarts"
   mv django-psql-persistent.json django-postgresql-persistent.json
   mv django-psql.json django-postgresql.json
   mv rails-pgsql-persistent.json rails-postgresql-persistent.json
-  mv nodejs-mongo-persistent.json nodejs-mongodb-persistent.json
 
 
 )

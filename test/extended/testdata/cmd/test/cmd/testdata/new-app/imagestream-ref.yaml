@@ -10,5 +10,5 @@ spec:
     name: "latest"
   - from:
       kind: ImageStreamTag
-      name: ruby:2.7
+      name: ruby:2.7-ubi8
     name: "2.7"

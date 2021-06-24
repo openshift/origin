@@ -11,12 +11,12 @@ spec:
         paths:
           - destinationDir: injected/opt/app-root/test-links
             sourcePath: /opt/app-root/test-links/.
-          - destinationDir: injected/opt/rh/rh-ruby-27/root/usr/bin
-            sourcePath: /opt/rh/rh-ruby27/root/usr/bin/ruby
+          - destinationDir: injected/usr/bin
+            sourcePath: /usr/bin/ruby
 
   strategy:
     type: Docker
     dockerStrategy:
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8

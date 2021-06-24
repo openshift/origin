@@ -37,12 +37,12 @@ your current project. Instantiate a new database service with this command:
 Replace `/path/to/template.json` with an appropriate path, that can be either a
 local path or an URL. Example:
 
-    $ oc new-app https://raw.githubusercontent.com/openshift/origin/master/examples/db-templates/mongodb-ephemeral-template.json
+    $ oc new-app https://raw.githubusercontent.com/openshift/origin/master/examples/db-templates/mariadb-ephemeral-template.json
 
 The parameters listed in the output above can be tweaked by specifying values in
 the command line with the `-p` option:
 
-    $ oc new-app examples/db-templates/mongodb-ephemeral-template.json -p DATABASE_SERVICE_NAME=mydb -p MONGODB_USER=default
+    $ oc new-app examples/db-templates/mariadb-ephemeral-template.json -p DATABASE_SERVICE_NAME=mydb -p MYSQL_USER=default
 
 Note that the persistent template requires an existing persistent volume,
 otherwise the deployment won't ever succeed.
@@ -59,8 +59,8 @@ later. Create the template with this command:
 Replace `/path/to/template.json` with an appropriate path, that can be either a
 local path or an URL. Example:
 
-    $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/db-templates/mongodb-ephemeral-template.json
-    template "mongodb-ephemeral" created
+    $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/db-templates/mariadb-ephemeral-template.json
+    template "mariadb-ephemeral" created
 
 The new template is now available to use in the Web Console or with `oc
 new-app`.
@@ -70,8 +70,6 @@ new-app`.
 
 * [MariaDB](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/mariadb/templates/mariadb-ephemeral.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mariadb.html).
 * [MariaDB Persistent](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/mariadb/templates/mariadb-persistent.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mariadb.html).
-* [MongoDB](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/mongodb/templates/mongodb-ephemeral.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mongodb.html).
-* [MongoDB Persistent](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/mongodb/templates/mongodb-persistent.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mongodb.html).
 * [MySQL](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/mysql/templates/mysql-ephemeral.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mysql.html).
 * [MySQL Persistent](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/mysql/templates/mysql-persistent.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mysql.html).
 * [PostgreSQL](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/postgresql/templates/postgresql-ephemeral.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/postgresql.html).

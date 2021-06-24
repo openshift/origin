@@ -35,7 +35,7 @@ run Proc.new { |env|
 EOF
 
 cat > Dockerfile <<- EOF
-FROM centos/ruby-27-centos7
+FROM registry.access.redhat.com/ubi8/ruby-27
 ENV SECRET_FILE /opt/openshift/src/dockercfg
 COPY dockercfg ./
 COPY config.ru ./

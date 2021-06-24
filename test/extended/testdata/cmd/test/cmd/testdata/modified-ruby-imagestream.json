@@ -14,7 +14,7 @@
         "annotations": {
           "openshift.io/display-name": "Ruby Patched",
           "openshift.io/provider-display-name": "Red Hat, Inc.",
-          "description": "Build and run Ruby 2.7 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.7/README.md.",
+          "description": "Build and run Ruby 2.7 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.7/README.md.",
           "iconClass": "icon-ruby",
           "tags": "builder,ruby",
           "supports": "ruby:2.7,ruby",
@@ -23,14 +23,14 @@
         },
         "from": {
           "kind": "DockerImage",
-          "name": "registry.centos.org/centos/ruby-27-centos7:latest"
+          "name": "registry.access.redhat.com/ubi8/ruby-27:latest"
         }
       },
       {
         "name": "newtag",
         "from": {
           "kind": "DockerImage",
-          "name": "registry.centos.org/centos/ruby-27-centos7:latest"
+          "name": "registry.access.redhat.com/ubi8/ruby-27:latest"
         }
       }
     ]

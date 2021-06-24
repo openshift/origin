@@ -380,26 +380,26 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 					if err != nil || !br.BuildSuccess {
 						exutil.DumpBuilds(oc)
 						exutil.DumpPodLogsStartingWith("nodejs", oc)
-						exutil.DumpBuildLogs("nodejs-mongodb-example", oc)
-						exutil.DumpDeploymentLogs("mongodb", 1, oc)
-						exutil.DumpDeploymentLogs("nodejs-mongodb-example", 1, oc)
+						exutil.DumpBuildLogs("nodejs-postgresql-example", oc)
+						exutil.DumpDeploymentLogs("postgresql", 1, oc)
+						exutil.DumpDeploymentLogs("nodejs-postgresql-example", 1, oc)
 					}
 					debugAnyJenkinsFailure(br, oc.Namespace()+"-nodejs-sample-pipeline", oc, true)
 					br.AssertSuccess()
 
 					// wait for the service to be running
-					g.By("expecting the nodejs-mongodb-example service to be deployed and running")
-					_, err = exutil.GetEndpointAddress(oc, "nodejs-mongodb-example")
+					g.By("expecting the nodejs-postgresql-example service to be deployed and running")
+					_, err = exutil.GetEndpointAddress(oc, "nodejs-postgresql-example")
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("clean up openshift resources for next potential run")
-					err = oc.Run("delete").Args("all", "-l", "app=nodejs-mongodb-example").Execute()
+					err = oc.Run("delete").Args("all", "-l", "app=nodejs-postgresql-example").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					err = oc.Run("delete").Args("secret", "nodejs-mongodb-example").Execute()
+					err = oc.Run("delete").Args("secret", "nodejs-postgresql-example").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					err = oc.Run("delete").Args("bc", "nodejs-sample-pipeline").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					err = oc.Run("delete").Args("is", "nodejs-mongodb-example-staging").Execute()
+					err = oc.Run("delete").Args("is", "nodejs-postgresql-example-staging").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 				})
 
@@ -556,11 +556,11 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 						o.Expect(err).NotTo(o.HaveOccurred())
 
 						g.By(fmt.Sprintf("verifying that the main route has been switched to %s", newColour))
-						value, err := oc.Run("get").Args("route", "nodejs-mongodb-example", "-o", "jsonpath={ .spec.to.name }").Output()
+						value, err := oc.Run("get").Args("route", "nodejs-postgresql-example", "-o", "jsonpath={ .spec.to.name }").Output()
 						o.Expect(err).NotTo(o.HaveOccurred())
 						activeRoute := strings.TrimSpace(value)
-						g.By(fmt.Sprintf("verifying that the active route is 'nodejs-mongodb-example-%s'", newColour))
-						o.Expect(activeRoute).To(o.Equal(fmt.Sprintf("nodejs-mongodb-example-%s", newColour)))
+						g.By(fmt.Sprintf("verifying that the active route is 'nodejs-postgresql-example-%s'", newColour))
+						o.Expect(activeRoute).To(o.Equal(fmt.Sprintf("nodejs-postgresql-example-%s", newColour)))
 					}
 
 					buildAndSwitch("green")

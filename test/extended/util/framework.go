@@ -239,7 +239,7 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	if err != nil {
 		return err
 	}
-	langs := []string{"ruby", "nodejs", "perl", "php", "python", "mysql", "postgresql", "mongodb", "jenkins"}
+	langs := []string{"ruby", "nodejs", "perl", "php", "python", "mysql", "postgresql", "jenkins"}
 	scan := func() error {
 		// check the samples operator to see about imagestream import status
 		samplesOperatorConfig, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "openshift-samples", metav1.GetOptions{})

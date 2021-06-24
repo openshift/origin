@@ -23,7 +23,7 @@
           sourceStrategy:
             from:
               kind: "DockerImage"
-              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8"
     -
       kind: "BuildConfig"
       apiVersion: "v1"
@@ -44,4 +44,4 @@
           sourceStrategy:
             from:
               kind: "DockerImage"
-              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8"

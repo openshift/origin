@@ -83,10 +83,10 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-27-centos7"
+        "name": "ruby-27"
       },
       "spec": {
-        "dockerImageRepository": "centos/ruby-27-centos7"
+        "dockerImageRepository": "registry.access.redhat.com/ubi8/ruby-27"
       },
       "status": {
         "dockerImageRepository": ""
@@ -134,7 +134,7 @@
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-27-centos7:latest"
+              "name": "registry.access.redhat.com/ubi8/ruby-27:latest"
             }
           }
         },
@@ -389,7 +389,7 @@
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "centos/mysql-57-centos7:latest",
+                "image": "rhel8/mysql-80:latest",
                 "ports": [
                   {
                     "containerPort": 3306,

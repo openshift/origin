@@ -201,7 +201,7 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 		// used to test pull secrets against an authenticated registry
 		// TODO: will not work for a disconnected test environment and should be emulated by launching
 		//   an authenticated registry in a pod on cluster
-		"registry.redhat.io/rhscl/nodejs-10-rhel7:latest",
+		"registry.redhat.io/ubi8/nodejs-14:latest",
 	)
 	if len(fromRepository) > 0 {
 		allowedPrefixes.Insert(fromRepository)

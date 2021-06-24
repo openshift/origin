@@ -1417,37 +1417,41 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-devex] check registry.redhat.io is available and samples operator can import sample imagestreams run sample related validations": "run sample related validations [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/nodejs:12\" should print the usage": "\"image-registry.openshift-image-registry.svc:5000/openshift/nodejs:12\" should print the usage",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/nodejs:12-ubi8\" should print the usage": "\"image-registry.openshift-image-registry.svc:5000/openshift/nodejs:12-ubi8\" should print the usage",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/perl:5.30\" should print the usage": "\"image-registry.openshift-image-registry.svc:5000/openshift/perl:5.30\" should print the usage",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/nodejs:14-ubi8\" should print the usage": "\"image-registry.openshift-image-registry.svc:5000/openshift/nodejs:14-ubi8\" should print the usage",
+
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/perl:5.30-ubi8\" should print the usage": "\"image-registry.openshift-image-registry.svc:5000/openshift/perl:5.30-ubi8\" should print the usage",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/php:7.2-ubi8\" should print the usage": "\"image-registry.openshift-image-registry.svc:5000/openshift/php:7.2-ubi8\" should print the usage",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/php:7.3\" should print the usage": "\"image-registry.openshift-image-registry.svc:5000/openshift/php:7.3\" should print the usage",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/php:7.3-ubi8\" should print the usage": "\"image-registry.openshift-image-registry.svc:5000/openshift/php:7.3-ubi8\" should print the usage",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/python:2.7\" should print the usage": "\"image-registry.openshift-image-registry.svc:5000/openshift/python:2.7\" should print the usage",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/python:2.7-ubi8\" should print the usage": "\"image-registry.openshift-image-registry.svc:5000/openshift/python:2.7-ubi8\" should print the usage",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/python:3.6-ubi8\" should print the usage": "\"image-registry.openshift-image-registry.svc:5000/openshift/python:3.6-ubi8\" should print the usage",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.6\" should print the usage": "\"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.6\" should print the usage",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.6-ubi8\" should print the usage": "\"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.6-ubi8\" should print the usage",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7\" should print the usage": "\"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7\" should print the usage",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8\" should print the usage": "\"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8\" should print the usage",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/nodejs:12\" should be SCL enabled": "\"image-registry.openshift-image-registry.svc:5000/openshift/nodejs:12\" should be SCL enabled",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/nodejs:12-ubi8\" should be SCL enabled": "\"image-registry.openshift-image-registry.svc:5000/openshift/nodejs:12-ubi8\" should be SCL enabled",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/perl:5.30\" should be SCL enabled": "\"image-registry.openshift-image-registry.svc:5000/openshift/perl:5.30\" should be SCL enabled",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/nodejs:14-ubi8\" should be SCL enabled": "\"image-registry.openshift-image-registry.svc:5000/openshift/nodejs:14-ubi8\" should be SCL enabled",
+
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/perl:5.30-ubi8\" should be SCL enabled": "\"image-registry.openshift-image-registry.svc:5000/openshift/perl:5.30-ubi8\" should be SCL enabled",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/php:7.2-ubi8\" should be SCL enabled": "\"image-registry.openshift-image-registry.svc:5000/openshift/php:7.2-ubi8\" should be SCL enabled",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/php:7.3\" should be SCL enabled": "\"image-registry.openshift-image-registry.svc:5000/openshift/php:7.3\" should be SCL enabled",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/php:7.3-ubi8\" should be SCL enabled": "\"image-registry.openshift-image-registry.svc:5000/openshift/php:7.3-ubi8\" should be SCL enabled",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/python:2.7\" should be SCL enabled": "\"image-registry.openshift-image-registry.svc:5000/openshift/python:2.7\" should be SCL enabled",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/python:2.7-ubi8\" should be SCL enabled": "\"image-registry.openshift-image-registry.svc:5000/openshift/python:2.7-ubi8\" should be SCL enabled",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/python:3.6-ubi8\" should be SCL enabled": "\"image-registry.openshift-image-registry.svc:5000/openshift/python:3.6-ubi8\" should be SCL enabled",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.6\" should be SCL enabled": "\"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.6\" should be SCL enabled",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.6-ubi8\" should be SCL enabled": "\"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.6-ubi8\" should be SCL enabled",
 
-	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7\" should be SCL enabled": "\"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7\" should be SCL enabled",
+	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8\" should be SCL enabled": "\"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8\" should be SCL enabled",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][nodejs] test nodejs images with nodejs-rest-http-crud db repo  Building nodejs-postgresql app from new-app should build a nodejs-postgresql image and run it in a pod": "should build a nodejs-postgresql image and run it in a pod",
 

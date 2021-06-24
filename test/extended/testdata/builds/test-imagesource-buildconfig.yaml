@@ -23,7 +23,7 @@ items:
       dockerStrategy:
         from:
           kind: ImageStreamTag
-          name: ruby:2.7
+          name: ruby:2.7-ubi8
           namespace: openshift
 - apiVersion: v1
   kind: BuildConfig
@@ -47,8 +47,8 @@ items:
         # Bug 1698152: ensure image source copy behavior is correct
         - destinationDir: injected/opt/app-root/test-links
           sourcePath: /opt/app-root/test-links/.
-        - destinationDir: injected/opt/rh/rh-ruby-27/root/usr/bin
-          sourcePath: /opt/rh/rh-ruby27/root/usr/bin/ruby
+        - destinationDir: injected/usr/bin
+          sourcePath: /usr/bin/ruby
     strategy:
       sourceStrategy:
         from:
@@ -77,8 +77,8 @@ items:
         # Bug 1698152: ensure image source copy behavior is correct
         - destinationDir: injected/opt/app-root/test-links
           sourcePath: /opt/app-root/test-links/.
-        - destinationDir: injected/opt/rh/rh-ruby-27/root/usr/bin
-          sourcePath: /opt/rh/rh-ruby27/root/usr/bin/ruby
+        - destinationDir: injected/usr/bin
+          sourcePath: /usr/bin/ruby
     strategy:
       dockerStrategy: {}
 

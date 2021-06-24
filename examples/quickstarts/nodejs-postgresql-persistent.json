@@ -1,22 +1,22 @@
 {
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
-		"name": "dancer-mysql-persistent",
+		"name": "nodejs-postgresql-persistent",
 		"creationTimestamp": null,
 		"annotations": {
-			"description": "An example Dancer application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/dancer-ex/blob/master/README.md.",
-			"iconClass": "icon-perl",
-			"openshift.io/display-name": "Dancer + MySQL",
-			"openshift.io/documentation-url": "https://github.com/sclorg/dancer-ex",
-			"openshift.io/long-description": "This template defines resources needed to develop a Dancer based application, including a build configuration, application deployment configuration, and database deployment configuration.",
+			"description": "An example Node.js application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/nodeshift-starters/nodejs-rest-http-crud/blob/master/README.md.",
+			"iconClass": "icon-nodejs",
+			"openshift.io/display-name": "Node.js + PostgreSQL",
+			"openshift.io/documentation-url": "https://github.com/nodeshift-starters/nodejs-rest-http-crud",
+			"openshift.io/long-description": "This template defines resources needed to develop a NodeJS application, including a build configuration, application deployment configuration, and database deployment configuration.",
 			"openshift.io/provider-display-name": "Red Hat, Inc.",
 			"openshift.io/support-url": "https://access.redhat.com",
-			"tags": "quickstart,perl,dancer",
+			"tags": "quickstart,nodejs",
 			"template.openshift.io/bindable": "false"
 		}
 	},
-	"message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/dancer-ex/blob/master/README.md.",
+	"message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/nodeshift-starters/nodejs-rest-http-crud/blob/master/README.md.",
 	"objects": [
 		{
 			"apiVersion": "v1",
@@ -25,9 +25,9 @@
 				"name": "${NAME}"
 			},
 			"stringData": {
+				"database-admin-password": "${DATABASE_ADMIN_PASSWORD}",
 				"database-password": "${DATABASE_PASSWORD}",
-				"database-user": "${DATABASE_USER}",
-				"keybase": "${SECRET_KEY_BASE}"
+				"database-user": "${DATABASE_USER}"
 			}
 		},
 		{
@@ -94,9 +94,7 @@
 						"name": "${NAME}:latest"
 					}
 				},
-				"postCommit": {
-					"script": "perl -I extlib/lib/perl5 -I lib t/*"
-				},
+				"postCommit": {},
 				"source": {
 					"contextDir": "${CONTEXT_DIR}",
 					"git": {
@@ -109,13 +107,13 @@
 					"sourceStrategy": {
 						"env": [
 							{
-								"name": "CPAN_MIRROR",
-								"value": "${CPAN_MIRROR}"
+								"name": "NPM_MIRROR",
+								"value": "${NPM_MIRROR}"
 							}
 						],
 						"from": {
 							"kind": "ImageStreamTag",
-							"name": "perl:${PERL_VERSION}",
+							"name": "nodejs:${NODEJS_VERSION}",
 							"namespace": "${NAMESPACE}"
 						}
 					},
@@ -133,6 +131,12 @@
 							"secret": "${GITHUB_WEBHOOK_SECRET}"
 						},
 						"type": "GitHub"
+					},
+					{
+						"generic": {
+							"secret": "${GENERIC_WEBHOOK_SECRET}"
+						},
+						"type": "Generic"
 					}
 				]
 			}
@@ -144,6 +148,9 @@
 				"annotations": {
 					"description": "Defines how to deploy the application server",
 					"template.alpha.openshift.io/wait-for-ready": "true"
+				},
+				"labels": {
+					"app.openshift.io/runtime": "nodejs"
 				},
 				"name": "${NAME}"
 			},
@@ -158,6 +165,7 @@
 				"template": {
 					"metadata": {
 						"labels": {
+							"app.openshift.io/runtime": "nodejs",
 							"name": "${NAME}"
 						},
 						"name": "${NAME}"
@@ -171,7 +179,7 @@
 										"value": "${DATABASE_SERVICE_NAME}"
 									},
 									{
-										"name": "MYSQL_USER",
+										"name": "POSTGRESQL_USER",
 										"valueFrom": {
 											"secretKeyRef": {
 												"key": "database-user",
@@ -180,7 +188,7 @@
 										}
 									},
 									{
-										"name": "MYSQL_PASSWORD",
+										"name": "POSTGRESQL_PASSWORD",
 										"valueFrom": {
 											"secretKeyRef": {
 												"key": "database-password",
@@ -189,33 +197,29 @@
 										}
 									},
 									{
-										"name": "MYSQL_DATABASE",
+										"name": "POSTGRESQL_DATABASE",
 										"value": "${DATABASE_NAME}"
 									},
 									{
-										"name": "SECRET_KEY_BASE",
+										"name": "POSTGRESQL_ADMIN_PASSWORD",
 										"valueFrom": {
 											"secretKeyRef": {
-												"key": "keybase",
+												"key": "database-admin-password",
 												"name": "${NAME}"
 											}
 										}
-									},
-									{
-										"name": "PERL_APACHE2_RELOAD",
-										"value": "${PERL_APACHE2_RELOAD}"
 									}
 								],
 								"image": " ",
 								"livenessProbe": {
 									"httpGet": {
-										"path": "/health",
+										"path": "/",
 										"port": 8080
 									},
 									"initialDelaySeconds": 30,
 									"timeoutSeconds": 3
 								},
-								"name": "dancer-mysql-persistent",
+								"name": "nodejs-postgresql-persistent",
 								"ports": [
 									{
 										"containerPort": 8080
@@ -223,7 +227,7 @@
 								],
 								"readinessProbe": {
 									"httpGet": {
-										"path": "/health",
+										"path": "/",
 										"port": 8080
 									},
 									"initialDelaySeconds": 3,
@@ -243,7 +247,7 @@
 						"imageChangeParams": {
 							"automatic": true,
 							"containerNames": [
-								"dancer-mysql-persistent"
+								"nodejs-postgresql-persistent"
 							],
 							"from": {
 								"kind": "ImageStreamTag",
@@ -287,9 +291,9 @@
 			"spec": {
 				"ports": [
 					{
-						"name": "mysql",
-						"port": 3306,
-						"targetPort": 3306
+						"name": "postgresql",
+						"port": 5432,
+						"targetPort": 5432
 					}
 				],
 				"selector": {
@@ -327,7 +331,7 @@
 							{
 								"env": [
 									{
-										"name": "MYSQL_USER",
+										"name": "POSTGRESQL_USER",
 										"valueFrom": {
 											"secretKeyRef": {
 												"key": "database-user",
@@ -336,7 +340,7 @@
 										}
 									},
 									{
-										"name": "MYSQL_PASSWORD",
+										"name": "POSTGRESQL_PASSWORD",
 										"valueFrom": {
 											"secretKeyRef": {
 												"key": "database-password",
@@ -345,48 +349,41 @@
 										}
 									},
 									{
-										"name": "MYSQL_DATABASE",
+										"name": "POSTGRESQL_DATABASE",
 										"value": "${DATABASE_NAME}"
 									},
 									{
-										"name": "MYSQL_DEFAULT_AUTHENTICATION_PLUGIN",
-										"value": "${MYSQL_DEFAULT_AUTHENTICATION_PLUGIN}"
+										"name": "POSTGRESQL_ADMIN_PASSWORD",
+										"valueFrom": {
+											"secretKeyRef": {
+												"key": "database-admin-password",
+												"name": "${NAME}"
+											}
+										}
 									}
 								],
 								"image": " ",
 								"livenessProbe": {
 									"initialDelaySeconds": 30,
 									"tcpSocket": {
-										"port": 3306
+										"port": 5432
 									},
 									"timeoutSeconds": 1
 								},
-								"name": "mysql",
+								"name": "postgresql",
 								"ports": [
 									{
-										"containerPort": 3306
+										"containerPort": 5432
 									}
 								],
-								"readinessProbe": {
-									"exec": {
-										"command": [
-											"/bin/sh",
-											"-i",
-											"-c",
-											"MYSQL_PWD='${DATABASE_PASSWORD}' mysql -h 127.0.0.1 -u ${DATABASE_USER} -D ${DATABASE_NAME} -e 'SELECT 1'"
-										]
-									},
-									"initialDelaySeconds": 5,
-									"timeoutSeconds": 1
-								},
 								"resources": {
 									"limits": {
-										"memory": "${MEMORY_MYSQL_LIMIT}"
+										"memory": "${MEMORY_POSTGRESQL_LIMIT}"
 									}
 								},
 								"volumeMounts": [
 									{
-										"mountPath": "/var/lib/mysql/data",
+										"mountPath": "/var/lib/postgresql/data",
 										"name": "${DATABASE_SERVICE_NAME}-data"
 									}
 								]
@@ -407,11 +404,11 @@
 						"imageChangeParams": {
 							"automatic": true,
 							"containerNames": [
-								"mysql"
+								"postgresql"
 							],
 							"from": {
 								"kind": "ImageStreamTag",
-								"name": "mysql:8.0-el8",
+								"name": "postgresql:${POSTGRESQL_VERSION}",
 								"namespace": "${NAMESPACE}"
 							}
 						},
@@ -429,7 +426,7 @@
 			"name": "NAME",
 			"displayName": "Name",
 			"description": "The name assigned to all of the frontend objects defined in this template.",
-			"value": "dancer-mysql-persistent",
+			"value": "nodejs-postgresql-persistent",
 			"required": true
 		},
 		{
@@ -440,24 +437,31 @@
 			"required": true
 		},
 		{
-			"name": "PERL_VERSION",
-			"displayName": "Version of Perl Image",
-			"description": "Version of Perl image to be used (5.26-el7, 5.26-ubi8, or latest).",
-			"value": "5.26-ubi8",
+			"name": "NODEJS_VERSION",
+			"displayName": "Version of NodeJS Image",
+			"description": "Version of NodeJS image to be used (10-ubi8, 12-ubi8, or latest).",
+			"value": "12-ubi8",
+			"required": true
+		},
+		{
+			"name": "POSTGRESQL_VERSION",
+			"displayName": "Version of PostgreSQL Image",
+			"description": "Version of PostgreSQL image to be used (12-el8, or latest).",
+			"value": "12-el8",
 			"required": true
 		},
 		{
 			"name": "MEMORY_LIMIT",
 			"displayName": "Memory Limit",
-			"description": "Maximum amount of memory the Perl Dancer container can use.",
-			"value": "512Mi",
+			"description": "Maximum amount of memory the Node.js container can use.",
+			"value": "256Mi",
 			"required": true
 		},
 		{
-			"name": "MEMORY_MYSQL_LIMIT",
-			"displayName": "Memory Limit (MySQL)",
-			"description": "Maximum amount of memory the MySQL container can use.",
-			"value": "512Mi",
+			"name": "MEMORY_POSTGRESQL_LIMIT",
+			"displayName": "Memory Limit (PostgreSQL)",
+			"description": "Maximum amount of memory the PostgreSQL container can use.",
+			"value": "256Mi",
 			"required": true
 		},
 		{
@@ -471,7 +475,7 @@
 			"name": "SOURCE_REPOSITORY_URL",
 			"displayName": "Git Repository URL",
 			"description": "The URL of the repository with your application source code.",
-			"value": "https://github.com/sclorg/dancer-ex.git",
+			"value": "https://github.com/nodeshift-starters/nodejs-rest-http-crud.git",
 			"required": true
 		},
 		{
@@ -487,7 +491,7 @@
 		{
 			"name": "APPLICATION_DOMAIN",
 			"displayName": "Application Hostname",
-			"description": "The exposed hostname that will route to the Dancer service, if left blank a value will be defaulted."
+			"description": "The exposed hostname that will route to the Node.js service, if left blank a value will be defaulted."
 		},
 		{
 			"name": "GITHUB_WEBHOOK_SECRET",
@@ -497,55 +501,53 @@
 			"from": "[a-zA-Z0-9]{40}"
 		},
 		{
+			"name": "GENERIC_WEBHOOK_SECRET",
+			"displayName": "Generic Webhook Secret",
+			"description": "A secret string used to configure the Generic webhook.",
+			"generate": "expression",
+			"from": "[a-zA-Z0-9]{40}"
+		},
+		{
 			"name": "DATABASE_SERVICE_NAME",
 			"displayName": "Database Service Name",
-			"value": "database",
+			"value": "postgresql",
 			"required": true
 		},
 		{
 			"name": "DATABASE_USER",
-			"displayName": "Database Username",
+			"displayName": "PostgreSQL Username",
+			"description": "Username for PostgreSQL user that will be used for accessing the database.",
 			"generate": "expression",
 			"from": "user[A-Z0-9]{3}"
 		},
 		{
 			"name": "DATABASE_PASSWORD",
-			"displayName": "Database Password",
+			"displayName": "PostgreSQL Password",
+			"description": "Password for the PostgreSQL user.",
 			"generate": "expression",
-			"from": "[a-zA-Z0-9]{8}"
+			"from": "[a-zA-Z0-9]{16}"
 		},
 		{
 			"name": "DATABASE_NAME",
 			"displayName": "Database Name",
-			"value": "sampledb",
+			"value": "my_data",
 			"required": true
 		},
 		{
-			"name": "PERL_APACHE2_RELOAD",
-			"displayName": "Perl Module Reload",
-			"description": "Set this to \"true\" to enable automatic reloading of modified Perl modules."
-		},
-		{
-			"name": "SECRET_KEY_BASE",
-			"displayName": "Secret Key",
-			"description": "Your secret key for verifying the integrity of signed cookies.",
+			"name": "DATABASE_ADMIN_PASSWORD",
+			"displayName": "Database Administrator Password",
+			"description": "Password for the database admin user.",
 			"generate": "expression",
-			"from": "[a-z0-9]{127}"
+			"from": "[a-zA-Z0-9]{16}"
 		},
 		{
-			"name": "CPAN_MIRROR",
-			"displayName": "Custom CPAN Mirror URL",
-			"description": "The custom CPAN mirror URL"
-		},
-		{
-			"name": "MYSQL_DEFAULT_AUTHENTICATION_PLUGIN",
-			"displayName": "MySQL authentication plugin",
-			"description": "The custom MySQL default authentication plugin (default: mysql_native_password), might be changed to caching_sha2_password once clients support it.",
-			"value": "mysql_native_password"
+			"name": "NPM_MIRROR",
+			"displayName": "Custom NPM Mirror URL",
+			"description": "The custom NPM mirror URL"
 		}
 	],
 	"labels": {
-		"app": "dancer-mysql-persistent",
-		"template": "dancer-mysql-persistent"
+		"app": "nodejs-postgresql-persistent",
+		"template": "nodejs-postgresql-persistent"
 	}
 }
