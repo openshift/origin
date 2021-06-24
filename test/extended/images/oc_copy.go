@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/client-go/util/retry"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -155,21 +157,25 @@ func (e *hookExecutor) tagImages(hook *appsv1.LifecycleHook, rc *corev1.Replicat
 		if len(namespace) == 0 {
 			namespace = rc.Namespace
 		}
-		if _, err := e.tags.ImageStreamTags(namespace).Update(context.Background(), &imageapiv1.ImageStreamTag{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      action.To.Name,
-				Namespace: namespace,
-			},
-			Tag: &imageapiv1.TagReference{
-				From: &corev1.ObjectReference{
-					Kind: "DockerImage",
-					Name: value,
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			_, updateErr := e.tags.ImageStreamTags(namespace).Update(context.Background(), &imageapiv1.ImageStreamTag{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      action.To.Name,
+					Namespace: namespace,
 				},
-			},
-		}, metav1.UpdateOptions{}); err != nil {
+				Tag: &imageapiv1.TagReference{
+					From: &corev1.ObjectReference{
+						Kind: "DockerImage",
+						Name: value,
+					},
+				},
+			}, metav1.UpdateOptions{})
+			return updateErr
+		})
+		if err != nil {
 			errs = append(errs, err)
-			continue
 		}
+
 		fmt.Fprintf(e.out, "--> %s: Tagged %q into %s/%s\n", label, value, action.To.Namespace, action.To.Name)
 	}
 
