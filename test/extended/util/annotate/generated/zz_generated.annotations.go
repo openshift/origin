@@ -1907,7 +1907,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Netpol [LinuxOnly] NetworkPolicy between server and client should not allow access by TCP when a policy specifies only UDP [Feature:NetworkPolicy] [Feature:UDP]": "should not allow access by TCP when a policy specifies only UDP [Feature:NetworkPolicy] [Feature:UDP] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Netpol [LinuxOnly] NetworkPolicy between server and client should stop enforcing policies after they are deleted [Feature:NetworkPolicy]": "should stop enforcing policies after they are deleted [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Netpol [LinuxOnly] NetworkPolicy between server and client should stop enforcing policies after they are deleted [Feature:NetworkPolicy]": "should stop enforcing policies after they are deleted [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Netpol [LinuxOnly] NetworkPolicy between server and client should support a 'default-deny-all' policy [Feature:NetworkPolicy]": "should support a 'default-deny-all' policy [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 

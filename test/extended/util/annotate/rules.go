@@ -62,6 +62,9 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1957894
 			`\[sig-node\] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1975865
+			`\[sig-network\] Netpol \[LinuxOnly\] NetworkPolicy between server and client should stop enforcing policies after they are deleted`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},
