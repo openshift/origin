@@ -14454,14 +14454,14 @@ objects:
         - env:
           - name: DATABASE_SERVICE_NAME
             value: ${DATABASE_SERVICE_NAME}
-          - name: MYSQL_USER
+          - name: POSTGRESQL_USER
             value: ${DATABASE_USER}
-          - name: MYSQL_PASSWORD
+          - name: POSTGRESQL_PASSWORD
             value: ${DATABASE_PASSWORD}
-          - name: MYSQL_DATABASE
+          - name: POSTGRESQL_DATABASE
             value: ${DATABASE_NAME}
-          - name: MYSQL_ROOT_PASSWORD
-            value: ${DATABASE_ROOT_PASSWORD}
+          - name: POSTGRESQL_ADMIN_PASSWORD
+            value: ${DATABASE_ADMIN_PASSWORD}
           image: ' '
           livenessProbe:
             httpGet:
@@ -14469,7 +14469,7 @@ objects:
               port: 8080
             initialDelaySeconds: 30
             timeoutSeconds: 3
-          name: nodejs-mariadb-example
+          name: nodejs-postgresql-example
           ports:
           - containerPort: 8080
           readinessProbe:
@@ -14485,7 +14485,7 @@ objects:
     - imageChangeParams:
         automatic: true
         containerNames:
-        - nodejs-mariadb-example
+        - nodejs-postgresql-example
         from:
           kind: ImageStreamTag
           name: ${NAME}:blue
@@ -14526,14 +14526,14 @@ objects:
         - env:
           - name: DATABASE_SERVICE_NAME
             value: ${DATABASE_SERVICE_NAME}
-          - name: MYSQL_USER
+          - name: POSTGRESQL_USER
             value: ${DATABASE_USER}
-          - name: MYSQL_PASSWORD
+          - name: POSTGRESQL_PASSWORD
             value: ${DATABASE_PASSWORD}
-          - name: MYSQL_DATABASE
+          - name: POSTGRESQL_DATABASE
             value: ${DATABASE_NAME}
-          - name: MYSQL_ROOT_PASSWORD
-            value: ${DATABASE_ROOT_PASSWORD}
+          - name: POSTGRESQL_ADMIN_PASSWORD
+            value: ${DATABASE_ADMIN_PASSWORD}
           image: ' '
           livenessProbe:
             httpGet:
@@ -14541,7 +14541,7 @@ objects:
               port: 8080
             initialDelaySeconds: 30
             timeoutSeconds: 3
-          name: nodejs-mariadb-example
+          name: nodejs-postgresql-example
           ports:
           - containerPort: 8080
           readinessProbe:
@@ -14557,7 +14557,7 @@ objects:
     - imageChangeParams:
         automatic: true
         containerNames:
-        - nodejs-mariadb-example
+        - nodejs-postgresql-example
         from:
           kind: ImageStreamTag
           name: ${NAME}:green
@@ -14571,9 +14571,9 @@ objects:
     name: ${DATABASE_SERVICE_NAME}
   spec:
     ports:
-    - name: mariadb
-      port: 3306
-      targetPort: 3306
+    - name: postgresql
+      port: 5432
+      targetPort: 5432
     selector:
       name: ${DATABASE_SERVICE_NAME}
 - apiVersion: v1
@@ -14596,37 +14596,34 @@ objects:
       spec:
         containers:
         - env:
-          - name: MYSQL_USER
+          - name: POSTGRESQL_USER
             value: ${DATABASE_USER}
-          - name: MYSQL_PASSWORD
+          - name: POSTGRESQL_PASSWORD
             value: ${DATABASE_PASSWORD}
-          - name: MYSQL_DATABASE
+          - name: POSTGRESQL_DATABASE
             value: ${DATABASE_NAME}
-          - name: MYSQL_ROOT_PASSWORD
-            value: ${DATABASE_ROOT_PASSWORD}
+          - name: POSTGRESQL_ADMIN_PASSWORD
+            value: ${DATABASE_ADMIN_PASSWORD}
           image: ' '
           livenessProbe:
             initialDelaySeconds: 30
             tcpSocket:
-              port: 27017
+              port: 5432
             timeoutSeconds: 1
-          name: mariadb
+          name: postgresql
           ports:
-          - containerPort: 27017
+          - containerPort: 5432
           readinessProbe:
-            exec:
-              command:
-              - /bin/sh
-              - -i
-              - -c
-              - MYSQL_PWD=\"$MYSQL_PASSWORD\" mysqladmin -u $MYSQL_USER ping
+            httpGet:
+              path: /
+              port: 8080
             initialDelaySeconds: 3
-            timeoutSeconds: 1
+            timeoutSeconds: 3
           resources:
             limits:
-              memory: ${MEMORY_MYSQL_LIMIT}
+              memory: ${MEMORY_POSTGRESQL_LIMIT}
           volumeMounts:
-          - mountPath: /var/lib/mysql/data
+          - mountPath: /var/lib/postgresql/data
             name: ${DATABASE_SERVICE_NAME}-data
         volumes:
         - emptyDir:
@@ -14636,10 +14633,10 @@ objects:
     - imageChangeParams:
         automatic: true
         containerNames:
-        - mariadb
+        - postgresql
         from:
           kind: ImageStreamTag
-          name: mariadb:10.3-el8
+          name: postgresql:12-el8
           namespace: ${NAMESPACE}
       type: ImageChange
     - type: ConfigChange
@@ -14648,7 +14645,7 @@ parameters:
   displayName: Name
   name: NAME
   required: true
-  value: nodejs-mariadb-example
+  value: nodejs-postgresql-example
 - description: The exposed hostname that will route to the Node.js service, if left
     blank a value will be defaulted.
   displayName: Application Hostname
@@ -14667,13 +14664,13 @@ parameters:
   name: DATABASE_NAME
   required: true
   value: sampledb
-- description: Username for MariaDB user that will be used for accessing the database.
-  displayName: MariaDB Username
+- description: Username for PostgreSQL user that will be used for accessing the database.
+  displayName: PostgreSQL Username
   from: user[A-Z0-9]{3}
   generate: expression
   name: DATABASE_USER
-- description: Password for the MariaDB user.
-  displayName: MariaDB Password
+- description: Password for the PostgreSQL user.
+  displayName: PostgreSQL Password
   from: '[a-zA-Z0-9]{16}'
   generate: expression
   name: DATABASE_PASSWORD
@@ -14682,20 +14679,20 @@ parameters:
   name: MEMORY_LIMIT
   required: true
   value: 512Mi
-- description: Maximum amount of memory the MariaDB container can use.
-  displayName: Memory Limit (MariaDB)
-  name: MEMORY_MYSQL_LIMIT
+- description: Maximum amount of memory the PostgreSQL container can use.
+  displayName: Memory Limit (PostgreSQL)
+  name: MEMORY_POSTGRESQL_LIMIT
   required: true
   value: 512Mi
 - displayName: Database Service Name
   name: DATABASE_SERVICE_NAME
   required: true
-  value: mariadb
+  value: postgresql
 - description: Password for the database admin user.
   displayName: Database Administrator Password
   from: '[a-zA-Z0-9]{16}'
   generate: expression
-  name: DATABASE_ROOT_PASSWORD
+  name: DATABASE_ADMIN_PASSWORD
 - description: Set this to the relative path to your project if it is not in the root
     of your repository.
   displayName: Context Directory
@@ -14713,7 +14710,7 @@ parameters:
 - description: The custom NPM mirror URL
   displayName: Custom NPM Mirror URL
   name: NPM_MIRROR
-- description: The OpenShift Namespace where the NodeJS and MariaDB ImageStreams reside.
+- description: The OpenShift Namespace where the NodeJS and PostgreSQL ImageStreams reside.
   displayName: Namespace
   name: NAMESPACE
   required: true
@@ -15235,7 +15232,7 @@ parameters:
   displayName: Name
   name: NAME
   required: true
-  value: nodejs-mariadb-example
+  value: nodejs-postgresql-example
 - description: The exposed hostname that will route to the Node.js service, if left
     blank a value will be defaulted.
   displayName: Application Hostname
@@ -15249,13 +15246,13 @@ parameters:
   name: DATABASE_NAME
   required: true
   value: sampledb
-- description: Username for MariaDB user that will be used for accessing the database.
-  displayName: MariaDB Username
+- description: Username for PostgreSQL user that will be used for accessing the database.
+  displayName: PostgreSQL Username
   from: user[A-Z0-9]{3}
   generate: expression
   name: DATABASE_USER
-- description: Password for the MariaDB user.
-  displayName: MariaDB Password
+- description: Password for the PostgreSQL user.
+  displayName: PostgreSQL Password
   from: '[a-zA-Z0-9]{16}'
   generate: expression
   name: DATABASE_PASSWORD
@@ -15264,20 +15261,20 @@ parameters:
   name: MEMORY_LIMIT
   required: true
   value: 512Mi
-- description: Maximum amount of memory the MariaDB container can use.
-  displayName: Memory Limit (MariaDB)
-  name: MEMORY_MARIADB_LIMIT
+- description: Maximum amount of memory the PostgreSQL container can use.
+  displayName: Memory Limit (PostgreSQL)
+  name: MEMORY_POSTGRESQL_LIMIT
   required: true
   value: 512Mi
 - displayName: Database Service Name
   name: DATABASE_SERVICE_NAME
   required: true
-  value: mariadb
+  value: postgrsql
 - description: Password for the database admin user.
   displayName: Database Administrator Password
   from: '[a-zA-Z0-9]{16}'
   generate: expression
-  name: DATABASE_ROOT_PASSWORD
+  name: DATABASE_ADMIN_PASSWORD
 - description: Set this to a branch name, tag or other ref of your repository if you
     are not using the default branch.
   displayName: Git Reference
@@ -15299,7 +15296,7 @@ parameters:
 - description: The custom NPM mirror URL
   displayName: Custom NPM Mirror URL
   name: NPM_MIRROR
-- description: The OpenShift Namespace where the NodeJS and MariaDB ImageStreams reside.
+- description: The OpenShift Namespace where the NodeJS and PostgreSQL ImageStreams reside.
   displayName: Namespace
   name: NAMESPACE
   required: true
@@ -15441,14 +15438,14 @@ objects:
         - env:
           - name: DATABASE_SERVICE_NAME
             value: ${DATABASE_SERVICE_NAME}
-          - name: MYSQL_USER
+          - name: POSTGRESQL_USER
             value: ${DATABASE_USER}
-          - name: MYSQL_PASSWORD
+          - name: POSTGRESQL_PASSWORD
             value: ${DATABASE_PASSWORD}
-          - name: MYSQL_DATABASE
+          - name: POSTGRESQL_DATABASE
             value: ${DATABASE_NAME}
-          - name: MYSQL_ROOT_PASSWORD
-            value: ${DATABASE_ROOT_PASSWORD}
+          - name: POSTGRESQL_ADMIN_PASSWORD
+            value: ${DATABASE_ADMIN_PASSWORD}
           image: ' '
           livenessProbe:
             httpGet:
@@ -15456,7 +15453,7 @@ objects:
               port: 8080
             initialDelaySeconds: 30
             timeoutSeconds: 3
-          name: nodejs-mariadb-example
+          name: nodejs-postgresql-example
           ports:
           - containerPort: 8080
           readinessProbe:
@@ -15472,7 +15469,7 @@ objects:
     - imageChangeParams:
         automatic: false
         containerNames:
-        - nodejs-mariadb-example
+        - nodejs-postgresql-example
         from:
           kind: ImageStreamTag
           name: ${NAME}:latest
@@ -15486,9 +15483,9 @@ objects:
     name: ${DATABASE_SERVICE_NAME}
   spec:
     ports:
-    - name: mariadb
-      port: 3306
-      targetPort: 3306
+    - name: postgresql
+      port: 5432
+      targetPort: 5432
     selector:
       name: ${DATABASE_SERVICE_NAME}
 - apiVersion: v1
@@ -15511,37 +15508,34 @@ objects:
       spec:
         containers:
         - env:
-          - name: MYSQL_USER
+          - name: POSTGRESQL_USER
             value: ${DATABASE_USER}
-          - name: MYSQLB_PASSWORD
+          - name: POSTGRESQL_PASSWORD
             value: ${DATABASE_PASSWORD}
-          - name: MYSQL_DATABASE
+          - name: POSTGRESQL_DATABASE
             value: ${DATABASE_NAME}
-          - name: MYSQL_ROOT_PASSWORD
-            value: ${DATABASE_ROOT_PASSWORD}
+          - name: POSTGRESQL_ADMIN_PASSWORD
+            value: ${DATABASE_ADMIN_PASSWORD}
           image: ' '
           livenessProbe:
             initialDelaySeconds: 30
             tcpSocket:
-              port: 27017
+              port: 5432
             timeoutSeconds: 1
-          name: mariadb
+          name: postgresql
           ports:
-          - containerPort: 27017
+          - containerPort: 5432
           readinessProbe:
-            exec:
-              command:
-              - /bin/sh
-              - -i
-              - -c
-              - MYSQL_PWD=\"$MYSQL_PASSWORD\" mysqladmin -u $MYSQL_USER ping
+            httpGet:
+              path: /
+              port: 8080
             initialDelaySeconds: 3
-            timeoutSeconds: 1
+            timeoutSeconds: 3
           resources:
             limits:
-              memory: ${MEMORY_MARIADB_LIMIT}
+              memory: ${MEMORY_POSTGRESQL_LIMIT}
           volumeMounts:
-          - mountPath: /var/lib/mysql/data
+          - mountPath: /var/lib/postgresql/data
             name: ${DATABASE_SERVICE_NAME}-data
         volumes:
         - emptyDir:
@@ -15551,10 +15545,10 @@ objects:
     - imageChangeParams:
         automatic: true
         containerNames:
-        - mariadb
+        - postgresql
         from:
           kind: ImageStreamTag
-          name: mariadb:10.3-el8
+          name: postgresql:12-el8
           namespace: ${NAMESPACE}
       type: ImageChange
     - type: ConfigChange
