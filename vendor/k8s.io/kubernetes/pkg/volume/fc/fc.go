@@ -26,6 +26,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/mount-utils"
 	utilexec "k8s.io/utils/exec"
+	"k8s.io/utils/io"
 	utilstrings "k8s.io/utils/strings"
 
 	v1 "k8s.io/api/core/v1"
@@ -171,7 +172,7 @@ func (plugin *fcPlugin) newBlockVolumeMapperInternal(spec *volume.Spec, podUID t
 		return nil, fmt.Errorf("fc: no fc disk information found. failed to make a new mapper")
 	}
 
-	return &fcDiskMapper{
+	mapper := &fcDiskMapper{
 		fcDisk: &fcDisk{
 			podUID:  podUID,
 			volName: spec.Name(),
@@ -184,7 +185,15 @@ func (plugin *fcPlugin) newBlockVolumeMapperInternal(spec *volume.Spec, podUID t
 		readOnly:   readOnly,
 		mounter:    &mount.SafeFormatAndMount{Interface: mounter, Exec: exec},
 		deviceUtil: util.NewDeviceHandler(util.NewIOHandler()),
-	}, nil
+	}
+
+	blockPath, err := mapper.GetGlobalMapPath(spec)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get device path: %v", err)
+	}
+	mapper.MetricsProvider = volume.NewMetricsBlock(filepath.Join(blockPath, string(podUID)))
+
+	return mapper, nil
 }
 
 func (plugin *fcPlugin) NewUnmounter(volName string, podUID types.UID) (volume.Unmounter, error) {
@@ -233,6 +242,11 @@ func (plugin *fcPlugin) ConstructVolumeSpec(volumeName, mountPath string) (*volu
 	var globalPDPath string
 	mounter := plugin.host.GetMounter(plugin.GetPluginName())
 	paths, err := mounter.GetMountRefs(mountPath)
+	if io.IsInconsistentReadError(err) {
+		klog.Errorf("Failed to read mount refs from /proc/mounts for %s: %s", mountPath, err)
+		klog.Errorf("Kubelet cannot unmount volume at %s, please unmount it manually", mountPath)
+		return nil, err
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -393,6 +407,7 @@ func (c *fcDiskUnmounter) TearDownAt(dir string) error {
 // Block Volumes Support
 type fcDiskMapper struct {
 	*fcDisk
+	volume.MetricsProvider
 	readOnly   bool
 	mounter    mount.Interface
 	deviceUtil util.DeviceUtil
