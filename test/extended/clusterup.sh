@@ -61,7 +61,9 @@ function os::test::extended::clusterup::verify_router_and_registry () {
 }
 
 function os::test::extended::clusterup::verify_image_streams () {
-    os::cmd::try_until_text "oc get is -n openshift ruby -o jsonpath='{ .status.tags[*].tag }'" "latest" $(( 10*minute )) 1
+    os::cmd::expect_success "oc login -u system:admin"
+    os::cmd::expect_success "oc import-image -n openshift ruby:2.0"
+    os::cmd::try_until_text "oc get is -n openshift ruby -o jsonpath='{ .status.tags[*].tag }'" "2.0" $(( 10*minute )) 1
 }
 
 function os::test::extended::clusterup::verify_ruby_build () {
