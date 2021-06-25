@@ -36769,7 +36769,7 @@ metadata:
   name: template-with-crd
 objects:
 - kind: CustomResourceDefinition
-  apiVersion: apiextensions.k8s.io/v1beta1
+  apiVersion: apiextensions.k8s.io/v1
   metadata:
     name: template-with-crd
 `)

@@ -240,7 +240,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	etcddataCRDs := etcddata.GetCustomResourceDefinitionData()
 	etcddata.CreateTestCRDs(tt, crdClient, false, etcddataCRDs...)
 	defer func() {
-		deleteCRD := crdClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete
+		deleteCRD := crdClient.ApiextensionsV1().CustomResourceDefinitions().Delete
 		ctx := context.Background()
 		delOptions := metav1.DeleteOptions{}
 		var errs []error

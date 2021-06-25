@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	apiextensionsv1beta1lister "k8s.io/apiextensions-apiserver/pkg/client/listers/apiextensions/v1beta1"
+	apiextensionsv1lister "k8s.io/apiextensions-apiserver/pkg/client/listers/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -26,7 +26,7 @@ var (
 )
 
 type ConfigObserverController struct {
-	crdLister          apiextensionsv1beta1lister.CustomResourceDefinitionLister
+	crdLister          apiextensionsv1lister.CustomResourceDefinitionLister
 	crdInformer        cache.SharedIndexInformer
 	dynamicClient      dynamic.Interface
 	dynamicInformers   []*dynamicConfigInformer
@@ -50,7 +50,7 @@ func NewConfigObserverController(
 		monitoredResources: monitoredResources,
 		cachedDiscovery:    memory.NewMemCacheClient(discoveryClient),
 	}
-	c.crdLister = apiextensionsv1beta1lister.NewCustomResourceDefinitionLister(c.crdInformer.GetIndexer())
+	c.crdLister = apiextensionsv1lister.NewCustomResourceDefinitionLister(c.crdInformer.GetIndexer())
 
 	return factory.New().WithInformers(c.crdInformer).ResyncEvery(defaultResyncDuration).WithSync(c.sync).ToController("ConfigObserverController", recorder.WithComponentSuffix("config-observer-controller"))
 }

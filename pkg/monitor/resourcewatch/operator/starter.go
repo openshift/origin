@@ -6,7 +6,7 @@ import (
 	"time"
 
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	apiextensionsv1beta1informer "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions/apiextensions/v1beta1"
+	apiextensionsv1informer "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
@@ -53,7 +53,7 @@ func RunOperator(ctx context.Context, controllerCtx *controllercmd.ControllerCon
 	}
 
 	configInformer := configv1informer.NewClusterOperatorInformer(configClient, time.Minute, cache.Indexers{})
-	crdInformer := apiextensionsv1beta1informer.NewCustomResourceDefinitionInformer(kubeClient, time.Minute, cache.Indexers{})
+	crdInformer := apiextensionsv1informer.NewCustomResourceDefinitionInformer(kubeClient, time.Minute, cache.Indexers{})
 
 	openshiftConfigObserver := configmonitor.NewConfigObserverController(
 		dynamicClient,
