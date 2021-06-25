@@ -2058,6 +2058,7 @@ k8s.io/csi-translation-lib/plugins
 ## explicit
 k8s.io/klog/v2
 # k8s.io/kube-aggregator v0.21.1 => github.com/openshift/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20210624185839-c6914a80ec2e
+## explicit
 k8s.io/kube-aggregator/pkg/apis/apiregistration
 k8s.io/kube-aggregator/pkg/apis/apiregistration/install
 k8s.io/kube-aggregator/pkg/apis/apiregistration/v1
