@@ -63,9 +63,11 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1957894
 			`\[sig-node\] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret`,
 
-			// Broken for metal-ipi-ovn-ipv6
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1962950
-			`\[Feature:NetworkPolicy\]`,
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1975865
+			`\[sig-network\] Netpol \[LinuxOnly\] NetworkPolicy between server and client should stop enforcing policies after they are deleted`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1975476
+			`\[sig-network\] Netpol `,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},
