@@ -39,6 +39,7 @@ function os::test::extended::clusterup::run_test () {
 
     local test_home="${ARTIFACT_DIR}/${test}/home"
     mkdir -p "${test_home}"
+    [ -d "${global_home}/.docker" ] && cp -r ${global_home}/.docker ${test_home}
     export HOME="${test_home}"
     pushd "${HOME}" &> /dev/null
     os::log::info "Using ${HOME} as home directory"
