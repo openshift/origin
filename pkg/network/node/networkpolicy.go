@@ -406,9 +406,9 @@ func (np *networkPolicyPlugin) selectPods(npns *npNamespace, lsel *metav1.LabelS
 		utilruntime.HandleError(fmt.Errorf("ValidateNetworkPolicy() failure! Invalid PodSelector: %v", err))
 		return ips
 	}
-	for _, pod := range np.pods {
-		if (npns.name == pod.Namespace) && sel.Matches(labels.Set(pod.Labels)) {
-			ips = append(ips, pod.Status.PodIP)
+	for k := range np.pods {
+		if (npns.name == np.pods[k].Namespace) && sel.Matches(labels.Set(np.pods[k].Labels)) {
+			ips = append(ips, np.pods[k].Status.PodIP)
 		}
 	}
 	return ips
