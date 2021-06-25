@@ -165,7 +165,7 @@ var _ = g.Describe("[sig-devex][Feature:JenkinsRHELImagesOnly][Slow] openshift p
 
 				g.By("should build and complete successfully", func() {
 					g.By("create pipeline strategy build using nodejs agent and client plugin")
-					err := oc.Run("create").Args("-f", "https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/nodejs-sample-pipeline.yaml").Execute()
+					err := oc.Run("create").Args("-f", "https://raw.githubusercontent.com/openshift/origin/release-4.8/examples/jenkins/pipeline/nodejs-sample-pipeline.yaml").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("starting the pipeline build and waiting for it to complete")
