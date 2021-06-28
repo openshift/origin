@@ -161,6 +161,7 @@ var _ = g.Describe("[sig-devex][Feature:JenkinsRHELImagesOnly][Slow] openshift p
 				// In general, while we want at least one verification somewhere in pipeline.go that the agent
 				// images work, we should minimize the actually running of pipelines using them to only one
 				// for each maven/nodejs
+				/* to be moved to jenkins client plugin e2e
 				g.By("Pipeline using nodejs agent and client plugin")
 
 				g.By("should build and complete successfully", func() {
@@ -194,6 +195,7 @@ var _ = g.Describe("[sig-devex][Feature:JenkinsRHELImagesOnly][Slow] openshift p
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 				})
+				*/
 
 				g.By("Pipeline with env vars")
 
