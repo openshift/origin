@@ -3,8 +3,9 @@ package pods
 import (
 	"context"
 	"fmt"
-	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	"strings"
+
+	"github.com/openshift/origin/pkg/test/ginkgo/result"
 
 	. "github.com/onsi/ginkgo"
 
@@ -67,12 +68,11 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 			} else if _, ok := labels["job-name"]; ok { // or for job, we have a image-pruner running as job.
 				knownBugKey = knownBugKey[:strings.LastIndex(knownBugKey, "-")]
 			}
-			if bz, ok := knownBugs[knownBugKey]; ok {
-				knownBugList.Insert(fmt.Sprintf("Component %v has a bug associated already: %v", knownBugKey, bz))
-				continue
-			}
 			if !strings.HasPrefix(pod.Spec.PriorityClassName, "system-") && !strings.EqualFold(pod.Spec.PriorityClassName, "openshift-user-critical") {
 				invalidPodPriority.Insert(fmt.Sprintf("%s/%s (currently %q)", pod.Namespace, pod.Name, pod.Spec.PriorityClassName))
+				if bz, ok := knownBugs[knownBugKey]; ok {
+					knownBugList.Insert(fmt.Sprintf("Component %v has a bug associated already: %v", knownBugKey, bz))
+				}
 			}
 		}
 		if len(knownBugList) > 0 {
