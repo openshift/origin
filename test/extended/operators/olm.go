@@ -88,7 +88,13 @@ var _ = g.Describe("[sig-operator] OLM should", func() {
 				e2e.Failf("Unable to get %s, error:%v", msg, err)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(msg).To(o.Equal("IfNotPresent"))
+
+			// ensure that all containers in the current deployment contain the IfNotPresent
+			// image pull policy
+			policies := strings.Split(msg, " ")
+			for _, policy := range policies {
+				o.Expect(policy).To(o.Equal("IfNotPresent"))
+			}
 		}
 	})
 
