@@ -43,8 +43,6 @@ type networkPolicyPlugin struct {
 	namespaces map[uint32]*npNamespace
 	// nsMatchCache caches matches for namespaceSelectors; see selectNamespaceInternal
 	nsMatchCache map[string]*npCacheEntry
-
-	pods map[ktypes.UID]kapi.Pod
 }
 
 // npNamespace tracks NetworkPolicy-related data for a Namespace
@@ -88,7 +86,6 @@ func NewNetworkPolicyPlugin() osdnPolicy {
 	return &networkPolicyPlugin{
 		namespaces:       make(map[uint32]*npNamespace),
 		namespacesByName: make(map[string]*npNamespace),
-		pods:             make(map[ktypes.UID]kapi.Pod),
 
 		nsMatchCache: make(map[string]*npCacheEntry),
 	}
@@ -406,8 +403,15 @@ func (np *networkPolicyPlugin) selectPods(npns *npNamespace, lsel *metav1.LabelS
 		utilruntime.HandleError(fmt.Errorf("ValidateNetworkPolicy() failure! Invalid PodSelector: %v", err))
 		return ips
 	}
-	for _, pod := range np.pods {
-		if (npns.name == pod.Namespace) && sel.Matches(labels.Set(pod.Labels)) {
+
+	pods, err := np.node.kubeInformers.Core().InternalVersion().Pods().Lister().Pods(npns.name).List(sel)
+	if err != nil {
+		// Shouldn't happen
+		utilruntime.HandleError(fmt.Errorf("Could not find matching pods in namespace %q: %v", npns.name, err))
+		return ips
+	}
+	for _, pod := range pods {
+		if isOnPodNetwork(pod) {
 			ips = append(ips, pod.Status.PodIP)
 		}
 	}
@@ -597,31 +601,32 @@ func (np *networkPolicyPlugin) watchPods() {
 	np.node.kubeInformers.Core().InternalVersion().Pods().Informer().AddEventHandler(funcs)
 }
 
-func (np *networkPolicyPlugin) handleAddOrUpdatePod(obj, _ interface{}, eventType watch.EventType) {
+func isOnPodNetwork(pod *kapi.Pod) bool {
+	// Ignore pods with HostNetwork=true, SDN is not involved in this case
+	if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostNetwork {
+		return false
+	}
+	return pod.Status.PodIP != ""
+}
+
+func (np *networkPolicyPlugin) handleAddOrUpdatePod(obj, old interface{}, eventType watch.EventType) {
 	pod := obj.(*kapi.Pod)
 	glog.V(5).Infof("Watch %s event for Pod %q", eventType, getPodFullName(pod))
 
-	// Ignore pods with HostNetwork=true, SDN is not involved in this case
-	if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostNetwork {
-		return
-	}
-	if pod.Status.PodIP == "" {
-		glog.V(5).Infof("PodIP is not set for pod %q; ignoring", getPodFullName(pod))
+	if !isOnPodNetwork(pod) {
 		return
 	}
 
-	// We don't want to grab np.Lock for every Pod.Status change...
-	// But it's safe to look up oldPod without locking here because no other
-	// threads modify this map.
-	oldPod, podExisted := np.pods[pod.UID]
-	if podExisted && oldPod.Status.PodIP == pod.Status.PodIP && reflect.DeepEqual(oldPod.Labels, pod.Labels) {
-		return
+	if old != nil {
+		oldPod := old.(*kapi.Pod)
+		if oldPod.Status.PodIP == pod.Status.PodIP && reflect.DeepEqual(oldPod.Labels, pod.Labels) {
+			return
+		}
 	}
 
 	np.lock.Lock()
 	defer np.lock.Unlock()
 
-	np.pods[pod.UID] = *pod
 	np.refreshNetworkPolicies(refreshForPods)
 }
 
@@ -629,15 +634,9 @@ func (np *networkPolicyPlugin) handleDeletePod(obj interface{}) {
 	pod := obj.(*kapi.Pod)
 	glog.V(5).Infof("Watch %s event for Pod %q", watch.Deleted, getPodFullName(pod))
 
-	_, podExisted := np.pods[pod.UID]
-	if !podExisted {
-		return
-	}
-
 	np.lock.Lock()
 	defer np.lock.Unlock()
 
-	delete(np.pods, pod.UID)
 	np.refreshNetworkPolicies(refreshForPods)
 }
 
