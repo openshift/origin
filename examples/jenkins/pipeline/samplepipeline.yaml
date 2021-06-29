@@ -19,80 +19,6 @@ metadata:
     iconClass: icon-jenkins
     tags: instant-app,jenkins
   name: jenkins-pipeline-example
-parameters:
-- description: The name assigned to all of the frontend objects defined in this template.
-  displayName: Name
-  name: NAME
-  required: true
-  value: nodejs-mariadb-example
-- description: The exposed hostname that will route to the Node.js service, if left
-    blank a value will be defaulted.
-  displayName: Application Hostname
-  name: APPLICATION_DOMAIN
-- description: The URL of the repository with your application source code.
-  displayName: Git Repository URL
-  name: SOURCE_REPOSITORY_URL
-  required: true
-  value: https://github.com/openshift/nodejs-ex.git
-- displayName: Database Name
-  name: DATABASE_NAME
-  required: true
-  value: sampledb
-- description: Username for MariaDB user that will be used for accessing the database.
-  displayName: MariaDB Username
-  from: user[A-Z0-9]{3}
-  generate: expression
-  name: DATABASE_USER
-- description: Password for the MariaDB user.
-  displayName: MariaDB Password
-  from: '[a-zA-Z0-9]{16}'
-  generate: expression
-  name: DATABASE_PASSWORD
-- description: Maximum amount of memory the Node.js container can use.
-  displayName: Memory Limit
-  name: MEMORY_LIMIT
-  required: true
-  value: 512Mi
-- description: Maximum amount of memory the MariaDB container can use.
-  displayName: Memory Limit (MariaDB)
-  name: MEMORY_MARIADB_LIMIT
-  required: true
-  value: 512Mi
-- displayName: Database Service Name
-  name: DATABASE_SERVICE_NAME
-  required: true
-  value: mariadb
-- description: Password for the database admin user.
-  displayName: Database Administrator Password
-  from: '[a-zA-Z0-9]{16}'
-  generate: expression
-  name: DATABASE_ROOT_PASSWORD
-- description: Set this to a branch name, tag or other ref of your repository if you
-    are not using the default branch.
-  displayName: Git Reference
-  name: SOURCE_REPOSITORY_REF
-- description: Set this to the relative path to your project if it is not in the root
-    of your repository.
-  displayName: Context Directory
-  name: CONTEXT_DIR
-- description: Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.
-  displayName: GitHub Webhook Secret
-  from: '[a-zA-Z0-9]{40}'
-  generate: expression
-  name: GITHUB_WEBHOOK_SECRET
-- description: A secret string used to configure the Generic webhook.
-  displayName: Generic Webhook Secret
-  from: '[a-zA-Z0-9]{40}'
-  generate: expression
-  name: GENERIC_WEBHOOK_SECRET
-- description: The custom NPM mirror URL
-  displayName: Custom NPM Mirror URL
-  name: NPM_MIRROR
-- description: The OpenShift Namespace where the NodeJS and MariaDB ImageStreams reside.
-  displayName: Namespace
-  name: NAMESPACE
-  required: true
-  value: openshift
 objects:
 - apiVersion: v1
   kind: BuildConfig
@@ -145,16 +71,25 @@ objects:
         secret: secret101
       type: Generic
 - apiVersion: v1
+  kind: Secret
+  metadata:
+    name: ${NAME}
+  stringData:
+    database-admin-password: ${DATABASE_ADMIN_PASSWORD}
+    database-password: ${DATABASE_PASSWORD}
+    database-user: ${DATABASE_USER}
+- apiVersion: v1
   kind: Service
   metadata:
     annotations:
-      service.alpha.openshift.io/dependencies: '[{"name": "${DATABASE_SERVICE_NAME}", "namespace": "", "kind": "Service"}]'
+      description: Exposes and load balances the application pods
+      service.alpha.openshift.io/dependencies: '[{"name": "${DATABASE_SERVICE_NAME}", "kind": "Service"}]'
     name: ${NAME}
   spec:
     ports:
-    - name: web
-      port: 8080
-      targetPort: 8080
+      - name: web
+        port: 8080
+        targetPort: 8080
     selector:
       name: ${NAME}
 - apiVersion: v1
@@ -177,14 +112,14 @@ objects:
   metadata:
     annotations:
       description: Defines how to build the application
+      template.alpha.openshift.io/wait-for-ready: "true"
     name: ${NAME}
   spec:
     output:
       to:
         kind: ImageStreamTag
         name: ${NAME}:latest
-    postCommit:
-      script: npm test
+    postCommit: {}
     source:
       contextDir: ${CONTEXT_DIR}
       git:
@@ -194,79 +129,94 @@ objects:
     strategy:
       sourceStrategy:
         env:
-        - name: NPM_MIRROR
-          value: ${NPM_MIRROR}
+          - name: NPM_MIRROR
+            value: ${NPM_MIRROR}
         from:
           kind: ImageStreamTag
-          name: nodejs:12-ubi8
+          name: nodejs:${NODEJS_VERSION}
           namespace: ${NAMESPACE}
       type: Source
     triggers:
-    - github:
-        secret: ${GITHUB_WEBHOOK_SECRET}
-      type: GitHub
-    - generic:
-        secret: ${GENERIC_WEBHOOK_SECRET}
-      type: Generic
+      - type: ImageChange
+      - type: ConfigChange
+      - github:
+          secret: ${GITHUB_WEBHOOK_SECRET}
+        type: GitHub
+      - generic:
+          secret: ${GENERIC_WEBHOOK_SECRET}
+        type: Generic
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
     annotations:
       description: Defines how to deploy the application server
+      template.alpha.openshift.io/wait-for-ready: "true"
+    labels:
+      app.openshift.io/runtime: nodejs
     name: ${NAME}
   spec:
     replicas: 1
     selector:
       name: ${NAME}
     strategy:
-      type: Rolling
+      type: Recreate
     template:
       metadata:
         labels:
+          app.openshift.io/runtime: nodejs
           name: ${NAME}
         name: ${NAME}
       spec:
         containers:
-        - env:
-          - name: DATABASE_SERVICE_NAME
-            value: ${DATABASE_SERVICE_NAME}
-          - name: MYSQL_USER
-            value: ${DATABASE_USER}
-          - name: MYSQL_PASSWORD
-            value: ${DATABASE_PASSWORD}
-          - name: MYSQL_DATABASE
-            value: ${DATABASE_NAME}
-          - name: MYSQL_ROOT_PASSWORD
-            value: ${DATABASE_ROOT_PASSWORD}
-          image: ' '
-          livenessProbe:
-            httpGet:
-              path: /pagecount
-              port: 8080
-            initialDelaySeconds: 30
-            timeoutSeconds: 3
-          name: nodejs-mariadb-example
-          ports:
-          - containerPort: 8080
-          readinessProbe:
-            httpGet:
-              path: /pagecount
-              port: 8080
-            initialDelaySeconds: 3
-            timeoutSeconds: 3
-          resources:
-            limits:
-              memory: ${MEMORY_LIMIT}
+          - env:
+              - name: DATABASE_SERVICE_NAME
+                value: ${DATABASE_SERVICE_NAME}
+              - name: POSTGRESQL_USER
+                valueFrom:
+                  secretKeyRef:
+                    key: database-user
+                    name: ${NAME}
+              - name: POSTGRESQL_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    key: database-password
+                    name: ${NAME}
+              - name: POSTGRESQL_DATABASE
+                value: ${DATABASE_NAME}
+              - name: POSTGRESQL_ADMIN_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    key: database-admin-password
+                    name: ${NAME}
+            image: ' '
+            livenessProbe:
+              httpGet:
+                path: /
+                port: 8080
+              initialDelaySeconds: 30
+              timeoutSeconds: 3
+            name: nodejs-postgresql-example
+            ports:
+              - containerPort: 8080
+            readinessProbe:
+              httpGet:
+                path: /
+                port: 8080
+              initialDelaySeconds: 3
+              timeoutSeconds: 3
+            resources:
+              limits:
+                memory: ${MEMORY_LIMIT}
     triggers:
-    - imageChangeParams:
-        automatic: false
-        containerNames:
-        - nodejs-mariadb-example
-        from:
-          kind: ImageStreamTag
-          name: ${NAME}:latest
-      type: ImageChange
-    - type: ConfigChange
+      - imageChangeParams:
+          automatic: true
+          containerNames:
+            - nodejs-postgresql-example
+          from:
+            kind: ImageStreamTag
+            name: ${NAME}:latest
+        type: ImageChange
+      - type: ConfigChange
 - apiVersion: v1
   kind: Service
   metadata:
@@ -275,9 +225,9 @@ objects:
     name: ${DATABASE_SERVICE_NAME}
   spec:
     ports:
-    - name: mariadb
-      port: 3306
-      targetPort: 3306
+      - name: postgresql
+        port: 5432
+        targetPort: 5432
     selector:
       name: ${DATABASE_SERVICE_NAME}
 - apiVersion: v1
@@ -285,6 +235,7 @@ objects:
   metadata:
     annotations:
       description: Defines how to deploy the database
+      template.alpha.openshift.io/wait-for-ready: "true"
     name: ${DATABASE_SERVICE_NAME}
   spec:
     replicas: 1
@@ -299,51 +250,132 @@ objects:
         name: ${DATABASE_SERVICE_NAME}
       spec:
         containers:
-        - env:
-          - name: MYSQL_USER
-            value: ${DATABASE_USER}
-          - name: MYSQLB_PASSWORD
-            value: ${DATABASE_PASSWORD}
-          - name: MYSQL_DATABASE
-            value: ${DATABASE_NAME}
-          - name: MYSQL_ROOT_PASSWORD
-            value: ${DATABASE_ROOT_PASSWORD}
-          image: ' '
-          livenessProbe:
-            initialDelaySeconds: 30
-            tcpSocket:
-              port: 27017
-            timeoutSeconds: 1
-          name: mariadb
-          ports:
-          - containerPort: 27017
-          readinessProbe:
-            exec:
-              command:
-              - /bin/sh
-              - -i
-              - -c
-              - MYSQL_PWD=\"$MYSQL_PASSWORD\" mysqladmin -u $MYSQL_USER ping
-            initialDelaySeconds: 3
-            timeoutSeconds: 1
-          resources:
-            limits:
-              memory: ${MEMORY_MARIADB_LIMIT}
-          volumeMounts:
-          - mountPath: /var/lib/mysql/data
-            name: ${DATABASE_SERVICE_NAME}-data
+          - env:
+              - name: POSTGRESQL_USER
+                valueFrom:
+                  secretKeyRef:
+                    key: database-user
+                    name: ${NAME}
+              - name: POSTGRESQL_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    key: database-password
+                    name: ${NAME}
+              - name: POSTGRESQL_DATABASE
+                value: ${DATABASE_NAME}
+              - name: POSTGRESQL_ADMIN_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    key: database-admin-password
+                    name: ${NAME}
+            image: ' '
+            livenessProbe:
+              initialDelaySeconds: 30
+              tcpSocket:
+                port: 5432
+              timeoutSeconds: 1
+            name: postgresql
+            ports:
+              - containerPort: 5432
+            resources:
+              limits:
+                memory: ${MEMORY_POSTGRESQL_LIMIT}
+            volumeMounts:
+              - mountPath: /var/lib/postgresql/data
+                name: ${DATABASE_SERVICE_NAME}-data
         volumes:
-        - emptyDir:
-            medium: ""
-          name: ${DATABASE_SERVICE_NAME}-data
+          - emptyDir:
+              medium: ""
+            name: ${DATABASE_SERVICE_NAME}-data
     triggers:
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - mariadb
-        from:
-          kind: ImageStreamTag
-          name: mariadb:10.3-el8
-          namespace: ${NAMESPACE}
-      type: ImageChange
-    - type: ConfigChange
+      - imageChangeParams:
+          automatic: true
+          containerNames:
+            - postgresql
+          from:
+            kind: ImageStreamTag
+            name: postgresql:${POSTGRESQL_VERSION}
+            namespace: ${NAMESPACE}
+        type: ImageChange
+      - type: ConfigChange
+parameters:
+  - description: The name assigned to all of the frontend objects defined in this template.
+    displayName: Name
+    name: NAME
+    required: true
+    value: nodejs-postgresql-example
+  - description: The OpenShift Namespace where the ImageStream resides.
+    displayName: Namespace
+    name: NAMESPACE
+    required: true
+    value: openshift
+  - description: Version of NodeJS image to be used (10-ubi8, 12-ubi8, or latest).
+    displayName: Version of NodeJS Image
+    name: NODEJS_VERSION
+    required: true
+    value: 12-ubi8
+  - description: Version of PostgreSQL image to be used (12-el8, or latest).
+    displayName: Version of PostgreSQL Image
+    name: POSTGRESQL_VERSION
+    required: true
+    value: 12-el8
+  - description: Maximum amount of memory the Node.js container can use.
+    displayName: Memory Limit
+    name: MEMORY_LIMIT
+    required: true
+    value: 256Mi
+  - description: Maximum amount of memory the PostgreSQL container can use.
+    displayName: Memory Limit (PostgreSQL)
+    name: MEMORY_POSTGRESQL_LIMIT
+    required: true
+    value: 256Mi
+  - description: The URL of the repository with your application source code.
+    displayName: Git Repository URL
+    name: SOURCE_REPOSITORY_URL
+    required: true
+    value: https://github.com/nodeshift-starters/nodejs-rest-http-crud.git
+  - description: Set this to a branch name, tag or other ref of your repository if you are not using the default branch.
+    displayName: Git Reference
+    name: SOURCE_REPOSITORY_REF
+  - description: Set this to the relative path to your project if it is not in the root of your repository.
+    displayName: Context Directory
+    name: CONTEXT_DIR
+  - description: The exposed hostname that will route to the Node.js service, if left blank a value will be defaulted.
+    displayName: Application Hostname
+    name: APPLICATION_DOMAIN
+  - description: Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.
+    displayName: GitHub Webhook Secret
+    from: '[a-zA-Z0-9]{40}'
+    generate: expression
+    name: GITHUB_WEBHOOK_SECRET
+  - description: A secret string used to configure the Generic webhook.
+    displayName: Generic Webhook Secret
+    from: '[a-zA-Z0-9]{40}'
+    generate: expression
+    name: GENERIC_WEBHOOK_SECRET
+  - displayName: Database Service Name
+    name: DATABASE_SERVICE_NAME
+    required: true
+    value: postgresql
+  - description: Username for PostgreSQL user that will be used for accessing the database.
+    displayName: PostgreSQL Username
+    from: user[A-Z0-9]{3}
+    generate: expression
+    name: DATABASE_USER
+  - description: Password for the PostgreSQL user.
+    displayName: PostgreSQL Password
+    from: '[a-zA-Z0-9]{16}'
+    generate: expression
+    name: DATABASE_PASSWORD
+  - displayName: Database Name
+    name: DATABASE_NAME
+    required: true
+    value: my_data
+  - description: Password for the database admin user.
+    displayName: Database Administrator Password
+    from: '[a-zA-Z0-9]{16}'
+    generate: expression
+    name: DATABASE_ADMIN_PASSWORD
+  - description: The custom NPM mirror URL
+    displayName: Custom NPM Mirror URL
+    name: NPM_MIRROR
