@@ -328,6 +328,15 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		)
 	}
 
+	// TODO remove once https://github.com/openshift/cluster-kube-apiserver-operator/pull/1162 merges
+	if apiExtensionsResources, err := kubeClient.Discovery().ServerResourcesForGroupVersion("apiextensions.k8s.io/v1beta1"); err != nil || len(apiExtensionsResources.APIResources) == 0 {
+		removeStorageData(t, etcdStorageData,
+			gvr("apiextensions.k8s.io", "v1beta1", "customresourcedefinitions"),
+			gvr("admissionregistration.k8s.io", "v1beta1", "validatingwebhookconfigurations"),
+			gvr("admissionregistration.k8s.io", "v1beta1", "mutatingwebhookconfigurations"),
+		)
+	}
+
 	// we use a different default path prefix for kube resources
 	for gvr := range etcdStorageData {
 		data := etcdStorageData[gvr]
