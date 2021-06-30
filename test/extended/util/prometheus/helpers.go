@@ -33,6 +33,7 @@ const (
 // PrometheusResponse is used to contain prometheus query results
 type PrometheusResponse struct {
 	Status string                 `json:"status"`
+	Error  string                 `json:"error"`
 	Data   prometheusResponseData `json:"data"`
 }
 
@@ -134,22 +135,43 @@ func StripLabels(m model.Metric, names ...string) model.LabelSet {
 }
 
 func RunQuery(query, ns, execPodName, baseURL, bearerToken string) (*PrometheusResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/query?%s", baseURL, (url.Values{"query": []string{query}}).Encode())
-	contents, err := GetBearerTokenURLViaPod(ns, execPodName, url, bearerToken)
+	queryUrl := fmt.Sprintf("%s/api/v1/query?%s", baseURL, (url.Values{"query": []string{query}}).Encode())
+	result, err := runQuery(queryUrl, ns, execPodName, bearerToken)
 	if err != nil {
 		return nil, fmt.Errorf("unable to execute query %s: %v", query, err)
+	}
+
+	return result, nil
+}
+
+func RunQueryAtTime(query, ns, execPodName, baseURL, bearerToken string, evaluationTime model.Time) (*PrometheusResponse, error) {
+	queryParams := url.Values{"query": []string{query}, "time": []string{evaluationTime.String()}}
+	queryUrl := fmt.Sprintf("%s/api/v1/query?%s", baseURL, queryParams.Encode())
+	result, err := runQuery(queryUrl, ns, execPodName, bearerToken)
+	if err != nil {
+		return nil, fmt.Errorf("unable to execute query %s: %v", query, err)
+	}
+
+	return result, nil
+}
+
+func runQuery(queryUrl, ns, execPodName, bearerToken string) (*PrometheusResponse, error) {
+	contents, err := GetBearerTokenURLViaPod(ns, execPodName, queryUrl, bearerToken)
+	if err != nil {
+		return nil, fmt.Errorf("unable to execute query %v", err)
 	}
 
 	// check query result, if this is a new error log it, otherwise remain silent
 	var result PrometheusResponse
 	if err := json.Unmarshal([]byte(contents), &result); err != nil {
-		return nil, fmt.Errorf("unable to parse query response for %s: %v", query, err)
+		return nil, fmt.Errorf("unable to parse query response: %v", err)
 	}
 	metrics := result.Data.Result
 	if result.Status != "success" {
 		data, _ := json.MarshalIndent(metrics, "", "  ")
-		return nil, fmt.Errorf("promQL query: %s had reported incorrect status:\n%s", query, data)
+		return nil, fmt.Errorf("incorrect response status: %s with error %s", data, result.Error)
 	}
+
 	return &result, nil
 }
 
