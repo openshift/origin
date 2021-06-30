@@ -2185,47 +2185,49 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] [Feature:PerformanceDNS][Serial] Should answer DNS query for maximum number of services per cluster": "Should answer DNS query for maximum number of services per cluster [Slow] [Suite:k8s]",
 
-	"[Top Level] [sig-network] multicast when using one of the plugins 'redhat/openshift-ovs-multitenant, redhat/openshift-ovs-networkpolicy' should allow multicast traffic in namespaces where it is enabled": "should allow multicast traffic in namespaces where it is enabled [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] multicast when using one of the OpenshiftSDN modes 'redhat/openshift-ovs-multitenant, redhat/openshift-ovs-networkpolicy' should allow multicast traffic in namespaces where it is enabled": "should allow multicast traffic in namespaces where it is enabled [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] multicast when using one of the plugins 'redhat/openshift-ovs-multitenant, redhat/openshift-ovs-networkpolicy' should block multicast traffic in namespaces where it is disabled": "should block multicast traffic in namespaces where it is disabled [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] multicast when using one of the OpenshiftSDN modes 'redhat/openshift-ovs-multitenant, redhat/openshift-ovs-networkpolicy' should block multicast traffic in namespaces where it is disabled": "should block multicast traffic in namespaces where it is disabled [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] multicast when using one of the plugins 'redhat/openshift-ovs-subnet' should block multicast traffic": "should block multicast traffic [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] multicast when using one of the OpenshiftSDN modes 'redhat/openshift-ovs-subnet' should block multicast traffic": "should block multicast traffic [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] network isolation when using a plugin that does not isolate namespaces by default should allow communication between pods in different namespaces on different nodes": "should allow communication between pods in different namespaces on different nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] network isolation when using OpenshiftSDN in a mode that does not isolate namespaces by default should allow communication between pods in different namespaces on different nodes": "should allow communication between pods in different namespaces on different nodes [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] network isolation when using a plugin that does not isolate namespaces by default should allow communication between pods in different namespaces on the same node": "should allow communication between pods in different namespaces on the same node [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] network isolation when using OpenshiftSDN in a mode that does not isolate namespaces by default should allow communication between pods in different namespaces on the same node": "should allow communication between pods in different namespaces on the same node [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] network isolation when using a plugin that isolates namespaces by default should allow communication from default to non-default namespace on a different node": "should allow communication from default to non-default namespace on a different node [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] network isolation when using OpenshiftSDN in a mode that isolates namespaces by default should allow communication from default to non-default namespace on a different node": "should allow communication from default to non-default namespace on a different node [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] network isolation when using a plugin that isolates namespaces by default should allow communication from default to non-default namespace on the same node": "should allow communication from default to non-default namespace on the same node [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] network isolation when using OpenshiftSDN in a mode that isolates namespaces by default should allow communication from default to non-default namespace on the same node": "should allow communication from default to non-default namespace on the same node [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] network isolation when using a plugin that isolates namespaces by default should allow communication from non-default to default namespace on a different node": "should allow communication from non-default to default namespace on a different node [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] network isolation when using OpenshiftSDN in a mode that isolates namespaces by default should allow communication from non-default to default namespace on a different node": "should allow communication from non-default to default namespace on a different node [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] network isolation when using a plugin that isolates namespaces by default should allow communication from non-default to default namespace on the same node": "should allow communication from non-default to default namespace on the same node [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] network isolation when using OpenshiftSDN in a mode that isolates namespaces by default should allow communication from non-default to default namespace on the same node": "should allow communication from non-default to default namespace on the same node [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] network isolation when using a plugin that isolates namespaces by default should prevent communication between pods in different namespaces on different nodes": "should prevent communication between pods in different namespaces on different nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] network isolation when using OpenshiftSDN in a mode that isolates namespaces by default should prevent communication between pods in different namespaces on different nodes": "should prevent communication between pods in different namespaces on different nodes [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] network isolation when using a plugin that isolates namespaces by default should prevent communication between pods in different namespaces on the same node": "should prevent communication between pods in different namespaces on the same node [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] network isolation when using OpenshiftSDN in a mode that isolates namespaces by default should prevent communication between pods in different namespaces on the same node": "should prevent communication between pods in different namespaces on the same node [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network] services basic functionality should allow connections to another pod on a different node via a service IP": "should allow connections to another pod on a different node via a service IP [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network] services basic functionality should allow connections to another pod on the same node via a service IP": "should allow connections to another pod on the same node via a service IP [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] services when using a plugin that does not isolate namespaces by default should allow connections to pods in different namespaces on different nodes via service IPs": "should allow connections to pods in different namespaces on different nodes via service IPs [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] services when using OpenshiftSDN in a mode that does not isolate namespaces by default should allow connections to pods in different namespaces on different nodes via service IPs": "should allow connections to pods in different namespaces on different nodes via service IPs [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] services when using a plugin that does not isolate namespaces by default should allow connections to pods in different namespaces on the same node via service IPs": "should allow connections to pods in different namespaces on the same node via service IPs [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] services when using OpenshiftSDN in a mode that does not isolate namespaces by default should allow connections to pods in different namespaces on the same node via service IPs": "should allow connections to pods in different namespaces on the same node via service IPs [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] services when using a plugin that isolates namespaces by default should allow connections from pods in the default namespace to a service in another namespace on a different node": "should allow connections from pods in the default namespace to a service in another namespace on a different node [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] services when using OpenshiftSDN in a mode that isolates namespaces by default should allow connections from pods in the default namespace to a service in another namespace on a different node": "should allow connections from pods in the default namespace to a service in another namespace on a different node [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] services when using a plugin that isolates namespaces by default should allow connections from pods in the default namespace to a service in another namespace on the same node": "should allow connections from pods in the default namespace to a service in another namespace on the same node [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] services when using OpenshiftSDN in a mode that isolates namespaces by default should allow connections from pods in the default namespace to a service in another namespace on the same node": "should allow connections from pods in the default namespace to a service in another namespace on the same node [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] services when using a plugin that isolates namespaces by default should allow connections to services in the default namespace from a pod in another namespace on a different node": "should allow connections to services in the default namespace from a pod in another namespace on a different node [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] services when using OpenshiftSDN in a mode that isolates namespaces by default should allow connections to services in the default namespace from a pod in another namespace on a different node": "should allow connections to services in the default namespace from a pod in another namespace on a different node [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] services when using a plugin that isolates namespaces by default should allow connections to services in the default namespace from a pod in another namespace on the same node": "should allow connections to services in the default namespace from a pod in another namespace on the same node [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] services when using OpenshiftSDN in a mode that isolates namespaces by default should allow connections to services in the default namespace from a pod in another namespace on the same node": "should allow connections to services in the default namespace from a pod in another namespace on the same node [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] services when using a plugin that isolates namespaces by default should prevent connections to pods in different namespaces on different nodes via service IPs": "should prevent connections to pods in different namespaces on different nodes via service IPs [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] services when using OpenshiftSDN in a mode that isolates namespaces by default should prevent connections to pods in different namespaces on different nodes via service IPs": "should prevent connections to pods in different namespaces on different nodes via service IPs [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] services when using a plugin that isolates namespaces by default should prevent connections to pods in different namespaces on the same node via service IPs": "should prevent connections to pods in different namespaces on the same node via service IPs [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] services when using OpenshiftSDN in a mode that isolates namespaces by default should prevent connections to pods in different namespaces on the same node via service IPs": "should prevent connections to pods in different namespaces on the same node via service IPs [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-network][Feature:Network Policy Audit logging] when using openshift ovn-kubernetes should ensure acl logs are created and correct": "should ensure acl logs are created and correct [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network][Feature:Router] The HAProxy router converges when multiple routers are writing conflicting status": "converges when multiple routers are writing conflicting status [Suite:openshift/conformance/parallel]",
 

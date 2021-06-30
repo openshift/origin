@@ -47,10 +47,34 @@ const (
 	// Indicator for same or different node
 	SAME_NODE      NodeType = iota
 	DIFFERENT_NODE NodeType = iota
+
+	// TODO get these defined as constandts in networkutils
+	openshiftSDNPluginName  = "OpenshiftSDN"
+	OVNKubernetesPluginName = "OVNKubernetes"
 )
+
+// IsIPv6 returns true if a group of ips are ipv6.
+func isIpv6(ip []string) bool {
+	ipv6 := false
+
+	for _, ip := range ip {
+		netIP := net.ParseIP(ip)
+		if netIP != nil && netIP.To4() == nil {
+			ipv6 = true
+		} else {
+			ipv6 = false
+		}
+	}
+
+	return ipv6
+}
 
 func expectNoError(err error, explain ...interface{}) {
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), explain...)
+}
+
+func expectError(err error, explain ...interface{}) {
+	ExpectWithOffset(1, err).To(HaveOccurred(), explain...)
 }
 
 func launchWebserverService(f *e2e.Framework, serviceName string, nodeName string) (serviceAddr string) {
@@ -134,13 +158,31 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 
 var cachedNetworkPluginName *string
 
-func networkPluginName() string {
+func openshiftSDNMode() string {
 	if cachedNetworkPluginName == nil {
 		// We don't use exutil.NewCLI() here because it can't be called from BeforeEach()
 		out, err := exec.Command(
 			"oc", "--kubeconfig="+exutil.KubeConfigPath(),
 			"get", "clusternetwork", "default",
 			"--template={{.pluginName}}",
+		).CombinedOutput()
+		pluginName := string(out)
+		if err != nil {
+			e2e.Logf("Could not check network plugin name: %v. Assuming the OpenshiftSDN plugin is not being used", err)
+			pluginName = ""
+		}
+		cachedNetworkPluginName = &pluginName
+	}
+	return *cachedNetworkPluginName
+}
+
+func networkPluginName() string {
+	if cachedNetworkPluginName == nil {
+		// We don't use exutil.NewCLI() here because it can't be called from BeforeEach()
+		out, err := exec.Command(
+			"oc", "--kubeconfig="+exutil.KubeConfigPath(),
+			"get", "network", "cluster",
+			"--template={{.spec.networkType}}",
 		).CombinedOutput()
 		pluginName := string(out)
 		if err != nil {
@@ -157,14 +199,16 @@ func pluginIsolatesNamespaces() bool {
 		return true
 	}
 	// Assume that only the OpenShift SDN "multitenant" plugin isolates by default
-	return networkPluginName() == networkutils.MultiTenantPluginName
+	return openshiftSDNMode() == networkutils.MultiTenantPluginName
 }
 
 func pluginImplementsNetworkPolicy() bool {
 	switch {
 	case os.Getenv("NETWORKING_E2E_NETWORKPOLICY") == "true":
 		return true
-	case networkPluginName() == networkutils.NetworkPolicyPluginName:
+	case networkPluginName() == openshiftSDNPluginName && openshiftSDNMode() == networkutils.NetworkPolicyPluginName:
+		return true
+	case networkPluginName() == OVNKubernetesPluginName:
 		return true
 	default:
 		// If we can't detect the plugin, we assume it doesn't support
@@ -290,7 +334,7 @@ func checkServiceConnectivity(serverFramework, clientFramework *e2e.Framework, n
 }
 
 func InNonIsolatingContext(body func()) {
-	Context("when using a plugin that does not isolate namespaces by default", func() {
+	Context("when using OpenshiftSDN in a mode that does not isolate namespaces by default", func() {
 		BeforeEach(func() {
 			if pluginIsolatesNamespaces() {
 				e2eskipper.Skipf("This plugin isolates namespaces by default.")
@@ -302,7 +346,7 @@ func InNonIsolatingContext(body func()) {
 }
 
 func InIsolatingContext(body func()) {
-	Context("when using a plugin that isolates namespaces by default", func() {
+	Context("when using OpenshiftSDN in a mode that isolates namespaces by default", func() {
 		BeforeEach(func() {
 			if !pluginIsolatesNamespaces() {
 				e2eskipper.Skipf("This plugin does not isolate namespaces by default.")
@@ -325,19 +369,19 @@ func InNetworkPolicyContext(body func()) {
 	})
 }
 
-func InPluginContext(plugins []string, body func()) {
-	Context(fmt.Sprintf("when using one of the plugins '%s'", strings.Join(plugins, ", ")),
+func InopenshiftSDNModeContext(plugins []string, body func()) {
+	Context(fmt.Sprintf("when using one of the OpenshiftSDN modes '%s'", strings.Join(plugins, ", ")),
 		func() {
 			BeforeEach(func() {
 				found := false
 				for _, plugin := range plugins {
-					if networkPluginName() == plugin {
+					if openshiftSDNMode() == plugin {
 						found = true
 						break
 					}
 				}
 				if !found {
-					e2eskipper.Skipf("Not using one of the specified plugins")
+					e2eskipper.Skipf("Not using one of the specified OpenshiftSDN modes")
 				}
 			})
 
@@ -350,7 +394,21 @@ func InOpenShiftSDNContext(body func()) {
 	Context("when using openshift-sdn",
 		func() {
 			BeforeEach(func() {
-				if networkPluginName() == "" {
+				if networkPluginName() != openshiftSDNPluginName {
+					e2eskipper.Skipf("Not using openshift-sdn")
+				}
+			})
+
+			body()
+		},
+	)
+}
+
+func InOVNKubernetesContext(body func()) {
+	Context("when using openshift ovn-kubernetes",
+		func() {
+			BeforeEach(func() {
+				if networkPluginName() != OVNKubernetesPluginName {
 					e2eskipper.Skipf("Not using openshift-sdn")
 				}
 			})
