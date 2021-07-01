@@ -53,6 +53,18 @@ func (c *CentosImageStreamsComponentOptions) Name() string {
 }
 
 func (c *CentosImageStreamsComponentOptions) Install(dockerClient dockerhelper.Interface) error {
+	secretComponent := DockerConfigSecret{
+		Name:      "imagestreamsecret",
+		Namespace: "openshift",
+	}
+
+	err := secretComponent.MakeReady(
+		c.InstallContext.ClientImage(),
+		c.InstallContext.BaseDir()).Install(dockerClient)
+	if err != nil {
+		return err
+	}
+
 	component := componentinstall.List{
 		Name:      c.Name(),
 		Namespace: "openshift",
