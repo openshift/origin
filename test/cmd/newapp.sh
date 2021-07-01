@@ -27,9 +27,9 @@ os::cmd::try_until_failure 'oc get istag php:latest -n openshift'
 os::cmd::expect_failure 'oc new-app --image-stream=openshift/php https://github.com/sclorg/cakephp-ex'
 
 # should succeed and create the php:latest tag in the current namespace
-os::cmd::expect_success 'oc new-app --docker-image=library/php https://github.com/sclorg/cakephp-ex --strategy=source'
-os::cmd::try_until_success 'oc get istag php:latest -n test-imagestreams'
-os::cmd::expect_success 'oc create istag php:latest --from=openshift/php:7.1 -n openshift'
+os::cmd::expect_success 'oc new-app --docker-image=registry.access.redhat.com/ubi7/php-73 https://github.com/sclorg/cakephp-ex --strategy=source --name=php'
+os::cmd::try_until_success 'oc get istag php-73:latest -n test-imagestreams'
+os::cmd::expect_success 'oc create istag php-73:latest --from=openshift/php:7.3 -n openshift'
 
 # create a new tag for an existing imagestream in the current namespace
 os::cmd::expect_success 'oc create istag perl:5.20 --from=openshift/perl:5.20'
