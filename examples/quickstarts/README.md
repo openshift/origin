@@ -20,9 +20,6 @@ instantiating them.
 * [Django](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/django/templates/django-psql-example.json) - Provides a basic Django (Python) application with a PostgreSQL database. For more information see the [source repository](https://github.com/sclorg/django-ex).
 * [Django persistent](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/django/templates/django-psql-persistent.json) - Provides a basic Django (Python) application with a persistent PostgreSQL database. Note: requires available persistent volumes.  For more information see the [source repository](https://github.com/sclorg/django-ex).
 
-* [.NET Core](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/dotnet/templates/dotnet-example.json) - Provides a basic .NET Core application. For more information see the [source repository](https://github.com/redhat-developer/s2i-dotnetcore).
-* [[.NET Core persistent](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/dotnet/templates/dotnet-pgsql-persistent.json) - Provides a basic .NET Core application with a persistent PostgreSQL database. Note: requires available persistent volumes.  For more information see the [source repository](https://github.com/redhat-developer/s2i-dotnetcore).
-
 * [Httpd](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/httpd/templates/httpd-example.json) - Provides a basic Httpd static content application. For more information see the [source repository](https://github.com/openshift/httpd-ex).
 
 * [Nginx](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/nginx/templates/nginx-example.json) - Provides a basic Nginx static content application. For more information see the [source repository](https://github.com/sclorg/nginx-ex).
