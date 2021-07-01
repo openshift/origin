@@ -13,6 +13,7 @@ import (
 	"github.com/blang/semver"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -110,7 +111,7 @@ func (t *availableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 	end := time.Now()
 
 	// starting from 4.8, enforce the requirement that control plane remains available
-	hasAllFixes, err := allClusterVersionsAreGTE(semver.Version{Major: 4, Minor: 8}, config)
+	hasAllFixes, err := util.AllClusterVersionsAreGTE(semver.Version{Major: 4, Minor: 8}, config)
 	if err != nil {
 		framework.Logf("Cannot require full control plane availability, some versions could not be checked: %v", err)
 	}

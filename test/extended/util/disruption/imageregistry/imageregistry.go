@@ -122,7 +122,21 @@ func (t *AvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 	cancel()
 	end := time.Now()
 
-	disruption.ExpectNoDisruption(f, 0.20, end.Sub(start), m.Intervals(time.Time{}, time.Time{}), "Image registry was unreachable during disruption")
+	toleratedDisruption := 0.20
+	// BUG: https://bugzilla.redhat.com/show_bug.cgi?id=1972827
+	// starting from 4.x, enforce the requirement that ingress remains available
+	// hasAllFixes, err := util.AllClusterVersionsAreGTE(semver.Version{Major: 4, Minor: 8}, config)
+	// if err != nil {
+	// 	framework.Logf("Cannot require full control plane availability, some versions could not be checked: %v", err)
+	// }
+	// switch {
+	// case framework.ProviderIs("azure"), framework.ProviderIs("aws"), framework.ProviderIs("gce"):
+	// 	if hasAllFixes {
+	// 		framework.Logf("Cluster contains no versions older than 4.8, tolerating no disruption")
+	// 		toleratedDisruption = 0
+	// 	}
+	// }
+	disruption.ExpectNoDisruption(f, toleratedDisruption, end.Sub(start), m.Intervals(time.Time{}, time.Time{}), "Image registry was unreachable during disruption (https://bugzilla.redhat.com/show_bug.cgi?id=1972827)")
 }
 
 // Teardown cleans up any remaining resources.

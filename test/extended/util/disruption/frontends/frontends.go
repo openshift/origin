@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
 	"github.com/onsi/ginkgo"
@@ -25,6 +26,7 @@ import (
 
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
 )
 
@@ -77,6 +79,8 @@ func (t *AvailableTest) Setup(f *framework.Framework) {
 
 // Test runs a connectivity check to the service.
 func (t *AvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
+	config, err := framework.LoadConfig()
+	framework.ExpectNoError(err)
 	client, err := framework.LoadClientset()
 	framework.ExpectNoError(err)
 
@@ -105,7 +109,21 @@ func (t *AvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 	cancel()
 	end := time.Now()
 
-	disruption.ExpectNoDisruption(f, 0.20, end.Sub(start), m.Intervals(time.Time{}, time.Time{}), "Frontends were unreachable during disruption")
+	// starting from 4.8, enforce the requirement that frontends remains available
+	hasAllFixes, err := util.AllClusterVersionsAreGTE(semver.Version{Major: 4, Minor: 8}, config)
+	if err != nil {
+		framework.Logf("Cannot require full control plane availability, some versions could not be checked: %v", err)
+	}
+
+	toleratedDisruption := 0.20
+	switch {
+	case framework.ProviderIs("azure"), framework.ProviderIs("aws"), framework.ProviderIs("gce"):
+		if hasAllFixes {
+			framework.Logf("Cluster contains no versions older than 4.8, tolerating no disruption")
+			toleratedDisruption = 0
+		}
+	}
+	disruption.ExpectNoDisruption(f, toleratedDisruption, end.Sub(start), m.Intervals(time.Time{}, time.Time{}), "Frontends were unreachable during disruption")
 }
 
 // Teardown cleans up any remaining resources.
