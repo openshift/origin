@@ -32,9 +32,9 @@ os::cmd::try_until_success 'oc get istag php-73:latest -n test-imagestreams'
 os::cmd::expect_success 'oc create istag php-73:latest --from=openshift/php:7.3 -n openshift'
 
 # create a new tag for an existing imagestream in the current namespace
-os::cmd::expect_success 'oc create istag perl:5.20 --from=openshift/perl:5.20'
-os::cmd::expect_success 'oc new-app --docker-image=library/perl https://github.com/sclorg/dancer-ex --strategy=source'
-os::cmd::try_until_success 'oc get istag perl:latest -n test-imagestreams'
+os::cmd::expect_success 'oc create istag perl:5.26 --from=openshift/perl:5.26'
+os::cmd::expect_success 'oc new-app --docker-image=registry.access.redhat.com/ubi8/perl-530  https://github.com/sclorg/dancer-ex --strategy=source'
+os::cmd::try_until_success 'oc get istag perl:5.26 -n test-imagestreams'
 
 # remove redundant imagestream tag before creating objects
 os::cmd::expect_success_and_text 'oc new-app registry.access.redhat.com/ubi8/ruby-27 https://github.com/openshift/ruby-hello-world  --strategy=docker --loglevel=5' 'Removing duplicate tag from object list'
