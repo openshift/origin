@@ -338,8 +338,8 @@ var _ = SIGDescribe("ResourceQuota", func() {
 		ginkgo.By("Ensuring resource quota status captures configMap creation")
 		usedResources = v1.ResourceList{}
 		usedResources[v1.ResourceQuotas] = resource.MustParse(strconv.Itoa(c + 1))
-		// we expect there to be two configmaps because each namespace will receive
-		// a ca.crt configmap by default.
+		// we expect there to be three configmaps because each namespace will receive
+		// a ca.crt configmap and an openshift-service-ca.crt configmap by default.
 		// ref:https://github.com/kubernetes/kubernetes/pull/68812
 		usedResources[v1.ResourceConfigMaps] = resource.MustParse(hardConfigMaps)
 		err = waitForResourceQuota(f.ClientSet, f.Namespace.Name, quotaName, usedResources)
@@ -1478,7 +1478,10 @@ func newTestResourceQuota(name string) *v1.ResourceQuota {
 	hard[v1.ResourceQuotas] = resource.MustParse("1")
 	hard[v1.ResourceCPU] = resource.MustParse("1")
 	hard[v1.ResourceMemory] = resource.MustParse("500Mi")
-	hard[v1.ResourceConfigMaps] = resource.MustParse("2")
+	// Update configmap quota from 2 to 3 to account for the addition of
+	// openshift-service-ca.crt configmap to every namespace to allow
+	// BoundServiceAccountTokenVolume to be enabled in 4.8.
+	hard[v1.ResourceConfigMaps] = resource.MustParse("3")
 	hard[v1.ResourceSecrets] = resource.MustParse("10")
 	hard[v1.ResourcePersistentVolumeClaims] = resource.MustParse("10")
 	hard[v1.ResourceRequestsStorage] = resource.MustParse("10Gi")
