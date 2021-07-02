@@ -93,20 +93,13 @@ func isInfrastructureDeployment(deployment appsv1.Deployment) bool {
 	return false
 }
 
-func validateReplicas(name, namespace string, replicas int, failureAllowed bool) {
-	if !failureAllowed {
-		gomega.Expect(replicas).To(gomega.Equal(1),
-			"%s in %s namespace expected to have 1 replica but got %d", name, namespace, replicas)
-	} else {
-		if replicas == 1 {
-			framework.Logf("%s in namespace %s has one replica, consider taking it off the topology allow-list",
-				name, namespace)
-		}
-	}
+func validateReplicas(name, namespace string, replicas int) {
+	gomega.Expect(replicas).To(gomega.Equal(1),
+		"%s in %s namespace expected to have 1 replica but got %d", name, namespace, replicas)
 }
 
 func validateStatefulSetReplicas(statefulSet appsv1.StatefulSet, controlPlaneTopology,
-	infraTopology v1.TopologyMode, failureAllowed bool) {
+	infraTopology v1.TopologyMode) {
 	if isInfrastructureStatefulSet(statefulSet) {
 		if infraTopology != v1.SingleReplicaTopologyMode {
 			return
@@ -117,11 +110,11 @@ func validateStatefulSetReplicas(statefulSet appsv1.StatefulSet, controlPlaneTop
 
 	gomega.Expect(statefulSet.Spec.Replicas).ToNot(gomega.BeNil())
 
-	validateReplicas(statefulSet.Name, statefulSet.Namespace, int(*statefulSet.Spec.Replicas), failureAllowed)
+	validateReplicas(statefulSet.Name, statefulSet.Namespace, int(*statefulSet.Spec.Replicas))
 }
 
 func validateDeploymentReplicas(deployment appsv1.Deployment,
-	controlPlaneTopology, infraTopology v1.TopologyMode, failureAllowed bool) {
+	controlPlaneTopology, infraTopology v1.TopologyMode) {
 	if isInfrastructureDeployment(deployment) {
 		if infraTopology != v1.SingleReplicaTopologyMode {
 			return
@@ -132,42 +125,7 @@ func validateDeploymentReplicas(deployment appsv1.Deployment,
 
 	gomega.Expect(deployment.Spec.Replicas).ToNot(gomega.BeNil())
 
-	validateReplicas(deployment.Name, deployment.Namespace, int(*deployment.Spec.Replicas), failureAllowed)
-}
-
-func isAllowedToFail(name, namespace string) bool {
-	// allowedToFail is a list of deployments and statefulsets that currently have 2 replicas
-	// even in single-replica topology deployments, because their operator has yet to be made
-	// aware of the new API. We will slowly remove deployments from this list once their operators
-	// have been made aware, until this list is empty and this function will be removed.
-	allowedToFail := map[string][]string{
-		"openshift-operator-lifecycle-manager": {
-			// Deployments
-			"packageserver",
-		},
-	}
-
-	namespaceAllowedToFailDeployments, ok := allowedToFail[namespace]
-
-	if !ok {
-		return false
-	}
-
-	for _, allowedToFailDeploymentName := range namespaceAllowedToFailDeployments {
-		if name == allowedToFailDeploymentName {
-			return true
-		}
-	}
-
-	return false
-}
-
-func isDeploymentAllowedToFail(deployment appsv1.Deployment) bool {
-	return isAllowedToFail(deployment.Name, deployment.Namespace)
-}
-
-func isStatefulSetAllowedToFail(statefulSet appsv1.StatefulSet) bool {
-	return isAllowedToFail(statefulSet.Name, statefulSet.Namespace)
+	validateReplicas(deployment.Name, deployment.Namespace, int(*deployment.Spec.Replicas))
 }
 
 var _ = ginkgo.Describe("[sig-arch] Cluster topology single node tests", func() {
@@ -182,13 +140,11 @@ var _ = ginkgo.Describe("[sig-arch] Cluster topology single node tests", func() 
 
 		for _, namespace := range getOpenshiftNamespaces(f) {
 			for _, deployment := range getNamespaceDeployments(f, namespace) {
-				validateDeploymentReplicas(deployment,
-					controlPlaneTopology, infraTopology, isDeploymentAllowedToFail(deployment))
+				validateDeploymentReplicas(deployment, controlPlaneTopology, infraTopology)
 			}
 
 			for _, statefulSet := range getNamespaceStatefulSets(f, namespace) {
-				validateStatefulSetReplicas(statefulSet,
-					controlPlaneTopology, infraTopology, isStatefulSetAllowedToFail(statefulSet))
+				validateStatefulSetReplicas(statefulSet, controlPlaneTopology, infraTopology)
 			}
 		}
 	})
