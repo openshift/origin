@@ -135,45 +135,11 @@ func validateDeploymentReplicas(deployment appsv1.Deployment,
 	validateReplicas(deployment.Name, deployment.Namespace, int(*deployment.Spec.Replicas), failureAllowed)
 }
 
-func isAllowedToFail(name, namespace string) bool {
-	// allowedToFail is a list of deployments and statefulsets that currently have 2 replicas
-	// even in single-replica topology deployments, because their operator has yet to be made
-	// aware of the new API. We will slowly remove deployments from this list once their operators
-	// have been made aware, until this list is empty and this function will be removed.
-	allowedToFail := map[string][]string{
-		"openshift-operator-lifecycle-manager": {
-			// Deployments
-			"packageserver",
-		},
-	}
-
-	namespaceAllowedToFailDeployments, ok := allowedToFail[namespace]
-
-	if !ok {
-		return false
-	}
-
-	for _, allowedToFailDeploymentName := range namespaceAllowedToFailDeployments {
-		if name == allowedToFailDeploymentName {
-			return true
-		}
-	}
-
-	return false
-}
-
-func isDeploymentAllowedToFail(deployment appsv1.Deployment) bool {
-	return isAllowedToFail(deployment.Name, deployment.Namespace)
-}
-
-func isStatefulSetAllowedToFail(statefulSet appsv1.StatefulSet) bool {
-	return isAllowedToFail(statefulSet.Name, statefulSet.Namespace)
-}
-
 var _ = ginkgo.Describe("[sig-arch] Cluster topology single node tests", func() {
 	f := framework.NewDefaultFramework("single-node")
 
 	ginkgo.It("Verify that OpenShift components deploy one replica in SingleReplica topology mode", func() {
+		var failureAllowed bool
 		controlPlaneTopology, infraTopology := getTopologies(f)
 
 		if controlPlaneTopology != v1.SingleReplicaTopologyMode && infraTopology != v1.SingleReplicaTopologyMode {
@@ -182,13 +148,11 @@ var _ = ginkgo.Describe("[sig-arch] Cluster topology single node tests", func() 
 
 		for _, namespace := range getOpenshiftNamespaces(f) {
 			for _, deployment := range getNamespaceDeployments(f, namespace) {
-				validateDeploymentReplicas(deployment,
-					controlPlaneTopology, infraTopology, isDeploymentAllowedToFail(deployment))
+				validateDeploymentReplicas(deployment, controlPlaneTopology, infraTopology, failureAllowed)
 			}
 
 			for _, statefulSet := range getNamespaceStatefulSets(f, namespace) {
-				validateStatefulSetReplicas(statefulSet,
-					controlPlaneTopology, infraTopology, isStatefulSetAllowedToFail(statefulSet))
+				validateStatefulSetReplicas(statefulSet, controlPlaneTopology, infraTopology, failureAllowed)
 			}
 		}
 	})
