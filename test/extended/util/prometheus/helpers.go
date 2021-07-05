@@ -157,6 +157,7 @@ func RunQueryAtTime(query, ns, execPodName, baseURL, bearerToken string, evaluat
 
 func runQuery(queryUrl, ns, execPodName, bearerToken string) (*PrometheusResponse, error) {
 	contents, err := GetBearerTokenURLViaPod(ns, execPodName, queryUrl, bearerToken)
+	framework.Logf("Helper: get bearer token")
 	if err != nil {
 		return nil, fmt.Errorf("unable to execute query %v", err)
 	}
@@ -166,12 +167,14 @@ func runQuery(queryUrl, ns, execPodName, bearerToken string) (*PrometheusRespons
 	if err := json.Unmarshal([]byte(contents), &result); err != nil {
 		return nil, fmt.Errorf("unable to parse query response: %v", err)
 	}
+	framework.Logf("Helper: metrics %v", result.Data)
 	metrics := result.Data.Result
 	if result.Status != "success" {
 		data, _ := json.MarshalIndent(metrics, "", "  ")
 		return nil, fmt.Errorf("incorrect response status: %s with error %s", data, result.Error)
 	}
 
+	framework.Logf("Helper: return result")
 	return &result, nil
 }
 
