@@ -131,6 +131,7 @@ func SetUpgradeAbortAt(policy string) error {
 }
 
 var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
+	defer g.GinkgoRecover()
 	f := framework.NewDefaultFramework("cluster-upgrade")
 	f.SkipNamespaceCreation = true
 	f.SkipPrivilegedPSPBinding = true
