@@ -31,6 +31,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/test/e2e/upgrade/alert"
+	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
 	"github.com/openshift/origin/test/e2e/upgrade/service"
 	"github.com/openshift/origin/test/extended/prometheus"
 	"github.com/openshift/origin/test/extended/util/disruption"
@@ -54,6 +55,7 @@ func AllTests() []upgrades.Test {
 		controlplane.NewKubeAvailableWithConnectionReuseTest(),
 		controlplane.NewOpenShiftAvailableWithConnectionReuseTest(),
 		controlplane.NewOAuthAvailableWithConnectionReuseTest(),
+		&manifestdelete.UpgradeTest{},
 		&alert.UpgradeTest{},
 		&frontends.AvailableTest{},
 		&service.UpgradeTest{},
