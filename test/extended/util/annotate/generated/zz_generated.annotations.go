@@ -1853,7 +1853,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation][Late] Alerts should have a Watchdog alert in firing state the entire cluster run": "should have a Watchdog alert in firing state the entire cluster run [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster": "shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't exceed the 600 series limit of total series sent via telemetry from each cluster": "shouldn't exceed the 600 series limit of total series sent via telemetry from each cluster [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured": "shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Suite:openshift/conformance/parallel]",
 
