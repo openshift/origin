@@ -61,7 +61,7 @@ update: update-bindata
 #	make update-examples
 update-examples:
 	hack/update-external-examples.sh
-	update-bindata
+	$(MAKE) update-bindata
 .PHONY: update-examples
 
 # Run tools tests.
