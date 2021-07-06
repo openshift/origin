@@ -15,6 +15,13 @@ function os::build::environment::create() {
   workingdir=$( os::build::environment::release::workingdir )
   additional_context+=" -w ${workingdir}"
 
+  if [[ -d "${HOME}/.docker" ]]; then
+    os::log::debug "Mounting docker credentials"
+    additional_context+=" -v ${HOME}/.docker:/root/.docker"
+  else
+    os::log::debug "No docker credentials found"
+  fi
+
   if [[ "${OS_BUILD_ENV_USE_DOCKER:-y}" == "y" ]]; then
     additional_context+=" --privileged -v /var/run/docker.sock:/var/run/docker.sock"
 
