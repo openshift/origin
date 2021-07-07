@@ -8,7 +8,6 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	"github.com/openshift/origin/test/extended/util/ibmcloud"
 	"github.com/stretchr/objx"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -140,10 +139,6 @@ func scaleMachineSet(name string, replicas int) error {
 
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cluster should", func() {
 	g.It("grow and decrease when scaling different machineSets simultaneously", func() {
-		if e2e.TestContext.Provider == ibmcloud.ProviderName {
-			e2eskipper.Skipf("IBM Cloud clusters do not contain machineset resources")
-		}
-
 		// expect new nodes to come up for machineSet
 		verifyNodeScalingFunc := func(c *kubernetes.Clientset, dc dynamic.Interface, expectedScaleOut int, machineSet objx.Map) bool {
 			nodes, err := getNodesFromMachineSet(c, dc, machineName(machineSet))
@@ -169,6 +164,10 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 		o.Expect(err).NotTo(o.HaveOccurred())
 		dc, err := dynamic.NewForConfig(cfg)
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("checking for the openshift machine api operator")
+		// TODO: skip if platform != aws
+		skipUnlessMachineAPIOperator(dc, c.CoreV1().Namespaces())
 
 		g.By("fetching worker machineSets")
 		machineSets, err := listWorkerMachineSets(dc)

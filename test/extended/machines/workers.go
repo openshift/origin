@@ -129,7 +129,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Disruptive] Manage
 
 		g.By("checking for the openshift machine api operator")
 		// TODO: skip if platform != aws
-		skipUnlessMachineAPIOperator(c.CoreV1().Namespaces())
+		skipUnlessMachineAPIOperator(dc, c.CoreV1().Namespaces())
 
 		g.By("validating node and machine invariants")
 		// fetch all machines
