@@ -23,7 +23,7 @@ import (
 	"k8s.io/client-go/restmapper"
 	"k8s.io/kubernetes/test/e2e/framework"
 
-	exetcd "github.com/openshift/origin/test/extended/etcd"
+	exetcd "github.com/openshift/origin/test/extended/openshift/cluster-etcd-operator"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
