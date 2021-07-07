@@ -240,6 +240,10 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1825027
 			`\[Feature:Platform\] Managed cluster should ensure control plane operators do not make themselves unevictable`,
 		},
+		"[Skipped:NonHighlyAvailable]": {
+			`\[sig-node\] NoExecuteTaintManager Single Pod`,
+			`\[sig-node\] NoExecuteTaintManager Multiple Pods`,
+		},
 	}
 
 	// labelExcludes temporarily block tests out of a specific suite

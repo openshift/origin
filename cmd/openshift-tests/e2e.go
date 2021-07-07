@@ -91,6 +91,24 @@ var staticSuites = testSuites{
 	},
 	{
 		TestSuite: ginkgo.TestSuite{
+			Name: "openshift/conformance/serial-non-highly-available",
+			Description: templates.LongDesc(`
+		Same as openshift/conformance/serial, but with tests that assume high-availability removed, for Single Node Openshift.
+		`),
+			Matches: func(name string) bool {
+				if isDisabled(name) {
+					return false
+				}
+                isSerial := strings.Contains(name, "[Suite:openshift/conformance/serial")
+                isAssumingHa := strings.Contains(name, "[Skipped:NonHighlyAvailable]")
+                return (isSerial && !isAssumingHa) || isStandardEarlyOrLateTest(name)
+			},
+			SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
+		},
+		PreSuite: suiteWithProviderPreSuite,
+	},
+	{
+		TestSuite: ginkgo.TestSuite{
 			Name: "openshift/disruptive",
 			Description: templates.LongDesc(`
 		The disruptive test suite.
