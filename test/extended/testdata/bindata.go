@@ -20,8 +20,6 @@
 // examples/quickstarts/dancer-mysql.json
 // examples/quickstarts/django-postgresql-persistent.json
 // examples/quickstarts/django-postgresql.json
-// examples/quickstarts/dotnet-pgsql-persistent.json
-// examples/quickstarts/dotnet.json
 // examples/quickstarts/httpd.json
 // examples/quickstarts/nginx.json
 // examples/quickstarts/nodejs-postgresql-persistent.json
@@ -3611,6 +3609,27 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             }
           },
           {
+            "name": "14-ubi8-minimal",
+            "annotations": {
+              "description": "Build and run Node.js 14 applications on UBI 8 Minimal. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/14/README.md.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 14 (UBI 8 Minimal)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "tags": "builder,nodejs",
+              "version": "14"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi8/nodejs-14-minimal:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
             "name": "14-ubi7",
             "annotations": {
               "description": "Build and run Node.js 14 applications on UBI 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/14/README.md.",
@@ -3618,7 +3637,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "openshift.io/display-name": "Node.js 14 (UBI 7)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
-              "tags": "builder,nodejs",
+              "tags": "builder,nodejs,hidden",
               "version": "14"
             },
             "from": {
@@ -3660,7 +3679,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "openshift.io/display-name": "Node.js 12 (UBI 7)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
-              "tags": "builder,nodejs",
+              "tags": "builder,nodejs,hidden",
               "version": "12"
             },
             "from": {
@@ -3795,6 +3814,28 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "quay.io/centos7/perl-530-centos7:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "5.26-ubi8",
+            "annotations": {
+              "description": "Build and run Perl 5.26 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.26-mod_fcgid/README.md.",
+              "iconClass": "icon-perl",
+              "openshift.io/display-name": "Perl 5.26 (UBI 8)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
+              "supports": "perl:5.26,perl",
+              "tags": "builder,perl",
+              "version": "5.26"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi8/perl-526:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -4136,7 +4177,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Python applications on UBI. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.8/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Python available on OpenShift, including major version updates.",
+              "description": "Build and run Python applications on UBI. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.9/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Python available on OpenShift, including major version updates.",
               "iconClass": "icon-python",
               "openshift.io/display-name": "Python (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -4146,7 +4187,29 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "3.8-ubi8"
+              "name": "3.9-ubi8"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "3.9-ubi8",
+            "annotations": {
+              "description": "Build and run Python 3.9 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.9/README.md.",
+              "iconClass": "icon-python",
+              "openshift.io/display-name": "Python 3.9 (UBI 8)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
+              "supports": "python:3.9,python",
+              "tags": "builder,python",
+              "version": "3.9"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi8/python-39:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -4990,6 +5053,28 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "quay.io/wildfly/wildfly-centos7:23.0"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "24.0",
+            "annotations": {
+              "description": "Build and run WildFly 24 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/wildfly/wildfly-s2i/blob/current/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 24",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:24,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "24.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "quay.io/wildfly/wildfly-centos7:24.0"
             },
             "generation": null,
             "importPolicy": {},
@@ -10093,40 +10178,6 @@ func examplesQuickstartsDjangoPostgresqlJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "examples/quickstarts/django-postgresql.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _examplesQuickstartsDotnetPgsqlPersistentJson = []byte(`404: Not Found`)
-
-func examplesQuickstartsDotnetPgsqlPersistentJsonBytes() ([]byte, error) {
-	return _examplesQuickstartsDotnetPgsqlPersistentJson, nil
-}
-
-func examplesQuickstartsDotnetPgsqlPersistentJson() (*asset, error) {
-	bytes, err := examplesQuickstartsDotnetPgsqlPersistentJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "examples/quickstarts/dotnet-pgsql-persistent.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _examplesQuickstartsDotnetJson = []byte(`404: Not Found`)
-
-func examplesQuickstartsDotnetJsonBytes() ([]byte, error) {
-	return _examplesQuickstartsDotnetJson, nil
-}
-
-func examplesQuickstartsDotnetJson() (*asset, error) {
-	bytes, err := examplesQuickstartsDotnetJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "examples/quickstarts/dotnet.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -53175,8 +53226,6 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/quickstarts/dancer-mysql.json":                                                                 examplesQuickstartsDancerMysqlJson,
 	"examples/quickstarts/django-postgresql-persistent.json":                                                 examplesQuickstartsDjangoPostgresqlPersistentJson,
 	"examples/quickstarts/django-postgresql.json":                                                            examplesQuickstartsDjangoPostgresqlJson,
-	"examples/quickstarts/dotnet-pgsql-persistent.json":                                                      examplesQuickstartsDotnetPgsqlPersistentJson,
-	"examples/quickstarts/dotnet.json":                                                                       examplesQuickstartsDotnetJson,
 	"examples/quickstarts/httpd.json":                                                                        examplesQuickstartsHttpdJson,
 	"examples/quickstarts/nginx.json":                                                                        examplesQuickstartsNginxJson,
 	"examples/quickstarts/nodejs-postgresql-persistent.json":                                                 examplesQuickstartsNodejsPostgresqlPersistentJson,
@@ -53729,8 +53778,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"dancer-mysql.json":                 {examplesQuickstartsDancerMysqlJson, map[string]*bintree{}},
 			"django-postgresql-persistent.json": {examplesQuickstartsDjangoPostgresqlPersistentJson, map[string]*bintree{}},
 			"django-postgresql.json":            {examplesQuickstartsDjangoPostgresqlJson, map[string]*bintree{}},
-			"dotnet-pgsql-persistent.json":      {examplesQuickstartsDotnetPgsqlPersistentJson, map[string]*bintree{}},
-			"dotnet.json":                       {examplesQuickstartsDotnetJson, map[string]*bintree{}},
 			"httpd.json":                        {examplesQuickstartsHttpdJson, map[string]*bintree{}},
 			"nginx.json":                        {examplesQuickstartsNginxJson, map[string]*bintree{}},
 			"nodejs-postgresql-persistent.json": {examplesQuickstartsNodejsPostgresqlPersistentJson, map[string]*bintree{}},
