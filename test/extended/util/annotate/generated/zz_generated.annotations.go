@@ -1477,9 +1477,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-devex][Feature:JenkinsRHELImagesOnly][Slow] openshift pipeline build  Sync plugin tests using the ephemeral template": "using the ephemeral template",
 
-	"[Top Level] [sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshift using slow openshift pipeline build  Sync plugin tests using the ephemeral template": "using the ephemeral template",
+	"[Top Level] [sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshift using slow openshift pipeline build-GGM-sanity-check  Sync plugin tests using the ephemeral template": "using the ephemeral template",
 
-	"[Top Level] [sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshift using slow openshift pipeline build  Sync plugin tests using the persistent template": "using the persistent template",
+	"[Top Level] [sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshift using slow openshift pipeline build-GGM-sanity-check  Sync plugin tests using the persistent template": "using the persistent template",
 
 	"[Top Level] [sig-devex][Feature:OpenShiftControllerManager] TestAutomaticCreationOfPullSecrets": "TestAutomaticCreationOfPullSecrets [Suite:openshift/conformance/parallel]",
 
