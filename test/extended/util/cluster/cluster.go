@@ -38,6 +38,10 @@ type ClusterConfiguration struct {
 	// Disconnected is set for test jobs without external internet connectivity
 	Disconnected bool
 
+	// SingleReplicaTopology is set for disabling disruptive tests or tests
+	// that require high availability
+	SingleReplicaTopology bool
+
 	// NetworkPlugin is the "official" plugin name
 	NetworkPlugin string
 	// NetworkPluginMode is an optional sub-identifier for the NetworkPlugin.
@@ -64,10 +68,11 @@ func (c *ClusterConfiguration) ToJSONString() string {
 // ClusterState provides information about the cluster that is used to generate
 // ClusterConfiguration
 type ClusterState struct {
-	PlatformStatus *configv1.PlatformStatus
-	Masters        *corev1.NodeList
-	NonMasters     *corev1.NodeList
-	NetworkSpec    *operatorv1.NetworkSpec
+	PlatformStatus       *configv1.PlatformStatus
+	Masters              *corev1.NodeList
+	NonMasters           *corev1.NodeList
+	NetworkSpec          *operatorv1.NetworkSpec
+	ControlPlaneTopology *configv1.TopologyMode
 }
 
 // DiscoverClusterState creates a ClusterState based on a live cluster
@@ -94,6 +99,10 @@ func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 	state.PlatformStatus = infra.Status.PlatformStatus
 	if state.PlatformStatus == nil {
 		return nil, fmt.Errorf("status.platformStatus must be set")
+	}
+	state.ControlPlaneTopology = &infra.Status.ControlPlaneTopology
+	if state.ControlPlaneTopology == nil {
+		return nil, fmt.Errorf("status.controlPlaneTopology must be set")
 	}
 
 	state.Masters, err = coreClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
@@ -128,9 +137,10 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 	zones.Delete("")
 
 	config := &ClusterConfiguration{
-		MultiMaster: len(state.Masters.Items) > 1,
-		MultiZone:   zones.Len() > 1,
-		Zones:       zones.List(),
+		MultiMaster:           len(state.Masters.Items) > 1,
+		MultiZone:             zones.Len() > 1,
+		Zones:                 zones.List(),
+		SingleReplicaTopology: *state.ControlPlaneTopology == configv1.SingleReplicaTopologyMode,
 	}
 	if zones.Len() > 0 {
 		config.Zone = zones.List()[0]
@@ -205,6 +215,10 @@ func (c *ClusterConfiguration) MatchFn() func(string) bool {
 
 	if c.Disconnected {
 		skips = append(skips, "[Skipped:Disconnected]")
+	}
+
+	if c.SingleReplicaTopology {
+		skips = append(skips, "[Skipped:SingleReplicaTopology]")
 	}
 
 	if !c.HasIPv4 {

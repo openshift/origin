@@ -349,7 +349,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-apps] Daemon set [Serial] should retry creating failed daemon pods [Conformance]": "should retry creating failed daemon pods [Conformance] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Daemon set [Serial] should rollback without unnecessary restarts [Conformance]": "should rollback without unnecessary restarts [Conformance] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Daemon set [Serial] should rollback without unnecessary restarts [Conformance]": "should rollback without unnecessary restarts [Conformance] [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-apps] Daemon set [Serial] should run and stop complex daemon [Conformance]": "should run and stop complex daemon [Conformance] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
 
@@ -1217,7 +1217,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] Kubectl client Kubectl server-side dry-run should check if kubectl can dry-run update Pods [Conformance]": "should check if kubectl can dry-run update Pods [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl taint [Serial] should remove all the taints with the same key off a node": "should remove all the taints with the same key off a node [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl taint [Serial] should remove all the taints with the same key off a node": "should remove all the taints with the same key off a node [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[Top Level] [sig-cli] Kubectl client Kubectl taint [Serial] should update the taint on a node": "should update the taint on a node [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -2363,17 +2363,17 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-node] Mount propagation should propagate mounts to the host": "should propagate mounts to the host [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-node] NoExecuteTaintManager Multiple Pods [Serial] evicts pods with minTolerationSeconds [Disruptive] [Conformance]": "evicts pods with minTolerationSeconds [Disruptive] [Conformance] [Suite:k8s]",
+	"[Top Level] [sig-node] NoExecuteTaintManager Multiple Pods [Serial] evicts pods with minTolerationSeconds [Disruptive] [Conformance]": "evicts pods with minTolerationSeconds [Disruptive] [Conformance] [Skipped:SingleReplicaTopology] [Suite:k8s]",
 
-	"[Top Level] [sig-node] NoExecuteTaintManager Multiple Pods [Serial] only evicts pods without tolerations from tainted nodes": "only evicts pods without tolerations from tainted nodes [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-node] NoExecuteTaintManager Multiple Pods [Serial] only evicts pods without tolerations from tainted nodes": "only evicts pods without tolerations from tainted nodes [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[Top Level] [sig-node] NoExecuteTaintManager Single Pod [Serial] doesn't evict pod with tolerations from tainted nodes": "doesn't evict pod with tolerations from tainted nodes [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-node] NoExecuteTaintManager Single Pod [Serial] doesn't evict pod with tolerations from tainted nodes": "doesn't evict pod with tolerations from tainted nodes [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[Top Level] [sig-node] NoExecuteTaintManager Single Pod [Serial] eventually evict pod with finite tolerations from tainted nodes": "eventually evict pod with finite tolerations from tainted nodes [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-node] NoExecuteTaintManager Single Pod [Serial] eventually evict pod with finite tolerations from tainted nodes": "eventually evict pod with finite tolerations from tainted nodes [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[Top Level] [sig-node] NoExecuteTaintManager Single Pod [Serial] evicts pods from tainted nodes": "evicts pods from tainted nodes [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-node] NoExecuteTaintManager Single Pod [Serial] evicts pods from tainted nodes": "evicts pods from tainted nodes [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[Top Level] [sig-node] NoExecuteTaintManager Single Pod [Serial] removing taint cancels eviction [Disruptive] [Conformance]": "removing taint cancels eviction [Disruptive] [Conformance] [Suite:k8s]",
+	"[Top Level] [sig-node] NoExecuteTaintManager Single Pod [Serial] removing taint cancels eviction [Disruptive] [Conformance]": "removing taint cancels eviction [Disruptive] [Conformance] [Skipped:SingleReplicaTopology] [Suite:k8s]",
 
 	"[Top Level] [sig-node] NodeLease when the NodeLease feature is enabled should have OwnerReferences set": "should have OwnerReferences set [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
