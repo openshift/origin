@@ -289,6 +289,10 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		gvr("storage.k8s.io", "v1alpha1", "volumeattachments"),
 		gvr("storage.k8s.io", "v1alpha1", "csistoragecapacities"),
 		gvr("internal.apiserver.k8s.io", "v1alpha1", "storageversions"),
+		// TODO: to be removed in 1.22
+		gvr("apiextensions.k8s.io", "v1beta1", "customresourcedefinitions"),
+		gvr("admissionregistration.k8s.io", "v1beta1", "validatingwebhookconfigurations"),
+		gvr("admissionregistration.k8s.io", "v1beta1", "mutatingwebhookconfigurations"),
 	)
 
 	// Apply output of git diff origin/release-1.20 origin/release-1.21 test/integration/etcd/data.go. This is needed
@@ -325,15 +329,6 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		removeStorageData(t, etcdStorageData,
 			gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "flowschemas"),
 			gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "prioritylevelconfigurations"),
-		)
-	}
-
-	// TODO remove once https://github.com/openshift/cluster-kube-apiserver-operator/pull/1162 merges
-	if apiExtensionsResources, err := kubeClient.Discovery().ServerResourcesForGroupVersion("apiextensions.k8s.io/v1beta1"); err != nil || len(apiExtensionsResources.APIResources) == 0 {
-		removeStorageData(t, etcdStorageData,
-			gvr("apiextensions.k8s.io", "v1beta1", "customresourcedefinitions"),
-			gvr("admissionregistration.k8s.io", "v1beta1", "validatingwebhookconfigurations"),
-			gvr("admissionregistration.k8s.io", "v1beta1", "mutatingwebhookconfigurations"),
 		)
 	}
 
