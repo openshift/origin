@@ -27,17 +27,17 @@ os::cmd::try_until_failure 'oc get istag php:latest -n openshift'
 os::cmd::expect_failure 'oc new-app --image-stream=openshift/php https://github.com/sclorg/cakephp-ex'
 
 # should succeed and create the php:latest tag in the current namespace
-os::cmd::expect_success 'oc new-app --docker-image=library/php https://github.com/sclorg/cakephp-ex --strategy=source'
-os::cmd::try_until_success 'oc get istag php:latest -n test-imagestreams'
-os::cmd::expect_success 'oc create istag php:latest --from=openshift/php:7.1 -n openshift'
+os::cmd::expect_success 'oc new-app --docker-image=registry.access.redhat.com/ubi7/php-73 https://github.com/sclorg/cakephp-ex --strategy=source --name=php'
+os::cmd::try_until_success 'oc get istag php-73:latest -n test-imagestreams'
+os::cmd::expect_success 'oc create istag php-73:latest --from=openshift/php:7.3 -n openshift'
 
 # create a new tag for an existing imagestream in the current namespace
-os::cmd::expect_success 'oc create istag perl:5.20 --from=openshift/perl:5.20'
-os::cmd::expect_success 'oc new-app --docker-image=library/perl https://github.com/sclorg/dancer-ex --strategy=source'
-os::cmd::try_until_success 'oc get istag perl:latest -n test-imagestreams'
+os::cmd::expect_success 'oc create istag perl:5.26 --from=openshift/perl:5.26'
+os::cmd::expect_success 'oc new-app --docker-image=registry.access.redhat.com/ubi8/perl-530  https://github.com/sclorg/dancer-ex --strategy=source'
+os::cmd::try_until_success 'oc get istag perl:5.26 -n test-imagestreams'
 
 # remove redundant imagestream tag before creating objects
-os::cmd::expect_success_and_text 'oc new-app centos/ruby-27-centos7 https://github.com/openshift/ruby-hello-world  --strategy=docker --loglevel=5' 'Removing duplicate tag from object list'
+os::cmd::expect_success_and_text 'oc new-app registry.access.redhat.com/ubi8/ruby-27 https://github.com/openshift/ruby-hello-world  --strategy=docker --loglevel=5' 'Removing duplicate tag from object list'
 
 # create imagestream in the correct namespace
 os::cmd::expect_success 'oc new-app --name=mytest --image-stream=mysql --env=MYSQL_USER=test --env=MYSQL_PASSWORD=redhat --env=MYSQL_DATABASE=testdb -l app=mytest'
@@ -507,7 +507,7 @@ os::cmd::expect_success_and_text 'oc new-build mysql https://github.com/openshif
 os::cmd::expect_failure_and_text 'oc new-build mysql https://github.com/openshift/ruby-hello-world --binary' 'specifying binary builds and source repositories at the same time is not allowed'
 # binary builds cannot be created unless a builder image is specified.
 os::cmd::expect_failure_and_text 'oc new-build --name mybuild --binary --strategy=source -o yaml' 'you must provide a builder image when using the source strategy with a binary build'
-os::cmd::expect_success_and_text 'oc new-build --name mybuild centos/ruby-27-centos7 --binary --strategy=source -o yaml' 'name: ruby-27-centos7:latest'
+os::cmd::expect_success_and_text 'oc new-build --name mybuild registry.access.redhat.com/ubi8/ruby-27 --binary --strategy=source -o yaml' 'name: ruby-27:latest'
 # binary builds can be created with no builder image if no strategy or docker strategy is specified
 os::cmd::expect_success_and_text 'oc new-build --name mybuild --binary -o yaml' 'type: Binary'
 os::cmd::expect_success_and_text 'oc new-build --name mybuild --binary --strategy=docker -o yaml' 'type: Binary'
@@ -591,7 +591,7 @@ os::cmd::expect_success 'oc new-app -i ruby-20-centos7:latest --code https://git
 os::cmd::expect_success 'oc new-app -i ruby-20-centos7:latest --code ./test/testdata/testapp --dry-run'
 
 os::cmd::expect_success 'oc new-app --code ./test/testdata/testapp --name test'
-os::cmd::expect_success_and_text 'oc get bc test --template={{.spec.strategy.dockerStrategy.from.name}}' 'ruby-27-centos7:latest'
+os::cmd::expect_success_and_text 'oc get bc test --template={{.spec.strategy.dockerStrategy.from.name}}' 'ruby-27:latest'
 
 os::cmd::expect_success 'oc new-app -i php-55-centos7:latest --code ./test/testdata/testapp --name test2'
 os::cmd::expect_success_and_text 'oc get bc test2 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-55-centos7:latest'
@@ -609,7 +609,7 @@ os::cmd::expect_success 'oc new-app php-55-centos7:latest --code https://github.
 os::cmd::expect_success_and_text 'oc get bc test6 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-55-centos7:latest'
 
 os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-world.git --name test7'
-os::cmd::expect_success_and_text 'oc get bc test7 --template={{.spec.strategy.dockerStrategy.from.name}}' 'ruby-27-centos7:latest'
+os::cmd::expect_success_and_text 'oc get bc test7 --template={{.spec.strategy.dockerStrategy.from.name}}' 'ruby-27:latest'
 
 os::cmd::expect_success 'oc new-app php-55-centos7:latest https://github.com/openshift/ruby-hello-world.git --name test8'
 os::cmd::expect_success_and_text 'oc get bc test8 --template={{.spec.strategy.sourceStrategy.from.name}}' 'php-55-centos7:latest'

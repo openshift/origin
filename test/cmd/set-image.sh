@@ -14,7 +14,7 @@ os::test::junit::declare_suite_start "cmd/oc/set/image"
 os::cmd::expect_success 'oc create -f test/integration/testdata/test-deployment-config.yaml'
 os::cmd::expect_success 'oc create -f examples/hello-openshift/hello-pod.json'
 os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
-os::cmd::try_until_success 'oc get imagestreamtags ruby:2.3'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.5'
 os::cmd::try_until_success 'oc get imagestreamtags ruby:2.0'
 
 # test --local flag
