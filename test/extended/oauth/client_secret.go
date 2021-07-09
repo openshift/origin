@@ -18,6 +18,10 @@ import (
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
+
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 const authzTokenName string = "oauth-client-with-plus-with-more-than-thirty-two-characters-in-this-very-long-name"
@@ -29,6 +33,10 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer]", func() {
 
 	g.Describe("ClientSecretWithPlus", func() {
 		g.It(fmt.Sprintf("should create oauthclient"), func() {
+			if e2e.TestContext.Provider == ibmcloud.ProviderName {
+				e2eskipper.Skipf("IBM Cloud clusters do not contain oauth-openshift routes")
+			}
+
 			g.By("create oauth client")
 			oauthClient, err := oc.AdminOauthClient().OauthV1().OAuthClients().Create(ctx, &oauthv1.OAuthClient{
 				ObjectMeta: metav1.ObjectMeta{
