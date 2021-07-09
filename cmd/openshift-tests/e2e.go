@@ -317,6 +317,10 @@ var staticSuites = testSuites{
 				if isDisabled(name) {
 					return false
 				}
+				// Skip NetworkPolicy tests for https://bugzilla.redhat.com/show_bug.cgi?id=1980141
+				if strings.Contains(name, "[Feature:NetworkPolicy]") {
+					return false
+				}
 				return (strings.Contains(name, "[Suite:openshift/conformance/") && strings.Contains(name, "[sig-network]")) || isStandardEarlyOrLateTest(name)
 			},
 			Parallelism:         60,
