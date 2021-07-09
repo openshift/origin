@@ -1,16 +1,17 @@
 package main
 
-// NOTE: Only annotation rules targeting tests implemented in origin
-// should be added to this file.
-//
 // Rules defined here are additive to the rules already defined for
 // kube e2e tests in openshift/kubernetes. The kube rules are
 // vendored via the following file:
 //
 //   vendor/k8s.io/kubernetes/openshift-hack/e2e/annotate/rules.go
 //
-// Changes to rules for kube e2e tests should be proposed to
-// openshift/kubernetes and vendored back into origin.
+// Rules that are needed to pass the upstream e2e test suite in a
+// "default OCP CI" configuration (eg, AWS or GCP, openshift-sdn) must
+// be added to openshift/kubernetes to allow CI to pass there, and
+// then vendored back into origin. Rules that only apply to
+// "non-default" configurations (other clouds, other network
+// providers) should be added here.
 
 var (
 	testMaps = map[string][]string{
@@ -31,6 +32,11 @@ var (
 		"[Disabled:Broken]": {
 			`should idle the service and DeploymentConfig properly`,       // idling with a single service and DeploymentConfig
 			`should answer endpoint and wildcard queries for the cluster`, // currently not supported by dns operator https://github.com/openshift/cluster-dns-operator/issues/43
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1908677
+			`SCTP \[Feature:SCTP\] \[LinuxOnly\] should create a Pod with SCTP HostPort`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1908645
+			`\[sig-network\] Networking Granular Checks: Services should function for service endpoints using hostNetwork`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},
@@ -43,17 +49,15 @@ var (
 		// tests that must be run without competition
 		"[Serial]":        {},
 		"[Skipped:azure]": {},
-		"[Skipped:ovirt]": {
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1838751
-			`\[sig-network\] Networking Granular Checks: Services should function for endpoint-Service`,
-			`\[sig-network\] Networking Granular Checks: Services should function for node-Service`,
-			`\[sig-network\] Networking Granular Checks: Services should function for pod-Service`,
-		},
-		"[Skipped:gce]": {},
+		"[Skipped:ovirt]": {},
+		"[Skipped:gce]":   {},
+
+		// tests that don't pass under openshift-sdn NetworkPolicy mode are specified
+		// in the rules file in openshift/kubernetes, not here.
+
 		// tests that don't pass under openshift-sdn multitenant mode
 		"[Skipped:Network/OpenShiftSDN/Multitenant]": {
 			`\[Feature:NetworkPolicy\]`, // not compatible with multitenant mode
-			`\[sig-network\] Services should preserve source pod IP for traffic thru service cluster IP`, // known bug, not planned to be fixed
 		},
 		// tests that don't pass under OVN Kubernetes
 		"[Skipped:Network/OVNKubernetes]": {
@@ -66,8 +70,9 @@ var (
 			`\[sig-network\] Services should have session affinity work for service with type clusterIP`,
 			`\[sig-network\] Services should have session affinity timeout work for NodePort service`,
 			`\[sig-network\] Services should have session affinity timeout work for service with type clusterIP`,
-			// https://github.com/kubernetes/kubernetes/pull/93597: upstream is flaky
-			`\[sig-network\] Conntrack should be able to preserve UDP traffic when server pod cycles for a NodePort service`,
+
+			// ovn-kubernetes does not support named ports
+			`NetworkPolicy.*named port`,
 		},
 		"[Skipped:ibmcloud]": {
 			// skip Gluster tests (not supported on ROKS worker nodes)
@@ -100,6 +105,18 @@ var (
 			// Currently ibm-master-proxy-static and imbcloud-block-storage-plugin tolerate all taints
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1825027
 			`\[Feature:Platform\] Managed cluster should ensure control plane operators do not make themselves unevictable`,
+		},
+		"[Skipped:Disruptive]": {
+			// DR testing induces ungraceful termination by forcefully shutting down nodes
+			`\[sig-api-machinery\]\[Feature:APIServer\]\[Late\] kube-apiserver terminates within graceful termination period`,
+			`\[sig-api-machinery\]\[Feature:APIServer\]\[Late\] kubelet terminates kube-apiserver gracefully`,
+
+			// DR testing results in an excessive amount of alerts
+			`\[sig-instrumentation\]\[Late\] Alerts shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster`,
+
+			// Machine API deletion does not properly handle stopped instances on AWS or GCP
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1905709
+			`\[sig-cluster-lifecycle\]\[Feature:DisasterRecovery\]\[Disruptive\] \[Feature:NodeRecovery\] Cluster should survive master and worker failure and recover with machine health checks`,
 		},
 	}
 

@@ -1,3 +1,3 @@
-FROM registry.redhat.io/rhel7
+FROM centos
 ENV foo=foo
 ADD ./${foo} /tmp/foo

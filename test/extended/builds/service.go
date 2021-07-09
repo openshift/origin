@@ -2,6 +2,7 @@ package builds
 
 import (
 	"context"
+	"fmt"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -9,19 +10,21 @@ import (
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kdeployutil "k8s.io/kubernetes/test/e2e/framework/deployment"
+	k8simage "k8s.io/kubernetes/test/utils/image"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 var _ = g.Describe("[sig-builds][Feature:Builds] build can reference a cluster service", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc             = exutil.NewCLI("build-service")
-		testDockerfile = `
-FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+		testDockerfile = fmt.Sprintf(`
+FROM %s
 RUN cat /etc/resolv.conf
-RUN curl -vvv hello-openshift:8080
-`
+RUN curl -vvv hello-openshift:6379
+`, image.ShellImage())
 	)
 
 	g.Context("", func() {
@@ -41,7 +44,7 @@ RUN curl -vvv hello-openshift:8080
 		g.Describe("with a build being created from new-build", func() {
 			g.It("should be able to run a build that references a cluster service", func() {
 				g.By("standing up a new hello world service")
-				err := oc.Run("new-app").Args("quay.io/openshifttest/hello-openshift:openshift").Execute()
+				err := oc.Run("new-app").Args("--name", "hello-openshift", k8simage.GetE2EImage(k8simage.Redis)).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				deploy, derr := oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Get(context.Background(), "hello-openshift", metav1.GetOptions{})

@@ -11,7 +11,7 @@
     "containers":[
       {
         "name":"test",
-        "image":"centos:centos7",
+        "image":"image-registry.openshift-image-registry.svc:5000/openshift/tools:latest",
         "env": [
           {
             "name":"podname",

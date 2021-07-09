@@ -6,6 +6,7 @@ import (
 	"time"
 
 	g "github.com/onsi/ginkgo"
+	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
@@ -69,12 +70,12 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	time.Sleep(alertCheckSleep)
 	cancel()
 
-	if helper.TestUnsupportedAllowVersionSkew() {
+	if exutil.TolerateVersionSkewInTests() {
 		e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
 	}
 	t.oc.SetupProject()
 	ns := t.oc.Namespace()
-	execPod := exutil.CreateUbiExecPodOrFail(t.oc.AdminKubeClient(), ns, "execpod", nil)
+	execPod := exutil.CreateExecPodOrFail(t.oc.AdminKubeClient(), ns, "execpod")
 	defer func() {
 		t.oc.AdminKubeClient().CoreV1().Pods(ns).Delete(ctx, execPod.Name, *metav1.NewDeleteOptions(1))
 	}()
@@ -91,7 +92,8 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 		criticalAlertQuery: false,
 	}
 
-	helper.RunQueries(tests, t.oc, ns, execPod.Name, t.url, t.bearerToken)
+	err := helper.RunQueries(tests, t.oc, ns, execPod.Name, t.url, t.bearerToken)
+	o.Expect(err).NotTo(o.HaveOccurred())
 
 	framework.Logf("No critical alerts firing post-upgrade")
 }

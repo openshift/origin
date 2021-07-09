@@ -11,6 +11,6 @@ spec:
     spec:
       containers:
       - name: simplev1
-        image: docker.io/busybox
+        image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
         command: ["/bin/sh", "-c", "exit 0"]
       restartPolicy: Never

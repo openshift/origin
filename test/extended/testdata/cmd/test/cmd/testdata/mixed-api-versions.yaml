@@ -34,7 +34,7 @@ items:
           run: v1-job
       spec:
         containers:
-        - image: openshift/hello-openshift
+        - image: k8s.gcr.io/e2e-test-images/agnhost:2.20
           name: hello-container
         restartPolicy: Never
 
@@ -51,6 +51,7 @@ items:
     kind: DockerImage
   dockerImageMetadataVersion: "1.0"
   dockerImageReference: registry/namespace/name
+  dockerImageLayers: []
   kind: Image
   metadata:
     annotations:

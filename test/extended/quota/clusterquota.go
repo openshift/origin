@@ -12,8 +12,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilversion "k8s.io/apimachinery/pkg/util/version"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	imagev1 "github.com/openshift/api/image/v1"
 	quotav1 "github.com/openshift/api/quota/v1"
@@ -27,7 +29,23 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 
 	g.Describe("Cluster resource quota", func() {
 		g.It(fmt.Sprintf("should control resource limits across namespaces"), func() {
-			t := g.GinkgoT()
+			t := g.GinkgoT(1)
+
+			versionInfo, err := oc.KubeClient().Discovery().ServerVersion()
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			const kubeRootCAName = "kube-root-ca.crt"
+			version, err := utilversion.ParseSemantic(versionInfo.String())
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			expectKubeRootCACM := version.AtLeast(utilversion.MustParseGeneric("1.20"))
+			namespaceInitialCMCount := 0
+			if expectKubeRootCACM {
+				framework.Logf("server version %q is higher or equal to 1.20, expecting ConfigMap %q to be present", versionInfo, kubeRootCAName)
+				namespaceInitialCMCount = 1
+			}
 
 			clusterAdminKubeClient := oc.AdminKubeClient()
 			clusterAdminQuotaClient := oc.AdminQuotaClient()
@@ -48,6 +66,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 					},
 				},
 			}
+
+			if expectKubeRootCACM {
+				q := cq.Spec.Quota.Hard[corev1.ResourceConfigMaps]
+				q.Add(resource.MustParse("2"))
+				cq.Spec.Quota.Hard[corev1.ResourceConfigMaps] = q
+			}
+
 			if _, err := clusterAdminQuotaClient.QuotaV1().ClusterResourceQuotas().Create(context.Background(), cq, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -55,6 +80,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 
 			firstProjectName := oc.CreateProject()
 			secondProjectName := oc.CreateProject()
+			if expectKubeRootCACM {
+				for _, ns := range []string{firstProjectName, secondProjectName} {
+					_, err = exutil.WaitForCMState(context.Background(), oc.KubeClient().CoreV1(), ns, kubeRootCAName, func(cm *corev1.ConfigMap) (bool, error) {
+						// Any event means the CM is present
+						return true, nil
+					})
+				}
+			}
 
 			if err := labelNamespace(clusterAdminKubeClient.CoreV1(), labelSelectorKey, firstProjectName); err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -83,12 +116,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if err := waitForQuotaStatus(clusterAdminQuotaClient, cq.Name, func(quota *quotav1.ClusterResourceQuota) error {
+				expectedCount := int64(2*namespaceInitialCMCount + 1)
 				q := quota.Status.Total.Used[corev1.ResourceConfigMaps]
 				if i, ok := q.AsInt64(); ok {
-					if i == 1 {
+					if i == expectedCount {
 						return nil
 					}
-					return fmt.Errorf("%d != 1", i)
+					return fmt.Errorf("%d != %d", i, expectedCount)
 				}
 				return fmt.Errorf("quota=%+v AsInt64() failed", q)
 			}); err != nil {
@@ -98,12 +132,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if err := waitForQuotaStatus(clusterAdminQuotaClient, cq.Name, func(quota *quotav1.ClusterResourceQuota) error {
+				expectedCount := int64(2*namespaceInitialCMCount + 2)
 				q := quota.Status.Total.Used[corev1.ResourceConfigMaps]
 				if i, ok := q.AsInt64(); ok {
-					if i == 2 {
+					if i == expectedCount {
 						return nil
 					}
-					return fmt.Errorf("%d != 1", i)
+					return fmt.Errorf("%d != %d", i, expectedCount)
 				}
 				return fmt.Errorf("quota=%+v AsInt64() failed", q)
 			}); err != nil {

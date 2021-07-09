@@ -8,7 +8,6 @@ filters:
     - sjenning
     - smarterclayton
     - soltysh
-    - tbielawa
     approvers:
     - bparees
     - deads2k
@@ -21,7 +20,6 @@ filters:
     - soltysh
     - sttts
     - smarterclayton
-    - tbielawa # also for build and automated release tooling changes
   "^\\.go.(mod|sum)$":
     labels:
     - "vendor-update"

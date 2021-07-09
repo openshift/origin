@@ -25,7 +25,7 @@
         "triggers": [],
         "source":{
           "type":"Dockerfile",
-          "dockerfile":"FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest \nRUN sleep 10m"
+          "dockerfile":"FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest\nRUN sleep 10m"
         },
         "strategy": {
           "type": "Source",

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/onsi/ginkgo/config"
 )
@@ -24,6 +25,7 @@ import (
 type Options struct {
 	Parallelism int
 	Count       int
+	FailFast    bool
 	Timeout     time.Duration
 	JUnitDir    string
 	TestFile    string
@@ -34,30 +36,29 @@ type Options struct {
 	// MatchFn if set is also used to filter the suite contents
 	MatchFn func(name string) bool
 
-	// AdditionalJUnitsFn allows the caller to translate events or outside
+	// SyntheticEventTests allows the caller to translate events or outside
 	// context into a failure.
-	AdditionalJUnitsFn func(events monitor.EventIntervals) (results []*JUnitTestCase, passed bool)
+	SyntheticEventTests JUnitsForEvents
 
 	IncludeSuccessOutput bool
 
-	Provider     string
-	SuiteOptions string
-
-	Suites []*TestSuite
+	CommandEnv []string
 
 	DryRun        bool
 	PrintCommands bool
 	Out, ErrOut   io.Writer
+
+	StartTime time.Time
 }
 
 func (opt *Options) AsEnv() []string {
 	var args []string
-	args = append(args, fmt.Sprintf("TEST_PROVIDER=%s", opt.Provider))
-	args = append(args, fmt.Sprintf("TEST_SUITE_OPTIONS=%s", opt.SuiteOptions))
+	args = append(args, fmt.Sprintf("TEST_SUITE_START_TIME=%d", opt.StartTime.Unix()))
+	args = append(args, opt.CommandEnv...)
 	return args
 }
 
-func (opt *Options) Run(args []string) error {
+func (opt *Options) SelectSuite(suites []*TestSuite, args []string) (*TestSuite, error) {
 	var suite *TestSuite
 
 	if len(opt.TestFile) > 0 {
@@ -66,26 +67,26 @@ func (opt *Options) Run(args []string) error {
 		if opt.TestFile == "-" {
 			in, err = ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		} else {
 			in, err = ioutil.ReadFile(opt.TestFile)
 		}
 		if err != nil {
-			return err
+			return nil, err
 		}
 		suite, err = newSuiteFromFile("files", in)
 		if err != nil {
-			return fmt.Errorf("could not read test suite from input: %v", err)
+			return nil, fmt.Errorf("could not read test suite from input: %v", err)
 		}
 	}
 
 	if suite == nil && len(args) == 0 {
-		fmt.Fprintf(opt.ErrOut, SuitesString(opt.Suites, "Select a test suite to run against the server:\n\n"))
-		return fmt.Errorf("specify a test suite to run, for example: %s run %s", filepath.Base(os.Args[0]), opt.Suites[0].Name)
+		fmt.Fprintf(opt.ErrOut, SuitesString(suites, "Select a test suite to run against the server:\n\n"))
+		return nil, fmt.Errorf("specify a test suite to run, for example: %s run %s", filepath.Base(os.Args[0]), suites[0].Name)
 	}
 	if suite == nil && len(args) > 0 {
-		for _, s := range opt.Suites {
+		for _, s := range suites {
 			if s.Name == args[0] {
 				suite = s
 				break
@@ -93,10 +94,13 @@ func (opt *Options) Run(args []string) error {
 		}
 	}
 	if suite == nil {
-		fmt.Fprintf(opt.ErrOut, SuitesString(opt.Suites, "Select a test suite to run against the server:\n\n"))
-		return fmt.Errorf("suite %q does not exist", args[0])
+		fmt.Fprintf(opt.ErrOut, SuitesString(suites, "Select a test suite to run against the server:\n\n"))
+		return nil, fmt.Errorf("suite %q does not exist", args[0])
 	}
+	return suite, nil
+}
 
+func (opt *Options) Run(suite *TestSuite) error {
 	if len(opt.Regex) > 0 {
 		if err := filterWithRegex(suite, opt.Regex); err != nil {
 			return err
@@ -107,6 +111,11 @@ func (opt *Options) Run(args []string) error {
 		suite.Matches = func(name string) bool {
 			return original(name) && opt.MatchFn(name)
 		}
+	}
+
+	syntheticEventTests := JUnitsForAllEvents{
+		opt.SyntheticEventTests,
+		suite.SyntheticEventTests,
 	}
 
 	tests, err := testsForSuite(config.GinkgoConfig)
@@ -139,17 +148,15 @@ func (opt *Options) Run(args []string) error {
 	if count == 0 {
 		count = suite.Count
 	}
-	if count > 1 {
-		var newTests []*testCase
-		for i := 0; i < count; i++ {
-			newTests = append(newTests, tests...)
-		}
-		tests = newTests
+
+	start := time.Now()
+	if opt.StartTime.IsZero() {
+		opt.StartTime = start
 	}
 
 	if opt.PrintCommands {
 		status := newTestStatus(opt.Out, true, len(tests), time.Minute, &monitor.Monitor{}, opt.AsEnv())
-		newParallelTestQueue(tests).Execute(context.Background(), 1, status.OutputCommand)
+		newParallelTestQueue().Execute(context.Background(), tests, 1, status.OutputCommand)
 		return nil
 	}
 	if opt.DryRun {
@@ -209,10 +216,9 @@ func (opt *Options) Run(args []string) error {
 	}
 	// if we run a single test, always include success output
 	includeSuccess := opt.IncludeSuccessOutput
-	if len(tests) == 1 {
+	if len(tests) == 1 && count == 1 {
 		includeSuccess = true
 	}
-	status := newTestStatus(opt.Out, includeSuccess, len(tests), timeout, m, opt.AsEnv())
 
 	early, normal := splitTests(tests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Early]")
@@ -222,20 +228,47 @@ func (opt *Options) Run(args []string) error {
 		return strings.Contains(t.name, "[Late]")
 	})
 
-	// run the tests
-	start := time.Now()
+	expectedTestCount := len(early) + len(late)
+	if count != -1 {
+		original := normal
+		for i := 1; i < count; i++ {
+			normal = append(normal, copyTests(original)...)
+		}
+	}
+	expectedTestCount += len(normal)
 
-	// run our Early tests first
-	q := newParallelTestQueue(early)
-	q.Execute(ctx, parallelism, status.Run)
+	status := newTestStatus(opt.Out, includeSuccess, expectedTestCount, timeout, m, opt.AsEnv())
+	testCtx := ctx
+	if opt.FailFast {
+		var cancelFn context.CancelFunc
+		testCtx, cancelFn = context.WithCancel(testCtx)
+		status.AfterTest(func(t *testCase) {
+			if t.failed {
+				cancelFn()
+			}
+		})
+	}
 
-	// run other tests next
-	q = newParallelTestQueue(normal)
-	q.Execute(ctx, parallelism, status.Run)
+	tests = nil
+
+	// run our Early tests
+	q := newParallelTestQueue()
+	q.Execute(testCtx, early, parallelism, status.Run)
+	tests = append(tests, early...)
+
+	// repeat the normal suite until context cancel when in the forever loop
+	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
+		copied := copyTests(normal)
+		q.Execute(testCtx, copied, parallelism, status.Run)
+		tests = append(tests, copied...)
+	}
 
 	// run Late test suits after everything else
-	q = newParallelTestQueue(late)
-	q.Execute(ctx, parallelism, status.Run)
+	q.Execute(testCtx, late, parallelism, status.Run)
+	tests = append(tests, late...)
+
+	// calculate the effective test set we ran, excluding any incompletes
+	tests, _ = splitTests(tests, func(t *testCase) bool { return t.success || t.failed || t.skipped })
 
 	duration := time.Now().Sub(start).Round(time.Second / 10)
 	if duration > time.Minute {
@@ -248,15 +281,39 @@ func (opt *Options) Run(args []string) error {
 	var syntheticTestResults []*JUnitTestCase
 	var syntheticFailure bool
 	if events := m.Events(time.Time{}, time.Time{}); len(events) > 0 {
-		var buf *bytes.Buffer
 		eventsForTests := createEventsForTests(tests)
-		syntheticTestResults, buf, _ = createSyntheticTestsFromMonitor(m, eventsForTests, duration)
 
-		if opt.AdditionalJUnitsFn != nil {
-			testCases, passed := opt.AdditionalJUnitsFn(events)
-			syntheticTestResults = append(syntheticTestResults, testCases...)
-			if !passed {
-				syntheticFailure = true
+		var buf *bytes.Buffer
+		syntheticTestResults, buf, _ = createSyntheticTestsFromMonitor(m, eventsForTests, duration)
+		testCases, passed := syntheticEventTests.JUnitsForEvents(events, duration)
+		syntheticTestResults = append(syntheticTestResults, testCases...)
+		if !passed {
+			syntheticFailure = true
+		}
+
+		if len(syntheticTestResults) > 0 {
+			// mark any failures by name
+			failing, flaky := sets.NewString(), sets.NewString()
+			for _, test := range syntheticTestResults {
+				if test.FailureOutput != nil {
+					failing.Insert(test.Name)
+				}
+			}
+			// if a test has both a pass and a failure, flag it
+			// as a flake
+			for _, test := range syntheticTestResults {
+				if test.FailureOutput == nil {
+					if failing.Has(test.Name) {
+						flaky.Insert(test.Name)
+					}
+				}
+			}
+			failing = failing.Difference(flaky)
+			if failing.Len() > 0 {
+				fmt.Fprintf(buf, "Failing invariants:\n\n%s\n\n", strings.Join(failing.List(), "\n"))
+			}
+			if flaky.Len() > 0 {
+				fmt.Fprintf(buf, "Flaky invariants:\n\n%s\n\n", strings.Join(flaky.List(), "\n"))
 			}
 		}
 
@@ -275,9 +332,9 @@ func (opt *Options) Run(args []string) error {
 			}
 		}
 
-		q := newParallelTestQueue(retries)
+		q := newParallelTestQueue()
 		status := newTestStatus(ioutil.Discard, opt.IncludeSuccessOutput, len(retries), timeout, m, opt.AsEnv())
-		q.Execute(ctx, parallelism, status.Run)
+		q.Execute(testCtx, retries, parallelism, status.Run)
 		var flaky []string
 		var repeatFailures []*testCase
 		for _, test := range retries {
@@ -294,9 +351,9 @@ func (opt *Options) Run(args []string) error {
 		}
 	}
 
+	// report the outcome of the test
 	if len(failing) > 0 {
-		names := testNames(failing)
-		sort.Strings(names)
+		names := sets.NewString(testNames(failing)...).List()
 		fmt.Fprintf(opt.Out, "Failing tests:\n\n%s\n\n", strings.Join(names, "\n"))
 	}
 

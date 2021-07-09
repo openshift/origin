@@ -20,6 +20,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/test/extended/util/disruption"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 type versionMonitor struct {
@@ -155,13 +156,17 @@ func (m *versionMonitor) Describe(f *framework.Framework) {
 				disruption.RecordJUnitResult(f, fmt.Sprintf("Operator upgrade %s", item.Name), 0, "")
 			}
 
+			newVersion := ""
+			if m.lastCV != nil {
+				newVersion = m.lastCV.Status.Desired.Version
+			}
 			fmt.Fprintf(tw,
 				"%s\t%s %s %s\t%s\t%s\n",
 				item.Name,
 				findConditionShortStatus(available, configv1.ConditionTrue),
 				findConditionShortStatus(degraded, configv1.ConditionFalse),
 				findConditionShortStatus(progressing, configv1.ConditionFalse),
-				findVersion(item.Status.Versions, "operator", m.oldVersion, m.lastCV.Status.Desired.Version),
+				findVersion(item.Status.Versions, "operator", m.oldVersion, newVersion),
 				findConditionMessage(item.Status.Conditions, configv1.OperatorProgressing),
 			)
 		}
@@ -336,7 +341,7 @@ func triggerReboot(kubeClient kubernetes.Interface, target string, attempt int, 
 						RunAsUser:  &zero,
 						Privileged: &isTrue,
 					},
-					Image: "ubi8/ubi",
+					Image: image.ShellImage(),
 					Command: []string{
 						"/bin/bash",
 						"-c",

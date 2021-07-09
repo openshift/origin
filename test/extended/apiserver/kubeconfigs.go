@@ -32,7 +32,7 @@ var _ = g.Describe("[Conformance][sig-api-machinery][Feature:APIServer] local ku
 				g.By("Testing master node " + master.Name)
 				kubeconfigPath := "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/" + kubeconfig
 				framework.Logf("Verifying kubeconfig %q on master %s", master.Name)
-				out, err := oc.AsAdmin().Run("debug").Args("node/"+master.Name, "--image=registry.access.redhat.com/ubi8/ubi-minimal:latest", "--", "chroot", "/host", "/bin/bash", "-euxo", "pipefail", "-c", fmt.Sprintf(`oc --kubeconfig "%s" get namespace kube-system`, kubeconfigPath)).Output()
+				out, err := oc.AsAdmin().Run("debug").Args("node/"+master.Name, "--", "chroot", "/host", "/bin/bash", "-euxo", "pipefail", "-c", fmt.Sprintf(`oc --kubeconfig "%s" get namespace kube-system`, kubeconfigPath)).Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				framework.Logf(out)
 			}
