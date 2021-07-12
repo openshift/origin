@@ -284,7 +284,7 @@ func (r *hostRules) add(route *routev1.Route, fn RouteActivationFunc, changes *r
 func (r *hostRules) removeActive(i int, fn RouteActivationFunc, changes *routeChanges) {
 	r.active = append(r.active[0:i], r.active[i+1:]...)
 	// attempt to promote all inactive routes
-	if len(r.active) == 0 || i == 0 {
+	if len(r.inactive) > 0 {
 		r.reset(fn, changes)
 		return
 	}
