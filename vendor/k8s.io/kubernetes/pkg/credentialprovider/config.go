@@ -19,6 +19,7 @@ package credentialprovider
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -108,10 +109,14 @@ func ReadDockercfgFile(searchPaths []string) (cfg DockerConfig, err error) {
 			continue
 		}
 		cfg, err := readDockerConfigFileFromBytes(contents)
-		if err == nil {
-			glog.V(4).Infof("found .dockercfg at %s", absDockerConfigFileLocation)
-			return cfg, nil
+		if err != nil {
+			glog.V(4).Infof("couldn't get the config from %q contents: %v", absDockerConfigFileLocation, err)
+			continue
 		}
+
+		glog.V(4).Infof("found .dockercfg at %s", absDockerConfigFileLocation)
+		return cfg, nil
+
 	}
 	return nil, fmt.Errorf("couldn't find valid .dockercfg after checking in %v", searchPaths)
 }
@@ -213,8 +218,7 @@ func ReadDockerConfigFileFromUrl(url string, client *http.Client, header *http.H
 
 func readDockerConfigFileFromBytes(contents []byte) (cfg DockerConfig, err error) {
 	if err = json.Unmarshal(contents, &cfg); err != nil {
-		glog.Errorf("while trying to parse blob %q: %v", contents, err)
-		return nil, err
+		return nil, errors.New("error occurred while trying to unmarshal json")
 	}
 	return
 }
@@ -222,8 +226,7 @@ func readDockerConfigFileFromBytes(contents []byte) (cfg DockerConfig, err error
 func readDockerConfigJsonFileFromBytes(contents []byte) (cfg DockerConfig, err error) {
 	var cfgJson DockerConfigJson
 	if err = json.Unmarshal(contents, &cfgJson); err != nil {
-		glog.Errorf("while trying to parse blob %q: %v", contents, err)
-		return nil, err
+		return nil, errors.New("error occurred while trying to unmarshal json")
 	}
 	cfg = cfgJson.Auths
 	return
