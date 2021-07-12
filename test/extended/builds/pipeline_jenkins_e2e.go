@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -18,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
 
@@ -403,7 +401,13 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 					o.Expect(err).NotTo(o.HaveOccurred())
 				})
 
-				g.By("Pipeline with env vars and git repo source")
+				/* this test does not work reliably because the git repo created locally is not in the same container/pod
+				that Jenkins is running in.  It becomes a timing window of what the sync plugin updates when for BCs during
+				error scenarios.
+
+				We want to a) move the git repo / Jenkinsfile refereneced to a repo on https://github.com/openshift
+				g.By("Pipeline with env vars and git repo source"), b) include this in our initial list of tests we
+				want to move out of openshift/origin and into the openshift/jenkins* repos
 
 				g.By("should propagate env vars to bc", func() {
 					g.By(fmt.Sprintf("creating git repo %v", envVarsPipelineGitRepoBuildConfig))
@@ -435,7 +439,7 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 					o.Expect(len(envs)).To(o.Equal(1))
 					o.Expect(envs[0].Name).To(o.Equal("FOO1"))
 					o.Expect(envs[0].Value).To(o.Equal("BAR1"))
-				})
+				})*/
 
 				g.By("Blue-green pipeline")
 
