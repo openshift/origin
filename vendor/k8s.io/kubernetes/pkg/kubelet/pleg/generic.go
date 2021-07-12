@@ -258,7 +258,12 @@ func (g *GenericPLEG) relist() {
 			if events[i].Type == ContainerChanged {
 				continue
 			}
-			g.eventChannel <- events[i]
+			select {
+			case g.eventChannel <- events[i]:
+			default:
+				metrics.PLEGDiscardEvents.WithLabelValues().Inc()
+				glog.Error("event channel is full, discard this relist() cycle event")
+			}
 		}
 	}
 
