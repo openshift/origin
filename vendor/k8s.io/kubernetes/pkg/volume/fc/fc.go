@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/kubernetes/pkg/features"
+	"k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/util/mount"
 	utilstrings "k8s.io/kubernetes/pkg/util/strings"
 	"k8s.io/kubernetes/pkg/volume"
@@ -196,7 +197,7 @@ func (plugin *fcPlugin) newBlockVolumeMapperInternal(spec *volume.Spec, podUID t
 
 func (plugin *fcPlugin) NewUnmounter(volName string, podUID types.UID) (volume.Unmounter, error) {
 	// Inject real implementations here, test through the internal function.
-	return plugin.newUnmounterInternal(volName, podUID, &FCUtil{}, plugin.host.GetMounter(plugin.GetPluginName()),plugin.host.GetExec(plugin.GetPluginName()))
+	return plugin.newUnmounterInternal(volName, podUID, &FCUtil{}, plugin.host.GetMounter(plugin.GetPluginName()), plugin.host.GetExec(plugin.GetPluginName()))
 }
 
 func (plugin *fcPlugin) newUnmounterInternal(volName string, podUID types.UID, manager diskManager, mounter mount.Interface, exec mount.Exec) (volume.Unmounter, error) {
@@ -239,7 +240,12 @@ func (plugin *fcPlugin) ConstructVolumeSpec(volumeName, mountPath string) (*volu
 	//   globalPDPath : plugins/kubernetes.io/fc/50060e801049cfd1-lun-0
 	var globalPDPath string
 	mounter := plugin.host.GetMounter(plugin.GetPluginName())
-	paths, err := mount.GetMountRefs(mounter, mountPath)
+	paths, err := util.GetReliableMountRefs(mounter, mountPath)
+	if io.IsInconsistentReadError(err) {
+		glog.Errorf("Failed to read mount refs from /proc/mounts for %s: %s", mountPath, err)
+		glog.Errorf("Kubelet cannot unmount volume at %s, please unmount it manually", mountPath)
+		return nil, err
+	}
 	if err != nil {
 		return nil, err
 	}

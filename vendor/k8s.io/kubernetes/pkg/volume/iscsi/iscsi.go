@@ -27,10 +27,12 @@ import (
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/util/keymutex"
 	"k8s.io/kubernetes/pkg/util/mount"
 	utilstrings "k8s.io/kubernetes/pkg/util/strings"
 	"k8s.io/kubernetes/pkg/volume"
+	"k8s.io/kubernetes/pkg/volume/util"
 	ioutil "k8s.io/kubernetes/pkg/volume/util"
 	"k8s.io/kubernetes/pkg/volume/util/volumepathhandler"
 )
@@ -207,7 +209,12 @@ func (plugin *iscsiPlugin) ConstructVolumeSpec(volumeName, mountPath string) (*v
 	// Find globalPDPath from pod volume directory(mountPath)
 	var globalPDPath string
 	mounter := plugin.host.GetMounter(plugin.GetPluginName())
-	paths, err := mount.GetMountRefs(mounter, mountPath)
+	paths, err := util.GetReliableMountRefs(mounter, mountPath)
+	if io.IsInconsistentReadError(err) {
+		glog.Errorf("Failed to read mount refs from /proc/mounts for %s: %s", mountPath, err)
+		glog.Errorf("Kubelet cannot unmount volume at %s, please unmount it and all mounts of the same device manually.", mountPath)
+		return nil, err
+	}
 	if err != nil {
 		return nil, err
 	}

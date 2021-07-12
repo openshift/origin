@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
@@ -32,12 +33,14 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	v1helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
 	"k8s.io/kubernetes/pkg/features"
 	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
+	"k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
 
@@ -799,4 +802,28 @@ func MapBlockVolume(
 	}
 
 	return nil
+}
+
+// GetReliableMountRefs calls mounter.GetMountRefs and retries on IsInconsistentReadError.
+// To be used in volume reconstruction of volume plugins that don't have any protection
+// against mounting a single volume on multiple nodes (such as attach/detach).
+func GetReliableMountRefs(mounter mount.Interface, mountPath string) ([]string, error) {
+	var paths []string
+	var lastErr error
+	err := wait.PollImmediate(10*time.Millisecond, time.Minute, func() (bool, error) {
+		var err error
+		paths, err = mounter.GetMountRefs(mountPath)
+		if io.IsInconsistentReadError(err) {
+			lastErr = err
+			return false, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	})
+	if err == wait.ErrWaitTimeout {
+		return nil, lastErr
+	}
+	return paths, err
 }
