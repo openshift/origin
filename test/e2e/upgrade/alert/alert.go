@@ -96,6 +96,16 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 				return framework.ProviderIs("gce")
 			},
 		},
+		{
+			// Should be removed one release after the attached bugzilla is fixed.
+			Selector: map[string]string{"alertname": "HighlyAvailableWorkloadIncorrectlySpread", "namespace": "openshift-monitoring", "workload": "prometheus-k8s"},
+			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1949262",
+		},
+		{
+			// Should be removed one release after the attached bugzilla is fixed.
+			Selector: map[string]string{"alertname": "HighlyAvailableWorkloadIncorrectlySpread", "namespace": "openshift-monitoring", "workload": "alertmanager-main"},
+			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1955489",
+		},
 	}
 
 	pendingAlertsWithBugs := helper.MetricConditions{

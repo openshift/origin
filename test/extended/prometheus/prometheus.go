@@ -85,6 +85,14 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 					return framework.ProviderIs("gce")
 				},
 			},
+			{
+				Selector: map[string]string{"alertname": "HighlyAvailableWorkloadIncorrectlySpread", "namespace": "openshift-monitoring", "workload": "prometheus-k8s"},
+				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1949262",
+			},
+			{
+				Selector: map[string]string{"alertname": "HighlyAvailableWorkloadIncorrectlySpread", "namespace": "openshift-monitoring", "workload": "alertmanager-main"},
+				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1955489",
+			},
 		}
 		allowedFiringAlerts := helper.MetricConditions{
 			{
