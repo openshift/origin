@@ -268,7 +268,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		// some extra context to this increase which links to a jira showing which operators take longer:
 		// compared to OpenShiftSDN:
 		//   https://bugzilla.redhat.com/show_bug.cgi?id=1942164
-		durationToSoftFailure = (baseDurationToSoftFailure + 15) * time.Minute
+		durationToSoftFailure = baseDurationToSoftFailure + (15 * time.Minute)
 	}
 
 	framework.Logf("Starting upgrade to version=%s image=%s", version.Version.String(), version.NodeImage)
@@ -411,7 +411,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			upgradeEnded := time.Now()
 			upgradeDuration := upgradeEnded.Sub(upgradeStarted)
 			if upgradeDuration > durationToSoftFailure {
-				disruption.RecordJUnitResult(f, fmt.Sprintf("[sig-cluster-lifecycle] cluster upgrade should complete in %v minutes", durationToSoftFailure), upgradeDuration, fmt.Sprintf("%s to %s took too long: %0.2f minutes", action, versionString(desired), upgradeDuration.Minutes()))
+				disruption.RecordJUnitResult(f, fmt.Sprintf("[sig-cluster-lifecycle] cluster upgrade should complete in %0.2f minutes", durationToSoftFailure.Minutes()), upgradeDuration, fmt.Sprintf("%s to %s took too long: %0.2f minutes", action, versionString(desired), upgradeDuration.Minutes()))
 			} else {
 				disruption.RecordJUnitResult(f, fmt.Sprintf("[sig-cluster-lifecycle] cluster upgrade should complete in %v minutes", durationToSoftFailure), upgradeDuration, "")
 			}
