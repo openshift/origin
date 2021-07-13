@@ -281,7 +281,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		// due to https://bugzilla.redhat.com/show_bug.cgi?id=1943804 upgrades take ~12 extra minutes on AWS
 		// and see commit d69db34a816f3ce8a9ab567621d145c5cd2d257f which notes that some AWS upgrades can
 		// take close to 105 minutes total (75 is base duration, so adding 30 more if it's AWS)
-		durationToSoftFailure = (baseDurationToSoftFailure + 30) * time.Minute
+		durationToSoftFailure = baseDurationToSoftFailure + (30 * time.Minute)
 	} else {
 		// if the cluster is on AWS we've already bumped the timeout enough, but if not we need to check if
 		// the CNI is OVN and increase our timeout for that
@@ -292,7 +292,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			// some extra context to this increase which links to a jira showing which operators take longer:
 			// compared to OpenShiftSDN:
 			//   https://bugzilla.redhat.com/show_bug.cgi?id=1942164
-			durationToSoftFailure = (baseDurationToSoftFailure + 15) * time.Minute
+			durationToSoftFailure = baseDurationToSoftFailure + (15 * time.Minute)
 		}
 	}
 
@@ -440,7 +440,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			upgradeEnded := time.Now()
 			upgradeDuration := upgradeEnded.Sub(upgradeStarted)
 			if upgradeDuration > durationToSoftFailure {
-				disruption.RecordJUnitResult(f, fmt.Sprintf("[sig-cluster-lifecycle] cluster upgrade should complete in %v minutes", durationToSoftFailure), upgradeDuration, fmt.Sprintf("%s to %s took too long: %0.2f minutes", action, versionString(desired), upgradeDuration.Minutes()))
+				disruption.RecordJUnitResult(f, fmt.Sprintf("[sig-cluster-lifecycle] cluster upgrade should complete in %0.2f minutes", durationToSoftFailure.Minutes()), upgradeDuration, fmt.Sprintf("%s to %s took too long: %0.2f minutes", action, versionString(desired), upgradeDuration.Minutes()))
 			} else {
 				disruption.RecordJUnitResult(f, fmt.Sprintf("[sig-cluster-lifecycle] cluster upgrade should complete in %v minutes", durationToSoftFailure), upgradeDuration, "")
 			}
