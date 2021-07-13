@@ -10,7 +10,6 @@ import (
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kdeployutil "k8s.io/kubernetes/test/e2e/framework/deployment"
-	k8simage "k8s.io/kubernetes/test/utils/image"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
@@ -23,7 +22,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] build can reference a cluster s
 		testDockerfile = fmt.Sprintf(`
 FROM %s
 RUN cat /etc/resolv.conf
-RUN curl -vvv hello-openshift:6379
+RUN curl -vvv hello-nodejs:8080
 `, image.ShellImage())
 	)
 
@@ -43,14 +42,20 @@ RUN curl -vvv hello-openshift:6379
 
 		g.Describe("with a build being created from new-build", func() {
 			g.It("should be able to run a build that references a cluster service", func() {
-				g.By("standing up a new hello world service")
-				err := oc.Run("new-app").Args("--name", "hello-openshift", k8simage.GetE2EImage(k8simage.Redis)).Execute()
+				g.By("standing up a new hello world nodejs service via oc new-app")
+				err := oc.Run("new-app").Args("nodejs~https://github.com/sclorg/nodejs-ex.git", "--name", "hello-nodejs").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				deploy, derr := oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Get(context.Background(), "hello-openshift", metav1.GetOptions{})
+				err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), "hello-nodejs-1", nil, nil, nil)
+				if err != nil {
+					exutil.DumpBuildLogs("hello-nodejs", oc)
+				}
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				deploy, derr := oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Get(context.Background(), "hello-nodejs", metav1.GetOptions{})
 				if kapierrs.IsNotFound(derr) {
 					// if deployment is not there we're working with old new-app producing deployment configs
-					err := exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), "hello-openshift", 1, true, oc)
+					err := exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), "hello-nodejs", 1, true, oc)
 					o.Expect(err).NotTo(o.HaveOccurred())
 				} else {
 					// if present - wait for deployment
@@ -59,7 +64,7 @@ RUN curl -vvv hello-openshift:6379
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 
-				err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "hello-openshift")
+				err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "hello-nodejs")
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("calling oc new-build with a Dockerfile")
