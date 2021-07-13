@@ -984,13 +984,23 @@ func WaitForServiceAccount(c corev1client.ServiceAccountInterface, name string) 
 			return false, fmt.Errorf("Failed to get service account %q: %v", name, err)
 		}
 		secretNames := []string{}
+		var hasDockercfg, hasToken bool
 		for _, s := range sc.Secrets {
-			if strings.Contains(s.Name, "dockercfg") {
-				return true, nil
+			if strings.Contains(s.Name, "-token-") {
+				hasToken = true
 			}
 			secretNames = append(secretNames, s.Name)
 		}
-		e2e.Logf("Waiting for service account %q secrets (%s) to include dockercfg ...", name, strings.Join(secretNames, ","))
+		for _, s := range sc.ImagePullSecrets {
+			if strings.Contains(s.Name, "-dockercfg-") {
+				hasDockercfg = true
+			}
+			secretNames = append(secretNames, s.Name)
+		}
+		if hasDockercfg && hasToken {
+			return true, nil
+		}
+		e2e.Logf("Waiting for service account %q secrets (%s) to include dockercfg/token ...", name, strings.Join(secretNames, ","))
 		return false, nil
 	}
 	return wait.Poll(100*time.Millisecond, 3*time.Minute, waitFn)

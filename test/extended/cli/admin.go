@@ -22,6 +22,7 @@ var (
 	cliInterval        = 5 * time.Second
 	cliTimeout         = 1 * time.Minute
 	extendedCliTimeout = 2 * time.Minute
+	deleteCliTimeout   = 3 * time.Minute
 )
 
 var _ = g.Describe("[sig-cli] oc adm", func() {
@@ -418,7 +419,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		// Test deleting and recreating a project
 		o.Expect(oc.Run("adm", "new-project").Args("recreated-project", "--admin=createuser1").Execute()).To(o.Succeed())
 		o.Expect(oc.Run("delete").Args("project", "recreated-project").Execute()).To(o.Succeed())
-		err := wait.Poll(cliInterval, cliTimeout, func() (bool, error) {
+		err := wait.Poll(cliInterval, deleteCliTimeout, func() (bool, error) {
 			out, err := ocns.Run("get").Args("project/recreated-project").Output()
 			return err != nil && strings.Contains(out, "not found"), nil
 		})
