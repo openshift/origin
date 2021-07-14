@@ -410,11 +410,12 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			// record whether the cluster was fast or slow upgrading.  Don't fail the test, we still want signal on the actual tests themselves.
 			upgradeEnded := time.Now()
 			upgradeDuration := upgradeEnded.Sub(upgradeStarted)
+			testCaseName := fmt.Sprintf("[sig-cluster-lifecycle] cluster upgrade should complete in %0.2f minutes", durationToSoftFailure.Minutes())
+			failure := ""
 			if upgradeDuration > durationToSoftFailure {
-				disruption.RecordJUnitResult(f, fmt.Sprintf("[sig-cluster-lifecycle] cluster upgrade should complete in %0.2f minutes", durationToSoftFailure.Minutes()), upgradeDuration, fmt.Sprintf("%s to %s took too long: %0.2f minutes", action, versionString(desired), upgradeDuration.Minutes()))
-			} else {
-				disruption.RecordJUnitResult(f, fmt.Sprintf("[sig-cluster-lifecycle] cluster upgrade should complete in %v minutes", durationToSoftFailure), upgradeDuration, "")
+				failure = fmt.Sprintf("%s to %s took too long: %0.2f minutes", action, versionString(desired), upgradeDuration.Minutes())
 			}
+			disruption.RecordJUnitResult(f, testCaseName, upgradeDuration, failure)
 
 			return nil
 		},
