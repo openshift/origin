@@ -117,6 +117,10 @@ var _ = Describe("[sig-arch] Managed cluster", func() {
 					invalidPodContainerImagePullPolicy.Insert(fmt.Sprintf("%s/%s/%s imagePullPolicy=%s", pod.Namespace, pod.Name, container.Name, container.ImagePullPolicy))
 				}
 			}
+
+			if pod.Status.Phase != v1.PodRunning {
+				continue
+			}
 			// check if the container's image from the downstream.
 			for j := range pod.Spec.Containers {
 				containerName := pod.Spec.Containers[j].Name
@@ -163,16 +167,20 @@ func ignoredNamespace(namespace string) bool {
 	// TODO components in openshift-operators may not come from our payload, may want to weaken restriction
 	namespacePrefixes := sets.NewString("kube-", "openshift-")
 	ignoredNamespacePrefixes := sets.NewString("openshift-marketplace", "openshift-must-gather-")
+
+	ignore := true
 	for _, prefix := range namespacePrefixes.List() {
-		if !strings.HasPrefix(namespace, prefix) {
-			return true
+		if strings.HasPrefix(namespace, prefix) {
+			ignore = false
+			break
 		}
 	}
 	for _, prefix := range ignoredNamespacePrefixes.List() {
 		if strings.HasPrefix(namespace, prefix) {
-			return true
+			ignore = true
+			break
 		}
 	}
-	return false
+	return ignore
 
 }
