@@ -2,6 +2,7 @@ package builds
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -31,6 +32,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] remove all builds when build co
 
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpBuilds(oc)
 				exutil.DumpPodStates(oc)
 				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
@@ -43,9 +45,6 @@ var _ = g.Describe("[sig-builds][Feature:Builds] remove all builds when build co
 					err    error
 					builds [4]string
 				)
-				configMaps, err := oc.KubeClient().CoreV1().ConfigMaps(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred())
-				initialConfigMapCount := len(configMaps.Items)
 
 				g.By("starting multiple builds")
 				for i := range builds {
@@ -59,21 +58,29 @@ var _ = g.Describe("[sig-builds][Feature:Builds] remove all builds when build co
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for builds to clear")
+				var buildsCount, configMapsCount int
 				err = wait.Poll(3*time.Second, 3*time.Minute, func() (bool, error) {
 					builds, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
-					if len(builds.Items) > 0 {
+					buildsCount = len(builds.Items)
+					if buildsCount > 0 {
 						return false, nil
 					}
+					// Check that the ConfigMaps associated with the build are garbage collected.
+					// ConfigMaps used by builds have an owner reference to the build pod.
+					// This logic assumes other default ConfigMaps added to a new project do not have an owner reference.
 					configMaps, err := oc.KubeClient().CoreV1().ConfigMaps(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
-					if len(configMaps.Items) > initialConfigMapCount {
-						return false, nil
+					configMapsCount = len(configMaps.Items)
+					for _, cm := range configMaps.Items {
+						if len(cm.OwnerReferences) > 0 {
+							return false, nil
+						}
 					}
 					return true, nil
 				})
 				if err == wait.ErrWaitTimeout {
-					g.Fail("timed out waiting for builds to clear")
+					g.Fail(fmt.Sprintf("timed out waiting for %d builds and %d configMaps to clear", buildsCount, configMapsCount))
 				}
 			})
 
