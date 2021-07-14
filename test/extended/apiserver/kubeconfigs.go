@@ -9,6 +9,10 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 var _ = g.Describe("[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig", func() {
@@ -22,6 +26,10 @@ var _ = g.Describe("[Conformance][sig-api-machinery][Feature:APIServer] local ku
 		"localhost-recovery.kubeconfig",
 	} {
 		g.It(fmt.Sprintf("%q should be present on all masters and work", kubeconfig), func() {
+			// skipped by: https://bugzilla.redhat.com/show_bug.cgi?id=1957476
+			if e2e.TestContext.Provider == ibmcloud.ProviderName {
+				e2eskipper.Skipf("IBM ROKS cluster do not allow the customer to view or access master nodes.")
+			}
 			masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 				LabelSelector: `node-role.kubernetes.io/master`,
 			})
