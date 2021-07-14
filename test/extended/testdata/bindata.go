@@ -144,6 +144,14 @@
 // test/extended/testdata/builds/valuefrom/test-configmap.yaml
 // test/extended/testdata/builds/valuefrom/test-is.json
 // test/extended/testdata/builds/valuefrom/test-secret.yaml
+// test/extended/testdata/builds/volumes/configmap.yaml
+// test/extended/testdata/builds/volumes/docker-buildconfig.yaml
+// test/extended/testdata/builds/volumes/docker-deploymentconfig.yaml
+// test/extended/testdata/builds/volumes/docker-imagestream.yaml
+// test/extended/testdata/builds/volumes/s2i-buildconfig.yaml
+// test/extended/testdata/builds/volumes/s2i-deploymentconfig.yaml
+// test/extended/testdata/builds/volumes/s2i-imagestream.yaml
+// test/extended/testdata/builds/volumes/secret.yaml
 // test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent-not-master.json
 // test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent.json
 // test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent54-not-master.json
@@ -21580,6 +21588,330 @@ func testExtendedTestdataBuildsValuefromTestSecretYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/valuefrom/test-secret.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsVolumesConfigmapYaml = []byte(`apiVersion: v1
+data:
+  key: my-configmap-value
+kind: ConfigMap
+metadata:
+  name: my-configmap
+`)
+
+func testExtendedTestdataBuildsVolumesConfigmapYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsVolumesConfigmapYaml, nil
+}
+
+func testExtendedTestdataBuildsVolumesConfigmapYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsVolumesConfigmapYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/configmap.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsVolumesDockerBuildconfigYaml = []byte(`apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    name: mydockertest
+    labels:
+      name: test
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: mydockerstream:latest
+    postCommit:
+      script: cat /var/run/secrets/some-secret/key; cat /var/run/configmaps/some-configmap/key
+    triggers: []
+    runPolicy: Serial
+    source:
+      git:
+        uri: "https://github.com/sclorg/nodejs-ex"
+      dockerfile: "FROM registry.ci.openshift.org/ocp/4.8:test-build-simples2i"
+    strategy:
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: "DockerImage"
+          name: "registry.ci.openshift.org/ocp/4.8:test-build-simples2i"
+        env:
+          - name: BUILD_LOGLEVEL
+            value: "5"
+        volumes:
+        - mounts:
+          - destinationPath: "/var/run/secrets/some-secret"
+          name: this-secret
+          source:
+            secret:
+              defaultMode: 420
+              secretName: my-secret
+            type: Secret
+        - mounts:
+          - destinationPath: "/var/run/configmaps/some-configmap"
+          name: this-configmap
+          source:
+            configMap:
+              defaultMode: 420
+              name: my-configmap
+            type: ConfigMap
+    resources: {}
+    nodeSelector: null
+  status: {}`)
+
+func testExtendedTestdataBuildsVolumesDockerBuildconfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsVolumesDockerBuildconfigYaml, nil
+}
+
+func testExtendedTestdataBuildsVolumesDockerBuildconfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsVolumesDockerBuildconfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/docker-buildconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsVolumesDockerDeploymentconfigYaml = []byte(`apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: mydockertest
+spec:
+  replicas: 1
+  selector:
+    app: mydockertest
+    deploymentconfig: mydockertest
+  strategy:
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        app: mydockertest
+        deploymentconfig: mydockertest
+    spec:
+      containers:
+      - image:
+        imagePullPolicy: Always
+        name: mydockertest
+        terminationMessagePath: /dev/termination-log
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}
+  triggers:
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - mydockertest
+      from:
+        kind: ImageStreamTag
+        name: mydockerstream:latest
+    type: ImageChange
+  - type: ConfigChange`)
+
+func testExtendedTestdataBuildsVolumesDockerDeploymentconfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsVolumesDockerDeploymentconfigYaml, nil
+}
+
+func testExtendedTestdataBuildsVolumesDockerDeploymentconfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsVolumesDockerDeploymentconfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/docker-deploymentconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsVolumesDockerImagestreamYaml = []byte(`apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: mydockerstream
+`)
+
+func testExtendedTestdataBuildsVolumesDockerImagestreamYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsVolumesDockerImagestreamYaml, nil
+}
+
+func testExtendedTestdataBuildsVolumesDockerImagestreamYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsVolumesDockerImagestreamYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/docker-imagestream.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsVolumesS2iBuildconfigYaml = []byte(`apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    name: mys2itest
+    labels:
+      name: test
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: mys2istream:latest
+    postCommit:
+      script: cat /var/run/secrets/some-secret/key; cat /var/run/configmaps/some-configmap/key
+    triggers: []
+    runPolicy: Serial
+    source:
+      type: Git
+      git:
+        uri: 'https://github.com/sclorg/nodejs-ex'
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: registry.ci.openshift.org/ocp/4.8:test-build-simples2i
+        volumes:
+        - mounts:
+          - destinationPath: "/var/run/secrets/some-secret"
+          name: this-secret
+          source:
+            secret:
+              defaultMode: 420
+              secretName: my-secret
+            type: Secret
+        - mounts:
+          - destinationPath: "/var/run/configmaps/some-configmap"
+          name: this-configmap
+          source:
+            configMap:
+              defaultMode: 420
+              name: my-configmap
+            type: ConfigMap
+    resources: {}
+    nodeSelector: null
+  status: {}`)
+
+func testExtendedTestdataBuildsVolumesS2iBuildconfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsVolumesS2iBuildconfigYaml, nil
+}
+
+func testExtendedTestdataBuildsVolumesS2iBuildconfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsVolumesS2iBuildconfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/s2i-buildconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsVolumesS2iDeploymentconfigYaml = []byte(`apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: mys2itest
+spec:
+  replicas: 1
+  selector:
+    app: mys2itest
+    deploymentconfig: mys2itest
+  strategy:
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        app: mys2itest
+        deploymentconfig: mys2itest
+    spec:
+      containers:
+      - image:
+        imagePullPolicy: Always
+        name: mys2itest
+        terminationMessagePath: /dev/termination-log
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}
+  triggers:
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - mys2itest
+      from:
+        kind: ImageStreamTag
+        name: mys2istream:latest
+    type: ImageChange
+  - type: ConfigChange`)
+
+func testExtendedTestdataBuildsVolumesS2iDeploymentconfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsVolumesS2iDeploymentconfigYaml, nil
+}
+
+func testExtendedTestdataBuildsVolumesS2iDeploymentconfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsVolumesS2iDeploymentconfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/s2i-deploymentconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsVolumesS2iImagestreamYaml = []byte(`apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: mys2istream
+`)
+
+func testExtendedTestdataBuildsVolumesS2iImagestreamYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsVolumesS2iImagestreamYaml, nil
+}
+
+func testExtendedTestdataBuildsVolumesS2iImagestreamYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsVolumesS2iImagestreamYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/s2i-imagestream.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsVolumesSecretYaml = []byte(`apiVersion: v1
+data:
+  key: bXktc2VjcmV0LXZhbHVl # my-secret-value
+kind: Secret
+metadata:
+  name: my-secret
+type: Opaque
+`)
+
+func testExtendedTestdataBuildsVolumesSecretYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsVolumesSecretYaml, nil
+}
+
+func testExtendedTestdataBuildsVolumesSecretYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsVolumesSecretYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/secret.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -53350,6 +53682,14 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/valuefrom/test-configmap.yaml":                                            testExtendedTestdataBuildsValuefromTestConfigmapYaml,
 	"test/extended/testdata/builds/valuefrom/test-is.json":                                                   testExtendedTestdataBuildsValuefromTestIsJson,
 	"test/extended/testdata/builds/valuefrom/test-secret.yaml":                                               testExtendedTestdataBuildsValuefromTestSecretYaml,
+	"test/extended/testdata/builds/volumes/configmap.yaml":                                                   testExtendedTestdataBuildsVolumesConfigmapYaml,
+	"test/extended/testdata/builds/volumes/docker-buildconfig.yaml":                                          testExtendedTestdataBuildsVolumesDockerBuildconfigYaml,
+	"test/extended/testdata/builds/volumes/docker-deploymentconfig.yaml":                                     testExtendedTestdataBuildsVolumesDockerDeploymentconfigYaml,
+	"test/extended/testdata/builds/volumes/docker-imagestream.yaml":                                          testExtendedTestdataBuildsVolumesDockerImagestreamYaml,
+	"test/extended/testdata/builds/volumes/s2i-buildconfig.yaml":                                             testExtendedTestdataBuildsVolumesS2iBuildconfigYaml,
+	"test/extended/testdata/builds/volumes/s2i-deploymentconfig.yaml":                                        testExtendedTestdataBuildsVolumesS2iDeploymentconfigYaml,
+	"test/extended/testdata/builds/volumes/s2i-imagestream.yaml":                                             testExtendedTestdataBuildsVolumesS2iImagestreamYaml,
+	"test/extended/testdata/builds/volumes/secret.yaml":                                                      testExtendedTestdataBuildsVolumesSecretYaml,
 	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent-not-master.json":                     testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJson,
 	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent.json":                                testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventJson,
 	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent54-not-master.json":                   testExtendedTestdataBuildsWebhookBitbucketTestdataPushevent54NotMasterJson,
@@ -53956,6 +54296,16 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"test-configmap.yaml":                            {testExtendedTestdataBuildsValuefromTestConfigmapYaml, map[string]*bintree{}},
 						"test-is.json":                                   {testExtendedTestdataBuildsValuefromTestIsJson, map[string]*bintree{}},
 						"test-secret.yaml":                               {testExtendedTestdataBuildsValuefromTestSecretYaml, map[string]*bintree{}},
+					}},
+					"volumes": {nil, map[string]*bintree{
+						"configmap.yaml":               {testExtendedTestdataBuildsVolumesConfigmapYaml, map[string]*bintree{}},
+						"docker-buildconfig.yaml":      {testExtendedTestdataBuildsVolumesDockerBuildconfigYaml, map[string]*bintree{}},
+						"docker-deploymentconfig.yaml": {testExtendedTestdataBuildsVolumesDockerDeploymentconfigYaml, map[string]*bintree{}},
+						"docker-imagestream.yaml":      {testExtendedTestdataBuildsVolumesDockerImagestreamYaml, map[string]*bintree{}},
+						"s2i-buildconfig.yaml":         {testExtendedTestdataBuildsVolumesS2iBuildconfigYaml, map[string]*bintree{}},
+						"s2i-deploymentconfig.yaml":    {testExtendedTestdataBuildsVolumesS2iDeploymentconfigYaml, map[string]*bintree{}},
+						"s2i-imagestream.yaml":         {testExtendedTestdataBuildsVolumesS2iImagestreamYaml, map[string]*bintree{}},
+						"secret.yaml":                  {testExtendedTestdataBuildsVolumesSecretYaml, map[string]*bintree{}},
 					}},
 					"webhook": {nil, map[string]*bintree{
 						"bitbucket": {nil, map[string]*bintree{

@@ -388,7 +388,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 					defer close(rolloutCompleteWithLogs)
 					var err error
 					dcName := fmt.Sprintf("deployment-test-%d", rolloutNumber)
-					_, err = waitForDeployerToComplete(oc, dcName, deploymentRunTimeout)
+					_, err = WaitForDeployerToComplete(oc, dcName, deploymentRunTimeout)
 					o.Expect(err).NotTo(o.HaveOccurred())
 					out, err = oc.Run("logs").Args(fmt.Sprintf("pod/%s-deploy", dcName)).Output()
 					o.Expect(err).NotTo(o.HaveOccurred())

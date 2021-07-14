@@ -1,0 +1,35 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: mydockertest
+spec:
+  replicas: 1
+  selector:
+    app: mydockertest
+    deploymentconfig: mydockertest
+  strategy:
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        app: mydockertest
+        deploymentconfig: mydockertest
+    spec:
+      containers:
+      - image:
+        imagePullPolicy: Always
+        name: mydockertest
+        terminationMessagePath: /dev/termination-log
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}
+  triggers:
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - mydockertest
+      from:
+        kind: ImageStreamTag
+        name: mydockerstream:latest
+    type: ImageChange
+  - type: ConfigChange

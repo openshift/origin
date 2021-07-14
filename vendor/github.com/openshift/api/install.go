@@ -20,6 +20,7 @@ import (
 	kextensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	kimagepolicyv1alpha1 "k8s.io/api/imagepolicy/v1alpha1"
 	knetworkingv1 "k8s.io/api/networking/v1"
+	kpolicyv1 "k8s.io/api/policy/v1"
 	kpolicyv1beta1 "k8s.io/api/policy/v1beta1"
 	krbacv1 "k8s.io/api/rbac/v1"
 	krbacv1alpha1 "k8s.io/api/rbac/v1alpha1"
@@ -112,6 +113,7 @@ var (
 		kextensionsv1beta1.AddToScheme,
 		kimagepolicyv1alpha1.AddToScheme,
 		knetworkingv1.AddToScheme,
+		kpolicyv1.AddToScheme,
 		kpolicyv1beta1.AddToScheme,
 		krbacv1.AddToScheme,
 		krbacv1beta1.AddToScheme,

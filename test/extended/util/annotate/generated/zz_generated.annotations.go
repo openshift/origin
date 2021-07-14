@@ -901,6 +901,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-builds][Feature:Builds] build have source revision metadata  started build should contain source revision information": "should contain source revision information [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-builds][Feature:Builds] build volumes  should mount given secrets and configmaps into the build pod for docker strategy builds": "should mount given secrets and configmaps into the build pod for docker strategy builds [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-builds][Feature:Builds] build volumes  should mount given secrets and configmaps into the build pod for source strategy builds": "should mount given secrets and configmaps into the build pod for source strategy builds [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-builds][Feature:Builds] build with empty source  started build should build even with an empty source in build config": "should build even with an empty source in build config [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-builds][Feature:Builds] build without output image  building from templates should create an image from a S2i template without an output image reference defined": "should create an image from a S2i template without an output image reference defined [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",

@@ -1,0 +1,35 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: mys2itest
+spec:
+  replicas: 1
+  selector:
+    app: mys2itest
+    deploymentconfig: mys2itest
+  strategy:
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        app: mys2itest
+        deploymentconfig: mys2itest
+    spec:
+      containers:
+      - image:
+        imagePullPolicy: Always
+        name: mys2itest
+        terminationMessagePath: /dev/termination-log
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}
+  triggers:
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - mys2itest
+      from:
+        kind: ImageStreamTag
+        name: mys2istream:latest
+    type: ImageChange
+  - type: ConfigChange
