@@ -24,16 +24,12 @@ var _ = g.Describe("[sig-network][endpoints] admission", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("endpoint-admission")
 
-	g.It("TestEndpointAdmission", func() {
-		TestEndpointAdmission(g.GinkgoT(), oc)
+	InOpenShiftSDNContext(func() {
+		g.It("blocks manual creation of Endpoints pointing to the cluster or service network", func() {
+			TestEndpointAdmission(g.GinkgoT(), oc)
+		})
 	})
 })
-
-var exampleAddresses = map[string]string{
-	"cluster":  "10.128.0.2",
-	"service":  "172.30.0.2",
-	"external": "1.2.3.4",
-}
 
 func testOne(t g.GinkgoTInterface, oc *exutil.CLI, client kubernetes.Interface, addrType string, success bool) *corev1.Endpoints {
 	networkConfig, err := oc.AdminConfigClient().ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
@@ -113,7 +109,8 @@ func TestEndpointAdmission(t g.GinkgoTInterface, oc *exutil.CLI) {
 	if err != nil {
 		t.Fatalf("unexpected error updating endpoint annotation: %v", err)
 	}
-	ep.Subsets[0].Addresses[0].IP = exampleAddresses["service"]
+
+	ep.Subsets[0].Addresses[0].IP = "172.30.0.2"
 	ep, err = projectAdminClient.CoreV1().Endpoints(oc.Namespace()).Update(context.Background(), ep, metav1.UpdateOptions{})
 	if err == nil {
 		t.Fatalf("unexpected success modifying endpoint")
