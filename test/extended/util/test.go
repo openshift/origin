@@ -216,7 +216,7 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 
 	// Add anyuid and privileged permissions for upstream tests
 	if strings.HasPrefix(baseName, "e2e-k8s-") || (isKubernetesE2ETest() && !skipTestNamespaceCustomization()) {
-		clientConfig, err := getClientConfig(KubeConfigPath())
+		clientConfig, err := GetClientConfig(KubeConfigPath())
 		if err != nil {
 			return ns, err
 		}
