@@ -605,6 +605,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch] ocp payload should be based on existing source OLM version should contain the source commit id": "OLM version should contain the source commit id [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-arch][Disruptive] Managed cluster should recover [Feature:ClusterOperatorRecovery][Slow] when operand namespaces deleted": "[Feature:ClusterOperatorRecovery][Slow] when operand namespaces deleted [Serial]",
+
 	"[Top Level] [sig-arch][Early] Managed cluster should start all core operators": "start all core operators [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][Feature:ClusterUpgrade] Cluster should remain functional during upgrade [Disruptive]": "Cluster should remain functional during upgrade [Disruptive] [Serial]",
