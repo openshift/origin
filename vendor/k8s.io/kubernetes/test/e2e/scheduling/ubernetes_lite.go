@@ -60,6 +60,12 @@ var _ = SIGDescribe("Multi-AZ Clusters", func() {
 		nodeList, err := e2enode.GetReadySchedulableNodes(cs)
 		framework.ExpectNoError(err)
 
+		// ensure no terminating pods still remain on nodes, which ensures the
+		// balanced pods we create next are still accurate when the time the test
+		// starts
+		err = framework.CheckTestingNSDeletedExcept(f.ClientSet, f.Namespace.Name)
+		framework.ExpectNoError(err)
+
 		// make the nodes have balanced cpu,mem usage
 		cleanUp, err = createBalancedPodForNodes(f, cs, f.Namespace.Name, nodeList.Items, podRequestedResource, 0.0)
 		framework.ExpectNoError(err)
