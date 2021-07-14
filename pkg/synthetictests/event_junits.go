@@ -52,5 +52,6 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 // machine, even if the machine crashes.
 func SystemEventInvariants(events monitorapi.Intervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase) {
 	tests = append(tests, testSystemDTimeout(events)...)
+	tests = append(tests, testDuplicatedEvents(events)...)
 	return tests
 }
