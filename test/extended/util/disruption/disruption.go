@@ -230,7 +230,6 @@ func finalizeTest(start time.Time, tc *junit.TestCase, ts *junit.TestSuite, f *f
 		}
 		return
 	}
-	framework.Logf("recover: %v", r)
 
 	switch r := r.(type) {
 	case ginkgowrapper.FailurePanic:
@@ -244,6 +243,14 @@ func finalizeTest(start time.Time, tc *junit.TestCase, ts *junit.TestSuite, f *f
 	case e2eskipper.SkipPanic:
 		tc.Skipped = fmt.Sprintf("%s:%d %q", r.Filename, r.Line, r.Message)
 	default:
+		// if we get into this block, deads2k suspects that we had panic we did not expect to see.
+		// ginkgo uses panics to communicate failures and stop execution, so the above two cases are "normal".
+		// this case is unusual, so in addition to the message listed below for junit output, I am making this
+		// include a message for the log that our default CI reporting tool highlights.
+		// This decision can be revisited if we find that we are producing panics as part of "normal" operation, but
+		// first please try to fail properly with ginkgo.
+		framework.Logf("unexpected disruption recovery: %v", r)
+
 		tc.Errors = []*junit.Error{
 			{
 				Message: fmt.Sprintf("%v", r),
