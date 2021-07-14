@@ -224,7 +224,7 @@ func getUpgradeContext(c configv1client.Interface, upgradeImage string) (*upgrad
 
 	upgradeImages := strings.Split(upgradeImage, ",")
 	if (len(upgradeImages[0]) > 0 && upgradeImages[0] == current.Image) || (len(upgradeImages[0]) > 0 && upgradeImages[0] == current.Version) {
-		return nil, fmt.Errorf("cluster is already at version %s", versionString(*current))
+		framework.Logf("cluster is already at version %s", versionString(*current))
 	}
 	for _, upgradeImage := range upgradeImages {
 		var next upgrades.VersionContext
