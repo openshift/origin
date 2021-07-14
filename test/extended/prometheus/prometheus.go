@@ -88,7 +88,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		e2e.Logf("Watchdog alert is firing")
 	})
 
-	g.It("shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster", func() {
+	g.It("shouldn't exceed the 600 series limit of total series sent via telemetry from each cluster", func() {
 		if !hasPullSecret(oc.AdminKubeClient(), "cloud.openshift.com") {
 			e2eskipper.Skipf("Telemetry is disabled")
 		}
@@ -103,7 +103,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		tests := map[string]bool{
 			// We want to limit the number of total series sent, the cluster:telemetry_selected_series:count
 			// rule contains the count of the all the series that are sent via telemetry.
-			`max_over_time(cluster:telemetry_selected_series:count[2h]) >= 500`: false,
+			`max_over_time(cluster:telemetry_selected_series:count[2h]) >= 600`: false,
 		}
 		helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 
