@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	manifestschema2 "github.com/docker/distribution/manifest/schema2"
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/test/e2e/framework"
+
 	exutil "github.com/openshift/origin/test/extended/util"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = g.Describe("[sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status", func() {
@@ -75,8 +78,17 @@ func testBuildDigest(oc *exutil.CLI, buildFixture string, buildLogLevel uint) {
 		g.By("checking that the image digest has been saved to the build status")
 		o.Expect(br.Build.Status.Output.To).NotTo(o.BeNil())
 
-		ist, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), "test:latest", v1.GetOptions{})
+		ist, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(context.Background(), "test:latest", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(br.Build.Status.Output.To.ImageDigest).To(o.Equal(ist.Image.Name))
+
+		g.By("checking that the image layers have valid docker v2schema2 MIME types")
+		image, err := oc.AdminImageClient().ImageV1().Images().Get(context.Background(), br.Build.Status.Output.To.ImageDigest, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		framework.Logf("media type for image %s: %s", image.Name, image.DockerImageManifestMediaType)
+		for _, layer := range image.DockerImageLayers {
+			framework.Logf("checking MIME type for layer %s", layer.Name)
+			o.Expect(layer.MediaType).To(o.Equal(manifestschema2.MediaTypeLayer))
+		}
 	})
 }
