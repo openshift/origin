@@ -28,6 +28,7 @@ import (
 )
 
 const (
+	networkCheckImageEnvVar     = "NETWORK_CHECK_IMAGE"
 	strictCheckEnvVar           = "TOPOLOGY_MANAGER_TEST_STRICT"
 	roleWorkerEnvVar            = "ROLE_WORKER"
 	resourceNameEnvVar          = "RESOURCE_NAME"

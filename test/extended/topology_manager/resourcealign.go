@@ -24,6 +24,8 @@ import (
 const (
 	networkAttachmentAnnotation string = "k8s.v1.cni.cncf.io/networks"
 	sriovInterfaceName          string = "sriov1"
+	// same image we use in test/extended/dns/dns.go - anything with busybox is actually enough
+	testerImage string = "gcr.io/google_containers/dnsutils:e2e"
 )
 
 var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured cluster", func() {
@@ -63,7 +65,7 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 				}
 
 				ns := oc.KubeFramework().Namespace.Name
-				testingPods := pps.MakeBusyboxPods(ns, deviceResourceName)
+				testingPods := pps.MakePods(testerImage, ns, deviceResourceName)
 				// we just want to run pods and check they actually go running
 				updatedPods := createPods(client, ns, testingPods...)
 				defer deletePods(oc, updatedPods)
@@ -128,6 +130,11 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 					g.Skip("no device resource configured")
 				}
 
+				networkCheckImage, ok := os.LookupEnv(networkCheckImageEnvVar)
+				if !ok {
+					g.Skip(fmt.Sprintf("no network check image provided (use %s)", networkCheckImageEnvVar))
+				}
+
 				// any random amount of cores > 2 (to be HT-neutral)
 				pps := PodParamsList{
 					{
@@ -161,7 +168,7 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 				sriovNetwork := getValueFromEnv(sriovNetworkEnvVar, defaultSriovNetwork, "SRIOV network")
 				o.Expect(sriovNetwork).ToNot(o.BeEmpty(), fmt.Sprintf("missing SRIOV network to join"))
 
-				pods := pps.MakeBusyboxPods(testNs, deviceResourceName)
+				pods := pps.MakePods(networkCheckImage, testNs, deviceResourceName)
 				for _, testPod := range pods {
 					testPod.Annotations = map[string]string{
 						networkAttachmentAnnotation: fmt.Sprintf("%s@%s", sriovNetwork, sriovInterfaceName),
@@ -210,7 +217,7 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 				testFw := oc.KubeFramework()
 				testNs := testFw.Namespace.Name
 
-				testPod := pp.MakeBusyboxPod(testNs, deviceResourceName)
+				testPod := pp.MakeSleepingPod(testerImage, testNs, deviceResourceName)
 				testPod.Spec.NodeSelector = map[string]string{
 					labelHostname: node.Name,
 				}
@@ -254,7 +261,7 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 				}
 
 				testNs := oc.KubeFramework().Namespace.Name
-				pods := pps.MakeBusyboxPods(testNs, deviceResourceName)
+				pods := pps.MakePods(testerImage, testNs, deviceResourceName)
 
 				setNodeForPods(pods, node)
 
@@ -323,7 +330,7 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 				}
 
 				testNs := oc.KubeFramework().Namespace.Name
-				pods := pps.MakeBusyboxPods(testNs, deviceResourceName)
+				pods := pps.MakePods(testerImage, testNs, deviceResourceName)
 
 				setNodeForPods(pods, node)
 
@@ -366,7 +373,7 @@ var _ = g.Describe("[Serial][sig-node][Feature:TopologyManager] Configured clust
 				}
 
 				testNs := oc.KubeFramework().Namespace.Name
-				pods := pps.MakeBusyboxPods(testNs, deviceResourceName)
+				pods := pps.MakePods(testerImage, testNs, deviceResourceName)
 				testingPods := createPods(client, testNs, pods...)
 				defer deletePods(oc, testingPods)
 				expectPodsHaveAlignedResources(testingPods, oc, deviceResourceName)
@@ -526,7 +533,7 @@ func (pp PodParams) TotalDeviceRequest() int64 {
 	return total
 }
 
-func (pp PodParams) MakeBusyboxPod(namespace, deviceName string) *corev1.Pod {
+func (pp PodParams) MakeSleepingPod(image, namespace, deviceName string) *corev1.Pod {
 	pod := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:    namespace,
@@ -540,7 +547,7 @@ func (pp PodParams) MakeBusyboxPod(namespace, deviceName string) *corev1.Pod {
 	for i, cp := range pp.Containers {
 		cnt := corev1.Container{
 			Name:    fmt.Sprintf("test-%d", i),
-			Image:   "busybox",
+			Image:   image,
 			Command: []string{"sleep", "10h"},
 			Resources: corev1.ResourceRequirements{
 				Requests: map[corev1.ResourceName]resource.Quantity{
@@ -575,10 +582,10 @@ func (pp PodParams) MakeBusyboxPod(namespace, deviceName string) *corev1.Pod {
 
 type PodParamsList []PodParams
 
-func (pps PodParamsList) MakeBusyboxPods(namespace, deviceName string) []*corev1.Pod {
+func (pps PodParamsList) MakePods(image, namespace, deviceName string) []*corev1.Pod {
 	var pods []*corev1.Pod
 	for _, pp := range pps {
-		pods = append(pods, pp.MakeBusyboxPod(namespace, deviceName))
+		pods = append(pods, pp.MakeSleepingPod(image, namespace, deviceName))
 	}
 	return pods
 }

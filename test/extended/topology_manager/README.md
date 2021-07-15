@@ -47,3 +47,9 @@ Use this variable to set the SRIOV network to join to exercise the connectivity.
 
 The testsuite runs a basic connectivity test to ensure the NUMA-aligned devices are functional.
 Use this variable to set the IP family to use for the test: "v4" or "v6". Default is "v4".
+
+### `NETWORK_CHECK_IMAGE`
+
+The testsuite runs a basic connectivity test to ensure the NUMA-aligned devices are functional.
+Use this variable to set the image URL to use to check the network is working between pods which requested, and got, aligned resources.
+If this value is not set (default), the connectivity test will skip.
