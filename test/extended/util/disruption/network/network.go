@@ -1,72 +1,70 @@
-package controlplane
+package network
 
 import (
 	"context"
 	"fmt"
 	"time"
 
-	"k8s.io/client-go/rest"
-
-	"k8s.io/kubernetes/test/e2e/framework"
-	"k8s.io/kubernetes/test/e2e/upgrades"
-
 	"github.com/blang/semver"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
+	"k8s.io/client-go/rest"
+	"k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/kubernetes/test/e2e/upgrades"
 )
 
 // NewKubeAvailableWithNewConnectionsTest tests that the Kubernetes control plane remains available during and after a cluster upgrade.
 func NewKubeAvailableWithNewConnectionsTest() upgrades.Test {
 	return &availableTest{
-		testName:        "[sig-api-machinery] Kubernetes APIs remain available for new connections",
+		testName:        "[sig-network] Kubernetes APIs network connection remain available for new connections",
 		name:            "kubernetes-api-available-new-connections",
-		startMonitoring: monitor.StartKubeAPIMonitoringWithNewConnections,
+		startMonitoring: monitor.StartKubeNetworkMonitoringWithNewConnections,
 	}
 }
 
 // NewOpenShiftAvailableNewConnectionsTest tests that the OpenShift APIs remains available during and after a cluster upgrade.
 func NewOpenShiftAvailableNewConnectionsTest() upgrades.Test {
 	return &availableTest{
-		testName:        "[sig-api-machinery] OpenShift APIs remain available for new connections",
+		testName:        "[sig-network] OpenShift APIs network connection remain available for new connections",
 		name:            "openshift-api-available-new-connections",
-		startMonitoring: monitor.StartOpenShiftAPIMonitoringWithNewConnections,
+		startMonitoring: monitor.StartOpenShiftNetworkMonitoringWithNewConnections,
 	}
 }
 
 // NewOAuthAvailableNewConnectionsTest tests that the OAuth APIs remains available during and after a cluster upgrade.
 func NewOAuthAvailableNewConnectionsTest() upgrades.Test {
 	return &availableTest{
-		testName:        "[sig-api-machinery] OAuth APIs remain available for new connections",
+		testName:        "[sig-network] OAuth APIs network connection remain available for new connections",
 		name:            "oauth-api-available-new-connections",
-		startMonitoring: monitor.StartOAuthAPIMonitoringWithNewConnections,
+		startMonitoring: monitor.StartOAuthNetworkMonitoringWithNewConnections,
 	}
 }
 
 // NewKubeAvailableWithConnectionReuseTest tests that the Kubernetes control plane remains available during and after a cluster upgrade.
 func NewKubeAvailableWithConnectionReuseTest() upgrades.Test {
 	return &availableTest{
-		testName:        "[sig-api-machinery] Kubernetes APIs remain available with reused connections",
+		testName:        "[sig-network] Kubernetes APIs network connection remain available with reused connections",
 		name:            "kubernetes-api-available-reused-connections",
-		startMonitoring: monitor.StartKubeAPIMonitoringWithConnectionReuse,
+		startMonitoring: monitor.StartKubeNetworkMonitoringWithConnectionReuse,
 	}
 }
 
 // NewOpenShiftAvailableTest tests that the OpenShift APIs remains available during and after a cluster upgrade.
 func NewOpenShiftAvailableWithConnectionReuseTest() upgrades.Test {
 	return &availableTest{
-		testName:        "[sig-api-machinery] OpenShift APIs remain available with reused connections",
+		testName:        "[sig-network] OpenShift APIs network connection remain available with reused connections",
 		name:            "openshift-api-available-reused-connections",
-		startMonitoring: monitor.StartOpenShiftAPIMonitoringWithConnectionReuse,
+		startMonitoring: monitor.StartOpenShiftNetworkMonitoringWithConnectionReuse,
 	}
 }
 
 // NewOauthAvailableTest tests that the OAuth APIs remains available during and after a cluster upgrade.
 func NewOAuthAvailableWithConnectionReuseTest() upgrades.Test {
 	return &availableTest{
-		testName:        "[sig-api-machinery] OAuth APIs remain available with reused connections",
+		testName:        "[sig-network] OAuth APIs network connection remain available with reused connections",
 		name:            "oauth-api-available-reused-connections",
-		startMonitoring: monitor.StartOAuthAPIMonitoringWithConnectionReuse,
+		startMonitoring: monitor.StartOAuthNetworkMonitoringWithConnectionReuse,
 	}
 }
 

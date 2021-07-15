@@ -92,8 +92,19 @@ func StartServerMonitoringWithNewConnections(ctx context.Context, m *Monitor, cl
 	return startServerMonitoring(ctx, m, clusterConfig, timeout, resourceLocator, url, true)
 }
 
+func StartNetworkMonitoringWithNewConnections(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration, resourceLocator, url string) error {
+	return startNetworkMonitoring(ctx, m, clusterConfig, timeout, resourceLocator, url, true)
+}
+
 func StartServerMonitoringWithConnectionReuse(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration, resourceLocator, url string) error {
+	if err := startNetworkMonitoring(ctx, m, clusterConfig, timeout, resourceLocator, url, false); err != nil {
+		return err
+	}
 	return startServerMonitoring(ctx, m, clusterConfig, timeout, resourceLocator, url, false)
+}
+
+func StartNetworkMonitoringWithConnectionReuse(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration, resourceLocator, url string) error {
+	return startNetworkMonitoring(ctx, m, clusterConfig, timeout, resourceLocator, url, true)
 }
 
 func startServerMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration, resourceLocator, url string, disableConnectionReuse bool) error {
@@ -165,14 +176,14 @@ func startServerMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.
 				Locator: resourceLocator,
 				Message: fmt.Sprintf("%s started responding to GET requests", resourceLocator),
 			}
-		case err != nil && previous:
+		case err != nil && IsAPIMachineryError(err) && previous:
 			condition = &monitorapi.Condition{
 				Level:   monitorapi.Error,
 				Locator: resourceLocator,
 				Message: fmt.Sprintf("%s started failing: %v", resourceLocator, err),
 			}
 		}
-		return condition, err == nil
+		return condition, IsAPIMachineryError(err)
 	}).WhenFailing(ctx, &monitorapi.Condition{
 		Level:   monitorapi.Error,
 		Locator: resourceLocator,
@@ -180,6 +191,117 @@ func startServerMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.
 	})
 
 	return nil
+}
+
+func startNetworkMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration, resourceLocator, url string, disableConnectionReuse bool) error {
+	kubeTransportConfig, err := clusterConfig.TransportConfig()
+	if err != nil {
+		return err
+	}
+	tlsConfig, err := transport.TLSConfigFor(kubeTransportConfig)
+	if err != nil {
+		return err
+	}
+	var httpTransport *http.Transport
+
+	if disableConnectionReuse {
+		httpTransport = &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout:   timeout,
+				KeepAlive: -1, // this looks unnecessary to me, but it was set in other code.
+			}).Dial,
+			TLSClientConfig:     tlsConfig,
+			TLSHandshakeTimeout: timeout,
+			DisableKeepAlives:   true, // this prevents connections from being reused
+			IdleConnTimeout:     timeout,
+		}
+	} else {
+		httpTransport = &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout: timeout,
+			}).Dial,
+			TLSClientConfig:     tlsConfig,
+			TLSHandshakeTimeout: timeout,
+			IdleConnTimeout:     timeout,
+		}
+	}
+
+	roundTripper := http.RoundTripper(httpTransport)
+	if kubeTransportConfig.HasTokenAuth() {
+		roundTripper, err = transport.NewBearerAuthWithRefreshRoundTripper(kubeTransportConfig.BearerToken, kubeTransportConfig.BearerTokenFile, httpTransport)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	httpClient := http.Client{
+		Transport: roundTripper,
+	}
+
+	go NewSampler(m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
+		resp, err := httpClient.Get(clusterConfig.Host + url)
+
+		if err == nil && resp != nil && resp.Body != nil {
+			defer resp.Body.Close()
+		}
+
+		switch {
+		case err == nil && !previous:
+			condition = &monitorapi.Condition{
+				Level:   monitorapi.Info,
+				Locator: resourceLocator,
+				Message: fmt.Sprintf("%s started responding to network requests", resourceLocator),
+			}
+		case err != nil && IsNetworkError(err) && previous:
+			condition = &monitorapi.Condition{
+				Level:   monitorapi.Error,
+				Locator: resourceLocator,
+				Message: fmt.Sprintf("%s started failing: %v", resourceLocator, err),
+			}
+		}
+		return condition, IsNetworkError(err)
+	}).WhenFailing(ctx, &monitorapi.Condition{
+		Level:   monitorapi.Error,
+		Locator: resourceLocator,
+		Message: fmt.Sprintf("%s is not responding to network requests", resourceLocator),
+	})
+
+	return nil
+}
+
+var apiMachineryErrors = []string{
+	"connection refused", // TODO: Likely a networking issue, but require more analysis to tell
+	"TLS handshake timeout",
+	"EOF", // could be ungraceful termination
+}
+
+var networkErrors = []string{
+	"i/o timeout",
+	"connection reset by peer",
+}
+
+func IsAPIMachineryError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if IsNetworkError(err) {
+		return false
+	}
+	// If it is not networking error, it is always API server problem
+	return true
+}
+
+func IsNetworkError(err error) bool {
+	if err == nil {
+		return false
+	}
+	for _, e := range networkErrors {
+		if strings.Contains(err.Error(), e) {
+			return true
+		}
+	}
+	return false
 }
 
 func StartKubeAPIMonitoringWithNewConnections(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {

@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/test/extended/util/disruption/network"
+
 	v1 "k8s.io/api/core/v1"
 	eventsv1 "k8s.io/api/events/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,12 +51,20 @@ func NoTests() []upgrades.Test {
 // AllTests includes all tests (minimal + disruption)
 func AllTests() []upgrades.Test {
 	return []upgrades.Test{
+		// controlplane monitor errors that go to [sig-api-machinery]
 		controlplane.NewKubeAvailableWithNewConnectionsTest(),
 		controlplane.NewOpenShiftAvailableNewConnectionsTest(),
 		controlplane.NewOAuthAvailableNewConnectionsTest(),
 		controlplane.NewKubeAvailableWithConnectionReuseTest(),
 		controlplane.NewOpenShiftAvailableWithConnectionReuseTest(),
 		controlplane.NewOAuthAvailableWithConnectionReuseTest(),
+		// network monitor errors that go to [sig-network]
+		network.NewKubeAvailableWithNewConnectionsTest(),
+		network.NewOpenShiftAvailableNewConnectionsTest(),
+		network.NewOAuthAvailableNewConnectionsTest(),
+		network.NewKubeAvailableWithConnectionReuseTest(),
+		network.NewOpenShiftAvailableWithConnectionReuseTest(),
+		network.NewOAuthAvailableWithConnectionReuseTest(),
 		&manifestdelete.UpgradeTest{},
 		&alert.UpgradeTest{},
 		&frontends.AvailableTest{},
