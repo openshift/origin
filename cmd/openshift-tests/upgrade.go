@@ -98,7 +98,7 @@ func upgradeTestPreTest() error {
 		return filterUpgrade(upgrade.NoTests(), func(string) bool { return true })
 	case "platform":
 		return filterUpgrade(upgrade.AllTests(), func(name string) bool {
-			return name == controlplane.NewKubeAvailableWithNewConnectionsTest().Name() || name == controlplane.NewKubeAvailableWithNewConnectionsTest().Name()
+			return name == controlplane.NewKubeAvailableWithNewConnectionsTest().Name() || name == controlplane.NewKubeAvailableWithConnectionReuseTest().Name()
 		})
 	default:
 		return filterUpgrade(upgrade.AllTests(), func(string) bool { return true })
