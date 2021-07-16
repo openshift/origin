@@ -265,66 +265,6 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 
 				})
 
-				/* to be moved to jenkins client plugin e2e
-				g.By("should handle multi-namespace templates", func() {
-					g.By("create additional projects")
-					namespace := oc.Namespace()
-					namespace2 := oc.Namespace() + "-2"
-					namespace3 := oc.Namespace() + "-3"
-
-					err := oc.Run("new-project").Args(namespace2).Execute()
-					o.Expect(err).NotTo(o.HaveOccurred())
-					err = oc.Run("new-project").Args(namespace3).Execute()
-					o.Expect(err).NotTo(o.HaveOccurred())
-					// no calls to delete these two projects here; leads to timing
-					// issues with the framework deleting all namespaces
-
-					g.By("set up policy for jenkins jobs in " + namespace2)
-					err = oc.Run("policy").Args("add-role-to-user", "edit", "system:serviceaccount:"+namespace+":jenkins", "-n", namespace2).Execute()
-					o.Expect(err).NotTo(o.HaveOccurred())
-					g.By("set up policy for jenkins jobs in " + namespace3)
-					err = oc.Run("policy").Args("add-role-to-user", "edit", "system:serviceaccount:"+namespace+":jenkins", "-n", namespace3).Execute()
-					o.Expect(err).NotTo(o.HaveOccurred())
-
-					// instantiate the bc
-					g.By("instantiate the jenkins pipeline strategy build config that leverages openshift client plugin with multiple namespaces")
-					err = oc.Run("new-app").Args("-f", multiNamespaceClientPluginPipelinePath, "-p", "NAMESPACE="+namespace, "-p", "NAMESPACE2="+namespace2, "-p", "NAMESPACE3="+namespace3).Execute()
-					o.Expect(err).NotTo(o.HaveOccurred())
-
-					// run the build
-					g.By("starting the pipeline build and waiting for it to complete")
-					br, err := exutil.StartBuildAndWait(oc, "multi-namespace-pipeline")
-					if err != nil || !br.BuildSuccess {
-						debugAnyJenkinsFailure(br, oc.Namespace()+"-multi-namespace-pipeline", oc, true)
-						exutil.DumpBuilds(oc)
-					}
-					br.AssertSuccess()
-
-					g.By("get build console logs and see if succeeded")
-					_, err = j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
-					o.Expect(err).NotTo(o.HaveOccurred())
-
-					g.By("confirm there are objects in second and third namespaces")
-					defer oc.SetNamespace(namespace)
-					oc.SetNamespace(namespace2)
-					output, err := oc.AsAdmin().Run("get").Args("all").Output()
-					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(output).To(o.ContainSubstring("deploymentconfig.apps.openshift.io/mariadb"))
-					oc.SetNamespace(namespace3)
-					output, err = oc.AsAdmin().Run("get").Args("all").Output()
-					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(output).To(o.ContainSubstring("service/mariadb"))
-
-					g.By("clean up openshift resources for next potential run")
-					oc.SetNamespace(namespace)
-					err = oc.Run("delete").Args("bc", "multi-namespace-pipeline").Execute()
-					o.Expect(err).NotTo(o.HaveOccurred())
-					err = oc.AsAdmin().Run("delete").Args("all", "-l", "template=mariadb-ephemeral-template").Execute()
-					o.Expect(err).NotTo(o.HaveOccurred())
-					err = oc.Run("delete").Args("template", "mariadb-ephemeral").Execute()
-					o.Expect(err).NotTo(o.HaveOccurred())
-				})
-				*/
 			})
 
 		})

@@ -43319,6 +43319,8 @@ func testExtendedTestdataImagestreamJenkinsSlavePodsYaml() (*asset, error) {
 var _testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml = []byte(`apiVersion: v1
 kind: ImageStream
 metadata:
+  labels:
+    role: jenkins-slave
   name: slave-jenkins
 spec:
   tags:
