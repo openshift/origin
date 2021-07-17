@@ -12,7 +12,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilversion "k8s.io/apimachinery/pkg/util/version"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -29,27 +28,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 
 	g.Describe("Cluster resource quota", func() {
 		g.It(fmt.Sprintf("should control resource limits across namespaces"), func() {
-			// This skip can be removed once https://github.com/openshift/kubernetes/pull/834 and
-			// the test is updated to reflect the addition of a service ca configmap to every namespace.
-			g.Skip("Skipping to allow service ca configmap publication to merge to o/k")
-
 			t := g.GinkgoT(1)
-
-			versionInfo, err := oc.KubeClient().Discovery().ServerVersion()
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			const kubeRootCAName = "kube-root-ca.crt"
-			version, err := utilversion.ParseSemantic(versionInfo.String())
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			expectKubeRootCACM := version.AtLeast(utilversion.MustParseGeneric("1.20"))
-			namespaceInitialCMCount := 0
-			if expectKubeRootCACM {
-				framework.Logf("server version %q is higher or equal to 1.20, expecting ConfigMap %q to be present", versionInfo, kubeRootCAName)
-				namespaceInitialCMCount = 1
-			}
 
 			clusterAdminKubeClient := oc.AdminKubeClient()
 			clusterAdminQuotaClient := oc.AdminQuotaClient()
@@ -71,11 +50,21 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 				},
 			}
 
-			if expectKubeRootCACM {
-				q := cq.Spec.Quota.Hard[corev1.ResourceConfigMaps]
-				q.Add(resource.MustParse("2"))
-				cq.Spec.Quota.Hard[corev1.ResourceConfigMaps] = q
-			}
+			const kubeRootCAName = "kube-root-ca.crt"
+			framework.Logf("expecting ConfigMap %q to be present", kubeRootCAName)
+
+			const serviceCAName = "openshift-service-ca.crt"
+			framework.Logf("expecting ConfigMap %q to be present", serviceCAName)
+
+			// Each namespace is expected to have a configmap each for kube root ca and service ca
+			namespaceInitialCMCount := 2
+
+			// Ensure quota includes the 2 mandatory configmaps
+			// TODO(marun) Figure out why the added quantity isn't 2
+			mandatoryCMQuantity := resource.NewQuantity(int64(namespaceInitialCMCount)*2, resource.DecimalSI)
+			q := cq.Spec.Quota.Hard[corev1.ResourceConfigMaps]
+			q.Add(*mandatoryCMQuantity)
+			cq.Spec.Quota.Hard[corev1.ResourceConfigMaps] = q
 
 			if _, err := clusterAdminQuotaClient.QuotaV1().ClusterResourceQuotas().Create(context.Background(), cq, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -84,12 +73,19 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 
 			firstProjectName := oc.CreateProject()
 			secondProjectName := oc.CreateProject()
-			if expectKubeRootCACM {
-				for _, ns := range []string{firstProjectName, secondProjectName} {
-					_, err = exutil.WaitForCMState(context.Background(), oc.KubeClient().CoreV1(), ns, kubeRootCAName, func(cm *corev1.ConfigMap) (bool, error) {
+
+			// Wait for the creation of the mandatory configmaps before performing checks of quota
+			// enforcement to ensure reliable test execution.
+			for _, ns := range []string{firstProjectName, secondProjectName} {
+				for _, cm := range []string{kubeRootCAName, serviceCAName} {
+					_, err := exutil.WaitForCMState(context.Background(), oc.KubeClient().CoreV1(), ns, cm, func(cm *corev1.ConfigMap) (bool, error) {
 						// Any event means the CM is present
+						framework.Logf("configmap %q is present in namespace %q", cm, ns)
 						return true, nil
 					})
+					if err != nil {
+						t.Fatalf("unexpected error: %v", err)
+					}
 				}
 			}
 
