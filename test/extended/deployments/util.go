@@ -401,10 +401,10 @@ func waitForSyncedConfig(oc *exutil.CLI, name string, timeout time.Duration) err
 	})
 }
 
-// waitForDeployerToComplete waits till the replication controller is created for a given
+// WaitForDeployerToComplete waits till the replication controller is created for a given
 // rollout and then wait till the deployer pod finish. Then scrubs the deployer logs and
 // return it.
-func waitForDeployerToComplete(oc *exutil.CLI, name string, timeout time.Duration) (string, error) {
+func WaitForDeployerToComplete(oc *exutil.CLI, name string, timeout time.Duration) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	rc, err := waitForRCState(ctx, oc.KubeClient().CoreV1(), oc.Namespace(), name, func(newRC *corev1.ReplicationController) (bool, error) {
