@@ -511,7 +511,7 @@ func (c *CLI) AdminDynamicClient() dynamic.Interface {
 }
 
 func (c *CLI) UserConfig() *rest.Config {
-	clientConfig, err := getClientConfig(c.configPath)
+	clientConfig, err := GetClientConfig(c.configPath)
 	if err != nil {
 		FatalErr(err)
 	}
@@ -519,7 +519,7 @@ func (c *CLI) UserConfig() *rest.Config {
 }
 
 func (c *CLI) AdminConfig() *rest.Config {
-	clientConfig, err := getClientConfig(c.adminConfigPath)
+	clientConfig, err := GetClientConfig(c.adminConfigPath)
 	if err != nil {
 		FatalErr(err)
 	}
@@ -813,7 +813,7 @@ func waitForAccess(c kubernetes.Interface, allowed bool, review *kubeauthorizati
 	})
 }
 
-func getClientConfig(kubeConfigFile string) (*rest.Config, error) {
+func GetClientConfig(kubeConfigFile string) (*rest.Config, error) {
 	kubeConfigBytes, err := ioutil.ReadFile(kubeConfigFile)
 	if err != nil {
 		return nil, err
