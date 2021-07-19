@@ -24,6 +24,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/test/extended/util"
@@ -115,9 +116,18 @@ func (t *AvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 		framework.Logf("Cannot require full control plane availability, some versions could not be checked: %v", err)
 	}
 
+	// Fetch network type for considering whether we allow disruption. For OVN, we currently have to allow disruption
+	// as those tests are failing: BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1983829
+	c, err := configv1client.NewForConfig(config)
+	framework.ExpectNoError(err)
+	network, err := c.ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
+	framework.ExpectNoError(err)
+
 	toleratedDisruption := 0.20
 	switch {
-	// framework.ProviderIs("gce") removed here in 4.9 due to regression. BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1981872
+	case network.Status.NetworkType == "OVNKubernetes":
+		framework.Logf("Network type is OVNKubernetes, temporarily allowing disruption due to BZ https://bugzilla.redhat.com/show_bug.cgi?id=1983829")
+	// framework.ProviderIs("gce") removed here in 4.9 due to regression. BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1983758
 	case framework.ProviderIs("azure"), framework.ProviderIs("aws"):
 		if hasAllFixes {
 			framework.Logf("Cluster contains no versions older than 4.8, tolerating no disruption")
