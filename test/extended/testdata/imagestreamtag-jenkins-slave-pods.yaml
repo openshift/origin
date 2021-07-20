@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: ImageStream
 metadata:
+  labels:
+    role: jenkins-slave
   name: slave-jenkins
 spec:
   tags:
