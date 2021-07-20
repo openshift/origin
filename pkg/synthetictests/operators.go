@@ -3,6 +3,7 @@ package synthetictests
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
@@ -22,6 +23,17 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals) []*ginkgo.
 func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType) []*ginkgo.JUnitTestCase {
 	ret := []*ginkgo.JUnitTestCase{}
 
+	var start, stop time.Time
+	for _, event := range events {
+		if start.IsZero() || event.From.Before(start) {
+			start = event.From
+		}
+		if stop.IsZero() || event.To.After(stop) {
+			stop = event.To
+		}
+	}
+	duration := stop.Sub(start).Seconds()
+
 	knownOperators := allOperators(events)
 	eventsByOperator := getEventsByOperator(events)
 	e2eEventIntervals := monitor.E2ETestEventIntervals(events)
@@ -34,7 +46,10 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 			testName := fmt.Sprintf("[bz-%v] clusteroperator/%v should not change condition/%v", bzComponent, operatorName, condition)
 			operatorEvents := eventsByOperator[operatorName]
 			if len(operatorEvents) == 0 {
-				ret = append(ret, &ginkgo.JUnitTestCase{Name: testName})
+				ret = append(ret, &ginkgo.JUnitTestCase{
+					Name:     testName,
+					Duration: duration,
+				})
 				continue
 			}
 
@@ -42,6 +57,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 			if len(failures) > 0 {
 				ret = append(ret, &ginkgo.JUnitTestCase{
 					Name:      testName,
+					Duration:  duration,
 					SystemOut: strings.Join(failures, "\n"),
 					FailureOutput: &ginkgo.FailureOutput{
 						Output: fmt.Sprintf("%d unexpected clusteroperator state transitions during e2e test run \n\n%v", len(failures), strings.Join(failures, "\n")),
