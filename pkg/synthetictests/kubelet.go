@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
 	"github.com/openshift/origin/pkg/test/ginkgo"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -76,11 +75,17 @@ func testKubeAPIServerGracefulTermination(events monitorapi.Intervals) []*ginkgo
 func testContainerFailures(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
 	containerExits := make(map[string][]string)
 	failures := []string{}
+	flakes := []string{}
 	for _, event := range events {
 		if !strings.Contains(event.Locator, "ns/openshift-") {
 			continue
 		}
 		switch {
+		// add check for QPS bug
+		case strings.Contains(event.Message, "pull QPS exceeded"):
+			flakes = append(flakes, fmt.Sprintf("%v - pull QPS exceeded https://bugzilla.redhat.com/show_bug.cgi?id=1983833 - %v", event.Locator, event.Message))
+			continue
+
 		// errors during container start should be highlighted because they are unexpected
 		case strings.Contains(event.Message, "reason/ContainerWait "):
 			// excluded https://bugzilla.redhat.com/show_bug.cgi?id=1933760
@@ -107,7 +112,11 @@ func testContainerFailures(events monitorapi.Intervals) []*ginkgo.JUnitTestCase 
 	var testCases []*ginkgo.JUnitTestCase
 
 	const failToStartTestName = "[sig-architecture] platform pods should not fail to start"
+
 	if len(failures) > 0 {
+		if len(flakes) > 0 {
+			failures = append(failures, flakes[:]...)
+		}
 		testCases = append(testCases, &ginkgo.JUnitTestCase{
 			Name:      failToStartTestName,
 			SystemOut: strings.Join(failures, "\n"),
@@ -115,7 +124,16 @@ func testContainerFailures(events monitorapi.Intervals) []*ginkgo.JUnitTestCase 
 				Output: fmt.Sprintf("%d container starts had issues\n\n%s", len(failures), strings.Join(failures, "\n")),
 			},
 		})
+	} else if len(flakes) > 0 && len(failures) == 0 {
+		testCases = append(testCases, &ginkgo.JUnitTestCase{
+			Name:      failToStartTestName,
+			SystemOut: strings.Join(flakes, "\n"),
+			FailureOutput: &ginkgo.FailureOutput{
+				Output: fmt.Sprintf("%d container starts had issues\n\n%s", len(flakes), strings.Join(flakes, "\n")),
+			},
+		})
 	}
+
 	// mark flaky for now while we debug
 	testCases = append(testCases, &ginkgo.JUnitTestCase{Name: failToStartTestName})
 
