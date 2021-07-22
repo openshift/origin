@@ -15427,8 +15427,6 @@ objects:
           namespace: ${NAMESPACE}
       type: Source
     triggers:
-      - type: ImageChange
-      - type: ConfigChange
       - github:
           secret: ${GITHUB_WEBHOOK_SECRET}
         type: GitHub
@@ -15499,7 +15497,7 @@ objects:
                 memory: ${MEMORY_LIMIT}
     triggers:
       - imageChangeParams:
-          automatic: true
+          automatic: false
           containerNames:
             - nodejs-postgresql-example
           from:
