@@ -435,6 +435,7 @@
 // test/extended/testdata/marketplace/opsrc/02-opsrc.yaml
 // test/extended/testdata/multi-namespace-pipeline.yaml
 // test/extended/testdata/multi-namespace-template.yaml
+// test/extended/testdata/net-attach-defs/bridge-nad.yml
 // test/extended/testdata/oauthserver/cabundle-cm.yaml
 // test/extended/testdata/oauthserver/oauth-network.yaml
 // test/extended/testdata/oauthserver/oauth-pod.yaml
@@ -48457,6 +48458,40 @@ func testExtendedTestdataMultiNamespaceTemplateYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataNetAttachDefsBridgeNadYml = []byte(`apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: bridge-nad
+spec: 
+  config: '{
+	"name": "multustestbridge",
+	"type": "bridge",
+	"bridge": "multustestbr0",
+	"isDefaultGateway": true,
+	"forceAddress": false,
+	"ipMasq": true,
+	"hairpinMode": true,
+	"ipam": {
+		"type": "static",
+		"addresses": [{"address": "10.10.0.1/24"}]
+	}
+}'`)
+
+func testExtendedTestdataNetAttachDefsBridgeNadYmlBytes() ([]byte, error) {
+	return _testExtendedTestdataNetAttachDefsBridgeNadYml, nil
+}
+
+func testExtendedTestdataNetAttachDefsBridgeNadYml() (*asset, error) {
+	bytes, err := testExtendedTestdataNetAttachDefsBridgeNadYmlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/net-attach-defs/bridge-nad.yml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataOauthserverCabundleCmYaml = []byte(`apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -53962,6 +53997,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/marketplace/opsrc/02-opsrc.yaml":                                                 testExtendedTestdataMarketplaceOpsrc02OpsrcYaml,
 	"test/extended/testdata/multi-namespace-pipeline.yaml":                                                   testExtendedTestdataMultiNamespacePipelineYaml,
 	"test/extended/testdata/multi-namespace-template.yaml":                                                   testExtendedTestdataMultiNamespaceTemplateYaml,
+	"test/extended/testdata/net-attach-defs/bridge-nad.yml":                                                  testExtendedTestdataNetAttachDefsBridgeNadYml,
 	"test/extended/testdata/oauthserver/cabundle-cm.yaml":                                                    testExtendedTestdataOauthserverCabundleCmYaml,
 	"test/extended/testdata/oauthserver/oauth-network.yaml":                                                  testExtendedTestdataOauthserverOauthNetworkYaml,
 	"test/extended/testdata/oauthserver/oauth-pod.yaml":                                                      testExtendedTestdataOauthserverOauthPodYaml,
@@ -54704,6 +54740,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"multi-namespace-pipeline.yaml": {testExtendedTestdataMultiNamespacePipelineYaml, map[string]*bintree{}},
 				"multi-namespace-template.yaml": {testExtendedTestdataMultiNamespaceTemplateYaml, map[string]*bintree{}},
+				"net-attach-defs": {nil, map[string]*bintree{
+					"bridge-nad.yml": {testExtendedTestdataNetAttachDefsBridgeNadYml, map[string]*bintree{}},
+				}},
 				"oauthserver": {nil, map[string]*bintree{
 					"cabundle-cm.yaml":   {testExtendedTestdataOauthserverCabundleCmYaml, map[string]*bintree{}},
 					"oauth-network.yaml": {testExtendedTestdataOauthserverOauthNetworkYaml, map[string]*bintree{}},
