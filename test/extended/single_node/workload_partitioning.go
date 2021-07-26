@@ -8,13 +8,35 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	v1 "github.com/openshift/api/config/v1"
+	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kube-openapi/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
+
+func skipIfNotSingleNode(oc *exutil.CLI) {
+	g.By("checking topology")
+
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(),
+		"cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	controlPlaneTopology := infra.Status.ControlPlaneTopology
+	infraTopology := infra.Status.InfrastructureTopology
+
+	g.By(fmt.Sprintf("controlPlaneTopology: `%s`, infraTopology: `%s`", controlPlaneTopology, infraTopology))
+
+	if controlPlaneTopology != v1.SingleReplicaTopologyMode && infraTopology != v1.SingleReplicaTopologyMode {
+		e2eskipper.Skipf("test is only relevant for single replica topologies")
+	}
+}
 
 var _ = g.Describe("[sig-arch] workload partitioning", func() {
 	defer g.GinkgoRecover()
+
+	oc := exutil.NewCLI("single-node")
 
 	namespacesNotYetUpdated := sets.NewString(
 		"openshift-config-managed", // this namespace runs no pods, so it will never be updated
@@ -23,6 +45,8 @@ var _ = g.Describe("[sig-arch] workload partitioning", func() {
 
 	g.It("should be annotated with: workload.openshift.io/management: {effect: PreferredDuringScheduling}", func() {
 		ctx := context.TODO()
+
+		skipIfNotSingleNode(oc)
 
 		kubeClient, err := e2e.LoadClientset()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -62,6 +86,8 @@ var _ = g.Describe("[sig-arch] workload partitioning", func() {
 
 	g.It("should be annotated with: workload.openshift.io/allowed: management", func() {
 		ctx := context.TODO()
+
+		skipIfNotSingleNode(oc)
 
 		kubeClient, err := e2e.LoadClientset()
 		o.Expect(err).NotTo(o.HaveOccurred())
