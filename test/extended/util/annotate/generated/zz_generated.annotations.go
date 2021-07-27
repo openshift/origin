@@ -1767,7 +1767,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Firewall rule should have correct firewall rules for e2e cluster": "should have correct firewall rules for e2e cluster [Disabled:SpecialConfig] [Suite:k8s]",
 
-	"[Top Level] [sig-network] HostPort validates that there is no conflict between pods with same hostPort but different hostIP and protocol [LinuxOnly] [Conformance]": "validates that there is no conflict between pods with same hostPort but different hostIP and protocol [LinuxOnly] [Conformance] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-network] HostPort validates that there is no conflict between pods with same hostPort but different hostIP and protocol [LinuxOnly] [Conformance]": "validates that there is no conflict between pods with same hostPort but different hostIP and protocol [LinuxOnly] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Ingress API should support creating Ingress API operations [Conformance]": "should support creating Ingress API operations [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -2047,13 +2047,13 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Networking Granular Checks: Services should update nodePort: udp [Slow]": "should update nodePort: udp [Slow] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking IPerf2 [Feature:Networking-Performance] should run iperf2": "should run iperf2 [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking IPerf2 [Feature:Networking-Performance] should run iperf2": "should run iperf2 [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Networking should check kube-proxy urls": "should check kube-proxy urls [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking should provide Internet connection for containers [Feature:Networking-IPv4]": "should provide Internet connection for containers [Feature:Networking-IPv4] [Disabled:Broken] [Skipped:azure] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking should provide Internet connection for containers [Feature:Networking-IPv4]": "should provide Internet connection for containers [Feature:Networking-IPv4] [Skipped:azure] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking should provide Internet connection for containers [Feature:Networking-IPv6][Experimental][LinuxOnly]": "should provide Internet connection for containers [Feature:Networking-IPv6][Experimental][LinuxOnly] [Disabled:Broken] [Skipped:azure] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking should provide Internet connection for containers [Feature:Networking-IPv6][Experimental][LinuxOnly]": "should provide Internet connection for containers [Feature:Networking-IPv6][Experimental][LinuxOnly] [Skipped:Disconnected] [Skipped:azure] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Networking should provide unchanging, static URL paths for kubernetes api services": "should provide unchanging, static URL paths for kubernetes api services [Disabled:Broken] [Suite:k8s]",
 
@@ -2099,7 +2099,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Services should be able to update service type to NodePort listening on same port number but different protocols": "should be able to update service type to NodePort listening on same port number but different protocols [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should be possible to connect to a service via ExternalIP when the external IP is not assigned to a node": "should be possible to connect to a service via ExternalIP when the external IP is not assigned to a node [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should be possible to connect to a service via ExternalIP when the external IP is not assigned to a node": "should be possible to connect to a service via ExternalIP when the external IP is not assigned to a node [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Services should be rejected when no endpoints exist": "should be rejected when no endpoints exist [Skipped:ibmcloud] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
