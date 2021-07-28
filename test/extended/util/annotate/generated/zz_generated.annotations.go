@@ -551,9 +551,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with minimum ready seconds set should not transition the deployment to Complete before satisfied": "should not transition the deployment to Complete before satisfied [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with multiple image change triggers should run a successful deployment with a trigger used by different containers": "should run a successful deployment with a trigger used by different containers [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with multiple image change triggers should run a successful deployment with a trigger used by different containers": "should run a successful deployment with a trigger used by different containers [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with multiple image change triggers should run a successful deployment with multiple triggers": "should run a successful deployment with multiple triggers [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with multiple image change triggers should run a successful deployment with multiple triggers": "should run a successful deployment with multiple triggers [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with revision history limits should never persist more old deployments than acceptable after being observed by the controller": "should never persist more old deployments than acceptable after being observed by the controller [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
@@ -1299,7 +1299,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc debug ensure debug does not depend on a container actually existing for the selected resource": "ensure debug does not depend on a container actually existing for the selected resource [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc debug ensure it works with image streams": "ensure it works with image streams [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc debug ensure it works with image streams": "ensure it works with image streams [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc explain list uncovered GroupVersionResources": "list uncovered GroupVersionResources [Suite:openshift/conformance/parallel]",
 
@@ -1421,7 +1421,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-coreos] [Conformance] CoreOS bootimages TestBootimagesPresent": "TestBootimagesPresent [Suite:openshift/conformance/parallel/minimal]",
 
-	"[Top Level] [sig-devex] check registry.redhat.io is available and samples operator can import sample imagestreams run sample related validations": "run sample related validations [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex] check registry.redhat.io is available and samples operator can import sample imagestreams run sample related validations": "run sample related validations [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/nodejs:12-ubi8\" should print the usage": "\"image-registry.openshift-image-registry.svc:5000/openshift/nodejs:12-ubi8\" should print the usage",
 
@@ -1505,9 +1505,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-devex][Feature:Templates] templateinstance object kinds test should create and delete objects from varying API groups": "should create and delete objects from varying API groups [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:Templates] templateinstance readiness test  should report failed soon after an annotated objects has failed": "should report failed soon after an annotated objects has failed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex][Feature:Templates] templateinstance readiness test  should report failed soon after an annotated objects has failed": "should report failed soon after an annotated objects has failed [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:Templates] templateinstance readiness test  should report ready soon after all annotated objects are ready": "should report ready soon after all annotated objects are ready [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex][Feature:Templates] templateinstance readiness test  should report ready soon after all annotated objects are ready": "should report ready soon after all annotated objects are ready [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-devex][Feature:Templates] templateinstance security tests  should pass security tests": "should pass security tests [Suite:openshift/conformance/parallel]",
 
@@ -2051,7 +2051,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Networking should check kube-proxy urls": "should check kube-proxy urls [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking should provide Internet connection for containers [Feature:Networking-IPv4]": "should provide Internet connection for containers [Feature:Networking-IPv4] [Skipped:azure] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking should provide Internet connection for containers [Feature:Networking-IPv4]": "should provide Internet connection for containers [Feature:Networking-IPv4] [Skipped:Disconnected] [Skipped:azure] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Networking should provide Internet connection for containers [Feature:Networking-IPv6][Experimental][LinuxOnly]": "should provide Internet connection for containers [Feature:Networking-IPv6][Experimental][LinuxOnly] [Skipped:Disconnected] [Skipped:azure] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2607,7 +2607,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-operator] an end user can use OLM Report Upgradeable in OLM ClusterOperators status": "Report Upgradeable in OLM ClusterOperators status [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-operator] an end user can use OLM can subscribe to the operator": "can subscribe to the operator [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] an end user can use OLM can subscribe to the operator": "can subscribe to the operator [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-scalability][Feature:Performance] Load cluster should populate the cluster [Slow][Serial]": "should populate the cluster [Slow][Serial]",
 
