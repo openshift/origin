@@ -245,11 +245,34 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 		}, 5*time.Minute, time.Second).Should(o.Equal([]string{""}))
 
 		for _, v := range files {
-			configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", v, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=redhat-operators", "SOURCENAMESPACE=openshift-marketplace", "PACKAGE=amq-streams", "CHANNEL=stable").OutputToFile("config.json")
+			configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", v, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=redhat-operators", "SOURCENAMESPACE=openshift-marketplace", "PACKAGE=vertical-pod-autoscaler", "CHANNEL=4.6").OutputToFile("config.json")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", configFile).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
+
+		// check all packages available on cluster
+		packages, err := oc.AsAdmin().Run("get").Args("packagemanifests.packages.operators.coreos.com").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("packages on-cluster \n %#v", packages)
+
+		// eventually subscription goes to a succeeded state
+		o.Eventually(func() string {
+			sub, err = oc.AsAdmin().Run("get").Args("-n", oc.Namespace(), "-o", "json", "subscription", "test-operator").Output()
+			if err != nil {
+				e2e.Logf("Failed to check subscription: %v, try next round", err)
+				return ""
+			}
+			e2e.Logf("sub %#v", sub)
+
+			phase, err := oc.AsAdmin().Run("get").Args("-n", oc.Namespace(), "-o=jsonpath={.status.state}", "subscription", "test-operator").Output()
+			if err != nil {
+				e2e.Logf("Failed to check subscription: %v, try next round", err)
+				return ""
+			}
+			e2e.Logf("sub phase %#v", phase)
+			return phase
+		}, 5*time.Minute, time.Second).ShouldNot(o.BeEmpty())
 
 		var current string
 		o.Eventually(func() string {
