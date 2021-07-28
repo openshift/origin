@@ -58,6 +58,7 @@ var (
 			// - coming from ServiceLBNodePortControl changes https://github.com/kubernetes/kubernetes/pull/100412
 			// - https://bugzilla.redhat.com/show_bug.cgi?id=1986001 - sig-api-machinery
 			`\[sig-api-machinery\] ResourceQuota should create a ResourceQuota and capture the life of a service`,
+			`\[sig-api-machinery\] API data in etcd`,
 
 			// due to CSI migration the following tests needs to be disabled:
 			// - https://bugzilla.redhat.com/show_bug.cgi?id=1985998 - sig-storage
@@ -82,6 +83,7 @@ var (
 			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(default fs\)\] subPath should support readOnly file specified in the volumeMount`,
 			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(default fs\)\] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property`,
 			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(default fs\)\] volumes should store data`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(filesystem volmode\)\] volumeLimits should support volume limits`,
 			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(filesystem volmode\)\] volumeMode should not mount / map unused volumes in a pod`,
 			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic Snapshot \(delete policy\)\] snapshottable\[Feature:VolumeSnapshotDataSource\] volume snapshot controller  should check snapshot fields, check restore correctly works after modifying source data, check deletion`,
 			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic Snapshot \(retain policy\)\] snapshottable\[Feature:VolumeSnapshotDataSource\] volume snapshot controller  should check snapshot fields, check restore correctly works after modifying source data, check deletion`,
