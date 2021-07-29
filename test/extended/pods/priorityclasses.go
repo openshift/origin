@@ -69,7 +69,7 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 				knownBugKey = knownBugKey[:strings.LastIndex(knownBugKey, "-")]
 			}
 			if !strings.HasPrefix(pod.Spec.PriorityClassName, "system-") && !strings.EqualFold(pod.Spec.PriorityClassName, "openshift-user-critical") {
-				invalidPodPriority.Insert(fmt.Sprintf("%s/%s (currently %q)", pod.Namespace, pod.Name, pod.Spec.PriorityClassName))
+				invalidPodPriority.Insert(fmt.Sprintf("%s/%s (currently %q, %q)", pod.Namespace, pod.Name, pod.Spec.PriorityClassName, knownBugKey))
 				if bz, ok := knownBugs[knownBugKey]; ok {
 					knownBugList.Insert(fmt.Sprintf("Component %v has a bug associated already: %v", knownBugKey, bz))
 				}
