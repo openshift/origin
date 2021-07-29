@@ -22,9 +22,10 @@ func TestEventCountExtractor(t *testing.T) {
 			times:   22,
 		},
 		{
-			name:  "other message",
-			input: "some node message",
-			times: 0,
+			name:    "other message",
+			input:   "some node message",
+			message: "",
+			times:   0,
 		},
 	}
 

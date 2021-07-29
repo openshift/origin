@@ -44,6 +44,9 @@ var knownEvents = combinedRegexp(
 
 	// etcd-quorum-guard can fail during upgrades.
 	regexp.MustCompile(`ns/openshift-etcd pod/etcd-quorum-guard-[a-z0-9-]+ node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: `),
+
+	// e2e-agnostic-cmd sometimes don't need to wait until deployment configs are deployed.
+	regexp.MustCompile(`ns/cmd-[a-z]+ deploymentconfig/[a-z]+ - reason/DeploymentAwaitingCancellation Deployment of version [0-9]+ awaiting cancellation of older running deployments`),
 )
 
 var knownEventProblems = []struct {
@@ -62,6 +65,10 @@ var knownEventProblems = []struct {
 		Regexp: regexp.MustCompile(`ns/openshift-network-diagnostics pod/network-check-target-[a-z0-9]+ node/[a-z0-9.-]+ - reason/NetworkNotReady network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net\.d/\. Has your network provider started\?`),
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1986370",
 	},
+	{
+		Regexp: regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/UnhealthyEtcdMember unhealthy members: [^ ]+`),
+		BZ:     "TBD",
+	},
 }
 
 // we want to identify events based on the monitor because it is (currently) our only spot that tracks events over time
@@ -72,12 +79,34 @@ func testDuplicatedEvents(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-arch] events should not repeat pathologically"
 
 	displayToCount := map[string]int{}
+	ignoredCounts := map[string]int{}
 	for _, event := range events {
 		eventDisplayMessage, times := getTimesAnEventHappened(fmt.Sprintf("%s - %s", event.Locator, event.Message))
-		if times > 20 {
-			if knownEvents.MatchString(eventDisplayMessage) {
-				continue
-			}
+		if times == 0 {
+			continue
+		}
+
+		prev, ok := displayToCount[eventDisplayMessage]
+		// If we see the event for the first time, but it has already happened
+		// multiple, usually it means that previous events happened before the
+		// tests run. There might be exceptions (for example, combined events)
+		// if the event message changes.
+		if !ok && times > 1 && !strings.Contains(eventDisplayMessage, "(combined from similar events): ") {
+			displayToCount["before tests: "+eventDisplayMessage] = times - 1
+			ignoredCounts[eventDisplayMessage] = times - 1
+		}
+
+		// For the first occurrence of the event, times will be 1. It will
+		// increase monotonically for subsequent events until the object is
+		// recreated. A drop in the counter value is an indication that a new
+		// object with the same name has been created.
+		if times < ignoredCounts[eventDisplayMessage] {
+			ignoredCounts[eventDisplayMessage] = 0
+		} else {
+			times -= ignoredCounts[eventDisplayMessage]
+		}
+
+		if !ok || prev < times {
 			displayToCount[eventDisplayMessage] = times
 		}
 	}
@@ -85,6 +114,10 @@ func testDuplicatedEvents(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
 	var failures []string
 	var flakes []string
 	for display, count := range displayToCount {
+		if count <= 20 || knownEvents.MatchString(display) {
+			continue
+		}
+
 		msg := fmt.Sprintf("event happened %d times, something is wrong: %v", count, display)
 
 		flake := false
