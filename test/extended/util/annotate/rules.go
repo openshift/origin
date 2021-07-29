@@ -76,7 +76,11 @@ var (
 			`openshift mongodb replication creating from a template`, // flaking on deployment
 		},
 		// tests that must be run without competition
-		"[Serial]":        {},
+		"[Serial]": {},
+		// tests that can't be run in parallel with a copy of itself
+		"[Serial:Self]": {
+			`\[sig-network\] HostPort validates that there is no conflict between pods with same hostPort but different hostIP and protocol`,
+		},
 		"[Skipped:azure]": {},
 		"[Skipped:ovirt]": {},
 		"[Skipped:gce]":   {},

@@ -1783,7 +1783,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Firewall rule should have correct firewall rules for e2e cluster": "should have correct firewall rules for e2e cluster [Disabled:SpecialConfig] [Suite:k8s]",
 
-	"[Top Level] [sig-network] HostPort validates that there is no conflict between pods with same hostPort but different hostIP and protocol [LinuxOnly] [Conformance]": "validates that there is no conflict between pods with same hostPort but different hostIP and protocol [LinuxOnly] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] HostPort validates that there is no conflict between pods with same hostPort but different hostIP and protocol [LinuxOnly] [Conformance]": "validates that there is no conflict between pods with same hostPort but different hostIP and protocol [LinuxOnly] [Conformance] [Serial:Self] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Ingress API should support creating Ingress API operations [Conformance]": "should support creating Ingress API operations [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -1795,7 +1795,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] IngressClass [Feature:Ingress] should set default value on new IngressClass [Serial]": "should set default value on new IngressClass [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Internal connectivity for TCP and UDP on ports 9000-9999 is allowed": "for TCP and UDP on ports 9000-9999 is allowed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network] Internal connectivity for TCP and UDP on ports 9000-9999 is allowed [Serial:Self]": "for TCP and UDP on ports 9000-9999 is allowed [Serial:Self] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network] KubeProxy should set TCP CLOSE_WAIT timeout [Privileged]": "should set TCP CLOSE_WAIT timeout [Privileged] [Disabled:Broken] [Suite:k8s]",
 
