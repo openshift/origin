@@ -11,8 +11,10 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/kubernetes/test/e2e/framework"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
 	e2essh "k8s.io/kubernetes/test/e2e/framework/ssh"
@@ -20,12 +22,14 @@ import (
 	"github.com/openshift/origin/test/e2e/upgrade"
 	exutil "github.com/openshift/origin/test/extended/util"
 
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"github.com/stretchr/objx"
 )
 
 const (
-	operatorWait = 15 * time.Minute
+	operatorWait      = 15 * time.Minute
+	defaultSSHTimeout = 5 * time.Minute
 )
 
 func runCommandAndRetry(command string) string {
@@ -87,7 +91,17 @@ func waitForMastersToUpdate(oc *exutil.CLI, mcps dynamic.NamespaceableResourceIn
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-func waitForOperatorsToSettle(coc dynamic.NamespaceableResourceInterface) {
+func waitForOperatorsToSettle() {
+	g.By("Waiting for operators to settle before performing post-disruption testing")
+	config, err := framework.LoadConfig()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	dynamicClient := dynamic.NewForConfigOrDie(config)
+	coc := dynamicClient.Resource(schema.GroupVersionResource{
+		Group:    "config.openshift.io",
+		Version:  "v1",
+		Resource: "clusteroperators",
+	})
+
 	var lastErr error
 	// gate on all clusteroperators being ready
 	available := make(map[string]struct{})
@@ -196,50 +210,6 @@ func restartSDNPods(oc *exutil.CLI) {
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-func restartOpenshiftAPIPods(oc *exutil.CLI) {
-	e2elog.Logf("Restarting Openshift API server")
-
-	pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-apiserver").List(context.Background(), metav1.ListOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	for _, pod := range pods.Items {
-		e2elog.Logf("Deleting pod %s", pod.Name)
-		err := oc.AdminKubeClient().CoreV1().Pods("openshift-apiserver").Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-	}
-
-	err = wait.Poll(10*time.Second, 5*time.Minute, func() (done bool, err error) {
-		apiServerDS, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-apiserver").Get(context.Background(), "apiserver", metav1.GetOptions{})
-		if err != nil {
-			return false, nil
-		}
-		return apiServerDS.Status.NumberReady == apiServerDS.Status.NumberAvailable, nil
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
-}
-
-func restartMCDPods(oc *exutil.CLI) {
-	e2elog.Logf("Restarting MCD pods")
-
-	pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-machine-config-operator").List(context.Background(), metav1.ListOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	for _, pod := range pods.Items {
-		e2elog.Logf("Deleting pod %s", pod.Name)
-		err := oc.AdminKubeClient().CoreV1().Pods("openshift-machine-config-operator").Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-	}
-
-	err = wait.Poll(10*time.Second, 5*time.Minute, func() (done bool, err error) {
-		mcDS, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-machine-config-operator").Get(context.Background(), "machine-config-daemon", metav1.GetOptions{})
-		if err != nil {
-			return false, nil
-		}
-		return mcDS.Status.NumberReady == mcDS.Status.NumberAvailable, nil
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
-}
-
 func objects(from *objx.Value) []objx.Map {
 	var values []objx.Map
 	switch {
@@ -285,21 +255,48 @@ func countReady(items []corev1.Node) int {
 
 func fetchFileContents(node *corev1.Node, path string) string {
 	e2elog.Logf("Fetching %s file contents from %s", path, node.Name)
-	out, err := ssh(fmt.Sprintf("cat %q", path), node)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	if len(out.Stderr) > 0 {
-		e2elog.Logf("file content stderr:\n%s", out.Stderr)
-	}
+	out := execOnNodeWithOutputOrFail(node, fmt.Sprintf("cat %q", path))
 	return out.Stdout
 }
 
-func expectSSH(cmd string, node *corev1.Node) {
-	e2elog.Logf("cmd[%s]: %s", node.Name, cmd)
-	out, err := e2essh.IssueSSHCommandWithResult(cmd, e2e.TestContext.Provider, node)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	if len(out.Stderr) > 0 {
-		e2elog.Logf("command %q stderr:\n%s", cmd, out.Stderr)
-	}
+// execOnNodeWithOutputOrFail executes a command via ssh against a
+// node in a poll loop to ensure reliable execution in a disrupted
+// environment. The calling test will be failed if the command cannot
+// be executed successfully before the provided timeout.
+func execOnNodeWithOutputOrFail(node *corev1.Node, cmd string) *e2essh.Result {
+	var out *e2essh.Result
+	var err error
+	waitErr := wait.PollImmediate(5*time.Second, defaultSSHTimeout, func() (bool, error) {
+		out, err = e2essh.IssueSSHCommandWithResult(cmd, e2e.TestContext.Provider, node)
+		// IssueSSHCommandWithResult logs output
+		if err != nil {
+			e2elog.Logf("Failed to exec cmd [%s] on node %s: %v", cmd, node.Name, err)
+		}
+		return err == nil, nil
+	})
+	o.Expect(waitErr).NotTo(o.HaveOccurred())
+	return out
+}
+
+// execOnNodeOrFail executes a command via ssh against a node in a
+// poll loop until success or timeout. The output is ignored. The
+// calling test will be failed if the command cannot be executed
+// successfully before the timeout.
+func execOnNodeOrFail(node *corev1.Node, cmd string) {
+	_ = execOnNodeWithOutputOrFail(node, cmd)
+}
+
+// sudoExecOnNodeOrFail executes a command under sudo with execOnNodeOrFail.
+func sudoExecOnNodeOrFail(node *corev1.Node, cmd string) {
+	sudoCmd := fmt.Sprintf(`sudo -i /bin/bash -cx "%s"`, cmd)
+	execOnNodeOrFail(node, sudoCmd)
+}
+
+// checkSSH repeatedly attempts to establish an ssh connection to a
+// node and fails the calling test if unable to establish the
+// connection before the default timeout.
+func checkSSH(node *corev1.Node) {
+	_ = execOnNodeWithOutputOrFail(node, "true")
 }
 
 func ssh(cmd string, node *corev1.Node) (*e2essh.Result, error) {
