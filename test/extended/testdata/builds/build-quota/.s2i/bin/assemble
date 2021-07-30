@@ -4,22 +4,42 @@
 # output, so adding a sleep in an attempt to let the buildah log output
 # stop before the container output starts
 sleep 10
-echo -n MEMORY= && cat /sys/fs/cgroup/memory/memory.limit_in_bytes
-echo -n MEMORYSWAP= && cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes
-
-if [ -e /sys/fs/cgroup/cpuacct,cpu ]; then
-	quota=$(</sys/fs/cgroup/cpuacct,cpu/cpu.cfs_quota_us)
-	echo -n QUOTA= && cat /sys/fs/cgroup/cpuacct,cpu/cpu.cfs_quota_us
-	echo -n SHARES= && cat /sys/fs/cgroup/cpuacct,cpu/cpu.shares
-	echo -n PERIOD= && cat /sys/fs/cgroup/cpuacct,cpu/cpu.cfs_period_us
+cgroupv1Val=$(cat /sys/fs/cgroup/memory/memory.limit_in_bytes) || true
+echo "cgroupv1Val is ${cgroupv1Val}"
+if [ "$cgroupv1Val" = "419430400" ]; then
+  echo "MEMORY=${cgroupv1Val}"
 else
-	quota=$(</sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us)
-	echo -n QUOTA= && cat /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us
-	echo -n SHARES= && cat /sys/fs/cgroup/cpu,cpuacct/cpu.shares
-	echo -n PERIOD= && cat /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us
+  cgroupv2Val=$(cat /sys/fs/cgroup/memory.max) || true
+  echo "cgroupv2Val is ${cgroupv2Val}"
+  if [ "$cgroupv2Val" = "419430400" ]; then
+    echo "MEMORY=${cgroupv2Val}"
+  fi
+fi
+cgroupv1Val=$(cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes) || true
+echo "cgroupv1Val is ${cgroupv1Val}"
+if [ "$cgroupv1Val" = "419430400" ]; then
+  echo "MEMORYSWAP=${cgroupv1Val}"
+else
+  cgroupv2Val=$(cat /sys/fs/cgroup/memory.swap.max) || true
+  echo "cgroupv2Val is ${cgroupv2Val}"
+  if [ "$cgroupv2Val" = "419430400" ]; then
+    echo "MEMORYSWAP=${cgroupv2Val}"
+  fi
 fi
 
-if [ "${quota}" == "-1" ]; then
+if [ -e /sys/fs/cgroup/cpuacct,cpu ]; then
+	quota=$(cat /sys/fs/cgroup/cpuacct,cpu/cpu.cfs_quota_us)
+	echo QUOTA= && cat /sys/fs/cgroup/cpuacct,cpu/cpu.cfs_quota_us
+	echo SHARES= && cat /sys/fs/cgroup/cpuacct,cpu/cpu.shares
+	echo PERIOD= && cat /sys/fs/cgroup/cpuacct,cpu/cpu.cfs_period_us
+else
+	quota=$(cat /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us)
+	echo QUOTA= && cat /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us
+	echo SHARES= && cat /sys/fs/cgroup/cpu,cpuacct/cpu.shares
+	echo PERIOD= && cat /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us
+fi
+
+if [ "${quota}" = "-1" ]; then
 	cat /proc/self/cgroup
 	cat /proc/self/mountinfo
 	findmnt
