@@ -278,8 +278,49 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			},
 		}
 
-		if _, exists := upperBounds[infra.Spec.PlatformSpec.Type]; !exists {
-			e2eskipper.Skipf("Unsupported platform type: %v", infra.Spec.PlatformSpec.Type)
+		upperBoundsSingleNode := map[configv1.PlatformType]platformUpperBound{
+			configv1.AWSPlatformType: {
+				"authentication-operator":                308,
+				"aws-ebs-csi-driver-operator":            142,
+				"cloud-credential-operator":              64,
+				"cluster-autoscaler-operator":            44,
+				"cluster-baremetal-operator":             31,
+				"cluster-image-registry-operator":        119,
+				"cluster-monitoring-operator":            35,
+				"cluster-node-tuning-operator":           39,
+				"cluster-samples-operator":               23,
+				"cluster-storage-operator":               202,
+				"console-operator":                       146,
+				"csi-snapshot-controller-operator":       99,
+				"dns-operator":                           59,
+				"etcd-operator":                          164,
+				"ingress-operator":                       371,
+				"kube-apiserver-operator":                260,
+				"kube-controller-manager-operator":       145,
+				"kube-storage-version-migrator-operator": 68,
+				"machine-api-operator":                   48,
+				"marketplace-operator":                   12,
+				"openshift-apiserver-operator":           257,
+				"openshift-config-operator":              50,
+				"openshift-controller-manager-operator":  180,
+				"openshift-kube-scheduler-operator":      179,
+				"prometheus-operator":                    90,
+				"service-ca-operator":                    131,
+			},
+		}
+
+		var upperBound platformUpperBound
+
+		if infra.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode {
+			if _, exists := upperBoundsSingleNode[infra.Spec.PlatformSpec.Type]; !exists {
+				e2eskipper.Skipf("Unsupported single node platform type: %v", infra.Spec.PlatformSpec.Type)
+			}
+			upperBound = upperBoundsSingleNode[infra.Spec.PlatformSpec.Type]
+		} else {
+			if _, exists := upperBounds[infra.Spec.PlatformSpec.Type]; !exists {
+				e2eskipper.Skipf("Unsupported platform type: %v", infra.Spec.PlatformSpec.Type)
+			}
+			upperBound = upperBounds[infra.Spec.PlatformSpec.Type]
 		}
 
 		apiRequestCounts, err := apirequestCountClient.APIRequestCounts().List(ctx, metav1.ListOptions{})
@@ -376,7 +417,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		fail := false
 		for _, item := range watchRequestCounts {
 			operator := strings.Split(item.operator, ":")[3]
-			count, exists := upperBounds[infra.Spec.PlatformSpec.Type][operator]
+			count, exists := upperBound[operator]
 
 			if !exists {
 				framework.Logf("Operator %v not found in upper bounds for %v", operator, infra.Spec.PlatformSpec.Type)
