@@ -12,7 +12,9 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/util/iptables"
+	utilexec "k8s.io/utils/exec"
 )
 
 type NodeIPTables struct {
@@ -25,6 +27,39 @@ type NodeIPTables struct {
 	mu sync.Mutex // Protects concurrent access to syncIPTableRules()
 
 	egressIPs map[string]string
+}
+
+// this will retry 10 times over a period of 13 seconds
+var iptablesBackoff wait.Backoff = wait.Backoff{
+	Duration: 500 * time.Millisecond,
+	Factor:   1.25,
+	Steps:    10,
+}
+
+// execIPTablesWithRetry allows a simple way to retry iptables commands if they fail the first time
+func execIPTablesWithRetry(f func() error) error {
+	return wait.ExponentialBackoff(iptablesBackoff, func() (bool, error) {
+		if err := f(); err != nil {
+			if isResourceError(err) {
+				glog.V(5).Infof("Call to iptables failed with transient failure: %v", err)
+				return false, nil
+			}
+			return false, err
+		}
+		return true, nil
+	})
+}
+
+const iptablesStatusResourceProblem = 4
+
+// isResourceError returns true if the error indicates that iptables ran into a "resource
+// problem" and was unable to attempt the request. In particular, this will be true if it
+// times out trying to get the iptables lock.
+func isResourceError(err error) bool {
+	if ee, isExitError := err.(utilexec.ExitError); isExitError {
+		return ee.ExitStatus() == iptablesStatusResourceProblem
+	}
+	return false
 }
 
 func newNodeIPTables(ipt iptables.Interface, clusterNetworkCIDR []string, masqueradeServices bool, vxlanPort uint32, masqueradeBit uint32) *NodeIPTables {
@@ -57,7 +92,12 @@ type Chain struct {
 func (n *NodeIPTables) addChainRules(chain Chain) (bool, error) {
 	allExisted := true
 	for _, rule := range chain.rules {
-		existed, err := n.ipt.EnsureRule(iptables.Append, iptables.Table(chain.table), iptables.Chain(chain.name), rule...)
+		var existed bool
+		err := execIPTablesWithRetry(func() error {
+			var err error
+			existed, err = n.ipt.EnsureRule(iptables.Append, iptables.Table(chain.table), iptables.Chain(chain.name), rule...)
+			return err
+		})
 		if err != nil {
 			return false, fmt.Errorf("failed to ensure rule %v exists: %v", rule, err)
 		}
@@ -84,7 +124,12 @@ func (n *NodeIPTables) syncIPTableRules() error {
 	for i := len(chains) - 1; i >= 0; i-- {
 		chain := chains[i]
 		// Create chain if it does not already exist
-		chainExisted, err := n.ipt.EnsureChain(iptables.Table(chain.table), iptables.Chain(chain.name))
+		var chainExisted bool
+		err := execIPTablesWithRetry(func() error {
+			var err error
+			chainExisted, err = n.ipt.EnsureChain(iptables.Table(chain.table), iptables.Chain(chain.name))
+			return err
+		})
 		if err != nil {
 			return fmt.Errorf("failed to ensure chain %s exists: %v", chain.name, err)
 		}
@@ -94,7 +139,10 @@ func (n *NodeIPTables) syncIPTableRules() error {
 			// chains with the same table and srcChain (ie, OPENSHIFT-FIREWALL-FORWARD
 			// and OPENSHIFT-ADMIN-OUTPUT-RULES) will run in the same order as they
 			// appear in getNodeIPTablesChains().
-			_, err = n.ipt.EnsureRule(iptables.Prepend, iptables.Table(chain.table), iptables.Chain(chain.srcChain), append(chain.srcRule, "-j", chain.name)...)
+			err = execIPTablesWithRetry(func() error {
+				_, err = n.ipt.EnsureRule(iptables.Prepend, iptables.Table(chain.table), iptables.Chain(chain.srcChain), append(chain.srcRule, "-j", chain.name)...)
+				return err
+			})
 			if err != nil {
 				return fmt.Errorf("failed to ensure rule from %s to %s exists: %v", chain.srcChain, chain.name, err)
 			}
@@ -109,7 +157,10 @@ func (n *NodeIPTables) syncIPTableRules() error {
 			// Chain existed but not with the expected rules; this probably means
 			// it contained rules referring to a *different* subnet; flush them
 			// and try again.
-			if err = n.ipt.FlushChain(iptables.Table(chain.table), iptables.Chain(chain.name)); err != nil {
+			err = execIPTablesWithRetry(func() error {
+				return n.ipt.FlushChain(iptables.Table(chain.table), iptables.Chain(chain.name))
+			})
+			if err != nil {
 				return fmt.Errorf("failed to flush chain %s: %v", chain.name, err)
 			}
 			if _, err = n.addChainRules(chain); err != nil {
@@ -204,12 +255,18 @@ func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
 
 func (n *NodeIPTables) ensureEgressIPRules(egressIP, mark string) error {
 	for _, cidr := range n.clusterNetworkCIDR {
-		_, err := n.ipt.EnsureRule(iptables.Prepend, iptables.TableNAT, iptables.Chain("OPENSHIFT-MASQUERADE"), "-s", cidr, "-m", "mark", "--mark", mark, "-j", "SNAT", "--to-source", egressIP)
+		err := execIPTablesWithRetry(func() error {
+			_, err := n.ipt.EnsureRule(iptables.Prepend, iptables.TableNAT, iptables.Chain("OPENSHIFT-MASQUERADE"), "-s", cidr, "-m", "mark", "--mark", mark, "-j", "SNAT", "--to-source", egressIP)
+			return err
+		})
 		if err != nil {
 			return err
 		}
 	}
-	_, err := n.ipt.EnsureRule(iptables.Append, iptables.TableFilter, iptables.Chain("OPENSHIFT-FIREWALL-ALLOW"), "-d", egressIP, "-m", "conntrack", "--ctstate", "NEW", "-j", "REJECT")
+	err := execIPTablesWithRetry(func() error {
+		_, err := n.ipt.EnsureRule(iptables.Append, iptables.TableFilter, iptables.Chain("OPENSHIFT-FIREWALL-ALLOW"), "-d", egressIP, "-m", "conntrack", "--ctstate", "NEW", "-j", "REJECT")
+		return err
+	})
 	return err
 }
 
@@ -231,12 +288,17 @@ func (n *NodeIPTables) DeleteEgressIPRules(egressIP, mark string) error {
 	delete(n.egressIPs, egressIP)
 
 	for _, cidr := range n.clusterNetworkCIDR {
-		err := n.ipt.DeleteRule(iptables.TableNAT, iptables.Chain("OPENSHIFT-MASQUERADE"), "-s", cidr, "-m", "mark", "--mark", mark, "-j", "SNAT", "--to-source", egressIP)
+		err := execIPTablesWithRetry(func() error {
+			return n.ipt.DeleteRule(iptables.TableNAT, iptables.Chain("OPENSHIFT-MASQUERADE"), "-s", cidr, "-m", "mark", "--mark", mark, "-j", "SNAT", "--to-source", egressIP)
+		})
 		if err != nil {
 			return err
 		}
 	}
-	return n.ipt.DeleteRule(iptables.TableFilter, iptables.Chain("OPENSHIFT-FIREWALL-ALLOW"), "-d", egressIP, "-m", "conntrack", "--ctstate", "NEW", "-j", "REJECT")
+	err := execIPTablesWithRetry(func() error {
+		return n.ipt.DeleteRule(iptables.TableFilter, iptables.Chain("OPENSHIFT-FIREWALL-ALLOW"), "-d", egressIP, "-m", "conntrack", "--ctstate", "NEW", "-j", "REJECT")
+	})
+	return err
 }
 
 var masqRuleRE = regexp.MustCompile(`-A OPENSHIFT-MASQUERADE .* --to-source ([^ ]*)`)
@@ -282,7 +344,9 @@ func (n *NodeIPTables) SyncEgressIPRules() {
 			continue
 		}
 		args = args[2:]
-		err := n.ipt.DeleteRule(iptables.TableNAT, iptables.Chain("OPENSHIFT-MASQUERADE"), args...)
+		err := execIPTablesWithRetry(func() error {
+			return n.ipt.DeleteRule(iptables.TableNAT, iptables.Chain("OPENSHIFT-MASQUERADE"), args...)
+		})
 		if err != nil {
 			glog.Warningf("Error deleting iptables masquerade rule for stale egress IP %s: %v", ip, err)
 		}
@@ -296,7 +360,9 @@ func (n *NodeIPTables) SyncEgressIPRules() {
 			continue
 		}
 		args = args[2:]
-		err := n.ipt.DeleteRule(iptables.TableFilter, iptables.Chain("OPENSHIFT-FIREWALL-ALLOW"), args...)
+		err := execIPTablesWithRetry(func() error {
+			return n.ipt.DeleteRule(iptables.TableFilter, iptables.Chain("OPENSHIFT-FIREWALL-ALLOW"), args...)
+		})
 		if err != nil {
 			glog.Warningf("Error deleting iptables filter rule for stale egress IP %s: %v", ip, err)
 		}
