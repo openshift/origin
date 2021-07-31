@@ -17464,6 +17464,10 @@ var _testExtendedTestdataBuildsBuildQuotaS2iBinAssemble = []byte(`#!/bin/sh
 # output, so adding a sleep in an attempt to let the buildah log output
 # stop before the container output starts
 sleep 10
+echo "start search for cgroup memory files"
+find /sys/fs/cgroup -name memory.limit_in_bytes
+find /sys/fs/cgroup -name memory.max
+echo "end search for cgroup memory files"
 cgroupv1Val=$(cat /sys/fs/cgroup/memory/memory.limit_in_bytes) || true
 echo "cgroupv1Val is ${cgroupv1Val}"
 if [ "$cgroupv1Val" = "419430400" ]; then
