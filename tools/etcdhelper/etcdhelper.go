@@ -13,7 +13,7 @@ import (
 	jsonserializer "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/kubectl/pkg/scheme"
 
-	"go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/pkg/transport"
 
 	"github.com/openshift/api"

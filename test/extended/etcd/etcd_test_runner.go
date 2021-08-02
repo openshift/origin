@@ -12,8 +12,7 @@ import (
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/ibmcloud"
-	"go.etcd.io/etcd/clientv3"
-	etcdv3 "go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,7 +46,7 @@ type etcdPortForwardClient struct {
 	etcdClient *clientv3.Client
 }
 
-func (e *etcdPortForwardClient) getEtcdClient() (etcdv3.KV, error) {
+func (e *etcdPortForwardClient) getEtcdClient() (clientv3.KV, error) {
 	if e.etcdClient == nil {
 		framework.Logf("no etcd client yet")
 		return e.newEtcdClient()
@@ -65,7 +64,7 @@ func (e *etcdPortForwardClient) getEtcdClient() (etcdv3.KV, error) {
 	return e.etcdClient, nil
 }
 
-func (e *etcdPortForwardClient) newEtcdClient() (etcdv3.KV, error) {
+func (e *etcdPortForwardClient) newEtcdClient() (clientv3.KV, error) {
 	framework.Logf("creating new etcd client")
 
 	ctx, cancel := context.WithCancel(context.Background())
