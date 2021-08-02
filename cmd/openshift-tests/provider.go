@@ -8,7 +8,6 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 
-	reale2e "k8s.io/kubernetes/test/e2e"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -44,7 +43,6 @@ func initializeTestFramework(context *e2e.TestContextType, config *exutilcluster
 	context.AllowedNotReadyNodes = -1
 	context.MinStartupPods = -1
 	context.MaxNodesToGather = 0
-	reale2e.SetViperConfig(os.Getenv("VIPERCONFIG"))
 
 	// allow the CSI tests to access test data, but only briefly
 	// TODO: ideally CSI would not use any of these test methods

@@ -27,7 +27,6 @@ type ContextType struct {
 type ProjectMeta struct {
 	Counter int
 	ClusterLoaderType
-	ViperConfig string
 }
 
 // ClusterLoaderType struct only used for Cluster Loader test config

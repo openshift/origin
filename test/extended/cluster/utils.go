@@ -502,9 +502,9 @@ func newConfigMap(ns string, name string, vars map[string]string) *kapiv1.Config
 }
 
 // CreateTemplates creates templates in user defined namespaces with user configurable tuning sets.
-func CreateTemplates(oc *exutil.CLI, c kclientset.Interface, nsName, config string, template ClusterLoaderObjectType, tuning *TuningSetType, step *metrics.TemplateStepDuration) error {
+func CreateTemplates(oc *exutil.CLI, c kclientset.Interface, nsName string, template ClusterLoaderObjectType, tuning *TuningSetType, step *metrics.TemplateStepDuration) error {
 	var allArgs []string
-	templateFile, err := mkPath(template.File, config)
+	templateFile, err := mkPath(template.File)
 	if err != nil {
 		return err
 	}
@@ -591,11 +591,11 @@ func CreateTemplates(oc *exutil.CLI, c kclientset.Interface, nsName, config stri
 }
 
 // CreateSimpleTemplates creates templates in user defined namespaces without tuningsets
-func CreateSimpleTemplates(oc *exutil.CLI, nsName, config string, template ClusterLoaderObjectType) error {
+func CreateSimpleTemplates(oc *exutil.CLI, nsName string, template ClusterLoaderObjectType) error {
 	clusterAdminClientConfig := oc.AdminConfig()
 	restmapper := oc.AsAdmin().RESTMapper()
 
-	templateFile, err := mkPath(template.File, config)
+	templateFile, err := mkPath(template.File)
 	if err != nil {
 		return err
 	}
