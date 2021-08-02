@@ -53,7 +53,7 @@ var (
 			`\[sig-storage\] Dynamic Provisioning Invalid AWS KMS key should report an error and create no PV`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1957894
-			`\[sig-node\] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret`,
+			//`\[sig-node\] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret`,
 
 			// The new NetworkPolicy test suite is extremely resource
 			// intensive and causes itself and other concurrently-running
