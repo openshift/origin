@@ -1725,9 +1725,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network-edge][Feature:Idling] Unidling should handle many UDP senders (by continuing to drop all packets on the floor) [Serial]": "should handle many UDP senders (by continuing to drop all packets on the floor) [Serial] [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [sig-network-edge][Feature:Idling] Unidling should work with TCP (when fully idled)": "should work with TCP (when fully idled) [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network-edge][Feature:Idling] Unidling should work with TCP (when fully idled)": "should work with TCP (when fully idled) [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network-edge][Feature:Idling] Unidling should work with TCP (while idling)": "should work with TCP (while idling) [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network-edge][Feature:Idling] Unidling should work with TCP (while idling)": "should work with TCP (while idling) [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network-edge][Feature:Idling] Unidling should work with UDP": "should work with UDP [Suite:openshift/conformance/parallel]",
 
