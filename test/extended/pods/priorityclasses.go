@@ -49,15 +49,16 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 			if !hasPrefixSet(pod.Namespace, namespacePrefixes) {
 				continue
 			}
+			// OpenShift marketplace can have workloads pods that are created from Jobs which just have hashes
+			// They can be safely ignored as they're not part of core platform.
+			// In future, if this assumption changes, we can revisit it.
+			if pod.Namespace == "openshift-marketplace" {
+				continue
+			}
 			var componentName string
 			lastHyphenIndex := strings.LastIndex(pod.Name, "-")
 			if lastHyphenIndex > 0 {
 				componentName = pod.Name[:lastHyphenIndex]
-			} else if lastHyphenIndex == -1 && pod.Namespace == "openshift-marketplace" {
-				// OpenShift marketplace can have workloads pods that are created from Jobs which just have hashes
-				// They can be safely ignored as they're not part of core platform.
-				// In future, if this assumption changes, we can revisit it.
-				continue
 			}
 			knownBugKey = componentName
 			labels := pod.ObjectMeta.Labels
