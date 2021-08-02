@@ -52,12 +52,6 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1957894
 			`\[sig-node\] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret`,
 
-			// tests disabled due to API changes coming from k8s 1.22:
-			// - coming from ServiceLBNodePortControl changes https://github.com/kubernetes/kubernetes/pull/100412
-			// - https://bugzilla.redhat.com/show_bug.cgi?id=1986001 - sig-api-machinery
-			`\[sig-api-machinery\] ResourceQuota should create a ResourceQuota and capture the life of a service`,
-			`\[sig-api-machinery\] API data in etcd`,
-
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1989417
 			`\[sig-cli\] oc adm storage-admin`,
 
