@@ -58,6 +58,12 @@ var (
 			`\[sig-api-machinery\] ResourceQuota should create a ResourceQuota and capture the life of a service`,
 			`\[sig-api-machinery\] API data in etcd`,
 
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1989417
+			`\[sig-cli\] oc adm storage-admin`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1989423
+			`\[sig-network-edge\]\[Conformance\]\[Area:Networking\]\[Feature:Router\] The HAProxy router should be able to connect to a service that is idled because a GET on the route will unidle it`,
+
 			// due to CSI migration the following tests needs to be disabled:
 			// - https://bugzilla.redhat.com/show_bug.cgi?id=1985998 - sig-storage
 			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(block volmode\)\(allowExpansion\)\] volume-expand Verify if offline PVC expansion works`,
