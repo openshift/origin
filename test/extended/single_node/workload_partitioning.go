@@ -75,7 +75,9 @@ var _ = g.Describe("[sig-arch] workload partitioning", func() {
 			if targetsManagement {
 				corePodsAnnotatedProperly.Insert(nsPodName)
 			} else {
-				corePodsMissingAnnotation.Insert(nsPodName)
+				if pod.Status.Phase == "Running" || pod.Status.Phase == "Pending" { // don't report Pods that aren't running or are not going to run
+					corePodsMissingAnnotation.Insert(nsPodName)
+				}
 			}
 		}
 
