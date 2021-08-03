@@ -53,8 +53,8 @@ var _ = g.Describe("[sig-arch] workload partitioning", func() {
 
 		pods, err := kubeClient.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		annotationValueForPreferringManagementCores := "{\"effect\": \"PreferredDuringScheduling\"}"
 		annotationForPreferringManagementCores := "target.workload.openshift.io/management"
+		annotationValueForPreferringManagementCores := "{\"effect\":\"PreferredDuringScheduling\"}"
 		unexpectedPodsWithAnnotation := sets.NewString()
 		corePodsAnnotatedProperly := sets.NewString()
 		corePodsMissingAnnotation := sets.NewString()
@@ -66,7 +66,9 @@ var _ = g.Describe("[sig-arch] workload partitioning", func() {
 				}
 				continue
 			}
-			targetsManagement := strings.Contains(pod.Annotations[annotationForPreferringManagementCores], annotationValueForPreferringManagementCores)
+
+			podAnnotation := strings.Replace(pod.Annotations[annotationForPreferringManagementCores], " ", "", -1) // some pods have a space after the : in their annotation definition
+			targetsManagement := strings.Contains(podAnnotation, annotationValueForPreferringManagementCores)
 			if targetsManagement {
 				corePodsAnnotatedProperly.Insert(nsPodName)
 			} else {
