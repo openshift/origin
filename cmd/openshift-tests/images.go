@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/image"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	k8simage "k8s.io/kubernetes/test/utils/image"
@@ -209,7 +210,7 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 
 	// any image not in the allowed prefixes is considered a failure, as the user
 	// may have added a new test image without calling the appropriate helpers
-	return func(events monitorapi.Intervals, _ time.Duration) []*ginkgo.JUnitTestCase {
+	return func(events monitorapi.Intervals, _ time.Duration, _ *rest.Config) []*ginkgo.JUnitTestCase {
 		imageStreamPrefixes, err := imagePrefixesFromNamespaceImageStreams("openshift")
 		if err != nil {
 			klog.Errorf("Unable to identify image prefixes from the openshift namespace: %v", err)

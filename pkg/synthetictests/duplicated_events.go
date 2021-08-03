@@ -1,10 +1,18 @@
 package synthetictests
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
+
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo"
@@ -35,6 +43,10 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 
 	// [sig-node] Probing container should *not* be restarted with a non-local redirect http liveness probe [Suite:openshift/conformance/parallel] [Suite:k8s]
 	regexp.MustCompile(`ns/e2e-container-probe-[0-9]+ pod/liveness-[0-9a-f-]+ node/[a-z0-9.-]+ - reason/ProbeWarning Liveness probe warning: <a href="http://0\.0\.0\.0/">Found</a>\.\n\n`),
+}
+
+var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
+	isConsoleReadinessDuringInstallation,
 }
 
 // allowedUpgradeRepeatedEventPatterns are patterns of events that we should only allow during upgrades, not during normal execution.
@@ -77,40 +89,40 @@ type knownProblem struct {
 	BZ     string
 }
 
-func testDuplicatedEventForUpgrade(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func testDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*ginkgo.JUnitTestCase {
 	allowedPatterns := []*regexp.Regexp{}
 	allowedPatterns = append(allowedPatterns, allowedRepeatedEventPatterns...)
 	allowedPatterns = append(allowedPatterns, allowedUpgradeRepeatedEventPatterns...)
 
 	evaluator := duplicateEventsEvaluator{
 		allowedRepeatedEventPatterns: allowedPatterns,
-		allowedRepeatedEventFns:      nil,
+		allowedRepeatedEventFns:      allowedRepeatedEventFns,
 		knownRepeatedEventsBugs:      knownEventsBugs,
 	}
 
-	return evaluator.testDuplicatedEvents(events)
+	return evaluator.testDuplicatedEvents(events, kubeClientConfig)
 }
 
-func testDuplicatedEventForStableSystem(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func testDuplicatedEventForStableSystem(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*ginkgo.JUnitTestCase {
 	evaluator := duplicateEventsEvaluator{
 		allowedRepeatedEventPatterns: allowedRepeatedEventPatterns,
-		allowedRepeatedEventFns:      nil,
+		allowedRepeatedEventFns:      allowedRepeatedEventFns,
 		knownRepeatedEventsBugs:      knownEventsBugs,
 	}
 
-	return evaluator.testDuplicatedEvents(events)
+	return evaluator.testDuplicatedEvents(events, kubeClientConfig)
 }
 
 // isRepeatedEventOKFunc takes a monitorEvent as input and returns true if the repeated event is OK.
 // this commonly happens for known bugs and for cases where events are repeated intentionally by tests.
 // the string is the message to display for the failure.
-type isRepeatedEventOKFunc func(monitorEvent monitorapi.EventInterval) (bool, string)
+type isRepeatedEventOKFunc func(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config) bool
 
 // we want to identify events based on the monitor because it is (currently) our only spot that tracks events over time
 // for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] test
 // is easier to author, but less complete in its view.
 // I hate regexes, so I only do this because I really have to.
-func (d duplicateEventsEvaluator) testDuplicatedEvents(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func (d duplicateEventsEvaluator) testDuplicatedEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-arch] events should not repeat pathologically"
 
 	allowedRepeatedEventsRegex := combinedRegexp(d.allowedRepeatedEventPatterns...)
@@ -122,6 +134,17 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(events monitorapi.Interva
 			if allowedRepeatedEventsRegex.MatchString(eventDisplayMessage) {
 				continue
 			}
+			allowed := false
+			for _, allowRepeatedEventFn := range d.allowedRepeatedEventFns {
+				if allowRepeatedEventFn(event, kubeClientConfig) {
+					allowed = true
+					break
+				}
+			}
+			if allowed {
+				continue
+			}
+
 			displayToCount[eventDisplayMessage] = times
 		}
 	}
@@ -190,4 +213,86 @@ func getTimesAnEventHappened(message string) (string, int) {
 		return "", 0
 	}
 	return matches[0][1], int(times)
+}
+
+// isConsoleReadinessDuringInstallation returns true if the event is for console readiness and it happens during the
+// initial installation of the cluster.
+// we're looking for something like
+// > ns/openshift-console pod/console-7c6f797fd9-5m94j node/ip-10-0-158-106.us-west-2.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.129.0.49:8443/health": dial tcp 10.129.0.49:8443: connect: connection refused
+// with a firstTimestamp before the cluster completed the initial installation
+func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config) bool {
+	if !strings.Contains(monitorEvent.Locator, "ns/openshift-console") {
+		return false
+	}
+	if !strings.HasPrefix(monitorEvent.Locator, "pod/console-") {
+		return false
+	}
+	if !strings.Contains(monitorEvent.Locator, "Readiness probe") {
+		return false
+	}
+	if !strings.Contains(monitorEvent.Locator, "connect: connection refused") {
+		return false
+	}
+	tokens := strings.Split(monitorEvent.Locator, " ")
+	tokens = strings.Split(tokens[1], "/")
+	podName := tokens[1]
+
+	if kubeClientConfig == nil {
+		// default to OK
+		return true
+	}
+
+	// This block gets the time when the cluster completed installation
+	configClient, err := configclient.NewForConfig(kubeClientConfig)
+	if err != nil {
+		// default to OK
+		return true
+	}
+	clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
+	if err != nil {
+		// default to OK
+		return true
+	}
+	if len(clusterVersion.Status.History) == 0 {
+		// default to OK
+		return true
+	}
+	initialInstallHistory := clusterVersion.Status.History[len(clusterVersion.Status.History)-1]
+	if initialInstallHistory.CompletionTime == nil {
+		// default to OK
+		return true
+	}
+
+	// this block gets the actual event from the API.  This is ugly, but necessary because we don't have real events.
+	// It may be interesting to track real events, but it would be expensive.
+	kubeClient, err := kubernetes.NewForConfig(kubeClientConfig)
+	if err != nil {
+		// default to OK
+		return true
+	}
+	consoleEvents, err := kubeClient.CoreV1().Events("openshift-console").List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		// default to OK
+		return true
+	}
+	for _, event := range consoleEvents.Items {
+		if event.Related.Name != podName {
+			continue
+		}
+		if !strings.Contains(event.Message, "Readiness probe") {
+			continue
+		}
+		if !strings.Contains(event.Message, "connect: connection refused") {
+			continue
+		}
+
+		// if the readiness probe failure for this pod happened AFTER the initial installation was complete,
+		// then this probe failure is unexpected and should fail.
+		if event.FirstTimestamp.After(initialInstallHistory.CompletionTime.Time) {
+			return false
+		}
+	}
+
+	// Default to OK if we cannot find the event
+	return true
 }
