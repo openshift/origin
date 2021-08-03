@@ -41,6 +41,9 @@ var _ = g.Describe("[sig-arch] workload partitioning", func() {
 	namespacesNotYetUpdated := sets.NewString(
 		"openshift-config-managed", // this namespace runs no pods, so it will never be updated
 		"openshift-config",         // this namespace runs no pods, so it will never be updated
+		"openshift-infra",
+		"openshift-kubevirt-infra",
+		"openshift-node",
 	)
 
 	g.It("should be annotated with: target.workload.openshift.io/management: {effect: PreferredDuringScheduling}", func() {
