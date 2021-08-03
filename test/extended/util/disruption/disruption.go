@@ -313,7 +313,7 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 // if the sum of the intervals is greater than 1m, or report a flake if any interval is found.
 func ExpectNoDisruption(f *framework.Framework, tolerate float64, total time.Duration, events monitorapi.Intervals, reason string) {
 	FrameworkEventIntervals(f, events)
-	duration := events.Duration(0)
+	duration := events.Duration(0, 1*time.Second)
 	describe := events.Strings()
 	if percent := float64(duration) / float64(total); percent > tolerate {
 		framework.Failf("%s for at least %s of %s (%0.0f%%):\n\n%s", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, strings.Join(describe, "\n"))
