@@ -21,7 +21,7 @@ func combinedRegexp(arr ...*regexp.Regexp) *regexp.Regexp {
 	return regexp.MustCompile(s)
 }
 
-var knownEvents = combinedRegexp(
+var allowedRepeatedEventPatterns = []*regexp.Regexp{
 	// [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should not deadlock when a pod's predecessor fails [Suite:openshift/conformance/parallel] [Suite:k8s]
 	// PauseNewPods intentionally causes readiness probe to fail.
 	regexp.MustCompile(`ns/e2e-statefulset-[0-9]+ pod/ss-[0-9] node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: `),
@@ -35,7 +35,10 @@ var knownEvents = combinedRegexp(
 
 	// [sig-node] Probing container should *not* be restarted with a non-local redirect http liveness probe [Suite:openshift/conformance/parallel] [Suite:k8s]
 	regexp.MustCompile(`ns/e2e-container-probe-[0-9]+ pod/liveness-[0-9a-f-]+ node/[a-z0-9.-]+ - reason/ProbeWarning Liveness probe warning: <a href="http://0\.0\.0\.0/">Found</a>\.\n\n`),
+}
 
+// allowedUpgradeRepeatedEventPatterns are patterns of events that we should only allow during upgrades, not during normal execution.
+var allowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{
 	// Operators that use library-go can report about multiple versions during upgrades.
 	regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/MultipleVersions multiple versions found, probably in transition: .*`),
 	regexp.MustCompile(`ns/openshift-kube-apiserver-operator deployment/kube-apiserver-operator - reason/MultipleVersions multiple versions found, probably in transition: .*`),
@@ -44,12 +47,9 @@ var knownEvents = combinedRegexp(
 
 	// etcd-quorum-guard can fail during upgrades.
 	regexp.MustCompile(`ns/openshift-etcd pod/etcd-quorum-guard-[a-z0-9-]+ node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: `),
-)
+}
 
-var knownEventProblems = []struct {
-	Regexp *regexp.Regexp
-	BZ     string
-}{
+var knownEventsBugs = []knownProblem{
 	{
 		Regexp: regexp.MustCompile(`ns/openshift-sdn pod/sdn-[a-z0-9]+ node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: command timed out`),
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1978268",
@@ -64,18 +64,62 @@ var knownEventProblems = []struct {
 	},
 }
 
+type duplicateEventsEvaluator struct {
+	allowedRepeatedEventPatterns []*regexp.Regexp
+	allowedRepeatedEventFns      []isRepeatedEventOKFunc
+
+	// knownRepeatedEventsBugs are duplicates that are considered bugs and should flake, but not  fail a test
+	knownRepeatedEventsBugs []knownProblem
+}
+
+type knownProblem struct {
+	Regexp *regexp.Regexp
+	BZ     string
+}
+
+func testDuplicatedEventForUpgrade(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+	allowedPatterns := []*regexp.Regexp{}
+	allowedPatterns = append(allowedPatterns, allowedRepeatedEventPatterns...)
+	allowedPatterns = append(allowedPatterns, allowedUpgradeRepeatedEventPatterns...)
+
+	evaluator := duplicateEventsEvaluator{
+		allowedRepeatedEventPatterns: allowedPatterns,
+		allowedRepeatedEventFns:      nil,
+		knownRepeatedEventsBugs:      knownEventsBugs,
+	}
+
+	return evaluator.testDuplicatedEvents(events)
+}
+
+func testDuplicatedEventForStableSystem(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+	evaluator := duplicateEventsEvaluator{
+		allowedRepeatedEventPatterns: allowedRepeatedEventPatterns,
+		allowedRepeatedEventFns:      nil,
+		knownRepeatedEventsBugs:      knownEventsBugs,
+	}
+
+	return evaluator.testDuplicatedEvents(events)
+}
+
+// isRepeatedEventOKFunc takes a monitorEvent as input and returns true if the repeated event is OK.
+// this commonly happens for known bugs and for cases where events are repeated intentionally by tests.
+// the string is the message to display for the failure.
+type isRepeatedEventOKFunc func(monitorEvent monitorapi.EventInterval) (bool, string)
+
 // we want to identify events based on the monitor because it is (currently) our only spot that tracks events over time
 // for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] test
 // is easier to author, but less complete in its view.
 // I hate regexes, so I only do this because I really have to.
-func testDuplicatedEvents(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func (d duplicateEventsEvaluator) testDuplicatedEvents(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-arch] events should not repeat pathologically"
+
+	allowedRepeatedEventsRegex := combinedRegexp(d.allowedRepeatedEventPatterns...)
 
 	displayToCount := map[string]int{}
 	for _, event := range events {
 		eventDisplayMessage, times := getTimesAnEventHappened(fmt.Sprintf("%s - %s", event.Locator, event.Message))
 		if times > 20 {
-			if knownEvents.MatchString(eventDisplayMessage) {
+			if allowedRepeatedEventsRegex.MatchString(eventDisplayMessage) {
 				continue
 			}
 			displayToCount[eventDisplayMessage] = times
@@ -88,7 +132,7 @@ func testDuplicatedEvents(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
 		msg := fmt.Sprintf("event happened %d times, something is wrong: %v", count, display)
 
 		flake := false
-		for _, kp := range knownEventProblems {
+		for _, kp := range d.knownRepeatedEventsBugs {
 			if kp.Regexp.MatchString(display) {
 				msg += " - " + kp.BZ
 				flake = true

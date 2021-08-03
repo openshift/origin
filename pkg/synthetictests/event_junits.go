@@ -28,6 +28,7 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testServerAvailability(monitor.LocatorOpenshiftAPIServerReusedConnection, events, duration)...)
 	tests = append(tests, testServerAvailability(monitor.LocatorOAuthAPIServerReusedConnection, events, duration)...)
 	tests = append(tests, testStableSystemOperatorStateTransitions(events)...)
+	tests = append(tests, testDuplicatedEventForStableSystem(events)...)
 
 	return tests
 }
@@ -44,6 +45,7 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testPodSandboxCreation(events)...)
 	tests = append(tests, testNodeUpgradeTransitions(events)...)
 	tests = append(tests, testUpgradeOperatorStateTransitions(events)...)
+	tests = append(tests, testDuplicatedEventForUpgrade(events)...)
 	return tests
 }
 
@@ -52,6 +54,5 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 // machine, even if the machine crashes.
 func SystemEventInvariants(events monitorapi.Intervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase) {
 	tests = append(tests, testSystemDTimeout(events)...)
-	tests = append(tests, testDuplicatedEvents(events)...)
 	return tests
 }
