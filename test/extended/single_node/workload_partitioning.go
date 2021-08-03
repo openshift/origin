@@ -43,7 +43,7 @@ var _ = g.Describe("[sig-arch] workload partitioning", func() {
 		"openshift-config",         // this namespace runs no pods, so it will never be updated
 	)
 
-	g.It("should be annotated with: workload.openshift.io/management: {effect: PreferredDuringScheduling}", func() {
+	g.It("should be annotated with: target.workload.openshift.io/management: {effect: PreferredDuringScheduling}", func() {
 		ctx := context.TODO()
 
 		skipIfNotSingleNode(oc)
@@ -53,9 +53,8 @@ var _ = g.Describe("[sig-arch] workload partitioning", func() {
 
 		pods, err := kubeClient.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		annotationForPreferringManagementCores := "workload.openshift.io/management"
 		annotationValueForPreferringManagementCores := "{\"effect\": \"PreferredDuringScheduling\"}"
+		annotationForPreferringManagementCores := "target.workload.openshift.io/management"
 		unexpectedPodsWithAnnotation := sets.NewString()
 		corePodsAnnotatedProperly := sets.NewString()
 		corePodsMissingAnnotation := sets.NewString()
