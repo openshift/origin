@@ -14,7 +14,7 @@ import (
 )
 
 func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
-	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded, configv1.OperatorProgressing})
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded})
 }
 
 func testUpgradeOperatorStateTransitions(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
