@@ -108,7 +108,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 		},
 		{
 			// Should be removed one release after the attached bugzilla is fixed, or after that bug is fixed in a backport to the previous minor.
-			Selector: map[string]string{"alertname": "HighOverallControlPlaneCPU"},
+			Selector: map[string]string{"alertname": "ExtremelyHighIndividualControlPlaneCPU"},
 			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1985073",
 			Matches: func(_ *model.Sample) bool {
 				return framework.ProviderIs("gce")
