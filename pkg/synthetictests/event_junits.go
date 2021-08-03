@@ -9,7 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/test/ginkgo"
 )
 
-// stableSystemEventInvariants are invariants that should hold true when a cluster is in
+// StableSystemEventInvariants are invariants that should hold true when a cluster is in
 // steady state (not being changed externally). Use these with suites that assume the
 // cluster is under no adversarial change (config changes, induced disruption to nodes,
 // etcd, or apis).
@@ -33,7 +33,7 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	return tests
 }
 
-// systemUpgradeEventInvariants are invariants tested against events that should hold true in a cluster
+// SystemUpgradeEventInvariants are invariants tested against events that should hold true in a cluster
 // that is being upgraded without induced disruption
 func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase) {
 	tests = SystemEventInvariants(events, duration)
@@ -49,7 +49,7 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	return tests
 }
 
-// systemEventInvariants are invariants tested against events that should hold true in any cluster,
+// SystemEventInvariants are invariants tested against events that should hold true in any cluster,
 // even one undergoing disruption. These are usually focused on things that must be true on a single
 // machine, even if the machine crashes.
 func SystemEventInvariants(events monitorapi.Intervals, duration time.Duration) (tests []*ginkgo.JUnitTestCase) {

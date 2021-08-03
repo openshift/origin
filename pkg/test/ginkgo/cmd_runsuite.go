@@ -223,7 +223,11 @@ func (opt *Options) Run(suite *TestSuite) error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	m, err := monitor.Start(ctx)
+	restConfig, err := monitor.GetMonitorRESTConfig()
+	if err != nil {
+		return err
+	}
+	m, err := monitor.Start(ctx, restConfig)
 	if err != nil {
 		return err
 	}
