@@ -282,7 +282,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			o.Expect(expectedFilePath).To(o.BeAnExistingFile())
 			stat, err := os.Stat(expectedFilePath)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			if size := stat.Size(); size < 50 {
+			if size := stat.Size(); size < 20 {
 				emptyFiles = append(emptyFiles, expectedFilePath)
 			}
 		}
