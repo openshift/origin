@@ -324,7 +324,7 @@ func minimumDuration(duration time.Duration) time.Duration {
 // if the sum of the intervals is greater than 1m, or report a flake if any interval is found.
 func ExpectNoDisruption(f *framework.Framework, tolerate float64, total time.Duration, events monitorapi.Intervals, reason string) {
 	FrameworkEventIntervals(f, events)
-	duration := events.Duration(0)
+	duration := events.Duration(0, 1*time.Second)
 	describe := events.Strings()
 	if percent := float64(duration) / float64(total); percent > tolerate {
 		framework.Failf("%s for at least %v of %v (%0.0f%%):\n\n%s", reason, minimumDuration(duration), minimumDuration(total), percent*100, strings.Join(describe, "\n"))
