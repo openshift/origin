@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
@@ -52,8 +54,6 @@ var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
 // allowedUpgradeRepeatedEventPatterns are patterns of events that we should only allow during upgrades, not during normal execution.
 var allowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{
 	// Operators that use library-go can report about multiple versions during upgrades.
-	regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/MultipleVersions multiple versions found, probably in transition: .*`),
-	regexp.MustCompile(`ns/openshift-kube-apiserver-operator deployment/kube-apiserver-operator - reason/MultipleVersions multiple versions found, probably in transition: .*`),
 	regexp.MustCompile(`ns/openshift-kube-controller-manager-operator deployment/kube-controller-manager-operator - reason/MultipleVersions multiple versions found, probably in transition: .*`),
 	regexp.MustCompile(`ns/openshift-kube-scheduler-operator deployment/openshift-kube-scheduler-operator - reason/MultipleVersions multiple versions found, probably in transition: .*`),
 
@@ -289,6 +289,7 @@ func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.EventInterval,
 		// if the readiness probe failure for this pod happened AFTER the initial installation was complete,
 		// then this probe failure is unexpected and should fail.
 		if event.FirstTimestamp.After(initialInstallHistory.CompletionTime.Time) {
+			e2e.Logf("allowing console failure")
 			return false
 		}
 	}
