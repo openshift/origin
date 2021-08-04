@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo"
@@ -71,25 +72,42 @@ var knownEventProblems = []struct {
 func testDuplicatedEvents(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-arch] events should not repeat pathologically"
 
-	displayToCount := map[string]int{}
+	type eventInfo struct {
+		count         int
+		firstObserved time.Time
+		lastObserved  time.Time
+	}
+
+	allMessagesToInfo := map[string]eventInfo{}
 	for _, event := range events {
 		eventDisplayMessage, times := getTimesAnEventHappened(fmt.Sprintf("%s - %s", event.Locator, event.Message))
-		if times > 20 {
-			if knownEvents.MatchString(eventDisplayMessage) {
-				continue
-			}
-			displayToCount[eventDisplayMessage] = times
+		existing, ok := allMessagesToInfo[eventDisplayMessage]
+		existing.count = times
+		if !ok {
+			existing.firstObserved = event.From
 		}
+		existing.lastObserved = event.From
+		allMessagesToInfo[eventDisplayMessage] = existing
+	}
+	repeatedEventMessagesToInfo := map[string]eventInfo{}
+	for eventDisplayMessage, info := range allMessagesToInfo {
+		if info.count <= 20 {
+			continue
+		}
+		if knownEvents.MatchString(eventDisplayMessage) {
+			continue
+		}
+		repeatedEventMessagesToInfo[eventDisplayMessage] = allMessagesToInfo[eventDisplayMessage]
 	}
 
 	var failures []string
 	var flakes []string
-	for display, count := range displayToCount {
-		msg := fmt.Sprintf("event happened %d times, something is wrong: %v", count, display)
+	for eventMessage, info := range repeatedEventMessagesToInfo {
+		msg := fmt.Sprintf("event happened %d times from %v to %v, something is wrong: %v", info.count, info.firstObserved, info.lastObserved, eventMessage)
 
 		flake := false
 		for _, kp := range knownEventProblems {
-			if kp.Regexp.MatchString(display) {
+			if kp.Regexp.MatchString(eventMessage) {
 				msg += " - " + kp.BZ
 				flake = true
 			}
