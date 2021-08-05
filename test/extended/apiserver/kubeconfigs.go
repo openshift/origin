@@ -3,11 +3,13 @@ package apiserver
 import (
 	"context"
 	"fmt"
+	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -29,9 +31,22 @@ var _ = g.Describe("[Conformance][sig-api-machinery][Feature:APIServer] local ku
 			framework.Logf("Discovered %d master nodes.", len(masterNodes.Items))
 			o.Expect(masterNodes.Items).NotTo(o.HaveLen(0))
 			for _, master := range masterNodes.Items {
+				framework.Logf("Checking apiserver is running in master %s", master.Name)
+				err := wait.Poll(5*time.Second, 5*time.Minute, func() (bool, error) {
+					pod, err := oc.AdminKubeClient().CoreV1().Pods("openshift-kube-apiserver").Get(context.Background(), "kube-apiserver-"+master.Name, metav1.GetOptions{})
+					if err != nil {
+						return false, err
+					}
+					if !exutil.CheckPodIsReady(*pod) {
+						framework.Logf("kube-apiserver-%s pod is not ready: %s", master.Name, pod.Status.Message)
+						return false, nil
+					}
+					return true, nil
+				})
+				o.Expect(err).NotTo(o.HaveOccurred())
 				g.By("Testing master node " + master.Name)
 				kubeconfigPath := "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/" + kubeconfig
-				framework.Logf("Verifying kubeconfig %q on master %s", master.Name)
+				framework.Logf("Verifying kubeconfig %q on master %s", kubeconfig, master.Name)
 				out, err := oc.AsAdmin().Run("debug").Args("node/"+master.Name, "--", "chroot", "/host", "/bin/bash", "-euxo", "pipefail", "-c", fmt.Sprintf(`oc --kubeconfig "%s" get namespace kube-system`, kubeconfigPath)).Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				framework.Logf(out)
