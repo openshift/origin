@@ -38,11 +38,31 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 	// breakPodHTTPProbe intentionally causes readiness probe to fail.
 	regexp.MustCompile(`ns/e2e-statefulset-[0-9]+ pod/ss2-[0-9] node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: HTTP probe failed with statuscode: 404`),
 
-	// [sig-node] Probing container should be restarted startup probe fails [Suite:openshift/conformance/parallel] [Suite:k8s]
-	regexp.MustCompile(`ns/e2e-container-probe-[0-9]+ pod/startup-[0-9a-f-]+ node/[a-z0-9.-]+ - reason/Unhealthy Startup probe failed: `),
+	// [sig-node] Probing container ***
+	// these tests intentionally cause repeated probe failures to ensure good handling
+	regexp.MustCompile(`ns/e2e-container-probe-[0-9]+ .* probe failed: `),
+	regexp.MustCompile(`ns/e2e-container-probe-[0-9]+ .* probe warning: `),
 
-	// [sig-node] Probing container should *not* be restarted with a non-local redirect http liveness probe [Suite:openshift/conformance/parallel] [Suite:k8s]
-	regexp.MustCompile(`ns/e2e-container-probe-[0-9]+ pod/liveness-[0-9a-f-]+ node/[a-z0-9.-]+ - reason/ProbeWarning Liveness probe warning: <a href="http://0\.0\.0\.0/">Found</a>\.\n\n`),
+	// Kubectl Port forwarding ***
+	// The same pod name is used many times for all these tests with a tight readiness check to make the tests fast.
+	// This results in hundreds of events while the  pod isn't ready.
+	regexp.MustCompile(`ns/e2e-port-forwarding-[0-9]+ pod/pfpod node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed:`),
+
+	// should not start app containers if init containers fail on a RestartAlways pod
+	// the init container intentionally fails to start
+	regexp.MustCompile(`ns/e2e-init-container-[0-9]+ pod/pod-init-[a-z0-9.-]+ node/[a-z0-9.-]+ - reason/BackOff Back-off restarting failed container`),
+
+	// TestAllowedSCCViaRBAC and TestPodUpdateSCCEnforcement
+	// The pod is shaped to intentionally not be scheduled.  Looks like an artifact of the old integration testing.
+	regexp.MustCompile(`ns/e2e-test-scc-[a-z0-9]+ pod/.* - reason/FailedScheduling.*`),
+
+	// this image is used specifically to be one that cannot be pulled in our tests
+	regexp.MustCompile(`.*reason/BackOff Back-off pulling image "webserver:404"`),
+
+	// Security Context ** should not run with an explicit root user ID
+	// Security Context ** should not run without a specified user ID
+	// This container should never run
+	regexp.MustCompile(`ns/e2e-security-context-test-[0-9]+ pod/.*-root-uid node/[a-z0-9.-]+ - reason/Failed Error: container's runAsUser breaks non-root policy.*"`),
 }
 
 var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
@@ -59,6 +79,8 @@ var allowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{
 
 	// etcd-quorum-guard can fail during upgrades.
 	regexp.MustCompile(`ns/openshift-etcd pod/etcd-quorum-guard-[a-z0-9-]+ node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: `),
+	// etcd can have unhealthy members during an upgrade
+	regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/UnhealthyEtcdMember unhealthy members: .*`),
 }
 
 var knownEventsBugs = []knownProblem{
@@ -74,6 +96,19 @@ var knownEventsBugs = []knownProblem{
 		Regexp: regexp.MustCompile(`ns/openshift-network-diagnostics pod/network-check-target-[a-z0-9]+ node/[a-z0-9.-]+ - reason/NetworkNotReady network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net\.d/\. Has your network provider started\?`),
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1986370",
 	},
+	{
+		Regexp: regexp.MustCompile(`ns/openshift-machine-api machine/.* - reason/Update Updated Machine .*`),
+		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1988992",
+	},
+	{
+		Regexp: regexp.MustCompile(`ns/.* service/.* - reason/FailedToDeleteOVNLoadBalancer .*`),
+		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1990631",
+	},
+	//{ TODO this should only be skipped for single-node
+	//	name:    "single=node-storage",
+	//  BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1990662
+	//	message: "ns/openshift-cluster-csi-drivers pod/aws-ebs-csi-driver-controller-66469455cd-2thfv node/ip-10-0-161-38.us-east-2.compute.internal - reason/BackOff Back-off restarting failed container",
+	//},
 }
 
 type duplicateEventsEvaluator struct {
