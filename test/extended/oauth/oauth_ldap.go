@@ -8,10 +8,13 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	"github.com/openshift/origin/test/extended/util/ibmcloud"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	configv1 "github.com/openshift/api/config/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
@@ -45,6 +48,10 @@ var _ = g.Describe("[sig-auth][Feature:LDAP] LDAP IDP", func() {
 
 	g.It("should authenticate against an ldap server", func() {
 		adminConfig := oc.AdminConfig()
+
+		if e2e.TestContext.Provider == ibmcloud.ProviderName {
+			e2eskipper.Skipf("Managed IBM Cloud clusters do not support oauth server routes")
+		}
 
 		// Clean up mapped identity and user.
 		defer userv1client.NewForConfigOrDie(oc.AdminConfig()).Identities().Delete(context.Background(), fmt.Sprintf("%s:%s", providerName, myUserDNBase64), metav1.DeleteOptions{})
