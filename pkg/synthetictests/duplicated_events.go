@@ -7,15 +7,13 @@ import (
 	"strconv"
 	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
+	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
-
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 func combinedRegexp(arr ...*regexp.Regexp) *regexp.Regexp {
@@ -104,11 +102,10 @@ var knownEventsBugs = []knownProblem{
 		Regexp: regexp.MustCompile(`ns/.* service/.* - reason/FailedToDeleteOVNLoadBalancer .*`),
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1990631",
 	},
-	//{ TODO this should only be skipped for single-node
-	//	name:    "single=node-storage",
-	//  BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1990662
-	//	message: "ns/openshift-cluster-csi-drivers pod/aws-ebs-csi-driver-controller-66469455cd-2thfv node/ip-10-0-161-38.us-east-2.compute.internal - reason/BackOff Back-off restarting failed container",
-	//},
+	{
+		BZ:             "https://bugzilla.redhat.com/show_bug.cgi?id=1990662",
+		KnownProblemFn: isStorageRestartBackoffOnSingleNode,
+	},
 }
 
 type duplicateEventsEvaluator struct {
@@ -120,8 +117,9 @@ type duplicateEventsEvaluator struct {
 }
 
 type knownProblem struct {
-	Regexp *regexp.Regexp
-	BZ     string
+	Regexp         *regexp.Regexp
+	KnownProblemFn isRepeatedEventOKFunc
+	BZ             string
 }
 
 func testDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*ginkgo.JUnitTestCase {
@@ -162,8 +160,14 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(events monitorapi.Interva
 
 	allowedRepeatedEventsRegex := combinedRegexp(d.allowedRepeatedEventPatterns...)
 
-	displayToCount := map[string]int{}
-	for _, event := range events {
+	type eventDetails struct {
+		lastEvent  monitorapi.EventInterval
+		finalCount int
+	}
+
+	displayToEvent := map[string]eventDetails{}
+	for i := range events {
+		event := events[i]
 		eventDisplayMessage, times := getTimesAnEventHappened(fmt.Sprintf("%s - %s", event.Locator, event.Message))
 		if times > 20 {
 			if allowedRepeatedEventsRegex.MatchString(eventDisplayMessage) {
@@ -180,20 +184,29 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(events monitorapi.Interva
 				continue
 			}
 
-			displayToCount[eventDisplayMessage] = times
+			displayToEvent[eventDisplayMessage] = eventDetails{
+				lastEvent:  event,
+				finalCount: times,
+			}
 		}
 	}
 
 	var failures []string
 	var flakes []string
-	for display, count := range displayToCount {
-		msg := fmt.Sprintf("event happened %d times, something is wrong: %v", count, display)
+	for display, eventDetails := range displayToEvent {
+		msg := fmt.Sprintf("event happened %d times, something is wrong: %v", eventDetails.finalCount, display)
 
 		flake := false
 		for _, kp := range d.knownRepeatedEventsBugs {
 			if kp.Regexp != nil && kp.Regexp.MatchString(display) {
 				msg += " - " + kp.BZ
 				flake = true
+				break
+			}
+			if kp.KnownProblemFn != nil && kp.KnownProblemFn(eventDetails.lastEvent, kubeClientConfig) {
+				msg += " - " + kp.BZ
+				flake = true
+				break
 			}
 		}
 
@@ -273,42 +286,35 @@ func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.EventInterval,
 	podName := tokens[1]
 
 	if kubeClientConfig == nil {
-		// default to OK
-		return true
+		return true // default to OK
 	}
 
 	// This block gets the time when the cluster completed installation
 	configClient, err := configclient.NewForConfig(kubeClientConfig)
 	if err != nil {
-		// default to OK
-		return true
+		return true // default to OK
 	}
 	clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
 	if err != nil {
-		// default to OK
-		return true
+		return true // default to OK
 	}
 	if len(clusterVersion.Status.History) == 0 {
-		// default to OK
-		return true
+		return true // default to OK
 	}
 	initialInstallHistory := clusterVersion.Status.History[len(clusterVersion.Status.History)-1]
 	if initialInstallHistory.CompletionTime == nil {
-		// default to OK
-		return true
+		return true // default to OK
 	}
 
 	// this block gets the actual event from the API.  This is ugly, but necessary because we don't have real events.
 	// It may be interesting to track real events, but it would be expensive.
 	kubeClient, err := kubernetes.NewForConfig(kubeClientConfig)
 	if err != nil {
-		// default to OK
-		return true
+		return true // default to OK
 	}
 	consoleEvents, err := kubeClient.CoreV1().Events("openshift-console").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		// default to OK
-		return true
+		return true // default to OK
 	}
 	for _, event := range consoleEvents.Items {
 		if event.Related.Name != podName {
@@ -329,5 +335,40 @@ func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.EventInterval,
 	}
 
 	// Default to OK if we cannot find the event
+	return true
+}
+
+func isStorageRestartBackoffOnSingleNode(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config) bool {
+	if !strings.Contains(monitorEvent.Locator, "ns/openshift-cluster-csi-driver") {
+		return false
+	}
+	if !strings.Contains(monitorEvent.Locator, "pod/aws-ebs-csi-driver-controller-66469455cd-2thfv") {
+		return false
+	}
+	if !strings.Contains(monitorEvent.Locator, "Back-off restarting failed container") {
+		return false
+	}
+
+	// at this point we know its the restart backoff message
+
+	if kubeClientConfig == nil {
+		return true // default to OK
+	}
+
+	// This block gets the time when the cluster completed installation
+	configClient, err := configclient.NewForConfig(kubeClientConfig)
+	if err != nil {
+		return true // default to OK
+	}
+	infrastucture, err := configClient.ConfigV1().Infrastructures().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		return true // default to OK
+	}
+
+	// if we're not single node, then this event should be a failure
+	if infrastucture.Status.ControlPlaneTopology != configv1.SingleReplicaTopologyMode {
+		return false
+	}
+
 	return true
 }
