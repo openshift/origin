@@ -223,7 +223,11 @@ func (opt *Options) Run(suite *TestSuite) error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	m, err := monitor.Start(ctx)
+	restConfig, err := monitor.GetMonitorRESTConfig()
+	if err != nil {
+		return err
+	}
+	m, err := monitor.Start(ctx, restConfig)
 	if err != nil {
 		return err
 	}
@@ -374,7 +378,7 @@ func (opt *Options) Run(suite *TestSuite) error {
 	if len(events) > 0 {
 		var buf *bytes.Buffer
 		syntheticTestResults, buf, _ = createSyntheticTestsFromMonitor(events, duration)
-		testCases := syntheticEventTests.JUnitsForEvents(events, duration)
+		testCases := syntheticEventTests.JUnitsForEvents(events, duration, restConfig)
 		syntheticTestResults = append(syntheticTestResults, testCases...)
 
 		if len(syntheticTestResults) > 0 {

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/client-go/rest"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
@@ -14,27 +16,29 @@ type JUnitsForEvents interface {
 	// JUnitsForEvents returns a set of additional test passes or failures implied by the
 	// events sent during the test suite run. If passed is false, the entire suite is failed.
 	// To set a test as flaky, return a passing and failing JUnitTestCase with the same name.
-	JUnitsForEvents(events monitorapi.Intervals, duration time.Duration) []*JUnitTestCase
+	JUnitsForEvents(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config) []*JUnitTestCase
 }
 
 // JUnitForEventsFunc converts a function into the JUnitForEvents interface.
-type JUnitForEventsFunc func(events monitorapi.Intervals, duration time.Duration) []*JUnitTestCase
+// kubeClientConfig may or may not be present.  The JUnit evaluation needs to tolerate a missing *rest.Config
+// and an unavailable cluster without crashing.
+type JUnitForEventsFunc func(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config) []*JUnitTestCase
 
-func (fn JUnitForEventsFunc) JUnitsForEvents(events monitorapi.Intervals, duration time.Duration) []*JUnitTestCase {
-	return fn(events, duration)
+func (fn JUnitForEventsFunc) JUnitsForEvents(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config) []*JUnitTestCase {
+	return fn(events, duration, kubeClientConfig)
 }
 
 // JUnitsForAllEvents aggregates multiple JUnitsForEvent interfaces and returns
 // the result of all invocations. It ignores nil interfaces.
 type JUnitsForAllEvents []JUnitsForEvents
 
-func (a JUnitsForAllEvents) JUnitsForEvents(events monitorapi.Intervals, duration time.Duration) []*JUnitTestCase {
+func (a JUnitsForAllEvents) JUnitsForEvents(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config) []*JUnitTestCase {
 	var all []*JUnitTestCase
 	for _, obj := range a {
 		if obj == nil {
 			continue
 		}
-		results := obj.JUnitsForEvents(events, duration)
+		results := obj.JUnitsForEvents(events, duration, kubeClientConfig)
 		all = append(all, results...)
 	}
 	return all

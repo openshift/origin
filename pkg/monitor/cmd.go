@@ -38,7 +38,11 @@ func (opt *Options) Run() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	m, err := Start(ctx)
+	restConfig, err := GetMonitorRESTConfig()
+	if err != nil {
+		return err
+	}
+	m, err := Start(ctx, restConfig)
 	if err != nil {
 		return err
 	}

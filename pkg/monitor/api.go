@@ -33,40 +33,45 @@ const (
 	LocatorOAuthAPIServerReusedConnection     = "oauth-apiserver-reused-connection"
 )
 
-// Start begins monitoring the cluster referenced by the default kube configuration until
-// context is finished.
-func Start(ctx context.Context) (*Monitor, error) {
-	m := NewMonitorWithInterval(time.Second)
+func GetMonitorRESTConfig() (*rest.Config, error) {
 	cfg := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{})
 	clusterConfig, err := cfg.ClientConfig()
 	if err != nil {
 		return nil, fmt.Errorf("could not load client configuration: %v", err)
 	}
-	client, err := kubernetes.NewForConfig(clusterConfig)
+
+	return clusterConfig, nil
+}
+
+// Start begins monitoring the cluster referenced by the default kube configuration until
+// context is finished.
+func Start(ctx context.Context, restConfig *rest.Config) (*Monitor, error) {
+	m := NewMonitorWithInterval(time.Second)
+	client, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
 	}
-	configClient, err := configclientset.NewForConfig(clusterConfig)
+	configClient, err := configclientset.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := StartKubeAPIMonitoringWithNewConnections(ctx, m, clusterConfig, 5*time.Second); err != nil {
+	if err := StartKubeAPIMonitoringWithNewConnections(ctx, m, restConfig, 5*time.Second); err != nil {
 		return nil, err
 	}
-	if err := StartOpenShiftAPIMonitoringWithNewConnections(ctx, m, clusterConfig, 5*time.Second); err != nil {
+	if err := StartOpenShiftAPIMonitoringWithNewConnections(ctx, m, restConfig, 5*time.Second); err != nil {
 		return nil, err
 	}
-	if err := StartOAuthAPIMonitoringWithNewConnections(ctx, m, clusterConfig, 5*time.Second); err != nil {
+	if err := StartOAuthAPIMonitoringWithNewConnections(ctx, m, restConfig, 5*time.Second); err != nil {
 		return nil, err
 	}
-	if err := StartKubeAPIMonitoringWithConnectionReuse(ctx, m, clusterConfig, 5*time.Second); err != nil {
+	if err := StartKubeAPIMonitoringWithConnectionReuse(ctx, m, restConfig, 5*time.Second); err != nil {
 		return nil, err
 	}
-	if err := StartOpenShiftAPIMonitoringWithConnectionReuse(ctx, m, clusterConfig, 5*time.Second); err != nil {
+	if err := StartOpenShiftAPIMonitoringWithConnectionReuse(ctx, m, restConfig, 5*time.Second); err != nil {
 		return nil, err
 	}
-	if err := StartOAuthAPIMonitoringWithConnectionReuse(ctx, m, clusterConfig, 5*time.Second); err != nil {
+	if err := StartOAuthAPIMonitoringWithConnectionReuse(ctx, m, restConfig, 5*time.Second); err != nil {
 		return nil, err
 	}
 	startPodMonitoring(ctx, m, client)
