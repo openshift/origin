@@ -45,7 +45,7 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 
 	// Kubectl Port forwarding ***
 	// The same pod name is used many times for all these tests with a tight readiness check to make the tests fast.
-	// This results in hundreds of events while the  pod isn't ready.
+	// This results in hundreds of events while the pod isn't ready.
 	regexp.MustCompile(`ns/e2e-port-forwarding-[0-9]+ pod/pfpod node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed:`),
 
 	// should not start app containers if init containers fail on a RestartAlways pod
@@ -149,8 +149,8 @@ func testDuplicatedEventForStableSystem(events monitorapi.Intervals, kubeClientC
 }
 
 // isRepeatedEventOKFunc takes a monitorEvent as input and returns true if the repeated event is OK.
-// this commonly happens for known bugs and for cases where events are repeated intentionally by tests.
-// the string is the message to display for the failure.
+// This commonly happens for known bugs and for cases where events are repeated intentionally by tests.
+// Use this to handle cases where, "if X is true, then the repeated event is ok".
 type isRepeatedEventOKFunc func(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config) bool
 
 // we want to identify events based on the monitor because it is (currently) our only spot that tracks events over time
@@ -191,7 +191,7 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(events monitorapi.Interva
 
 		flake := false
 		for _, kp := range d.knownRepeatedEventsBugs {
-			if kp.Regexp.MatchString(display) {
+			if kp.Regexp != nil && kp.Regexp.MatchString(display) {
 				msg += " - " + kp.BZ
 				flake = true
 			}
@@ -259,7 +259,7 @@ func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.EventInterval,
 	if !strings.Contains(monitorEvent.Locator, "ns/openshift-console") {
 		return false
 	}
-	if !strings.HasPrefix(monitorEvent.Locator, "pod/console-") {
+	if !strings.Contains(monitorEvent.Locator, "pod/console-") {
 		return false
 	}
 	if !strings.Contains(monitorEvent.Locator, "Readiness probe") {
