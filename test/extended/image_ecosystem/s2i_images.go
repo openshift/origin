@@ -85,17 +85,17 @@ var s2iImages = map[string][]tc{
 	},
 	"php": {
 		{
-			Version:  "72",
-			Cmd:      "php --version",
-			Expected: "7.2",
-			Tag:      "7.2-ubi8",
-			NonAMD:   true,
-		},
-		{
 			Version:  "73",
 			Cmd:      "php --version",
 			Expected: "7.3",
 			Tag:      "7.3-ubi8",
+			NonAMD:   true,
+		},
+		{
+			Version:  "74",
+			Cmd:      "php --version",
+			Expected: "7.4",
+			Tag:      "7.4-ubi8",
 			NonAMD:   true,
 		},
 	},
