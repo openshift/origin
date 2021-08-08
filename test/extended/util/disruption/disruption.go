@@ -308,28 +308,17 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 	return testFrameworks
 }
 
-// minimumDuration rounds to the minimum disruption experienced. For
-// values less than 1 second, we return the exact millis but otherwise
-// we don't care and truncate to seconds.
-func minimumDuration(duration time.Duration) time.Duration {
-	if duration < time.Second {
-		return duration
-	} else {
-		return duration.Truncate(time.Second)
-	}
-}
-
 // ExpectNoDisruption fails if the sum of the duration of all events exceeds tolerate as a fraction ([0-1]) of total, reports a
 // disruption flake if any disruption occurs, and uses reason to prefix the message. I.e. tolerate 0.1 of 10m total will fail
 // if the sum of the intervals is greater than 1m, or report a flake if any interval is found.
 func ExpectNoDisruption(f *framework.Framework, tolerate float64, total time.Duration, events monitorapi.Intervals, reason string) {
 	FrameworkEventIntervals(f, events)
-	duration := events.Duration(0)
+	duration := events.Duration(0, 1*time.Second)
 	describe := events.Strings()
 	if percent := float64(duration) / float64(total); percent > tolerate {
-		framework.Failf("%s for at least %v of %v (%0.0f%%):\n\n%s", reason, minimumDuration(duration), minimumDuration(total), percent*100, strings.Join(describe, "\n"))
+		framework.Failf("%s for at least %s of %s (%0.0f%%):\n\n%s", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, strings.Join(describe, "\n"))
 	} else if duration > 0 {
-		FrameworkFlakef(f, "%s for at least %v of %v (%0.0f%%), this is currently sufficient to pass the test/job but not considered completely correct:\n\n%s", reason, minimumDuration(duration), minimumDuration(total), percent*100, strings.Join(describe, "\n"))
+		FrameworkFlakef(f, "%s for at least %s of %s (%0.0f%%), this is currently sufficient to pass the test/job but not considered completely correct:\n\n%s", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, strings.Join(describe, "\n"))
 	}
 }
 
