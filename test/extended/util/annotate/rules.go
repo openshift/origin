@@ -131,6 +131,9 @@ var (
 		// tests that are known flaky
 		"[Flaky]": {
 			`openshift mongodb replication creating from a template`, // flaking on deployment
+
+			// BZ https://bugzilla.redhat.com/show_bug.cgi?id=1991507
+			`Kubectl client Simple pod should return command exit codes`,
 		},
 		// tests that must be run without competition
 		"[Serial]":        {},
