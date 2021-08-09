@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
+
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -495,10 +498,19 @@ func verifyCRDSpecStatusExplain(oc *exutil.CLI, crdClient apiextensionsclientset
 }
 
 func verifyExplain(oc *exutil.CLI, crdClient apiextensionsclientset.Interface, gvr schema.GroupVersionResource, pattern string, args ...string) error {
-	result, err := oc.Run("explain").Args(args...).Output()
+	var result string
+	var err error
+	err = wait.PollImmediate(2*time.Second, 10*time.Second, func() (bool, error) {
+		result, err = oc.Run("explain").Args(args...).Output()
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	})
 	if err != nil {
 		return fmt.Errorf("failed to explain %q: %v", args, err)
 	}
+
 	r := regexp.MustCompile(pattern)
 	if !r.Match([]byte(result)) {
 		if crdClient != nil {
