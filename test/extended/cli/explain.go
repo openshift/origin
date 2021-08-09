@@ -82,9 +82,6 @@ var (
 
 		// openshift.io groups:
 
-		{Group: "autoscaling.openshift.io", Version: "v1beta1", Resource: "machineautoscalers"},
-		{Group: "autoscaling.openshift.io", Version: "v1", Resource: "clusterautoscalers"},
-
 		{Group: "authorization.openshift.io", Version: "v1", Resource: "selfsubjectrulesreviews"},
 		{Group: "authorization.openshift.io", Version: "v1", Resource: "subjectrulesreviews"},
 
@@ -114,10 +111,6 @@ var (
 		{Group: "imageregistry.operator.openshift.io", Version: "v1", Resource: "imagepruners"},
 
 		{Group: "ingress.operator.openshift.io", Version: "v1", Resource: "dnsrecords"},
-
-		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinehealthchecks"},
-		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machines"},
-		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinesets"},
 
 		{Group: "operator.openshift.io", Version: "v1alpha1", Resource: "imagecontentsourcepolicies"},
 
@@ -154,6 +147,17 @@ var (
 		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "kubeletconfigs"},
 		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigpools"},
 		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigs"},
+	}
+
+	autoscalingTypes = []schema.GroupVersionResource{
+		{Group: "autoscaling.openshift.io", Version: "v1beta1", Resource: "machineautoscalers"},
+		{Group: "autoscaling.openshift.io", Version: "v1", Resource: "clusterautoscalers"},
+	}
+
+	machineTypes = []schema.GroupVersionResource{
+		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinehealthchecks"},
+		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machines"},
+		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinesets"},
 	}
 
 	specialTypes = []explainExceptions{
@@ -384,7 +388,8 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 	oc := exutil.NewCLI("oc-explain")
 
 	crdTypes := append(baseCRDTypes, mcoTypes...)
-
+	crdTypes = append(crdTypes, autoscalingTypes...)
+	crdTypes = append(crdTypes, machineTypes...)
 	g.It("list uncovered GroupVersionResources", func() {
 		resourceMap := make(map[schema.GroupVersionResource]bool)
 		kubeClient := kclientset.NewForConfigOrDie(oc.AdminConfig())
