@@ -182,7 +182,7 @@ type Proxier struct {
 	endpointsSynced bool
 	servicesSynced  bool
 	initialized     int32
-	changesPending  bool
+	changesPending  int32
 	syncRunner      *async.BoundedFrequencyRunner // governs calls to syncProxyRules
 
 	// These are effectively const and do not need the mutex to be held.
@@ -443,11 +443,21 @@ func (proxier *Proxier) probability(n int) string {
 	return proxier.precomputedProbabilities[n]
 }
 
+func (proxier *Proxier) setChangesPending(value bool) {
+	var changesPending int32
+	if value {
+		changesPending = 1
+	}
+	atomic.StoreInt32(&proxier.changesPending, changesPending)
+}
+
+func (proxier *Proxier) hasChangesPending() bool {
+	return atomic.LoadInt32(&proxier.changesPending) > 0
+}
+
 // Sync is called to synchronize the proxier state to iptables as soon as possible.
 func (proxier *Proxier) Sync() {
-	proxier.mu.Lock()
-	proxier.changesPending = true
-	proxier.mu.Unlock()
+	proxier.setChangesPending(true)
 	proxier.syncRunner.Run()
 }
 
@@ -615,7 +625,7 @@ func (proxier *Proxier) syncProxyRules(force bool) {
 		return
 	}
 
-	if !force && !proxier.changesPending {
+	if !force && !proxier.hasChangesPending() {
 		// Nothing to do; just update healthz timestamp.
 		if proxier.healthzServer != nil {
 			proxier.healthzServer.UpdateTimestamp()
@@ -1311,7 +1321,7 @@ func (proxier *Proxier) syncProxyRules(force bool) {
 		utilproxy.RevertPorts(replacementPortsMap, proxier.portsMap)
 		return
 	}
-	proxier.changesPending = false
+	proxier.setChangesPending(false)
 
 	// Close old local ports and save new ones.
 	for k, v := range proxier.portsMap {
