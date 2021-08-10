@@ -203,6 +203,7 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCID
 	otx.AddFlow("table=100, priority=300,udp,udp_dst=%d,actions=drop", vxlanPort)
 	otx.AddFlow("table=100, priority=200,tcp,tcp_dst=53,nw_dst=%s,actions=output:2", oc.localIP)
 	otx.AddFlow("table=100, priority=200,udp,udp_dst=53,nw_dst=%s,actions=output:2", oc.localIP)
+	otx.AddFlow("table=100, priority=150,ct_state=+rpl,actions=goto_table:101")
 	// eg, "table=100, priority=100, reg0=${tenant_id}, ip, actions=set_field:${tun0_mac}->eth_dst,set_field:${egress_mark}->pkt_mark,goto_table:101"
 	otx.AddFlow("table=100, priority=0, actions=goto_table:101")
 
