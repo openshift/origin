@@ -19,6 +19,8 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 
+	configv1 "github.com/openshift/api/config/v1"
+
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -103,6 +105,14 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 				Selector: map[string]string{"alertname": "ExtremelyHighIndividualControlPlaneCPU"},
 				Text:     "high CPU utilization during e2e runs is normal",
 			},
+		}
+
+		if isTechPreviewCluster(oc) {
+			allowedFiringAlerts = append(allowedFiringAlerts, helper.MetricCondition{
+				Selector: map[string]string{"alertname": "TechPreviewNoUpgrade"},
+				Text:     "Allow testing of TechPreviewNoUpgrade clusters, this will only fire when a FeatureGate has been installed",
+			},
+			)
 		}
 
 		pendingAlertsWithBugs := helper.MetricConditions{}
@@ -503,9 +513,21 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
 
+			// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
+			allowedAlertNames := []string{
+				"Watchdog",
+				"AlertmanagerReceiversNotConfigured",
+				"PrometheusRemoteWriteDesiredShards",
+			}
+
+			if isTechPreviewCluster(oc) {
+				// On a TechPreviewNoUpgrade cluster we must ignore the TechPreviewNoUpgrade alert
+				// fired by the Kube API Operator. This alert is expected in this case.
+				allowedAlertNames = append(allowedAlertNames, "TechPreviewNoUpgrade")
+			}
+
 			tests := map[string]bool{
-				// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
-				`ALERTS{alertname!~"Watchdog|AlertmanagerReceiversNotConfigured|PrometheusRemoteWriteDesiredShards",alertstate="firing",severity!="info"} >= 1`: false,
+				fmt.Sprintf(`ALERTS{alertname!~"%s",alertstate="firing",severity!="info"} >= 1`, strings.Join(allowedAlertNames, "|")): false,
 			}
 			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -803,4 +825,16 @@ func hasPullSecret(client clientset.Interface, name string) bool {
 		e2e.Failf("could not unmarshal pullSecret from openshift-config/pull-secret: %v", err)
 	}
 	return len(ps.Auths[name].Auth) > 0
+}
+
+func isTechPreviewCluster(oc *exutil.CLI) bool {
+	featureGate, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		if kapierrs.IsNotFound(err) {
+			return false
+		}
+		e2e.Failf("could not retrieve feature-gate: %v", err)
+	}
+
+	return featureGate.Spec.FeatureSet == configv1.TechPreviewNoUpgrade
 }
