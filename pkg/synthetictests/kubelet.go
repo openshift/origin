@@ -135,6 +135,30 @@ func testContainerFailures(events monitorapi.Intervals) []*ginkgo.JUnitTestCase 
 	return testCases
 }
 
+func testKubeApiserverProcessOverlap(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+	const testName = "[sig-node] overlapping apiserver process detected during kube-apiserver rollout"
+	success := &ginkgo.JUnitTestCase{Name: testName}
+	failures := []string{}
+	for _, event := range events {
+		if strings.Contains(event.Message, "reason/TerminationProcessOverlapDetected") {
+			failures = append(failures, fmt.Sprintf("[%s - %s] %s", event.From, event.To, event.Locator))
+		}
+	}
+
+	if len(failures) == 0 {
+		return []*ginkgo.JUnitTestCase{success}
+	}
+
+	failure := &ginkgo.JUnitTestCase{
+		Name:      testName,
+		SystemOut: strings.Join(failures, "\n"),
+		FailureOutput: &ginkgo.FailureOutput{
+			Output: fmt.Sprintf("The following events detected:\n\n%s", strings.Join(failures, "\n")),
+		},
+	}
+	return []*ginkgo.JUnitTestCase{failure}
+}
+
 func testDeleteGracePeriodZero(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-architecture] platform pods should not be force deleted with gracePeriod 0"
 	success := &ginkgo.JUnitTestCase{Name: testName}
