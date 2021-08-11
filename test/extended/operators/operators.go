@@ -56,6 +56,15 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should", func() {
 			e2e.Failf("ClusterVersion Progressing=%s: %s: %s", cond.Get("status").String(), cond.Get("reason").String(), cond.Get("message").String())
 		}
 
+		g.By("determining if the cluster is in a TechPreview state")
+		fgc := dc.Resource(schema.GroupVersionResource{Group: "config.openshift.io", Resource: "featuregates", Version: "v1"})
+		fgObj, err := fgc.Get(context.Background(), "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		fg := objx.Map(fgObj.UnstructuredContent())
+		featureSet := fg.Get("spec.featureSet").String()
+		isTechPreview := featureSet == "TechPreviewNoUpgrade"
+
 		// gate on all clusteroperators being ready
 		g.By("ensuring all cluster operators are stable")
 		coc := dc.Resource(schema.GroupVersionResource{Group: "config.openshift.io", Resource: "clusteroperators", Version: "v1"})
@@ -74,6 +83,13 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should", func() {
 			badConditions, missingTypes := surprisingConditions(co)
 			if len(badConditions) > 0 {
 				worstCondition := badConditions[0]
+
+				// kube-apiserver blocks upgrades when feature gates are present.
+				// Allow testing of TechPreviewNoUpgrade clusters by ignoring this condition.
+				if isTechPreview && name == "kube-apiserver" && isKubeAPIUpgradableTechPreviewCondition(worstCondition) {
+					continue
+				}
+
 				unready = append(unready, fmt.Sprintf("%s (%s=%s %s: %s)",
 					name,
 					worstCondition.Type,
@@ -234,4 +250,14 @@ func surprisingConditions(co objx.Map) ([]configv1.ClusterOperatorStatusConditio
 		}
 	}
 	return badConditions, missingTypes
+}
+
+// When a TechPreviewNoUpgrade feature set is in force in the cluster, the following condition
+// is set on the kube-apiserver cluster operator
+// Ref: https://github.com/openshift/cluster-kube-apiserver-operator/blob/39a98d67c3b825b9215454a7817ffadb0577609b/pkg/operator/featureupgradablecontroller/feature_upgradeable_controller_test.go#L41-L46
+func isKubeAPIUpgradableTechPreviewCondition(cond configv1.ClusterOperatorStatusCondition) bool {
+	return cond.Reason == "FeatureGates_RestrictedFeatureGates_TechPreviewNoUpgrade" &&
+		cond.Status == "False" &&
+		cond.Type == "Upgradeable" &&
+		cond.Message == "FeatureGatesUpgradeable: \"TechPreviewNoUpgrade\" does not allow updates"
 }
