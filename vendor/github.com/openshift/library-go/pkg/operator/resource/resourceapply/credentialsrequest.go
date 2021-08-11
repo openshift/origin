@@ -44,6 +44,7 @@ func AddCredentialsRequestHash(cr *unstructured.Unstructured) error {
 }
 
 func ApplyCredentialsRequest(
+	ctx context.Context,
 	client dynamic.Interface,
 	recorder events.Recorder,
 	required *unstructured.Unstructured,
@@ -58,9 +59,9 @@ func ApplyCredentialsRequest(
 	}
 
 	crClient := client.Resource(credentialsRequestResourceGVR).Namespace(required.GetNamespace())
-	existing, err := crClient.Get(context.TODO(), required.GetName(), metav1.GetOptions{})
+	existing, err := crClient.Get(ctx, required.GetName(), metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := crClient.Create(context.TODO(), required, metav1.CreateOptions{})
+		actual, err := crClient.Create(ctx, required, metav1.CreateOptions{})
 		if err == nil {
 			recorder.Eventf(
 				fmt.Sprintf("%sCreated", required.GetKind()),
@@ -97,7 +98,7 @@ func ApplyCredentialsRequest(
 
 	requiredCopy := required.DeepCopy()
 	existing.Object["spec"] = requiredCopy.Object["spec"]
-	actual, err := crClient.Update(context.TODO(), existing, metav1.UpdateOptions{})
+	actual, err := crClient.Update(ctx, existing, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, false, err
 	}

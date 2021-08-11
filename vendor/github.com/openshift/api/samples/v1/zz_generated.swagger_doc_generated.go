@@ -12,7 +12,7 @@ package v1
 
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_Config = map[string]string{
-	"": "Config contains the configuration and detailed condition status for the Samples Operator.",
+	"": "Config contains the configuration and detailed condition status for the Samples Operator.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
 }
 
 func (Config) SwaggerDoc() map[string]string {
@@ -31,6 +31,14 @@ var map_ConfigCondition = map[string]string{
 
 func (ConfigCondition) SwaggerDoc() map[string]string {
 	return map_ConfigCondition
+}
+
+var map_ConfigList = map[string]string{
+	"": "Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+}
+
+func (ConfigList) SwaggerDoc() map[string]string {
+	return map_ConfigList
 }
 
 var map_ConfigSpec = map[string]string{

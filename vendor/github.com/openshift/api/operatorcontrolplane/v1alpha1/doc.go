@@ -4,4 +4,5 @@
 
 // +kubebuilder:validation:Optional
 // +groupName=controlplane.operator.openshift.io
+
 package v1alpha1

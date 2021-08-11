@@ -1,8 +1,10 @@
-self_dir :=$(dir $(lastword $(MAKEFILE_LIST)))
+# Use a unique variable name to avoid conflicting with generic
+# `self_dir` elsewhere.
+_self_dir_openshift_deps :=$(dir $(lastword $(MAKEFILE_LIST)))
 
-deps_gomod_mkfile := $(self_dir)/deps-gomod.mk
-deps_glide_mkfile := $(self_dir)/deps-glide.mk
-include $(addprefix $(self_dir), \
+deps_gomod_mkfile := $(_self_dir_openshift_deps)/deps-gomod.mk
+deps_glide_mkfile := $(_self_dir_openshift_deps)/deps-glide.mk
+include $(addprefix $(_self_dir_openshift_deps), \
 	../../lib/golang.mk \
 )
 

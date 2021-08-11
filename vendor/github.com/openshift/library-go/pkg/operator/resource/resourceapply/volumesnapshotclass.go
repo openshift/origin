@@ -77,10 +77,10 @@ func ensureGenericVolumeSnapshotClass(required, existing *unstructured.Unstructu
 }
 
 // ApplyVolumeSnapshotClass applies Volume Snapshot Class.
-func ApplyVolumeSnapshotClass(client dynamic.Interface, recorder events.Recorder, required *unstructured.Unstructured) (*unstructured.Unstructured, bool, error) {
-	existing, err := client.Resource(volumeSnapshotClassResourceGVR).Get(context.TODO(), required.GetName(), metav1.GetOptions{})
+func ApplyVolumeSnapshotClass(ctx context.Context, client dynamic.Interface, recorder events.Recorder, required *unstructured.Unstructured) (*unstructured.Unstructured, bool, error) {
+	existing, err := client.Resource(volumeSnapshotClassResourceGVR).Get(ctx, required.GetName(), metav1.GetOptions{})
 	if errors.IsNotFound(err) {
-		newObj, createErr := client.Resource(volumeSnapshotClassResourceGVR).Create(context.TODO(), required, metav1.CreateOptions{})
+		newObj, createErr := client.Resource(volumeSnapshotClassResourceGVR).Create(ctx, required, metav1.CreateOptions{})
 		if createErr != nil {
 			recorder.Warningf("VolumeSnapshotClassCreateFailed", "Failed to create VolumeSnapshotClass.snapshot.storage.k8s.io/v1: %v", createErr)
 			return nil, true, createErr
@@ -105,7 +105,7 @@ func ApplyVolumeSnapshotClass(client dynamic.Interface, recorder events.Recorder
 		klog.Infof("VolumeSnapshotClass %q changes: %v", required.GetName(), JSONPatchNoError(existing, toUpdate))
 	}
 
-	newObj, err := client.Resource(volumeSnapshotClassResourceGVR).Update(context.TODO(), toUpdate, metav1.UpdateOptions{})
+	newObj, err := client.Resource(volumeSnapshotClassResourceGVR).Update(ctx, toUpdate, metav1.UpdateOptions{})
 	if err != nil {
 		recorder.Warningf("VolumeSnapshotClassFailed", "Failed to update VolumeSnapshotClass.snapshot.storage.k8s.io/v1: %v", err)
 		return nil, true, err

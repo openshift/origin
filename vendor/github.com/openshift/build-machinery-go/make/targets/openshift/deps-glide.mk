@@ -1,5 +1,4 @@
-self_dir :=$(dir $(lastword $(MAKEFILE_LIST)))
-scripts_dir :=$(self_dir)/../../../scripts
+scripts_dir :=$(dir $(lastword $(MAKEFILE_LIST)))/../../../scripts
 
 # We need to force localle so different envs sort files the same way for recursive traversals
 deps_diff :=LC_COLLATE=C diff --no-dereference -N

@@ -19,7 +19,7 @@ spec:
     - name: v1beta1
       schema:
         openAPIV3Schema:
-          description: HelmChartRepository holds cluster-wide configuration for proxied Helm chart repository
+          description: "HelmChartRepository holds cluster-wide configuration for proxied Helm chart repository \n Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer)."
           type: object
           required:
             - spec

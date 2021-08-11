@@ -11,6 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -44,6 +45,8 @@ type ControllerCommandConfig struct {
 
 	// DisableLeaderElection allows leader election to be suspended
 	DisableLeaderElection bool
+
+	ComponentOwnerReference *corev1.ObjectReference
 }
 
 // NewControllerConfig returns a new ControllerCommandConfig which can be used to wire up all the boiler plate of a controller
@@ -59,6 +62,12 @@ func NewControllerCommandConfig(componentName string, version version.Info, star
 		DisableServing:        false,
 		DisableLeaderElection: false,
 	}
+}
+
+// WithComponentOwnerReference overrides controller reference resolution for event recording
+func (c *ControllerCommandConfig) WithComponentOwnerReference(reference *corev1.ObjectReference) *ControllerCommandConfig {
+	c.ComponentOwnerReference = reference
+	return c
 }
 
 // NewCommand returns a new command that a caller must set the Use and Descriptions on.  It wires default log, profiling,
@@ -275,7 +284,8 @@ func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 		WithLeaderElection(config.LeaderElection, c.basicFlags.Namespace, c.componentName+"-lock").
 		WithVersion(c.version).
 		WithEventRecorderOptions(events.RecommendedClusterSingletonCorrelatorOptions()).
-		WithRestartOnChange(exitOnChangeReactorCh, startingFileContent, observedFiles...)
+		WithRestartOnChange(exitOnChangeReactorCh, startingFileContent, observedFiles...).
+		WithComponentOwnerReference(c.ComponentOwnerReference)
 
 	if !c.DisableServing {
 		builder = builder.WithServer(config.ServingInfo, config.Authentication, config.Authorization)

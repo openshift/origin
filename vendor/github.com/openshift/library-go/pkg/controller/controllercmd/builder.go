@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/library-go/pkg/config/serving"
 	"github.com/openshift/library-go/pkg/controller/fileobserver"
 	"github.com/openshift/library-go/pkg/operator/events"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/version"
@@ -69,6 +70,7 @@ type ControllerBuilder struct {
 	fileObserver            fileobserver.Observer
 	fileObserverReactorFn   func(file string, action fileobserver.ActionType) error
 	eventRecorderOptions    record.CorrelatorOptions
+	componentOwnerReference *corev1.ObjectReference
 
 	startFunc          StartFunc
 	componentName      string
@@ -188,6 +190,12 @@ func (b *ControllerBuilder) WithEventRecorderOptions(options record.CorrelatorOp
 	return b
 }
 
+// WithComponentOwnerReference overrides controller reference resolution for event recording
+func (b *ControllerBuilder) WithComponentOwnerReference(reference *corev1.ObjectReference) *ControllerBuilder {
+	b.componentOwnerReference = reference
+	return b
+}
+
 // Run starts your controller for you.  It uses leader election if you asked, otherwise it directly calls you
 func (b *ControllerBuilder) Run(ctx context.Context, config *unstructured.Unstructured) error {
 	clientConfig, err := b.getClientConfig()
@@ -204,9 +212,13 @@ func (b *ControllerBuilder) Run(ctx context.Context, config *unstructured.Unstru
 	if err != nil {
 		klog.Warningf("unable to identify the current namespace for events: %v", err)
 	}
-	controllerRef, err := events.GetControllerReferenceForCurrentPod(kubeClient, namespace, nil)
-	if err != nil {
-		klog.Warningf("unable to get owner reference (falling back to namespace): %v", err)
+	controllerRef := b.componentOwnerReference
+
+	if controllerRef == nil {
+		controllerRef, err = events.GetControllerReferenceForCurrentPod(kubeClient, namespace, nil)
+		if err != nil {
+			klog.Warningf("unable to get owner reference (falling back to namespace): %v", err)
+		}
 	}
 	eventRecorder := events.NewKubeRecorderWithOptions(kubeClient.CoreV1().Events(namespace), b.eventRecorderOptions, b.componentName, controllerRef)
 

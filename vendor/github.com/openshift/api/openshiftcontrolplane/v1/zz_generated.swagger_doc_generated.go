@@ -20,7 +20,7 @@ func (BuildControllerConfig) SwaggerDoc() map[string]string {
 }
 
 var map_BuildDefaultsConfig = map[string]string{
-	"":                       "BuildDefaultsConfig controls the default information for Builds",
+	"":                       "BuildDefaultsConfig controls the default information for Builds\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"gitHTTPProxy":           "gitHTTPProxy is the location of the HTTPProxy for Git source",
 	"gitHTTPSProxy":          "gitHTTPSProxy is the location of the HTTPSProxy for Git source",
 	"gitNoProxy":             "gitNoProxy is the list of domains for which the proxy should not be used",
@@ -37,7 +37,7 @@ func (BuildDefaultsConfig) SwaggerDoc() map[string]string {
 }
 
 var map_BuildOverridesConfig = map[string]string{
-	"":             "BuildOverridesConfig controls override settings for builds",
+	"":             "BuildOverridesConfig controls override settings for builds\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"forcePull":    "forcePull overrides, if set, the equivalent value in the builds, i.e. false disables force pull for all builds, true enables force pull for all builds, independently of what each build specifies itself",
 	"imageLabels":  "imageLabels is a list of labels that are applied to the resulting image. If user provided a label in their Build/BuildConfig with the same name as one in this list, the user's label will be overwritten.",
 	"nodeSelector": "nodeSelector is a selector which must be true for the build pod to fit on a node",
@@ -143,6 +143,7 @@ func (NetworkControllerConfig) SwaggerDoc() map[string]string {
 }
 
 var map_OpenShiftAPIServerConfig = map[string]string{
+	"":                               "Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"aggregatorConfig":               "aggregatorConfig contains information about how to verify the aggregator front proxy",
 	"imagePolicyConfig":              "imagePolicyConfig feeds the image policy admission plugin",
 	"projectConfig":                  "projectConfig feeds an admission plugin",
@@ -157,6 +158,7 @@ func (OpenShiftAPIServerConfig) SwaggerDoc() map[string]string {
 }
 
 var map_OpenShiftControllerManagerConfig = map[string]string{
+	"":               "Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"servingInfo":    "servingInfo describes how to start serving",
 	"leaderElection": "leaderElection defines the configuration for electing a controller instance to make changes to the cluster. If unspecified, the ControllerTTL value is checked to determine whether the legacy direct etcd election code will be used.",
 	"controllers":    "controllers is a list of controllers to enable.  '*' enables all on-by-default controllers, 'foo' enables the controller \"+ named 'foo', '-foo' disables the controller named 'foo'. Defaults to \"*\".",

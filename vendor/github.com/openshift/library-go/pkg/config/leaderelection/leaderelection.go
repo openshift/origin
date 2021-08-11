@@ -84,14 +84,28 @@ func ToConfigMapLeaderElection(clientConfig *rest.Config, config configv1.Leader
 func LeaderElectionDefaulting(config configv1.LeaderElection, defaultNamespace, defaultName string) configv1.LeaderElection {
 	ret := *(&config).DeepCopy()
 
+	// We want to be able to tolerate 60s of kube-apiserver disruption without causing pod restarts.
+	// We want the graceful lease re-acquisition fairly quick to avoid waits on new deployments and other rollouts.
+	// We want a single set of guidance for nearly every lease in openshift.  If you're special, we'll let you know.
+	// 1. clock skew tolerance is leaseDuration-renewDeadline == 30s
+	// 2. kube-apiserver downtime tolerance is == 78s
+	//      lastRetry=floor(renewDeadline/retryPeriod)*retryPeriod == 104
+	//      downtimeTolerance = lastRetry-retryPeriod == 78s
+	// 3. worst non-graceful lease acquisition is leaseDuration+retryPeriod == 163s
+	// 4. worst graceful lease acquisition is retryPeriod == 26s
 	if ret.LeaseDuration.Duration == 0 {
-		ret.LeaseDuration.Duration = 60 * time.Second
+		ret.LeaseDuration.Duration = 137 * time.Second
 	}
+
 	if ret.RenewDeadline.Duration == 0 {
-		ret.RenewDeadline.Duration = 35 * time.Second
+		// this gives 107/26=4 retries and allows for 137-107=30 seconds of clock skew
+		// if the kube-apiserver is unavailable for 60s starting just before t=26 (the first renew),
+		// then we will retry on 26s intervals until t=104 (kube-apiserver came back up at 86), and there will
+		// be 33 seconds of extra time before the lease is lost.
+		ret.RenewDeadline.Duration = 107 * time.Second
 	}
 	if ret.RetryPeriod.Duration == 0 {
-		ret.RetryPeriod.Duration = 10 * time.Second
+		ret.RetryPeriod.Duration = 26 * time.Second
 	}
 	if len(ret.Namespace) == 0 {
 		if len(defaultNamespace) > 0 {

@@ -12,7 +12,7 @@ package v1
 
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_EgressRouter = map[string]string{
-	"":       "EgressRouter is a feature allowing the user to define an egress router that acts as a bridge between pods and external systems. The egress router runs a service that redirects egress traffic originating from a pod or a group of pods to a remote external system or multiple destinations as per configuration.\n\nIt is consumed by the cluster-network-operator. More specifically, given an EgressRouter CR with <name>, the CNO will create and manage: - A service called <name> - An egress pod called <name> - A NAD called <name>\n\n\nEgressRouter is a single egressrouter pod configuration object.",
+	"":       "EgressRouter is a feature allowing the user to define an egress router that acts as a bridge between pods and external systems. The egress router runs a service that redirects egress traffic originating from a pod or a group of pods to a remote external system or multiple destinations as per configuration.\n\nIt is consumed by the cluster-network-operator. More specifically, given an EgressRouter CR with <name>, the CNO will create and manage: - A service called <name> - An egress pod called <name> - A NAD called <name>\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).\n\nEgressRouter is a single egressrouter pod configuration object.",
 	"spec":   "Specification of the desired egress router.",
 	"status": "Observed status of EgressRouter.",
 }
@@ -41,7 +41,7 @@ func (EgressRouterInterface) SwaggerDoc() map[string]string {
 }
 
 var map_EgressRouterList = map[string]string{
-	"": "EgressRouterList is the list of egress router pods requested.",
+	"": "EgressRouterList is the list of egress router pods requested.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
 }
 
 func (EgressRouterList) SwaggerDoc() map[string]string {

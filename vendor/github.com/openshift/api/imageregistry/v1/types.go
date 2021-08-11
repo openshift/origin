@@ -10,6 +10,9 @@ import (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ConfigList is a slice of Config objects.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
 type ConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
@@ -30,6 +33,9 @@ const (
 
 // Config is the configuration object for a registry instance managed by
 // the registry operator
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
 type Config struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
@@ -268,6 +274,38 @@ type ImageRegistryConfigStorageAzure struct {
 	CloudName string `json:"cloudName,omitempty"`
 }
 
+// ImageRegistryConfigStorageIBMCOS holds the information to configure
+// the registry to use IBM Cloud Object Storage for backend storage.
+type ImageRegistryConfigStorageIBMCOS struct {
+	// bucket is the bucket name in which you want to store the registry's
+	// data.
+	// Optional, will be generated if not provided.
+	// +optional
+	Bucket string `json:"bucket,omitempty"`
+	// location is the IBM Cloud location in which your bucket exists.
+	// Optional, will be set based on the installed IBM Cloud location.
+	// +optional
+	Location string `json:"location,omitempty"`
+	// resourceGroupName is the name of the IBM Cloud resource group that this
+	// bucket and its service instance is associated with.
+	// Optional, will be set based on the installed IBM Cloud resource group.
+	// +optional
+	ResourceGroupName string `json:"resourceGroupName,omitempty"`
+	// resourceKeyCRN is the CRN of the IBM Cloud resource key that is created
+	// for the service instance. Commonly referred as a service credential and
+	// must contain HMAC type credentials.
+	// Optional, will be computed if not provided.
+	// +optional
+	// +kubebuilder:validation:Pattern=`^crn:.+:.+:.+:cloud-object-storage:.+:.+:.+:resource-key:.+$`
+	ResourceKeyCRN string `json:"resourceKeyCRN,omitempty"`
+	// serviceInstanceCRN is the CRN of the IBM Cloud Object Storage service
+	// instance that this bucket is associated with.
+	// Optional, will be computed if not provided.
+	// +optional
+	// +kubebuilder:validation:Pattern=`^crn:.+:.+:.+:cloud-object-storage:.+:.+:.+::$`
+	ServiceInstanceCRN string `json:"serviceInstanceCRN,omitempty"`
+}
+
 // ImageRegistryConfigStorage describes how the storage should be configured
 // for the image registry.
 type ImageRegistryConfigStorage struct {
@@ -292,6 +330,9 @@ type ImageRegistryConfigStorage struct {
 	// azure represents configuration that uses Azure Blob Storage.
 	// +optional
 	Azure *ImageRegistryConfigStorageAzure `json:"azure,omitempty"`
+	// ibmcos represents configuration that uses IBM Cloud Object Storage.
+	// +optional
+	IBMCOS *ImageRegistryConfigStorageIBMCOS `json:"ibmcos,omitempty"`
 	// managementState indicates if the operator manages the underlying
 	// storage unit. If Managed the operator will remove the storage when
 	// this operator gets Removed.

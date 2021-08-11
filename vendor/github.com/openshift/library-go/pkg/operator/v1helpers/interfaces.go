@@ -31,3 +31,11 @@ type StaticPodOperatorClient interface {
 	// UpdateStaticPodOperatorSpec updates the spec, assuming the given resource  version.
 	UpdateStaticPodOperatorSpec(resourceVersion string, in *operatorv1.StaticPodOperatorSpec) (out *operatorv1.StaticPodOperatorSpec, newResourceVersion string, err error)
 }
+
+type OperatorClientWithFinalizers interface {
+	OperatorClient
+	// EnsureFinalizer adds a new finalizer to the operator CR, if it does not exists. No-op otherwise.
+	EnsureFinalizer(finalizer string) error
+	// RemoveFinalizer removes a finalizer from the operator CR, if it is there. No-op otherwise.
+	RemoveFinalizer(finalizer string) error
+}

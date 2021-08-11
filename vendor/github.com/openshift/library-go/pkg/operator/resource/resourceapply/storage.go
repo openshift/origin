@@ -18,11 +18,11 @@ import (
 )
 
 // ApplyStorageClass merges objectmeta, tries to write everything else
-func ApplyStorageClass(client storageclientv1.StorageClassesGetter, recorder events.Recorder, required *storagev1.StorageClass) (*storagev1.StorageClass, bool,
+func ApplyStorageClass(ctx context.Context, client storageclientv1.StorageClassesGetter, recorder events.Recorder, required *storagev1.StorageClass) (*storagev1.StorageClass, bool,
 	error) {
-	existing, err := client.StorageClasses().Get(context.TODO(), required.Name, metav1.GetOptions{})
+	existing, err := client.StorageClasses().Get(ctx, required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.StorageClasses().Create(context.TODO(), required, metav1.CreateOptions{})
+		actual, err := client.StorageClasses().Create(ctx, required, metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
@@ -52,16 +52,16 @@ func ApplyStorageClass(client storageclientv1.StorageClassesGetter, recorder eve
 	}
 
 	// TODO if provisioner, parameters, reclaimpolicy, or volumebindingmode are different, update will fail so delete and recreate
-	actual, err := client.StorageClasses().Update(context.TODO(), requiredCopy, metav1.UpdateOptions{})
+	actual, err := client.StorageClasses().Update(ctx, requiredCopy, metav1.UpdateOptions{})
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
 
 // ApplyCSIDriverV1Beta1 merges objectmeta, does not worry about anything else
-func ApplyCSIDriverV1Beta1(client storageclientv1beta1.CSIDriversGetter, recorder events.Recorder, required *storagev1beta1.CSIDriver) (*storagev1beta1.CSIDriver, bool, error) {
-	existing, err := client.CSIDrivers().Get(context.TODO(), required.Name, metav1.GetOptions{})
+func ApplyCSIDriverV1Beta1(ctx context.Context, client storageclientv1beta1.CSIDriversGetter, recorder events.Recorder, required *storagev1beta1.CSIDriver) (*storagev1beta1.CSIDriver, bool, error) {
+	existing, err := client.CSIDrivers().Get(ctx, required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.CSIDrivers().Create(context.TODO(), required, metav1.CreateOptions{})
+		actual, err := client.CSIDrivers().Create(ctx, required, metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
@@ -81,16 +81,16 @@ func ApplyCSIDriverV1Beta1(client storageclientv1beta1.CSIDriversGetter, recorde
 		klog.Infof("CSIDriver %q changes: %v", required.Name, JSONPatchNoError(existing, existingCopy))
 	}
 
-	actual, err := client.CSIDrivers().Update(context.TODO(), existingCopy, metav1.UpdateOptions{})
+	actual, err := client.CSIDrivers().Update(ctx, existingCopy, metav1.UpdateOptions{})
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
 
 // ApplyCSIDriver merges objectmeta, does not worry about anything else
-func ApplyCSIDriver(client storageclientv1.CSIDriversGetter, recorder events.Recorder, required *storagev1.CSIDriver) (*storagev1.CSIDriver, bool, error) {
-	existing, err := client.CSIDrivers().Get(context.TODO(), required.Name, metav1.GetOptions{})
+func ApplyCSIDriver(ctx context.Context, client storageclientv1.CSIDriversGetter, recorder events.Recorder, required *storagev1.CSIDriver) (*storagev1.CSIDriver, bool, error) {
+	existing, err := client.CSIDrivers().Get(ctx, required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.CSIDrivers().Create(context.TODO(), required, metav1.CreateOptions{})
+		actual, err := client.CSIDrivers().Create(ctx, required, metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
@@ -111,7 +111,7 @@ func ApplyCSIDriver(client storageclientv1.CSIDriversGetter, recorder events.Rec
 	}
 
 	// TODO: Spec is read-only, so this will fail if user changes it. Should we simply ignore it?
-	actual, err := client.CSIDrivers().Update(context.TODO(), existingCopy, metav1.UpdateOptions{})
+	actual, err := client.CSIDrivers().Update(ctx, existingCopy, metav1.UpdateOptions{})
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
