@@ -17464,31 +17464,37 @@ var _testExtendedTestdataBuildsBuildQuotaS2iBinAssemble = []byte(`#!/bin/sh
 # output, so adding a sleep in an attempt to let the buildah log output
 # stop before the container output starts
 sleep 10
-echo "start search for cgroup memory files"
-find /sys/fs/cgroup -name memory.limit_in_bytes
-find /sys/fs/cgroup -name memory.max
-echo "end search for cgroup memory files"
 cgroupv1Val=$(cat /sys/fs/cgroup/memory/memory.limit_in_bytes) || true
 echo "cgroupv1Val is ${cgroupv1Val}"
 if [ "$cgroupv1Val" = "419430400" ]; then
   echo "MEMORY=${cgroupv1Val}"
 else
-  cgroupv2Val=$(cat /sys/fs/cgroup/memory.max) || true
-  echo "cgroupv2Val is ${cgroupv2Val}"
-  if [ "$cgroupv2Val" = "419430400" ]; then
-    echo "MEMORY=${cgroupv2Val}"
-  fi
+  memory_max_list=$(find /sys/fs/cgroup/kubepods.slice -name memory.max)
+  for item in ${memory_max_list};
+  do
+    echo "${item}"
+    cgroupv2Val=$(cat "${item}")
+    echo "cgroupv2Val is ${cgroupv2Val}"
+    if [ "$cgroupv2Val" = "419430400" ]; then
+      echo "MEMORY=${cgroupv2Val}"
+    fi
+  done
 fi
 cgroupv1Val=$(cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes) || true
 echo "cgroupv1Val is ${cgroupv1Val}"
 if [ "$cgroupv1Val" = "419430400" ]; then
   echo "MEMORYSWAP=${cgroupv1Val}"
 else
-  cgroupv2Val=$(cat /sys/fs/cgroup/memory.swap.max) || true
-  echo "cgroupv2Val is ${cgroupv2Val}"
-  if [ "$cgroupv2Val" = "419430400" ]; then
-    echo "MEMORYSWAP=${cgroupv2Val}"
-  fi
+  memory_swap_max_list=$(find /sys/fs/cgroup/kubepods.slice -name memory.swap.max)
+  for item in ${memory_swap_max_list};
+  do
+    echo "${item}"
+    cgroupv2Val=$(cat "${item}")
+    echo "cgroupv2Val is ${cgroupv2Val}"
+    if [ "$cgroupv2Val" = "419430400" ]; then
+      echo "MEMORYSWAP=${cgroupv2Val}"
+    fi
+  done
 fi
 
 if [ -e /sys/fs/cgroup/cpuacct,cpu ]; then
