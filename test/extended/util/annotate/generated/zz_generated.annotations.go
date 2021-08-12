@@ -1155,7 +1155,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] CLI can run inside of a busybox container": "can run inside of a busybox container [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on 0.0.0.0 should support forwarding over websockets": "should support forwarding over websockets [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on 0.0.0.0 should support forwarding over websockets": "should support forwarding over websockets [Skipped:Proxy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on 0.0.0.0 that expects NO client request should support a client that connects, sends DATA, and disconnects": "should support a client that connects, sends DATA, and disconnects [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -1163,7 +1163,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on 0.0.0.0 that expects a client request should support a client that connects, sends NO DATA, and disconnects": "should support a client that connects, sends NO DATA, and disconnects [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on localhost should support forwarding over websockets": "should support forwarding over websockets [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on localhost should support forwarding over websockets": "should support forwarding over websockets [Skipped:Proxy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on localhost that expects NO client request should support a client that connects, sends DATA, and disconnects": "should support a client that connects, sends DATA, and disconnects [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -1237,9 +1237,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes": "should return command exit codes [Flaky] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should support exec through an HTTP proxy": "should support exec through an HTTP proxy [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should support exec through an HTTP proxy": "should support exec through an HTTP proxy [Skipped:Proxy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should support exec through kubectl proxy": "should support exec through kubectl proxy [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should support exec through kubectl proxy": "should support exec through kubectl proxy [Skipped:Proxy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-cli] Kubectl client Simple pod should support exec using resource/name": "should support exec using resource/name [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2431,9 +2431,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-node] Pods should support pod readiness gates [NodeFeature:PodReadinessGate]": "should support pod readiness gates [NodeFeature:PodReadinessGate] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-node] Pods should support remote command execution over websockets [NodeConformance] [Conformance]": "should support remote command execution over websockets [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-node] Pods should support remote command execution over websockets [NodeConformance] [Conformance]": "should support remote command execution over websockets [NodeConformance] [Conformance] [Skipped:Proxy] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-node] Pods should support retrieving logs from the container over websockets [NodeConformance] [Conformance]": "should support retrieving logs from the container over websockets [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-node] Pods should support retrieving logs from the container over websockets [NodeConformance] [Conformance]": "should support retrieving logs from the container over websockets [NodeConformance] [Conformance] [Skipped:Proxy] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-node] PreStop graceful pod terminated should wait until preStop hook completes the process": "graceful pod terminated should wait until preStop hook completes the process [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
