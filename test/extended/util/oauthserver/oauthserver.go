@@ -230,7 +230,18 @@ func waitForOAuthServerRouteReady(oc *exutil.CLI) error {
 	}
 	return wait.PollImmediate(time.Second, time.Minute, func() (done bool, err error) {
 		e2e.Logf("Waiting for the OAuth server route to be ready")
-		transport, err := restclient.TransportFor(restclient.AnonymousClientConfig(oc.AdminConfig()))
+		defaultIngressCertNamespace := "openshift-config-managed"
+		defaultIngressCertName := "default-ingress-cert"
+		defaultIngressCertConfigMapDataName := "ca-bundle.crt"
+		defaultIngressCert, err := oc.AdminKubeClient().CoreV1().ConfigMaps(defaultIngressCertNamespace).Get(context.Background(), defaultIngressCertName, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Error getting default ingress configmap: %v", err)
+			return false, err
+		}
+		defaultIngressCertData, _ := defaultIngressCert.Data[defaultIngressCertConfigMapDataName]
+		cfg := restclient.AnonymousClientConfig(oc.AdminConfig())
+		cfg.CAData = append(cfg.CAData, []byte(defaultIngressCertData)...)
+		transport, err := restclient.TransportFor(cfg)
 		if err != nil {
 			e2e.Logf("Error getting transport: %v", err)
 			return false, err
