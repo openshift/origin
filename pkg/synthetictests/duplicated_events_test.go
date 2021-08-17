@@ -72,6 +72,10 @@ func TestEventRegexExcluder(t *testing.T) {
 			name:    "non-root",
 			message: `ns/e2e-security-context-test-6596 pod/explicit-root-uid node/ci-op-isj7rd3k-2a78c-kk69w-worker-a-v4kdb - reason/Failed Error: container's runAsUser breaks non-root policy (pod: "explicit-root-uid_e2e-security-context-test-6596(22bf29d0-e546-4a15-8dd7-8acd9165c924)", container: explicit-root-uid)`,
 		},
+		{
+			name:    "local-volume-failed-scheduling",
+			message: `ns/e2e-persistent-local-volumes-test-7012 pod/pod-940713ce-7645-4d8c-bba0-5705350a5655 reason/FailedScheduling 0/6 nodes are available: 1 node(s) had volume node affinity conflict, 2 node(s) didn't match Pod's node affinity/selector, 3 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate. (2 times)`,
+		},
 	}
 
 	for _, test := range tests {

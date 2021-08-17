@@ -63,6 +63,10 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 	// Security Context ** should not run without a specified user ID
 	// This container should never run
 	regexp.MustCompile(`ns/e2e-security-context-test-[0-9]+ pod/.*-root-uid node/[a-z0-9.-]+ - reason/Failed Error: container's runAsUser breaks non-root policy.*"`),
+
+	// PersistentVolumes-local tests should not run the pod when there is a volume node
+	// affinity and node selector conflicts.
+	regexp.MustCompile(`ns/e2e-persistent-local-volumes-test-[0-9]+ pod/pod-[a-z0-9.-]+ reason/FailedScheduling`),
 }
 
 var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
