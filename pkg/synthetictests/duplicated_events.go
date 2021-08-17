@@ -104,6 +104,10 @@ var knownEventsBugs = []knownProblem{
 		Regexp: regexp.MustCompile(`ns/.* service/.* - reason/FailedToDeleteOVNLoadBalancer .*`),
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1990631",
 	},
+	{
+		Regexp: regexp.MustCompile(`ns/e2e-horizontal-pod-autoscaling-[a-z0-9]+ horizontalpodautoscaler/rc-light - reason/FailedGetResourceMetric failed to get cpu utilization`),
+		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1994491",
+	},
 	//{ TODO this should only be skipped for single-node
 	//	name:    "single=node-storage",
 	//  BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1990662
