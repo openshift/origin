@@ -2063,7 +2063,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Networking should provide Internet connection for containers [Feature:Networking-IPv4]": "should provide Internet connection for containers [Feature:Networking-IPv4] [Skipped:Disconnected] [Skipped:azure] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking should provide Internet connection for containers [Feature:Networking-IPv6][Experimental][LinuxOnly]": "should provide Internet connection for containers [Feature:Networking-IPv6][Experimental][LinuxOnly] [Skipped:Disconnected] [Skipped:azure] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking should provide Internet connection for containers [Feature:Networking-IPv6][Experimental][LinuxOnly]": "should provide Internet connection for containers [Feature:Networking-IPv6][Experimental][LinuxOnly] [Disabled:Broken] [Skipped:Disconnected] [Skipped:azure] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Networking should provide unchanging, static URL paths for kubernetes api services": "should provide unchanging, static URL paths for kubernetes api services [Disabled:Broken] [Suite:k8s]",
 

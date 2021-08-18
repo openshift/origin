@@ -33,6 +33,9 @@ var (
 			`should idle the service and DeploymentConfig properly`,       // idling with a single service and DeploymentConfig
 			`should answer endpoint and wildcard queries for the cluster`, // currently not supported by dns operator https://github.com/openshift/cluster-dns-operator/issues/43
 
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1988272
+			`\[sig-network\] Networking should provide Internet connection for containers \[Feature:Networking-IPv6\]`,
+
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1908645
 			`\[sig-network\] Networking Granular Checks: Services should function for service endpoints using hostNetwork`,
 			`\[sig-network\] Networking Granular Checks: Services should function for pod-Service\(hostNetwork\)`,
