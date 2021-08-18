@@ -58,6 +58,9 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1989423
 			`\[sig-network-edge\]\[Conformance\]\[Area:Networking\]\[Feature:Router\] The HAProxy router should be able to connect to a service that is idled because a GET on the route will unidle it`,
 
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1994927
+			`\[sig-network\] Networking should provider Internet connection for containers using DNS`,
+
 			// due to CSI migration the following tests needs to be disabled:
 			// - https://bugzilla.redhat.com/show_bug.cgi?id=1985998 - sig-storage
 			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(block volmode\)\(allowExpansion\)\] volume-expand Verify if offline PVC expansion works`,
