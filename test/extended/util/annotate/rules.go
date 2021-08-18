@@ -53,9 +53,6 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1957894
 			`\[sig-node\] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret`,
 
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1989417
-			`\[sig-cli\] oc adm storage-admin`,
-
 			// The new NetworkPolicy test suite is extremely resource
 			// intensive and causes itself and other concurrently-running
 			// tests to be flaky.
