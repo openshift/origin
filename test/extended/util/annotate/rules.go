@@ -58,9 +58,6 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1989417
 			`\[sig-cli\] oc adm storage-admin`,
 
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1989423
-			`\[sig-network-edge\]\[Conformance\]\[Area:Networking\]\[Feature:Router\] The HAProxy router should be able to connect to a service that is idled because a GET on the route will unidle it`,
-
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1994927
 			`\[sig-network\] Networking should provider Internet connection for containers using DNS`,
 
