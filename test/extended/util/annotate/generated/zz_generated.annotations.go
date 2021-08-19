@@ -1329,8 +1329,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc rsh specific flags should work well when access to a remote shell": "should work well when access to a remote shell [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/annotations.sh": "test/cmd/annotations.sh",
-
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/apiresources.sh": "test/cmd/apiresources.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/authentication.sh": "test/cmd/authentication.sh",

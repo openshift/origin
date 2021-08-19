@@ -34,5 +34,15 @@ var _ = g.Describe("[sig-cli] oc label", func() {
 		out, err = oc.Run("get").Args("pod", "hello-openshift", "--template", podLabelTemplate).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.Equal("hello"))
+
+		g.By("removing the label")
+		out, err = oc.Run("label").Args("pod", "hello-openshift", "new-label-").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("pod/hello-openshift labeled"))
+
+		g.By("validating empty label")
+		out, err = oc.Run("get").Args("pod", "hello-openshift", "--template", podLabelTemplate).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.Equal("<no value>"))
 	})
 })

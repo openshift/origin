@@ -185,7 +185,6 @@
 // test/extended/testdata/cmd/hack/lib/util/misc.sh
 // test/extended/testdata/cmd/hack/lib/util/text.sh
 // test/extended/testdata/cmd/hack/lib/util/trap.sh
-// test/extended/testdata/cmd/test/cmd/annotations.sh
 // test/extended/testdata/cmd/test/cmd/apiresources.sh
 // test/extended/testdata/cmd/test/cmd/authentication.sh
 // test/extended/testdata/cmd/test/cmd/basicresources.sh
@@ -28658,51 +28657,6 @@ func testExtendedTestdataCmdHackLibUtilTrapSh() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdAnnotationsSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-# Cleanup cluster resources created by this test
-(
-  set +e
-  oc delete all,templates --all
-  exit 0
-) &>/dev/null
-
-
-os::test::junit::declare_suite_start "cmd/annotate"
-# This test validates empty values in key-value pairs set by the annotate command
-os::cmd::expect_success_and_text 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json' 'pod/hello-openshift created'
-os::cmd::expect_success_and_text 'oc annotate pod hello-openshift node-selector=""' 'pod/hello-openshift annotated'
-os::cmd::expect_success_and_not_text 'oc get pod hello-openshift --template="{{index .metadata.annotations \"node-selector\"}}"' '.'
-
-echo "annotate: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/label"
-# This test validates empty values in key-value pairs set by the label command
-os::cmd::expect_success_and_text 'oc label pod hello-openshift label2=""' 'pod/hello-openshift labeled'
-os::cmd::expect_success_and_not_text 'oc get pod hello-openshift --template="{{.metadata.labels.label2}}"' '.'
-
-echo "label: ok"
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdAnnotationsShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdAnnotationsSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdAnnotationsSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdAnnotationsShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/annotations.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdApiresourcesSh = []byte(`#!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
@@ -53634,7 +53588,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/hack/lib/util/misc.sh":                                                       testExtendedTestdataCmdHackLibUtilMiscSh,
 	"test/extended/testdata/cmd/hack/lib/util/text.sh":                                                       testExtendedTestdataCmdHackLibUtilTextSh,
 	"test/extended/testdata/cmd/hack/lib/util/trap.sh":                                                       testExtendedTestdataCmdHackLibUtilTrapSh,
-	"test/extended/testdata/cmd/test/cmd/annotations.sh":                                                     testExtendedTestdataCmdTestCmdAnnotationsSh,
 	"test/extended/testdata/cmd/test/cmd/apiresources.sh":                                                    testExtendedTestdataCmdTestCmdApiresourcesSh,
 	"test/extended/testdata/cmd/test/cmd/authentication.sh":                                                  testExtendedTestdataCmdTestCmdAuthenticationSh,
 	"test/extended/testdata/cmd/test/cmd/basicresources.sh":                                                  testExtendedTestdataCmdTestCmdBasicresourcesSh,
@@ -54289,7 +54242,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					}},
 					"test": {nil, map[string]*bintree{
 						"cmd": {nil, map[string]*bintree{
-							"annotations.sh":        {testExtendedTestdataCmdTestCmdAnnotationsSh, map[string]*bintree{}},
 							"apiresources.sh":       {testExtendedTestdataCmdTestCmdApiresourcesSh, map[string]*bintree{}},
 							"authentication.sh":     {testExtendedTestdataCmdTestCmdAuthenticationSh, map[string]*bintree{}},
 							"basicresources.sh":     {testExtendedTestdataCmdTestCmdBasicresourcesSh, map[string]*bintree{}},

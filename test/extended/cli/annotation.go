@@ -34,5 +34,15 @@ var _ = g.Describe("[sig-cli] oc annotate", func() {
 		out, err = oc.Run("get").Args("pod", "hello-openshift", "--template", podAnnotationTemplate).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.Equal("hello"))
+
+		g.By("removing the annotation")
+		out, err = oc.Run("annotate").Args("pod", "hello-openshift", "new-anno-").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("pod/hello-openshift annotated"))
+
+		g.By("validating empty annotation")
+		out, err = oc.Run("get").Args("pod", "hello-openshift", "--template", podAnnotationTemplate).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.Equal("<no value>"))
 	})
 })
