@@ -17485,14 +17485,19 @@ echo "cgroupv1Val is ${cgroupv1Val}"
 if [ "$cgroupv1Val" = "419430400" ]; then
   echo "MEMORYSWAP=${cgroupv1Val}"
 else
+  # ok swap is treated differently between cgroup v1 and v2.  In v1, memory.memsw.limit_in_bytes
+  # is memory+swap.  In v2, memory.swap.max is just swap.  So with our quota in place, we will
+  # find a memory.swap.max file with a value of '0' instead of 'max'.
   memory_swap_max_list=$(find /sys/fs/cgroup/kubepods.slice -name memory.swap.max)
   for item in ${memory_swap_max_list};
   do
     echo "${item}"
     cgroupv2Val=$(cat "${item}")
     echo "cgroupv2Val is ${cgroupv2Val}"
-    if [ "$cgroupv2Val" = "419430400" ]; then
-      echo "MEMORYSWAP=${cgroupv2Val}"
+    if [ "$cgroupv2Val" = "0" ]; then
+      # so that our associated ginkgo test case does not have to distinguish between cgroup v1
+      # and v2, we echo the expected v1 string when we find a memory.swap.max file with '0' in it.
+      echo "MEMORYSWAP=419430400"
     fi
   done
 fi
