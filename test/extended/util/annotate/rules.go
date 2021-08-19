@@ -35,6 +35,7 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1988272
 			`\[sig-network\] Networking should provide Internet connection for containers \[Feature:Networking-IPv6\]`,
+			`\[sig-network\] Networking should provider Internet connection for containers using DNS`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1908645
 			`\[sig-network\] Networking Granular Checks: Services should function for service endpoints using hostNetwork`,
@@ -54,9 +55,6 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1989417
 			`\[sig-cli\] oc adm storage-admin`,
-
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1994927
-			`\[sig-network\] Networking should provider Internet connection for containers using DNS`,
 
 			// The new NetworkPolicy test suite is extremely resource
 			// intensive and causes itself and other concurrently-running
