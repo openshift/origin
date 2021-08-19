@@ -234,8 +234,8 @@ WaitLoop:
 		t.Fatalf("Couldn't get BuildConfig: %v", err)
 	}
 	// the first tag did not have an image id, so the last trigger field is the pull spec
-	if updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID != registryHostname+"/openshift/test-image-trigger:"+tag {
-		t.Fatalf("Expected imageID equal to pull spec, got %#v", updatedConfig.Spec.Triggers[0].ImageChange)
+	if updatedConfig.Status.ImageChangeTriggers[0].LastTriggeredImageID != registryHostname+"/openshift/test-image-trigger:"+tag {
+		t.Fatalf("Expected imageID equal to pull spec, got %#v", updatedConfig.Status.ImageChangeTriggers[0])
 	}
 
 	// clear out the build/buildconfig watches before triggering a new build
@@ -318,7 +318,7 @@ WaitLoop3:
 		}
 	}
 	updatedConfig = event.Object.(*buildv1.BuildConfig)
-	if e, a := registryHostname+"/openshift/test-image-trigger:ref-2-random", updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID; e != a {
+	if e, a := registryHostname+"/openshift/test-image-trigger:ref-2-random", updatedConfig.Status.ImageChangeTriggers[0].LastTriggeredImageID; e != a {
 		t.Errorf("unexpected trigger id: expected %v, got %v", e, a)
 	}
 }
