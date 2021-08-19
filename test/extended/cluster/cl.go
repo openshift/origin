@@ -20,7 +20,6 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	kclientset "k8s.io/client-go/kubernetes"
 	watchtools "k8s.io/client-go/tools/watch"
-	reale2e "k8s.io/kubernetes/test/e2e"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/test/extended/cluster/metrics"
@@ -52,20 +51,10 @@ var _ = g.Describe("[sig-scalability][Feature:Performance] Load cluster", func()
 	g.BeforeEach(func() {
 		var err error
 		c = oc.AdminKubeClient()
-		viperConfig := reale2e.GetViperConfig()
-		if viperConfig == "" {
-			e2e.Logf("Undefined config file, using built-in config %v\n", masterVertFixture)
-			reale2e.SetViperConfig(masterVertFixture)
-			path := strings.Split(masterVertFixture, "/")
-			rootDir = strings.Join(path[:len(path)-5], "/")
-			err = ParseConfig(masterVertFixture, true)
-		} else {
-			if _, err := os.Stat(viperConfig); os.IsNotExist(err) {
-				e2e.Failf("Config file not found: \"%v\"\n", err)
-			}
-			e2e.Logf("Using config \"%v\"\n", viperConfig)
-			err = ParseConfig(viperConfig, false)
-		}
+		e2e.Logf("Undefined config file, using built-in config %v\n", masterVertFixture)
+		path := strings.Split(masterVertFixture, "/")
+		rootDir = strings.Join(path[:len(path)-5], "/")
+		err = ParseConfig(masterVertFixture, true)
 		if err != nil {
 			e2e.Failf("Error parsing config: %v\n", err)
 		}
@@ -160,7 +149,7 @@ var _ = g.Describe("[sig-scalability][Feature:Performance] Load cluster", func()
 						}
 					}
 					step := metrics.NewTemplateStepDuration(rateDelay, stepPause)
-					err := CreateTemplates(oc, c, nsName, reale2e.GetViperConfig(), template, tuning, &step)
+					err := CreateTemplates(oc, c, nsName, template, tuning, &step)
 					o.Expect(err).NotTo(o.HaveOccurred())
 					steps = append(steps, step)
 				}
@@ -171,7 +160,7 @@ var _ = g.Describe("[sig-scalability][Feature:Performance] Load cluster", func()
 					var err error
 					if pod.File != "" {
 						// Parse Pod file into struct
-						path, err = mkPath(pod.File, reale2e.GetViperConfig())
+						path, err = mkPath(pod.File)
 						o.Expect(err).NotTo(o.HaveOccurred())
 					}
 
@@ -331,7 +320,7 @@ func postCreateWait(oc *util.CLI, namespaces []string) error {
 }
 
 // mkPath returns fully qualfied file path as a string
-func mkPath(filename, config string) (string, error) {
+func mkPath(filename string) (string, error) {
 	// Use absolute path if provided in config
 	if filepath.IsAbs(filename) {
 		return filename, nil
@@ -346,10 +335,8 @@ func mkPath(filename, config string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	configDir := filepath.Dir(config)
 
 	searchPaths = append(searchPaths, filepath.Join(workingDir, filename))
-	searchPaths = append(searchPaths, filepath.Join(configDir, filename))
 
 	for _, v := range searchPaths {
 		if _, err := os.Stat(v); err == nil {

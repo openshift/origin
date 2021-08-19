@@ -1,8 +1,11 @@
-self_dir :=$(dir $(lastword $(MAKEFILE_LIST)))
+include $(addprefix $(dir $(lastword $(MAKEFILE_LIST))), \
+	../../lib/golang.mk \
+	../../lib/tmp.mk \
+)
 
 .empty-golang-versions-files:
 	@rm -f "$(PERMANENT_TMP)/golang-versions" "$(PERMANENT_TMP)/named-golang-versions"
-.PHONE: .empty-golang-versions-files
+.PHONY: .empty-golang-versions-files
 
 verify-golang-versions:
 	@if [ -f "$(PERMANENT_TMP)/golang-versions" ]; then \
@@ -53,13 +56,3 @@ $(if $(1),$(call verify-Dockerfile-builder-golang-version,$(1))) \
 $(if $(wildcard ./.ci-operator.yaml),$(if $(shell grep 'build_root_image:' .ci-operator.yaml 2>/dev/null),$(call verify-buildroot-golang-version))) \
 $(if $(wildcard ./go.mod),$(call verify-go-mod-golang-version))
 endef
-
-# We need to be careful to expand all the paths before any include is done
-# or self_dir could be modified for the next include by the included file.
-# Also doing this at the end of the file allows us to use self_dir before it could be modified.
-include $(addprefix $(self_dir), \
-	../../lib/golang.mk \
-)
-include $(addprefix $(self_dir), \
-	../../lib/tmp.mk \
-)

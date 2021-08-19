@@ -19,7 +19,7 @@ spec:
     - name: v1
       schema:
         openAPIV3Schema:
-          description: Config is the configuration object for a registry instance managed by the registry operator
+          description: "Config is the configuration object for a registry instance managed by the registry operator \n Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer)."
           type: object
           required:
             - metadata
@@ -214,7 +214,7 @@ spec:
                                         additionalProperties:
                                           type: string
                                   namespaceSelector:
-                                    description: A label query over the set of namespaces that the term applies to. The term is applied to the union of the namespaces selected by this field and the ones listed in the namespaces field. null selector and null or empty namespaces list means "this pod's namespace". An empty selector ({}) matches all namespaces. This field is alpha-level and is only honored when PodAffinityNamespaceSelector feature is enabled.
+                                    description: A label query over the set of namespaces that the term applies to. The term is applied to the union of the namespaces selected by this field and the ones listed in the namespaces field. null selector and null or empty namespaces list means "this pod's namespace". An empty selector ({}) matches all namespaces. This field is beta-level and is only honored when PodAffinityNamespaceSelector feature is enabled.
                                     type: object
                                     properties:
                                       matchExpressions:
@@ -295,7 +295,7 @@ spec:
                                     additionalProperties:
                                       type: string
                               namespaceSelector:
-                                description: A label query over the set of namespaces that the term applies to. The term is applied to the union of the namespaces selected by this field and the ones listed in the namespaces field. null selector and null or empty namespaces list means "this pod's namespace". An empty selector ({}) matches all namespaces. This field is alpha-level and is only honored when PodAffinityNamespaceSelector feature is enabled.
+                                description: A label query over the set of namespaces that the term applies to. The term is applied to the union of the namespaces selected by this field and the ones listed in the namespaces field. null selector and null or empty namespaces list means "this pod's namespace". An empty selector ({}) matches all namespaces. This field is beta-level and is only honored when PodAffinityNamespaceSelector feature is enabled.
                                 type: object
                                 properties:
                                   matchExpressions:
@@ -383,7 +383,7 @@ spec:
                                         additionalProperties:
                                           type: string
                                   namespaceSelector:
-                                    description: A label query over the set of namespaces that the term applies to. The term is applied to the union of the namespaces selected by this field and the ones listed in the namespaces field. null selector and null or empty namespaces list means "this pod's namespace". An empty selector ({}) matches all namespaces. This field is alpha-level and is only honored when PodAffinityNamespaceSelector feature is enabled.
+                                    description: A label query over the set of namespaces that the term applies to. The term is applied to the union of the namespaces selected by this field and the ones listed in the namespaces field. null selector and null or empty namespaces list means "this pod's namespace". An empty selector ({}) matches all namespaces. This field is beta-level and is only honored when PodAffinityNamespaceSelector feature is enabled.
                                     type: object
                                     properties:
                                       matchExpressions:
@@ -464,7 +464,7 @@ spec:
                                     additionalProperties:
                                       type: string
                               namespaceSelector:
-                                description: A label query over the set of namespaces that the term applies to. The term is applied to the union of the namespaces selected by this field and the ones listed in the namespaces field. null selector and null or empty namespaces list means "this pod's namespace". An empty selector ({}) matches all namespaces. This field is alpha-level and is only honored when PodAffinityNamespaceSelector feature is enabled.
+                                description: A label query over the set of namespaces that the term applies to. The term is applied to the union of the namespaces selected by this field and the ones listed in the namespaces field. null selector and null or empty namespaces list means "this pod's namespace". An empty selector ({}) matches all namespaces. This field is beta-level and is only honored when PodAffinityNamespaceSelector feature is enabled.
                                 type: object
                                 properties:
                                   matchExpressions:
@@ -683,6 +683,27 @@ spec:
                         region:
                           description: region is the GCS location in which your bucket exists. Optional, will be set based on the installed GCS Region.
                           type: string
+                    ibmcos:
+                      description: ibmcos represents configuration that uses IBM Cloud Object Storage.
+                      type: object
+                      properties:
+                        bucket:
+                          description: bucket is the bucket name in which you want to store the registry's data. Optional, will be generated if not provided.
+                          type: string
+                        location:
+                          description: location is the IBM Cloud location in which your bucket exists. Optional, will be set based on the installed IBM Cloud location.
+                          type: string
+                        resourceGroupName:
+                          description: resourceGroupName is the name of the IBM Cloud resource group that this bucket and its service instance is associated with. Optional, will be set based on the installed IBM Cloud resource group.
+                          type: string
+                        resourceKeyCRN:
+                          description: resourceKeyCRN is the CRN of the IBM Cloud resource key that is created for the service instance. Commonly referred as a service credential and must contain HMAC type credentials. Optional, will be computed if not provided.
+                          type: string
+                          pattern: ^crn:.+:.+:.+:cloud-object-storage:.+:.+:.+:resource-key:.+$
+                        serviceInstanceCRN:
+                          description: serviceInstanceCRN is the CRN of the IBM Cloud Object Storage service instance that this bucket is associated with. Optional, will be computed if not provided.
+                          type: string
+                          pattern: ^crn:.+:.+:.+:cloud-object-storage:.+:.+:.+::$
                     managementState:
                       description: managementState indicates if the operator manages the underlying storage unit. If Managed the operator will remove the storage when this operator gets Removed.
                       type: string
@@ -903,6 +924,27 @@ spec:
                         region:
                           description: region is the GCS location in which your bucket exists. Optional, will be set based on the installed GCS Region.
                           type: string
+                    ibmcos:
+                      description: ibmcos represents configuration that uses IBM Cloud Object Storage.
+                      type: object
+                      properties:
+                        bucket:
+                          description: bucket is the bucket name in which you want to store the registry's data. Optional, will be generated if not provided.
+                          type: string
+                        location:
+                          description: location is the IBM Cloud location in which your bucket exists. Optional, will be set based on the installed IBM Cloud location.
+                          type: string
+                        resourceGroupName:
+                          description: resourceGroupName is the name of the IBM Cloud resource group that this bucket and its service instance is associated with. Optional, will be set based on the installed IBM Cloud resource group.
+                          type: string
+                        resourceKeyCRN:
+                          description: resourceKeyCRN is the CRN of the IBM Cloud resource key that is created for the service instance. Commonly referred as a service credential and must contain HMAC type credentials. Optional, will be computed if not provided.
+                          type: string
+                          pattern: ^crn:.+:.+:.+:cloud-object-storage:.+:.+:.+:resource-key:.+$
+                        serviceInstanceCRN:
+                          description: serviceInstanceCRN is the CRN of the IBM Cloud Object Storage service instance that this bucket is associated with. Optional, will be computed if not provided.
+                          type: string
+                          pattern: ^crn:.+:.+:.+:cloud-object-storage:.+:.+:.+::$
                     managementState:
                       description: managementState indicates if the operator manages the underlying storage unit. If Managed the operator will remove the storage when this operator gets Removed.
                       type: string

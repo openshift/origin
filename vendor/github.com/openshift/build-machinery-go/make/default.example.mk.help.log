@@ -3,6 +3,7 @@ all
 build
 clean
 clean-binaries
+ensure-imagebuilder
 help
 image-ocp-cli
 images

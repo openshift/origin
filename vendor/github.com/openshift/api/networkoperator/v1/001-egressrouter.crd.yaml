@@ -33,8 +33,9 @@ spec:
           as per configuration. \n It is consumed by the cluster-network-operator.
           More specifically, given an EgressRouter CR with <name>, the CNO will create
           and manage: - A service called <name> - An egress pod called <name> - A
-          NAD called <name> \n EgressRouter is a single egressrouter pod configuration
-          object."
+          NAD called <name> \n Compatibility level 1: Stable within a major release
+          for a minimum of 12 months or 3 minor releases (whichever is longer). \n
+          EgressRouter is a single egressrouter pod configuration object."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

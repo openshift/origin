@@ -52,7 +52,7 @@ func (AggregatorConfig) SwaggerDoc() map[string]string {
 }
 
 var map_AllowAllPasswordIdentityProvider = map[string]string{
-	"": "AllowAllPasswordIdentityProvider provides identities for users authenticating using non-empty passwords",
+	"": "AllowAllPasswordIdentityProvider provides identities for users authenticating using non-empty passwords\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 }
 
 func (AllowAllPasswordIdentityProvider) SwaggerDoc() map[string]string {
@@ -92,7 +92,7 @@ func (AugmentedActiveDirectoryConfig) SwaggerDoc() map[string]string {
 }
 
 var map_BasicAuthPasswordIdentityProvider = map[string]string{
-	"": "BasicAuthPasswordIdentityProvider provides identities for users authenticating using HTTP basic auth credentials",
+	"": "BasicAuthPasswordIdentityProvider provides identities for users authenticating using HTTP basic auth credentials\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 }
 
 func (BasicAuthPasswordIdentityProvider) SwaggerDoc() map[string]string {
@@ -100,7 +100,7 @@ func (BasicAuthPasswordIdentityProvider) SwaggerDoc() map[string]string {
 }
 
 var map_BuildDefaultsConfig = map[string]string{
-	"":                       "BuildDefaultsConfig controls the default information for Builds",
+	"":                       "BuildDefaultsConfig controls the default information for Builds\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"gitHTTPProxy":           "gitHTTPProxy is the location of the HTTPProxy for Git source",
 	"gitHTTPSProxy":          "gitHTTPSProxy is the location of the HTTPSProxy for Git source",
 	"gitNoProxy":             "gitNoProxy is the list of domains for which the proxy should not be used",
@@ -117,7 +117,7 @@ func (BuildDefaultsConfig) SwaggerDoc() map[string]string {
 }
 
 var map_BuildOverridesConfig = map[string]string{
-	"":             "BuildOverridesConfig controls override settings for builds",
+	"":             "BuildOverridesConfig controls override settings for builds\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"forcePull":    "forcePull indicates whether the build strategy should always be set to ForcePull=true",
 	"imageLabels":  "imageLabels is a list of labels that are applied to the resulting image. If user provided a label in their Build/BuildConfig with the same name as one in this list, the user's label will be overwritten.",
 	"nodeSelector": "nodeSelector is a selector which must be true for the build pod to fit on a node",
@@ -195,7 +195,7 @@ func (DNSConfig) SwaggerDoc() map[string]string {
 }
 
 var map_DefaultAdmissionConfig = map[string]string{
-	"":        "DefaultAdmissionConfig can be used to enable or disable various admission plugins. When this type is present as the `configuration` object under `pluginConfig` and *if* the admission plugin supports it, this will cause an \"off by default\" admission plugin to be enabled",
+	"":        "DefaultAdmissionConfig can be used to enable or disable various admission plugins. When this type is present as the `configuration` object under `pluginConfig` and *if* the admission plugin supports it, this will cause an \"off by default\" admission plugin to be enabled\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"disable": "Disable turns off an admission plugin that is enabled by default.",
 }
 
@@ -204,7 +204,7 @@ func (DefaultAdmissionConfig) SwaggerDoc() map[string]string {
 }
 
 var map_DenyAllPasswordIdentityProvider = map[string]string{
-	"": "DenyAllPasswordIdentityProvider provides no identities for users",
+	"": "DenyAllPasswordIdentityProvider provides no identities for users\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 }
 
 func (DenyAllPasswordIdentityProvider) SwaggerDoc() map[string]string {
@@ -258,7 +258,7 @@ func (EtcdStorageConfig) SwaggerDoc() map[string]string {
 }
 
 var map_GitHubIdentityProvider = map[string]string{
-	"":              "GitHubIdentityProvider provides identities for users authenticating using GitHub credentials",
+	"":              "GitHubIdentityProvider provides identities for users authenticating using GitHub credentials\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"clientID":      "ClientID is the oauth client ID",
 	"clientSecret":  "ClientSecret is the oauth client secret",
 	"organizations": "Organizations optionally restricts which organizations are allowed to log in",
@@ -272,7 +272,7 @@ func (GitHubIdentityProvider) SwaggerDoc() map[string]string {
 }
 
 var map_GitLabIdentityProvider = map[string]string{
-	"":             "GitLabIdentityProvider provides identities for users authenticating using GitLab credentials",
+	"":             "GitLabIdentityProvider provides identities for users authenticating using GitLab credentials\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"ca":           "CA is the optional trusted certificate authority bundle to use when making requests to the server If empty, the default system roots are used",
 	"url":          "URL is the oauth server base URL",
 	"clientID":     "ClientID is the oauth client ID",
@@ -285,7 +285,7 @@ func (GitLabIdentityProvider) SwaggerDoc() map[string]string {
 }
 
 var map_GoogleIdentityProvider = map[string]string{
-	"":             "GoogleIdentityProvider provides identities for users authenticating using Google credentials",
+	"":             "GoogleIdentityProvider provides identities for users authenticating using Google credentials\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"clientID":     "ClientID is the oauth client ID",
 	"clientSecret": "ClientSecret is the oauth client secret",
 	"hostedDomain": "HostedDomain is the optional Google App domain (e.g. \"mycompany.com\") to restrict logins to",
@@ -316,7 +316,7 @@ func (GroupResource) SwaggerDoc() map[string]string {
 }
 
 var map_HTPasswdPasswordIdentityProvider = map[string]string{
-	"":     "HTPasswdPasswordIdentityProvider provides identities for users authenticating using htpasswd credentials",
+	"":     "HTPasswdPasswordIdentityProvider provides identities for users authenticating using htpasswd credentials\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"file": "File is a reference to your htpasswd file",
 }
 
@@ -387,7 +387,7 @@ func (JenkinsPipelineConfig) SwaggerDoc() map[string]string {
 }
 
 var map_KeystonePasswordIdentityProvider = map[string]string{
-	"":                    "KeystonePasswordIdentityProvider provides identities for users authenticating using keystone password credentials",
+	"":                    "KeystonePasswordIdentityProvider provides identities for users authenticating using keystone password credentials\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"domainName":          "Domain Name is required for keystone v3",
 	"useKeystoneIdentity": "UseKeystoneIdentity flag indicates that user should be authenticated by keystone ID, not by username",
 }
@@ -439,7 +439,7 @@ func (LDAPAttributeMapping) SwaggerDoc() map[string]string {
 }
 
 var map_LDAPPasswordIdentityProvider = map[string]string{
-	"":             "LDAPPasswordIdentityProvider provides identities for users authenticating using LDAP credentials",
+	"":             "LDAPPasswordIdentityProvider provides identities for users authenticating using LDAP credentials\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"url":          "URL is an RFC 2255 URL which specifies the LDAP search parameters to use. The syntax of the URL is\n   ldap://host:port/basedn?attribute?scope?filter",
 	"bindDN":       "BindDN is an optional DN to bind with during the search phase.",
 	"bindPassword": "BindPassword is an optional password to bind with during the search phase.",
@@ -467,7 +467,7 @@ func (LDAPQuery) SwaggerDoc() map[string]string {
 }
 
 var map_LDAPSyncConfig = map[string]string{
-	"":                         "LDAPSyncConfig holds the necessary configuration options to define an LDAP group sync",
+	"":                         "LDAPSyncConfig holds the necessary configuration options to define an LDAP group sync\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"url":                      "Host is the scheme, host and port of the LDAP server to connect to: scheme://host:port",
 	"bindDN":                   "BindDN is an optional DN to bind to the LDAP server with",
 	"bindPassword":             "BindPassword is an optional password to bind with during the search phase.",
@@ -514,7 +514,7 @@ func (MasterClients) SwaggerDoc() map[string]string {
 }
 
 var map_MasterConfig = map[string]string{
-	"":                       "MasterConfig holds the necessary configuration options for the OpenShift master",
+	"":                       "MasterConfig holds the necessary configuration options for the OpenShift master\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"servingInfo":            "ServingInfo describes how to start serving",
 	"authConfig":             "AuthConfig configures authentication options in addition to the standard oauth token and client certificate authenticators",
 	"aggregatorConfig":       "AggregatorConfig has options for configuring the aggregator component of the API server.",
@@ -595,7 +595,7 @@ func (NodeAuthConfig) SwaggerDoc() map[string]string {
 }
 
 var map_NodeConfig = map[string]string{
-	"":                                "NodeConfig is the fully specified config starting an OpenShift node",
+	"":                                "NodeConfig is the fully specified config starting an OpenShift node\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"nodeName":                        "NodeName is the value used to identify this particular node in the cluster.  If possible, this should be your fully qualified hostname. If you're describing a set of static nodes to the master, this value must match one of the values in the list",
 	"nodeIP":                          "Node may have multiple IPs, specify the IP to use for pod traffic routing If not specified, network parse/lookup on the nodeName is performed and the first non-loopback address is used",
 	"servingInfo":                     "ServingInfo describes how to start serving",
@@ -686,7 +686,7 @@ func (OpenIDClaims) SwaggerDoc() map[string]string {
 }
 
 var map_OpenIDIdentityProvider = map[string]string{
-	"":                         "OpenIDIdentityProvider provides identities for users authenticating using OpenID credentials",
+	"":                         "OpenIDIdentityProvider provides identities for users authenticating using OpenID credentials\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"ca":                       "CA is the optional trusted certificate authority bundle to use when making requests to the server If empty, the default system roots are used",
 	"clientID":                 "ClientID is the oauth client ID",
 	"clientSecret":             "ClientSecret is the oauth client secret",
@@ -793,7 +793,7 @@ func (RequestHeaderAuthenticationOptions) SwaggerDoc() map[string]string {
 }
 
 var map_RequestHeaderIdentityProvider = map[string]string{
-	"":                         "RequestHeaderIdentityProvider provides identities for users authenticating using request header credentials",
+	"":                         "RequestHeaderIdentityProvider provides identities for users authenticating using request header credentials\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"loginURL":                 "LoginURL is a URL to redirect unauthenticated /authorize requests to Unauthenticated requests from OAuth clients which expect interactive logins will be redirected here ${url} is replaced with the current URL, escaped to be safe in a query parameter\n  https://www.example.com/sso-login?then=${url}\n${query} is replaced with the current query string\n  https://www.example.com/auth-proxy/oauth/authorize?${query}",
 	"challengeURL":             "ChallengeURL is a URL to redirect unauthenticated /authorize requests to Unauthenticated requests from OAuth clients which expect WWW-Authenticate challenges will be redirected here ${url} is replaced with the current URL, escaped to be safe in a query parameter\n  https://www.example.com/sso-login?then=${url}\n${query} is replaced with the current query string\n  https://www.example.com/auth-proxy/oauth/authorize?${query}",
 	"clientCA":                 "ClientCA is a file with the trusted signer certs.  If empty, no request verification is done, and any direct request to the OAuth server can impersonate any identity from this provider, merely by setting a request header.",
@@ -886,7 +886,7 @@ func (SessionSecret) SwaggerDoc() map[string]string {
 }
 
 var map_SessionSecrets = map[string]string{
-	"":        "SessionSecrets list the secrets to use to sign/encrypt and authenticate/decrypt created sessions.",
+	"":        "SessionSecrets list the secrets to use to sign/encrypt and authenticate/decrypt created sessions.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"secrets": "Secrets is a list of secrets New sessions are signed and encrypted using the first secret. Existing sessions are decrypted/authenticated by each secret until one succeeds. This allows rotating secrets.",
 }
 

@@ -32,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	etcdv3 "go.etcd.io/etcd/clientv3"
+	etcdv3 "go.etcd.io/etcd/client/v3"
 )
 
 // Etcd data for all persisted OpenShift objects.
@@ -280,31 +280,50 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	etcdStorageData := etcddata.GetEtcdStorageData()
 
 	removeStorageData(t, etcdStorageData,
+		// disabled alpha versions
+		gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "flowschemas"),
+		gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "prioritylevelconfigurations"),
+		gvr("internal.apiserver.k8s.io", "v1alpha1", "storageversions"),
 		gvr("node.k8s.io", "v1alpha1", "runtimeclasses"),
 		gvr("rbac.authorization.k8s.io", "v1alpha1", "clusterrolebindings"),
 		gvr("rbac.authorization.k8s.io", "v1alpha1", "clusterroles"),
 		gvr("rbac.authorization.k8s.io", "v1alpha1", "rolebindings"),
 		gvr("rbac.authorization.k8s.io", "v1alpha1", "roles"),
 		gvr("scheduling.k8s.io", "v1alpha1", "priorityclasses"),
-		gvr("storage.k8s.io", "v1alpha1", "volumeattachments"),
 		gvr("storage.k8s.io", "v1alpha1", "csistoragecapacities"),
-		gvr("internal.apiserver.k8s.io", "v1alpha1", "storageversions"),
-		// TODO: to be removed in 1.22
+		gvr("storage.k8s.io", "v1alpha1", "volumeattachments"),
+
+		// disabled beta versions
 		gvr("apiextensions.k8s.io", "v1beta1", "customresourcedefinitions"),
+		gvr("apiregistration.k8s.io", "v1beta1", "apiservices"),
 		gvr("admissionregistration.k8s.io", "v1beta1", "validatingwebhookconfigurations"),
 		gvr("admissionregistration.k8s.io", "v1beta1", "mutatingwebhookconfigurations"),
+		gvr("certificates.k8s.io", "v1beta1", "certificatesigningrequests"),
+		gvr("coordination.k8s.io", "v1beta1", "leases"),
+		gvr("extensions", "v1beta1", "ingresses"),
+		gvr("networking.k8s.io", "v1beta1", "ingressclasses"),
+		gvr("networking.k8s.io", "v1beta1", "ingresses"),
+		gvr("rbac.authorization.k8s.io", "v1beta1", "clusterrolebindings"),
+		gvr("rbac.authorization.k8s.io", "v1beta1", "clusterroles"),
+		gvr("rbac.authorization.k8s.io", "v1beta1", "rolebindings"),
+		gvr("rbac.authorization.k8s.io", "v1beta1", "roles"),
+		gvr("scheduling.k8s.io", "v1beta1", "priorityclasses"),
+		gvr("storage.k8s.io", "v1beta1", "csidrivers"),
+		gvr("storage.k8s.io", "v1beta1", "csinodes"),
+		gvr("storage.k8s.io", "v1beta1", "storageclasses"),
+		gvr("storage.k8s.io", "v1beta1", "volumeattachments"),
 	)
 
-	// Apply output of git diff origin/release-1.20 origin/release-1.21 test/integration/etcd/data.go. This is needed
+	// Apply output of git diff origin/release-1.22 origin/release-1.23 test/integration/etcd/data.go. This is needed
 	// to apply the right data depending on the kube version of the running server. Replace this with the next current
 	// and rebase version next time. Don't pile them up.
-	if strings.HasPrefix(version.Minor, "21") {
+	if strings.HasPrefix(version.Minor, "23") {
 		namespace := "etcdstoragepathtestnamespace"
 		_ = namespace
 
 		// Added etcd data.
 		for k, a := range map[schema.GroupVersionResource]etcddata.StorageData{} {
-			// TODO: fill when 1.21 rebase has started
+			// TODO: fill when 1.23 rebase has started
 
 			if _, preexisting := etcdStorageData[k]; preexisting {
 				t.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)
@@ -313,23 +332,14 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		}
 
 		// Modified etcd data.
-		// TODO: fill when 1.21 rebase has started
+		// TODO: fill when 1.23 rebase has started
 
 		// Removed etcd data.
-		// TODO: fill when 1.21 rebase has started
+		// TODO: fill when 1.23 rebase has started
 		removeStorageData(t, etcdStorageData)
 
 	} else {
-		// Remove 1.19 only alpha versions
-		removeStorageData(t, etcdStorageData) // these alphas resources are not enabled in a real cluster but worked fine in the integration test
-	}
-
-	// flowcontrol may or may not be on.  This allows us to ratchet in turning it on.
-	if flowControlResources, err := kubeClient.Discovery().ServerResourcesForGroupVersion("flowcontrol.apiserver.k8s.io/v1alpha1"); err != nil || len(flowControlResources.APIResources) == 0 {
-		removeStorageData(t, etcdStorageData,
-			gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "flowschemas"),
-			gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "prioritylevelconfigurations"),
-		)
+		removeStorageData(t, etcdStorageData)
 	}
 
 	// we use a different default path prefix for kube resources

@@ -3,6 +3,7 @@ package v1helpers
 import (
 	"errors"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -232,6 +233,40 @@ func UpdateStaticPodConditionFn(cond operatorv1.OperatorCondition) UpdateStaticP
 		SetOperatorCondition(&oldStatus.Conditions, cond)
 		return nil
 	}
+}
+
+// EnsureFinalizer adds a new finalizer to the operator CR, if it does not exists. No-op otherwise.
+// The finalizer name is computed from the controller name and operator name ($OPERATOR_NAME or os.Args[0])
+// It re-tries on conflicts.
+func EnsureFinalizer(client OperatorClientWithFinalizers, controllerName string) error {
+	finalizer := getFinalizerName(controllerName)
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		return client.EnsureFinalizer(finalizer)
+	})
+	return err
+}
+
+// RemoveFinalizer removes a finalizer from the operator CR, if it is there. No-op otherwise.
+// The finalizer name is computed from the controller name and operator name ($OPERATOR_NAME or os.Args[0])
+// It re-tries on conflicts.
+func RemoveFinalizer(client OperatorClientWithFinalizers, controllerName string) error {
+	finalizer := getFinalizerName(controllerName)
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		return client.RemoveFinalizer(finalizer)
+	})
+	return err
+}
+
+// getFinalizerName computes a nice finalizer name from controllerName and the operator name ($OPERATOR_NAME or os.Args[0]).
+func getFinalizerName(controllerName string) string {
+	return fmt.Sprintf("%s.operator.openshift.io/%s", getOperatorName(), controllerName)
+}
+
+func getOperatorName() string {
+	if name := os.Getenv("OPERATOR_NAME"); name != "" {
+		return name
+	}
+	return os.Args[0]
 }
 
 type aggregate []error

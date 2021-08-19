@@ -34,7 +34,7 @@ $ ./extended.test --ginkgo.focus="Mirror cluster"
 
 After the command completes there will be a file created in the current
 directory: `cm.yml`. This file can be then fed to the Cluster Loader command
-below to recreate various cluster objects that were mirrored. 
+below to recreate various cluster objects that were mirrored.
 
 The assumption for use with Cluster Loader is that the templates used in the
 source cluster have same filename in the quickstarts subdirectory (of current
@@ -56,7 +56,7 @@ Once you have the `extended.test` binary installed on your system, run:
 
 ```console
 $ export KUBECONFIG=${KUBECONFIG-$HOME/.kube/config}
-$ ./extended.test --ginkgo.focus="Load cluster" --viper-config=config/test
+$ ./extended.test --ginkgo.focus="Load cluster"
 ```
 
 After the execution completes the cluster will have deployed the ojects defined

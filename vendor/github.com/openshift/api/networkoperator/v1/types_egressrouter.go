@@ -15,6 +15,8 @@ import (
 // - An egress pod called <name>
 // - A NAD called <name>
 //
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 //
 // EgressRouter is a single egressrouter pod configuration object.
@@ -23,6 +25,7 @@ import (
 // +kubebuilder:resource:path=egressrouters,scope=Namespaced
 // +kubebuilder:printcolumn:name="Condition",type=string,JSONPath=".status.conditions[*].type"
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=".status.conditions[*].status"
+// +openshift:compatibility-gen:level=1
 type EgressRouter struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
@@ -246,6 +249,9 @@ type EgressRouterStatus struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // EgressRouterList is the list of egress router pods requested.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
 type EgressRouterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`

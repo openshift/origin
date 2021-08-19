@@ -22,6 +22,7 @@ option go_package = "v1";
 // - An egress pod called <name>
 // - A NAD called <name>
 //
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 //
 // EgressRouter is a single egressrouter pod configuration object.
@@ -30,6 +31,7 @@ option go_package = "v1";
 // +kubebuilder:resource:path=egressrouters,scope=Namespaced
 // +kubebuilder:printcolumn:name="Condition",type=string,JSONPath=".status.conditions[*].type"
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=".status.conditions[*].status"
+// +openshift:compatibility-gen:level=1
 message EgressRouter {
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
@@ -60,6 +62,9 @@ message EgressRouterInterface {
 }
 
 // EgressRouterList is the list of egress router pods requested.
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
 message EgressRouterList {
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 

@@ -55,12 +55,12 @@ type equalityChecker interface {
 }
 
 // ApplyServiceMonitor applies the Prometheus service monitor.
-func ApplyServiceMonitor(client dynamic.Interface, recorder events.Recorder, required *unstructured.Unstructured) (*unstructured.Unstructured, bool, error) {
+func ApplyServiceMonitor(ctx context.Context, client dynamic.Interface, recorder events.Recorder, required *unstructured.Unstructured) (*unstructured.Unstructured, bool, error) {
 	namespace := required.GetNamespace()
 
-	existing, err := client.Resource(serviceMonitorGVR).Namespace(namespace).Get(context.TODO(), required.GetName(), metav1.GetOptions{})
+	existing, err := client.Resource(serviceMonitorGVR).Namespace(namespace).Get(ctx, required.GetName(), metav1.GetOptions{})
 	if errors.IsNotFound(err) {
-		newObj, createErr := client.Resource(serviceMonitorGVR).Namespace(namespace).Create(context.TODO(), required, metav1.CreateOptions{})
+		newObj, createErr := client.Resource(serviceMonitorGVR).Namespace(namespace).Create(ctx, required, metav1.CreateOptions{})
 		if createErr != nil {
 			recorder.Warningf("ServiceMonitorCreateFailed", "Failed to create ServiceMonitor.monitoring.coreos.com/v1: %v", createErr)
 			return nil, true, createErr
@@ -87,7 +87,7 @@ func ApplyServiceMonitor(client dynamic.Interface, recorder events.Recorder, req
 		klog.Infof("ServiceMonitor %q changes: %v", namespace+"/"+required.GetName(), JSONPatchNoError(existing, toUpdate))
 	}
 
-	newObj, err := client.Resource(serviceMonitorGVR).Namespace(namespace).Update(context.TODO(), toUpdate, metav1.UpdateOptions{})
+	newObj, err := client.Resource(serviceMonitorGVR).Namespace(namespace).Update(ctx, toUpdate, metav1.UpdateOptions{})
 	if err != nil {
 		recorder.Warningf("ServiceMonitorUpdateFailed", "Failed to update ServiceMonitor.monitoring.coreos.com/v1: %v", err)
 		return nil, true, err
@@ -100,12 +100,12 @@ func ApplyServiceMonitor(client dynamic.Interface, recorder events.Recorder, req
 var prometheusRuleGVR = schema.GroupVersionResource{Group: "monitoring.coreos.com", Version: "v1", Resource: "prometheusrules"}
 
 // ApplyPrometheusRule applies the PrometheusRule
-func ApplyPrometheusRule(client dynamic.Interface, recorder events.Recorder, required *unstructured.Unstructured) (*unstructured.Unstructured, bool, error) {
+func ApplyPrometheusRule(ctx context.Context, client dynamic.Interface, recorder events.Recorder, required *unstructured.Unstructured) (*unstructured.Unstructured, bool, error) {
 	namespace := required.GetNamespace()
 
-	existing, err := client.Resource(prometheusRuleGVR).Namespace(namespace).Get(context.TODO(), required.GetName(), metav1.GetOptions{})
+	existing, err := client.Resource(prometheusRuleGVR).Namespace(namespace).Get(ctx, required.GetName(), metav1.GetOptions{})
 	if errors.IsNotFound(err) {
-		newObj, createErr := client.Resource(prometheusRuleGVR).Namespace(namespace).Create(context.TODO(), required, metav1.CreateOptions{})
+		newObj, createErr := client.Resource(prometheusRuleGVR).Namespace(namespace).Create(ctx, required, metav1.CreateOptions{})
 		if createErr != nil {
 			recorder.Warningf("PrometheusRuleCreateFailed", "Failed to create PrometheusRule.monitoring.coreos.com/v1: %v", createErr)
 			return nil, true, createErr
@@ -132,7 +132,7 @@ func ApplyPrometheusRule(client dynamic.Interface, recorder events.Recorder, req
 		klog.Infof("PrometheusRule %q changes: %v", namespace+"/"+required.GetName(), JSONPatchNoError(existing, toUpdate))
 	}
 
-	newObj, err := client.Resource(prometheusRuleGVR).Namespace(namespace).Update(context.TODO(), toUpdate, metav1.UpdateOptions{})
+	newObj, err := client.Resource(prometheusRuleGVR).Namespace(namespace).Update(ctx, toUpdate, metav1.UpdateOptions{})
 	if err != nil {
 		recorder.Warningf("PrometheusRuleUpdateFailed", "Failed to update PrometheusRule.monitoring.coreos.com/v1: %v", err)
 		return nil, true, err

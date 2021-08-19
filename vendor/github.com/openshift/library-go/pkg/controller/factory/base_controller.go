@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/robfig/cron"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
@@ -15,7 +16,7 @@ import (
 	"k8s.io/klog/v2"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
-
+	"github.com/openshift/library-go/pkg/operator/management"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	operatorv1helpers "github.com/openshift/library-go/pkg/operator/v1helpers"
 )
@@ -202,7 +203,12 @@ func (c *baseController) runWorker(queueCtx context.Context) {
 // reconcile wraps the sync() call and if operator client is set, it handle the degraded condition if sync() returns an error.
 func (c *baseController) reconcile(ctx context.Context, syncCtx SyncContext) error {
 	err := c.sync(ctx, syncCtx)
-	return c.reportDegraded(ctx, err)
+	degradedErr := c.reportDegraded(ctx, err)
+	if apierrors.IsNotFound(degradedErr) && management.IsOperatorRemovable() {
+		// The operator tolerates missing CR, therefore don't report it up.
+		return err
+	}
+	return degradedErr
 }
 
 // degradedPanicHandler will go degraded on failures, then we should catch potential panics and covert them into bad status.

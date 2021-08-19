@@ -19,7 +19,7 @@ spec:
     - name: v1
       schema:
         openAPIV3Schema:
-          description: Infrastructure holds cluster-wide information about Infrastructure.  The canonical name is `cluster`
+          description: "Infrastructure holds cluster-wide information about Infrastructure.  The canonical name is `cluster` \n Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer)."
           type: object
           required:
             - spec
@@ -137,13 +137,12 @@ spec:
                   description: infrastructureName uniquely identifies a cluster with a human friendly name. Once set it should not be changed. Must be of max length 27 and must have only alphanumeric or hyphen characters.
                   type: string
                 infrastructureTopology:
-                  description: infrastructureTopology expresses the expectations for infrastructure services that do not run on control plane nodes, usually indicated by a node selector for a `role` value other than `master`. The default is 'HighlyAvailable', which represents the behavior operators have in a "normal" cluster. The 'SingleReplica' mode will be used in single-node deployments and the operators should not configure the operand for highly-available operation
+                  description: 'infrastructureTopology expresses the expectations for infrastructure services that do not run on control plane nodes, usually indicated by a node selector for a `role` value other than `master`. The default is ''HighlyAvailable'', which represents the behavior operators have in a "normal" cluster. The ''SingleReplica'' mode will be used in single-node deployments and the operators should not configure the operand for highly-available operation NOTE: External topology mode is not applicable for this field.'
                   type: string
                   default: HighlyAvailable
                   enum:
                     - HighlyAvailable
                     - SingleReplica
-                    - External
                 platform:
                   description: "platform is the underlying infrastructure provider for the cluster. \n Deprecated: Use platformStatus.type instead."
                   type: string
@@ -270,6 +269,9 @@ spec:
                       description: IBMCloud contains settings specific to the IBMCloud infrastructure provider.
                       type: object
                       properties:
+                        cisInstanceCRN:
+                          description: CISInstanceCRN is the CRN of the Cloud Internet Services instance managing the DNS zone for the cluster's base domain
+                          type: string
                         location:
                           description: Location is where the cluster has been deployed
                           type: string

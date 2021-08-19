@@ -31,7 +31,7 @@ spec:
       name: v1
       schema:
         openAPIV3Schema:
-          description: ConsoleNotification is the extension for configuring openshift web console notifications.
+          description: "ConsoleNotification is the extension for configuring openshift web console notifications. \n Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer)."
           type: object
           required:
             - spec

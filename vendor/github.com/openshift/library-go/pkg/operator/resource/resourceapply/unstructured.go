@@ -1,6 +1,7 @@
 package resourceapply
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -11,14 +12,14 @@ import (
 
 // ApplyKnownUnstructured applies few selected Unstructured types, where it semantic knowledge
 // to merge existing & required objects intelligently. Feel free to add more.
-func ApplyKnownUnstructured(client dynamic.Interface, recorder events.Recorder, obj *unstructured.Unstructured) (*unstructured.Unstructured, bool, error) {
+func ApplyKnownUnstructured(ctx context.Context, client dynamic.Interface, recorder events.Recorder, obj *unstructured.Unstructured) (*unstructured.Unstructured, bool, error) {
 	switch obj.GetObjectKind().GroupVersionKind().GroupKind() {
 	case schema.GroupKind{Group: "monitoring.coreos.com", Kind: "ServiceMonitor"}:
-		return ApplyServiceMonitor(client, recorder, obj)
+		return ApplyServiceMonitor(ctx, client, recorder, obj)
 	case schema.GroupKind{Group: "monitoring.coreos.com", Kind: "PrometheusRule"}:
-		return ApplyPrometheusRule(client, recorder, obj)
+		return ApplyPrometheusRule(ctx, client, recorder, obj)
 	case schema.GroupKind{Group: "snapshot.storage.k8s.io", Kind: "VolumeSnapshotClass"}:
-		return ApplyVolumeSnapshotClass(client, recorder, obj)
+		return ApplyVolumeSnapshotClass(ctx, client, recorder, obj)
 
 	}
 

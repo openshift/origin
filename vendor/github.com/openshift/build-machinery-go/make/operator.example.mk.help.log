@@ -5,6 +5,7 @@ clean
 clean-binaries
 clean-yaml-patch
 clean-yq
+ensure-imagebuilder
 ensure-yaml-patch
 ensure-yq
 help

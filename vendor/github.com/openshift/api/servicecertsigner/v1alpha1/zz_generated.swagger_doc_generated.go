@@ -12,7 +12,7 @@ package v1alpha1
 
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_ServiceCertSignerOperatorConfig = map[string]string{
-	"": "ServiceCertSignerOperatorConfig provides information to configure an operator to manage the service cert signing controllers",
+	"": "ServiceCertSignerOperatorConfig provides information to configure an operator to manage the service cert signing controllers\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 }
 
 func (ServiceCertSignerOperatorConfig) SwaggerDoc() map[string]string {
@@ -20,7 +20,7 @@ func (ServiceCertSignerOperatorConfig) SwaggerDoc() map[string]string {
 }
 
 var map_ServiceCertSignerOperatorConfigList = map[string]string{
-	"":      "ServiceCertSignerOperatorConfigList is a collection of items",
+	"":      "ServiceCertSignerOperatorConfigList is a collection of items\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"items": "Items contains the items",
 }
 

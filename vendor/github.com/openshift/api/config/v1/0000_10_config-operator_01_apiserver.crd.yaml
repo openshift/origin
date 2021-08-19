@@ -19,7 +19,7 @@ spec:
     - name: v1
       schema:
         openAPIV3Schema:
-          description: APIServer holds configuration (like serving certificates, client CA and CORS domains) shared by all API servers in the system, among them especially kube-apiserver and openshift-apiserver. The canonical name of an instance is 'cluster'.
+          description: "APIServer holds configuration (like serving certificates, client CA and CORS domains) shared by all API servers in the system, among them especially kube-apiserver and openshift-apiserver. The canonical name of an instance is 'cluster'. \n Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer)."
           type: object
           required:
             - spec
@@ -47,14 +47,40 @@ spec:
                   default:
                     profile: Default
                   properties:
+                    customRules:
+                      description: customRules specify profiles per group. These profile take precedence over the top-level profile field if they apply. They are evaluation from top to bottom and the first one that matches, applies.
+                      type: array
+                      items:
+                        description: AuditCustomRule describes a custom rule for an audit profile that takes precedence over the top-level profile.
+                        type: object
+                        required:
+                          - group
+                          - profile
+                        properties:
+                          group:
+                            description: group is a name of group a request user must be member of in order to this profile to apply.
+                            type: string
+                            minLength: 1
+                          profile:
+                            description: "profile specifies the name of the desired audit policy configuration to be deployed to all OpenShift-provided API servers in the cluster. \n The following profiles are provided: - Default: the existing default policy. - WriteRequestBodies: like 'Default', but logs request and response HTTP payloads for write requests (create, update, patch). - AllRequestBodies: like 'WriteRequestBodies', but also logs request and response HTTP payloads for read requests (get, list). - None: no requests are logged at all, not even oauthaccesstokens and oauthauthorizetokens. \n If unset, the 'Default' profile is used as the default."
+                            type: string
+                            enum:
+                              - Default
+                              - WriteRequestBodies
+                              - AllRequestBodies
+                              - None
+                      x-kubernetes-list-map-keys:
+                        - group
+                      x-kubernetes-list-type: map
                     profile:
-                      description: "profile specifies the name of the desired audit policy configuration to be deployed to all OpenShift-provided API servers in the cluster. \n The following profiles are provided: - Default: the existing default policy. - WriteRequestBodies: like 'Default', but logs request and response HTTP payloads for write requests (create, update, patch). - AllRequestBodies: like 'WriteRequestBodies', but also logs request and response HTTP payloads for read requests (get, list). \n If unset, the 'Default' profile is used as the default."
+                      description: "profile specifies the name of the desired top-level audit profile to be applied to all requests sent to any of the OpenShift-provided API servers in the cluster (kube-apiserver, openshift-apiserver and oauth-apiserver), with the exception of those requests that match one or more of the customRules. \n The following profiles are provided: - Default: default policy which means MetaData level logging with the exception of events   (not logged at all), oauthaccesstokens and oauthauthorizetokens (both logged at RequestBody   level). - WriteRequestBodies: like 'Default', but logs request and response HTTP payloads for write requests (create, update, patch). - AllRequestBodies: like 'WriteRequestBodies', but also logs request and response HTTP payloads for read requests (get, list). - None: no requests are logged at all, not even oauthaccesstokens and oauthauthorizetokens. \n Warning: to raise a Red Hat support request, it is required to set this to Default, WriteRequestBodies, or AllRequestBodies to generate audit log events that can be analyzed by support. \n If unset, the 'Default' profile is used as the default."
                       type: string
                       default: Default
                       enum:
                         - Default
                         - WriteRequestBodies
                         - AllRequestBodies
+                        - None
                 clientCA:
                   description: 'clientCA references a ConfigMap containing a certificate bundle for the signers that will be recognized for incoming client certificates in addition to the operator managed signers. If this is empty, then only operator managed signers are valid. You usually only have to set this if you have your own PKI you wish to honor client certificates from. The ConfigMap must exist in the openshift-config namespace and contain the following required fields: - ConfigMap.Data["ca-bundle.crt"] - CA bundle.'
                   type: object

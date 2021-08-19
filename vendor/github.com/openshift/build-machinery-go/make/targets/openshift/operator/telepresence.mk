@@ -1,5 +1,4 @@
-self_dir :=$(dir $(lastword $(MAKEFILE_LIST)))
-scripts_dir :=$(shell realpath $(self_dir)../../../../scripts)
+scripts_dir :=$(shell realpath $(dir $(lastword $(MAKEFILE_LIST)))../../../../scripts)
 
 telepresence:
 	$(info Running operator locally against a remote cluster using telepresence (https://telepresence.io))

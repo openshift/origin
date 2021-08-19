@@ -6,13 +6,10 @@ import (
 
 	g "github.com/onsi/ginkgo"
 
-	reale2e "k8s.io/kubernetes/test/e2e"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
-
-var viperConfig string
 
 const (
 	defaultThreadCount int = 10
@@ -22,16 +19,6 @@ const (
 var _ = g.Describe("[sig-scalability][Feature:Performance][Serial][Slow] Load cluster", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLIWithoutNamespace("cl")
-
-	g.BeforeEach(func() {
-		var err error
-		viperConfig = reale2e.GetViperConfig()
-		e2e.Logf("Using config %v", viperConfig)
-		err = ParseConfig(viperConfig, false)
-		if err != nil {
-			e2e.Failf("Error parsing config: %v", err)
-		}
-	})
 
 	g.It("concurrently with templates", func() {
 		var namespaces []string
@@ -57,7 +44,7 @@ var _ = g.Describe("[sig-scalability][Feature:Performance][Serial][Slow] Load cl
 		for _, p := range project {
 			for j := 0; j < p.Number; j++ {
 				wg.Add(1)
-				unit := ProjectMeta{j, p, viperConfig}
+				unit := ProjectMeta{j, p}
 				work <- unit
 				namespace := <-ns
 				namespaces = append(namespaces, namespace)
@@ -126,7 +113,7 @@ func clWorker(in <-chan ProjectMeta, out chan<- string, wg *sync.WaitGroup, oc *
 
 		// Create templates as defined
 		for _, template := range p.Templates {
-			err := CreateSimpleTemplates(oc, nsName, p.ViperConfig, template)
+			err := CreateSimpleTemplates(oc, nsName, template)
 			if err != nil {
 				e2e.Logf("Error creating template: %v", err)
 			}

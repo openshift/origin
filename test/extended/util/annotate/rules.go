@@ -55,17 +55,14 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1957894
 			`\[sig-node\] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret`,
 
-			// tests disabled due to API changes coming from k8s 1.22:
-			// - coming from ServiceLBNodePortControl changes https://github.com/kubernetes/kubernetes/pull/100412
-			// - https://bugzilla.redhat.com/show_bug.cgi?id=1986001 - sig-api-machinery
-			`\[sig-api-machinery\] ResourceQuota should create a ResourceQuota and capture the life of a service`,
-			`\[sig-api-machinery\] API data in etcd`,
-
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1989417
 			`\[sig-cli\] oc adm storage-admin`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1989423
 			`\[sig-network-edge\]\[Conformance\]\[Area:Networking\]\[Feature:Router\] The HAProxy router should be able to connect to a service that is idled because a GET on the route will unidle it`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1994927
+			`\[sig-network\] Networking should provider Internet connection for containers using DNS`,
 
 			// due to CSI migration the following tests needs to be disabled:
 			// - https://bugzilla.redhat.com/show_bug.cgi?id=1985998 - sig-storage

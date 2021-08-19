@@ -39,7 +39,7 @@ var _ = g.Describe("[sig-auth][Feature:BootstrapUser] The bootstrap user", func(
 			if secretExists {
 				originalKubeadminSecret := generateSecret(originalPasswordHash)
 				e2e.Logf("restoring original kubeadmin user")
-				_, _, err := resourceapply.ApplySecret(oc.AsAdmin().KubeClient().CoreV1(), recorder, originalKubeadminSecret)
+				_, _, err := resourceapply.ApplySecret(context.TODO(), oc.AsAdmin().KubeClient().CoreV1(), recorder, originalKubeadminSecret)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				return
 			}
@@ -68,7 +68,7 @@ var _ = g.Describe("[sig-auth][Feature:BootstrapUser] The bootstrap user", func(
 		password, passwordHash, err := generatePassword()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		kubeadminSecret := generateSecret(passwordHash)
-		_, _, err = resourceapply.ApplySecret(oc.AsAdmin().KubeClient().CoreV1(), recorder, kubeadminSecret)
+		_, _, err = resourceapply.ApplySecret(context.TODO(), oc.AsAdmin().KubeClient().CoreV1(), recorder, kubeadminSecret)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		e2e.Logf("logging in as kubeadmin user")

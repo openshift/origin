@@ -43,7 +43,7 @@ func (GenerationHistory) SwaggerDoc() map[string]string {
 }
 
 var map_GenericOperatorConfig = map[string]string{
-	"":               "GenericOperatorConfig provides information to configure an operator",
+	"":               "GenericOperatorConfig provides information to configure an operator\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"servingInfo":    "ServingInfo is the HTTP serving information for the controller's endpoints",
 	"leaderElection": "leaderElection provides information to elect a leader. Only override this if you have a specific need",
 	"authentication": "authentication allows configuration of authentication for the endpoints",
@@ -136,7 +136,7 @@ func (VersionAvailability) SwaggerDoc() map[string]string {
 }
 
 var map_ImageContentSourcePolicy = map[string]string{
-	"":     "ImageContentSourcePolicy holds cluster-wide information about how to handle registry mirror rules. When multiple policies are defined, the outcome of the behavior is defined on each field.",
+	"":     "ImageContentSourcePolicy holds cluster-wide information about how to handle registry mirror rules. When multiple policies are defined, the outcome of the behavior is defined on each field.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"spec": "spec holds user settable values for configuration",
 }
 
@@ -145,7 +145,7 @@ func (ImageContentSourcePolicy) SwaggerDoc() map[string]string {
 }
 
 var map_ImageContentSourcePolicyList = map[string]string{
-	"": "ImageContentSourcePolicyList lists the items in the ImageContentSourcePolicy CRD.",
+	"": "ImageContentSourcePolicyList lists the items in the ImageContentSourcePolicy CRD.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 }
 
 func (ImageContentSourcePolicyList) SwaggerDoc() map[string]string {

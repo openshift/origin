@@ -11,6 +11,9 @@ import (
 // +kubebuilder:plural=helmchartrepositories
 
 // HelmChartRepository holds cluster-wide configuration for proxied Helm chart repository
+//
+// Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=2
 type HelmChartRepository struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -25,7 +28,9 @@ type HelmChartRepository struct {
 	Status HelmChartRepositoryStatus `json:"status"`
 }
 
+// Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +openshift:compatibility-gen:level=2
 type HelmChartRepositoryList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
