@@ -1291,6 +1291,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc adm who-can": "who-can [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc annotate pod": "pod [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc builds complex build start-build": "start-build [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc builds complex build webhooks CRUD": "webhooks CRUD [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
@@ -1320,6 +1322,8 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli] oc explain should contain proper spec+status for CRDs": "should contain proper spec+status for CRDs [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc explain should contain spec+status for builtinTypes": "should contain spec+status for builtinTypes [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc label pod": "pod [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc observe works as expected": "works as expected [Suite:openshift/conformance/parallel]",
 
