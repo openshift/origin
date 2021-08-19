@@ -89,10 +89,6 @@ var allowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{
 
 var knownEventsBugs = []knownProblem{
 	{
-		Regexp: regexp.MustCompile(`ns/openshift-sdn pod/sdn-[a-z0-9]+ node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: command timed out`),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1978268",
-	},
-	{
 		Regexp: regexp.MustCompile(`ns/openshift-multus pod/network-metrics-daemon-[a-z0-9]+ node/[a-z0-9.-]+ - reason/NetworkNotReady network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net\.d/\. Has your network provider started\?`),
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1986370",
 	},
@@ -101,12 +97,16 @@ var knownEventsBugs = []knownProblem{
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1986370",
 	},
 	{
-		Regexp: regexp.MustCompile(`ns/openshift-machine-api machine/.* - reason/Update Updated Machine .*`),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1988992",
-	},
-	{
 		Regexp: regexp.MustCompile(`ns/.* service/.* - reason/FailedToDeleteOVNLoadBalancer .*`),
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1990631",
+	},
+	{
+		Regexp: regexp.MustCompile(`ns/.*horizontalpodautoscaler.*failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API.*`),
+		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1993985",
+	},
+	{
+		Regexp: regexp.MustCompile(`ns/.*unable to ensure pod container exists: failed to create container.*slice already exists.*`),
+		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1993980",
 	},
 	//{ TODO this should only be skipped for single-node
 	//	name:    "single=node-storage",
