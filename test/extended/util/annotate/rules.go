@@ -61,6 +61,9 @@ var (
 			// tests to be flaky.
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1980141
 			`\[sig-network\] Netpol `,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1996128
+			`\[sig-network\] \[Feature:IPv6DualStack\] should have ipv4 and ipv6 node podCIDRs`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},
@@ -237,7 +240,6 @@ var (
 			// https://jira.coreos.com/browse/SDN-510: OVN-K doesn't support session affinity
 			`\[sig-network\] \[Feature:IPv6DualStack\] Granular Checks: Services Secondary IP Family \[LinuxOnly\] should function for client IP based session affinity: http`,
 			`\[sig-network\] \[Feature:IPv6DualStack\] Granular Checks: Services Secondary IP Family \[LinuxOnly\] should function for client IP based session affinity: udp`,
-			`\[sig-network\] \[Feature:IPv6DualStack\] should have ipv4 and ipv6 node podCIDRs`,
 
 			// ovn-kubernetes does not support named ports
 			`NetworkPolicy.*named port`,
