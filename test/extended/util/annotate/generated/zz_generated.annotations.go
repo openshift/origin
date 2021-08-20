@@ -2173,9 +2173,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] [Feature:IPv6DualStack] Granular Checks: Services Secondary IP Family [LinuxOnly] should be able to handle large requests: udp": "should be able to handle large requests: udp [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] [Feature:IPv6DualStack] Granular Checks: Services Secondary IP Family [LinuxOnly] should function for client IP based session affinity: http [LinuxOnly]": "should function for client IP based session affinity: http [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] [Feature:IPv6DualStack] Granular Checks: Services Secondary IP Family [LinuxOnly] should function for client IP based session affinity: http [LinuxOnly]": "should function for client IP based session affinity: http [LinuxOnly] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] [Feature:IPv6DualStack] Granular Checks: Services Secondary IP Family [LinuxOnly] should function for client IP based session affinity: udp [LinuxOnly]": "should function for client IP based session affinity: udp [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] [Feature:IPv6DualStack] Granular Checks: Services Secondary IP Family [LinuxOnly] should function for client IP based session affinity: udp [LinuxOnly]": "should function for client IP based session affinity: udp [LinuxOnly] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] [Feature:IPv6DualStack] Granular Checks: Services Secondary IP Family [LinuxOnly] should function for endpoint-Service: http": "should function for endpoint-Service: http [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2213,7 +2213,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] [Feature:IPv6DualStack] should have ipv4 and ipv6 internal node ip": "should have ipv4 and ipv6 internal node ip [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] [Feature:IPv6DualStack] should have ipv4 and ipv6 node podCIDRs [LinuxOnly]": "should have ipv4 and ipv6 node podCIDRs [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] [Feature:IPv6DualStack] should have ipv4 and ipv6 node podCIDRs [LinuxOnly]": "should have ipv4 and ipv6 node podCIDRs [LinuxOnly] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] [Feature:PerformanceDNS][Serial] Should answer DNS query for maximum number of services per cluster": "Should answer DNS query for maximum number of services per cluster [Slow] [Suite:k8s]",
 
