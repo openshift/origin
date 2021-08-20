@@ -67,6 +67,9 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 	// PersistentVolumes-local tests should not run the pod when there is a volume node
 	// affinity and node selector conflicts.
 	regexp.MustCompile(`ns/e2e-persistent-local-volumes-test-[0-9]+ pod/pod-[a-z0-9.-]+ reason/FailedScheduling`),
+
+	// various DeploymentConfig tests trigger this by canceling multiple rollouts
+	regexp.MustCompile(`.*reason/DeploymentAwaitingCancellation Deployment of version [0-9].+ awaiting cancellation of older running deployments`),
 }
 
 var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
