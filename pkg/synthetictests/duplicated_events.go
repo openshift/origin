@@ -56,9 +56,6 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 	// The pod is shaped to intentionally not be scheduled.  Looks like an artifact of the old integration testing.
 	regexp.MustCompile(`ns/e2e-test-scc-[a-z0-9]+ pod/.* - reason/FailedScheduling.*`),
 
-	// this image is used specifically to be one that cannot be pulled in our tests
-	regexp.MustCompile(`.*reason/BackOff Back-off pulling image "webserver:404"`),
-
 	// Security Context ** should not run with an explicit root user ID
 	// Security Context ** should not run without a specified user ID
 	// This container should never run
@@ -69,7 +66,14 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`ns/e2e-persistent-local-volumes-test-[0-9]+ pod/pod-[a-z0-9.-]+ reason/FailedScheduling`),
 
 	// various DeploymentConfig tests trigger this by canceling multiple rollouts
-	regexp.MustCompile(`.*reason/DeploymentAwaitingCancellation Deployment of version [0-9]+ awaiting cancellation of older running deployments`),
+	regexp.MustCompile(`reason/DeploymentAwaitingCancellation Deployment of version [0-9]+ awaiting cancellation of older running deployments`),
+
+	// this image is used specifically to be one that cannot be pulled in our tests
+	regexp.MustCompile(`.*reason/BackOff Back-off pulling image "webserver:404"`),
+
+	// If image pulls in e2e namespaces fail catastrophically we'd expect them to lead to test failures
+	// We are deliberately not ignoring image pull failures for core component namespaces
+	regexp.MustCompile(`ns/e2e-.* reason/BackOff Back-off pulling image`),
 }
 
 var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
