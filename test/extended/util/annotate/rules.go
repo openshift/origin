@@ -295,11 +295,11 @@ var (
 			`\[sig-network\] Services should have session affinity timeout work for NodePort service`,
 			`\[sig-network\] Services should have session affinity timeout work for service with type clusterIP`,
 
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1972684 - [Feature:IPv6DualStack] tests are failing in dualstack
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1996097 - [Feature:IPv6DualStack] tests are failing in dualstack
 			// https://jira.coreos.com/browse/SDN-510: OVN-K doesn't support session affinity
-			`\[sig-network\] \[Feature:IPv6DualStack\] \[LinuxOnly\] Granular Checks: Services Secondary IP Family should function for client IP based session affinity: http`,
-			`\[sig-network\] \[Feature:IPv6DualStack\] \[LinuxOnly\] Granular Checks: Services Secondary IP Family should function for client IP based session affinity: udp`,
-			`\[sig-network\] \[Feature:IPv6DualStack\] \[LinuxOnly\] should have ipv4 and ipv6 node podCIDRs`,
+			`\[sig-network\] \[Feature:IPv6DualStack\] Granular Checks: Services Secondary IP Family \[LinuxOnly\] should function for client IP based session affinity: http`,
+			`\[sig-network\] \[Feature:IPv6DualStack\] Granular Checks: Services Secondary IP Family \[LinuxOnly\] should function for client IP based session affinity: udp`,
+			`\[sig-network\] \[Feature:IPv6DualStack\] should have ipv4 and ipv6 node podCIDRs`,
 
 			// ovn-kubernetes does not support named ports
 			`NetworkPolicy.*named port`,
