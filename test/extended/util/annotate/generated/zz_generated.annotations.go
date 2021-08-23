@@ -2311,6 +2311,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network][Feature:Router] The HAProxy router should support reencrypt to services backed by a serving certificate automatically": "should support reencrypt to services backed by a serving certificate automatically [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-network][endpoints] admission blocks manual creation of EndpointSlices pointing to the cluster or service network": "blocks manual creation of EndpointSlices pointing to the cluster or service network [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-network][endpoints] admission blocks manual creation of Endpoints pointing to the cluster or service network": "blocks manual creation of Endpoints pointing to the cluster or service network [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-node] AppArmor load AppArmor profiles can disable an AppArmor profile, using unconfined": "can disable an AppArmor profile, using unconfined [Suite:openshift/conformance/parallel] [Suite:k8s]",
