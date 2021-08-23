@@ -60,7 +60,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive
 		disruption.Run(f, "Machine Shutdown and Restore", "machine_failure",
 			disruption.TestData{},
 			[]upgrades.Test{
-				&upgrades.ServiceUpgradeTest{},
+				//				&upgrades.ServiceUpgradeTest{},
 				controlplane.NewKubeAvailableWithNewConnectionsTest(),
 				controlplane.NewOpenShiftAvailableNewConnectionsTest(),
 				controlplane.NewOAuthAvailableNewConnectionsTest(),
