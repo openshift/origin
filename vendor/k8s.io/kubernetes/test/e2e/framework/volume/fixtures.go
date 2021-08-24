@@ -511,8 +511,9 @@ func TestVolumeClientSlow(f *framework.Framework, config TestConfig, fsGroup *in
 }
 
 func testVolumeClient(f *framework.Framework, config TestConfig, fsGroup *int64, fsType string, tests []Test, slow bool) {
+	privileged := true
 	timeouts := f.Timeouts
-	clientPod, err := runVolumeTesterPod(f.ClientSet, timeouts, config, "client", false, fsGroup, tests, slow)
+	clientPod, err := runVolumeTesterPod(f.ClientSet, timeouts, config, "client", privileged, fsGroup, tests, slow)
 	if err != nil {
 		framework.Failf("Failed to create client pod: %v", err)
 	}
