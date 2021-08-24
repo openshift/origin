@@ -198,7 +198,7 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 		for _, tc := range testCases {
 			g.By(tc.name, func() {
 				resp := oauthHTTPRequestOrFail(caCerts, oauthURL, tc.endpoint, "", tc.cert, tc.key)
-				respDump, err := httputil.DumpResponse(resp, false)
+				respDump, err := httputil.DumpResponse(resp, true)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				if len(tc.expectedError) == 0 && resp.StatusCode != 200 && resp.StatusCode != 302 {
 					g.Fail(fmt.Sprintf("unexpected error response status (%d) while trying to reach '%s' endpoint: %s", resp.StatusCode, tc.endpoint, respDump))
