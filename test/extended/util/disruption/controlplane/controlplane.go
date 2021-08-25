@@ -72,6 +72,15 @@ func NewOAuthAvailableWithConnectionReuseTest() upgrades.Test {
 	}
 }
 
+// NewInternetEgressRemainsAvailable tests that outbound internet access remains available from the CI cluster.
+func NewInternetEgressRemainsAvailable() upgrades.Test {
+	return &availableTest{
+		testName:        "[sig-api-machinery] Internet egress remains available to openshift-tests during test",
+		name:            "internet-egress-remains-available",
+		startMonitoring: monitor.StartInternetEgressRemainsAvailable,
+	}
+}
+
 type availableTest struct {
 	// testName is the name to show in unit
 	testName string

@@ -55,6 +55,7 @@ func AllTests() []upgrades.Test {
 		controlplane.NewKubeAvailableWithConnectionReuseTest(),
 		controlplane.NewOpenShiftAvailableWithConnectionReuseTest(),
 		controlplane.NewOAuthAvailableWithConnectionReuseTest(),
+		controlplane.NewInternetEgressRemainsAvailable(),
 		&manifestdelete.UpgradeTest{},
 		&alert.UpgradeTest{},
 		&frontends.AvailableTest{},

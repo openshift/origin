@@ -31,6 +31,7 @@ const (
 	LocatorKubeAPIServerReusedConnection      = "kube-apiserver-reused-connection"
 	LocatorOpenshiftAPIServerReusedConnection = "openshift-apiserver-reused-connection"
 	LocatorOAuthAPIServerReusedConnection     = "oauth-apiserver-reused-connection"
+	LocatorInternetEgressRemainsAvailable     = "internet-egress-remains-available"
 )
 
 func GetMonitorRESTConfig() (*rest.Config, error) {
@@ -74,6 +75,10 @@ func Start(ctx context.Context, restConfig *rest.Config) (*Monitor, error) {
 	if err := StartOAuthAPIMonitoringWithConnectionReuse(ctx, m, restConfig, 5*time.Second); err != nil {
 		return nil, err
 	}
+	if err := StartInternetEgressRemainsAvailable(ctx, m, restConfig, 5*time.Second); err != nil {
+		return nil, err
+	}
+
 	startPodMonitoring(ctx, m, client)
 	startNodeMonitoring(ctx, m, client)
 	startEventMonitoring(ctx, m, client)
@@ -187,6 +192,62 @@ func startServerMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.
 	return nil
 }
 
+func startSimpleHTTPMonitoring(ctx context.Context, m *Monitor, timeout time.Duration, resourceLocator, url string) error {
+	httpTransport := &http.Transport{
+		Dial: (&net.Dialer{
+			Timeout:   timeout,
+			KeepAlive: -1, // this looks unnecessary to me, but it was set in other code.
+		}).Dial,
+		DisableKeepAlives: true,
+		IdleConnTimeout:   timeout,
+	}
+
+	roundTripper := http.RoundTripper(httpTransport)
+
+	httpClient := http.Client{
+		Transport: roundTripper,
+	}
+
+	go NewSampler(m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
+		resp, err := httpClient.Get(url)
+
+		// we don't have an error, but the response code was an error, then we have to set an artificial error for the logic below to work.
+		if err == nil && (resp.StatusCode < 200 || resp.StatusCode > 399) {
+			body, err := ioutil.ReadAll(resp.Body)
+			if err == nil {
+				err = fmt.Errorf("error running request: %v: %v", resp.Status, string(body))
+			} else {
+				err = fmt.Errorf("error running request: %v", resp.Status)
+			}
+		}
+		if resp != nil && resp.Body != nil {
+			defer resp.Body.Close()
+		}
+
+		switch {
+		case err == nil && !previous:
+			condition = &monitorapi.Condition{
+				Level:   monitorapi.Info,
+				Locator: resourceLocator,
+				Message: fmt.Sprintf("%s started responding to GET requests", resourceLocator),
+			}
+		case err != nil && previous:
+			condition = &monitorapi.Condition{
+				Level:   monitorapi.Error,
+				Locator: resourceLocator,
+				Message: fmt.Sprintf("%s started failing: %v", resourceLocator, err),
+			}
+		}
+		return condition, err == nil
+	}).WhenFailing(ctx, &monitorapi.Condition{
+		Level:   monitorapi.Error,
+		Locator: resourceLocator,
+		Message: fmt.Sprintf("%s is not responding to GET requests", resourceLocator),
+	})
+
+	return nil
+}
+
 func StartKubeAPIMonitoringWithNewConnections(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
 	// default gets auto-created, so this should always exist
 	return StartServerMonitoringWithNewConnections(ctx, m, clusterConfig, timeout, LocatorKubeAPIServerNewConnection, "/api/v1/namespaces/default")
@@ -215,6 +276,10 @@ func StartOpenShiftAPIMonitoringWithConnectionReuse(ctx context.Context, m *Moni
 func StartOAuthAPIMonitoringWithConnectionReuse(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
 	// this should be relatively small and should not ever 404
 	return StartServerMonitoringWithConnectionReuse(ctx, m, clusterConfig, timeout, LocatorOAuthAPIServerReusedConnection, "/apis/oauth.openshift.io/v1/oauthclients")
+}
+
+func StartInternetEgressRemainsAvailable(ctx context.Context, m *Monitor, _ *rest.Config, timeout time.Duration) error {
+	return startSimpleHTTPMonitoring(ctx, m, timeout, LocatorInternetEgressRemainsAvailable, "http://neverssl.com/")
 }
 
 func findContainerStatus(status []corev1.ContainerStatus, name string, position int) *corev1.ContainerStatus {
