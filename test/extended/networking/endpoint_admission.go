@@ -5,8 +5,6 @@ import (
 	"net"
 	"time"
 
-	"k8s.io/client-go/rest"
-
 	"github.com/apparentlymart/go-cidr/cidr"
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -18,46 +16,75 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 var _ = g.Describe("[sig-network][endpoints] admission", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("endpoint-admission")
 
-	InOpenShiftSDNContext(func() {
-		g.It("blocks manual creation of Endpoints pointing to the cluster or service network", func() {
-			TestEndpointAdmission(g.GinkgoT(), oc)
-		})
+	var clusterAdminKubeClient, projectAdminClient kubernetes.Interface
+	var clusterIP, serviceIP string
+
+	g.BeforeEach(func() {
+		clusterAdminKubeClient = oc.AdminKubeClient()
+		projectAdminClient = oc.KubeClient()
+
+		networkConfig, err := oc.AdminConfigClient().ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		_, clusterCIDR, err := net.ParseCIDR(networkConfig.Status.ClusterNetwork[0].CIDR)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		ip, err := cidr.Host(clusterCIDR, 3)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		clusterIP = ip.String()
+
+		_, serviceCIDR, err := net.ParseCIDR(networkConfig.Status.ServiceNetwork[0])
+		o.Expect(err).NotTo(o.HaveOccurred())
+		ip, err = cidr.Host(serviceCIDR, 3)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		serviceIP = ip.String()
+	})
+
+	g.It("blocks manual creation of Endpoints pointing to the cluster or service network", func() {
+		serviceAccountClient, _, err := getClientForServiceAccount(clusterAdminKubeClient, rest.AnonymousClientConfig(oc.AdminConfig()), "kube-system", "endpoint-controller")
+		o.Expect(err).NotTo(o.HaveOccurred(), "error getting endpoint controller service account")
+
+		// Cluster admin
+		testOneEndpoint(oc, clusterAdminKubeClient, "cluster", clusterIP, true)
+		testOneEndpoint(oc, clusterAdminKubeClient, "service", serviceIP, true)
+		testOneEndpoint(oc, clusterAdminKubeClient, "external", "1.2.3.4", true)
+
+		// Endpoint controller service account
+		testOneEndpoint(oc, serviceAccountClient, "cluster", clusterIP, true)
+		testOneEndpoint(oc, serviceAccountClient, "service", serviceIP, true)
+		testOneEndpoint(oc, serviceAccountClient, "external", "1.2.3.4", true)
+
+		// Project admin
+		testOneEndpoint(oc, projectAdminClient, "cluster", clusterIP, false)
+		testOneEndpoint(oc, projectAdminClient, "service", serviceIP, false)
+		testOneEndpoint(oc, projectAdminClient, "external", "1.2.3.4", true)
+
+		// User without restricted endpoint permission can't modify IPs but can still do other modifications
+		ep := testOneEndpoint(oc, clusterAdminKubeClient, "cluster", clusterIP, true)
+		ep.Annotations = map[string]string{"foo": "bar"}
+		ep, err = projectAdminClient.CoreV1().Endpoints(oc.Namespace()).Update(context.Background(), ep, metav1.UpdateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "unexpected error updating endpoint annotation")
+
+		ep.Subsets[0].Addresses[0].IP = serviceIP
+		ep, err = projectAdminClient.CoreV1().Endpoints(oc.Namespace()).Update(context.Background(), ep, metav1.UpdateOptions{})
+		o.Expect(err).To(o.HaveOccurred(), "unexpected success modifying endpoint")
 	})
 })
 
-func testOne(t g.GinkgoTInterface, oc *exutil.CLI, client kubernetes.Interface, addrType string, success bool) *corev1.Endpoints {
-	networkConfig, err := oc.AdminConfigClient().ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	_, serviceCIDR, err := net.ParseCIDR(networkConfig.Status.ServiceNetwork[0])
-	o.Expect(err).NotTo(o.HaveOccurred())
-	serviceIP, err := cidr.Host(serviceCIDR, 3)
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	_, clusterCIDR, err := net.ParseCIDR(networkConfig.Status.ClusterNetwork[0].CIDR)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	clusterIP, err := cidr.Host(clusterCIDR, 3)
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	var exampleAddresses = map[string]string{
-		"cluster":  clusterIP.String(),
-		"service":  serviceIP.String(),
-		"external": "1.2.3.4",
-	}
-
+func testOneEndpoint(oc *exutil.CLI, client kubernetes.Interface, addrType, addr string, success bool) *corev1.Endpoints {
 	testEndpoint := &corev1.Endpoints{}
 	testEndpoint.GenerateName = "test"
 	testEndpoint.Subsets = []corev1.EndpointSubset{
 		{
 			Addresses: []corev1.EndpointAddress{
 				{
-					IP: exampleAddresses[addrType],
+					IP: addr,
 				},
 			},
 			Ports: []corev1.EndpointPort{
@@ -70,51 +97,12 @@ func testOne(t g.GinkgoTInterface, oc *exutil.CLI, client kubernetes.Interface, 
 	}
 
 	ep, err := client.CoreV1().Endpoints(oc.Namespace()).Create(context.Background(), testEndpoint, metav1.CreateOptions{})
-	if err != nil && success {
-		t.Fatalf("unexpected error creating %s network endpoint: %v", addrType, err)
-	} else if err == nil && !success {
-		t.Fatalf("unexpected success creating %s network endpoint", addrType)
+	if success {
+		o.Expect(err).NotTo(o.HaveOccurred(), "unexpected error creating %s endpoint", addrType)
+	} else {
+		o.Expect(err).To(o.HaveOccurred(), "unexpected success creating %s endpoint", addrType)
 	}
 	return ep
-}
-
-func TestEndpointAdmission(t g.GinkgoTInterface, oc *exutil.CLI) {
-	clusterAdminKubeClient := oc.AdminKubeClient()
-
-	// Cluster admin
-	testOne(t, oc, clusterAdminKubeClient, "cluster", true)
-	testOne(t, oc, clusterAdminKubeClient, "service", true)
-	testOne(t, oc, clusterAdminKubeClient, "external", true)
-
-	// Endpoint controller service account
-	serviceAccountClient, _, err := getClientForServiceAccount(clusterAdminKubeClient, rest.AnonymousClientConfig(oc.AdminConfig()), "kube-system", "endpoint-controller")
-	if err != nil {
-		t.Fatalf("error getting endpoint controller service account: %v", err)
-	}
-	testOne(t, oc, serviceAccountClient, "cluster", true)
-	testOne(t, oc, serviceAccountClient, "service", true)
-	testOne(t, oc, serviceAccountClient, "external", true)
-
-	// Project admin
-	projectAdminClient := oc.KubeClient()
-
-	testOne(t, oc, projectAdminClient, "cluster", false)
-	testOne(t, oc, projectAdminClient, "service", false)
-	testOne(t, oc, projectAdminClient, "external", true)
-
-	// User without restricted endpoint permission can't modify IPs but can still do other modifications
-	ep := testOne(t, oc, clusterAdminKubeClient, "cluster", true)
-	ep.Annotations = map[string]string{"foo": "bar"}
-	ep, err = projectAdminClient.CoreV1().Endpoints(oc.Namespace()).Update(context.Background(), ep, metav1.UpdateOptions{})
-	if err != nil {
-		t.Fatalf("unexpected error updating endpoint annotation: %v", err)
-	}
-
-	ep.Subsets[0].Addresses[0].IP = "172.30.0.2"
-	ep, err = projectAdminClient.CoreV1().Endpoints(oc.Namespace()).Update(context.Background(), ep, metav1.UpdateOptions{})
-	if err == nil {
-		t.Fatalf("unexpected success modifying endpoint")
-	}
 }
 
 func getClientForServiceAccount(adminClient kubernetes.Interface, clientConfig *rest.Config, namespace, name string) (*kubernetes.Clientset, *rest.Config, error) {
