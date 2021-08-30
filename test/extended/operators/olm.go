@@ -12,6 +12,7 @@ import (
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 var _ = g.Describe("[sig-operator] OLM should", func() {
@@ -208,6 +209,11 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 			g.Skip("redhat-operators source not found in enabled sources")
 		}
 
+		// TODO: Come up with an arch agnostic operator to deploy during this test.
+		// For now this does not work for arm64
+		if e2e.NodeOSArchIs("arm64") {
+			e2eskipper.Skipf("Not supported for node OS distro %v (is arm64)", e2e.TestContext.NodeOSDistro)
+		}
 		// configure OperatorGroup before tests
 		configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", operatorGroup, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace())).OutputToFile("config.json")
 		o.Expect(err).NotTo(o.HaveOccurred())
