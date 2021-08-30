@@ -18,7 +18,9 @@ import (
 func ApplyPodDisruptionBudget(ctx context.Context, client policyclientv1.PodDisruptionBudgetsGetter, recorder events.Recorder, required *policyv1.PodDisruptionBudget) (*policyv1.PodDisruptionBudget, bool, error) {
 	existing, err := client.PodDisruptionBudgets(required.Namespace).Get(ctx, required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.PodDisruptionBudgets(required.Namespace).Create(ctx, required, metav1.CreateOptions{})
+		requiredCopy := required.DeepCopy()
+		actual, err := client.PodDisruptionBudgets(required.Namespace).Create(
+			ctx, resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*policyv1.PodDisruptionBudget), metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}

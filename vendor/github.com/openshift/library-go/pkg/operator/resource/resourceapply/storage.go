@@ -22,7 +22,9 @@ func ApplyStorageClass(ctx context.Context, client storageclientv1.StorageClasse
 	error) {
 	existing, err := client.StorageClasses().Get(ctx, required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.StorageClasses().Create(ctx, required, metav1.CreateOptions{})
+		requiredCopy := required.DeepCopy()
+		actual, err := client.StorageClasses().Create(
+			ctx, resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*storagev1.StorageClass), metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
@@ -61,7 +63,9 @@ func ApplyStorageClass(ctx context.Context, client storageclientv1.StorageClasse
 func ApplyCSIDriverV1Beta1(ctx context.Context, client storageclientv1beta1.CSIDriversGetter, recorder events.Recorder, required *storagev1beta1.CSIDriver) (*storagev1beta1.CSIDriver, bool, error) {
 	existing, err := client.CSIDrivers().Get(ctx, required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.CSIDrivers().Create(ctx, required, metav1.CreateOptions{})
+		requiredCopy := required.DeepCopy()
+		actual, err := client.CSIDrivers().Create(
+			ctx, resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*storagev1beta1.CSIDriver), metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
@@ -90,7 +94,9 @@ func ApplyCSIDriverV1Beta1(ctx context.Context, client storageclientv1beta1.CSID
 func ApplyCSIDriver(ctx context.Context, client storageclientv1.CSIDriversGetter, recorder events.Recorder, required *storagev1.CSIDriver) (*storagev1.CSIDriver, bool, error) {
 	existing, err := client.CSIDrivers().Get(ctx, required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.CSIDrivers().Create(ctx, required, metav1.CreateOptions{})
+		requiredCopy := required.DeepCopy()
+		actual, err := client.CSIDrivers().Create(
+			ctx, resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*storagev1.CSIDriver), metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}

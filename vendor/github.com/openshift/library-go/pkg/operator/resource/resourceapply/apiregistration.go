@@ -18,7 +18,9 @@ import (
 func ApplyAPIService(ctx context.Context, client apiregistrationv1client.APIServicesGetter, recorder events.Recorder, required *apiregistrationv1.APIService) (*apiregistrationv1.APIService, bool, error) {
 	existing, err := client.APIServices().Get(ctx, required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.APIServices().Create(ctx, required, metav1.CreateOptions{})
+		requiredCopy := required.DeepCopy()
+		actual, err := client.APIServices().Create(
+			ctx, resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*apiregistrationv1.APIService), metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}

@@ -24,7 +24,9 @@ func ApplyClusterRole(ctx context.Context, client rbacclientv1.ClusterRolesGette
 
 	existing, err := client.ClusterRoles().Get(ctx, required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.ClusterRoles().Create(ctx, required, metav1.CreateOptions{})
+		requiredCopy := required.DeepCopy()
+		actual, err := client.ClusterRoles().Create(
+			ctx, resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*rbacv1.ClusterRole), metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
@@ -58,7 +60,9 @@ func ApplyClusterRole(ctx context.Context, client rbacclientv1.ClusterRolesGette
 func ApplyClusterRoleBinding(ctx context.Context, client rbacclientv1.ClusterRoleBindingsGetter, recorder events.Recorder, required *rbacv1.ClusterRoleBinding) (*rbacv1.ClusterRoleBinding, bool, error) {
 	existing, err := client.ClusterRoleBindings().Get(ctx, required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.ClusterRoleBindings().Create(ctx, required, metav1.CreateOptions{})
+		requiredCopy := required.DeepCopy()
+		actual, err := client.ClusterRoleBindings().Create(
+			ctx, resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*rbacv1.ClusterRoleBinding), metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
@@ -110,7 +114,9 @@ func ApplyClusterRoleBinding(ctx context.Context, client rbacclientv1.ClusterRol
 func ApplyRole(ctx context.Context, client rbacclientv1.RolesGetter, recorder events.Recorder, required *rbacv1.Role) (*rbacv1.Role, bool, error) {
 	existing, err := client.Roles(required.Namespace).Get(ctx, required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.Roles(required.Namespace).Create(ctx, required, metav1.CreateOptions{})
+		requiredCopy := required.DeepCopy()
+		actual, err := client.Roles(required.Namespace).Create(
+			ctx, resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*rbacv1.Role), metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
@@ -142,7 +148,9 @@ func ApplyRole(ctx context.Context, client rbacclientv1.RolesGetter, recorder ev
 func ApplyRoleBinding(ctx context.Context, client rbacclientv1.RoleBindingsGetter, recorder events.Recorder, required *rbacv1.RoleBinding) (*rbacv1.RoleBinding, bool, error) {
 	existing, err := client.RoleBindings(required.Namespace).Get(ctx, required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.RoleBindings(required.Namespace).Create(ctx, required, metav1.CreateOptions{})
+		requiredCopy := required.DeepCopy()
+		actual, err := client.RoleBindings(required.Namespace).Create(
+			ctx, resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*rbacv1.RoleBinding), metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
