@@ -104,10 +104,6 @@ var knownEventsBugs = []knownProblem{
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1986370",
 	},
 	{
-		Regexp: regexp.MustCompile(`ns/.* service/.* - reason/FailedToDeleteOVNLoadBalancer .*`),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1990631",
-	},
-	{
 		Regexp: regexp.MustCompile(`ns/.*horizontalpodautoscaler.*failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API.*`),
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1993985",
 	},
@@ -118,6 +114,14 @@ var knownEventsBugs = []knownProblem{
 	{
 		Regexp: regexp.MustCompile(`ns/openshift-etcd pod/etcd-quorum-guard-[a-z0-9-]+ node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: `),
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2000234",
+	},
+	{
+		Regexp: regexp.MustCompile(`ns/.*FailedMount.*SetUp failed for volume.*kube-api-access.*`),
+		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1999325",
+	},
+	{
+		Regexp: regexp.MustCompile(`ns/openshift-kube-apiserver-operator.*deployment/kube-apiserver-operator.*MissingVersion no image found for operand pod.*`),
+		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2001856",
 	},
 	//{ TODO this should only be skipped for single-node
 	//	name:    "single=node-storage",
