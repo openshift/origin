@@ -312,7 +312,9 @@ func runTest(t g.GinkgoTInterface, oc *exutil.CLI, testname string, projectAdmin
 		// the first tag did not have an image id, so the last trigger field is the pull spec
 		expectedLastTriggerTag := registryHostname + "/openshift/test-image-trigger:" + tag
 		lastTriggeredImageIdStatus := updatedConfig.Status.ImageChangeTriggers[0].LastTriggeredImageID
+		lastTriggeredImageIdSpec := updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID
 		o.Expect(lastTriggeredImageIdStatus).To(o.Equal(expectedLastTriggerTag))
+		o.Expect(lastTriggeredImageIdSpec).To(o.BeEmpty())
 
 		g.By("triggering a new build by posting a new image")
 		_, err = projectAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(context.Background(), &imagev1.ImageStreamMapping{
@@ -378,7 +380,9 @@ func runTest(t g.GinkgoTInterface, oc *exutil.CLI, testname string, projectAdmin
 
 		expectedLastTriggerTag = registryHostname + "/openshift/test-image-trigger:ref-2-random"
 		lastTriggeredImageIdStatus = updatedConfig.Status.ImageChangeTriggers[0].LastTriggeredImageID
+		lastTriggeredImageIdSpec = updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID
 		o.Expect(lastTriggeredImageIdStatus).To(o.Equal(expectedLastTriggerTag))
+		o.Expect(lastTriggeredImageIdSpec).To(o.BeEmpty())
 	})
 }
 
@@ -529,8 +533,10 @@ func TestMultipleImageChangeBuildTriggers(t g.GinkgoTInterface, oc *exutil.CLI) 
 
 		// the first tag did not have an image id, so the last trigger field is the pull spec
 		lastTriggeredImageIdStatus := updatedConfig.Status.ImageChangeTriggers[tc.triggerIndex].LastTriggeredImageID
+		lastTriggeredImageIdSpec := updatedConfig.Spec.Triggers[tc.triggerIndex].ImageChange.LastTriggeredImageID
 		expectedImageTag := "registry:5000/openshift/" + tc.name + ":" + tc.tag
 		o.Expect(lastTriggeredImageIdStatus).To(o.Equal(expectedImageTag))
+		o.Expect(lastTriggeredImageIdSpec).To(o.BeEmpty())
 
 		ignoreBuilds[newBuild.Name] = struct{}{}
 
