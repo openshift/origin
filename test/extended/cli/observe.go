@@ -74,10 +74,9 @@ var _ = g.Describe("[sig-cli] oc observe", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.Or(o.ContainSubstring("172.30.0.1"), o.ContainSubstring("fd02::1")))
 
-		// https://bugzilla.redhat.com/show_bug.cgi?id=1989505
-		// out, err = oc.Run("observe").Args("services", "--once", "--all-namespaces", "--template='bad{ .missingkey }key'").Output()
-		// o.Expect(err).NotTo(o.HaveOccurred())
-		// o.Expect(out).To(o.ContainSubstring("badkey"))
+		out, err = oc.Run("observe").Args("services", "--once", "--all-namespaces", "--template='bad{ .missingkey }key'").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("badkey"))
 
 		out, err = oc.Run("observe").Args("services", "--once", "--all-namespaces", "--template='bad{ .missingkey }key'", "--allow-missing-template-keys=false").Output()
 		o.Expect(err).To(o.HaveOccurred())
