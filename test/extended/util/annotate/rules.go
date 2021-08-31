@@ -303,6 +303,9 @@ var (
 
 			// ovn-kubernetes does not support named ports
 			`NetworkPolicy.*named port`,
+
+			// ovn-kubernetes does not support internal traffic policy
+			`\[Feature:ServiceInternalTrafficPolicy\]`,
 		},
 		"[Skipped:ibmcloud]": {
 			// skip Gluster tests (not supported on ROKS worker nodes)

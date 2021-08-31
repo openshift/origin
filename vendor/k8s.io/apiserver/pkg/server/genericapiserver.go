@@ -216,6 +216,15 @@ type GenericAPIServer struct {
 	// lifecycleSignals provides access to the various signals that happen during the life cycle of the apiserver.
 	lifecycleSignals lifecycleSignals
 
+	// ShutdownSendRetryAfter dictates when to initiate shutdown of the HTTP
+	// Server during the graceful termination of the apiserver. If true, we wait
+	// for non longrunning requests in flight to be drained and then initiate a
+	// shutdown of the HTTP Server. If false, we initiate a shutdown of the HTTP
+	// Server as soon as ShutdownDelayDuration has elapsed.
+	// If enabled, after ShutdownDelayDuration elapses, any incoming request is
+	// rejected with a 429 status code and a 'Retry-After' response.
+	ShutdownSendRetryAfter bool
+
 	// EventSink creates events.
 	eventSink EventSink
 	eventRef  *corev1.ObjectReference
@@ -344,7 +353,10 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 
 	go func() {
 		defer delayedStopCh.Signal()
-		defer klog.V(1).InfoS("[graceful-termination] shutdown event", "name", delayedStopCh.Name())
+		defer func() {
+			klog.V(1).InfoS("[graceful-termination] shutdown event", "name", delayedStopCh.Name())
+			s.Eventf(corev1.EventTypeNormal, delayedStopCh.Name(), "The minimal shutdown duration of %v finished", s.ShutdownDelayDuration)
+		}()
 
 		<-stopCh
 
@@ -353,12 +365,9 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 		// and stop sending traffic to this server.
 		shutdownInitiatedCh.Signal()
 		klog.V(1).InfoS("[graceful-termination] shutdown event", "name", shutdownInitiatedCh.Name())
-
-		s.Eventf(corev1.EventTypeNormal, "TerminationStart", "Received signal to terminate, becoming unready, but keeping serving")
+		s.Eventf(corev1.EventTypeNormal, shutdownInitiatedCh.Name(), "Received signal to terminate, becoming unready, but keeping serving")
 
 		time.Sleep(s.ShutdownDelayDuration)
-
-		s.Eventf(corev1.EventTypeNormal, "TerminationMinimalShutdownDurationFinished", "The minimal shutdown duration of %v finished", s.ShutdownDelayDuration)
 	}()
 
 	lateStopCh := make(chan struct{})
@@ -379,7 +388,22 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 	unexpectedRequestsEventf.Store(s.Eventf)
 
 	// close socket after delayed stopCh
-	stoppedCh, listenerStoppedCh, err := s.NonBlockingRun(delayedStopCh.Signaled())
+	drainedCh := s.lifecycleSignals.InFlightRequestsDrained
+	stopHttpServerCh := delayedStopCh.Signaled()
+	shutdownTimeout := s.ShutdownTimeout
+	if s.ShutdownSendRetryAfter {
+		// when this mode is enabled, we do the following:
+		// - the server will continue to listen until all existing requests in flight
+		//   (not including active long runnning requests) have been drained.
+		// - once drained, http Server Shutdown is invoked with a timeout of 2s,
+		//   net/http waits for 1s for the peer to respond to a GO_AWAY frame, so
+		//   we should wait for a minimum of 2s
+		stopHttpServerCh = drainedCh.Signaled()
+		shutdownTimeout = 2 * time.Second
+		klog.V(1).InfoS("[graceful-termination] using HTTP Server shutdown timeout", "ShutdownTimeout", shutdownTimeout)
+	}
+
+	stoppedCh, listenerStoppedCh, err := s.NonBlockingRun(stopHttpServerCh, shutdownTimeout)
 	if err != nil {
 		return err
 	}
@@ -388,16 +412,18 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 		<-listenerStoppedCh
 		httpServerStoppedListeningCh.Signal()
 		klog.V(1).InfoS("[graceful-termination] shutdown event", "name", httpServerStoppedListeningCh.Name())
+		s.Eventf(corev1.EventTypeNormal, httpServerStoppedListeningCh.Name(), "HTTP Server has stopped listening")
 	}()
 
-	drainedCh := s.lifecycleSignals.InFlightRequestsDrained
 	go func() {
 		defer drainedCh.Signal()
-		defer klog.V(1).InfoS("[graceful-termination] shutdown event", "name", drainedCh.Name())
+		defer func() {
+			klog.V(1).InfoS("[graceful-termination] shutdown event", "name", drainedCh.Name())
+			s.Eventf(corev1.EventTypeNormal, drainedCh.Name(), "All non long-running request(s) in-flight have drained")
+		}()
 
 		// wait for the delayed stopCh before closing the handler chain (it rejects everything after Wait has been called).
 		<-delayedStopCh.Signaled()
-		s.Eventf(corev1.EventTypeNormal, "TerminationStoppedServing", "Server has stopped listening")
 
 		// Wait for all requests to finish, which are bounded by the RequestTimeout variable.
 		s.HandlerChainWaitGroup.Wait()
@@ -429,7 +455,7 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 // NonBlockingRun spawns the secure http server. An error is
 // returned if the secure port cannot be listened on.
 // The returned channel is closed when the (asynchronous) termination is finished.
-func (s preparedGenericAPIServer) NonBlockingRun(stopCh <-chan struct{}) (<-chan struct{}, <-chan struct{}, error) {
+func (s preparedGenericAPIServer) NonBlockingRun(stopCh <-chan struct{}, shutdownTimeout time.Duration) (<-chan struct{}, <-chan struct{}, error) {
 	// Use an stop channel to allow graceful shutdown without dropping audit events
 	// after http server shutdown.
 	auditStopCh := make(chan struct{})
@@ -448,8 +474,7 @@ func (s preparedGenericAPIServer) NonBlockingRun(stopCh <-chan struct{}) (<-chan
 	var listenerStoppedCh <-chan struct{}
 	if s.SecureServingInfo != nil && s.Handler != nil {
 		var err error
-		klog.V(1).Infof("[graceful-termination] ShutdownTimeout=%s", s.ShutdownTimeout)
-		stoppedCh, listenerStoppedCh, err = s.SecureServingInfo.ServeWithListenerStopped(s.Handler, s.ShutdownTimeout, internalStopCh)
+		stoppedCh, listenerStoppedCh, err = s.SecureServingInfo.ServeWithListenerStopped(s.Handler, shutdownTimeout, internalStopCh)
 		if err != nil {
 			close(internalStopCh)
 			close(auditStopCh)
