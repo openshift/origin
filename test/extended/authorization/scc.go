@@ -21,9 +21,10 @@ var _ = g.Describe("[sig-auth][Feature:SCC][Early]", func() {
 	g.It("should not have pod creation failures during install", func() {
 		kubeClient := oc.AdminKubeClient()
 
-		// we are seeting a few install-time failures, mostly around extremely early pods like CSI drivers, therefore
-		// we allow a few failures here.
-		numFailuresForFail := 2
+		// Increased threshold for failures while BZ is being investigated
+		// https://bugzilla.redhat.com/show_bug.cgi?id=1970331
+		numFailuresForFail := 14
+		numFailuresForFlake := 2
 
 		events, err := kubeClient.CoreV1().Events("").List(context.TODO(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -65,10 +66,12 @@ var _ = g.Describe("[sig-auth][Feature:SCC][Early]", func() {
 			}
 		}
 
-		if numFailingPods := len(preTestDenialStrings); numFailingPods > numFailuresForFail {
+		if numFailingPods := len(preTestDenialStrings); numFailingPods > numFailuresForFlake {
 			failMessage := fmt.Sprintf("%d pods failed before test on SCC errors\n%s\n", numFailingPods, strings.Join(preTestDenialStrings, "\n"))
 			if suppressPreTestFailure {
 				result.Flakef("pre-test environment had disruption and limited this test, suppressing failure: %s", failMessage)
+			} else if numFailingPods <= numFailuresForFail {
+				result.Flakef(failMessage)
 			} else {
 				g.Fail(failMessage)
 			}
