@@ -1,5 +1,4 @@
 reviewers:
-  - ecordell
   - njhale
   - kevinrizza
   - benluddy
@@ -12,7 +11,6 @@ reviewers:
   - joelanford
   - timflannagan
 approvers:
-  - ecordell
   - njhale
   - kevinrizza
   - benluddy
