@@ -72,7 +72,11 @@ var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 		end := time.Now()
 
 		ginkgo.By("Measuring disruption duration time")
-		gomega.Expect(end.Sub(start)).To(gomega.BeNumerically("<", 40*time.Second))
+		disruptionDuration := end.Sub(start)
+		// For more information: https://github.com/openshift/origin/pull/26337/files#r698435488
+		gomega.Expect(disruptionDuration).To(gomega.BeNumerically("<", 40*time.Second),
+			fmt.Sprintf("Total time of disruption is %v which is more than 40 seconds. ", disruptionDuration)+
+				"Actual SLO for this is 60 seconds, yet we want to be notified about major regressions")
 	})
 })
 
