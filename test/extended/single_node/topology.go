@@ -43,7 +43,7 @@ func getNamespaceStatefulSets(f *framework.Framework, namespace corev1.Namespace
 	return list.Items
 }
 
-func getTopologies(f *framework.Framework) (controlPlaneTopology, infraTopology v1.TopologyMode) {
+func GetTopologies(f *framework.Framework) (controlPlaneTopology, infraTopology v1.TopologyMode) {
 	oc := exutil.NewCLIWithFramework(f)
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(),
 		"cluster", metav1.GetOptions{})
@@ -132,7 +132,7 @@ var _ = ginkgo.Describe("[sig-arch] Cluster topology single node tests", func() 
 	f := framework.NewDefaultFramework("single-node")
 
 	ginkgo.It("Verify that OpenShift components deploy one replica in SingleReplica topology mode", func() {
-		controlPlaneTopology, infraTopology := getTopologies(f)
+		controlPlaneTopology, infraTopology := GetTopologies(f)
 
 		if controlPlaneTopology != v1.SingleReplicaTopologyMode && infraTopology != v1.SingleReplicaTopologyMode {
 			e2eskipper.Skipf("Test is only relevant for single replica topologies")
