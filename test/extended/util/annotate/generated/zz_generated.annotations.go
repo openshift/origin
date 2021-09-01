@@ -1241,19 +1241,19 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] Kubectl client Simple pod should handle in-cluster config": "should handle in-cluster config [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes [Slow] running a failing command with --leave-stdin-open": "[Slow] running a failing command with --leave-stdin-open [Flaky] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes [Slow] running a failing command with --leave-stdin-open": "[Slow] running a failing command with --leave-stdin-open [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes [Slow] running a failing command without --restart=Never": "[Slow] running a failing command without --restart=Never [Flaky] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes [Slow] running a failing command without --restart=Never": "[Slow] running a failing command without --restart=Never [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes [Slow] running a failing command without --restart=Never, but with --rm": "[Slow] running a failing command without --restart=Never, but with --rm [Flaky] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes [Slow] running a failing command without --restart=Never, but with --rm": "[Slow] running a failing command without --restart=Never, but with --rm [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes execing into a container with a failing command": "execing into a container with a failing command [Flaky] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes execing into a container with a failing command": "execing into a container with a failing command [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes execing into a container with a successful command": "execing into a container with a successful command [Flaky] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes execing into a container with a successful command": "execing into a container with a successful command [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes running a failing command": "running a failing command [Flaky] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes running a failing command": "running a failing command [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes running a successful command": "running a successful command [Flaky] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes running a successful command": "running a successful command [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-cli] Kubectl client Simple pod should support exec through an HTTP proxy": "should support exec through an HTTP proxy [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
