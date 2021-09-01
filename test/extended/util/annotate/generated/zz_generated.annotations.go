@@ -2605,7 +2605,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-node] [Feature:Example] Secret should create a pod that reads a secret": "should create a pod that reads a secret [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-node] crictl should be able to run crictl on the node": "should be able to run crictl on the node [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-node] crictl should be able to run crictl on the node": "should be able to run crictl on the node [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-node] kubelet Clean up pods on node kubelet should be able to delete 10 pods per node in 1m0s.": "kubelet should be able to delete 10 pods per node in 1m0s. [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
