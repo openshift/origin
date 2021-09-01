@@ -35,6 +35,7 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1988272
 			`\[sig-network\] Networking should provide Internet connection for containers \[Feature:Networking-IPv6\]`,
+			`\[sig-network\] Networking should provider Internet connection for containers using DNS`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1908645
 			`\[sig-network\] Networking Granular Checks: Services should function for service endpoints using hostNetwork`,
@@ -55,14 +56,14 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1989417
 			`\[sig-cli\] oc adm storage-admin`,
 
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1994927
-			`\[sig-network\] Networking should provider Internet connection for containers using DNS`,
-
 			// The new NetworkPolicy test suite is extremely resource
 			// intensive and causes itself and other concurrently-running
 			// tests to be flaky.
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1980141
 			`\[sig-network\] Netpol `,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1996128
+			`\[sig-network\] \[Feature:IPv6DualStack\] should have ipv4 and ipv6 node podCIDRs`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},
@@ -239,7 +240,6 @@ var (
 			// https://jira.coreos.com/browse/SDN-510: OVN-K doesn't support session affinity
 			`\[sig-network\] \[Feature:IPv6DualStack\] Granular Checks: Services Secondary IP Family \[LinuxOnly\] should function for client IP based session affinity: http`,
 			`\[sig-network\] \[Feature:IPv6DualStack\] Granular Checks: Services Secondary IP Family \[LinuxOnly\] should function for client IP based session affinity: udp`,
-			`\[sig-network\] \[Feature:IPv6DualStack\] should have ipv4 and ipv6 node podCIDRs`,
 
 			// ovn-kubernetes does not support named ports
 			`NetworkPolicy.*named port`,

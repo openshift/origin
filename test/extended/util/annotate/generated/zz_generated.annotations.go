@@ -2215,7 +2215,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] [Feature:IPv6DualStack] should have ipv4 and ipv6 internal node ip": "should have ipv4 and ipv6 internal node ip [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] [Feature:IPv6DualStack] should have ipv4 and ipv6 node podCIDRs [LinuxOnly]": "should have ipv4 and ipv6 node podCIDRs [LinuxOnly] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] [Feature:IPv6DualStack] should have ipv4 and ipv6 node podCIDRs [LinuxOnly]": "should have ipv4 and ipv6 node podCIDRs [LinuxOnly] [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-network] [Feature:PerformanceDNS][Serial] Should answer DNS query for maximum number of services per cluster": "Should answer DNS query for maximum number of services per cluster [Slow] [Suite:k8s]",
 
