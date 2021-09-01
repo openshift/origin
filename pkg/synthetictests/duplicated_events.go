@@ -115,6 +115,10 @@ var knownEventsBugs = []knownProblem{
 		Regexp: regexp.MustCompile(`ns/.*unable to ensure pod container exists: failed to create container.*slice already exists.*`),
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1993980",
 	},
+	{
+		Regexp: regexp.MustCompile(`ns/openshift-etcd pod/etcd-quorum-guard-[a-z0-9-]+ node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: `),
+		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2000234",
+	},
 	//{ TODO this should only be skipped for single-node
 	//	name:    "single=node-storage",
 	//  BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1990662
