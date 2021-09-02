@@ -1303,7 +1303,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc adm serviceaccounts": "serviceaccounts [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc adm storage-admin": "storage-admin [Disabled:Broken]",
+	"[Top Level] [sig-cli] oc adm storage-admin": "storage-admin [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc adm ui-project-commands": "ui-project-commands [Suite:openshift/conformance/parallel]",
 
