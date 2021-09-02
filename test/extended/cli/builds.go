@@ -74,7 +74,6 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 		out, err := oc.Run("new-build").Args("--binary").Output()
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("you must provide a --name"))
-		o.Expect(oc.Run("delete").Args("all", "--all").Execute()).NotTo(o.HaveOccurred())
 
 		g.By("build from a binary with inputs creates a binary build")
 		out, err = oc.Run("new-build").Args("--binary", "--name=binary-test").Output()
@@ -82,7 +81,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 		o.Expect(out).To(getExpectedBCOutputMatcher("binary-test", "binary-test"))
 		o.Expect(getBCSourceType(oc, "binary-test")).To(o.Equal("Binary"))
 		o.Expect(getBCOutputType(oc, "binary-test")).To(o.Equal("ImageStreamTag binary-test:latest"))
-		o.Expect(oc.Run("delete").Args("all", "--all").Execute()).NotTo(o.HaveOccurred())
+		o.Expect(oc.Run("delete").Args("bc,is", "--all").Execute()).NotTo(o.HaveOccurred())
 
 		g.By("build from git with output to ImageStreamTag")
 		out, err = oc.Run("new-build").Args("registry.access.redhat.com/ubi8/ruby-27", "https://github.com/openshift/ruby-hello-world.git").Output()
@@ -90,7 +89,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 		o.Expect(out).To(getExpectedBCOutputMatcher("ruby-hello-world", "ruby-hello-world"))
 		o.Expect(getBCSourceType(oc, "ruby-hello-world")).To(o.Equal("Git"))
 		o.Expect(getBCOutputType(oc, "ruby-hello-world")).To(o.Equal("ImageStreamTag ruby-hello-world:latest"))
-		o.Expect(oc.Run("delete").Args("all", "--all").Execute()).NotTo(o.HaveOccurred())
+		o.Expect(oc.Run("delete").Args("bc,is", "--all").Execute()).NotTo(o.HaveOccurred())
 
 		g.By("build from Dockerfile with output to ImageStreamTag")
 		out, err = oc.Run("new-build").Args("--to=tools:custom", "--dockerfile="+testDockerfileContent+"\nRUN yum install -y httpd").Output()
@@ -98,7 +97,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 		o.Expect(out).To(getExpectedBCOutputMatcher("tools", "tools"))
 		o.Expect(getBCSourceType(oc, "tools")).To(o.Equal("Dockerfile"))
 		o.Expect(getBCOutputType(oc, "tools")).To(o.Equal("ImageStreamTag tools:custom"))
-		o.Expect(oc.Run("delete").Args("all", "--all").Execute()).NotTo(o.HaveOccurred())
+		o.Expect(oc.Run("delete").Args("bc,is", "--all").Execute()).NotTo(o.HaveOccurred())
 
 		g.By("build from stdin Dockerfile  to ImageStreamTag")
 		out, err = oc.Run("new-build").Args("-D", "-", "--name=stdintest").InputString(testDockerfileContent).Output()
@@ -106,7 +105,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 		o.Expect(out).To(getExpectedBCOutputMatcher("stdintest", "stdintest", "tools"))
 		o.Expect(getBCSourceType(oc, "stdintest")).To(o.Equal("Dockerfile"))
 		o.Expect(getBCOutputType(oc, "stdintest")).To(o.Equal("ImageStreamTag stdintest:latest"))
-		o.Expect(oc.Run("delete").Args("all", "--all").Execute()).NotTo(o.HaveOccurred())
+		o.Expect(oc.Run("delete").Args("bc,is", "--all").Execute()).NotTo(o.HaveOccurred())
 
 		g.By("build from Dockerfile with output to DockerImage")
 		out, err = oc.Run("new-build").Args("-D", testDockerfileContent, "--to-docker").Output()
@@ -114,7 +113,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 		o.Expect(out).To(getExpectedBCOutputMatcher("tools", "tools"))
 		o.Expect(getBCSourceType(oc, "tools")).To(o.Equal("Dockerfile"))
 		o.Expect(getBCOutputType(oc, "tools")).To(o.Equal("DockerImage tools:latest"))
-		o.Expect(oc.Run("delete").Args("all", "--all").Execute()).NotTo(o.HaveOccurred())
+		o.Expect(oc.Run("delete").Args("bc,is", "--all").Execute()).NotTo(o.HaveOccurred())
 
 		g.By("build from Dockerfile with given output ImageStreamTag spec")
 		out, err = oc.Run("new-build").Args("-D", testDockerfileContent+"\nENV ok=1", "--to", "origin-test:v1.1").Output()
@@ -122,7 +121,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 		o.Expect(out).To(getExpectedBCOutputMatcher("origin-test", "origin-test", "tools"))
 		o.Expect(getBCSourceType(oc, "origin-test")).To(o.Equal("Dockerfile"))
 		o.Expect(getBCOutputType(oc, "origin-test")).To(o.Equal("ImageStreamTag origin-test:v1.1"))
-		o.Expect(oc.Run("delete").Args("all", "--all").Execute()).NotTo(o.HaveOccurred())
+		o.Expect(oc.Run("delete").Args("bc,is", "--all").Execute()).NotTo(o.HaveOccurred())
 
 		g.By("build from Dockerfile with given output DockerImage spec")
 		out, err = oc.Run("new-build").Args("-D", testDockerfileContent+"\nENV ok=1", "--to-docker", "--to", "openshift/origin:v1.1-test").Output()
@@ -130,7 +129,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 		o.Expect(out).To(getExpectedBCOutputMatcher("origin", "tools"))
 		o.Expect(getBCSourceType(oc, "origin")).To(o.Equal("Dockerfile"))
 		o.Expect(getBCOutputType(oc, "origin")).To(o.Equal("DockerImage openshift/origin:v1.1-test"))
-		o.Expect(oc.Run("delete").Args("all", "--all").Execute()).NotTo(o.HaveOccurred())
+		o.Expect(oc.Run("delete").Args("bc,is", "--all").Execute()).NotTo(o.HaveOccurred())
 
 		g.By("build from Dockerfile with custom name and given output ImageStreamTag spec")
 		out, err = oc.Run("new-build").Args("-D", testDockerfileContent+"\nENV ok=1", "--to", "origin-name-test", "--name", "origin-test2").Output()
@@ -138,7 +137,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 		o.Expect(out).To(getExpectedBCOutputMatcher("origin-test2", "origin-name-test"))
 		o.Expect(getBCSourceType(oc, "origin-test2")).To(o.Equal("Dockerfile"))
 		o.Expect(getBCOutputType(oc, "origin-test2")).To(o.Equal("ImageStreamTag origin-name-test:latest"))
-		o.Expect(oc.Run("delete").Args("all", "--all").Execute()).NotTo(o.HaveOccurred())
+		o.Expect(oc.Run("delete").Args("bc,is", "--all").Execute()).NotTo(o.HaveOccurred())
 
 		g.By("build from Dockerfile with no output")
 		out, err = oc.Run("new-build").Args("-D", testDockerfileContent, "--no-output").Output()
@@ -146,7 +145,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 		o.Expect(out).To(getExpectedBCOutputMatcher("tools", "tools"))
 		o.Expect(getBCSourceType(oc, "tools")).To(o.Equal("Dockerfile"))
 		o.Expect(getBCOutputType(oc, "tools")).To(o.Equal(""))
-		o.Expect(oc.Run("delete").Args("all", "--all").Execute()).NotTo(o.HaveOccurred())
+		o.Expect(oc.Run("delete").Args("bc,is", "--all").Execute()).NotTo(o.HaveOccurred())
 
 		g.By("build: ensure output is valid JSON")
 		out, err = oc.Run("new-build").Args("--to=tools:json", "-D", testDockerfileContent, "-o", "json").Output()

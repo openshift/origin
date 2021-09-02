@@ -391,9 +391,9 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("clean up openshift resources for next potential run")
-					err = oc.Run("delete").Args("all", "-l", "app=nodejs-postgresql-example").Execute()
+					err = oc.Run("delete").Args("dc,svc", "postgresql").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					err = oc.Run("delete").Args("secret", "nodejs-postgresql-example").Execute()
+					err = oc.Run("delete").Args("dc,bc,is,svc,secret,route", "nodejs-postgresql-example").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					err = oc.Run("delete").Args("bc", "nodejs-sample-pipeline").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
@@ -571,7 +571,18 @@ var _ = g.Describe("[sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshi
 					buildAndSwitch("blue")
 
 					g.By("clean up openshift resources for next potential run")
-					err = oc.Run("delete").Args("all", "-l", "app=bluegreen-pipeline").Execute()
+
+					err = oc.Run("delete").Args("bc", "bluegreen-pipeline").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.Run("delete").Args("dc,svc", "postgresql").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.Run("delete").Args("bc,is,secret,route", "nodejs-postgresql-example").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.Run("delete").Args("dc,svc", "nodejs-postgresql-example-green").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.Run("delete").Args("dc,svc", "nodejs-postgresql-example-blue").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.Run("delete").Args("route", "green-nodejs-postgresql-example", "blue-nodejs-postgresql-example").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 				})
 
