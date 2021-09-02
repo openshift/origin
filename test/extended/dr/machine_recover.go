@@ -64,7 +64,10 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive
 				controlplane.NewKubeAvailableWithNewConnectionsTest(),
 				controlplane.NewOpenShiftAvailableNewConnectionsTest(),
 				controlplane.NewOAuthAvailableNewConnectionsTest(),
-				&frontends.AvailableTest{},
+				frontends.NewOAuthRouteAvailableWithNewConnectionsTest(),
+				frontends.NewOAuthRouteAvailableWithConnectionReuseTest(),
+				frontends.NewConsoleRouteAvailableWithNewConnectionsTest(),
+				frontends.NewConsoleRouteAvailableWithConnectionReuseTest(),
 			},
 			func() {
 
