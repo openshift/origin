@@ -63,7 +63,7 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should", func() {
 
 		fg := objx.Map(fgObj.UnstructuredContent())
 		featureSet := fg.Get("spec.featureSet").String()
-		isTechPreview := featureSet == "TechPreviewNoUpgrade"
+		isNoUpgrade := featureSet == "TechPreviewNoUpgrade" || featureSet == "CustomNoUpgrade"
 
 		// gate on all clusteroperators being ready
 		g.By("ensuring all cluster operators are stable")
@@ -86,7 +86,7 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should", func() {
 
 				// kube-apiserver blocks upgrades when feature gates are present.
 				// Allow testing of TechPreviewNoUpgrade clusters by ignoring this condition.
-				if isTechPreview && name == "kube-apiserver" && isKubeAPIUpgradableTechPreviewCondition(worstCondition) {
+				if isNoUpgrade && name == "kube-apiserver" && isKubeAPIUpgradableNoUpgradeCondition(worstCondition) {
 					continue
 				}
 
@@ -252,12 +252,13 @@ func surprisingConditions(co objx.Map) ([]configv1.ClusterOperatorStatusConditio
 	return badConditions, missingTypes
 }
 
-// When a TechPreviewNoUpgrade feature set is in force in the cluster, the following condition
+// When a TechPreviewNoUpgrade or CustomNoUpgrades feature set are in force in the cluster, the following condition
 // is set on the kube-apiserver cluster operator
 // Ref: https://github.com/openshift/cluster-kube-apiserver-operator/blob/39a98d67c3b825b9215454a7817ffadb0577609b/pkg/operator/featureupgradablecontroller/feature_upgradeable_controller_test.go#L41-L46
-func isKubeAPIUpgradableTechPreviewCondition(cond configv1.ClusterOperatorStatusCondition) bool {
-	return cond.Reason == "FeatureGates_RestrictedFeatureGates_TechPreviewNoUpgrade" &&
+func isKubeAPIUpgradableNoUpgradeCondition(cond configv1.ClusterOperatorStatusCondition) bool {
+	return (cond.Reason == "FeatureGates_RestrictedFeatureGates_TechPreviewNoUpgrade" ||
+		cond.Reason == "FeatureGates_RestrictedFeatureGates_CustomNoUpgrade") &&
 		cond.Status == "False" &&
 		cond.Type == "Upgradeable" &&
-		cond.Message == "FeatureGatesUpgradeable: \"TechPreviewNoUpgrade\" does not allow updates"
+		cond.Message == "FeatureGatesUpgradeable: \"TechPreviewNoUpgrade\" and \"CustomNoUpgrades\" do not allow updates"
 }
