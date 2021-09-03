@@ -257,7 +257,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			}()
 
 			o.Expect(wait.PollImmediate(10*time.Second, 5*time.Minute, func() (bool, error) {
-				contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", prometheusURL), token)
+				contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets?state=active", prometheusURL), token)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				targets := &promTargets{}
