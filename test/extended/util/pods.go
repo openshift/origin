@@ -26,16 +26,22 @@ const (
 	containerMachineConfigDaemon   = "machine-config-daemon"
 )
 
-// WaitForNoPodsAvailable waits until there are no pods in the
-// given namespace
-func WaitForNoPodsAvailable(oc *CLI) error {
+// WaitForNoPodsRunning waits until there are no (running) pods in the given namespace.
+// (The idling tests use a DeploymentConfig which will leave a "Completed" deploy pod
+// after deploying the service; we don't want to count that.)
+func WaitForNoPodsRunning(oc *CLI) error {
 	return wait.Poll(200*time.Millisecond, 3*time.Minute, func() (bool, error) {
 		pods, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			return false, err
 		}
 
-		return len(pods.Items) == 0, nil
+		for _, pod := range pods.Items {
+			if pod.Status.Phase == corev1.PodRunning {
+				return false, nil
+			}
+		}
+		return true, nil
 	})
 }
 

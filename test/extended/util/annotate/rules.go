@@ -240,6 +240,9 @@ var (
 
 			// ovn-kubernetes does not support internal traffic policy
 			`\[Feature:ServiceInternalTrafficPolicy\]`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1989169: unidling tests are flaky under ovn-kubernetes
+			`Unidling should work with TCP`,
 		},
 		"[Skipped:ibmcloud]": {
 			// skip Gluster tests (not supported on ROKS worker nodes)

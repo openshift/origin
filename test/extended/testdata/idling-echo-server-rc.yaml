@@ -17,12 +17,9 @@ items:
           replicationcontroller: idling-echo
       spec:
         containers:
-        - image: openshift/origin-base
-          name: idling-echo
-          command:
-            - /usr/bin/socat
-            - TCP4-LISTEN:8675,reuseaddr,fork
-            - EXEC:'/bin/cat'
+        - image: k8s.gcr.io/e2e-test-images/agnhost:2.32
+          name: idling-echo-server
+          args: [ "netexec", "--http-port", "8675" ]
           ports:
           - containerPort: 8675
             protocol: TCP

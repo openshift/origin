@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -17,54 +18,17 @@ import (
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+
 	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-const MaxHeldConnections = 16
-
-func tryEchoUDPOnce(ip net.IP, udpPort int, expectedBuff []byte, readTimeout time.Duration) ([]byte, error) {
-	conn, err := net.DialUDP("udp", nil, &net.UDPAddr{IP: ip, Port: udpPort})
-	if err != nil {
-		return nil, fmt.Errorf("unable to connect to service: %v", err)
-	}
-	defer conn.Close()
-
-	var n int
-	if n, err = conn.Write(expectedBuff); err != nil {
-		// It's technically possible to get some errors on write while switching over
-		return nil, nil
-	} else if n != len(expectedBuff) {
-		return nil, fmt.Errorf("unable to write entire %v bytes to UDP echo server socket", len(expectedBuff))
-	}
-
-	if err = conn.SetReadDeadline(time.Now().Add(readTimeout)); err != nil {
-		return nil, fmt.Errorf("unable to set deadline on read from echo server: %v", err)
-	}
-
-	actualBuff := make([]byte, n)
-	var amtRead int
-	amtRead, _, err = conn.ReadFromUDP(actualBuff)
-	if err != nil {
-		return nil, fmt.Errorf("unable to read from UDP echo server: %v", err)
-	} else if amtRead != n {
-		// we should never read back the *wrong* thing
-		return nil, fmt.Errorf("read back incorrect number of bytes from echo server")
-	}
-
-	if string(expectedBuff) != string(actualBuff) {
-		return nil, fmt.Errorf("written contents %q didn't equal read contents %q from echo server: %v", string(expectedBuff), string(actualBuff), err)
-	}
-
-	return actualBuff, nil
-}
-
-func tryEchoUDP(svc *kapiv1.Service) error {
+func tryEchoUDP(svc *kapiv1.Service, execPod *kapiv1.Pod) error {
 	rawIP := svc.Spec.ClusterIP
 	o.Expect(rawIP).NotTo(o.BeEmpty(), "The service should have a cluster IP set")
-	ip := net.ParseIP(rawIP)
-	o.Expect(ip).NotTo(o.BeNil(), "The service should have a valid cluster IP, but %q was not valid", rawIP)
 
 	var udpPort int
 	for _, port := range svc.Spec.Ports {
@@ -75,62 +39,52 @@ func tryEchoUDP(svc *kapiv1.Service) error {
 	}
 	o.Expect(udpPort).NotTo(o.Equal(0), "The service should have a UDP port exposed")
 
-	// For UDP, we just drop packets on the floor rather than queue them up
-	readTimeout := 5 * time.Second
+	// NB: netexec's UDP echo test lowercasifies the input string, so we just pass
+	// an all-lowercase string for simplicity.
+	expected := "it is time to udp."
 
-	expectedBuff := []byte("It's time to UDP!\n")
-	o.Eventually(func() ([]byte, error) { return tryEchoUDPOnce(ip, udpPort, expectedBuff, readTimeout) }, 2*time.Minute, readTimeout).Should(o.Equal(expectedBuff))
+	// For UDP, we just drop packets on the floor rather than queue them up
+	// so use a shorter timeout
+	readTimeout := 5 * time.Second
+	cmd := fmt.Sprintf("echo -n \"echo %s\" | nc -w 5 -u %s %d", expected, rawIP, udpPort)
+
+	o.Eventually(func() (string, error) {
+		return e2e.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
+	}, 2*time.Minute, readTimeout).Should(o.Equal(expected))
 
 	return nil
 }
 
-func tryEchoTCP(svc *kapiv1.Service) error {
+func tryEchoHTTP(svc *kapiv1.Service, execPod *kapiv1.Pod) error {
 	rawIP := svc.Spec.ClusterIP
 	if rawIP == "" {
 		return fmt.Errorf("no ClusterIP specified on service %s", svc.Name)
 	}
-	ip := net.ParseIP(rawIP)
 
-	var tcpPort int
+	var tcpPort string
 	for _, port := range svc.Spec.Ports {
 		if port.Protocol == "TCP" {
-			tcpPort = int(port.Port)
+			tcpPort = fmt.Sprintf("%d", port.Port)
 			break
 		}
 	}
 
-	if tcpPort == 0 {
+	if tcpPort == "" {
 		return fmt.Errorf("Unable to find any TCP ports on service %s", svc.Name)
 	}
 
-	conn, err := net.DialTCP("tcp", nil, &net.TCPAddr{IP: ip, Port: tcpPort})
+	expected := "It is time to TCP."
+	cmd := fmt.Sprintf("curl --max-time 120 -s -g http://%s/echo?msg=%s",
+		net.JoinHostPort(rawIP, tcpPort),
+		url.QueryEscape(expected),
+	)
+	out, err := e2e.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
 	if err != nil {
-		return fmt.Errorf("unable to connect to service %s: %v", svc.Name, err)
+		return fmt.Errorf("exec failed: %v\noutput: %s", err, out)
 	}
 
-	if err = conn.SetDeadline(time.Now().Add(2 * time.Minute)); err != nil {
-		return fmt.Errorf("unable to set timeout on TCP connection to service %s: %v", svc.Name, err)
-	}
-
-	expectedBuff := []byte("It's time to TCP!\n")
-	var n int
-	if n, err = conn.Write(expectedBuff); err != nil {
-		return fmt.Errorf("unable to write data to echo server for service %s: %v", svc.Name, err)
-	} else if n != len(expectedBuff) {
-		return fmt.Errorf("unable to write all data to echo server for service %s", svc.Name)
-	}
-
-	actualBuff := make([]byte, n)
-	var amtRead int
-	amtRead, err = conn.Read(actualBuff)
-	if err != nil {
-		return fmt.Errorf("unable to read data from echo server for service %s: %v", svc.Name, err)
-	} else if amtRead != n {
-		return fmt.Errorf("unable to read all data written from echo server for service %s: %v", svc.Name, err)
-	}
-
-	if string(expectedBuff) != string(actualBuff) {
-		return fmt.Errorf("written contents %q didn't equal read contents %q from echo server for service %s: %v", string(expectedBuff), string(actualBuff), svc.Name, err)
+	if out != expected {
+		return fmt.Errorf("written contents %q didn't equal read contents %q from echo server for service %s: %v", string(expected), string(out), svc.Name, err)
 	}
 
 	return nil
@@ -204,13 +158,19 @@ func checkSingleIdle(oc *exutil.CLI, idlingFile string, resources map[string][]s
 	}))
 }
 
-var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", func() {
+var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                  = exutil.NewCLI("cli-idling").Verbose()
 		echoServerFixture   = exutil.FixturePath("testdata", "idling-echo-server.yaml")
 		echoServerRcFixture = exutil.FixturePath("testdata", "idling-echo-server-rc.yaml")
 		framework           = oc.KubeFramework()
+	)
+
+	const (
+		connectionsToStart       = 20
+		numExecPods              = 5
+		minSuccessfulConnections = 16
 	)
 
 	// path to the fixture
@@ -254,7 +214,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 		os.Remove(idlingFile)
 	})
 
-	g.Describe("idling [Local]", func() {
+	g.Describe("Idling", func() {
 		g.Context("with a single service and DeploymentConfig", func() {
 			g.BeforeEach(func() {
 				framework.BeforeEach()
@@ -278,19 +238,19 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 		})
 	})
 
-	g.Describe("unidling", func() {
+	g.Describe("Unidling", func() {
 		g.BeforeEach(func() {
 			framework.BeforeEach()
 			fixture = echoServerFixture
 		})
 
-		g.It("should work with TCP (when fully idled) [Local]", func() {
+		g.It("should work with TCP (when fully idled)", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting for the pods to have terminated")
-			err = exutil.WaitForNoPodsAvailable(oc)
+			err = exutil.WaitForNoPodsRunning(oc)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Connecting to the service IP and checking the echo")
@@ -298,7 +258,8 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
-			err = tryEchoTCP(svc)
+			execPod := e2epod.CreateExecPodOrFail(framework.ClientSet, framework.Namespace.Name, "execpod", nil)
+			err = tryEchoHTTP(svc, execPod)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting until we have endpoints")
@@ -313,7 +274,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 		})
 
-		g.It("should work with TCP (while idling) [Local]", func() {
+		g.It("should work with TCP (while idling)", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -323,7 +284,8 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
-			o.Consistently(func() error { return tryEchoTCP(svc) }, 10*time.Second, 500*time.Millisecond).ShouldNot(o.HaveOccurred())
+			execPod := e2epod.CreateExecPodOrFail(framework.ClientSet, framework.Namespace.Name, "execpod", nil)
+			o.Consistently(func() error { return tryEchoHTTP(svc, execPod) }, 10*time.Second, 500*time.Millisecond).ShouldNot(o.HaveOccurred())
 
 			g.By("Waiting until we have endpoints")
 			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
@@ -337,46 +299,51 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 		})
 
-		g.It("should handle many TCP connections by dropping those under a certain bound [Local]", func() {
+		// This is [Serial] because we really want to spam the service, and that
+		// seems to disrupt the cluster if we do it in the parallel suite.
+		g.It("should handle many TCP connections by possibly dropping those over a certain bound [Serial]", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting for the pods to have terminated")
 			serviceName := resources["service"][0]
-			err = exutil.WaitForNoPodsAvailable(oc)
+			err = exutil.WaitForNoPodsRunning(oc)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Connecting to the service IP many times and checking the echo")
 			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
-			connectionsToStart := 100
+			var execPods [numExecPods]*kapiv1.Pod
+			for i := range execPods {
+				execPods[i] = e2epod.CreateExecPodOrFail(framework.ClientSet, framework.Namespace.Name, fmt.Sprintf("execpod-%d", i+1), nil)
+			}
 
 			errors := make([]error, connectionsToStart)
 			var connWG sync.WaitGroup
-			// spawn many connections
+			// spawn many connections over a span of 1 second
 			for i := 0; i < connectionsToStart; i++ {
 				connWG.Add(1)
 				go func(ind int) {
+					defer g.GinkgoRecover()
 					defer connWG.Done()
-					err = tryEchoTCP(svc)
+					time.Sleep(time.Duration(ind) * (time.Second / connectionsToStart))
+					err = tryEchoHTTP(svc, execPods[ind%numExecPods])
 					errors[ind] = err
 				}(i)
 			}
 
 			connWG.Wait()
 
-			maxHeldConnections := 16
-
-			g.By(fmt.Sprintf("Expecting all but %v of those connections to fail", maxHeldConnections))
-			errCount := 0
+			g.By(fmt.Sprintf("Expecting at least %d of those connections to succeed", minSuccessfulConnections))
+			successCount := 0
 			for _, err := range errors {
-				if err != nil {
-					errCount++
+				if err == nil {
+					successCount++
 				}
 			}
-			o.Expect(errCount).To(o.Equal(connectionsToStart - 16))
+			o.Expect(successCount).To(o.BeNumerically(">=", minSuccessfulConnections))
 
 			g.By("Waiting until we have endpoints")
 			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
@@ -389,13 +356,13 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 		})
 
-		g.It("should work with UDP [Local]", func() {
+		g.It("should work with UDP", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting for the pods to have terminated")
-			err = exutil.WaitForNoPodsAvailable(oc)
+			err = exutil.WaitForNoPodsRunning(oc)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Connecting to the service IP and checking the echo")
@@ -403,7 +370,8 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
-			err = tryEchoUDP(svc)
+			execPod := e2epod.CreateExecPodOrFail(framework.ClientSet, framework.Namespace.Name, "execpod", nil)
+			err = tryEchoUDP(svc, execPod)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting until we have endpoints")
@@ -418,14 +386,15 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 		})
 
-		// TODO: Work out how to make this test work correctly when run on AWS
-		g.XIt("should handle many UDP senders (by continuing to drop all packets on the floor) [Local]", func() {
+		// This is [Serial] because we really want to spam the service, and that
+		// seems to disrupt the cluster if we do it in the parallel suite.
+		g.It("should handle many UDP senders (by continuing to drop all packets on the floor) [Serial]", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting for the pods to have terminated")
-			err = exutil.WaitForNoPodsAvailable(oc)
+			err = exutil.WaitForNoPodsRunning(oc)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Connecting to the service IP many times and checking the echo")
@@ -433,16 +402,21 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling] Idling and unidling", fun
 			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
-			connectionsToStart := 100
+			var execPods [numExecPods]*kapiv1.Pod
+			for i := range execPods {
+				execPods[i] = e2epod.CreateExecPodOrFail(framework.ClientSet, framework.Namespace.Name, fmt.Sprintf("execpod-%d", i+1), nil)
+			}
+
 			errors := make([]error, connectionsToStart)
 			var connWG sync.WaitGroup
-			// spawn many connectors
+			// spawn many connections over a span of 1 second
 			for i := 0; i < connectionsToStart; i++ {
 				connWG.Add(1)
 				go func(ind int) {
 					defer g.GinkgoRecover()
 					defer connWG.Done()
-					err = tryEchoUDP(svc)
+					time.Sleep(time.Duration(ind) * (time.Second / connectionsToStart))
+					err = tryEchoUDP(svc, execPods[ind%numExecPods])
 					errors[ind] = err
 				}(i)
 			}
