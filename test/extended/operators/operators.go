@@ -259,6 +259,5 @@ func isKubeAPIUpgradableNoUpgradeCondition(cond configv1.ClusterOperatorStatusCo
 	return (cond.Reason == "FeatureGates_RestrictedFeatureGates_TechPreviewNoUpgrade" ||
 		cond.Reason == "FeatureGates_RestrictedFeatureGates_CustomNoUpgrade") &&
 		cond.Status == "False" &&
-		cond.Type == "Upgradeable" &&
-		cond.Message == "FeatureGatesUpgradeable: \"TechPreviewNoUpgrade\" and \"CustomNoUpgrades\" do not allow updates"
+		cond.Type == "Upgradeable"
 }
