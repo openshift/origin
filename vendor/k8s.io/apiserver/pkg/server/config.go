@@ -492,6 +492,11 @@ func (c *Config) AddPostStartHookOrDie(name string, hook PostStartHookFunc) {
 	}
 }
 
+// HasBeenReadySignal exposes a server's lifecycle signal which is signaled when the readyz endpoint succeeds for the first time.
+func (c *Config) HasBeenReadySignal() <-chan struct{} {
+	return c.lifecycleSignals.HasBeenReady.Signaled()
+}
+
 // shouldAddWithRetryAfterFilter returns an appropriate ShouldRespondWithRetryAfterFunc
 // if the apiserver should respond with a Retry-After response header based on option
 // 'shutdown-send-retry-after' or 'startup-send-retry-after-until-ready'.
@@ -924,6 +929,7 @@ func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 	if shouldRespondWithRetryAfterFn := c.shouldAddWithRetryAfterFilter(); shouldRespondWithRetryAfterFn != nil {
 		handler = genericfilters.WithRetryAfter(handler, shouldRespondWithRetryAfterFn)
 	}
+	handler = genericfilters.WithOptInRetryAfter(handler, c.newNotReadyRetryAfterFunc())
 	handler = genericfilters.WithHTTPLogging(handler, c.newIsTerminatingFunc())
 	if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.APIServerTracing) {
 		handler = genericapifilters.WithTracing(handler, c.TracerProvider)

@@ -30,7 +30,8 @@ func ApplyMutatingWebhookConfiguration(ctx context.Context, client admissionregi
 
 	existing, err := client.MutatingWebhookConfigurations().Get(ctx, required.GetName(), metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.MutatingWebhookConfigurations().Create(ctx, required, metav1.CreateOptions{})
+		actual, err := client.MutatingWebhookConfigurations().Create(
+			ctx, resourcemerge.WithCleanLabelsAndAnnotations(required).(*admissionregistrationv1.MutatingWebhookConfiguration), metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		if err != nil {
 			return nil, false, err
@@ -92,7 +93,8 @@ func ApplyValidatingWebhookConfiguration(ctx context.Context, client admissionre
 
 	existing, err := client.ValidatingWebhookConfigurations().Get(ctx, required.GetName(), metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.ValidatingWebhookConfigurations().Create(ctx, required, metav1.CreateOptions{})
+		actual, err := client.ValidatingWebhookConfigurations().Create(
+			ctx, resourcemerge.WithCleanLabelsAndAnnotations(required).(*admissionregistrationv1.ValidatingWebhookConfiguration), metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		if err != nil {
 			return nil, false, err
