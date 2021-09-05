@@ -204,6 +204,8 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 					fileName := filepath.Base(path)
 					if (strings.Contains(fileName, "-termination-") && strings.HasSuffix(fileName, ".log.gz")) ||
 						strings.HasSuffix(fileName, "termination.log.gz") ||
+						(strings.Contains(fileName, "-startup-") && strings.HasSuffix(fileName, ".log.gz")) ||
+						strings.HasSuffix(fileName, "startup.log.gz") ||
 						fileName == ".lock" ||
 						fileName == "lock.log" {
 						// these are expected, but have unstructured log format
