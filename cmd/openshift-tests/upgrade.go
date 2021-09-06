@@ -16,6 +16,13 @@ import (
 	"k8s.io/kubernetes/test/e2e/upgrades"
 )
 
+func isStandardEarlyUpgradeTest(name string) bool {
+	if isStandardEarlyTest(name) && !strings.Contains(name, "during install") {
+		return true
+	}
+	return false
+}
+
 // upgradeSuites are all known upgade test suites this binary should run
 var upgradeSuites = testSuites{
 	{
@@ -25,7 +32,7 @@ var upgradeSuites = testSuites{
 		Run all tests.
 		`),
 			Matches: func(name string) bool {
-				if isStandardEarlyTest(name) {
+				if isStandardEarlyUpgradeTest(name) {
 					return true
 				}
 				return strings.Contains(name, "[Feature:ClusterUpgrade]") && !strings.Contains(name, "[Suite:k8s]")
@@ -42,7 +49,7 @@ var upgradeSuites = testSuites{
 		Run only the tests that verify the platform remains available.
 		`),
 			Matches: func(name string) bool {
-				if isStandardEarlyTest(name) {
+				if isStandardEarlyUpgradeTest(name) {
 					return true
 				}
 				return strings.Contains(name, "[Feature:ClusterUpgrade]") && !strings.Contains(name, "[Suite:k8s]")
@@ -59,7 +66,7 @@ var upgradeSuites = testSuites{
 	Don't run disruption tests.
 		`),
 			Matches: func(name string) bool {
-				if isStandardEarlyTest(name) {
+				if isStandardEarlyUpgradeTest(name) {
 					return true
 				}
 				return strings.Contains(name, "[Feature:ClusterUpgrade]") && !strings.Contains(name, "[Suite:k8s]")
