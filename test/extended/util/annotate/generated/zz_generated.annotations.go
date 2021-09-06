@@ -2261,6 +2261,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] services when using OpenshiftSDN in a mode that isolates namespaces by default should prevent connections to pods in different namespaces on the same node via service IPs": "should prevent connections to pods in different namespaces on the same node via service IPs [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-network][Feature:Multus] should use multus to create net1 device from network-attachment-definition": "should use multus to create net1 device from network-attachment-definition [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-network][Feature:Network Policy Audit logging] when using openshift ovn-kubernetes should ensure acl logs are created and correct": "should ensure acl logs are created and correct [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network][Feature:Router] The HAProxy router converges when multiple routers are writing conflicting status": "converges when multiple routers are writing conflicting status [Suite:openshift/conformance/parallel]",
