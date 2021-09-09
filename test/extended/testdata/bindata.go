@@ -49714,13 +49714,28 @@ objects:
 - apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
+    name: grpc-interop-h2c
+    labels:
+      type: ${TYPE}
+  spec:
+    host: grpc-interop-h2c.${DOMAIN}
+    port:
+      targetPort: 1110
+    to:
+      kind: Service
+      name: grpc-interop
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
     name: grpc-interop-edge
     labels:
       type: ${TYPE}
   spec:
     host: grpc-interop-edge.${DOMAIN}
     port:
-      targetPort: 8443
+      targetPort: 1110
     tls:
       termination: edge
       insecureEdgeTerminationPolicy: Redirect
@@ -49805,10 +49820,15 @@ objects:
     selector:
       app: grpc-interop
     ports:
-      - port: 8443
-        name: https
-        targetPort: 8443
-        protocol: TCP
+    - appProtocol: h2c
+      name: h2c
+      port: 1110
+      protocol: TCP
+      targetPort: 1110
+    - name: https
+      port: 8443
+      protocol: TCP
+      targetPort: 8443
 - apiVersion: v1
   kind: Pod
   metadata:
@@ -49821,7 +49841,11 @@ objects:
       name: server
       command: ["ingress-operator", "serve-grpc-test-server"]
       ports:
+      - containerPort: 1110
+        name: h2c
+        protocol: TCP
       - containerPort: 8443
+        name: https
         protocol: TCP
       volumeMounts:
       - mountPath: /etc/serving-cert

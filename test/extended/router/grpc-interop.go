@@ -135,15 +135,11 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			}
 
 			for _, routeType := range []routev1.TLSTerminationType{
+				"h2c",
 				routev1.TLSTerminationEdge,
 				routev1.TLSTerminationReencrypt,
 				routev1.TLSTerminationPassthrough,
 			} {
-				if routeType == routev1.TLSTerminationEdge {
-					e2e.Logf("skipping %v tests - needs https://github.com/openshift/router/pull/104", routeType)
-					continue
-				}
-
 				var addrs []string
 
 				if len(shardService.Status.LoadBalancer.Ingress[0].Hostname) > 0 {
@@ -180,6 +176,11 @@ func grpcExecTestCases(oc *exutil.CLI, routeType routev1.TLSTerminationType, tim
 		Port:     443,
 		UseTLS:   true,
 		Insecure: true,
+	}
+
+	if routeType == "h2c" {
+		dialParams.Port = 80
+		dialParams.UseTLS = false
 	}
 
 	for _, name := range testCases {
