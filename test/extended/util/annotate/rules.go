@@ -95,6 +95,16 @@ var (
 			`\[sig-builds\]\[Feature:Builds\]\[timing\] capture build stages and durations  should record build stages and durations for docker`,
 			`\[sig-builds\]\[Feature:Builds\]\[timing\] capture build stages and durations  should record build stages and durations for s2i`,
 			`\[sig-builds\]\[Feature:Builds\]\[valueFrom\] process valueFrom in build strategy environment variables  should successfully resolve valueFrom in s2i build environment variables`,
+			`\[sig-cli\] oc debug ensure it works with image streams`,
+			`\[sig-devex\] check registry.redhat.io is available and samples operator can import sample imagestreams run sample related validations`,
+			`\[sig-devex\]\[Feature:Templates\] templateinstance readiness test  should report failed soon after an annotated objects has failed`,
+			`\[sig-devex\]\[Feature:Templates\] templateinstance readiness test  should report ready soon after all annotated objects are ready`,
+			`\[sig-operator\] an end user can use OLM can subscribe to the operator`,
+			`\[sig-network\] Networking should provide Internet connection for containers`,
+
+			// Need to access non-cached images like ruby and mongodb
+			`\[sig-apps\]\[Feature:DeploymentConfig\] deploymentconfigs with multiple image change triggers should run a successful deployment with a trigger used by different containers`,
+			`\[sig-apps\]\[Feature:DeploymentConfig\] deploymentconfigs with multiple image change triggers should run a successful deployment with multiple triggers`,
 
 			// ICSP
 			`\[sig-apps\]\[Feature:DeploymentConfig\] deploymentconfigs  should adhere to Three Laws of Controllers`,
