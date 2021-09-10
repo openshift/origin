@@ -102,6 +102,10 @@ func (f *FakeMounter) Mount(source string, target string, fstype string, options
 	return nil
 }
 
+func (f *FakeMounter) MountWithFlags(source string, target string, fstype string, options []string, mountFlags []string) error {
+	return f.Mount(source, target, fstype, options)
+}
+
 func (f *FakeMounter) Unmount(target string) error {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()

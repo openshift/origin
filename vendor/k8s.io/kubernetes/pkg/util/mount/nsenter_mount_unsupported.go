@@ -37,6 +37,10 @@ func (*NsenterMounter) Mount(source string, target string, fstype string, option
 	return nil
 }
 
+func (*NsenterMounter) MountWithFlags(source string, target string, fstype string, options []string, mountFlags []string) error {
+	return nil
+}
+
 func (*NsenterMounter) Unmount(target string) error {
 	return nil
 }

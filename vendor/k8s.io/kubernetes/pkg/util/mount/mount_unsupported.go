@@ -42,6 +42,10 @@ func (mounter *Mounter) Mount(source string, target string, fstype string, optio
 	return unsupportedErr
 }
 
+func (mounter *Mounter) MountWithFlags(source string, target string, fstype string, options []string, mountFlags []string) error {
+	return unsupportedErr
+}
+
 func (mounter *Mounter) Unmount(target string) error {
 	return unsupportedErr
 }

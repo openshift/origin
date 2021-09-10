@@ -110,6 +110,12 @@ func (fm *fakeMounter) Mount(source string, target string, fstype string, option
 	return fmt.Errorf("Unexpected wrapped mount call")
 }
 
+func (fm *fakeMounter) MountWithFlags(source string, target string, fstype string, options []string, mountFlags []string) error {
+	// Mount() of wrapped mounter should never be called. We call exec instead.
+	fm.t.Errorf("Unexpected wrapped mount call")
+	return fmt.Errorf("Unexpected wrapped mount call")
+}
+
 func (fm *fakeMounter) Unmount(target string) error {
 	// umount() of wrapped mounter should never be called. We call exec instead.
 	fm.t.Errorf("Unexpected wrapped mount call")

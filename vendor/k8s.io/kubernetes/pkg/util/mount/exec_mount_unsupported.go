@@ -35,6 +35,10 @@ func (mounter *execMounter) Mount(source string, target string, fstype string, o
 	return nil
 }
 
+func (mounter *execMounter) MountWithFlags(source string, target string, fstype string, options []string, mountFlags []string) error {
+	return nil
+}
+
 func (mounter *execMounter) Unmount(target string) error {
 	return nil
 }

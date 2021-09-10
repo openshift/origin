@@ -74,6 +74,10 @@ func (n *NsenterMounter) Mount(source string, target string, fstype string, opti
 	return n.doNsenterMount(source, target, fstype, options)
 }
 
+func (n *NsenterMounter) MountWithFlags(source string, target string, fstype string, options []string, mountFlags []string) error {
+	return n.Mount(source, target, fstype, options)
+}
+
 // doNsenterMount nsenters the host's mount namespace and performs the
 // requested mount.
 func (n *NsenterMounter) doNsenterMount(source, target, fstype string, options []string) error {
@@ -90,7 +94,7 @@ func (n *NsenterMounter) doNsenterMount(source, target, fstype string, options [
 // requested mount.
 func (n *NsenterMounter) makeNsenterArgs(source, target, fstype string, options []string) (string, []string) {
 	mountCmd := n.ne.AbsHostPath("mount")
-	mountArgs := makeMountArgs(source, target, fstype, options)
+	mountArgs := makeMountArgs(source, target, fstype, options, nil)
 
 	if systemdRunPath, hasSystemd := n.ne.SupportsSystemd(); hasSystemd {
 		// Complete command line:

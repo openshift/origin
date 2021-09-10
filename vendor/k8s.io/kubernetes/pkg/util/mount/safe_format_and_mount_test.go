@@ -41,6 +41,10 @@ func (mounter *ErrorMounter) Mount(source string, target string, fstype string, 
 	return mounter.FakeMounter.Mount(source, target, fstype, options)
 }
 
+func (mounter *ErrorMounter) MountWithFlags(source string, target string, fstype string, options []string, mountFlags []string) error {
+	return mounter.Mount(source, target, fstype, options)
+}
+
 type ExecArgs struct {
 	command string
 	args    []string

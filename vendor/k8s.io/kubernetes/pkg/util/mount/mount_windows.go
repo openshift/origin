@@ -103,6 +103,10 @@ func (mounter *Mounter) Mount(source string, target string, fstype string, optio
 	return nil
 }
 
+func (mounter *Mounter) MountWithFlags(source string, target string, fstype string, options []string, mountFlags []string) error {
+	return mounter.Mount(source, target, fstype, options)
+}
+
 // Unmount unmounts the target.
 func (mounter *Mounter) Unmount(target string) error {
 	glog.V(4).Infof("azureMount: Unmount target (%q)", target)
