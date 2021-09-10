@@ -153,7 +153,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					o.Expect(err).NotTo(o.HaveOccurred())
 					g.By(fmt.Sprintf("verifying the build output is verbose"))
 					o.Expect(buildLog).To(o.ContainSubstring("Creating a new S2I builder"))
-					o.Expect(buildLog).To(o.ContainSubstring("openshift-builder v"))
+					o.Expect(buildLog).To(o.MatchRegexp("openshift-builder [1-9v]"))
 					// Bug 1694871: logging before flag.Parse error
 					g.By(fmt.Sprintf("verifying the build output has no error about flag.Parse"))
 					o.Expect(buildLog).NotTo(o.ContainSubstring("ERROR: logging before flag.Parse"))
@@ -168,7 +168,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					o.Expect(err).NotTo(o.HaveOccurred())
 					g.By(fmt.Sprintf("verifying the build output is not verbose"))
 					o.Expect(buildLog).NotTo(o.ContainSubstring("Creating a new S2I builder"))
-					o.Expect(buildLog).NotTo(o.ContainSubstring("openshift-builder v"))
+					o.Expect(buildLog).NotTo(o.MatchRegexp("openshift-builder [1-9v]"))
 				})
 
 			})
