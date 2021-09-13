@@ -255,14 +255,6 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 					g.By("get build console logs and see if succeeded")
 					_, err = j.GetJobConsoleLogsAndMatchViaBuildResult(brservices, "Finished: SUCCESS")
 					o.Expect(err).NotTo(o.HaveOccurred())
-					g.By("clean up openshift resources for next potential run")
-					err = oc.Run("delete").Args("bc", verifyServiceBuildConfig).Execute()
-					o.Expect(err).NotTo(o.HaveOccurred())
-					err = oc.Run("delete").Args("dc", redisAppName).Execute()
-					o.Expect(err).NotTo(o.HaveOccurred())
-					err = oc.AsAdmin().Run("delete").Args("all", "-l", fmt.Sprintf("app=%v", redisAppName)).Execute()
-					o.Expect(err).NotTo(o.HaveOccurred())
-
 				})
 
 			})
@@ -305,15 +297,9 @@ var _ = g.Describe("[sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slo
 					o.Expect(err).To(o.HaveOccurred())
 
 					g.By("clean up openshift resources for next potential run")
-					// doing this as admin to avoid errors like this:
-					// Dec 14 13:13:02.275: INFO: Error running &{/usr/bin/oc [oc delete --config=/tmp/configfile590595709 --namespace=e2e-test-jenkins-pipeline-2z82q all -l template=mariadb-ephemeral-template] []   replicationcontroller "mariadb-1" deleted
-					// service "mariadb" deleted
-					// deploymentconfig.apps.openshift.io "mariadb" deleted
-					// Error from server (Forbidden): clusterserviceversions.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list clusterserviceversions.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
-					// Error from server (Forbidden): catalogsources.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list catalogsources.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
-					// Error from server (Forbidden): installplans.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list installplans.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
-					// Error from server (Forbidden): subscriptions.operators.coreos.com is forbidden: User "e2e-test-jenkins-pipeline-2z82q-user" cannot list subscriptions.operators.coreos.com in the namespace "e2e-test-jenkins-pipeline-2z82q": no RBAC policy matched
-					err = oc.AsAdmin().Run("delete").Args("all", "-l", "app=jenkins-pipeline-example").Execute()
+					err = oc.Run("delete").Args("dc,svc", "postgresql").Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = oc.Run("delete").Args("dc,bc,is,svc,secret,route", "nodejs-postgresql-example").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 				})
 

@@ -450,8 +450,6 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		out, err = ocns.Run("adm", "build-chain").Args("ruby-27", "-o", "dot").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring(`digraph "ruby-27:latest"`))
-
-		ocns.Run("delete").Args("all", "-l", "build=sti").Execute()
 	})
 
 	g.It("serviceaccounts", func() {
