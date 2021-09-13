@@ -225,8 +225,9 @@ var _ = g.Describe("[sig-cli][Slow] can use rsync to upload files to pods", func
 					fmt.Sprintf("%s:/tmp/image-streams/", podName),
 					tempDir,
 					fmt.Sprintf("--strategy=%s", strategy)).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By(fmt.Sprintf("Verifying that files were copied to the local directory"))
+				g.By("Verifying that files were copied to the local directory")
 				files, err := ioutil.ReadDir(tempDir)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				found := false
@@ -249,7 +250,7 @@ var _ = g.Describe("[sig-cli][Slow] can use rsync to upload files to pods", func
 					tempDir,
 					"--delete",
 					fmt.Sprintf("--strategy=%s", strategy)).Execute()
-				g.By(fmt.Sprintf("Verifying that the expected files are in the local directory"))
+				g.By("Verifying that the expected files are in the local directory")
 				o.Expect(err).NotTo(o.HaveOccurred())
 				// After the copy with --delete, the file with 'modifiedName' should have been deleted
 				// and the file with 'originalName' should have been restored.
@@ -264,6 +265,8 @@ var _ = g.Describe("[sig-cli][Slow] can use rsync to upload files to pods", func
 						foundModified = true
 					}
 				}
+				o.Expect(err).NotTo(o.HaveOccurred())
+
 				g.By("Verifying original file is in the local directory")
 				o.Expect(foundOriginal).To(o.BeTrue())
 
@@ -271,10 +274,10 @@ var _ = g.Describe("[sig-cli][Slow] can use rsync to upload files to pods", func
 				o.Expect(foundModified).To(o.BeFalse())
 
 				g.By("Getting an error if copying to a destination directory where there is no write permission")
-				result, err = oc.Run("rsync").Args(
+				err = oc.Run("rsync").Args(
 					sourcePath1,
 					fmt.Sprintf("%s:/", podName),
-					fmt.Sprintf("--strategy=%s", strategy)).Output()
+					fmt.Sprintf("--strategy=%s", strategy)).Execute()
 				o.Expect(err).To(o.HaveOccurred())
 			}
 		}
