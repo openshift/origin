@@ -185,7 +185,6 @@
 // test/extended/testdata/cmd/hack/lib/util/misc.sh
 // test/extended/testdata/cmd/hack/lib/util/text.sh
 // test/extended/testdata/cmd/hack/lib/util/trap.sh
-// test/extended/testdata/cmd/test/cmd/annotations.sh
 // test/extended/testdata/cmd/test/cmd/apiresources.sh
 // test/extended/testdata/cmd/test/cmd/authentication.sh
 // test/extended/testdata/cmd/test/cmd/basicresources.sh
@@ -231,9 +230,7 @@
 // test/extended/testdata/cmd/test/cmd/testdata/idling-svc-route.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/image-streams/image-streams-centos7.json
 // test/extended/testdata/cmd/test/cmd/testdata/jenkins/jenkins-ephemeral-template.json
-// test/extended/testdata/cmd/test/cmd/testdata/mixed-api-versions.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/modified-ruby-imagestream.json
-// test/extended/testdata/cmd/test/cmd/testdata/multiport-service.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/new-app/bc-from-imagestreamimage.json
 // test/extended/testdata/cmd/test/cmd/testdata/new-app/build-arg-dockerfile/Dockerfile
 // test/extended/testdata/cmd/test/cmd/testdata/new-app/circular-is.yaml
@@ -250,7 +247,6 @@
 // test/extended/testdata/cmd/test/cmd/testdata/new-app/template_multiple_resource_gvs.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/new-app/test-cmd-newapp-env.env
 // test/extended/testdata/cmd/test/cmd/testdata/new-app/test-cmd-newapp-params.env
-// test/extended/testdata/cmd/test/cmd/testdata/oauthaccesstoken.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/old-template.json
 // test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/json-no-extension-in-directory
 // test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/json-with-extension.json
@@ -28664,51 +28660,6 @@ func testExtendedTestdataCmdHackLibUtilTrapSh() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdAnnotationsSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-# Cleanup cluster resources created by this test
-(
-  set +e
-  oc delete all,templates --all
-  exit 0
-) &>/dev/null
-
-
-os::test::junit::declare_suite_start "cmd/annotate"
-# This test validates empty values in key-value pairs set by the annotate command
-os::cmd::expect_success_and_text 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json' 'pod/hello-openshift created'
-os::cmd::expect_success_and_text 'oc annotate pod hello-openshift node-selector=""' 'pod/hello-openshift annotated'
-os::cmd::expect_success_and_not_text 'oc get pod hello-openshift --template="{{index .metadata.annotations \"node-selector\"}}"' '.'
-
-echo "annotate: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/label"
-# This test validates empty values in key-value pairs set by the label command
-os::cmd::expect_success_and_text 'oc label pod hello-openshift label2=""' 'pod/hello-openshift labeled'
-os::cmd::expect_success_and_not_text 'oc get pod hello-openshift --template="{{.metadata.labels.label2}}"' '.'
-
-echo "label: ok"
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdAnnotationsShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdAnnotationsSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdAnnotationsSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdAnnotationsShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/annotations.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdApiresourcesSh = []byte(`#!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
@@ -28915,23 +28866,6 @@ os::test::junit::declare_suite_start "cmd/basicresources/versionreporting"
 #echo "version reporting: ok"
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_start "cmd/basicresources/status"
-os::cmd::expect_success_and_text 'oc status -h' 'oc describe buildconfig'
-os::cmd::expect_success_and_text 'oc status' 'oc new-app'
-echo "status help output: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/basicresources/explain"
-os::cmd::expect_failure_and_text 'oc get' 'oc api-resources'
-os::cmd::expect_success_and_text 'oc get all --loglevel=6' 'buildconfigs'
-os::cmd::expect_success_and_text 'oc explain pods' 'Pod is a collection of containers that can run on a host'
-os::cmd::expect_success_and_text 'oc explain pods.spec' 'SecurityContext holds pod-level security attributes'
-# TODO unbreak explain
-#os::cmd::expect_success_and_text 'oc explain deploymentconfig' 'a desired deployment state'
-#os::cmd::expect_success_and_text 'oc explain deploymentconfig.spec' 'ensures that this deployment config will have zero replicas'
-echo "explain: ok"
-os::test::junit::declare_suite_end
-
 os::test::junit::declare_suite_start "cmd/basicresources/resource-builder"
 # Test resource builder filtering of files with expected extensions inside directories, and individual files without expected extensions
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/resource-builder/directory -f ${TEST_DATA}/resource-builder/json-no-extension -f ${TEST_DATA}/resource-builder/yml-no-extension'
@@ -28950,44 +28884,6 @@ os::cmd::expect_success_and_text 'oc create -f ${TEST_DATA}/hello-openshift/hell
 os::cmd::expect_success 'oc describe pod hello-openshift'
 os::cmd::expect_success 'oc delete pods hello-openshift --grace-period=0 --force'
 echo "pods: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/basicresources/label"
-os::cmd::expect_success_and_text 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json -o name' 'pod/hello-openshift'
-os::cmd::try_until_success 'oc label pod/hello-openshift acustom=label' # can race against scheduling and status updates
-os::cmd::expect_success_and_text 'oc describe pod/hello-openshift' 'acustom=label'
-os::cmd::try_until_success 'oc annotate pod/hello-openshift foo=bar' # can race against scheduling and status updates
-os::cmd::expect_success_and_text 'oc get -o yaml pod/hello-openshift' 'foo: bar'
-os::cmd::expect_failure_and_not_text 'oc annotate pod hello-openshift description="test" --resource-version=123' 'may only be used with a single resource'
-os::cmd::expect_failure_and_text 'oc annotate pod hello-openshift hello-openshift description="test" --resource-version=123' 'may only be used with a single resource'
-os::cmd::expect_success 'oc delete pods -l acustom=label --grace-period=0 --force'
-os::cmd::expect_failure 'oc get pod/hello-openshift'
-
-# show-labels should work for projects
-os::cmd::expect_success "oc label namespace '${project}' foo=bar"
-os::cmd::expect_success_and_text "oc get project '${project}' --show-labels" "foo=bar"
-
-echo "label: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/basicresources/services"
-os::cmd::expect_success 'oc get services'
-os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-service.json'
-os::cmd::expect_success 'oc delete services frontend'
-echo "services: ok"
-os::test::junit::declare_suite_end
-
-# TODO rewrite the yaml for this test to actually work
-os::test::junit::declare_suite_start "cmd/basicresources/list-version-conversion"
-os::cmd::expect_success 'oc create   -f ${TEST_DATA}/mixed-api-versions.yaml'
-os::cmd::expect_success 'oc get      -f ${TEST_DATA}/mixed-api-versions.yaml -o yaml'
-os::cmd::expect_success 'oc label    -f ${TEST_DATA}/mixed-api-versions.yaml mylabel=a'
-os::cmd::expect_success 'oc annotate -f ${TEST_DATA}/mixed-api-versions.yaml myannotation=b'
-# Make sure all six resources, with different API versions, got labeled and annotated
-os::cmd::expect_success_and_text 'oc get -f ${TEST_DATA}/mixed-api-versions.yaml --output=jsonpath="{..metadata.labels.mylabel}"'           'a a a a'
-os::cmd::expect_success_and_text 'oc get -f ${TEST_DATA}/mixed-api-versions.yaml --output=jsonpath="{..metadata.annotations.myannotation}"' 'b b b b'
-os::cmd::expect_success 'oc delete   -f ${TEST_DATA}/mixed-api-versions.yaml'
-echo "list version conversion: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/nodes"
@@ -29009,17 +28905,6 @@ os::cmd::expect_success 'oc create clusterquota limit-bob --project-label-select
 os::cmd::expect_success 'oc delete clusterquota/limit-bob'
 echo "create subcommands: ok"
 os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/basicresources/statefulsets"
-os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-service.json'
-os::cmd::expect_success 'oc create -f ${TEST_DATA}/statefulset.yaml'
-os::cmd::try_until_success 'oc get pods testapp-0'
-os::cmd::expect_success_and_text 'oc describe statefulset testapp' 'app=testapp'
-os::cmd::expect_success 'oc delete -f ${TEST_DATA}/statefulset.yaml'
-os::cmd::expect_success 'oc delete services frontend'
-echo "statefulsets: ok"
-os::test::junit::declare_suite_end
-
 
 os::test::junit::declare_suite_start "cmd/basicresources/setprobe"
 # Validate the probe command
@@ -36068,82 +35953,6 @@ func testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJson()
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataMixedApiVersionsYaml = []byte(`apiVersion: v1
-kind: List
-metadata: {}
-items:
-
-- apiVersion: v1
-  kind: Secret
-  metadata:
-    annotations:
-      description: v1 Secret - used to test v1 negotiation of k8s objects
-    name: v1-secret
-
-- apiVersion: v1
-  kind: Route
-  metadata:
-    annotations:
-      description: v1 Route - used to test v1 negotiation of origin objects
-    name: v1-route
-  spec:
-    to:
-      kind: Service
-      name: test
-
-- apiVersion: batch/v1
-  kind: Job
-  metadata:
-    annotations:
-      description: v1 Job - used to test v1 negotiation of group k8s objects
-    name: v1-job
-  spec:
-    template:
-      metadata:
-        labels:
-          run: v1-job
-      spec:
-        containers:
-        - image: k8s.gcr.io/e2e-test-images/agnhost:2.32
-          name: hello-container
-        restartPolicy: Never
-
-- apiVersion: v1
-  dockerImageMetadata:
-    Author: me
-    Config:
-      Cmd:
-      - /bin/sh
-      Entrypoint:
-      - container-entrypoint
-    ContainerConfig: {}
-    apiVersion: "1.0"
-    kind: DockerImage
-  dockerImageMetadataVersion: "1.0"
-  dockerImageReference: registry/namespace/name
-  dockerImageLayers: []
-  kind: Image
-  metadata:
-    annotations:
-      description: v1 Image - used to test annotation/labeling of an object that does not support patch
-    name: v1-image
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataMixedApiVersionsYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataMixedApiVersionsYaml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataMixedApiVersionsYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataMixedApiVersionsYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/mixed-api-versions.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJson = []byte(`{
   "kind": "ImageStream",
   "apiVersion": "v1",
@@ -36195,52 +36004,6 @@ func testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJson() (*asset
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/modified-ruby-imagestream.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataMultiportServiceYaml = []byte(`apiVersion: v1
-kind: List
-items:
-- apiVersion: v1
-  kind: Service
-  metadata:
-    creationTimestamp: 2015-10-13T10:13:11Z
-    labels:
-      test: missing-route-port
-    name: frontend
-    resourceVersion: "259"
-    uid: 024d82eb-7193-11e5-b84d-080027c5bfa9
-  spec:
-    clusterIP: 172.30.182.32
-    ports:
-    - name: web
-      port: 5432
-      protocol: TCP
-      targetPort: 8080
-    - name: web2
-      port: 5433
-      protocol: TCP
-      targetPort: 8080
-    selector:
-      name: frontend
-    sessionAffinity: None
-    type: ClusterIP
-  status:
-    loadBalancer: {}
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataMultiportServiceYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataMultiportServiceYaml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataMultiportServiceYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataMultiportServiceYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/multiport-service.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -38010,34 +37773,6 @@ func testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappParamsEnv() (*asse
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/new-app/test-cmd-newapp-params.env", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYaml = []byte(`apiVersion: oauth.openshift.io/v1
-clientName: openshift-challenging-client
-expiresIn: 15552000
-kind: OAuthAccessToken
-metadata:
-  name: sha256~efaca6fab897953ffcb4f857eb5cbf2cf3a4c33f1314b4922656303426b1cfc9
-redirectURI: https://localhost:8443/oauth/token/implicit
-userName: test
-userUID: 322b236b-22b9-11e6-b307-080027242396
-scopes:
-  - user:info
-`)
-
-func testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYaml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/oauthaccesstoken.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -53661,7 +53396,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/hack/lib/util/misc.sh":                                                       testExtendedTestdataCmdHackLibUtilMiscSh,
 	"test/extended/testdata/cmd/hack/lib/util/text.sh":                                                       testExtendedTestdataCmdHackLibUtilTextSh,
 	"test/extended/testdata/cmd/hack/lib/util/trap.sh":                                                       testExtendedTestdataCmdHackLibUtilTrapSh,
-	"test/extended/testdata/cmd/test/cmd/annotations.sh":                                                     testExtendedTestdataCmdTestCmdAnnotationsSh,
 	"test/extended/testdata/cmd/test/cmd/apiresources.sh":                                                    testExtendedTestdataCmdTestCmdApiresourcesSh,
 	"test/extended/testdata/cmd/test/cmd/authentication.sh":                                                  testExtendedTestdataCmdTestCmdAuthenticationSh,
 	"test/extended/testdata/cmd/test/cmd/basicresources.sh":                                                  testExtendedTestdataCmdTestCmdBasicresourcesSh,
@@ -53707,9 +53441,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/testdata/idling-svc-route.yaml":                                     testExtendedTestdataCmdTestCmdTestdataIdlingSvcRouteYaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/image-streams/image-streams-centos7.json":                  testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json,
 	"test/extended/testdata/cmd/test/cmd/testdata/jenkins/jenkins-ephemeral-template.json":                   testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/mixed-api-versions.yaml":                                   testExtendedTestdataCmdTestCmdTestdataMixedApiVersionsYaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/modified-ruby-imagestream.json":                            testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/multiport-service.yaml":                                    testExtendedTestdataCmdTestCmdTestdataMultiportServiceYaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/new-app/bc-from-imagestreamimage.json":                     testExtendedTestdataCmdTestCmdTestdataNewAppBcFromImagestreamimageJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/new-app/build-arg-dockerfile/Dockerfile":                   testExtendedTestdataCmdTestCmdTestdataNewAppBuildArgDockerfileDockerfile,
 	"test/extended/testdata/cmd/test/cmd/testdata/new-app/circular-is.yaml":                                  testExtendedTestdataCmdTestCmdTestdataNewAppCircularIsYaml,
@@ -53726,7 +53458,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template_multiple_resource_gvs.yaml":               testExtendedTestdataCmdTestCmdTestdataNewAppTemplate_multiple_resource_gvsYaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/new-app/test-cmd-newapp-env.env":                           testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappEnvEnv,
 	"test/extended/testdata/cmd/test/cmd/testdata/new-app/test-cmd-newapp-params.env":                        testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappParamsEnv,
-	"test/extended/testdata/cmd/test/cmd/testdata/oauthaccesstoken.yaml":                                     testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/old-template.json":                                         testExtendedTestdataCmdTestCmdTestdataOldTemplateJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/json-no-extension-in-directory": testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonNoExtensionInDirectory,
 	"test/extended/testdata/cmd/test/cmd/testdata/resource-builder/directory/json-with-extension.json":       testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonWithExtensionJson,
@@ -54317,7 +54048,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					}},
 					"test": {nil, map[string]*bintree{
 						"cmd": {nil, map[string]*bintree{
-							"annotations.sh":        {testExtendedTestdataCmdTestCmdAnnotationsSh, map[string]*bintree{}},
 							"apiresources.sh":       {testExtendedTestdataCmdTestCmdApiresourcesSh, map[string]*bintree{}},
 							"authentication.sh":     {testExtendedTestdataCmdTestCmdAuthenticationSh, map[string]*bintree{}},
 							"basicresources.sh":     {testExtendedTestdataCmdTestCmdBasicresourcesSh, map[string]*bintree{}},
@@ -54370,9 +54100,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 								"jenkins": {nil, map[string]*bintree{
 									"jenkins-ephemeral-template.json": {testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJson, map[string]*bintree{}},
 								}},
-								"mixed-api-versions.yaml":        {testExtendedTestdataCmdTestCmdTestdataMixedApiVersionsYaml, map[string]*bintree{}},
 								"modified-ruby-imagestream.json": {testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJson, map[string]*bintree{}},
-								"multiport-service.yaml":         {testExtendedTestdataCmdTestCmdTestdataMultiportServiceYaml, map[string]*bintree{}},
 								"new-app": {nil, map[string]*bintree{
 									"bc-from-imagestreamimage.json": {testExtendedTestdataCmdTestCmdTestdataNewAppBcFromImagestreamimageJson, map[string]*bintree{}},
 									"build-arg-dockerfile": {nil, map[string]*bintree{
@@ -54393,8 +54121,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 									"test-cmd-newapp-env.env":             {testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappEnvEnv, map[string]*bintree{}},
 									"test-cmd-newapp-params.env":          {testExtendedTestdataCmdTestCmdTestdataNewAppTestCmdNewappParamsEnv, map[string]*bintree{}},
 								}},
-								"oauthaccesstoken.yaml": {testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYaml, map[string]*bintree{}},
-								"old-template.json":     {testExtendedTestdataCmdTestCmdTestdataOldTemplateJson, map[string]*bintree{}},
+								"old-template.json": {testExtendedTestdataCmdTestCmdTestdataOldTemplateJson, map[string]*bintree{}},
 								"resource-builder": {nil, map[string]*bintree{
 									"directory": {nil, map[string]*bintree{
 										"json-no-extension-in-directory": {testExtendedTestdataCmdTestCmdTestdataResourceBuilderDirectoryJsonNoExtensionInDirectory, map[string]*bintree{}},
