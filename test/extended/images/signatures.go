@@ -2,7 +2,6 @@ package images
 
 import (
 	"fmt"
-	"os/exec"
 	"strings"
 
 	g "github.com/onsi/ginkgo"
@@ -67,20 +66,15 @@ var _ = g.Describe("[sig-imageregistry][Serial][Suite:openshift/registry/serial]
 		pod, err := exutil.NewPodExecutor(oc, "sign-and-push", signerImage)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		ocAbsPath, err := exec.LookPath("oc")
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		err = pod.CopyFromHost(ocAbsPath, "/usr/bin/oc")
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		// Generate GPG key
 		// Note that we need to replace the /dev/random with /dev/urandom to get more entropy
 		// into container so we can successfully generate the GPG keypair.
 		g.By("creating dummy GPG key")
 		out, err := pod.Exec("rm -f /dev/random; ln -sf /dev/urandom /dev/random && " +
-			"GNUPGHOME=/var/lib/origin/gnupg gpg2 --batch --gen-key dummy_key.conf")
+			"GNUPGHOME=/var/lib/origin/gnupg gpg2 --batch --gen-key --pinentry-mode=loopback --passphrase '' dummy_key.conf && " +
+			"GNUPGHOME=/var/lib/origin/gnupg gpg2 --output=gnupg/pubring.gpg --export joe@foo.bar")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("keyring `/var/lib/origin/gnupg/secring.gpg' created"))
+		o.Expect(out).To(o.ContainSubstring("keybox '/var/lib/origin/gnupg/pubring.kbx' created"))
 
 		// Create kubeconfig for oc
 		g.By("logging as a test user")
@@ -93,10 +87,6 @@ var _ = g.Describe("[sig-imageregistry][Serial][Suite:openshift/registry/serial]
 		out, err = pod.Exec(strings.Join([]string{
 			"GNUPGHOME=/var/lib/origin/gnupg",
 			"skopeo", "--debug",
-			// Disable the default-docker: file sigstore default in /etc/containers/registries.d, so that the X-Registry-Supports-Signatures protocol is used.
-			// Newer versions of Skopeo default to X-R-S-S if present, this test (as of 2021-02) uses skopeo-0.1.40-11.el7_8.x86_64, which defaults to sigstore.
-			"--registries.d", "/this/does/not/exist",
-
 			"copy", "--sign-by", "joe@foo.bar",
 			"--src-creds=" + user + ":" + token,
 			"--dest-creds=" + user + ":" + token,
