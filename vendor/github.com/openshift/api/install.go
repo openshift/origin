@@ -42,6 +42,7 @@ import (
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/imageregistry"
 	"github.com/openshift/api/kubecontrolplane"
+	"github.com/openshift/api/machine"
 	"github.com/openshift/api/network"
 	"github.com/openshift/api/networkoperator"
 	"github.com/openshift/api/oauth"
@@ -89,6 +90,7 @@ var (
 		servicecertsigner.Install,
 		template.Install,
 		user.Install,
+		machine.Install,
 	)
 	// Install is a function which adds every version of every openshift group to a scheme
 	Install = schemeBuilder.AddToScheme
