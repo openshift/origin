@@ -26,7 +26,6 @@ var (
 		"[Disabled:Unimplemented]": {},
 		// tests that rely on special configuration that we do not yet support
 		"[Disabled:SpecialConfig]": {},
-		// tests that rely on special configuration that we do not yet support
 		// tests that are known broken and need to be fixed upstream or in openshift
 		// always add an issue here
 		"[Disabled:Broken]": {
@@ -64,6 +63,9 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1996128
 			`\[sig-network\] \[Feature:IPv6DualStack\] should have ipv4 and ipv6 node podCIDRs`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=2004074
+			`\[sig-network-edge\]\[Feature:Idling\] Unidling should work with TCP \(while idling\)`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},

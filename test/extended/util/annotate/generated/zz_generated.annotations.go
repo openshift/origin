@@ -1727,7 +1727,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network-edge][Feature:Idling] Unidling should work with TCP (when fully idled)": "should work with TCP (when fully idled) [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network-edge][Feature:Idling] Unidling should work with TCP (while idling)": "should work with TCP (while idling) [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network-edge][Feature:Idling] Unidling should work with TCP (while idling)": "should work with TCP (while idling) [Disabled:Broken] [Skipped:Network/OVNKubernetes]",
 
 	"[Top Level] [sig-network-edge][Feature:Idling] Unidling should work with UDP": "should work with UDP [Suite:openshift/conformance/parallel]",
 
