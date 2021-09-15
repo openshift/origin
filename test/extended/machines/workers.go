@@ -61,6 +61,17 @@ func machineName(item objx.Map) string {
 	return item.Get("metadata.name").String()
 }
 
+func creationTimestamp(item objx.Map) time.Time {
+	creationString := item.Get("metadata.creationTimestamp").String()
+	creation, err := time.Parse(time.RFC3339, creationString)
+	if err != nil {
+		// This should never happen as we always read creation timestamps
+		// set by the Kube API server which sets timestamps to the RFC3339 format.
+		panic(err)
+	}
+	return creation
+}
+
 // nodeNames returns the names of nodes
 func nodeNames(nodes []corev1.Node) sets.String {
 	result := sets.NewString()
