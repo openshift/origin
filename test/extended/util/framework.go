@@ -236,127 +236,162 @@ func processScanError(log string) error {
 // WaitForOpenShiftNamespaceImageStreams waits for the standard set of imagestreams to be imported
 func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	ctx := context.Background()
+	langs := []string{"ruby", "nodejs", "perl", "php", "python", "mysql", "postgresql", "jenkins"}
+	e2e.Logf("waiting for image ecoystem imagestreams to be imported")
+	for _, lang := range langs {
+		err := WaitForSamplesImagestream(ctx, oc, lang)
+		if err != nil {
+			DumpSampleOperator(oc)
+			return err
+		}
+	}
+	return nil
+}
 
+// WaitForSamplesImagestream waits for an imagestream imported by the samples operator to be imported.
+// If the imagestream is managed by the samples operator and has failed to import on install, this
+// will retry the import. Note that imagestreams which reference images in the OCP payload are not
+// managed by the samples operator, and therefore will not be retried.
+//
+// This will wait up to 150 seconds for the referenced imagestream to finish importing.
+func WaitForSamplesImagestream(ctx context.Context, oc *CLI, imagestream string) error {
 	// First wait for the internal registry hostname to be published
 	registryHostname, err := WaitForInternalRegistryHostname(oc)
 	if err != nil {
 		return err
 	}
-	langs := []string{"ruby", "nodejs", "perl", "php", "python", "mysql", "postgresql", "jenkins"}
-	scan := func() error {
-		// check the samples operator to see about imagestream import status
-		samplesOperatorConfig, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "openshift-samples", metav1.GetOptions{})
-		if err != nil {
-			return processScanError(fmt.Sprintf("Samples Operator ClusterOperator Error: %#v", err))
-		}
-		for _, condition := range samplesOperatorConfig.Status.Conditions {
-			switch {
-			case condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue:
-				// if degraded, bail ... unexpected results can ensue
-				return processScanError("SamplesOperator degraded!!!")
-			case condition.Type == configv1.OperatorProgressing:
-				// if the imagestreams for one of our langs above failed, we abort,
-				// but if it is for say only EAP streams, we allow
-				if condition.Reason == "FailedImageImports" {
-					msg := condition.Message
-					for _, lang := range langs {
-						if strings.Contains(msg, " "+lang+" ") || strings.HasSuffix(msg, " "+lang) {
-							e2e.Logf("SamplesOperator detected error during imagestream import: %s with details %s", condition.Reason, condition.Message)
-							stream, err := oc.AsAdmin().ImageClient().ImageV1().ImageStreams("openshift").Get(ctx, lang, metav1.GetOptions{})
-							if err != nil {
-								return processScanError(fmt.Sprintf("after seeing FailedImageImports for %s retrieval failed with %s", lang, err.Error()))
-							}
-							isi := &imagev1.ImageStreamImport{}
-							isi.Name = lang
-							isi.Namespace = "openshift"
-							isi.ResourceVersion = stream.ResourceVersion
-							isi.Spec = imagev1.ImageStreamImportSpec{
-								Import: true,
-								Images: []imagev1.ImageImportSpec{},
-							}
-							for _, tag := range stream.Spec.Tags {
-								if tag.From != nil && tag.From.Kind == "DockerImage" {
-									iis := imagev1.ImageImportSpec{}
-									iis.From = *tag.From
-									iis.To = &corev1.LocalObjectReference{Name: tag.Name}
-									isi.Spec.Images = append(isi.Spec.Images, iis)
-								}
-							}
-							_, err = oc.AsAdmin().ImageClient().ImageV1().ImageStreamImports("openshift").Create(ctx, isi, metav1.CreateOptions{})
-							if err != nil {
-								return processScanError(fmt.Sprintf("after seeing FailedImageImports for %s the manual image import failed with %s", lang, err.Error()))
-							}
-							return processScanError(fmt.Sprintf("after seeing FailedImageImports for %s a manual image-import was submitted", lang))
-						}
-					}
-				}
-				if condition.Status == configv1.ConditionTrue {
-					// updates still in progress ... not "ready"
-					return processScanError(fmt.Sprintf("SamplesOperator still in progress"))
-				}
-			case condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse:
-				return processScanError(fmt.Sprintf("SamplesOperator not available"))
-			default:
-				e2e.Logf("SamplesOperator at steady state")
-			}
-		}
-		for _, lang := range langs {
-			e2e.Logf("Checking language %v \n", lang)
-			is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get(ctx, lang, metav1.GetOptions{})
-			if err != nil {
-				return processScanError(fmt.Sprintf("ImageStream Error: %#v \n", err))
-			}
-			if !strings.HasPrefix(is.Status.DockerImageRepository, registryHostname) {
-				return processScanError(fmt.Sprintf("ImageStream repository %s does not match expected host %s \n", is.Status.DockerImageRepository, registryHostname))
-			}
-			for _, tag := range is.Spec.Tags {
-				e2e.Logf("Checking tag %v \n", tag)
-				if _, found := imageutil.StatusHasTag(is, tag.Name); !found {
-					return processScanError(fmt.Sprintf("Tag Error: %#v \n", tag))
-				}
-			}
-		}
-		return nil
-	}
 
-	// with the move to ocp/rhel as the default for the samples in 4.0, there are alot more imagestreams;
-	// if by some chance this path runs very soon after the cluster has come up, the original time out would
-	// not be sufficient;
-	// so we've bumped what was 30 seconds to 2 min 30 seconds or 150 seconds (manual perf testing shows typical times of
-	// 1 to 2 minutes, assuming registry.access.redhat.com / registry.redhat.io are behaving ... they
-	// have proven less reliable that docker.io)
-	// we've also determined that e2e-aws-image-ecosystem can be started before all the operators have completed; while
-	// that is getting sorted out, the longer time will help there as well
-	e2e.Logf("Scanning openshift ImageStreams \n")
-	var scanErr error
+	var retried bool
+
+	// Wait up to 150 seconds for an imagestream to import.
+	// Based on a sampling of CI tests, imagestream imports from registry.redhat.io can take up to 2 minutes to complete.
+	// Imports which take longer generally indicate that there is a performance regression or outage in the container registry.
 	pollErr := wait.Poll(10*time.Second, 150*time.Second, func() (bool, error) {
-		scanErr = scan()
-		if scanErr != nil {
+		retried, err = retrySamplesImagestreamImportIfNeeded(ctx, oc, imagestream)
+		if err != nil {
+			return false, err
+		}
+		if retried {
 			return false, nil
 		}
-		return true, nil
+		return checkOpenShiftNamespaceImageStreamImported(ctx, oc, imagestream, registryHostname)
 	})
+	// pollErr will be not nil if there was an immediate error, or we timed out.
 	if pollErr == nil {
-		e2e.Logf("Success! \n")
 		return nil
 	}
-	DumpImageStreams(oc)
-	DumpSampleOperator(oc)
-	errorString := ""
-	if strings.Contains(scanErr.Error(), "FailedImageImports") {
+	DumpImageStream(oc, "openshift", imagestream)
+	// If retried=true at this point, it means that we have repeatedly tried to reimport the imagestream and failed to do so.
+	// This could be an indicator that the Red Hat Container Registry (registry.redhat.io) is experiencing an outage, since most samples operator imagestream images are hosted there.
+	if retried {
 		strbuf := bytes.Buffer{}
-		strbuf.WriteString(fmt.Sprintf("Issues exist pulling images from registry.redhat.io: %s\n", scanErr.Error()))
+		strbuf.WriteString("Failed immagestream imports may indicate an issue with the Red Hat Container Registry (registry.redhat.io).\n")
 		strbuf.WriteString(" - check status at https://status.redhat.com (catalog.redhat.com) for reported outages\n")
-		strbuf.WriteString(" - if no outages reported there, email Terms-Based-Registry-Team@redhat.com with a report of the error\n")
+		strbuf.WriteString(" - if no outages are reported there, email Terms-Based-Registry-Team@redhat.com with a report of the error\n")
 		strbuf.WriteString("   and prepare to work with the test platform team to get the current set of tokens for CI\n")
-		errorString = strbuf.String()
-	} else {
-		errorString = fmt.Sprintf("Failed to import expected imagestreams, latest error status: %s", scanErr.Error())
+		e2e.Logf(strbuf.String())
 	}
-	return fmt.Errorf(errorString)
+	return pollErr
 }
 
-//DumpImageStreams will dump both the openshift namespace and local namespace imagestreams
+// retrySamplesImagestreamImportIfNeeded immediately retries an import for the provided imagestream if:
+//
+// 1) The imagestream is managed by the samples operator, AND
+// 2) The imagestream has failed to import.
+//
+// This allows the imagestream to be reimported at a faster cadence than what the samples operator currently provides.
+// Imagestreams which use images in the OCP payload are not managed by the samples operator and therefore will not be retried.
+//
+// Returns true if the imagestream import was retried.
+func retrySamplesImagestreamImportIfNeeded(ctx context.Context, oc *CLI, imagestream string) (bool, error) {
+	// check the samples operator to see about imagestream import status
+	samplesOperatorConfig, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "openshift-samples", metav1.GetOptions{})
+	if err != nil {
+		return false, processScanError(fmt.Sprintf("failed to get clusteroperator for samples-operator: %v", err))
+	}
+	for _, condition := range samplesOperatorConfig.Status.Conditions {
+		switch {
+		case condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue:
+			// if degraded, bail ... unexpected results can ensue
+			return false, processScanError(fmt.Sprintf("samples-operator is degraded with reason: %s", condition.Reason))
+		case condition.Type == configv1.OperatorProgressing:
+			// if the imagestreams for one of our langs above failed, we abort,
+			// but if it is for say only EAP streams, we allow
+			if condition.Reason == "FailedImageImports" {
+				msg := condition.Message
+				if strings.Contains(msg, " "+imagestream+" ") || strings.HasSuffix(msg, " "+imagestream) {
+					e2e.Logf("samples-operator detected error during imagestream import: %s with message %q", condition.Reason, condition.Message)
+					stream, err := oc.AsAdmin().ImageClient().ImageV1().ImageStreams("openshift").Get(ctx, imagestream, metav1.GetOptions{})
+					if err != nil {
+						return false, processScanError(fmt.Sprintf("failed to get imagestream %s/%s: %v", "openshift", imagestream, err))
+					}
+					e2e.Logf("manually retrying import for imagestream %s/%s to expedite testing", "openshift", imagestream)
+					isi := &imagev1.ImageStreamImport{}
+					isi.Name = imagestream
+					isi.Namespace = "openshift"
+					isi.ResourceVersion = stream.ResourceVersion
+					isi.Spec = imagev1.ImageStreamImportSpec{
+						Import: true,
+						Images: []imagev1.ImageImportSpec{},
+					}
+					for _, tag := range stream.Spec.Tags {
+						if tag.From != nil && tag.From.Kind == "DockerImage" {
+							iis := imagev1.ImageImportSpec{}
+							iis.From = *tag.From
+							iis.To = &corev1.LocalObjectReference{Name: tag.Name}
+							isi.Spec.Images = append(isi.Spec.Images, iis)
+						}
+					}
+					_, err = oc.AsAdmin().ImageClient().ImageV1().ImageStreamImports("openshift").Create(ctx, isi, metav1.CreateOptions{})
+					if err != nil {
+						return false, processScanError(fmt.Sprintf("failed to create imagestream import %s/%s: %v", "openshift", imagestream, err))
+					}
+					return true, nil
+				}
+			}
+			if condition.Status == configv1.ConditionTrue {
+				// updates still in progress ... not "ready"
+				e2e.Logf("samples-operator is still progressing without failed imagestream imports.")
+			}
+		case condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse:
+			e2e.Logf("samples-operator is not available")
+		}
+	}
+	return false, nil
+}
+
+// checkOpenShiftNamespaceImageStreamImported checks if the provided imagestream has been imported into the openshift namespace.
+// Returns true if status has been reported on all tags for the imagestream.
+func checkOpenShiftNamespaceImageStreamImported(ctx context.Context, oc *CLI, imagestream string, registryHostname string) (bool, error) {
+	e2e.Logf("checking imagestream %s/%s", "openshift", imagestream)
+	is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get(ctx, imagestream, metav1.GetOptions{})
+	if err != nil {
+		return false, processScanError(fmt.Sprintf("failed to get imagestream: %v", err))
+	}
+	if !strings.HasPrefix(is.Status.DockerImageRepository, registryHostname) {
+		e2e.Logf("imagestream repository %s does not match expected host %s", is.Status.DockerImageRepository, registryHostname)
+		return false, nil
+	}
+	for _, tag := range is.Spec.Tags {
+		e2e.Logf("checking tag %s for imagestream %s/%s", tag.Name, "openshift", imagestream)
+		if _, found := imageutil.StatusHasTag(is, tag.Name); !found {
+			e2e.Logf("no status for imagestreamtag %s/%s:%s", "openshift", imagestream, tag.Name)
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func DumpImageStream(oc *CLI, namespace string, imagestream string) error {
+	out, err := oc.AsAdmin().Run("get").Args("is", imagestream, "-n", namespace, "-o", "yaml").Output()
+	if err != nil {
+		return fmt.Errorf("failed to get imagestream %s/%s: %v", namespace, imagestream, err)
+	}
+	e2e.Logf("imagestream %s/%s:\n%s\n", namespace, imagestream, out)
+	return nil
+}
+
+// DumpImageStreams will dump both the openshift namespace and local namespace imagestreams
 // as part of debugging when the language imagestreams in the openshift namespace seem to disappear
 func DumpImageStreams(oc *CLI) {
 	out, err := oc.AsAdmin().Run("get").Args("is", "-n", "openshift", "-o", "yaml").Output()
