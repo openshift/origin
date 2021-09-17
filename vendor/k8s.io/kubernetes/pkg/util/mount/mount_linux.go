@@ -91,23 +91,45 @@ func (mounter *Mounter) Mount(source string, target string, fstype string, optio
 	mounterPath := ""
 	bind, bindOpts, bindRemountOpts := isBind(options)
 	if bind {
-		err := mounter.doMount(mounterPath, defaultMountCommand, source, target, fstype, bindOpts)
+		err := mounter.doMount(mounterPath, defaultMountCommand, source, target, fstype, bindOpts, nil)
 		if err != nil {
 			return err
 		}
-		return mounter.doMount(mounterPath, defaultMountCommand, source, target, fstype, bindRemountOpts)
+		return mounter.doMount(mounterPath, defaultMountCommand, source, target, fstype, bindRemountOpts, nil)
 	}
 	// The list of filesystems that require containerized mounter on GCI image cluster
 	fsTypesNeedMounter := sets.NewString("nfs", "glusterfs", "ceph", "cifs")
 	if fsTypesNeedMounter.Has(fstype) {
 		mounterPath = mounter.mounterPath
 	}
-	return mounter.doMount(mounterPath, defaultMountCommand, source, target, fstype, options)
+	return mounter.doMount(mounterPath, defaultMountCommand, source, target, fstype, options, nil)
+}
+
+// MountWithFlags is the same as Mount, but this method allows the caller
+// to provide mountFlags as a separate parameter.
+func (mounter *Mounter) MountWithFlags(source string, target string, fstype string, options []string, mountFlags []string) error {
+	// Path to mounter binary if containerized mounter is needed. Otherwise, it is set to empty.
+	// All Linux distros are expected to be shipped with a mount utility that a support bind mounts.
+	mounterPath := ""
+	bind, bindOpts, bindRemountOpts := isBind(options)
+	if bind {
+		err := mounter.doMount(mounterPath, defaultMountCommand, source, target, fstype, bindOpts, mountFlags)
+		if err != nil {
+			return err
+		}
+		return mounter.doMount(mounterPath, defaultMountCommand, source, target, fstype, bindRemountOpts, mountFlags)
+	}
+	// The list of filesystems that require containerized mounter on GCI image cluster
+	fsTypesNeedMounter := sets.NewString("nfs", "glusterfs", "ceph", "cifs")
+	if fsTypesNeedMounter.Has(fstype) {
+		mounterPath = mounter.mounterPath
+	}
+	return mounter.doMount(mounterPath, defaultMountCommand, source, target, fstype, options, mountFlags)
 }
 
 // doMount runs the mount command. mounterPath is the path to mounter binary if containerized mounter is used.
-func (m *Mounter) doMount(mounterPath string, mountCmd string, source string, target string, fstype string, options []string) error {
-	mountArgs := makeMountArgs(source, target, fstype, options)
+func (m *Mounter) doMount(mounterPath string, mountCmd string, source string, target string, fstype string, options []string, mountFlags []string) error {
+	mountArgs := makeMountArgs(source, target, fstype, options, mountFlags)
 	if len(mounterPath) > 0 {
 		mountArgs = append([]string{mountCmd}, mountArgs...)
 		mountCmd = mounterPath
@@ -216,10 +238,13 @@ func detectSystemd() bool {
 }
 
 // makeMountArgs makes the arguments to the mount(8) command.
-func makeMountArgs(source, target, fstype string, options []string) []string {
+func makeMountArgs(source, target, fstype string, options []string, flags []string) []string {
 	// Build mount command as follows:
-	//   mount [-t $fstype] [-o $options] [$source] $target
+	//   mount [$flags] [-t $fstype] [-o $options] [$source] $target
 	mountArgs := []string{}
+	if len(flags) > 0 {
+		mountArgs = append(mountArgs, flags...)
+	}
 	if len(fstype) > 0 {
 		mountArgs = append(mountArgs, "-t", fstype)
 	}
@@ -888,8 +913,9 @@ func doBindSubPath(mounter Interface, subpath Subpath) (hostPath string, err err
 
 	// Do the bind mount
 	options := []string{"bind"}
+	mountFlags := []string{"--no-canonicalize"}
 	glog.V(5).Infof("bind mounting %q at %q", mountSource, bindPathTarget)
-	if err = mounter.Mount(mountSource, bindPathTarget, "" /*fstype*/, options); err != nil {
+	if err = mounter.MountWithFlags(mountSource, bindPathTarget, "" /*fstype*/, options, mountFlags); err != nil {
 		return "", fmt.Errorf("error mounting %s: %s", subpath.Path, err)
 	}
 	success = true

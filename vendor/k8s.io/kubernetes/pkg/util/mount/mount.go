@@ -41,6 +41,9 @@ const (
 type Interface interface {
 	// Mount mounts source to target as fstype with given options.
 	Mount(source string, target string, fstype string, options []string) error
+	// MountWithFlags mounts source to target as fstype with the provided
+	// options and mount flags.
+	MountWithFlags(source string, target string, fstype string, options []string, mountFlags []string) error
 	// Unmount unmounts given target.
 	Unmount(target string) error
 	// List returns a list of all mounted filesystems.  This can be large.

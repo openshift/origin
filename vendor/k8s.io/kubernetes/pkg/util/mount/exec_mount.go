@@ -57,10 +57,14 @@ func (m *execMounter) Mount(source string, target string, fstype string, options
 	return m.doExecMount(source, target, fstype, options)
 }
 
+func (m *execMounter) MountWithFlags(source string, target string, fstype string, options []string, mountFlags []string) error {
+	return m.Mount(source, target, fstype, options)
+}
+
 // doExecMount calls exec(mount <what> <where>) using given exec interface.
 func (m *execMounter) doExecMount(source, target, fstype string, options []string) error {
 	glog.V(5).Infof("Exec Mounting %s %s %s %v", source, target, fstype, options)
-	mountArgs := makeMountArgs(source, target, fstype, options)
+	mountArgs := makeMountArgs(source, target, fstype, options, nil)
 	output, err := m.exec.Run("mount", mountArgs...)
 	glog.V(5).Infof("Exec mounted %v: %v: %s", mountArgs, err, string(output))
 	if err != nil {
