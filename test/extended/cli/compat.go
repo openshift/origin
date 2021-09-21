@@ -8,64 +8,13 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	kapiv1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/image"
 )
 
-func cliPod(cli *exutil.CLI, shell string) *kapiv1.Pod {
-	return &kapiv1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "cli-test",
-		},
-		Spec: kapiv1.PodSpec{
-			RestartPolicy: kapiv1.RestartPolicyNever,
-			Containers: []kapiv1.Container{
-				{
-					Name:    "test",
-					Image:   image.ShellImage(),
-					Command: []string{"/bin/bash", "-c", "set -euo pipefail; " + shell},
-					Env: []kapiv1.EnvVar{
-						{
-							Name:  "HOME",
-							Value: "/tmp",
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func cliPodWithImage(cli *exutil.CLI, shell string) *kapiv1.Pod {
-	return &kapiv1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "cli-test",
-		},
-		Spec: kapiv1.PodSpec{
-			ServiceAccountName: "builder",
-			RestartPolicy:      kapiv1.RestartPolicyNever,
-			Containers: []kapiv1.Container{
-				{
-					Name:    "test",
-					Image:   image.ShellImage(),
-					Command: []string{"/bin/bash", "-c", shell},
-					Env: []kapiv1.EnvVar{
-						{
-							Name:  "HOME",
-							Value: "/tmp",
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-var _ = g.Describe("[sig-cli] CLI", func() {
+var _ = g.Describe("[sig-cli] oc", func() {
 	defer g.GinkgoRecover()
 
 	var oc *exutil.CLI
@@ -92,7 +41,7 @@ var _ = g.Describe("[sig-cli] CLI", func() {
 		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		pod := cli.Create(cliPodWithImage(oc, heredoc.Docf(`
+		pod := cli.Create(newShellPod(heredoc.Docf(`
 			set -x
 
 			# verify we can make API calls
@@ -100,5 +49,11 @@ var _ = g.Describe("[sig-cli] CLI", func() {
 			oc whoami
 		`)))
 		cli.WaitForSuccess(pod.Name, 5*time.Minute)
+	})
+
+	g.It("can get list of nodes", func() {
+		oc := oc.AsAdmin()
+		err := oc.Run("get").Args("nodes").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })

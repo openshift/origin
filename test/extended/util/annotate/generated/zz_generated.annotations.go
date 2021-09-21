@@ -1159,8 +1159,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-builds][Feature:Builds][webhook] TestWebhookGitHubPushWithImageStream": "TestWebhookGitHubPushWithImageStream [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] CLI can run inside of a busybox container": "can run inside of a busybox container [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
 	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on 0.0.0.0 should support forwarding over websockets": "should support forwarding over websockets [Skipped:Proxy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on 0.0.0.0 that expects NO client request should support a client that connects, sends DATA, and disconnects": "should support a client that connects, sends DATA, and disconnects [Suite:openshift/conformance/parallel] [Suite:k8s]",
@@ -1311,6 +1309,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc adm who-can": "who-can [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc annotate pod": "pod [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc builds complex build start-build": "start-build [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc builds complex build webhooks CRUD": "webhooks CRUD [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
@@ -1320,6 +1320,10 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli] oc builds new-build": "new-build [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc builds patch buildconfig": "patch buildconfig [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc can get list of nodes": "can get list of nodes [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc can run inside of a busybox container": "can run inside of a busybox container [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc debug deployment configs from a build": "deployment configs from a build [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
@@ -1341,11 +1345,21 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc explain should contain spec+status for builtinTypes": "should contain spec+status for builtinTypes [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc label pod": "pod [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc observe works as expected": "works as expected [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc project --show-labels works for projects": "--show-labels works for projects [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc rsh specific flags should work well when access to a remote shell": "should work well when access to a remote shell [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/annotations.sh": "test/cmd/annotations.sh",
+	"[Top Level] [sig-cli] oc secret creates and retrieves expected": "creates and retrieves expected [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc service creates and deletes services": "creates and deletes services [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc statefulset creates and deletes statefulsets": "creates and deletes statefulsets [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc status returns expected help messages": "returns expected help messages [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/apiresources.sh": "test/cmd/apiresources.sh",
 
