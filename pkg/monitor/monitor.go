@@ -2,11 +2,16 @@ package monitor
 
 import (
 	"context"
+	"fmt"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/cache"
 )
 
 // Monitor records events that have occurred in memory and can also periodically
@@ -20,6 +25,9 @@ type Monitor struct {
 	events         monitorapi.Intervals
 	unsortedEvents monitorapi.Intervals
 	samples        []*sample
+
+	recordedResourceLock sync.Mutex
+	recordedResources    monitorapi.ResourcesMap
 }
 
 // NewMonitor creates a monitor with the default sampling interval.
@@ -31,7 +39,8 @@ func NewMonitor() *Monitor {
 // interval.
 func NewMonitorWithInterval(interval time.Duration) *Monitor {
 	return &Monitor{
-		interval: interval,
+		interval:          interval,
+		recordedResources: monitorapi.ResourcesMap{},
 	}
 }
 
@@ -66,6 +75,96 @@ func (m *Monitor) AddSampler(fn SamplerFunc) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	m.samplers = append(m.samplers, fn)
+}
+
+func (m *Monitor) CurrentResourceState() monitorapi.ResourcesMap {
+	m.recordedResourceLock.Lock()
+	defer m.recordedResourceLock.Unlock()
+
+	ret := monitorapi.ResourcesMap{}
+	for resourceType, instanceResourceMap := range m.recordedResources {
+		retInstance := monitorapi.InstanceMap{}
+		for instanceKey, obj := range instanceResourceMap {
+			retInstance[instanceKey] = obj.DeepCopyObject()
+		}
+		ret[resourceType] = retInstance
+	}
+
+	return ret
+}
+
+func (m *Monitor) RecordResource(resourceType string, obj runtime.Object) {
+	m.recordedResourceLock.Lock()
+	defer m.recordedResourceLock.Unlock()
+
+	recordedResource, ok := m.recordedResources[resourceType]
+	if !ok {
+		recordedResource = monitorapi.InstanceMap{}
+		m.recordedResources[resourceType] = recordedResource
+	}
+
+	key, err := cache.MetaNamespaceKeyFunc(obj)
+	if err != nil {
+		// coding error
+		panic(err)
+	}
+
+	toStore := obj.DeepCopyObject()
+	newMetadata, _ := meta.Accessor(toStore)
+	// without metadata, just stomp in the new value, we can't add annotations
+	if newMetadata == nil {
+		recordedResource[key] = toStore
+		return
+	}
+
+	newAnnotations := newMetadata.GetAnnotations()
+	if newAnnotations == nil {
+		newAnnotations = map[string]string{}
+	}
+	existingResource, ok := recordedResource[key]
+	if !ok {
+		if newMetadata != nil {
+			newAnnotations[monitorapi.ObservedUpdateCountAnnotation] = "1"
+			newAnnotations[monitorapi.ObservedRecreationCountAnnotation] = "0"
+			newMetadata.SetAnnotations(newAnnotations)
+		}
+		recordedResource[key] = toStore
+		return
+	}
+
+	existingMetadata, _ := meta.Accessor(existingResource)
+	// without metadata, just stomp in the new value, we can't add annotations
+	if existingMetadata == nil {
+		recordedResource[key] = toStore
+		return
+	}
+
+	existingAnnotations := existingMetadata.GetAnnotations()
+	if existingAnnotations == nil {
+		existingAnnotations = map[string]string{}
+	}
+	existingUpdateCountStr := existingAnnotations[monitorapi.ObservedUpdateCountAnnotation]
+	if existingUpdateCount, err := strconv.ParseInt(existingUpdateCountStr, 10, 32); err != nil {
+		newAnnotations[monitorapi.ObservedUpdateCountAnnotation] = "1"
+	} else {
+		newAnnotations[monitorapi.ObservedUpdateCountAnnotation] = fmt.Sprintf("%d", existingUpdateCount+1)
+	}
+
+	// set the recreate count. increment if the UIDs don't match
+	existingRecreateCountStr := existingAnnotations[monitorapi.ObservedUpdateCountAnnotation]
+	if existingMetadata.GetUID() != newMetadata.GetUID() {
+		if existingRecreateCount, err := strconv.ParseInt(existingRecreateCountStr, 10, 32); err != nil {
+			newAnnotations[monitorapi.ObservedRecreationCountAnnotation] = existingRecreateCountStr
+		} else {
+			newAnnotations[monitorapi.ObservedRecreationCountAnnotation] = fmt.Sprintf("%d", existingRecreateCount+1)
+		}
+	} else {
+		newAnnotations[monitorapi.ObservedRecreationCountAnnotation] = existingRecreateCountStr
+	}
+
+	newMetadata.SetAnnotations(newAnnotations)
+	recordedResource[key] = toStore
+	return
 }
 
 // Record captures one or more conditions at the current time. All conditions are recorded

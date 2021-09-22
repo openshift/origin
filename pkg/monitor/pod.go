@@ -350,6 +350,8 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				if !ok {
 					return
 				}
+				m.RecordResource("pods", pod)
+
 				// filter out old pods so our monitor doesn't send a big chunk
 				// of pod creations
 				if pod.CreationTimestamp.Time.Before(startTime) {
@@ -366,6 +368,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				if !ok {
 					return
 				}
+				m.RecordResource("pods", pod)
 				for _, fn := range podDeleteFns {
 					m.Record(fn(pod)...)
 				}
@@ -375,6 +378,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				if !ok {
 					return
 				}
+				m.RecordResource("pods", pod)
 				oldPod, ok := old.(*corev1.Pod)
 				if !ok {
 					return

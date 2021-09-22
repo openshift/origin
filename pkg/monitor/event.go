@@ -37,6 +37,10 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 			}
 			rv := events.ResourceVersion
 
+			for i := range events.Items {
+				m.RecordResource("events", &events.Items[i])
+			}
+
 			for expired := false; !expired; {
 				w, err := client.CoreV1().Events("").Watch(ctx, metav1.ListOptions{ResourceVersion: rv})
 				if err != nil {
@@ -60,6 +64,7 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 							if !ok {
 								continue
 							}
+							m.RecordResource("events", obj)
 
 							t := obj.LastTimestamp.Time
 							if t.IsZero() {

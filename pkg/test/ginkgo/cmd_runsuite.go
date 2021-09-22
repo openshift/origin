@@ -386,6 +386,15 @@ func (opt *Options) Run(suite *TestSuite) error {
 		} else {
 			fmt.Fprintf(opt.ErrOut, "error: Failed to write event html: %v\n", err)
 		}
+
+		// write out the current state of resources that we explicitly tracked.
+		resourcesMap := m.CurrentResourceState()
+		for resourceType, instanceMap := range resourcesMap {
+			targetFile := fmt.Sprintf("resource-%s%s.zip", resourceType, timeSuffix)
+			if err = monitorserialization.InstanceMapToFile(filepath.Join(opt.JUnitDir, targetFile), resourceType, instanceMap); err != nil {
+				fmt.Fprintf(opt.ErrOut, "error: Failed to write %q: %v\n", targetFile, err)
+			}
+		}
 	}
 
 	if len(events) > 0 {

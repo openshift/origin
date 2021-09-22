@@ -6,6 +6,19 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/runtime"
+)
+
+const (
+	// ObservedUpdateCountAnnotation is an annotation added locally (in the monitor only), that tracks how many updates
+	// we've seen to this resource.  This is useful during post-processing for determining if we have a hot resource.
+	ObservedUpdateCountAnnotation = "monitor.openshift.io/observed-update-count"
+
+	// ObservedRecreationCountAnnotation is an annotation added locally (in the monitor only), that tracks how many
+	// time a resource has been recreated.  The internal cache doesn't remove an entry on delete.
+	// This is useful during post-processing for determining if we have a hot resource.
+	ObservedRecreationCountAnnotation = "monitor.openshift.io/observed-recreation-count"
 )
 
 type EventLevel int
@@ -263,3 +276,6 @@ func (intervals Intervals) Clamp(from, to time.Time) {
 		}
 	}
 }
+
+type InstanceMap map[string]runtime.Object
+type ResourcesMap map[string]InstanceMap
