@@ -246,22 +246,30 @@ func (opt *Options) Run(suite *TestSuite) error {
 		includeSuccess = true
 	}
 
-	early, normal := splitTests(tests, func(t *testCase) bool {
+	early, others := splitTests(tests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Early]")
 	})
 
-	late, normal := splitTests(normal, func(t *testCase) bool {
+	late, others := splitTests(others, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Late]")
 	})
 
+	kubeTests, openshiftTests := splitTests(others, func(t *testCase) bool {
+		return strings.Contains(t.name, "[Suite:k8s]")
+	})
+
+	// If user specifies a count, duplicate the kube and openshift tests that many times.
 	expectedTestCount := len(early) + len(late)
 	if count != -1 {
-		original := normal
+		originalKube := kubeTests
+		originalOpenshift := openshiftTests
+
 		for i := 1; i < count; i++ {
-			normal = append(normal, copyTests(original)...)
+			kubeTests = append(kubeTests, copyTests(originalKube)...)
+			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
 		}
 	}
-	expectedTestCount += len(normal)
+	expectedTestCount += len(openshiftTests) + len(kubeTests)
 
 	status := newTestStatus(opt.Out, includeSuccess, expectedTestCount, timeout, m, m, opt.AsEnv())
 	testCtx := ctx
@@ -285,11 +293,16 @@ func (opt *Options) Run(suite *TestSuite) error {
 	// TODO: will move to the monitor
 	pc.SetEvents([]string{upgradeEvent})
 
-	// repeat the normal suite until context cancel when in the forever loop
+	// Run kube & openshift tests. If user specified a count of -1,
+	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
-		copied := copyTests(normal)
-		q.Execute(testCtx, copied, parallelism, status.Run)
-		tests = append(tests, copied...)
+		kubeTestsCopy := copyTests(kubeTests)
+		q.Execute(testCtx, kubeTestsCopy, parallelism, status.Run)
+		tests = append(tests, kubeTestsCopy...)
+
+		openshiftTestsCopy := copyTests(openshiftTests)
+		q.Execute(testCtx, openshiftTestsCopy, parallelism, status.Run)
+		tests = append(tests, openshiftTestsCopy...)
 	}
 
 	// TODO: will move to the monitor
