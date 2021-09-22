@@ -119,6 +119,10 @@ var knownEventsBugs = []knownProblem{
 		Regexp: regexp.MustCompile(`ns/openshift-etcd pod/etcd-quorum-guard-[a-z0-9-]+ node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: `),
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2000234",
 	},
+	{
+		Regexp: regexp.MustCompile("ns/openshift-etcd-operator namespace/openshift-etcd-operator -.*rpc error: code = Canceled desc = grpc: the client connection is closing.*"),
+		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2006975",
+	},
 	//{ TODO this should only be skipped for single-node
 	//	name:    "single=node-storage",
 	//  BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1990662
