@@ -2137,7 +2137,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Services should be possible to connect to a service via ExternalIP when the external IP is not assigned to a node": "should be possible to connect to a service via ExternalIP when the external IP is not assigned to a node [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should be rejected when no endpoints exist": "should be rejected when no endpoints exist [Skipped:ibmcloud] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should be rejected when no endpoints exist": "should be rejected when no endpoints exist [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Services should check NodePort out-of-range": "should check NodePort out-of-range [Suite:openshift/conformance/parallel] [Suite:k8s]",
 

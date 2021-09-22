@@ -285,10 +285,6 @@ var (
 			`\[sig-auth\] \[Feature:NodeAuthenticator\] The kubelet's main port 10250 should reject requests with no credentials`,
 			`\[sig-auth\] \[Feature:NodeAuthenticator\] The kubelet can delegate ServiceAccount tokens to the API server`,
 
-			// Calico is allowing the request to timeout instead of returning 'REFUSED'
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1825021 - ROKS: calico SDN results in a request timeout when accessing services with no endpoints
-			`\[sig-network\] Services should be rejected when no endpoints exist`,
-
 			// Mode returned by RHEL7 worker contains an extra character not expected by the test: dgtrwx vs dtrwx
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1825024 - e2e: Failing test - HostPath should give a volume the correct mode
 			`\[sig-storage\] HostPath should give a volume the correct mode`,
