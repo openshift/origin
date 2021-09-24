@@ -3877,7 +3877,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] GenericPersistentVolume[Disruptive] When kubelet restarts Should test that a volume mounted to a pod that is force deleted while the kubelet is down unmounts when the kubelet returns.": "Should test that a volume mounted to a pod that is force deleted while the kubelet is down unmounts when the kubelet returns. [Serial] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] HostPath should give a volume the correct mode [LinuxOnly] [NodeConformance]": "should give a volume the correct mode [LinuxOnly] [NodeConformance] [Skipped:ibmcloud] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-storage] HostPath should give a volume the correct mode [LinuxOnly] [NodeConformance]": "should give a volume the correct mode [LinuxOnly] [NodeConformance] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] HostPath should support r/w [NodeConformance]": "should support r/w [NodeConformance] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
