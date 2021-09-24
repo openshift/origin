@@ -292,10 +292,6 @@ var (
 			// Mode returned by RHEL7 worker contains an extra character not expected by the test: dgtrwx vs dtrwx
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1825024 - e2e: Failing test - HostPath should give a volume the correct mode
 			`\[sig-storage\] HostPath should give a volume the correct mode`,
-
-			// Currently ibm-master-proxy-static and imbcloud-block-storage-plugin tolerate all taints
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1825027
-			`\[Feature:Platform\] Managed cluster should ensure control plane operators do not make themselves unevictable`,
 		},
 	}
 
