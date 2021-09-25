@@ -51234,10 +51234,10 @@ items:
         RUN yum install -y skopeo && \
             yum clean all && mkdir -p gnupg && chmod -R 0777 /var/lib/origin
         RUN echo $'%echo Generating openpgp key ...\n\
-            Key-Type: DSA \n\
-            Key-Length: 1024 \n\
-            Subkey-Type: ELG-E \n\
-            Subkey-Length: 1024 \n\
+            Key-Type: RSA \n\
+            Key-Length: 2048 \n\
+            Subkey-Type: RSA \n\
+            Subkey-Length: 2048 \n\
             Name-Real: Joe Tester \n\
             Name-Comment: with stupid passphrase \n\
             Name-Email: joe@foo.bar \n\
