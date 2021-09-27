@@ -25,7 +25,7 @@ func skipIfNotBaremetal(oc *exutil.CLI) {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	if infra.Status.Platform != configv1.BareMetalPlatformType {
+	if infra.Status.PlatformStatus.Type != configv1.BareMetalPlatformType {
 		e2eskipper.Skipf("No baremetal platform detected")
 	}
 }
