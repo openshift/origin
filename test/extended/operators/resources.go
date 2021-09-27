@@ -36,9 +36,18 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 		// pods that have a bug opened, every entry here must have a bug associated
 		knownBrokenPods := map[string]string{
 			//"<apiVersion>/<kind>/<namespace>/<name>/(initContainer|container)/<container_name>/<violation_type>": "<url to bug>",
-
-			"apps/v1/Deployment/openshift-cluster-csi-drivers/ovirt-csi-driver-controller/container/csi-provisioner/request[cpu]":    "https://bugzilla.redhat.com/show_bug.cgi?id=1940876",
-			"apps/v1/Deployment/openshift-cluster-csi-drivers/ovirt-csi-driver-controller/container/csi-provisioner/request[memory]": "https://bugzilla.redhat.com/show_bug.cgi?id=1940876",
+			"apps/v1/Deployment/openshift-cluster-csi-drivers/vmware-vsphere-csi-driver-controller/container/vsphere-syncer[cpu]":          "https://bugzilla.redhat.com/show_bug.cgi?id=2008207",
+			"apps/v1/Deployment/openshift-cluster-csi-drivers/vmware-vsphere-csi-driver-controller/container/vsphere-syncer[memory]":       "https://bugzilla.redhat.com/show_bug.cgi?id=2008207",
+			"apps/v1/DaemonSet/kube-system/ibmcloud-block-storage-driver/container/ibmcloud-block-storage-driver-container/limit[cpu]":     "https://bugzilla.redhat.com/show_bug.cgi?id=1989693",
+			"apps/v1/DaemonSet/kube-system/ibmcloud-block-storage-driver/container/ibmcloud-block-storage-driver-container/limit[memory]":  "https://bugzilla.redhat.com/show_bug.cgi?id=1989693",
+			"apps/v1/Deployment/kube-system/ibm-file-plugin/container/ibm-file-plugin-container/limit[cpu]":                                "https://bugzilla.redhat.com/show_bug.cgi?id=1989693",
+			"apps/v1/Deployment/kube-system/ibm-file-plugin/container/ibm-file-plugin-container/limit[memory]":                             "https://bugzilla.redhat.com/show_bug.cgi?id=1989693",
+			"apps/v1/Deployment/kube-system/ibm-storage-watcher/container/ibm-storage-watcher-container/limit[cpu]":                        "https://bugzilla.redhat.com/show_bug.cgi?id=1989693",
+			"apps/v1/Deployment/kube-system/ibm-storage-watcher/container/ibm-storage-watcher-container/limit[memory]":                     "https://bugzilla.redhat.com/show_bug.cgi?id=1989693",
+			"apps/v1/Deployment/kube-system/ibmcloud-block-storage-plugin/container/ibmcloud-block-storage-plugin-container/limit[cpu]":    "https://bugzilla.redhat.com/show_bug.cgi?id=1989693",
+			"apps/v1/Deployment/kube-system/ibmcloud-block-storage-plugin/container/ibmcloud-block-storage-plugin-container/limit[memory]": "https://bugzilla.redhat.com/show_bug.cgi?id=1989693",
+			"v1/Pod/kube-system/ibm-master-proxy-static-<node>/container/ibm-master-proxy-static/limit[cpu]":                               "https://bugzilla.redhat.com/show_bug.cgi?id=1989693",
+			"v1/Pod/kube-system/ibm-master-proxy-static-<node>/container/ibm-master-proxy-static/limit[memory]":                            "https://bugzilla.redhat.com/show_bug.cgi?id=1989693",
 		}
 
 		// pods with an exception granted, the value should be the justification and the approver (a release architect)
