@@ -35,7 +35,7 @@ const (
 var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 	f := framework.NewDefaultFramework("k8s-nettest")
 
-	ginkgo.It("for TCP and UDP on ports 9000-9999 is allowed", func() {
+	ginkgo.It("for TCP and UDP on ports 9000-9999 is allowed [Serial:Self]", func() {
 		e2eskipper.SkipUnlessNodeCountIsAtLeast(2)
 		clientConfig := f.ClientConfig()
 

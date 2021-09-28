@@ -321,6 +321,10 @@ var staticSuites = testSuites{
 				if strings.Contains(name, "[Feature:NetworkPolicy]") {
 					return false
 				}
+				// Serial:Self are tests that can't be run in parallel with a copy of itself
+				if strings.Contains(name, "[Serial:Self]") {
+					return false
+				}
 				return (strings.Contains(name, "[Suite:openshift/conformance/") && strings.Contains(name, "[sig-network]")) || isStandardEarlyOrLateTest(name)
 			},
 			Parallelism:         60,
