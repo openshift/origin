@@ -93,4 +93,34 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 			expectBoolField(h, "spec.online").To(o.BeTrue())
 		}
 	})
+
+	g.It("not allow updating BootMacAddress", func() {
+		skipIfNotBaremetal(oc)
+
+		dc := oc.AdminDynamicClient()
+		bmc := baremetalClient(dc)
+
+		hosts, err := bmc.List(context.Background(), v1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(hosts.Items).ToNot(o.BeEmpty())
+
+		host := hosts.Items[0]
+		expectStringField(host, "spec.bootMACAddress").ShouldNot(o.BeNil())
+		// Already verified that bootMACAddress exists
+		bootMACAddress, _, _ := unstructured.NestedString(host.Object, "spec", "bootMACAddress")
+		testMACAddress := "11:11:11:11:11:11"
+
+		g.By("updating bootMACAddress which is not allowed")
+		err = unstructured.SetNestedField(host.Object, testMACAddress, "spec", "bootMACAddress")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		_, err = bmc.Update(context.Background(), &host, v1.UpdateOptions{})
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(err.Error()).To(o.ContainSubstring("bootMACAddress can not be changed once it is set"))
+
+		g.By("verify bootMACAddress is not updated")
+		h, err := bmc.Get(context.Background(), host.GetName(), v1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		check, _, _ := unstructured.NestedString(h.Object, "spec", "bootMACAddress")
+		o.Expect(check).To(o.Equal(bootMACAddress))
+	})
 })
