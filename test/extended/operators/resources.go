@@ -144,6 +144,9 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 					// Pods may not set limits
 					if len(c.Resources.Limits) > 0 {
 						for resource, v := range c.Resources.Limits {
+							if resource == "management.workload.openshift.io/cores" { // limits are allowed on management.workload.openshift.io/cores resources
+								continue
+							}
 							rule := fmt.Sprintf("%s/%s[%s]", key, "limit", resource)
 							if len(exceptionGranted[rule]) == 0 {
 								violation := fmt.Sprintf("%s defines a limit on %s of %s which is not allowed", key, resource, v.String())
@@ -156,8 +159,14 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 						}
 					}
 
+					annotationForPreferringManagementCores := "target.workload.openshift.io/management"
+					wpPodAnnotation := strings.Replace(pod.Annotations[annotationForPreferringManagementCores], " ", "", -1) // some pods have a space after the : in their annotation definition
+
 					// Pods must have at least CPU and memory requests
 					for _, resource := range []string{"cpu", "memory"} {
+						if len(wpPodAnnotation) > 0 && resource == "cpu" { // don't check for CPU request if the pod has a WP annotation
+							continue
+						}
 						v := c.Resources.Requests[v1.ResourceName(resource)]
 						if !v.IsZero() {
 							continue
