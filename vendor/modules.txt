@@ -197,14 +197,10 @@ github.com/containernetworking/cni/pkg/version
 github.com/coreos/go-oidc
 # github.com/coreos/go-semver v0.3.0
 github.com/coreos/go-semver/semver
-# github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e
-github.com/coreos/go-systemd/journal
 # github.com/coreos/go-systemd/v22 v22.3.2
 github.com/coreos/go-systemd/v22/daemon
 github.com/coreos/go-systemd/v22/dbus
 github.com/coreos/go-systemd/v22/journal
-# github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
-github.com/coreos/pkg/capnslog
 # github.com/cyphar/filepath-securejoin v0.2.2
 github.com/cyphar/filepath-securejoin
 # github.com/davecgh/go-spew v1.1.1
@@ -992,11 +988,6 @@ github.com/xiang90/probing
 github.com/xlab/treeprint
 # go.etcd.io/bbolt v1.3.6
 go.etcd.io/bbolt
-# go.etcd.io/etcd v0.5.0-alpha.5.0.20200910180754-dd1b699fc489
-## explicit
-go.etcd.io/etcd/pkg/fileutil
-go.etcd.io/etcd/pkg/tlsutil
-go.etcd.io/etcd/pkg/transport
 # go.etcd.io/etcd/api/v3 v3.5.0
 ## explicit
 go.etcd.io/etcd/api/v3/authpb
@@ -1007,6 +998,7 @@ go.etcd.io/etcd/api/v3/mvccpb
 go.etcd.io/etcd/api/v3/v3rpc/rpctypes
 go.etcd.io/etcd/api/v3/version
 # go.etcd.io/etcd/client/pkg/v3 v3.5.0
+## explicit
 go.etcd.io/etcd/client/pkg/v3/fileutil
 go.etcd.io/etcd/client/pkg/v3/logutil
 go.etcd.io/etcd/client/pkg/v3/pathutil

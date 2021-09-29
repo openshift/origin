@@ -14,8 +14,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
+	"go.etcd.io/etcd/client/pkg/v3/transport"
 	"go.etcd.io/etcd/client/v3"
-	"go.etcd.io/etcd/pkg/transport"
 	"google.golang.org/grpc"
 
 	corev1 "k8s.io/api/core/v1"
