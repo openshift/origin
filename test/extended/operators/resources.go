@@ -36,9 +36,6 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 		// pods that have a bug opened, every entry here must have a bug associated
 		knownBrokenPods := map[string]string{
 			//"<apiVersion>/<kind>/<namespace>/<name>/(initContainer|container)/<container_name>/<violation_type>": "<url to bug>",
-
-			"apps/v1/Deployment/openshift-cluster-csi-drivers/ovirt-csi-driver-controller/container/csi-provisioner/request[cpu]":    "https://bugzilla.redhat.com/show_bug.cgi?id=1940876",
-			"apps/v1/Deployment/openshift-cluster-csi-drivers/ovirt-csi-driver-controller/container/csi-provisioner/request[memory]": "https://bugzilla.redhat.com/show_bug.cgi?id=1940876",
 		}
 
 		// pods with an exception granted, the value should be the justification and the approver (a release architect)
