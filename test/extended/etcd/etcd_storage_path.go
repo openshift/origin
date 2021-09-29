@@ -279,6 +279,19 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 
 	etcdStorageData := etcddata.GetEtcdStorageData()
 
+	// OpenShift runs the etcd storage tests as e2e, upstream as integration test. Hence, we have to patch up
+	// nodes that otherwise get deleted by the node controller.
+	nodeGvr := schema.GroupVersionResource{Version: "v1", Resource: "nodes"}
+	if _, ok := etcdStorageData[nodeGvr]; !ok {
+		t.Fatal("expected v1 nodes")
+	}
+	if expected, got := `{"metadata": {"name": "node1"}, "spec": {"unschedulable": true}}`, etcdStorageData[nodeGvr].Stub; got != expected {
+		t.Fatal("node v1 stub changed, got %q, expected %q", got, expected)
+	}
+	nodeData := etcdStorageData[nodeGvr]
+	nodeData.Stub = `{"metadata": {"name": "node1"}, "spec": {"unschedulable": true}, "status": {"conditions":[{"type":"Ready", "status":"True"}]}}`
+	etcdStorageData[nodeGvr] = nodeData
+
 	removeStorageData(t, etcdStorageData,
 		// disabled alpha versions
 		gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "flowschemas"),
