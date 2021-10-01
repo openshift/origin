@@ -382,13 +382,19 @@ func (node *OsdnNode) Start() error {
 	// Make an event that openshift-sdn started
 	node.recorder.Eventf(&v1.ObjectReference{Kind: "Node", Name: node.hostName}, v1.EventTypeNormal, "Starting", "Starting openshift-sdn.")
 
+	cniType := "openshift-sdn"
+	podName := os.Getenv("OPENSHIFT_SDN_POD")
+	// this will ensure that the cniType will work if deployed with an older version of openshift-ansible
+	if len(podName) > 0 {
+		cniType = cniType + "-" + podName
+	}
 	// Write our CNI config file out to disk to signal to kubelet that
 	// our network plugin is ready
 	err = ioutil.WriteFile(filepath.Join(node.cniDirPath, openshiftCNIFile), []byte(`
 {
   "cniVersion": "0.2.0",
   "name": "openshift-sdn",
-  "type": "openshift-sdn"
+  "type": "`+cniType+`"
 }
 `), 0644)
 	if err != nil {
