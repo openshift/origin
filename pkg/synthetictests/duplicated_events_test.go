@@ -76,6 +76,10 @@ func TestEventRegexExcluder(t *testing.T) {
 			name:    "local-volume-failed-scheduling",
 			message: `ns/e2e-persistent-local-volumes-test-7012 pod/pod-940713ce-7645-4d8c-bba0-5705350a5655 reason/FailedScheduling 0/6 nodes are available: 1 node(s) had volume node affinity conflict, 2 node(s) didn't match Pod's node affinity/selector, 3 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate. (2 times)`,
 		},
+		{
+			name:    "vsphere-hw-13-default-upi-install",
+			message: `ns/openshift-cluster-storage-operator deployment/vsphere-problem-detector-operator - reason/VSphereOlderVersionDetected Marking cluster un-upgradeable because one or more VMs are on hardware version vmx-13`,
+		},
 	}
 
 	for _, test := range tests {
@@ -118,10 +122,6 @@ func TestKnownBugEvents(t *testing.T) {
 		name    string
 		message string
 	}{
-		{
-			name:    "machine-updated",
-			message: `ns/openshift-machine-api machine/ci-op-nq7ssnz1-a6744-f6gc4-worker-49lwd - reason/Update Updated Machine ci-op-nq7ssnz1-a6744-f6gc4-worker-49lwd`,
-		},
 		{
 			name:    "ovn-cleanup",
 			message: `ns/e2e-proxy-2182 service/proxy-service-jsk2b - reason/FailedToDeleteOVNLoadBalancer Error trying to delete the idling OVN LoadBalancer for Service proxy-service-jsk2b/e2e-proxy-2182: Failed to get ovnkube balancer TCP k8s-idling-lb: OVN command '/usr/bin/ovn-nbctl --timeout=15 --data=bare --no-heading --columns=_uuid find load_balancer external_ids:k8s-idling-lb-tcp=yes' failed: exit status 1`,
