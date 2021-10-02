@@ -11,6 +11,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/upgrades"
 
 	"github.com/blang/semver"
+	apiconfigv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/test/extended/util"
@@ -72,6 +73,16 @@ func NewOAuthAvailableWithConnectionReuseTest() upgrades.Test {
 	}
 }
 
+func getTopologies(f *framework.Framework) (controlPlaneTopology, infraTopology apiconfigv1.TopologyMode) {
+	oc := util.NewCLIWithFramework(f)
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(),
+		"cluster", metav1.GetOptions{})
+
+	framework.ExpectNoError(err, "unable to determine cluster topology")
+
+	return infra.Status.ControlPlaneTopology, infra.Status.InfrastructureTopology
+}
+
 type availableTest struct {
 	// testName is the name to show in unit
 	testName string
@@ -117,7 +128,10 @@ func (t *availableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 	}
 
 	toleratedDisruption := 0.08
-	switch {
+	switch controlPlaneTopology, _ := getTopologies(f); {
+	case controlPlaneTopology == apiconfigv1.SingleReplicaTopologyMode:
+		// we cannot avoid API downtime during upgrades on single-node control plane topologies (we observe around ~10% disruption)
+		toleratedDisruption = 0.15
 	case framework.ProviderIs("azure"), framework.ProviderIs("aws"), framework.ProviderIs("gce"):
 		if hasAllFixes {
 			framework.Logf("Cluster contains no versions older than 4.8, tolerating no disruption")
