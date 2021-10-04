@@ -1311,6 +1311,14 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc annotate pod": "pod [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc basics can create and interact with a list of resources": "can create and interact with a list of resources [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc basics can create deploymentconfig and clusterquota": "can create deploymentconfig and clusterquota [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc basics can describe an OAuth access token": "can describe an OAuth access token [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc basics can patch resources": "can patch resources [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc builds complex build start-build": "start-build [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc builds complex build webhooks CRUD": "webhooks CRUD [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",

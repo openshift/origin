@@ -1,9 +1,12 @@
 package cli
 
 import (
+	"bufio"
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/openshift/origin/test/extended/util/image"
 	appsv1 "k8s.io/api/apps/v1"
@@ -171,6 +174,49 @@ func writeObjectToFile(obj runtime.Object) (string, error) {
 	defer f.Close()
 
 	if err := json.NewEncoder(f).Encode(obj); err != nil {
+		return "", err
+	}
+
+	return name, nil
+}
+
+// replaceImageInFile reads in a file, replaces the given image name, then writes to a new temporary file.
+func replaceImageInFile(source, oldImage, newImage string) (string, error) {
+	f, err := os.OpenFile(source, os.O_RDONLY, 0644)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	dir, err := os.MkdirTemp("", "oc-test")
+	if err != nil {
+		return "", err
+	}
+
+	name := filepath.Join(dir, "testfile")
+	writer, err := os.OpenFile(name, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return "", err
+	}
+	defer writer.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		yamlImage := "image: " + oldImage
+		jsonImage := `"image": "` + oldImage + `"`
+		if strings.Contains(line, yamlImage) {
+			line = strings.ReplaceAll(line, yamlImage, "image: "+newImage)
+		} else if strings.Contains(line, jsonImage) {
+			line = strings.ReplaceAll(line, jsonImage, `"image": "`+newImage+`"`)
+		}
+
+		if _, err := io.WriteString(writer, line+"\n"); err != nil {
+			return "", err
+		}
+	}
+
+	if scanner.Err() != nil {
 		return "", err
 	}
 

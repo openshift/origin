@@ -1,0 +1,11 @@
+apiVersion: oauth.openshift.io/v1
+clientName: openshift-challenging-client
+expiresIn: 15552000
+kind: OAuthAccessToken
+metadata:
+  name: sha256~efaca6fab897953ffcb4f857eb5cbf2cf3a4c33f1314b4922656303426b1cfc9
+redirectURI: https://localhost:8443/oauth/token/implicit
+userName: test
+userUID: 322b236b-22b9-11e6-b307-080027242396
+scopes:
+  - user:info
