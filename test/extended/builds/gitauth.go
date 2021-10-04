@@ -10,6 +10,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -59,6 +60,9 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use private repositor
 			g.BeforeEach(func() {
 				ctx := context.Background()
 				httpToken, err := oc.AsAdmin().KubeClient().CoreV1().Secrets("build-e2e-github-secrets").Get(ctx, "github-http-token", metav1.GetOptions{})
+				if err != nil && kerrors.IsNotFound(err) {
+					g.Skip("required secret build-e2e-github-secrets/github-http-token is missing")
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 				copiedHTTPToken := &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
@@ -91,6 +95,9 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use private repositor
 
 				ctx := context.Background()
 				sshKey, err := oc.AsAdmin().KubeClient().CoreV1().Secrets("build-e2e-github-secrets").Get(ctx, "github-ssh-privatekey", metav1.GetOptions{})
+				if err != nil && kerrors.IsNotFound(err) {
+					g.Skip("required secret build-e2e-github-secrets/github-ssh-privatekey is missing")
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 				copiedSSHKey := &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
