@@ -18,6 +18,7 @@ import (
 
 	kapiv1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kclientset "k8s.io/client-go/kubernetes"
@@ -34,6 +35,7 @@ import (
 	_ "k8s.io/kubernetes/test/e2e/storage/drivers"
 
 	projectv1 "github.com/openshift/api/project/v1"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -228,6 +230,21 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 		if err != nil {
 			return ns, err
 		}
+		securityClient, err := securityv1client.NewForConfig(clientConfig)
+		if err != nil {
+			return ns, err
+		}
+		e2e.Logf("About to run a Kube e2e test, ensuring namespace is privileged")
+		// add the "privileged" scc to ensure pods that explicitly
+		// request extra capabilities are not rejected
+		addE2EServiceAccountsToSCC(securityClient, []kapiv1.Namespace{*ns}, "privileged")
+		// add the "anyuid" scc to ensure pods that don't specify a
+		// uid don't get forced into a range (mimics upstream
+		// behavior)
+		addE2EServiceAccountsToSCC(securityClient, []kapiv1.Namespace{*ns}, "anyuid")
+		// add the "hostmount-anyuid" scc to ensure pods using hostPath
+		// can execute tests
+		addE2EServiceAccountsToSCC(securityClient, []kapiv1.Namespace{*ns}, "hostmount-anyuid")
 
 		// The intra-pod test requires that the service account have
 		// permission to retrieve service endpoints.
@@ -285,10 +302,52 @@ func allowAllNodeScheduling(c kclientset.Interface, namespace string) {
 	}
 }
 
+func addE2EServiceAccountsToSCC(securityClient securityv1client.Interface, namespaces []kapiv1.Namespace, sccName string) {
+	// Because updates can race, we need to set the backoff retries to be > than the number of possible
+	// parallel jobs starting at once. Set very high to allow future high parallelism.
+	err := retry.RetryOnConflict(longRetry, func() error {
+		scc, err := securityClient.SecurityV1().SecurityContextConstraints().Get(context.Background(), sccName, metav1.GetOptions{})
+		if err != nil {
+			if apierrs.IsNotFound(err) {
+				return nil
+			}
+			return err
+		}
+
+		for _, ns := range namespaces {
+			if isE2ENamespace(ns.Name) {
+				scc.Groups = append(scc.Groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
+			}
+		}
+		if _, err := securityClient.SecurityV1().SecurityContextConstraints().Update(context.Background(), scc, metav1.UpdateOptions{}); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		FatalErr(err)
+	}
+}
+
+func isE2ENamespace(ns string) bool {
+	return true
+	//return strings.HasPrefix(ns, "e2e-") ||
+	//	strings.HasPrefix(ns, "aggregator-") ||
+	//	strings.HasPrefix(ns, "csi-") ||
+	//	strings.HasPrefix(ns, "deployment-") ||
+	//	strings.HasPrefix(ns, "disruption-") ||
+	//	strings.HasPrefix(ns, "gc-") ||
+	//	strings.HasPrefix(ns, "kubectl-") ||
+	//	strings.HasPrefix(ns, "proxy-") ||
+	//	strings.HasPrefix(ns, "provisioning-") ||
+	//	strings.HasPrefix(ns, "statefulset-") ||
+	//	strings.HasPrefix(ns, "services-")
+}
+
 func addRoleToE2EServiceAccounts(rbacClient rbacv1client.RbacV1Interface, namespaces []kapiv1.Namespace, roleName string) {
 	err := retry.RetryOnConflict(longRetry, func() error {
 		for _, ns := range namespaces {
-			if ns.Status.Phase != kapiv1.NamespaceTerminating {
+			if isE2ENamespace(ns.Name) && ns.Status.Phase != kapiv1.NamespaceTerminating {
 				_, err := rbacClient.RoleBindings(ns.Name).Create(context.Background(), &rbacv1.RoleBinding{
 					ObjectMeta: metav1.ObjectMeta{GenerateName: "default-" + roleName, Namespace: ns.Name},
 					RoleRef: rbacv1.RoleRef{
