@@ -267,6 +267,12 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 					Output: fmt.Sprintf("Cluster accessed images that were not mirrored to the testing repository or already part of the cluster, see test/extended/util/image/README.md in the openshift/origin repo:\n\n%s", buf.String()),
 				},
 			})
+
+		} else {
+			// if the test passed, indicate that too.
+			tests = append(tests, &ginkgo.JUnitTestCase{
+				Name: "[sig-arch] Only known images used by tests",
+			})
 		}
 
 		return tests
