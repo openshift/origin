@@ -158,7 +158,10 @@ func testDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 		knownRepeatedEventsBugs:      knownEventsBugs,
 	}
 
-	return evaluator.testDuplicatedEvents(events, kubeClientConfig)
+	tests := []*ginkgo.JUnitTestCase{}
+	tests = append(tests, evaluator.testDuplicatedCoreNamespaceEvents(events, kubeClientConfig)...)
+	tests = append(tests, evaluator.testDuplicatedE2ENamespaceEvents(events, kubeClientConfig)...)
+	return tests
 }
 
 func testDuplicatedEventForStableSystem(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*ginkgo.JUnitTestCase {
@@ -168,7 +171,10 @@ func testDuplicatedEventForStableSystem(events monitorapi.Intervals, kubeClientC
 		knownRepeatedEventsBugs:      knownEventsBugs,
 	}
 
-	return evaluator.testDuplicatedEvents(events, kubeClientConfig)
+	tests := []*ginkgo.JUnitTestCase{}
+	tests = append(tests, evaluator.testDuplicatedCoreNamespaceEvents(events, kubeClientConfig)...)
+	tests = append(tests, evaluator.testDuplicatedE2ENamespaceEvents(events, kubeClientConfig)...)
+	return tests
 }
 
 // isRepeatedEventOKFunc takes a monitorEvent as input and returns true if the repeated event is OK.
@@ -180,9 +186,43 @@ type isRepeatedEventOKFunc func(monitorEvent monitorapi.EventInterval, kubeClien
 // for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] test
 // is easier to author, but less complete in its view.
 // I hate regexes, so I only do this because I really have to.
-func (d duplicateEventsEvaluator) testDuplicatedEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*ginkgo.JUnitTestCase {
+func (d duplicateEventsEvaluator) testDuplicatedCoreNamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*ginkgo.JUnitTestCase {
 	const testName = "[sig-arch] events should not repeat pathologically"
 
+	interestingEvents := monitorapi.Intervals{}
+	for i := range events {
+		event := events[i]
+		if !strings.Contains(event.Locator, "ns/e2e-") {
+			interestingEvents = append(interestingEvents, event)
+		}
+	}
+
+	return d.testDuplicatedEvents(testName, false, interestingEvents, kubeClientConfig)
+}
+
+// we want to identify events based on the monitor because it is (currently) our only spot that tracks events over time
+// for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] test
+// is easier to author, but less complete in its view.
+// I hate regexes, so I only do this because I really have to.
+func (d duplicateEventsEvaluator) testDuplicatedE2ENamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*ginkgo.JUnitTestCase {
+	const testName = "[sig-arch] events should not repeat pathologically in e2e namespaces"
+
+	interestingEvents := monitorapi.Intervals{}
+	for i := range events {
+		event := events[i]
+		if !strings.Contains(event.Locator, "ns/e2e-") {
+			interestingEvents = append(interestingEvents, event)
+		}
+	}
+
+	return d.testDuplicatedEvents(testName, true, interestingEvents, kubeClientConfig)
+}
+
+// we want to identify events based on the monitor because it is (currently) our only spot that tracks events over time
+// for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] test
+// is easier to author, but less complete in its view.
+// I hate regexes, so I only do this because I really have to.
+func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnly bool, events monitorapi.Intervals, kubeClientConfig *rest.Config) []*ginkgo.JUnitTestCase {
 	allowedRepeatedEventsRegex := combinedRegexp(d.allowedRepeatedEventPatterns...)
 
 	displayToCount := map[string]int{}
@@ -220,7 +260,7 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(events monitorapi.Interva
 			}
 		}
 
-		if flake {
+		if flake || flakeOnly {
 			flakes = append(flakes, msg)
 		} else {
 			failures = append(failures, msg)
