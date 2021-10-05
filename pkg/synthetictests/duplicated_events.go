@@ -210,7 +210,7 @@ func (d duplicateEventsEvaluator) testDuplicatedE2ENamespaceEvents(events monito
 	interestingEvents := monitorapi.Intervals{}
 	for i := range events {
 		event := events[i]
-		if !strings.Contains(event.Locator, "ns/e2e-") {
+		if strings.Contains(event.Locator, "ns/e2e-") {
 			interestingEvents = append(interestingEvents, event)
 		}
 	}
