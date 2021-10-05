@@ -125,6 +125,10 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 			Selector: map[string]string{"alertname": "KubeClientErrors"},
 			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1925698",
 		},
+		{
+			Selector: map[string]string{"alertname": "NetworkPodsCrashLooping"},
+			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=2009078",
+		},
 	}
 	allowedPendingAlerts := helper.MetricConditions{
 		{
