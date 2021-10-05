@@ -17,6 +17,25 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
+func archHasModPerl(oc *exutil.CLI) bool {
+	workerNodes, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker"})
+	if err != nil {
+		e2e.Logf("problem getting nodes for arch check: %s", err)
+	}
+	for _, node := range workerNodes.Items {
+		switch node.Status.NodeInfo.Architecture {
+		case "amd64":
+			return true
+		case "ppc64le":
+			return true
+		case "s390x":
+			return true
+		default:
+		}
+	}
+	return false
+}
+
 var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy for openshift perl image", func() {
 	defer g.GinkgoRecover()
 	var (
@@ -45,7 +64,11 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy f
 
 		g.Describe("hot deploy test", func() {
 			g.It("should work", func() {
-
+				// This image-ecosystem test fails on ARM because it depends on behaviour specific to mod_perl,
+				// which is only included in the RHSCL (RHEL 7) perl images which are not available on ARM.
+				if !archHasModPerl(oc) {
+					g.Skip("mod_perl based builder image is not available on arm64")
+				}
 				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 				g.By(fmt.Sprintf("calling oc new-app -f %q", perlTemplate))
 				err := oc.Run("new-app").Args("-f", perlTemplate, "-e", "HTTPD_START_SERVERS=1", "-e", "HTTPD_MAX_SPARE_SERVERS=1", "-e", "HTTPD_MAX_REQUEST_WORKERS=1").Execute()
