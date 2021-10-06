@@ -1743,7 +1743,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network-edge][Feature:Idling] Idling with a single service and ReplicationController should idle the service and ReplicationController properly": "should idle the service and ReplicationController properly [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network-edge][Feature:Idling] Unidling should handle many TCP connections by possibly dropping those over a certain bound [Serial]": "should handle many TCP connections by possibly dropping those over a certain bound [Serial] [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-network-edge][Feature:Idling] Unidling should handle many TCP connections by possibly dropping those over a certain bound [Serial]": "should handle many TCP connections by possibly dropping those over a certain bound [Serial] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-network-edge][Feature:Idling] Unidling should handle many UDP senders (by continuing to drop all packets on the floor) [Serial]": "should handle many UDP senders (by continuing to drop all packets on the floor) [Serial] [Suite:openshift/conformance/serial]",
 
