@@ -244,6 +244,7 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 			if !ok {
 				byImage = sets.NewString()
 				pulls[image] = byImage
+				fmt.Printf("[sig-arch] unknown image: %s\n", image)
 			}
 			byImage.Insert(event.Locator)
 		}

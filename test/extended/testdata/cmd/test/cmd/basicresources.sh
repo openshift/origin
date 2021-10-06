@@ -49,44 +49,12 @@ os::test::junit::declare_suite_start "cmd/basicresources/versionreporting"
 #echo "version reporting: ok"
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_start "cmd/basicresources/resource-builder"
-# Test resource builder filtering of files with expected extensions inside directories, and individual files without expected extensions
-os::cmd::expect_success 'oc create -f ${TEST_DATA}/resource-builder/directory -f ${TEST_DATA}/resource-builder/json-no-extension -f ${TEST_DATA}/resource-builder/yml-no-extension'
-# Explicitly specified extensionless files
-os::cmd::expect_success 'oc get secret json-no-extension yml-no-extension'
-# Scanned files with extensions inside directories
-os::cmd::expect_success 'oc get secret json-with-extension yml-with-extension'
-# Ensure extensionless files inside directories are not processed by resource-builder
-os::cmd::expect_failure_and_text 'oc get secret json-no-extension-in-directory' 'not found'
-echo "resource-builder: ok"
-os::test::junit::declare_suite_end
-
 os::test::junit::declare_suite_start "cmd/basicresources/pods"
 os::cmd::expect_success 'oc get pods'
 os::cmd::expect_success_and_text 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json' 'pod/hello-openshift created'
 os::cmd::expect_success 'oc describe pod hello-openshift'
 os::cmd::expect_success 'oc delete pods hello-openshift --grace-period=0 --force'
 echo "pods: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/basicresources/nodes"
-os::cmd::expect_success 'oc get nodes'
-(
-  # subshell so we can unset kubeconfig
-  cfg="${KUBECONFIG}"
-  unset KUBECONFIG
-  os::cmd::expect_success "kubectl get nodes --kubeconfig='${cfg}'"
-)
-echo "nodes: ok"
-os::test::junit::declare_suite_end
-
-
-os::test::junit::declare_suite_start "cmd/basicresources/create"
-os::cmd::expect_success 'oc create dc my-nginx --image=nginx'
-os::cmd::expect_success 'oc delete dc my-nginx'
-os::cmd::expect_success 'oc create clusterquota limit-bob --project-label-selector=openshift.io/requester=user-bob --hard=pods=10'
-os::cmd::expect_success 'oc delete clusterquota/limit-bob'
-echo "create subcommands: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/setprobe"
@@ -241,21 +209,5 @@ os::test::junit::declare_suite_end
 # service accounts should not be allowed to request new projects
 # TODO re-enable once we can use tokens instead of certs
 #os::cmd::expect_failure_and_text "oc new-project --token='$( oc sa get-token builder )' will-fail" 'Error from server \(Forbidden\): You may not request a new project via this API.'
-
-os::test::junit::declare_suite_start "cmd/basicresources/patch"
-# Validate patching works correctly
-#os::cmd::expect_success 'oc login -u system:admin'
-group_json='{"kind":"Group","apiVersion":"v1","metadata":{"name":"patch-group"}}'
-os::cmd::expect_success          "echo '${group_json}' | oc create -f -"
-os::cmd::expect_success          "oc patch group patch-group -p 'users: [\"myuser\"]' --loglevel=8"
-os::cmd::expect_success_and_text 'oc get group patch-group -o yaml' 'myuser'
-os::cmd::expect_success          "oc patch group patch-group -p 'users: []' --loglevel=8"
-# applying the same patch twice results in exit code 0, and "not patched" text
-os::cmd::expect_success_and_text "oc patch group patch-group -p 'users: []'" "patched \(no change\)"
-# applying an invalid patch results in exit code 1 and an error
-os::cmd::expect_failure_and_text "oc patch group patch-group -p 'users: \"\"'" "cannot restore slice from string"
-os::cmd::expect_success_and_text 'oc get group patch-group -o yaml' 'users: \[\]'
-echo "patch: ok"
-os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_end
