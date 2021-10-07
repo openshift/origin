@@ -414,7 +414,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			return watchRequestCounts[i].count > watchRequestCounts[j].count
 		})
 
-		fail := false
+		operatorBoundExceeded := []string{}
 		for _, item := range watchRequestCounts {
 			operator := strings.Split(item.operator, ":")[3]
 			count, exists := upperBound[operator]
@@ -429,11 +429,11 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			// In the worst case half of the requests will be put into each bucket. Thus, multiply the bound by 2
 			framework.Logf("operator=%v, watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.count, 2*count, float64(item.count)/float64(2*count))
 			if item.count > 2*count {
-				framework.Logf("Operator %v produces more watch requests than expected", operator)
-				fail = true
+				framework.Logf("Operator %q produces more watch requests than expected", operator)
+				operatorBoundExceeded = append(operatorBoundExceeded, fmt.Sprintf("Operator %q produces more watch requests than expected: watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.count, 2*count, float64(item.count)/float64(2*count)))
 			}
 		}
 
-		o.Expect(fail).NotTo(o.BeTrue())
+		o.Expect(operatorBoundExceeded).To(o.BeEmpty())
 	})
 })
