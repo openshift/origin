@@ -120,7 +120,11 @@ func (c MetricConditions) Matches(sample *model.Sample) *MetricCondition {
 }
 
 func LabelsAsSelector(l model.LabelSet) string {
-	return l.String()
+	indentedLabels, err := json.MarshalIndent(l, "", "  ")
+	if err != nil {
+		return l.String()
+	}
+	return string(indentedLabels)
 }
 
 func StripLabels(m model.Metric, names ...string) model.LabelSet {

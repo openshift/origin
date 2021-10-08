@@ -187,7 +187,7 @@ count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to check firing alerts during upgrade")
 	for _, series := range result.Data.Result {
 		labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
-		violation := fmt.Sprintf("alert %s fired for %s seconds with labels: %s", series.Metric["alertname"], series.Value, helper.LabelsAsSelector(labels))
+		violation := fmt.Sprintf("alert %s fired for %s seconds with labels:\n%s", series.Metric["alertname"], series.Value, helper.LabelsAsSelector(labels))
 		if cause := firingAlertsWithBugs.Matches(series); cause != nil {
 			knownViolations.Insert(fmt.Sprintf("%s (open bug: %s)", violation, cause.Text))
 		} else {
