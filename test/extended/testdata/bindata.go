@@ -53088,6 +53088,13 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
+    function isAlert(eventInterval) {
+        if (eventInterval.locator == "alert") {
+            return true
+        }
+        return false
+    }
+
     const rePhase = new RegExp("(^| )phase/([^ ]+)")
     function nodeStateValue(item) {
         let roles = ""
@@ -53197,6 +53204,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
     timelineGroups.push({group: "e2e-test-passed", data: []})
     createTimelineData("Passed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EPassed)
+
+    timelineGroups.push({group: "alerts", data: []})
+    createTimelineData("Passed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAlert)
 
     var segmentFunc = function (segment) {
         // for (var i in data) {
