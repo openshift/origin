@@ -10,6 +10,7 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
 
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
@@ -46,6 +47,19 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 	t.bearerToken = bearerToken
 	t.oc = oc
 	framework.Logf("Post-upgrade alert test setup complete")
+}
+
+func alertSeverityToMonitorAPILevel(severity string) monitorapi.EventLevel {
+	switch severity {
+	case "info":
+		return monitorapi.Info
+	case "warning":
+		return monitorapi.Warning
+	case "critical":
+		return monitorapi.Error
+	default:
+		return monitorapi.Info
+	}
 }
 
 // Test checks if alerts are firing at various points during upgrade.
@@ -224,6 +238,28 @@ sort_desc(
 			unexpectedViolationsAsFlakes.Insert(violation)
 		}
 	}
+
+	// Visualize alerts on e2e timeline
+	events := monitorapi.Intervals{}
+	presentAlertsQuery := `
+present_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog|AlertmanagerReceiversNotConfigured"}[1m]
+`
+	result, err = helper.RunQuery(presentAlertsQuery, ns, execPod.Name, t.url, t.bearerToken)
+	o.Expect(err).NotTo(o.HaveOccurred(), "unable to check for firing alerts during upgrade")
+	for _, series := range result.Data.Result {
+		seriesEnd := series.Timestamp.Time().Add(time.Second * time.Duration(series.Value))
+		events = append(events, monitorapi.EventInterval{
+			Condition: monitorapi.Condition{
+				Level:   alertSeverityToMonitorAPILevel(string(series.Metric["severity"])),
+				Locator: "alert",
+				Message: string(series.Metric["alertname"]),
+			},
+			From: series.Timestamp.Time(),
+			To:   seriesEnd,
+		})
+	}
+	f.TestSummaries = append(f.TestSummaries, disruption.AdditionalEvents{Events: events})
+	disruption.FrameworkEventIntervals(f, events)
 
 	if len(debug) > 0 {
 		framework.Logf("Alerts were detected during upgrade which are allowed:\n\n%s", strings.Join(debug.List(), "\n"))
