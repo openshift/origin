@@ -367,6 +367,15 @@ func (opt *Options) Run(suite *TestSuite) error {
 			sort.Sort(events)
 		}
 	}
+
+	// add events from alerts so we can create the intervals
+	alertEventIntervals, err := monitor.CreateEventIntervalsForAlerts(ctx, restConfig, start)
+	if err != nil {
+		fmt.Printf("\n\n\n#### alertErr=%v\n", err)
+	}
+	events = append(events, alertEventIntervals...)
+	sort.Sort(events)
+
 	events.Clamp(start, end)
 
 	if len(opt.JUnitDir) > 0 {

@@ -849,6 +849,7 @@ github.com/openshift/library-go/pkg/security/ldaputil
 github.com/openshift/library-go/pkg/security/uid
 github.com/openshift/library-go/pkg/serviceability
 github.com/openshift/library-go/pkg/template/templateprocessingclient
+github.com/openshift/library-go/test/library/metrics
 # github.com/pborman/uuid v1.2.0
 ## explicit
 github.com/pborman/uuid

@@ -53088,16 +53088,23 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
+    function isAlert(eventInterval) {
+        if (eventInterval.locator.startsWith("alert/")) {
+            return true
+        }
+        return false
+    }
+
     const rePhase = new RegExp("(^| )phase/([^ ]+)")
     function nodeStateValue(item) {
         let roles = ""
         let i = item.message.indexOf("roles/")
         if (i != -1) {
-          roles = item.message.substring(i+"roles/".length)
-          let j = roles.indexOf(" ")
-          if (j != -1) {
-            roles = roles.substring(0, j)
-          }
+            roles = item.message.substring(i+"roles/".length)
+            let j = roles.indexOf(" ")
+            if (j != -1) {
+                roles = roles.substring(0, j)
+            }
         }
 
         if (item.message.includes("node is not ready")) {
@@ -53108,6 +53115,30 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
             return [item.locator, ` + "`" + ` (${roles},update phases)` + "`" + `, m[2]];
         }
         return [item.locator, ` + "`" + ` (${roles},updates)` + "`" + `, "Update"];
+    }
+
+    function alertSeverity(item) {
+        // the other types can be pending, so check pending first
+        let pendingIndex = item.message.indexOf("pending")
+        if (pendingIndex != -1) {
+            return [item.locator, "", "AlertPending"]
+        }
+
+        let infoIndex = item.message.indexOf("info")
+        if (infoIndex != -1) {
+            return [item.locator, "", "AlertInfo"]
+        }
+        let warningIndex = item.message.indexOf("warning")
+        if (warningIndex != -1) {
+            return [item.locator, "", "AlertWarning"]
+        }
+        let criticalIndex = item.message.indexOf("critical")
+        if (criticalIndex != -1) {
+            return [item.locator, "", "AlertCritical"]
+        }
+
+        // color as critical if nothing matches so that we notice that something has gone wrong
+        return [item.locator, "", "AlertCritical"]
     }
 
     function createTimelineData(timelineVal, timelineData, rawEventIntervals, preconditionFunc) {
@@ -53174,13 +53205,25 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     timelineGroups.push({group: "operator-progressing", data: []})
     createTimelineData("OperatorProgressing", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorProgressing)
 
+    timelineGroups.push({group: "alerts", data: []})
+    createTimelineData(alertSeverity, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAlert)
+    // leaving this for posterity so future me (or someone else) can try it, but I think ordering by name makes the
+    // patterns shown by timing hide and timing appears more relevant to my eyes.
+    // sort alerts alphabetically for display purposes, but keep the json itself ordered by time.
+    // timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
+    //     if (e1.label.includes("alert") && e2.label.includes("alert")) {
+    //         return e1.label < e2.label ? -1 : e1.label > e2.label;
+    //     }
+    //     return 0
+    // })
+
     timelineGroups.push({group: "node-state", data: []})
     createTimelineData(nodeStateValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isNodeState)
     timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
-      if (e1.label.includes("master") && e2.label.includes("worker")) {
-        return -1
-      }
-      return 0
+        if (e1.label.includes("master") && e2.label.includes("worker")) {
+            return -1
+        }
+        return 0
     })
 
     timelineGroups.push({group: "apiserver-availability", data: []})
@@ -53223,8 +53266,18 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     const el = document.querySelector('#chart');
     const myChart = TimelinesChart();
     var ordinalScale = d3.scaleOrdinal()
-        .domain(['OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', 'Update', 'Drain', 'Reboot', 'OperatingSystemUpdate', 'NodeNotReady', 'Passed', 'Skipped', 'Flaked', 'Failed', 'Degraded', 'Upgradeable', 'False', 'Unknown'])
-        .range(['#d0312d', '#ffa500', '#fada5e', '#1e7bd9', '#4294e6', '#6aaef2', '#96cbff', '#fada5e', '#3cb043', '#ceba76', '#ffa500', '#d0312d', '#b65049', '#32b8b6', '#ffffff', '#bbbbbb']);
+        .domain([
+            'AlertInfo', 'AlertPending', 'AlertWarning', 'AlertCritical', // alerts
+            'OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', // operators
+            'Update', 'Drain', 'Reboot', 'OperatingSystemUpdate', 'NodeNotReady', // nodes
+            'Passed', 'Skipped', 'Flaked', 'Failed',  // tests
+            'Degraded', 'Upgradeable', 'False', 'Unknown'])
+        .range([
+            '#fada5e','#fada5e','#ffa500','#d0312d',  // alerts
+            '#d0312d', '#ffa500', '#fada5e', // operators
+            '#1e7bd9', '#4294e6', '#6aaef2', '#96cbff', '#fada5e', // nodes
+            '#3cb043', '#ceba76', '#ffa500', '#d0312d', // tests
+            '#b65049', '#32b8b6', '#ffffff', '#bbbbbb']);
     myChart.data(timelineGroups).zQualitative(true).enableAnimations(false).leftMargin(240).rightMargin(550).maxLineHeight(20).maxHeight(10000).zColorScale(ordinalScale).onSegmentClick(segmentFunc)
     (el);
 
