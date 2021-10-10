@@ -134,6 +134,7 @@ func getKey(client *clientv3.Client, key string) error {
 			fmt.Fprintf(os.Stderr, "WARN: unable to encode %s: %v\n", kv.Key, err)
 			continue
 		}
+		println()
 	}
 
 	return nil
