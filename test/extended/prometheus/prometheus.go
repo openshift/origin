@@ -13,6 +13,7 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	"github.com/prometheus/common/model"
@@ -41,6 +42,238 @@ import (
 	"github.com/openshift/origin/test/extended/util/ibmcloud"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 )
+
+var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules", func() {
+	defer g.GinkgoRecover()
+
+	// These alerts are known to be missing the summary and/or description
+	// annotations.  Bugzillas have been filed, and are linked here.  These
+	// should be fixed one-by-one and removed from this list.
+	descriptionExceptions := sets.NewString(
+		// Repo: openshift/cluster-kube-apiserver-operator
+		// https://bugzilla.redhat.com/show_bug.cgi?id=2010349
+		"APIRemovedInNextEUSReleaseInUse",
+		"APIRemovedInNextReleaseInUse",
+		"ExtremelyHighIndividualControlPlaneCPU",
+		"HighOverallControlPlaneCPU",
+		"TechPreviewNoUpgrade",
+
+		// Repo: operator-framework/operator-marketplace
+		// https://bugzilla.redhat.com/show_bug.cgi?id=2010375
+		"CertifiedOperatorsCatalogError",
+		"CommunityOperatorsCatalogError",
+		"RedhatMarketplaceCatalogError",
+		"RedhatOperatorsCatalogError",
+
+		// Repo: openshift/cloud-credential-operator
+		// https://bugzilla.redhat.com/show_bug.cgi?id=2010341
+		"CloudCredentialOperatorDeprovisioningFailed",
+		"CloudCredentialOperatorInsufficientCloudCreds",
+		"CloudCredentialOperatorProvisioningFailed",
+		"CloudCredentialOperatorTargetNamespaceMissing",
+		"CloudCredentialOperatorStaleCredentials",
+
+		// Repo: openshift/cluster-network-operator
+		// https://bugzilla.redhat.com/show_bug.cgi?id=2010361
+		"ClusterProxyApplySlow",
+		"NodeProxyApplySlow",
+		"NodeProxyApplyStale",
+		"NodeWithoutSDNPod",
+		"SDNPodNotReady",
+
+		// Repo: operator-framework/operator-lifecycle-manager
+		// https://bugzilla.redhat.com/show_bug.cgi?id=2010373
+		"CsvAbnormalFailedOver2Min",
+		"CsvAbnormalOver30Min",
+		"InstallPlanStepAppliedWithWarnings",
+
+		// Repo: openshift/cluster-ingress-operator
+		// https://bugzilla.redhat.com/show_bug.cgi?id=2010376
+		"HAProxyDown",
+		"HAProxyReloadFail",
+		"IngressControllerDegraded",
+		"IngressControllerUnavailable",
+
+		// Repo: openshift/cluster-image-registry-operator
+		// https://bugzilla.redhat.com/show_bug.cgi?id=2010347
+		// https://bugzilla.redhat.com/show_bug.cgi?id=1992553
+		"ImageRegistryStorageReconfigured",
+
+		// Repo: openshift/cluster-kube-scheduler-operator
+		// https://bugzilla.redhat.com/show_bug.cgi?id=2010354
+		"KubeSchedulerDown",
+		"SchedulerLegacyPolicySet",
+
+		// Repo: openshift/machine-config-operator
+		// https://bugzilla.redhat.com/show_bug.cgi?id=2010371
+		"KubeletHealthState",
+		"MCDDrainError",
+		"MCDPivotError",
+		"MCDRebootError",
+		"MasterNodesHighMemoryUsage",
+		"SystemMemoryExceedsReservation",
+
+		// Repo: openshift/machine-api-operator
+		// https://bugzilla.redhat.com/show_bug.cgi?id=2010368
+		"MachineAPIOperatorMetricsCollectionFailing",
+		"MachineHealthCheckUnterminatedShortCircuit",
+		"MachineNotYetDeleted",
+		"MachineWithNoRunningPhase",
+		"MachineWithoutValidNode",
+
+		// Repo: openshift/cluster-machine-approver
+		//https://bugzilla.redhat.com/show_bug.cgi?id=2010359
+		"MachineApproverMaxPendingCSRsReached",
+
+		// Repo: openshift/cluster-kube-controller-manager-operator
+		// https://bugzilla.redhat.com/show_bug.cgi?id=2010352
+		"KubeControllerManagerDown",
+		"PodDisruptionBudgetAtLimit",
+		"PodDisruptionBudgetLimit",
+
+		// Repo: openshift/cluster-samples-operator
+		// https://bugzilla.redhat.com/show_bug.cgi?id=2010364
+		"SamplesDegraded",
+		"SamplesImagestreamImportFailing",
+		"SamplesInvalidConfig",
+		"SamplesMissingSecret",
+		"SamplesMissingTBRCredential",
+		"SamplesRetriesMissingOnImagestreamImportFailing",
+		"SamplesTBRInaccessibleOnBoot",
+
+		// Repo: openshift/cluster-etcd-operator
+		// https://bugzilla.redhat.com/show_bug.cgi?id=2010346
+		"etcdBackendQuotaLowSpace",
+		"etcdExcessiveDatabaseGrowth",
+		"etcdHighFsyncDurations",
+
+		// Repo: openshift/cluster-network-operator (OVN)
+		// https://bugzilla.redhat.com/show_bug.cgi?id=2010663
+		"NetworkPodsCrashLooping",
+		"NoOvnMasterLeader",
+		"NoRunningOvnMaster",
+		"NodeWithoutOVNKubeNodePodRunning",
+		"NorthboundStale",
+		"SouthboundStale",
+		"V4SubnetAllocationThresholdExceeded",
+		"V6SubnetAllocationThresholdExceeded",
+
+		// Repo: openshift/cluster-storage-operator (vSphere)
+		// https://bugzilla.redhat.com/show_bug.cgi?id=2010310
+		// https://github.com/openshift/cluster-storage-operator/pull/220
+		"VSphereOpenshiftClusterHealthFail",
+		"VSphereOpenshiftNodeHealthFail",
+	)
+
+	var alertingRules map[string][]promv1.AlertingRule
+	oc := exutil.NewCLIWithoutNamespace("prometheus")
+
+	g.BeforeEach(func() {
+		url, _, bearerToken, ok := helper.LocatePrometheus(oc)
+		if !ok {
+			e2e.Failf("Prometheus could not be located on this cluster, failing prometheus test")
+		}
+
+		if alertingRules == nil {
+			var err error
+
+			alertingRules, err = helper.FetchAlertingRules(oc, url, bearerToken)
+			if err != nil {
+				e2e.Failf("Failed to fetch alerting rules: %v", err)
+			}
+		}
+	})
+
+	g.It("should have a valid severity label", func() {
+		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
+			severityRe := regexp.MustCompile("^critical|warning|info$")
+
+			severity, found := alert.Labels["severity"]
+			if !found {
+				return sets.NewString("has no 'severity' label")
+			}
+
+			if !severityRe.MatchString(string(severity)) {
+				return sets.NewString(
+					fmt.Sprintf("has a 'severity' label value of %q which doesn't match %q",
+						severity, severityRe.String(),
+					),
+				)
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			e2e.Failf(err.Error())
+		}
+	})
+
+	g.It("should have description and summary annotations", func() {
+		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
+			if descriptionExceptions.Has(alert.Name) {
+				framework.Logf("Alerting rule %q is known to have missing annotations.", alert.Name)
+				return nil
+			}
+
+			violations := sets.NewString()
+
+			if _, found := alert.Annotations["description"]; !found {
+				// If there's no 'description' annotation, but there is a
+				// 'message' annotation, suggest renaming it.
+				if _, found := alert.Annotations["message"]; found {
+					violations.Insert("has no 'description' annotation, but has a 'message' annotation." +
+						" OpenShift alerts must use 'description' -- consider renaming the annotation")
+				} else {
+					violations.Insert("has no 'description' annotation")
+				}
+			}
+
+			if _, found := alert.Annotations["summary"]; !found {
+				violations.Insert("has no 'summary' annotation")
+			}
+
+			return violations
+		})
+
+		if err != nil {
+			// We are still gathering data on how many alerts need to
+			// be fixed, so this is marked as a flake for now.
+			testresult.Flakef(err.Error())
+		}
+	})
+
+	g.It("should have a runbook_url annotation if the alert is critical", func() {
+		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
+			violations := sets.NewString()
+			severity := string(alert.Labels["severity"])
+			runbook := string(alert.Annotations["runbook_url"])
+
+			if severity == "critical" && runbook == "" {
+				violations.Insert(
+					fmt.Sprintf("WARNING: Alert %q is critical and has no 'runbook_url' annotation", alert.Name),
+				)
+			} else if runbook != "" {
+				// If there's a 'runbook_url' annotation, make sure it's a
+				// valid URL and that we can fetch the contents.
+				if err := helper.ValidateURL(runbook, 10*time.Second); err != nil {
+					violations.Insert(
+						fmt.Sprintf("WARNING: Alert %q has an invalid 'runbook_url' annotation: %v",
+							alert.Name, err),
+					)
+				}
+			}
+
+			return violations
+		})
+
+		if err != nil {
+			// We are still gathering data on how many alerts need to
+			// be fixed, so this is marked as a flake for now.
+			testresult.Flakef(err.Error())
+		}
+	})
+})
 
 var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 	defer g.GinkgoRecover()

@@ -1725,6 +1725,12 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't report any alerts in firing or pending state apart from Watchdog and AlertmanagerReceiversNotConfigured and have no gaps in Watchdog firing": "shouldn't report any alerts in firing or pending state apart from Watchdog and AlertmanagerReceiversNotConfigured and have no gaps in Watchdog firing [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-instrumentation][Late] OpenShift alerting rules should have a runbook_url annotation if the alert is critical": "should have a runbook_url annotation if the alert is critical [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-instrumentation][Late] OpenShift alerting rules should have a valid severity label": "should have a valid severity label [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-instrumentation][Late] OpenShift alerting rules should have description and summary annotations": "should have description and summary annotations [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-instrumentation][sig-builds][Feature:Builds] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics": "should start and expose a secured proxy and verify build metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network-edge] DNS should answer A and AAAA queries for a dual-stack service": "should answer A and AAAA queries for a dual-stack service [Suite:openshift/conformance/parallel]",
