@@ -116,6 +116,7 @@ var (
 			rbacv1helpers.NewRule("get", "list").Groups(storageGroup).Resources("storageclasses").RuleOrDie(),
 			rbacv1helpers.NewRule("get", "list", "watch").Groups(snapshotGroup).Resources("volumesnapshotclasses").RuleOrDie(),
 			rbacv1helpers.NewRule("list", "watch").Groups(projectGroup, legacyProjectGroup).Resources("projects").RuleOrDie(),
+			rbacv1helpers.NewRule("get").Groups("").Resources("configmaps").Names("openshift-network-features").RuleOrDie(),
 
 			// These custom resources are used to extend console functionality
 			// The console team is working on eliminating this exception in the near future
