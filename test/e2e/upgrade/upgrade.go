@@ -30,6 +30,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/origin/test/e2e/upgrade/adminack"
 	"github.com/openshift/origin/test/e2e/upgrade/alert"
 	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
 	"github.com/openshift/origin/test/e2e/upgrade/service"
@@ -49,6 +50,7 @@ func NoTests() []upgrades.Test {
 // AllTests includes all tests (minimal + disruption)
 func AllTests() []upgrades.Test {
 	return []upgrades.Test{
+		&adminack.UpgradeTest{},
 		controlplane.NewKubeAvailableWithNewConnectionsTest(),
 		controlplane.NewOpenShiftAvailableNewConnectionsTest(),
 		controlplane.NewOAuthAvailableNewConnectionsTest(),
