@@ -144,10 +144,6 @@ const (
 	// housekeeping is running no new pods are started or deleted).
 	housekeepingWarningDuration = time.Second * 15
 
-	// Period for performing eviction monitoring.
-	// ensure this is kept in sync with internal cadvisor housekeeping.
-	evictionMonitoringPeriod = time.Second * 10
-
 	// The path in containers' filesystems where the hosts file is mounted.
 	linuxEtcHostsPath   = "/etc/hosts"
 	windowsEtcHostsPath = "C:\\Windows\\System32\\drivers\\etc\\hosts"
@@ -182,6 +178,21 @@ const (
 	// nodeLeaseRenewIntervalFraction is the fraction of lease duration to renew the lease
 	nodeLeaseRenewIntervalFraction = 0.25
 )
+
+var (
+	// Period for performing eviction monitoring.
+	// ensure this is kept in sync with internal cadvisor housekeeping.
+	evictionMonitoringPeriod = time.Second * 10
+)
+
+func init() {
+	if value := os.Getenv("OPENSHIFT_EVICTION_MONITORING_PERIOD_DURATION"); value != "" {
+		if duration, err := time.ParseDuration(value); err == nil {
+			klog.Infof("Detected OPENSHIFT_EVICTION_MONITORING_PERIOD_DURATION: %v", value)
+			evictionMonitoringPeriod = duration
+		}
+	}
+}
 
 var etcHostsPath = getContainerEtcHostsPath()
 
@@ -2229,7 +2240,7 @@ func (kl *Kubelet) HandlePodAdditions(pods []*v1.Pod) {
 		if !kl.podWorkers.IsPodTerminationRequested(pod.UID) {
 			// We failed pods that we rejected, so activePods include all admitted
 			// pods that are alive.
-			activePods := kl.filterOutTerminatedPods(existingPods)
+			activePods := kl.filterOutInactivePods(existingPods)
 
 			// Check if we can admit the pod; if not, reject it.
 			if ok, reason, message := kl.canAdmitPod(activePods, pod); !ok {
@@ -2239,6 +2250,8 @@ func (kl *Kubelet) HandlePodAdditions(pods []*v1.Pod) {
 		}
 		mirrorPod, _ := kl.podManager.GetMirrorPodByPod(pod)
 		kl.dispatchWork(pod, kubetypes.SyncPodCreate, mirrorPod, start)
+		// TODO: move inside syncPod and make reentrant
+		// https://github.com/kubernetes/kubernetes/issues/105014
 		kl.probeManager.AddPod(pod)
 	}
 }
@@ -2273,6 +2286,9 @@ func (kl *Kubelet) HandlePodRemoves(pods []*v1.Pod) {
 		if err := kl.deletePod(pod); err != nil {
 			klog.V(2).InfoS("Failed to delete pod", "pod", klog.KObj(pod), "err", err)
 		}
+		// TODO: move inside syncTerminatingPod|syncTerminatedPod (we should stop probing
+		// once the pod kill is acknowledged and during eviction)
+		// https://github.com/kubernetes/kubernetes/issues/105014
 		kl.probeManager.RemovePod(pod)
 	}
 }
