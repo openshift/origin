@@ -261,7 +261,17 @@ func testNodeUpgradeTransitions(events monitorapi.Intervals) []*ginkgo.JUnitTest
 					continue
 				}
 				currentNodeReady[node] = true
-				nodesWentReady[node] = append(nodesWentReady[node], event.From)
+
+				// In some cases, nodes take a long time to reach Ready, occasionally reaching Ready for the first time after the upgrade
+				// test suite has already started. This triggers the supposedly impossible "node went ready multiple times" thrown below,
+				// when in reality the upgrade proceeded quite smoothly. As such we'll disregard a move to NodeReady, if we have not yet
+				// observed a NodeNotReady.
+				if len(nodesWentUnready[node]) > 0 {
+					nodesWentReady[node] = append(nodesWentReady[node], event.From)
+				} else {
+					fmt.Fprintf(&buf, "DEBUG: detected NodeReady after UpgradeStarted, but before the node went NodeNotReady (likely indicates a node that was slow to initially install): %v\n", event.String())
+				}
+
 				fmt.Fprintf(&buf, "DEBUG: found node ready transition: %v\n", event.String())
 			} else {
 				if !currentNodeReady[node] && len(nodesWentUnready[node]) > 0 {
