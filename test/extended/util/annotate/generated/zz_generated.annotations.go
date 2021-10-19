@@ -1129,6 +1129,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-builds][Feature:Builds][Slow] using pull secrets in a build  start-build test context pulling from an external authenticated registry should be able to use a pull secret linked to the builder service account": "should be able to use a pull secret linked to the builder service account",
 
+	"[Top Level] [sig-builds][Feature:Builds][pullsearch] docker build where the registry is not specified  Building from a Dockerfile whose FROM image ref does not specify the image registry should create a docker build that has buildah search from our predefined list of image registries and succeed": "should create a docker build that has buildah search from our predefined list of image registries and succeed [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-builds][Feature:Builds][pullsecret] docker build using a pull secret  Building from a template should create a docker build that pulls using a secret run it": "should create a docker build that pulls using a secret run it [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slow] openshift pipeline build  Sync plugin tests using the ephemeral template": "using the ephemeral template",

@@ -115,6 +115,7 @@
 // test/extended/testdata/builds/test-build-podsvc.json
 // test/extended/testdata/builds/test-build-proxy.yaml
 // test/extended/testdata/builds/test-build-revision.json
+// test/extended/testdata/builds/test-build-search-registries.yaml
 // test/extended/testdata/builds/test-build.yaml
 // test/extended/testdata/builds/test-buildconfigsecretinjector.yaml
 // test/extended/testdata/builds/test-cds-dockerbuild.json
@@ -19584,6 +19585,38 @@ func testExtendedTestdataBuildsTestBuildRevisionJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/test-build-revision.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestBuildSearchRegistriesYaml = []byte(`apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: ubi
+spec:
+  source:
+    # ubi8/ubi:latest only resolves to an image on registry.redhat.io or registry.access.redhat.com.
+    dockerfile: FROM ubi8/ubi:latest
+    type: Dockerfile
+  strategy:
+    dockerStrategy:
+      env:
+        - name: BUILD_LOGLEVEL
+          value: "10"
+    type: Docker
+`)
+
+func testExtendedTestdataBuildsTestBuildSearchRegistriesYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestBuildSearchRegistriesYaml, nil
+}
+
+func testExtendedTestdataBuildsTestBuildSearchRegistriesYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestBuildSearchRegistriesYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-build-search-registries.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -53473,6 +53506,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/test-build-podsvc.json":                                                   testExtendedTestdataBuildsTestBuildPodsvcJson,
 	"test/extended/testdata/builds/test-build-proxy.yaml":                                                    testExtendedTestdataBuildsTestBuildProxyYaml,
 	"test/extended/testdata/builds/test-build-revision.json":                                                 testExtendedTestdataBuildsTestBuildRevisionJson,
+	"test/extended/testdata/builds/test-build-search-registries.yaml":                                        testExtendedTestdataBuildsTestBuildSearchRegistriesYaml,
 	"test/extended/testdata/builds/test-build.yaml":                                                          testExtendedTestdataBuildsTestBuildYaml,
 	"test/extended/testdata/builds/test-buildconfigsecretinjector.yaml":                                      testExtendedTestdataBuildsTestBuildconfigsecretinjectorYaml,
 	"test/extended/testdata/builds/test-cds-dockerbuild.json":                                                testExtendedTestdataBuildsTestCdsDockerbuildJson,
@@ -54084,6 +54118,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"test-build-podsvc.json":              {testExtendedTestdataBuildsTestBuildPodsvcJson, map[string]*bintree{}},
 					"test-build-proxy.yaml":               {testExtendedTestdataBuildsTestBuildProxyYaml, map[string]*bintree{}},
 					"test-build-revision.json":            {testExtendedTestdataBuildsTestBuildRevisionJson, map[string]*bintree{}},
+					"test-build-search-registries.yaml":   {testExtendedTestdataBuildsTestBuildSearchRegistriesYaml, map[string]*bintree{}},
 					"test-build.yaml":                     {testExtendedTestdataBuildsTestBuildYaml, map[string]*bintree{}},
 					"test-buildconfigsecretinjector.yaml": {testExtendedTestdataBuildsTestBuildconfigsecretinjectorYaml, map[string]*bintree{}},
 					"test-cds-dockerbuild.json":           {testExtendedTestdataBuildsTestCdsDockerbuildJson, map[string]*bintree{}},
