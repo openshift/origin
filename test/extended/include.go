@@ -34,6 +34,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/machines"
 	_ "github.com/openshift/origin/test/extended/networking"
 	_ "github.com/openshift/origin/test/extended/oauth"
+	_ "github.com/openshift/origin/test/extended/olm"
 	_ "github.com/openshift/origin/test/extended/operators"
 	_ "github.com/openshift/origin/test/extended/pods"
 	_ "github.com/openshift/origin/test/extended/project"
