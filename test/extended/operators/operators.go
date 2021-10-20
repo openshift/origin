@@ -235,9 +235,9 @@ func surprisingConditions(co objx.Map) ([]configv1.ClusterOperatorStatusConditio
 				expected = configv1.ConditionTrue
 			}
 			if cond.Get("status").String() != string(expected) {
-				if conditionType == configv1.OperatorUpgradeable && (name == "kube-storage-version-migrator" || // https://bugzilla.redhat.com/show_bug.cgi?id=1928141
-					name == "openshift-controller-manager" || // https://bugzilla.redhat.com/show_bug.cgi?id=1948011
-					name == "service-ca") { // https://bugzilla.redhat.com/show_bug.cgi?id=1948012
+				if conditionType == configv1.OperatorUpgradeable && (name == "kube-storage-version-migrator" || // https://bugzilla.redhat.com/show_bug.cgi?id=1928141 , currently fixed for 4.10, but no backports at the moment.  We currently have ...-upgrade-4.y-to-4.(y+1)-to-4.(y+2)-to-4.(y+3)-ci jobs, so as long as we don't extend that +3 skew for those jobs, we should be able to drop this code once 4.13 forks off of the development branch.
+					name == "openshift-controller-manager" || // https://bugzilla.redhat.com/show_bug.cgi?id=1948011 , currently fixed for 4.8, but no backports at the moment.  We currently have ...-upgrade-4.y-to-4.(y+1)-to-4.(y+2)-to-4.(y+3)-ci jobs, so as long as we don't extend that +3 skew for those jobs, we should be able to drop this code once 4.10 forks off the development branch.
+					name == "service-ca") { // https://bugzilla.redhat.com/show_bug.cgi?id=1948012 , currently fixed for 4.8, but no backports at the moment.  We currently have ...-upgrade-4.y-to-4.(y+1)-to-4.(y+2)-to-4.(y+3)-ci jobs, so as long as we don't extend that +3 skew for those jobs, we should be able to drop this code once 4.10 forks off the development branch.
 					continue
 				}
 				badConditions = append(badConditions, configv1.ClusterOperatorStatusCondition{
