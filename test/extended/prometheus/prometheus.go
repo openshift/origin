@@ -341,11 +341,16 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		}
 
 		if isTechPreviewCluster(oc) {
-			allowedFiringAlerts = append(allowedFiringAlerts, helper.MetricCondition{
-				Selector: map[string]string{"alertname": "TechPreviewNoUpgrade"},
-				Text:     "Allow testing of TechPreviewNoUpgrade clusters, this will only fire when a FeatureGate has been installed",
-			},
-			)
+			allowedFiringAlerts = append(
+				allowedFiringAlerts,
+				helper.MetricCondition{
+					Selector: map[string]string{"alertname": "TechPreviewNoUpgrade"},
+					Text:     "Allow testing of TechPreviewNoUpgrade clusters, this will only fire when a FeatureGate has been installed",
+				},
+				helper.MetricCondition{
+					Selector: map[string]string{"alertname": "ClusterNotUpgradeable"},
+					Text:     "Allow testing of ClusterNotUpgradeable clusters, this will only fire when a FeatureGate has been installed",
+				})
 		}
 
 		pendingAlertsWithBugs := helper.MetricConditions{}
