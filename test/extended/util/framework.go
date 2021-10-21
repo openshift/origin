@@ -57,7 +57,6 @@ import (
 	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/origin/test/extended/testdata"
-	"github.com/openshift/origin/test/extended/util/ibmcloud"
 	utilimage "github.com/openshift/origin/test/extended/util/image"
 )
 
@@ -70,9 +69,10 @@ func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
 	foundOCMLogs := false
 	isOCMProgressing := true
 	podLogs := map[string]string{}
-	isIBMCloud := e2e.TestContext.Provider == ibmcloud.ProviderName
+	controlPlaneTopology, cpErr := GetControlPlaneTopology(oc)
+	o.Expect(cpErr).NotTo(o.HaveOccurred())
 	testImageStreamName := ""
-	if isIBMCloud {
+	if *controlPlaneTopology == configv1.ExternalTopologyMode {
 		is := &imagev1.ImageStream{}
 		is.GenerateName = "internal-registry-test"
 		is, err := oc.AdminImageClient().ImageV1().ImageStreams("openshift").Create(context.Background(), is, metav1.CreateOptions{})
@@ -213,7 +213,7 @@ func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
 		return false, nil
 	})
 
-	if !foundOCMLogs && !isIBMCloud {
+	if !foundOCMLogs && *controlPlaneTopology != configv1.ExternalTopologyMode {
 		e2e.Logf("dumping OCM pod logs since we never found the internal registry hostname and start build controller sequence")
 		for podName, podLog := range podLogs {
 			e2e.Logf("pod %s logs:\n%s", podName, podLog)
@@ -2001,4 +2001,27 @@ func AllClusterVersionsAreGTE(version semver.Version, config *rest.Config) (bool
 		}
 	}
 	return true, nil
+}
+
+var (
+	ControlPlaneTopology *configv1.TopologyMode
+	controlPlaneMutex    sync.Mutex
+)
+
+// GetControlPlaneTopology retrieves the cluster infrastructure TopologyMode
+func GetControlPlaneTopology(ocClient *CLI) (*configv1.TopologyMode, error) {
+	controlPlaneMutex.Lock()
+	defer controlPlaneMutex.Unlock()
+
+	if ControlPlaneTopology == nil {
+		infra, err := ocClient.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failure getting test cluster Infrastructure: %s", err.Error())
+		}
+		if &infra.Status.ControlPlaneTopology == nil {
+			return nil, fmt.Errorf("missing Infrastructure.Status.ControlPlaneTopology")
+		}
+		ControlPlaneTopology = &infra.Status.ControlPlaneTopology
+	}
+	return ControlPlaneTopology, nil
 }

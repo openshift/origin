@@ -13,13 +13,12 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
+	configv1 "github.com/openshift/api/config/v1"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	"github.com/openshift/library-go/pkg/crypto"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 const (
@@ -36,8 +35,11 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 	oc := exutil.NewCLI("oauth")
 
 	g.It("has the correct token and certificate fallback semantics", func() {
-		if e2e.TestContext.Provider == ibmcloud.ProviderName {
-			e2eskipper.Skipf("IBM ROKS clusters do not contain a kube-control-plane-signer secret inside the cluster. The secret lives outside the cluster with the rest of the control plane.")
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			e2eskipper.Skipf("External clusters do not contain a kube-control-plane-signer secret inside the cluster. The secret lives outside the cluster with the rest of the control plane.")
 		}
 
 		var (

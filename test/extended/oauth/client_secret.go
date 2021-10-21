@@ -15,12 +15,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 
+	configv1 "github.com/openshift/api/config/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/ibmcloud"
 
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
@@ -33,8 +32,11 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer]", func() {
 
 	g.Describe("ClientSecretWithPlus", func() {
 		g.It(fmt.Sprintf("should create oauthclient"), func() {
-			if e2e.TestContext.Provider == ibmcloud.ProviderName {
-				e2eskipper.Skipf("IBM Cloud clusters do not contain oauth-openshift routes")
+			controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if *controlPlaneTopology == configv1.ExternalTopologyMode {
+				e2eskipper.Skipf("External clusters do not contain oauth-openshift routes")
 			}
 
 			g.By("create oauth client")

@@ -19,7 +19,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	certv1 "k8s.io/api/certificates/v1"
@@ -27,8 +26,8 @@ import (
 	certclientv1 "k8s.io/client-go/kubernetes/typed/certificates/v1"
 	restclient "k8s.io/client-go/rest"
 
+	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/ibmcloud"
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
@@ -37,9 +36,12 @@ var _ = g.Describe("[sig-cluster-lifecycle]", func() {
 	defer g.GinkgoRecover()
 
 	g.It("Pods cannot access the /config/master API endpoint", func() {
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		// https://issues.redhat.com/browse/CO-760
-		if e2e.TestContext.Provider == ibmcloud.ProviderName {
-			e2eskipper.Skipf("IBM ROKS clusters do not expose machine configuration externally because they don't use RHCOS workers. " +
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			e2eskipper.Skipf("External clusters do not expose machine configuration externally because they don't use RHCOS workers. " +
 				"Remove this skip when https://issues.redhat.com/browse/CO-760 (RHCOS support) is implemented")
 		}
 
@@ -70,8 +72,11 @@ var _ = g.Describe("[sig-cluster-lifecycle]", func() {
 	})
 
 	g.It("CSRs from machines that are not recognized by the cloud provider are not approved", func() {
-		if e2e.TestContext.Provider == ibmcloud.ProviderName {
-			e2eskipper.Skipf("IBM ROKS clusters do not handle node bootstrapping in the cluster. The openshift-machine-config-operator/node-bootstrapper service account does not exist")
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			e2eskipper.Skipf("External clusters do not handle node bootstrapping in the cluster. The openshift-machine-config-operator/node-bootstrapper service account does not exist")
 		}
 
 		// we somehow were able to get the node-approver token, make sure we can't

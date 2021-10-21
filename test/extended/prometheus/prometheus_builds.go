@@ -8,12 +8,11 @@ import (
 	o "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/ibmcloud"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 )
 
@@ -41,9 +40,12 @@ var _ = g.Describe("[sig-instrumentation][sig-builds][Feature:Builds] Prometheus
 
 	g.Describe("when installed on the cluster", func() {
 		g.It("should start and expose a secured proxy and verify build metrics", func() {
+			controlPlaneTopology, infra_err := exutil.GetControlPlaneTopology(oc)
+			o.Expect(infra_err).NotTo(o.HaveOccurred())
+
 			// https://issues.redhat.com/browse/CO-895
-			if e2e.TestContext.Provider == ibmcloud.ProviderName {
-				e2eskipper.Skipf("Prometheus in IBM ROKS clusters does not collect metrics from the OpenShift controller manager because it lives outside of the cluster. " +
+			if *controlPlaneTopology == configv1.ExternalTopologyMode {
+				e2eskipper.Skipf("Prometheus in External clusters does not collect metrics from the OpenShift controller manager because it lives outside of the cluster. " +
 					"The openshift_build_total metric expected by this test is reported by the OpenShift controller manager. " +
 					"Remove this skip when https://issues.redhat.com/browse/CO-895 is implemented.")
 			}

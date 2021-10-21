@@ -30,6 +30,7 @@ import (
 	oapps "github.com/openshift/api/apps"
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/api/build"
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/oauth"
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
@@ -217,6 +218,7 @@ var globalDeploymentConfigGetterUsers = sets.NewString(
 type resourceAccessReviewTest struct {
 	description     string
 	clientInterface authorizationv1typedclient.ResourceAccessReviewInterface
+	ocClient        *exutil.CLI
 	review          *authorizationv1.ResourceAccessReview
 
 	response authorizationv1.ResourceAccessReviewResponse
@@ -250,6 +252,9 @@ func (test resourceAccessReviewTest) run() {
 				}
 			}
 
+			controlPlaneTopology, err := exutil.GetControlPlaneTopology(test.ocClient)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			// many operators installed in openshift- namespaces are allowed to read all namespaces.  We simply suppress all those users from the user slice
 			// so we aren't sensitive to adding or removing them
 			actualUsersToCheck := sets.NewString()
@@ -257,9 +262,9 @@ func (test resourceAccessReviewTest) run() {
 				if strings.HasPrefix(curr, "system:serviceaccount:openshift-") {
 					continue
 				}
-				// ibmcloud openshift has an IAM user that needs to be ignored
-				if e2e.TestContext.Provider == ibmcloud.ProviderName {
-					if strings.HasPrefix(curr, "IAM#") {
+				// Managed ibmcloud openshift has an IAM user that needs to be ignored
+				if strings.HasPrefix(curr, "IAM#") {
+					if *controlPlaneTopology == configv1.ExternalTopologyMode && e2e.TestContext.Provider == ibmcloud.ProviderName {
 						continue
 					}
 				}
@@ -294,6 +299,7 @@ func (test resourceAccessReviewTest) run() {
 type localResourceAccessReviewTest struct {
 	description     string
 	clientInterface authorizationv1typedclient.LocalResourceAccessReviewInterface
+	ocClient        *exutil.CLI
 	review          *authorizationv1.LocalResourceAccessReview
 
 	response authorizationv1.ResourceAccessReviewResponse
@@ -336,6 +342,9 @@ func (test localResourceAccessReviewTest) run() {
 				return false, nil
 			}
 
+			controlPlaneTopology, err := exutil.GetControlPlaneTopology(test.ocClient)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			// many operators installed in openshift- namespaces are allowed to read all namespaces.  We simply suppress all those users from the user slice
 			// so we aren't sensitive to adding or removing them
 			actualUsersToCheck := sets.NewString()
@@ -343,9 +352,9 @@ func (test localResourceAccessReviewTest) run() {
 				if strings.HasPrefix(curr, "system:serviceaccount:openshift-") {
 					continue
 				}
-				// ibmcloud openshift has an IAM user that needs to be ignored
-				if e2e.TestContext.Provider == ibmcloud.ProviderName {
-					if strings.HasPrefix(curr, "IAM#") {
+				// Managed ibmcloud openshift has an IAM user that needs to be ignored
+				if strings.HasPrefix(curr, "IAM#") {
+					if *controlPlaneTopology == configv1.ExternalTopologyMode && e2e.TestContext.Provider == ibmcloud.ProviderName {
 						continue
 					}
 				}
@@ -420,6 +429,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization][Serial] authoriza
 					test := localResourceAccessReviewTest{
 						description:     "who can view deploymentconfigs in hammer by harold",
 						clientInterface: haroldAuthorizationClient.LocalResourceAccessReviews(hammerProjectName),
+						ocClient:        oc,
 						review:          localRequestWhoCanViewDeploymentConfigs,
 						response: authorizationv1.ResourceAccessReviewResponse{
 							UsersSlice:  []string{oc.Username(), haroldName, valerieName},
@@ -436,6 +446,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization][Serial] authoriza
 					test := localResourceAccessReviewTest{
 						description:     "who can view deploymentconfigs in mallet by mark",
 						clientInterface: markAuthorizationClient.LocalResourceAccessReviews(malletProjectName),
+						ocClient:        oc,
 						review:          localRequestWhoCanViewDeploymentConfigs,
 						response: authorizationv1.ResourceAccessReviewResponse{
 							UsersSlice:  []string{oc.Username(), markName, edgarName},
@@ -454,6 +465,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization][Serial] authoriza
 					test := resourceAccessReviewTest{
 						description:     "who can view deploymentconfigs in all by mark",
 						clientInterface: markAuthorizationClient.ResourceAccessReviews(),
+						ocClient:        oc,
 						review:          requestWhoCanViewDeploymentConfigs,
 						err:             "cannot ",
 					}
@@ -465,6 +477,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization][Serial] authoriza
 					test := resourceAccessReviewTest{
 						description:     "who can view deploymentconfigs in all by cluster-admin",
 						clientInterface: clusterAdminAuthorizationClient.ResourceAccessReviews(),
+						ocClient:        oc,
 						review:          requestWhoCanViewDeploymentConfigs,
 						response: authorizationv1.ResourceAccessReviewResponse{
 							UsersSlice:  []string{},

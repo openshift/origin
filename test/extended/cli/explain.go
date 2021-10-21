@@ -17,9 +17,9 @@ import (
 	kclientset "k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 type explainExceptions struct {
@@ -447,7 +447,12 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 	g.It("should contain proper spec+status for CRDs", func() {
 		crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
 		crdTypesTest := crdTypes
-		if e2e.TestContext.Provider == ibmcloud.ProviderName {
+
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		// External clusters are not expected to have 'autoscaling' or
+		// 'machine' Types, just the 'base' Types
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
 			crdTypesTest = baseCRDTypes
 		}
 		for _, ct := range crdTypesTest {

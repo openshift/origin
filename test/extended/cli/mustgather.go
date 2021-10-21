@@ -14,11 +14,11 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/ibmcloud"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -115,9 +115,12 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 	})
 
 	g.It("runs successfully for audit logs", func() {
-		// On IBM ROKS, events will not be part of the output, since audit logs do not include control plane logs.
-		if e2e.TestContext.Provider == ibmcloud.ProviderName {
-			g.Skip("ROKs doesn't have audit logs")
+		// On External clusters, events will not be part of the output, since audit logs do not include control plane logs.
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			g.Skip("External clusters don't have control plane audit logs")
 		}
 
 		upgradedFrom45 := false
@@ -296,9 +299,12 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 	g.When("looking at the audit logs", func() {
 		g.Describe("[sig-node] kubelet", func() {
 			g.It("runs apiserver processes strictly sequentially in order to not risk audit log corruption", func() {
-				// On IBM ROKS, events will not be part of the output, since audit logs do not include control plane logs.
-				if e2e.TestContext.Provider == ibmcloud.ProviderName {
-					g.Skip("ROKs doesn't have audit logs")
+				controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// On External clusters, events will not be part of the output, since audit logs do not include control plane logs.
+				if *controlPlaneTopology == configv1.ExternalTopologyMode {
+					g.Skip("External clusters don't have control plane audit logs")
 				}
 
 				tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")

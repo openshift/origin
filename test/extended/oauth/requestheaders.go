@@ -34,7 +34,6 @@ import (
 	clusteroperatorhelpers "github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
 
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 func init() {
@@ -63,8 +62,11 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 	var oc = exutil.NewCLI("request-headers")
 
 	g.It("test RequestHeaders IdP", func() {
-		if e2e.TestContext.Provider == ibmcloud.ProviderName {
-			e2eskipper.Skipf("IBM ROKS clusters do not allow customization of the Identity Providers for the cluster.")
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			e2eskipper.Skipf("External clusters do not allow customization of the Identity Providers for the cluster.")
 		}
 
 		caCert, caKey := createClientCA(oc.AdminKubeClient().CoreV1())
