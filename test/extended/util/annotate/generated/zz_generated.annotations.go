@@ -1589,6 +1589,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should perform lookup when the object has the resolve-names annotation": "should perform lookup when the object has the resolve-names annotation [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should update OpenShift object image fields when local names are on": "should update OpenShift object image fields when local names are on [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should update standard Kube object image fields when local names are on": "should update standard Kube object image fields when local names are on [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-imageregistry][Feature:ImageMirror][Slow] Image mirror mirror image from integrated registry into few external registries": "mirror image from integrated registry into few external registries",
