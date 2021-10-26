@@ -377,7 +377,7 @@ func (opt *Options) Run(suite *TestSuite) error {
 	events.Clamp(start, end)
 
 	if len(opt.JUnitDir) > 0 {
-		if err := monitor.WriteRunDataToArtifactsDir(opt.JUnitDir, m, events, timeSuffix); err != nil {
+		if err := monitor.WriteRunDataToArtifactsDir(ctx, opt.JUnitDir, m, events, timeSuffix, restConfig, start); err != nil {
 			fmt.Fprintf(opt.ErrOut, "error: Failed to write run-data: %v\n", err)
 		}
 	}
