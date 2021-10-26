@@ -104,7 +104,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance impersonatio
 		// I think we get flakes when the group cache hasn't yet noticed the
 		// new group membership made above.  Wait until all it looks like
 		// all the users above have access to the namespace as expected.
-		err = wait.PollImmediate(time.Second, 30*time.Second, func() (done bool, err error) {
+		err = wait.PollImmediate(time.Second, 180*time.Second, func() (done bool, err error) {
 			for _, user := range []*userv1.User{adminuser, impersonateuser, impersonatebygroupuser, edituser1, edituser2, viewuser} {
 				cli.ChangeUser(user.Name)
 				sar, err := cli.AuthorizationClient().AuthorizationV1().LocalSubjectAccessReviews(cli.Namespace()).Create(context.Background(), &authorizationv1.LocalSubjectAccessReview{
