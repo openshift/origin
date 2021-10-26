@@ -1,6 +1,14 @@
 package synthetictests
 
-import "testing"
+import (
+	"regexp"
+	"strings"
+	"testing"
+	"time"
+
+	v1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+)
 
 func TestEventCountExtractor(t *testing.T) {
 	tests := []struct {
@@ -118,29 +126,119 @@ func TestUpgradeEventRegexExcluder(t *testing.T) {
 }
 
 func TestKnownBugEvents(t *testing.T) {
+	evaluator := duplicateEventsEvaluator{
+		allowedRepeatedEventPatterns: allowedRepeatedEventPatterns,
+		knownRepeatedEventsBugs: []knownProblem{
+			{
+				Regexp: regexp.MustCompile(`ns/.* reason/SomeEvent1.*`),
+				BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
+			},
+			{
+				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent2.*"),
+				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
+				Topology: topologyPointer(v1.SingleReplicaTopologyMode),
+			},
+			{
+				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent3.*"),
+				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
+				Platform: platformPointer(v1.AWSPlatformType),
+			},
+			{
+				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent4.*"),
+				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
+				Topology: topologyPointer(v1.HighlyAvailableTopologyMode),
+			},
+			{
+				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent5.*"),
+				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
+				Platform: platformPointer(v1.GCPPlatformType),
+			},
+			{
+				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent6.*"),
+				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
+				Platform: platformPointer(""),
+			},
+		},
+	}
+
 	tests := []struct {
-		name    string
-		message string
+		name     string
+		message  string
+		match    bool
+		platform v1.PlatformType
+		topology v1.TopologyMode
 	}{
 		{
-			name:    "ovn-cleanup",
-			message: `ns/e2e-proxy-2182 service/proxy-service-jsk2b - reason/FailedToDeleteOVNLoadBalancer Error trying to delete the idling OVN LoadBalancer for Service proxy-service-jsk2b/e2e-proxy-2182: Failed to get ovnkube balancer TCP k8s-idling-lb: OVN command '/usr/bin/ovn-nbctl --timeout=15 --data=bare --no-heading --columns=_uuid find load_balancer external_ids:k8s-idling-lb-tcp=yes' failed: exit status 1`,
+			name:     "matches without platform or topology",
+			message:  `ns/e2e - reason/SomeEvent1 foo (21 times)`,
+			match:    true,
+			platform: v1.AWSPlatformType,
+			topology: v1.SingleReplicaTopologyMode},
+		{
+			name:     "matches with topology",
+			message:  `ns/e2e - reason/SomeEvent2 foo (21 times)`,
+			match:    true,
+			platform: v1.AWSPlatformType,
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "matches with topology and platform",
+			message:  `ns/e2e - reason/SomeEvent3 foo (21 times)`,
+			match:    true,
+			platform: v1.AWSPlatformType,
+			topology: v1.SingleReplicaTopologyMode,
+		},
+		{
+			name:     "does not match against different topology",
+			message:  `ns/e2e - reason/SomeEvent4 foo (21 times)`,
+			platform: v1.AWSPlatformType,
+			topology: v1.SingleReplicaTopologyMode,
+			match:    false,
+		},
+		{
+			name:     "does not match against different platform",
+			message:  `ns/e2e - reason/SomeEvent5 foo (21 times)`,
+			platform: v1.AWSPlatformType,
+			topology: v1.SingleReplicaTopologyMode,
+			match:    false,
+		},
+		{
+			name:     "empty platform matches empty platform",
+			message:  `ns/e2e - reason/SomeEvent6 foo (21 times)`,
+			platform: "",
+			match:    true,
+		},
+		{
+			name:     "empty platform doesn't match another platform",
+			message:  `ns/e2e - reason/SomeEvent6 foo (21 times)`,
+			platform: v1.AWSPlatformType,
+			match:    false,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			found := false
-			for _, curr := range knownEventsBugs {
-				if curr.Regexp.MatchString(test.message) {
-					found = true
-				}
+			events := monitorapi.Intervals{}
+			events = append(events,
+				monitorapi.EventInterval{
+					Condition: monitorapi.Condition{Message: test.message},
+					From:      time.Unix(1, 0),
+					To:        time.Unix(1, 0)},
+			)
+			evaluator.platform = test.platform
+			evaluator.topology = test.topology
+
+			junits := evaluator.testDuplicatedEvents("events should not repeat", false, events, nil)
+			if len(junits) < 1 {
+				t.Fatal("didn't get junit for duplicated event")
 			}
-			if !found {
-				t.Fatal("did not match")
+			if test.match && !strings.Contains(junits[0].FailureOutput.Output, "1 events with known BZs") {
+				t.Fatalf("expected case to match, but it didn't: %s", test.name)
 			}
 
+			if !test.match && strings.Contains(junits[0].FailureOutput.Output, "1 events with known BZs") {
+				t.Fatalf("expected case to not match, but it did: %s", test.name)
+			}
 		})
 	}
-
 }
