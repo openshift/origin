@@ -7,12 +7,13 @@ import (
 	"strconv"
 	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
+	v1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo"
@@ -127,6 +128,11 @@ var knownEventsBugs = []knownProblem{
 		Regexp: regexp.MustCompile("ns/openshift-etcd-operator namespace/openshift-etcd-operator -.*rpc error: code = Canceled desc = grpc: the client connection is closing.*"),
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2006975",
 	},
+	{
+		Regexp:   regexp.MustCompile("ns/.*reason/.*APICheckFailed.*503.*"),
+		BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=2017435",
+		Topology: topologyPointer(v1.SingleReplicaTopologyMode),
+	},
 	//{ TODO this should only be skipped for single-node
 	//	name:    "single=node-storage",
 	//  BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1990662
@@ -140,11 +146,23 @@ type duplicateEventsEvaluator struct {
 
 	// knownRepeatedEventsBugs are duplicates that are considered bugs and should flake, but not  fail a test
 	knownRepeatedEventsBugs []knownProblem
+
+	// platform contains the current platform of the cluster under test.
+	platform v1.PlatformType
+
+	// topology contains the topology of the cluster under test.
+	topology v1.TopologyMode
 }
 
 type knownProblem struct {
 	Regexp *regexp.Regexp
 	BZ     string
+
+	// Platform limits the exception to a specific OpenShift platform.
+	Platform *v1.PlatformType
+
+	// Topology limits the exception to a specific topology (e.g. single replica)
+	Topology *v1.TopologyMode
 }
 
 func testDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*ginkgo.JUnitTestCase {
@@ -158,6 +176,10 @@ func testDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 		knownRepeatedEventsBugs:      knownEventsBugs,
 	}
 
+	if err := evaluator.getClusterInfo(kubeClientConfig); err != nil {
+		e2e.Logf("could not fetch cluster info: %w", err)
+	}
+
 	tests := []*ginkgo.JUnitTestCase{}
 	tests = append(tests, evaluator.testDuplicatedCoreNamespaceEvents(events, kubeClientConfig)...)
 	tests = append(tests, evaluator.testDuplicatedE2ENamespaceEvents(events, kubeClientConfig)...)
@@ -169,6 +191,10 @@ func testDuplicatedEventForStableSystem(events monitorapi.Intervals, kubeClientC
 		allowedRepeatedEventPatterns: allowedRepeatedEventPatterns,
 		allowedRepeatedEventFns:      allowedRepeatedEventFns,
 		knownRepeatedEventsBugs:      knownEventsBugs,
+	}
+
+	if err := evaluator.getClusterInfo(kubeClientConfig); err != nil {
+		e2e.Logf("could not fetch cluster info: %w", err)
 	}
 
 	tests := []*ginkgo.JUnitTestCase{}
@@ -242,7 +268,6 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 			if allowed {
 				continue
 			}
-
 			displayToCount[eventDisplayMessage] = times
 		}
 	}
@@ -251,10 +276,19 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 	var flakes []string
 	for display, count := range displayToCount {
 		msg := fmt.Sprintf("event happened %d times, something is wrong: %v", count, display)
-
 		flake := false
 		for _, kp := range d.knownRepeatedEventsBugs {
 			if kp.Regexp != nil && kp.Regexp.MatchString(display) {
+				// Check if this exception only applies to our specific platform
+				if kp.Platform != nil && *kp.Platform != d.platform {
+					continue
+				}
+
+				// Check if this exception only applies to a specific topology
+				if kp.Topology != nil && *kp.Topology != d.topology {
+					continue
+				}
+
 				msg += " - " + kp.BZ
 				flake = true
 			}
@@ -393,4 +427,37 @@ func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.EventInterval,
 
 	// Default to OK if we cannot find the event
 	return true
+}
+
+func (d *duplicateEventsEvaluator) getClusterInfo(c *rest.Config) (err error) {
+	if c == nil {
+		return
+	}
+
+	oc, err := configclient.NewForConfig(c)
+	if err != nil {
+		return err
+	}
+	infra, err := oc.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	if infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type != "" {
+		d.platform = infra.Status.PlatformStatus.Type
+	}
+
+	if infra.Status.ControlPlaneTopology != "" {
+		d.topology = infra.Status.ControlPlaneTopology
+	}
+
+	return nil
+}
+
+func topologyPointer(topology v1.TopologyMode) *v1.TopologyMode {
+	return &topology
+}
+
+func platformPointer(platform v1.PlatformType) *v1.PlatformType {
+	return &platform
 }
