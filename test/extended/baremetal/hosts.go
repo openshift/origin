@@ -35,26 +35,79 @@ func baremetalClient(dc dynamic.Interface) dynamic.ResourceInterface {
 	return baremetalClient.Namespace("openshift-machine-api")
 }
 
+func hostfirmwaresettingsClient(dc dynamic.Interface) dynamic.ResourceInterface {
+	hfsClient := dc.Resource(schema.GroupVersionResource{Group: "metal3.io", Resource: "hostfirmwaresettings", Version: "v1alpha1"})
+	return hfsClient.Namespace("openshift-machine-api")
+}
+
 type FieldGetterFunc func(obj map[string]interface{}, fields ...string) (interface{}, bool, error)
 
-func expectField(host unstructured.Unstructured, nestedField string, fieldGetter FieldGetterFunc) o.Assertion {
+func expectField(host unstructured.Unstructured, resource string, nestedField string, fieldGetter FieldGetterFunc) o.Assertion {
 	fields := strings.Split(nestedField, ".")
 
 	value, found, err := fieldGetter(host.Object, fields...)
 	o.Expect(err).NotTo(o.HaveOccurred())
-	o.Expect(found).To(o.BeTrue(), fmt.Sprintf("baremetalhost field `%s` not found", nestedField))
+	o.Expect(found).To(o.BeTrue(), fmt.Sprintf("`%s` field `%s` not found", resource, nestedField))
 	return o.Expect(value)
 }
 
-func expectStringField(host unstructured.Unstructured, nestedField string) o.Assertion {
-	return expectField(host, nestedField, func(obj map[string]interface{}, fields ...string) (interface{}, bool, error) {
+func expectStringField(host unstructured.Unstructured, resource string, nestedField string) o.Assertion {
+	return expectField(host, resource, nestedField, func(obj map[string]interface{}, fields ...string) (interface{}, bool, error) {
 		return unstructured.NestedString(host.Object, fields...)
 	})
 }
 
-func expectBoolField(host unstructured.Unstructured, nestedField string) o.Assertion {
-	return expectField(host, nestedField, func(obj map[string]interface{}, fields ...string) (interface{}, bool, error) {
+func expectBoolField(host unstructured.Unstructured, resource string, nestedField string) o.Assertion {
+	return expectField(host, resource, nestedField, func(obj map[string]interface{}, fields ...string) (interface{}, bool, error) {
 		return unstructured.NestedBool(host.Object, fields...)
+	})
+}
+
+func expectStringMapField(host unstructured.Unstructured, resource string, nestedField string) o.Assertion {
+	return expectField(host, resource, nestedField, func(obj map[string]interface{}, fields ...string) (interface{}, bool, error) {
+		return unstructured.NestedStringMap(host.Object, fields...)
+	})
+}
+
+func expectSliceField(host unstructured.Unstructured, resource string, nestedField string) o.Assertion {
+	return expectField(host, resource, nestedField, func(obj map[string]interface{}, fields ...string) (interface{}, bool, error) {
+		return unstructured.NestedSlice(host.Object, fields...)
+	})
+}
+
+// Conditions are stored as a slice of maps, check that the type has the correct status
+func checkConditionStatus(hfs unstructured.Unstructured, condType string, condStatus string) {
+
+	conditions, _, err := unstructured.NestedSlice(hfs.Object, "status", "conditions")
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(conditions).ToNot(o.BeEmpty())
+
+	for _, c := range conditions {
+		condition, ok := c.(map[string]interface{})
+		o.Expect(ok).To(o.BeTrue())
+
+		t, ok := condition["type"]
+		o.Expect(ok).To(o.BeTrue())
+		if t == condType {
+			s, ok := condition["status"]
+			o.Expect(ok).To(o.BeTrue())
+			o.Expect(s).To(o.Equal(condStatus))
+		}
+	}
+}
+
+func getField(host unstructured.Unstructured, resource string, nestedField string, fieldGetter FieldGetterFunc) string {
+	fields := strings.Split(nestedField, ".")
+
+	value, found, err := fieldGetter(host.Object, fields...)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(found).To(o.BeTrue(), fmt.Sprintf("`%s` field `%s` not found", resource, nestedField))
+	return value.(string)
+}
+
+func getStringField(host unstructured.Unstructured, resource string, nestedField string) string {
+	return getField(host, resource, nestedField, func(obj map[string]interface{}, fields ...string) (interface{}, bool, error) {
+		return unstructured.NestedFieldNoCopy(host.Object, fields...)
 	})
 }
 
@@ -88,9 +141,47 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 		o.Expect(hosts.Items).ToNot(o.BeEmpty())
 
 		for _, h := range hosts.Items {
-			expectStringField(h, "status.operationalStatus").To(o.BeEquivalentTo("OK"))
-			expectStringField(h, "status.provisioning.state").To(o.Or(o.BeEquivalentTo("provisioned"), o.BeEquivalentTo("externally provisioned")))
-			expectBoolField(h, "spec.online").To(o.BeTrue())
+			expectStringField(h, "baremetalhost", "status.operationalStatus").To(o.BeEquivalentTo("OK"))
+			expectStringField(h, "baremetalhost", "status.provisioning.state").To(o.Or(o.BeEquivalentTo("provisioned"), o.BeEquivalentTo("externally provisioned")))
+			expectBoolField(h, "baremetalhost", "spec.online").To(o.BeTrue())
+		}
+	})
+
+	g.It("have hostfirmwaresetting resources", func() {
+		skipIfNotBaremetal(oc)
+
+		dc := oc.AdminDynamicClient()
+
+		bmc := baremetalClient(dc)
+		hosts, err := bmc.List(context.Background(), v1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(hosts.Items).ToNot(o.BeEmpty())
+
+		hfsClient := hostfirmwaresettingsClient(dc)
+
+		for _, h := range hosts.Items {
+			hostName := getStringField(h, "baremetalhost", "metadata.name")
+
+			g.By(fmt.Sprintf("check that baremetalhost %s has a corresponding hostfirmwaresettings", hostName))
+			hfs, err := hfsClient.Get(context.Background(), hostName, v1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(hfs).NotTo(o.Equal(nil))
+
+			// Reenable this when fix to prevent settings with 0 entries is in BMO
+			// g.By("check that hostfirmwaresettings settings have been populated")
+			// expectStringMapField(*hfs, "hostfirmwaresettings", "status.settings").ToNot(o.BeEmpty())
+
+			g.By("check that hostfirmwaresettings conditions show resource is valid")
+			checkConditionStatus(*hfs, "Valid", "True")
+
+			g.By("check that hostfirmwaresettings reference a schema")
+			refName := getStringField(*hfs, "hostfirmwaresettings", "status.schema.name")
+			refNS := getStringField(*hfs, "hostfirmwaresettings", "status.schema.namespace")
+
+			schemaClient := dc.Resource(schema.GroupVersionResource{Group: "metal3.io", Resource: "firmwareschemas", Version: "v1alpha1"}).Namespace(refNS)
+			schema, err := schemaClient.Get(context.Background(), refName, v1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(schema).NotTo(o.Equal(nil))
 		}
 	})
 
@@ -105,7 +196,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 		o.Expect(hosts.Items).ToNot(o.BeEmpty())
 
 		host := hosts.Items[0]
-		expectStringField(host, "spec.bootMACAddress").ShouldNot(o.BeNil())
+		expectStringField(host, "baremetalhost", "spec.bootMACAddress").ShouldNot(o.BeNil())
 		// Already verified that bootMACAddress exists
 		bootMACAddress, _, _ := unstructured.NestedString(host.Object, "spec", "bootMACAddress")
 		testMACAddress := "11:11:11:11:11:11"
