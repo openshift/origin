@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/config"
+	configv1 "github.com/openshift/api/config/v1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -188,6 +189,9 @@ type TestContextType struct {
 
 	// SnapshotControllerHTTPPort the port used for communicating with the snapshot controller HTTP endpoint.
 	SnapshotControllerHTTPPort int
+
+	// ControlPlaneTopology describes the controlPlaneTopology
+	ControlPlaneTopology *configv1.TopologyMode
 }
 
 // NodeKillerConfig describes configuration of NodeKiller -- a utility to

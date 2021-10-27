@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -61,6 +62,9 @@ type ClusterConfiguration struct {
 
 	// IsProxied determines whether we are accessing the cluster through an HTTP proxy
 	IsProxied bool
+
+	// ControlPlaneTopology describes the controlPlaneTopology
+	ControlPlaneTopology *configv1.TopologyMode
 }
 
 func (c *ClusterConfiguration) ToJSONString() string {
@@ -154,6 +158,7 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 		MultiZone:             zones.Len() > 1,
 		Zones:                 zones.List(),
 		SingleReplicaTopology: *state.ControlPlaneTopology == configv1.SingleReplicaTopologyMode,
+		ControlPlaneTopology:  state.ControlPlaneTopology,
 	}
 	if zones.Len() > 0 {
 		config.Zone = zones.List()[0]
