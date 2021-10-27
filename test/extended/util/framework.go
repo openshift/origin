@@ -70,9 +70,9 @@ func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
 	foundOCMLogs := false
 	isOCMProgressing := true
 	podLogs := map[string]string{}
-	isIBMCloud := e2e.TestContext.Provider == ibmcloud.ProviderName
+	isExternalControlplane := e2e.TestContext.Provider == ibmcloud.ProviderName || (e2e.TestContext.ControlPlaneTopology != nil && *e2e.TestContext.ControlPlaneTopology == configv1.ExternalTopologyMode)
 	testImageStreamName := ""
-	if isIBMCloud {
+	if isExternalControlplane {
 		is := &imagev1.ImageStream{}
 		is.GenerateName = "internal-registry-test"
 		is, err := oc.AdminImageClient().ImageV1().ImageStreams("openshift").Create(context.Background(), is, metav1.CreateOptions{})
@@ -213,7 +213,7 @@ func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
 		return false, nil
 	})
 
-	if !foundOCMLogs && !isIBMCloud {
+	if !foundOCMLogs && !isExternalControlplane {
 		e2e.Logf("dumping OCM pod logs since we never found the internal registry hostname and start build controller sequence")
 		for podName, podLog := range podLogs {
 			e2e.Logf("pod %s logs:\n%s", podName, podLog)
