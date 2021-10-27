@@ -18,6 +18,7 @@ filters:
     - pweil-
     - sjenning
     - soltysh
+    - stbenjam
     - sttts
     - smarterclayton
   "^\\.go.(mod|sum)$":
