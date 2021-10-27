@@ -381,6 +381,7 @@ func oauthHTTPRequest(caCerts *x509.CertPool, oauthBaseURL, endpoint, token stri
 		TLSClientConfig: &tls.Config{
 			RootCAs: caCerts,
 		},
+		Proxy: http.ProxyFromEnvironment,
 	}
 
 	if cert != nil {
