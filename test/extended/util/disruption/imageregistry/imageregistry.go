@@ -154,9 +154,10 @@ func (t *AvailableTest) Teardown(f *framework.Framework) {
 
 func (t *AvailableTest) startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, r events.EventRecorder) error {
 	var (
-		url     = "https://" + t.host
-		path    = "/healthz"
-		locator = locateRoute("openshift-image-registry", "test-disruption")
+		url                     = "https://" + t.host
+		path                    = "/healthz"
+		newConnectionLocator    = monitor.LocateRouteForDisruptionCheck("openshift-image-registry", "test-disruption", monitor.NewConnectionType)
+		reusedConnectionLocator = monitor.LocateRouteForDisruptionCheck("openshift-image-registry", "test-disruption", monitor.ReusedConnectionType)
 	)
 
 	// this client reuses connections and detects abrupt breaks
@@ -180,20 +181,21 @@ func (t *AvailableTest) startEndpointMonitoring(ctx context.Context, m *monitor.
 
 	go monitor.NewSampler(m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
 		_, err := continuousClient.Get().AbsPath(path).DoRaw(ctx)
+		// TODO this looks bugged.  If we get a non 200 or 300 series status, it seems like we ought to be failing.
 		switch {
 		case err == nil && !previous:
 			condition = &monitorapi.Condition{
 				Level:   monitorapi.Info,
-				Locator: locator,
-				Message: "Route started responding to GET requests on reused connections",
+				Locator: reusedConnectionLocator,
+				Message: monitor.DisruptionEndedMessage(reusedConnectionLocator, monitor.ReusedConnectionType),
 			}
 		case err != nil && previous:
 			framework.Logf("Route for image-registry is unreachable on reused connections: %v", err)
 			r.Eventf(t.routeRef, nil, corev1.EventTypeWarning, "Unreachable", "detected", "on reused connections")
 			condition = &monitorapi.Condition{
 				Level:   monitorapi.Error,
-				Locator: locator,
-				Message: "Route stopped responding to GET requests on reused connections",
+				Locator: reusedConnectionLocator,
+				Message: monitor.DisruptionBeganMessage(reusedConnectionLocator, monitor.ReusedConnectionType, err),
 			}
 		case err != nil:
 			framework.Logf("Route for image-registry is unreachable on reused connections: %v", err)
@@ -201,8 +203,8 @@ func (t *AvailableTest) startEndpointMonitoring(ctx context.Context, m *monitor.
 		return condition, err == nil
 	}).WhenFailing(ctx, &monitorapi.Condition{
 		Level:   monitorapi.Error,
-		Locator: locator,
-		Message: "Route is not responding to GET requests on reused connections",
+		Locator: reusedConnectionLocator,
+		Message: monitor.DisruptionContinuingMessage(reusedConnectionLocator, monitor.ReusedConnectionType, err),
 	})
 
 	// this client creates fresh connections and detects failure to establish connections
@@ -229,20 +231,21 @@ func (t *AvailableTest) startEndpointMonitoring(ctx context.Context, m *monitor.
 
 	go monitor.NewSampler(m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
 		_, err := client.Get().AbsPath(path).DoRaw(ctx)
+		// TODO this looks bugged.  If we get a non 200 or 300 series status, it seems like we ought to be failing.
 		switch {
 		case err == nil && !previous:
 			condition = &monitorapi.Condition{
 				Level:   monitorapi.Info,
-				Locator: locator,
-				Message: "Route started responding to GET requests over new connections",
+				Locator: newConnectionLocator,
+				Message: monitor.DisruptionEndedMessage(newConnectionLocator, monitor.NewConnectionType),
 			}
 		case err != nil && previous:
 			framework.Logf("Route for image-registry is unreachable on new connections: %v", err)
 			r.Eventf(t.routeRef, nil, corev1.EventTypeWarning, "Unreachable", "detected", "on new connections")
 			condition = &monitorapi.Condition{
 				Level:   monitorapi.Error,
-				Locator: locator,
-				Message: "Route stopped responding to GET requests over new connections",
+				Locator: newConnectionLocator,
+				Message: monitor.DisruptionBeganMessage(newConnectionLocator, monitor.NewConnectionType, err),
 			}
 		case err != nil:
 			framework.Logf("Route for image-registry is unreachable on new connections: %v", err)
@@ -250,8 +253,8 @@ func (t *AvailableTest) startEndpointMonitoring(ctx context.Context, m *monitor.
 		return condition, err == nil
 	}).WhenFailing(ctx, &monitorapi.Condition{
 		Level:   monitorapi.Error,
-		Locator: locator,
-		Message: "Route is not responding to GET requests over new connections",
+		Locator: newConnectionLocator,
+		Message: monitor.DisruptionContinuingMessage(newConnectionLocator, monitor.NewConnectionType, err),
 	})
 
 	return nil

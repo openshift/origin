@@ -221,10 +221,10 @@ func (t *availableTest) Teardown(f *framework.Framework) {
 // connections.
 func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, frontend Frontend, r events.EventRecorder, disableConnectionReuse bool) error {
 	var keepAlive time.Duration
-	connectionType := "reused"
+	connectionType := monitor.ReusedConnectionType
 	if disableConnectionReuse {
 		keepAlive = -1
-		connectionType = "new"
+		connectionType = monitor.NewConnectionType
 	}
 	client, err := rest.UnversionedRESTClientFor(&rest.Config{
 		Host:    frontend.URL,
@@ -246,6 +246,7 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, frontend F
 	if err != nil {
 		return err
 	}
+	locator := monitor.LocateRouteForDisruptionCheck(frontend.Namespace, frontend.Name, connectionType)
 	go monitor.NewSampler(m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
 		data, err := client.Get().AbsPath(frontend.Path).DoRaw(ctx)
 		switch {
@@ -258,16 +259,16 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, frontend F
 		case err == nil && !previous:
 			condition = &monitorapi.Condition{
 				Level:   monitorapi.Info,
-				Locator: locateRoute(frontend.Namespace, frontend.Name),
-				Message: fmt.Sprintf("Route started responding to GET requests on %s connections", connectionType),
+				Locator: locator,
+				Message: monitor.DisruptionEndedMessage(locator, connectionType),
 			}
 		case err != nil && previous:
 			framework.Logf("Route %s is unreachable on %s connections: %v", frontend.Name, connectionType, err)
 			r.Eventf(&v1.ObjectReference{Kind: "Route", Namespace: frontend.Namespace, Name: frontend.Name}, nil, v1.EventTypeWarning, "Unreachable", "detected", fmt.Sprintf("on %s connections", connectionType))
 			condition = &monitorapi.Condition{
 				Level:   monitorapi.Error,
-				Locator: locateRoute(frontend.Namespace, frontend.Name),
-				Message: fmt.Sprintf("Route stopped responding to GET requests on %s connections", connectionType),
+				Locator: locator,
+				Message: monitor.DisruptionBeganMessage(locator, connectionType, err),
 			}
 		case err != nil:
 			framework.Logf("Route %s is unreachable on %s connections: %v", frontend.Name, connectionType, err)
@@ -275,14 +276,10 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, frontend F
 		return condition, err == nil
 	}).WhenFailing(ctx, &monitorapi.Condition{
 		Level:   monitorapi.Error,
-		Locator: locateRoute(frontend.Namespace, frontend.Name),
-		Message: fmt.Sprintf("Route is not responding to GET requests on %s connections", connectionType),
+		Locator: locator,
+		Message: monitor.DisruptionContinuingMessage(locator, connectionType, err),
 	})
 	return nil
-}
-
-func locateRoute(ns, name string) string {
-	return fmt.Sprintf("ns/%s route/%s", ns, name)
 }
 
 func startEndpointMonitoringWithNewConnections(ctx context.Context, m *monitor.Monitor, frontend Frontend, r events.EventRecorder) error {

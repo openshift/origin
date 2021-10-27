@@ -189,6 +189,8 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 		},
 	}
 
+	reusedConnectionLocator := monitor.LocateDisruptionCheck("service-loadbalancer-with-pdb", monitor.ReusedConnectionType)
+	newConnectionLocator := monitor.LocateDisruptionCheck("service-loadbalancer-with-pdb", monitor.NewConnectionType)
 	go monitor.NewSampler(m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
 		resp, err := continuousClient.Get(url)
 		if err == nil {
@@ -202,16 +204,16 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 		case err == nil && !previous:
 			condition = &monitorapi.Condition{
 				Level:   monitorapi.Info,
-				Locator: locateService(svc),
-				Message: "Service started responding to GET requests on reused connections",
+				Locator: reusedConnectionLocator,
+				Message: monitor.DisruptionEndedMessage(reusedConnectionLocator, monitor.ReusedConnectionType),
 			}
 		case err != nil && previous:
 			framework.Logf("Service %s is unreachable on reused connections: %v", svc.Name, err)
 			r.Eventf(&v1.ObjectReference{Kind: "Service", Namespace: "kube-system", Name: "service-upgrade-test"}, nil, v1.EventTypeWarning, "Unreachable", "detected", "on reused connections")
 			condition = &monitorapi.Condition{
 				Level:   monitorapi.Error,
-				Locator: locateService(svc),
-				Message: "Service stopped responding to GET requests on reused connections",
+				Locator: reusedConnectionLocator,
+				Message: monitor.DisruptionBeganMessage(reusedConnectionLocator, monitor.ReusedConnectionType, err),
 			}
 		case err != nil:
 			framework.Logf("Service %s is unreachable on reused connections: %v", svc.Name, err)
@@ -219,8 +221,8 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 		return condition, err == nil
 	}).WhenFailing(ctx, &monitorapi.Condition{
 		Level:   monitorapi.Error,
-		Locator: locateService(svc),
-		Message: "Service is not responding to GET requests on reused connections",
+		Locator: reusedConnectionLocator,
+		Message: monitor.DisruptionContinuingMessage(reusedConnectionLocator, monitor.ReusedConnectionType, fmt.Errorf("missing error in the code")),
 	})
 
 	// this client creates fresh connections and detects failure to establish connections
@@ -250,16 +252,16 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 		case err == nil && !previous:
 			condition = &monitorapi.Condition{
 				Level:   monitorapi.Info,
-				Locator: locateService(svc),
-				Message: "Service started responding to GET requests over new connections",
+				Locator: newConnectionLocator,
+				Message: monitor.DisruptionEndedMessage(newConnectionLocator, monitor.NewConnectionType),
 			}
 		case err != nil && previous:
 			framework.Logf("Service %s is unreachable on new connections: %v", svc.Name, err)
 			r.Eventf(&v1.ObjectReference{Kind: "Service", Namespace: "kube-system", Name: "service-upgrade-test"}, nil, v1.EventTypeWarning, "Unreachable", "detected", "on new connections")
 			condition = &monitorapi.Condition{
 				Level:   monitorapi.Error,
-				Locator: locateService(svc),
-				Message: "Service stopped responding to GET requests over new connections",
+				Locator: newConnectionLocator,
+				Message: monitor.DisruptionBeganMessage(newConnectionLocator, monitor.NewConnectionType, err),
 			}
 		case err != nil:
 			framework.Logf("Service %s is unreachable on new connections: %v", svc.Name, err)
@@ -267,8 +269,8 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 		return condition, err == nil
 	}).WhenFailing(ctx, &monitorapi.Condition{
 		Level:   monitorapi.Error,
-		Locator: locateService(svc),
-		Message: "Service is not responding to GET requests over new connections",
+		Locator: newConnectionLocator,
+		Message: monitor.DisruptionContinuingMessage(newConnectionLocator, monitor.NewConnectionType, fmt.Errorf("missing error in the code")),
 	})
 
 	return nil

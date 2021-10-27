@@ -2,9 +2,11 @@ package monitor
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
@@ -42,5 +44,50 @@ func WriteRunDataToArtifactsDir(artifactDir string, monitor *Monitor, events mon
 		}
 	}
 
+	backendDisruption := computeDisruptionData(events)
+	if err := writeDisruptionData(filepath.Join(artifactDir, fmt.Sprintf("backend-disruption%s.json", timeSuffix)), backendDisruption); err != nil {
+		errors = append(errors, err)
+	}
+
 	return utilerrors.NewAggregate(errors)
+}
+
+type BackendDisruptionList struct {
+	// BackendDisruptions is keyed by name to make the consumption easier
+	BackendDisruptions map[string]*BackendDisruption
+}
+
+type BackendDisruption struct {
+	// Name ensure self-identification
+	Name string
+	// ConnectionType is New or Reused
+	ConnectionType     string
+	DisruptedDuration  time.Duration
+	DisruptionMessages []string
+}
+
+func writeDisruptionData(filename string, disruption *BackendDisruptionList) error {
+	jsonContent, err := json.MarshalIndent(disruption, "", "    ")
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(filename, jsonContent, 0644)
+}
+
+func computeDisruptionData(events monitorapi.Intervals) *BackendDisruptionList {
+	ret := &BackendDisruptionList{
+		BackendDisruptions: map[string]*BackendDisruption{},
+	}
+
+	for locator, name := range BackendDisruptionLocatorsToName {
+		disruptionDuration, disruptionMessages, connectionType := monitorapi.BackendDisruptionSeconds(locator, events)
+		ret.BackendDisruptions[name] = &BackendDisruption{
+			Name:               name,
+			ConnectionType:     connectionType,
+			DisruptedDuration:  disruptionDuration,
+			DisruptionMessages: disruptionMessages,
+		}
+	}
+
+	return ret
 }

@@ -16,9 +16,7 @@ const (
 )
 
 func testServerAvailability(locator string, events monitorapi.Intervals, duration time.Duration) []*ginkgo.JUnitTestCase {
-	events = events.Filter(func(i monitorapi.EventInterval) bool { return i.Locator == locator })
-	errDuration := events.Duration(0, 1*time.Second)
-	errMessages := events.Strings()
+	errDuration, errMessages, _ := monitorapi.BackendDisruptionSeconds(locator, events)
 
 	testName := fmt.Sprintf("[sig-api-machinery] %s should be available", locator)
 	successTest := &ginkgo.JUnitTestCase{
