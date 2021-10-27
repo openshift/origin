@@ -1677,7 +1677,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-imageregistry][Feature:Image] signature TestImageRemoveSignature": "TestImageRemoveSignature [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-imageregistry][Serial][Suite:openshift/registry/serial] Image signature workflow can push a signed image to openshift registry and verify it": "can push a signed image to openshift registry and verify it [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-imageregistry][Serial][Suite:openshift/registry/serial] Image signature workflow can push a signed image to openshift registry and verify it": "can push a signed image to openshift registry and verify it [Skipped:Disconnected] [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should have a metal3 deployment": "have a metal3 deployment [Suite:openshift/conformance/parallel]",
 
