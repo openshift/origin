@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -165,6 +166,8 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 	}
 
 	switch {
+	case state.PlatformStatus.VSphere != nil:
+		config.ProviderName = "vsphere"
 	case state.PlatformStatus.AWS != nil:
 		config.ProviderName = "aws"
 		config.Region = state.PlatformStatus.AWS.Region
