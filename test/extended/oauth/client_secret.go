@@ -62,8 +62,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			oc.AddResourceToDelete(userv1.GroupVersion.WithResource("users"), user)
 
-			oauthRoute, err := oc.AdminRouteClient().RouteV1().Routes("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
+			oauthDiscoveryData := getOAuthWellKnownData(oc)
 
 			for _, createTokenReq := range []func(string) *http.Request{
 				queryClientAuthRequest,
@@ -89,7 +88,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer]", func() {
 
 				g.By("querying for a token")
 
-				tokenReq := createTokenReq(oauthRoute.Status.Ingress[0].Host)
+				tokenReq := createTokenReq(oauthDiscoveryData.TokenEndpoint)
 				tokenReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 				requestDump, err := httputil.DumpRequest(tokenReq, true)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -113,8 +112,8 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer]", func() {
 	})
 })
 
-func queryClientAuthRequest(host string) *http.Request {
-	req, err := http.NewRequest("POST", "https://"+host+"/oauth/token?"+
+func queryClientAuthRequest(tokenEndpoint string) *http.Request {
+	req, err := http.NewRequest("POST", tokenEndpoint+"?"+
 		"grant_type=authorization_code&"+
 		"code="+authzToken+"&"+
 		"client_id=oauth-client-with-plus&"+
@@ -125,8 +124,8 @@ func queryClientAuthRequest(host string) *http.Request {
 	return req
 }
 
-func bodyClientAuthRequest(host string) *http.Request {
-	req, err := http.NewRequest("POST", "https://"+host+"/oauth/token",
+func bodyClientAuthRequest(tokenEndpoint string) *http.Request {
+	req, err := http.NewRequest("POST", tokenEndpoint,
 		bytes.NewBufferString("grant_type=authorization_code&"+
 			"code="+authzToken+"&"+
 			"client_id=oauth-client-with-plus&"+
@@ -138,8 +137,8 @@ func bodyClientAuthRequest(host string) *http.Request {
 	return req
 }
 
-func headerClientAuthRequest(host string) *http.Request {
-	req, err := http.NewRequest("POST", "https://"+host+"/oauth/token",
+func headerClientAuthRequest(tokenEndpoint string) *http.Request {
+	req, err := http.NewRequest("POST", tokenEndpoint,
 		bytes.NewBufferString("grant_type=authorization_code&"+
 			"code="+authzToken,
 		),
