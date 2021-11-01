@@ -1,3 +1,4 @@
+//go:build tools
 // +build tools
 
 // Package test contains cross-functional test suites for OpenShift 3.
