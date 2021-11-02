@@ -68,7 +68,12 @@ var (
 			`\[sig-network-edge\]\[Feature:Idling\] Unidling should work with TCP \(while idling\)`,
 		},
 		// tests that may work, but we don't support them
-		"[Disabled:Unsupported]": {},
+		"[Disabled:Unsupported]": {
+			// Skip vSphere-specific storage tests. The standard in-tree storage tests for vSphere
+			// (prefixed with `In-tree Volumes [Driver: vsphere]`) are enough for testing this plugin.
+			// https://bugzilla.redhat.com/show_bug.cgi?id=2019115
+			`\[sig-storage\].*\[Feature:vsphere\]`,
+		},
 		// tests too slow to be part of conformance
 		"[Slow]": {},
 		// tests that are known flaky

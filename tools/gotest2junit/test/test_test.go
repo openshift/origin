@@ -1,3 +1,4 @@
+//go:build output
 // +build output
 
 package test
