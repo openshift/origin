@@ -34,6 +34,13 @@ var _ = g.Describe("[sig-builds][Feature:Builds] clone repository using git:// p
 		})
 
 		g.It("should clone using git:// if no proxy is configured", func() {
+
+			if true {
+				// TODO:
+				g.Skip("test disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=2019433 and https://github.blog/2021-09-01-improving-git-protocol-security-github/#git-protocol-troubleshooting: 'The unauthenticated git protocol on port 9418 is no longer supported'")
+				return
+			}
+
 			proxyConfigured, err := exutil.IsClusterProxyEnabled(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if proxyConfigured {
