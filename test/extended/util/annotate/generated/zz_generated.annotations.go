@@ -12663,9 +12663,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (default fs)] volumes should store data": "should store data [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (delayed binding)] topology should fail to schedule a pod which has topologies that conflict with AllowedTopologies": "should fail to schedule a pod which has topologies that conflict with AllowedTopologies [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (delayed binding)] topology should fail to schedule a pod which has topologies that conflict with AllowedTopologies": "should fail to schedule a pod which has topologies that conflict with AllowedTopologies [Disabled:Unsupported] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (delayed binding)] topology should provision a volume and schedule a pod with AllowedTopologies": "should provision a volume and schedule a pod with AllowedTopologies [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (delayed binding)] topology should provision a volume and schedule a pod with AllowedTopologies": "should provision a volume and schedule a pod with AllowedTopologies [Disabled:Unsupported] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (ext3)] volumes should allow exec of files on the volume": "should allow exec of files on the volume [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -12721,9 +12721,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (filesystem volmode)] volumeMode should not mount / map unused volumes in a pod [LinuxOnly]": "should not mount / map unused volumes in a pod [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (immediate binding)] topology should fail to schedule a pod which has topologies that conflict with AllowedTopologies": "should fail to schedule a pod which has topologies that conflict with AllowedTopologies [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (immediate binding)] topology should fail to schedule a pod which has topologies that conflict with AllowedTopologies": "should fail to schedule a pod which has topologies that conflict with AllowedTopologies [Disabled:Unsupported] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (immediate binding)] topology should provision a volume and schedule a pod with AllowedTopologies": "should provision a volume and schedule a pod with AllowedTopologies [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (immediate binding)] topology should provision a volume and schedule a pod with AllowedTopologies": "should provision a volume and schedule a pod with AllowedTopologies [Disabled:Unsupported] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (ntfs)(allowExpansion)][Feature:Windows] volume-expand Verify if offline PVC expansion works": "Verify if offline PVC expansion works [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
