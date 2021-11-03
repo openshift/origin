@@ -114,6 +114,7 @@ func NewCLI(project string) *CLI {
 	cli.withoutNamespace = false
 	// create our own project
 	g.BeforeEach(func() { _ = cli.SetupProject() })
+	g.AfterEach(cli.TeardownProject)
 	return cli
 }
 
@@ -137,9 +138,8 @@ func NewCLIWithoutNamespace(project string) *CLI {
 		adminConfigPath:  KubeConfigPath(),
 		withoutNamespace: true,
 	}
-	g.AfterEach(cli.TeardownProject)
-	g.AfterEach(cli.kubeFramework.AfterEach)
 	g.BeforeEach(cli.kubeFramework.BeforeEach)
+	g.AfterEach(cli.kubeFramework.AfterEach)
 	return cli
 }
 

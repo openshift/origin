@@ -383,13 +383,13 @@ var (
 )
 
 var _ = g.Describe("[sig-cli] oc explain", func() {
-	defer g.GinkgoRecover()
-
 	oc := exutil.NewCLI("oc-explain")
+	defer g.GinkgoRecover()
 
 	crdTypes := append(baseCRDTypes, mcoTypes...)
 	crdTypes = append(crdTypes, autoscalingTypes...)
 	crdTypes = append(crdTypes, machineTypes...)
+
 	g.It("list uncovered GroupVersionResources", func() {
 		resourceMap := make(map[schema.GroupVersionResource]bool)
 		kubeClient := kclientset.NewForConfigOrDie(oc.AdminConfig())
@@ -437,13 +437,27 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 		}
 	})
 
+})
+
+var _ = g.Describe("[sig-cli] oc explain", func() {
+	oc := exutil.NewCLI("oc-explain")
+	defer g.GinkgoRecover()
+
 	g.It("should contain spec+status for builtinTypes", func() {
 		for _, bt := range builtinTypes {
 			e2e.Logf("Checking %s...", bt)
 			o.Expect(verifySpecStatusExplain(oc, nil, bt)).NotTo(o.HaveOccurred())
 		}
 	})
+})
 
+var _ = g.Describe("[sig-cli] oc explain", func() {
+	oc := exutil.NewCLI("oc-explain")
+	defer g.GinkgoRecover()
+
+	crdTypes := append(baseCRDTypes, mcoTypes...)
+	crdTypes = append(crdTypes, autoscalingTypes...)
+	crdTypes = append(crdTypes, machineTypes...)
 	g.It("should contain proper spec+status for CRDs", func() {
 		crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
 		crdTypesTest := crdTypes
@@ -455,6 +469,11 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 			o.Expect(verifyCRDSpecStatusExplain(oc, crdClient, ct)).NotTo(o.HaveOccurred())
 		}
 	})
+})
+
+var _ = g.Describe("[sig-cli] oc explain", func() {
+	oc := exutil.NewCLI("oc-explain")
+	defer g.GinkgoRecover()
 
 	g.It("should contain proper fields description for special types", func() {
 		for _, st := range specialTypes {
