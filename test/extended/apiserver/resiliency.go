@@ -3,8 +3,12 @@ package apiserver
 import (
 	"context"
 	"fmt"
+	"github.com/openshift/origin/test/extended/operators"
 	"io/ioutil"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -22,6 +26,7 @@ import (
 	"github.com/openshift/origin/test/extended/scheme"
 	"github.com/openshift/origin/test/extended/single_node"
 	exutil "github.com/openshift/origin/test/extended/util"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
@@ -52,6 +57,14 @@ var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 		framework.ExpectNoError(err)
 		gomega.Expect(clusterApiServer.Status.NodeStatuses[0].TargetRevision).To(gomega.Equal(int32(0)))
 
+		ginkgo.By("Initialize pods restart count")
+		restartingContainers := make(map[operators.ContainerName]int)
+		c, err := e2e.LoadClientset()
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		// This will just load the restartingContainers map with the current restart count
+		// The current restart count is the baseline for validating that there was no restarts during the API rollout
+		_ = GetRestartedPods(c, restartingContainers)
+
 		ginkgo.By("Forcing API rollout")
 		forceApiRollout(oc)
 
@@ -77,8 +90,29 @@ var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 		gomega.Expect(disruptionDuration).To(gomega.BeNumerically("<", 40*time.Second),
 			fmt.Sprintf("Total time of disruption is %v which is more than 40 seconds. ", disruptionDuration)+
 				"Actual SLO for this is 60 seconds, yet we want to be notified about major regressions")
+
+		ginkgo.It("with no pods restarts during API disruption", func() {
+			names := GetRestartedPods(c, restartingContainers)
+			gomega.Expect(len(names)).To(gomega.Equal(0), "Some pods in got restarted during kube-apiserver rollout: %s", strings.Join(names, ", "))
+		})
 	})
+
 })
+
+func GetRestartedPods(c *kubernetes.Clientset, restartingContainers map[operators.ContainerName]int) (names []string) {
+	pods := operators.GetPodsWithFilter(c, []operators.PodFilter{operators.InCoreNamespaces, ignoreNamespaces})
+	for _, pod := range pods {
+		if pod.Status.Phase == corev1.PodSucceeded {
+			continue
+		}
+		// This will just load the restartingContainers map with the current restart count
+		if operators.HasExcessiveRestarts(pod, 1, restartingContainers) {
+			key := fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
+			names = append(names, key)
+		}
+	}
+	return names
+}
 
 func setRESTConfigDefaults(config *rest.Config) {
 	if config.GroupVersion == nil {
@@ -118,4 +152,9 @@ func isApiReady(clusterConfig *rest.Config, httpClient *http.Client) (ready bool
 	}
 
 	return true, "kube-apiserver is ready", nil
+}
+
+func ignoreNamespaces(pod *corev1.Pod) bool {
+	return !(strings.HasPrefix(pod.Namespace, "openshift-kube-apiserver") ||
+		strings.HasPrefix(pod.Namespace, "openshift-kube-controller-manager")) // remove this once https://bugzilla.redhat.com/show_bug.cgi?id=2001330 is fixed
 }

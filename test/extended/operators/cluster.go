@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"k8s.io/client-go/kubernetes"
 	"strings"
 	"time"
 
@@ -20,17 +21,17 @@ var _ = g.Describe("[sig-storage] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
 	g.It("have no crashlooping recycler pods over four minutes", func() {
-		crashloopingContainerCheck(inCoreNamespaces, recyclerPod)
+		crashloopingContainerCheck(InCoreNamespaces, recyclerPod)
 	})
 })
 
-type podFilter func(pod *corev1.Pod) bool
+type PodFilter func(pod *corev1.Pod) bool
 
-func inCoreNamespaces(pod *corev1.Pod) bool {
+func InCoreNamespaces(pod *corev1.Pod) bool {
 	return strings.HasPrefix(pod.Namespace, "openshift-") || strings.HasPrefix(pod.Namespace, "kube-")
 }
 
-func not(filterFn podFilter) podFilter {
+func not(filterFn PodFilter) PodFilter {
 	return func(pod *corev1.Pod) bool {
 		return !filterFn(pod)
 	}
@@ -44,37 +45,20 @@ func recyclerPod(pod *corev1.Pod) bool {
 	defer g.GinkgoRecover()
 
 	g.It("have no crashlooping pods in core namespaces over four minutes", func() {
-		crashloopingContainerCheck(inCoreNamespaces, not(recyclerPod))
+		crashloopingContainerCheck(InCoreNamespaces, not(recyclerPod))
 	})
 })*/
 
-func crashloopingContainerCheck(podFilters ...podFilter) {
+func crashloopingContainerCheck(podFilters ...PodFilter) {
 	c, err := e2e.LoadClientset()
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	restartingContainers := make(map[containerName]int)
+	restartingContainers := make(map[ContainerName]int)
 	podsWithProblems := make(map[string]*corev1.Pod)
 	var lastPending map[string]*corev1.Pod
 	testStartTime := time.Now()
 	wait.PollImmediate(5*time.Second, 4*time.Minute, func() (bool, error) {
-		allPods, err := c.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		var pods []*corev1.Pod
-		for i := range allPods.Items {
-			pod := &allPods.Items[i]
-			accept := true
-			for _, filterFn := range podFilters {
-				if !filterFn(pod) {
-					accept = false
-					break
-				}
-			}
-			if !accept {
-				continue
-			}
-			pods = append(pods, pod)
-		}
+		pods := GetPodsWithFilter(c, podFilters)
 
 		pending := make(map[string]*corev1.Pod)
 		for _, pod := range pods {
@@ -102,7 +86,7 @@ func crashloopingContainerCheck(podFilters ...podFilter) {
 			case hasCreateContainerError(pod):
 			case hasImagePullError(pod):
 			case isCrashLooping(pod):
-			case hasExcessiveRestarts(pod, 2, restartingContainers):
+			case HasExcessiveRestarts(pod, 2, restartingContainers):
 			case hasFailingContainer(pod):
 			default:
 				continue
@@ -158,6 +142,28 @@ func crashloopingContainerCheck(podFilters ...podFilter) {
 	}
 
 	o.Expect(msg).To(o.BeEmpty())
+}
+
+func GetPodsWithFilter(c *kubernetes.Clientset, podFilters []PodFilter) []*corev1.Pod {
+	allPods, err := c.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	var pods []*corev1.Pod
+	for i := range allPods.Items {
+		pod := &allPods.Items[i]
+		accept := true
+		for _, filterFn := range podFilters {
+			if !filterFn(pod) {
+				accept = false
+				break
+			}
+		}
+		if !accept {
+			continue
+		}
+		pods = append(pods, pod)
+	}
+	return pods
 }
 
 func hasCreateContainerError(pod *corev1.Pod) bool {
@@ -225,15 +231,15 @@ func isCrashLooping(pod *corev1.Pod) bool {
 	return false
 }
 
-type containerName struct {
+type ContainerName struct {
 	namespace string
 	name      string
 	container string
 }
 
-func hasExcessiveRestarts(pod *corev1.Pod, excessiveCount int, counts map[containerName]int) bool {
+func HasExcessiveRestarts(pod *corev1.Pod, excessiveCount int, counts map[ContainerName]int) bool {
 	for _, status := range append(append([]corev1.ContainerStatus{}, pod.Status.InitContainerStatuses...), pod.Status.ContainerStatuses...) {
-		name := containerName{namespace: pod.Namespace, name: pod.Name, container: status.Name}
+		name := ContainerName{namespace: pod.Namespace, name: pod.Name, container: status.Name}
 		count, ok := counts[name]
 		if !ok {
 			counts[name] = int(status.RestartCount)
