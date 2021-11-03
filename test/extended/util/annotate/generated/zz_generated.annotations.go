@@ -1785,11 +1785,11 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] DNS should provide DNS for services  [Conformance]": "should provide DNS for services  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS should provide DNS for the cluster  [Conformance]": "should provide DNS for the cluster  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS should provide DNS for the cluster  [Conformance]": "should provide DNS for the cluster  [Conformance] [Skipped:Proxy] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS should provide DNS for the cluster [Provider:GCE]": "should provide DNS for the cluster [Provider:GCE] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS should provide DNS for the cluster [Provider:GCE]": "should provide DNS for the cluster [Provider:GCE] [Skipped:Proxy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS should resolve DNS of partial qualified names for services [LinuxOnly] [Conformance]": "should resolve DNS of partial qualified names for services [LinuxOnly] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS should resolve DNS of partial qualified names for services [LinuxOnly] [Conformance]": "should resolve DNS of partial qualified names for services [LinuxOnly] [Conformance] [Skipped:Proxy] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-network] DNS should resolve DNS of partial qualified names for the cluster [LinuxOnly]": "should resolve DNS of partial qualified names for the cluster [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 

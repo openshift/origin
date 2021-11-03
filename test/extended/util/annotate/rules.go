@@ -105,6 +105,14 @@ var (
 			`\[sig-cli\] Kubectl Port forwarding With a server listening on localhost should support forwarding over websockets`,
 			`\[sig-cli\] Kubectl Port forwarding With a server listening on 0.0.0.0 should support forwarding over websockets`,
 			`\[sig-node\] Pods should support remote command execution over websockets`,
+
+			// These tests are flacky and require internet access
+			// See https://bugzilla.redhat.com/show_bug.cgi?id=2019375
+			`\[sig-builds\]\[Feature:Builds\] build can reference a cluster service with a build being created from new-build should be able to run a build that references a cluster service`,
+			`\[sig-builds\]\[Feature:Builds\] oc new-app should succeed with a --name of 58 characters`,
+			`\[sig-network\] DNS should resolve DNS of partial qualified names for services`,
+			`\[sig-arch\] Only known images used by tests`,
+			`\[sig-network\] DNS should provide DNS for the cluster`,
 		},
 		"[Skipped:SingleReplicaTopology]": {
 			`\[sig-apps\] Daemon set \[Serial\] should rollback without unnecessary restarts \[Conformance\]`,
