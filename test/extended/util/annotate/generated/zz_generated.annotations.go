@@ -1357,6 +1357,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc observe works as expected": "works as expected [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc probe can ensure the probe command is functioning as expected on deploymentconfigs": "can ensure the probe command is functioning as expected on deploymentconfigs [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc probe can ensure the probe command is functioning as expected on pods": "can ensure the probe command is functioning as expected on pods [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc project --show-labels works for projects": "--show-labels works for projects [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc rsh specific flags should work well when access to a remote shell": "should work well when access to a remote shell [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
@@ -1672,8 +1676,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should have a metal3 deployment": "have a metal3 deployment [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should have baremetalhost resources": "have baremetalhost resources [Suite:openshift/conformance/parallel]",
-
-	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should not allow updating BootMacAddress": "not allow updating BootMacAddress [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-instrumentation] Events API should delete a collection of events [Conformance]": "should delete a collection of events [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
