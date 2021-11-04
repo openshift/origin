@@ -92,10 +92,11 @@ var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 			fmt.Sprintf("Total time of disruption is %v which is more than 40 seconds. ", disruptionDuration)+
 				"Actual SLO for this is 60 seconds, yet we want to be notified about major regressions")
 
-		ginkgo.It("with no pods restarts during API disruption", func() {
-			names := GetRestartedPods(c, restartingContainers)
-			gomega.Expect(len(names)).To(gomega.Equal(0), "Some pods in got restarted during kube-apiserver rollout: %s", strings.Join(names, ", "))
-		})
+		ginkgo.By("Expecting no pod restarts during API disruption")
+		names := GetRestartedPods(c, restartingContainers)
+		gomega.
+			Expect(len(names)).
+			To(gomega.Equal(0), fmt.Sprintf("Some pods got restarted during kube-apiserver rollout: %s", strings.Join(names, ", ")))
 	})
 
 })
