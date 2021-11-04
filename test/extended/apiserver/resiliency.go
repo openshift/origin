@@ -3,13 +3,14 @@ package apiserver
 import (
 	"context"
 	"fmt"
-	"github.com/openshift/origin/test/extended/operators"
 	"io/ioutil"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/openshift/origin/test/extended/operators"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
