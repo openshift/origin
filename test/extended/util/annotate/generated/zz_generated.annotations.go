@@ -12849,17 +12849,17 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] volumeIO should write files of various sizes, verify size, validate content [Slow][LinuxOnly]": "should write files of various sizes, verify size, validate content [Slow][LinuxOnly] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] volumes should allow exec of files on the volume": "should allow exec of files on the volume [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] volumes should allow exec of files on the volume": "should allow exec of files on the volume [Disabled:Unsupported] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] volumes should store data": "should store data [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] volumes should store data": "should store data [Disabled:Unsupported] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ext3)] volumes should allow exec of files on the volume": "should allow exec of files on the volume [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ext3)] volumes should store data": "should store data [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ext4)] volumes should allow exec of files on the volume": "should allow exec of files on the volume [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ext4)] volumes should allow exec of files on the volume": "should allow exec of files on the volume [Disabled:Unsupported] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ext4)] volumes should store data": "should store data [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ext4)] volumes should store data": "should store data [Disabled:Unsupported] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ntfs)][Feature:Windows] volumes should allow exec of files on the volume": "should allow exec of files on the volume [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -12939,17 +12939,17 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] volumeIO should write files of various sizes, verify size, validate content [Slow][LinuxOnly]": "should write files of various sizes, verify size, validate content [Slow][LinuxOnly] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] volumes should allow exec of files on the volume": "should allow exec of files on the volume [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] volumes should allow exec of files on the volume": "should allow exec of files on the volume [Disabled:Unsupported] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] volumes should store data": "should store data [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] volumes should store data": "should store data [Disabled:Unsupported] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ext3)] volumes should allow exec of files on the volume": "should allow exec of files on the volume [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ext3)] volumes should store data": "should store data [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ext4)] volumes should allow exec of files on the volume": "should allow exec of files on the volume [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ext4)] volumes should allow exec of files on the volume": "should allow exec of files on the volume [Disabled:Unsupported] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ext4)] volumes should store data": "should store data [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ext4)] volumes should store data": "should store data [Disabled:Unsupported] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] disruptive[Disruptive][LinuxOnly] Should test that pv written before kubelet restart is readable after restart.": "Should test that pv written before kubelet restart is readable after restart. [Serial] [Suite:k8s]",
 
@@ -12973,7 +12973,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": "should fail to use a volume in a pod with mismatched mode [Slow] [Suite:k8s]",
 
-	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should not mount / map unused volumes in a pod [LinuxOnly]": "should not mount / map unused volumes in a pod [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should not mount / map unused volumes in a pod [LinuxOnly]": "should not mount / map unused volumes in a pod [LinuxOnly] [Disabled:Unsupported] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ntfs)][Feature:Windows] volumes should allow exec of files on the volume": "should allow exec of files on the volume [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
