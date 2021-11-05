@@ -33,6 +33,25 @@ const (
 	LocatorOAuthAPIServerReusedConnection     = "oauth-apiserver-reused-connection"
 )
 
+// BackendDisruptionLocatorsToName maps from the locator name used to track disruption to the name used to recognize it in
+// the job aggregator.
+var BackendDisruptionLocatorsToName = map[string]string{
+	LocatorKubeAPIServerNewConnection:         "kube-api-new-connections",
+	LocatorOpenshiftAPIServerNewConnection:    "openshift-api-new-connections",
+	LocatorOAuthAPIServerNewConnection:        "oauth-api-new-connections",
+	LocatorKubeAPIServerReusedConnection:      "kube-api-reused-connections",
+	LocatorOpenshiftAPIServerReusedConnection: "openshift-api-reused-connections",
+	LocatorOAuthAPIServerReusedConnection:     "oauth-api-reused-connections",
+	LocateRouteForDisruptionCheck("openshift-authentication", "oauth-openshift", NewConnectionType):    "ingress-to-oauth-server-new-connections",
+	LocateRouteForDisruptionCheck("openshift-authentication", "oauth-openshift", ReusedConnectionType): "ingress-to-oauth-server-used-connections",
+	LocateRouteForDisruptionCheck("openshift-console", "console", NewConnectionType):                   "ingress-to-console-new-connections",
+	LocateRouteForDisruptionCheck("openshift-console", "console", ReusedConnectionType):                "ingress-to-console-used-connections",
+	LocateRouteForDisruptionCheck("openshift-image-registry", "test-disruption", NewConnectionType):    "image-registry-new-connections",
+	LocateRouteForDisruptionCheck("openshift-image-registry", "test-disruption", ReusedConnectionType): "image-registry-reused-connections",
+	LocateDisruptionCheck("service-loadbalancer-with-pdb", NewConnectionType):                          "service-load-balancer-with-pdb-new-connections",
+	LocateDisruptionCheck("service-loadbalancer-with-pdb", ReusedConnectionType):                       "service-load-balancer-with-pdb-reused-connections",
+}
+
 func GetMonitorRESTConfig() (*rest.Config, error) {
 	cfg := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{})
 	clusterConfig, err := cfg.ClientConfig()
@@ -112,7 +131,9 @@ func startServerMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.
 	}
 	var httpTransport *http.Transport
 
+	connectionType := NewConnectionType
 	if disableConnectionReuse {
+		connectionType = NewConnectionType
 		httpTransport = &http.Transport{
 			Dial: (&net.Dialer{
 				Timeout:   timeout,
@@ -124,6 +145,7 @@ func startServerMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.
 			IdleConnTimeout:     timeout,
 		}
 	} else {
+		connectionType = ReusedConnectionType
 		httpTransport = &http.Transport{
 			Dial: (&net.Dialer{
 				Timeout: timeout,
@@ -168,23 +190,71 @@ func startServerMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.
 			condition = &monitorapi.Condition{
 				Level:   monitorapi.Info,
 				Locator: resourceLocator,
-				Message: fmt.Sprintf("%s started responding to GET requests", resourceLocator),
+				Message: DisruptionEndedMessage(resourceLocator, connectionType),
 			}
 		case err != nil && previous:
 			condition = &monitorapi.Condition{
 				Level:   monitorapi.Error,
 				Locator: resourceLocator,
-				Message: fmt.Sprintf("%s started failing: %v", resourceLocator, err),
+				Message: DisruptionBeganMessage(resourceLocator, connectionType, err),
 			}
 		}
 		return condition, err == nil
 	}).WhenFailing(ctx, &monitorapi.Condition{
 		Level:   monitorapi.Error,
 		Locator: resourceLocator,
-		Message: fmt.Sprintf("%s is not responding to GET requests", resourceLocator),
+		Message: DisruptionContinuingMessage(resourceLocator, connectionType, err),
 	})
 
 	return nil
+}
+
+func LocateRouteForDisruptionCheck(ns, name string, connectionType BackendConnectionType) string {
+	return fmt.Sprintf("ns/%s route/%s connection/%s", ns, name, connectionType)
+}
+
+func LocateDisruptionCheck(disruptionName string, connectionType BackendConnectionType) string {
+	return fmt.Sprintf("disruption/%s connection/%s", disruptionName, connectionType)
+}
+
+type BackendConnectionType string
+
+const (
+	NewConnectionType    BackendConnectionType = "new"
+	ReusedConnectionType BackendConnectionType = "reused"
+)
+
+func DisruptionEndedMessage(locator string, connectionType BackendConnectionType) string {
+	switch connectionType {
+	case NewConnectionType:
+		return fmt.Sprintf("%s started responding to GET requests over new connections", locator)
+	case ReusedConnectionType:
+		return fmt.Sprintf("%s started responding to GET requests over reused connections", locator)
+	default:
+		return fmt.Sprintf("%s started responding to GET requests over %v connections", locator, "Unknown")
+	}
+}
+
+func DisruptionBeganMessage(locator string, connectionType BackendConnectionType, err error) string {
+	switch connectionType {
+	case NewConnectionType:
+		return fmt.Sprintf("%s stopped responding to GET requests over new connections: %v", locator, err)
+	case ReusedConnectionType:
+		return fmt.Sprintf("%s stopped responding to GET requests over reused connections: %v", locator, err)
+	default:
+		return fmt.Sprintf("%s stopped responding to GET requests over %v connections: %v", locator, "Unknown", err)
+	}
+}
+
+func DisruptionContinuingMessage(locator string, connectionType BackendConnectionType, err error) string {
+	switch connectionType {
+	case NewConnectionType:
+		return fmt.Sprintf("%s is not responding toGET requests over new connections: %v", locator, err)
+	case ReusedConnectionType:
+		return fmt.Sprintf("%s is not  responding to GET requests over reused connections: %v", locator, err)
+	default:
+		return fmt.Sprintf("%s is not  responding to GET requests over %v connections: %v", locator, "Unknown", err)
+	}
 }
 
 func StartKubeAPIMonitoringWithNewConnections(ctx context.Context, m *Monitor, clusterConfig *rest.Config, timeout time.Duration) error {
