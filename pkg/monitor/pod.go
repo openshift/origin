@@ -88,19 +88,19 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Warning,
 						Locator: locatePod(pod),
-						Message: fmt.Sprintf("invariant violation (bug): pod should not transition %s->%s even when terminated", old, new),
+						Message: fmt.Sprintf("invariant violation (bug): deleted pod should not transition to pending %s->%s even when terminated", old, new),
 					})
 				case isMirrorPod(pod):
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Warning,
 						Locator: locatePod(pod),
-						Message: fmt.Sprintf("invariant violation (bug): static pod should not transition %s->%s with same UID", old, new),
+						Message: fmt.Sprintf("invariant violation (bug): static pod should not transition to pending %s->%s with same UID", old, new),
 					})
 				default:
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Warning,
 						Locator: locatePod(pod),
-						Message: fmt.Sprintf("pod moved back to Pending"),
+						Message: fmt.Sprintf("invariant violation (bug): normal pod should not transition to pending %s->%s", old, new),
 					})
 				}
 			case new == corev1.PodUnknown:

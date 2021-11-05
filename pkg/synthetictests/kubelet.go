@@ -194,16 +194,33 @@ func testDeleteGracePeriodZero(events monitorapi.Intervals) []*ginkgo.JUnitTestC
 	return []*ginkgo.JUnitTestCase{failure, success}
 }
 
-func testPodTransitions(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
-	const testName = "[sig-node] pods should never transition back to pending"
+func testPodTransitionsForAllPodTypes(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+	ret := []*ginkgo.JUnitTestCase{}
+
+	// this one appears to be chronically failing.  It likely needs further subdivision into
+	//  1. failing on node reboot
+	//  2. failing any other time
+	ret = append(ret, testPodTransitions(events, "static", false)...)
+
+	// these ought to be stable overall.
+	ret = append(ret, testPodTransitions(events, "deleted", true)...)
+	ret = append(ret, testPodTransitions(events, "normal", true)...)
+
+	return ret
+}
+
+func testPodTransitions(events monitorapi.Intervals, podType string, hardFail bool) []*ginkgo.JUnitTestCase {
+	testName := "[sig-node] " + podType + " pods should never transition back to pending"
 	success := &ginkgo.JUnitTestCase{Name: testName}
 
+	messageString := podType + " pod should not transition to pending"
 	failures := []string{}
 	for _, event := range events {
-		if strings.Contains(event.Message, "pod should not transition") || strings.Contains(event.Message, "pod moved back to Pending") {
+		if strings.Contains(event.Message, messageString) {
 			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
 		}
 	}
+
 	if len(failures) == 0 {
 		return []*ginkgo.JUnitTestCase{success}
 	}
@@ -212,9 +229,13 @@ func testPodTransitions(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
 		Name:      testName,
 		SystemOut: strings.Join(failures, "\n"),
 		FailureOutput: &ginkgo.FailureOutput{
-			Output: fmt.Sprintf("Marked as flake until https://bugzilla.redhat.com/show_bug.cgi?id=1933760 is fixed\n\n%d pods illegally transitioned to Pending\n\n%v", len(failures), strings.Join(failures, "\n")),
+			Output: fmt.Sprintf("%d pods illegally transitioned to Pending\n\n%v", len(failures), strings.Join(failures, "\n")),
 		},
 	}
+	if hardFail {
+		return []*ginkgo.JUnitTestCase{failure}
+	}
+
 	// TODO: temporarily marked flaky since it is continously failing
 	return []*ginkgo.JUnitTestCase{failure, success}
 }
