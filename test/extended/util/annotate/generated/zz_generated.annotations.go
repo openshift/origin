@@ -1359,6 +1359,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc observe works as expected": "works as expected [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc probe can ensure the probe command is functioning as expected on deploymentconfigs": "can ensure the probe command is functioning as expected on deploymentconfigs [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc probe can ensure the probe command is functioning as expected on pods": "can ensure the probe command is functioning as expected on pods [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc project --show-labels works for projects": "--show-labels works for projects [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc rsh specific flags should work well when access to a remote shell": "should work well when access to a remote shell [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
