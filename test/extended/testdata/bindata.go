@@ -488,6 +488,7 @@
 // test/extended/testdata/templates/templateinstance_objectkinds.yaml
 // test/extended/testdata/templates/templateinstance_readiness.yaml
 // test/extended/testdata/templates/templateservicebroker_bind.yaml
+// test/extended/testdata/test-buildcli.json
 // test/extended/testdata/test-cli-debug.yaml
 // test/extended/testdata/test-deployment-config.yaml
 // test/extended/testdata/test-env-pod.json
@@ -28910,40 +28911,6 @@ os::cmd::expect_success 'oc delete pods hello-openshift --grace-period=0 --force
 echo "pods: ok"
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_start "cmd/basicresources/setenv"
-os::cmd::expect_success "oc create -f ${TEST_DATA}/test-deployment-config.yaml"
-os::cmd::expect_success "oc create -f ${TEST_DATA}/test-buildcli.json"
-os::cmd::expect_success_and_text "oc set env dc/test-deployment-config FOO=1st" "updated"
-os::cmd::expect_success_and_text "oc set env dc/test-deployment-config FOO=2nd" "updated"
-os::cmd::expect_success_and_text "oc set env dc/test-deployment-config FOO=bar --overwrite" "updated"
-os::cmd::expect_failure_and_text "oc set env dc/test-deployment-config FOO=zee --overwrite=false" "already has a value"
-os::cmd::expect_success_and_text "oc set env dc/test-deployment-config --list" "FOO=bar"
-os::cmd::expect_success_and_text "oc set env dc/test-deployment-config FOO-" "updated"
-os::cmd::expect_success_and_text "oc set env bc --all FOO=bar" "updated"
-os::cmd::expect_success_and_text "oc set env bc --all --list" "FOO=bar"
-os::cmd::expect_success_and_text "oc set env bc --all FOO-" "updated"
-os::cmd::expect_success "oc create secret generic mysecret --from-literal='foo.bar=secret'"
-os::cmd::expect_success_and_text "oc set env --from=secret/mysecret --prefix=PREFIX_ dc/test-deployment-config" "updated"
-os::cmd::expect_success_and_text "oc set env dc/test-deployment-config --list" "PREFIX_FOO_BAR from secret mysecret, key foo.bar"
-os::cmd::expect_success_and_text "oc set env dc/test-deployment-config --list --resolve" "PREFIX_FOO_BAR=secret"
-os::cmd::expect_success "oc delete secret mysecret"
-os::cmd::expect_failure_and_text "oc set env dc/test-deployment-config --list --resolve" "error retrieving reference for PREFIX_FOO_BAR"
-# switch to view user to ensure view-only users can't get secrets through env var resolution
-new="$(mktemp -d)/tempconfig"
-os::cmd::expect_success "oc config view --raw > $new"
-export KUBECONFIG=$new
-project=$(oc project -q)
-#os::cmd::expect_success 'oc policy add-role-to-user view view-user'
-#os::cmd::expect_success 'oc login -u view-user -p anything'
-#os::cmd::try_until_success 'oc project ${project}'
-#os::cmd::expect_failure_and_text "oc set env dc/test-deployment-config --list --resolve" 'cannot get resource "secrets" in API group "" in the namespace'
-#oc login -u system:admin
-# clean up
-os::cmd::expect_success "oc delete dc/test-deployment-config"
-os::cmd::expect_success "oc delete bc/ruby-sample-build-validtag"
-echo "set env: ok"
-os::test::junit::declare_suite_end
-
 os::test::junit::declare_suite_start "cmd/basicresources/expose"
 # Expose service as a route
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-service.json'
@@ -52568,6 +52535,132 @@ func testExtendedTestdataTemplatesTemplateservicebroker_bindYaml() (*asset, erro
 	return a, nil
 }
 
+var _testExtendedTestdataTestBuildcliJson = []byte(`{
+    "kind": "List",
+    "apiVersion": "v1",
+    "metadata": {},
+    "items": [
+      {
+        "kind": "ImageStream",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "ruby-20-centos7-buildcli",
+          "creationTimestamp": null
+        },
+        "spec": {
+          "dockerImageRepository": "image-registry.openshift-image-registry.svc:5000/openshift/ruby",
+          "tags": [
+            {
+              "name": "valid"
+            }
+          ]
+        },
+        "status": {
+          "dockerImageRepository": ""
+        }
+      },
+      {
+        "kind": "BuildConfig",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "ruby-sample-build-validtag",
+          "creationTimestamp": null
+        },
+        "spec": {
+          "triggers": [
+            {
+              "type": "imageChange",
+              "imageChange": {}
+            }
+          ],
+          "source": {
+            "type": "Git",
+            "git": {
+              "uri": "https://github.com/openshift/ruby-hello-world.git"
+            }
+          },
+          "strategy": {
+            "type": "Source",
+            "sourceStrategy": {
+              "from": {
+                "kind": "DockerImage",
+                "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby"
+              },
+              "incremental": true
+            }
+          },
+          "output": {
+            "to": {
+              "kind": "ImageStreamTag",
+              "name": "origin-ruby-sample:latest"
+            }
+          },
+          "resources": {}
+        },
+        "status": {
+          "lastVersion": 0
+        }
+      },
+      {
+        "kind": "BuildConfig",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "ruby-sample-build-invalidtag",
+          "creationTimestamp": null
+        },
+        "spec": {
+          "triggers": [
+            {
+              "type": "imageChange",
+              "imageChange": {}
+            }
+          ],
+          "source": {
+            "type": "Git",
+            "git": {
+              "uri": "https://github.com/openshift/ruby-hello-world.git"
+            }
+          },
+          "strategy": {
+            "type": "Source",
+            "sourceStrategy": {
+              "from": {
+                "kind": "DockerImage",
+                "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby"
+              },
+              "incremental": true
+            }
+          },
+          "output": {
+            "to": {
+              "kind": "ImageStreamTag",
+              "name": "origin-ruby-sample:latest"
+            }
+          },
+          "resources": {}
+        },
+        "status": {
+          "lastVersion": 0
+        }
+      }
+    ]
+  }`)
+
+func testExtendedTestdataTestBuildcliJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataTestBuildcliJson, nil
+}
+
+func testExtendedTestdataTestBuildcliJson() (*asset, error) {
+	bytes, err := testExtendedTestdataTestBuildcliJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/test-buildcli.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataTestCliDebugYaml = []byte(`kind: List
 apiVersion: v1
 items:
@@ -53854,6 +53947,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/templates/templateinstance_objectkinds.yaml":                                     testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml,
 	"test/extended/testdata/templates/templateinstance_readiness.yaml":                                       testExtendedTestdataTemplatesTemplateinstance_readinessYaml,
 	"test/extended/testdata/templates/templateservicebroker_bind.yaml":                                       testExtendedTestdataTemplatesTemplateservicebroker_bindYaml,
+	"test/extended/testdata/test-buildcli.json":                                                              testExtendedTestdataTestBuildcliJson,
 	"test/extended/testdata/test-cli-debug.yaml":                                                             testExtendedTestdataTestCliDebugYaml,
 	"test/extended/testdata/test-deployment-config.yaml":                                                     testExtendedTestdataTestDeploymentConfigYaml,
 	"test/extended/testdata/test-env-pod.json":                                                               testExtendedTestdataTestEnvPodJson,
@@ -54625,6 +54719,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"templateinstance_readiness.yaml":   {testExtendedTestdataTemplatesTemplateinstance_readinessYaml, map[string]*bintree{}},
 					"templateservicebroker_bind.yaml":   {testExtendedTestdataTemplatesTemplateservicebroker_bindYaml, map[string]*bintree{}},
 				}},
+				"test-buildcli.json":                   {testExtendedTestdataTestBuildcliJson, map[string]*bintree{}},
 				"test-cli-debug.yaml":                  {testExtendedTestdataTestCliDebugYaml, map[string]*bintree{}},
 				"test-deployment-config.yaml":          {testExtendedTestdataTestDeploymentConfigYaml, map[string]*bintree{}},
 				"test-env-pod.json":                    {testExtendedTestdataTestEnvPodJson, map[string]*bintree{}},
