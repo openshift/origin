@@ -1,0 +1,22 @@
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: wa-sleepy-conf
+spec:
+  config: '{
+  "cniVersion": "0.3.0",
+  "name": "whereaboutsexample",
+  "type": "bridge",
+  "bridge": "watestbr1",
+  "isDefaultGateway": true,
+  "forceAddress": false,
+  "ipMasq": true,
+  "hairpinMode": true,
+  "ipam": {
+    "type": "whereabouts",
+    "sleep_for_race": 5,
+    "range": "192.168.2.240/28",
+    "log_file": "/tmp/whereabouts.log",
+    "log_level": "debug"
+  }
+}'
