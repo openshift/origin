@@ -1345,6 +1345,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc debug ensure it works with image streams": "ensure it works with image streams [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc env can set environment variables": "can set environment variables [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc explain list uncovered GroupVersionResources": "list uncovered GroupVersionResources [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc explain networking types when using openshift-sdn should contain proper fields description for special networking types": "should contain proper fields description for special networking types [Suite:openshift/conformance/parallel]",
