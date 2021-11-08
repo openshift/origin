@@ -15,7 +15,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost.kubeconfig\" should be present on all masters and work": "\"localhost.kubeconfig\" should be present on all masters and work [Suite:openshift/conformance/parallel/minimal]",
 
-	"[Top Level] [Conformance][sig-sno][Serial] Cluster should allow a fast rollout of kube-apiserver": "should allow a fast rollout of kube-apiserver [Suite:openshift/conformance/serial/minimal]",
+	"[Top Level] [Conformance][sig-sno][Serial] Cluster should allow a fast rollout of kube-apiserver with no pods restarts during API disruption": "should allow a fast rollout of kube-apiserver with no pods restarts during API disruption [Suite:openshift/conformance/serial/minimal]",
 
 	"[Top Level] [Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP] test RequestHeaders IdP": "test RequestHeaders IdP [Suite:openshift/conformance/serial]",
 
