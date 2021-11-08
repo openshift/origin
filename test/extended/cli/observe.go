@@ -1,10 +1,12 @@
 package cli
 
 import (
+	"context"
 	"os"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -15,6 +17,10 @@ var _ = g.Describe("[sig-cli] oc observe", func() {
 	oc := exutil.NewCLIWithoutNamespace("oc-observe").AsAdmin()
 
 	g.It("works as expected", func() {
+		g.By("Find out the clusterIP of the kubernetes.default service")
+		kubernetesSVC, err := oc.AdminKubeClient().CoreV1().Services("default").Get(context.Background(), "kubernetes", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		g.By("basic scenarios")
 		out, err := oc.Run("observe").Output()
 		o.Expect(err).To(o.HaveOccurred())
@@ -68,11 +74,11 @@ var _ = g.Describe("[sig-cli] oc observe", func() {
 		g.By("argument templates")
 		out, err = oc.Run("observe").Args("services", "--once", "--all-namespaces", "--template='{ .spec.clusterIP }'").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.Or(o.ContainSubstring("172.30.0.1"), o.ContainSubstring("fd02::1")))
+		o.Expect(out).To(o.Or(o.ContainSubstring(kubernetesSVC.Spec.ClusterIP), o.ContainSubstring("fd02::1")))
 
 		out, err = oc.Run("observe").Args("services", "--once", "--all-namespaces", "--template='{{ .spec.clusterIP }}'", "--output=go-template").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.Or(o.ContainSubstring("172.30.0.1"), o.ContainSubstring("fd02::1")))
+		o.Expect(out).To(o.Or(o.ContainSubstring(kubernetesSVC.Spec.ClusterIP), o.ContainSubstring("fd02::1")))
 
 		out, err = oc.Run("observe").Args("services", "--once", "--all-namespaces", "--template='bad{ .missingkey }key'").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
