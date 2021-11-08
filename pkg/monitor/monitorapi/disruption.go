@@ -12,17 +12,21 @@ func BackendDisruptionSeconds(locator string, events Intervals) (time.Duration, 
 			if i.Locator != locator {
 				return false
 			}
-			if !strings.Contains(i.Message, "stopped responding") {
+			switch {
+			case strings.Contains(i.Message, "stopped responding to"):
+				return true
+			case strings.Contains(i.Message, "is not responding to"):
+				return true
+			default:
 				return false
 			}
-			return true
 		},
 	)
 	disruptionMessages := disruptionEvents.Strings()
 	connectionType := "Unknown"
 	for _, disruptionMessage := range disruptionMessages {
 		switch {
-		case strings.Contains(disruptionMessage, "over reusedconnections"):
+		case strings.Contains(disruptionMessage, "over reused connections"):
 			connectionType = "Reused"
 		case strings.Contains(disruptionMessage, "over new connections"):
 			connectionType = "New"

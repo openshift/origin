@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
-	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/test/extended/testdata"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
@@ -62,7 +62,7 @@ type BackendDisruption struct {
 	Name string
 	// ConnectionType is New or Reused
 	ConnectionType     string
-	DisruptedDuration  time.Duration
+	DisruptedDuration  metav1.Duration
 	DisruptionMessages []string
 }
 
@@ -84,7 +84,7 @@ func computeDisruptionData(events monitorapi.Intervals) *BackendDisruptionList {
 		ret.BackendDisruptions[name] = &BackendDisruption{
 			Name:               name,
 			ConnectionType:     connectionType,
-			DisruptedDuration:  disruptionDuration,
+			DisruptedDuration:  metav1.Duration{Duration: disruptionDuration},
 			DisruptionMessages: disruptionMessages,
 		}
 	}
