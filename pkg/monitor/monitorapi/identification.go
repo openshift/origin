@@ -61,3 +61,33 @@ func OperatorFromLocator(locator string) (string, bool) {
 	parts := strings.SplitN(strings.TrimPrefix(locator, "clusteroperator/"), " ", 2)
 	return parts[0], true
 }
+
+func LocatorParts(locator string) map[string]string {
+	parts := map[string]string{}
+
+	tags := strings.Split(locator, " ")
+	for _, tag := range tags {
+		keyValue := strings.SplitN(tag, "/", 2)
+		if len(keyValue) == 1 {
+			parts[keyValue[0]] = ""
+		} else {
+			parts[keyValue[0]] = keyValue[1]
+		}
+	}
+
+	return parts
+}
+
+func NamespaceFrom(locatorParts map[string]string) string {
+	if ns, ok := locatorParts["ns"]; ok {
+		return ns
+	}
+	if ns, ok := locatorParts["namespace"]; ok {
+		return ns
+	}
+	return ""
+}
+
+func AlertFrom(locatorParts map[string]string) string {
+	return locatorParts["alert"]
+}
