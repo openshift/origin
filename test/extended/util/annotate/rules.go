@@ -144,6 +144,7 @@ var (
 			`\[sig-builds\]\[Feature:Builds\]\[valueFrom\] process valueFrom in build strategy environment variables  should successfully resolve valueFrom in s2i build environment variables`,
 			`\[sig-builds\]\[Feature:Builds\]\[volumes\] should mount given secrets and configmaps into the build pod for source strategy builds`,
 			`\[sig-builds\]\[Feature:Builds\]\[volumes\] should mount given secrets and configmaps into the build pod for docker strategy builds`,
+			`\[sig-builds\]\[Feature:Builds\]\[pullsearch\] docker build where the registry is not specified  Building from a Dockerfile whose FROM image ref does not specify the image registry should create a docker build that has buildah search from our predefined list of image registries and succeed`,
 			`\[sig-cli\] oc debug ensure it works with image streams`,
 			`\[sig-cli\] oc builds complex build start-build`,
 			`\[sig-cli\] oc builds complex build webhooks CRUD`,
