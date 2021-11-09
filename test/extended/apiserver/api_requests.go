@@ -437,10 +437,10 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 
 			// The upper bound are measured from CI runs where the tests might be running less than 2h in total.
 			// In the worst case half of the requests will be put into each bucket. Thus, multiply the bound by 2
-			framework.Logf("operator=%v, watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.count, 2*count, float64(item.count)/float64(2*count))
-			if item.count > 2*count {
+			framework.Logf("operator=%v, watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.count, count, float64(item.count)/float64(count))
+			if item.count > count {
 				framework.Logf("Operator %q produces more watch requests than expected", operator)
-				operatorBoundExceeded = append(operatorBoundExceeded, fmt.Sprintf("Operator %q produces more watch requests than expected: watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.count, 2*count, float64(item.count)/float64(2*count)))
+				operatorBoundExceeded = append(operatorBoundExceeded, fmt.Sprintf("Operator %q produces more watch requests than expected: watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.count, count, float64(item.count)/float64(count)))
 			}
 		}
 
