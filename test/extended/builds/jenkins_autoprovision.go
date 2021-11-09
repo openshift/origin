@@ -10,7 +10,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:Builds][Conformance] jenkins autoprovision", func() {
+var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Conformance] jenkins autoprovision", func() {
 	defer g.GinkgoRecover()
 	var (
 		envVarsPipelinePath = exutil.FixturePath("testdata", "samplepipeline-withenvs.yaml")
