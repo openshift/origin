@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/blang/semver"
+	apiconfigv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
 	"github.com/onsi/ginkgo"
@@ -103,6 +104,16 @@ func NewConsoleRouteAvailableWithConnectionReuseTest() upgrades.Test {
 	}
 }
 
+func getTopologies(f *framework.Framework) (controlPlaneTopology, infraTopology apiconfigv1.TopologyMode) {
+	oc := util.NewCLIWithFramework(f)
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(),
+		"cluster", metav1.GetOptions{})
+
+	framework.ExpectNoError(err, "unable to determine cluster topology")
+
+	return infra.Status.ControlPlaneTopology, infra.Status.InfrastructureTopology
+}
+
 // availableTest tests that route frontends are available before, during, and
 // after a cluster upgrade.
 type availableTest struct {
@@ -193,7 +204,10 @@ func (t *availableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 	framework.ExpectNoError(err)
 
 	toleratedDisruption := 0.20
-	switch {
+	switch controlPlaneTopology, _ := getTopologies(f); {
+	case controlPlaneTopology == apiconfigv1.SingleReplicaTopologyMode:
+		// we cannot avoid API downtime during upgrades on single-node control plane topologies (we observe around ~10% disruption)
+		framework.Logf("Control-plane topology is single-replica - allowing disruption")
 	case network.Status.NetworkType == "OVNKubernetes":
 		framework.Logf("Network type is OVNKubernetes, temporarily allowing disruption due to BZ https://bugzilla.redhat.com/show_bug.cgi?id=1983829")
 	// framework.ProviderIs("gce") removed here in 4.9 due to regression. BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1983758
