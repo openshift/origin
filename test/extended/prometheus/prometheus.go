@@ -169,6 +169,12 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules", func(
 	oc := exutil.NewCLIWithoutNamespace("prometheus")
 
 	g.BeforeEach(func() {
+
+		err := exutil.WaitForAnImageStream(
+			oc.AdminImageClient().ImageV1().ImageStreams("openshift"), "tools",
+			exutil.CheckImageStreamLatestTagPopulated, exutil.CheckImageStreamTagNotFound)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		url, _, bearerToken, ok := helper.LocatePrometheus(oc)
 		if !ok {
 			e2e.Failf("Prometheus could not be located on this cluster, failing prometheus test")
@@ -283,6 +289,11 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		url, bearerToken string
 	)
 	g.BeforeEach(func() {
+		err := exutil.WaitForAnImageStream(
+			oc.AdminImageClient().ImageV1().ImageStreams("openshift"), "tools",
+			exutil.CheckImageStreamLatestTagPopulated, exutil.CheckImageStreamTagNotFound)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		var ok bool
 		url, _, bearerToken, ok = helper.LocatePrometheus(oc)
 		if !ok {
@@ -486,6 +497,11 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 	)
 
 	g.BeforeEach(func() {
+		err := exutil.WaitForAnImageStream(
+			oc.AdminImageClient().ImageV1().ImageStreams("openshift"), "tools",
+			exutil.CheckImageStreamLatestTagPopulated, exutil.CheckImageStreamTagNotFound)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		var ok bool
 		url, prometheusURL, bearerToken, ok = helper.LocatePrometheus(oc)
 		if !ok {
