@@ -1319,7 +1319,11 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc basics can describe an OAuth access token": "can describe an OAuth access token [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc basics can output expected --dry-run text": "can output expected --dry-run text [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc basics can patch resources": "can patch resources [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc basics can process templates": "can process templates [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc builds complex build start-build": "start-build [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
@@ -1357,6 +1361,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc explain should contain spec+status for builtinTypes": "should contain spec+status for builtinTypes [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc expose can ensure the expose command is functioning as expected": "can ensure the expose command is functioning as expected [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc label pod": "pod [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc observe works as expected": "works as expected [Suite:openshift/conformance/parallel]",
@@ -1380,8 +1386,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/apiresources.sh": "test/cmd/apiresources.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/authentication.sh": "test/cmd/authentication.sh",
-
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/basicresources.sh": "test/cmd/basicresources.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/builds.sh": "test/cmd/builds.sh",
 
