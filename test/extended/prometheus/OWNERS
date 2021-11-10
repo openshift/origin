@@ -1,13 +1,11 @@
 reviewers:
-- squat
-- paulfantom
 - simonpasquier
-- dgrisonnet
 - jan--f
+- fpetkovski
+- arajkumar
 
 approvers:
-- squat
-- paulfantom
 - simonpasquier
-- dgrisonnet
 - jan--f
+- fpetkovski
+- arajkumar
