@@ -19,7 +19,6 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 		cmdTestData          = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata")
 		mixedAPIVersionsFile = exutil.FixturePath("testdata", "mixed-api-versions.yaml")
 		oauthAccessTokenFile = filepath.Join(cmdTestData, "oauthaccesstoken.yaml")
-		templateFile         = filepath.Join(cmdTestData, "application-template-stibuild.json")
 	)
 
 	g.It("can create and interact with a list of resources", func() {
@@ -54,24 +53,11 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 
 	g.It("can create deploymentconfig and clusterquota", func() {
 		nginx := k8simage.GetE2EImage(k8simage.Nginx)
-		tools := "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
 
 		err := oc.Run("create").Args("dc", "my-nginx", "--image="+nginx).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = oc.Run("delete").Args("dc", "my-nginx").Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		err = oc.Run("create").Args("dc", "test", "--image="+tools).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		err = oc.Run("run").Args("test2", "--image="+tools, "--restart=Never").Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		err = oc.Run("create").Args("job", "test3", "--image="+tools).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		err = oc.Run("delete").Args("dc/test", "pod/test2", "job/test3").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// need admin here
@@ -130,37 +116,6 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 		o.Expect(out).To(o.ContainSubstring("efaca6fab897953ffcb4f857eb5cbf2cf3a4c33f1314b4922656303426b1cfc9"))
 
 		err = ocAdmin.Run("delete").Args("oauthaccesstoken", "sha256~efaca6fab897953ffcb4f857eb5cbf2cf3a4c33f1314b4922656303426b1cfc9").Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-	})
-
-	g.It("can output expected --dry-run text", func() {
-		out, err := oc.Run("create").Args("deploymentconfig", "--dry-run", "foo", "--image=bar", "-o", "name").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("deploymentconfig.apps.openshift.io/foo"))
-
-		out, err = oc.Run("run").Args("--dry-run", "foo", "--image=bar", "-o", "name", "--restart=Never").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("pod/foo"))
-
-		out, err = oc.Run("create").Args("job", "--dry-run", "foo", "--image=bar", "-o", "name").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("job.batch/foo"))
-	})
-
-	g.It("can process templates", func() {
-		name := filepath.Join(os.TempDir(), "template.json")
-
-		out, err := oc.Run("process").Args("-f", templateFile, "-l", "name=mytemplate").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		err = os.WriteFile(name, []byte(out), 0744)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		defer os.Remove(name)
-
-		err = oc.Run("create").Args("-f", name).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		err = oc.Run("delete").Args("all", "-l", "name=mytemplate").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })

@@ -26,9 +26,6 @@ var _ = g.Describe("[sig-cli] oc probe", func() {
 		err = oc.Run("create").Args("-f", file).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = oc.Run("describe").Args("pod", "hello-openshift").Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		g.By("checking for expected failure conditions")
 		out, err := oc.Run("set").Args("probe").Output()
 		o.Expect(err).To(o.HaveOccurred())
