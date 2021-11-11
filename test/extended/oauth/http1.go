@@ -37,6 +37,12 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 
 		_, err = rt.RoundTrip(req)
 		o.Expect(err).NotTo(o.BeNil(), "http2 only request to OAuth server should fail")
-		o.Expect(err.Error()).To(o.Equal(`http2: unexpected ALPN protocol ""; want "h2"`))
+		o.Expect(err.Error()).To(
+			o.Or(
+				o.Equal(`http2: unexpected ALPN protocol ""; want "h2"`), // golang pre-1.17
+				o.Equal(`remote error: tls: no application protocol`),    // golang 1.17+
+			),
+		)
+
 	})
 })
