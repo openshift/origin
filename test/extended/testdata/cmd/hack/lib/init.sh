@@ -80,3 +80,4 @@ export KUBECONFIG=/kubeconfig
 
 namespace="cmd-${TEST_NAME}"
 oc new-project "${namespace}"
+oc label ns "${namespace}" pod-security.kubernetes.io/enforce=privileged pod-security.kubernetes.io/audit=privileged pod-security.kubernetes.io/warn=privileged

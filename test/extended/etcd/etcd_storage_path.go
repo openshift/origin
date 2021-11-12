@@ -259,7 +259,15 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 
 	client := &allClient{dynamicClient: dynamic.NewForConfigOrDie(kubeConfig)}
 
-	if _, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), &kapiv1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: TestNamespace}}, metav1.CreateOptions{}); err != nil {
+	if _, err := kubeClient.CoreV1().Namespaces().Create(
+		context.Background(),
+		&kapiv1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: TestNamespace, Labels: map[string]string{
+			"pod-security.kubernetes.io/enforce": "privileged",
+			"pod-security.kubernetes.io/audit":   "privileged",
+			"pod-security.kubernetes.io/warn":    "privileged",
+		}}},
+		metav1.CreateOptions{},
+	); err != nil {
 		t.Fatalf("error creating test namespace: %#v", err)
 	}
 	defer func() {

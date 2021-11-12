@@ -219,6 +219,55 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 		labels["security.openshift.io/disable-securitycontextconstraints"] = "true"
 	}
 
+	for _, privilegedNamespacePrefix := range []string{
+		"default",
+		"e2e-csi-mock-volumes",
+		"e2e-disruption",
+		"e2e-downward-api",
+		"e2e-ephemeral",
+		"e2e-hostpath",
+		"e2e-k8s-nettest",
+		"e2e-kubelet-etc-hosts",
+		"e2e-mount-propagation",
+		"e2e-multivolume",
+		"e2e-network-policy",
+		"e2e-persistent-local-volumes-test",
+		"e2e-privileged-pod",
+		"e2e-provisioning",
+		"e2e-pv",
+		"e2e-sched-pred",
+		"e2e-sctp",
+		"e2e-security-context",
+		"e2e-services",
+		"e2e-snapshotting",
+		"e2e-statefulset",
+		"e2e-sysctl",
+		"e2e-test-apiserver",
+		"e2e-test-build-dockerfile-env",
+		"e2e-test-build-pruning",
+		"e2e-test-build-service",
+		"e2e-test-build-sti-labels",
+		"e2e-test-cli-build-revision",
+		"e2e-test-docker-build-pullsecret",
+		"e2e-test-image-change-build-trigger",
+		"e2e-test-image-oc-tag",
+		"e2e-test-ldap-group-sync",
+		"e2e-test-new-app",
+		"e2e-test-oauth-ldap-idp",
+		"e2e-test-registry-signing",
+		"e2e-test-scc",
+		"e2e-test-templates",
+		"e2e-volume",
+		"e2e-volume-expand",
+		"e2e-volumemode",
+	} {
+		if strings.HasPrefix(baseName, privilegedNamespacePrefix) {
+			labels["pod-security.kubernetes.io/enforce"] = "privileged"
+			labels["pod-security.kubernetes.io/warn"] = "privileged"
+			labels["pod-security.kubernetes.io/audit"] = "privileged"
+		}
+	}
+
 	ns, err := e2e.CreateTestingNS(baseName, c, labels)
 	if err != nil {
 		return ns, err
