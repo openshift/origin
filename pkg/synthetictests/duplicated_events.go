@@ -97,6 +97,9 @@ var allowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`ns/openshift-etcd pod/etcd-quorum-guard-[a-z0-9-]+ node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: `),
 	// etcd can have unhealthy members during an upgrade
 	regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/UnhealthyEtcdMember unhealthy members: .*`),
+	// etcd-operator began to version etcd-endpoints configmap in 4.10 as part of static-pod-resource. During upgrade existing revisions will not contain the resource.
+	// The condition reconciles with the next revision which the result of the upgrade. TODO(hexfusion) remove in 4.11
+	regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/RequiredInstallerResourcesMissing configmaps: etcd-endpoints-[0-9]+`),
 }
 
 var knownEventsBugs = []knownProblem{
