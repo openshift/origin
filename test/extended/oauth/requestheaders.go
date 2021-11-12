@@ -264,7 +264,7 @@ func testBrowserClientRedirectsProperly(caCerts *x509.CertPool, oauthServerURL s
 	})
 
 	g.By("/authorize - browser-client - anonymous: specify the request header provider in the query", func() {
-		testedEndpoint := "/oauth/authorize?client_id=openshift-browser-client&response_type=token;idp=test-request-header"
+		testedEndpoint := "/oauth/authorize?client_id=openshift-browser-client&response_type=token&idp=test-request-header"
 		resp := oauthHTTPRequestOrFail(caCerts, oauthServerURL, testedEndpoint, "", nil, nil)
 		respDump, err := httputil.DumpResponse(resp, false)
 		o.Expect(err).NotTo(o.HaveOccurred())
