@@ -427,7 +427,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		operatorBoundExceeded := []string{}
 		for _, item := range watchRequestCounts {
 			operator := strings.Split(item.operator, ":")[3]
-			count, exists := upperBound[operator]
+			allowedCount, exists := upperBound[operator]
 
 			if !exists {
 				framework.Logf("Operator %v not found in upper bounds for %v", operator, infra.Spec.PlatformSpec.Type)
@@ -437,10 +437,11 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 
 			// The upper bound are measured from CI runs where the tests might be running less than 2h in total.
 			// In the worst case half of the requests will be put into each bucket. Thus, multiply the bound by 2
-			framework.Logf("operator=%v, watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.count, count, float64(item.count)/float64(count))
-			if item.count > count {
+			allowedCount = allowedCount * 2
+			framework.Logf("operator=%v, watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.count, allowedCount, float64(item.count)/float64(allowedCount))
+			if item.count > allowedCount {
 				framework.Logf("Operator %q produces more watch requests than expected", operator)
-				operatorBoundExceeded = append(operatorBoundExceeded, fmt.Sprintf("Operator %q produces more watch requests than expected: watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.count, count, float64(item.count)/float64(count)))
+				operatorBoundExceeded = append(operatorBoundExceeded, fmt.Sprintf("Operator %q produces more watch requests than expected: watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.count, allowedCount, float64(item.count)/float64(allowedCount)))
 			}
 		}
 
