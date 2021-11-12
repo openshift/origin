@@ -36,7 +36,7 @@ var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 
 	oc := exutil.NewCLIWithoutNamespace("cluster-resiliency")
 
-	ginkgo.It("should allow a fast rollout of kube-apiserver", func() {
+	ginkgo.It("should allow a fast rollout of kube-apiserver with no pods restarts during API disruption", func() {
 		controlPlaneTopology, _ := single_node.GetTopologies(f)
 
 		if controlPlaneTopology != configv1.SingleReplicaTopologyMode {
@@ -91,10 +91,9 @@ var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 			fmt.Sprintf("Total time of disruption is %v which is more than 40 seconds. ", disruptionDuration)+
 				"Actual SLO for this is 60 seconds, yet we want to be notified about major regressions")
 
-		ginkgo.It("with no pods restarts during API disruption", func() {
-			names := GetRestartedPods(c, restartingContainers)
-			gomega.Expect(len(names)).To(gomega.Equal(0), "Some pods in got restarted during kube-apiserver rollout: %s", strings.Join(names, ", "))
-		})
+		ginkgo.By("with no pods restarts during API disruption")
+		names := GetRestartedPods(c, restartingContainers)
+		gomega.Expect(len(names)).To(gomega.Equal(0), "Some pods in got restarted during kube-apiserver rollout: %s", strings.Join(names, ", "))
 	})
 
 })
