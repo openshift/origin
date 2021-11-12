@@ -140,6 +140,12 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance impersonatio
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		// at a practical level, it seems that certain platforms experience more variance between the first apiserver having updated permission and
+		// all apiservers having updated permissions.  While it would be possible to build retries into each case where a forbidden is expected
+		// it's easier to make the test just a little bit slower and see if the situation improves
+		// As of this writing, we see over 5% failure rates on metal
+		time.Sleep(5 * time.Second)
+
 		dummytemplateinstance = &templatev1.TemplateInstance{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test",
