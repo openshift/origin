@@ -13,7 +13,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Conformance] imagechangetriggers", func() {
+var _ = g.Describe("[Feature:Builds][Conformance] imagechangetriggers", func() {
 	defer g.GinkgoRecover()
 
 	var (
