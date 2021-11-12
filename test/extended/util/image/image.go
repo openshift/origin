@@ -14,7 +14,7 @@ import (
 func init() {
 	allowedImages = map[string]int{
 		// used by jenkins tests
-		"quay.io/redhat-developer/nfs-server:1.0": -1,
+		"quay.io/redhat-developer/nfs-server:1.1": -1,
 
 		// used by open ldap tests
 		"docker.io/mrogers950/origin-openldap-test:fedora29": -1,

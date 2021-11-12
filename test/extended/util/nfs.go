@@ -32,7 +32,7 @@ func SetupK8SNFSServerAndVolume(oc *CLI, count int) (*kapiv1.Pod, []*kapiv1.Pers
 		// additional nfs mounts to allow for openshift extended tests with
 		// replicas and shared state (formerly mongo, postgresql, mysql, etc., now only jenkins); defined
 		// in repo https://github.com/redhat-developer/nfs-server
-		ServerImage:   image.LocationFor("quay.io/redhat-developer/nfs-server:1.0"),
+		ServerImage:   image.LocationFor("quay.io/redhat-developer/nfs-server:1.1"),
 		ServerPorts:   []int{2049},
 		ServerVolumes: map[string]string{"": "/exports"},
 	}
