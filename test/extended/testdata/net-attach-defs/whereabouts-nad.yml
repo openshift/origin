@@ -1,0 +1,24 @@
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: wa-conf
+spec: 
+  config: '{
+	"cniVersion": "0.3.0",
+	"name": "whereaboutstestbridge",
+	"type": "bridge",
+	"bridge": "watestbr0",
+	"isDefaultGateway": true,
+	"forceAddress": false,
+	"ipMasq": true,
+	"hairpinMode": true,
+	"ipam": {
+		"type": "whereabouts",
+		"range": "192.168.2.225/29",
+		"exclude": [
+		  "192.168.2.225/30"
+		],
+		"log_file": "/tmp/whereabouts.log",
+    "log_level": "debug" 
+	}
+}'

@@ -2339,6 +2339,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network][Feature:Router] The HAProxy router should support reencrypt to services backed by a serving certificate automatically": "should support reencrypt to services backed by a serving certificate automatically [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-network][Feature:Whereabouts] should assign unique IP addresses to each pod in the event of a race condition case": "should assign unique IP addresses to each pod in the event of a race condition case [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-network][Feature:Whereabouts] should use whereabouts net-attach-def to limit IP ranges for newly created pods": "should use whereabouts net-attach-def to limit IP ranges for newly created pods [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-network][endpoints] admission blocks manual creation of EndpointSlices pointing to the cluster or service network": "blocks manual creation of EndpointSlices pointing to the cluster or service network [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network][endpoints] admission blocks manual creation of Endpoints pointing to the cluster or service network": "blocks manual creation of Endpoints pointing to the cluster or service network [Suite:openshift/conformance/parallel]",

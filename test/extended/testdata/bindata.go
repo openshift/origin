@@ -436,6 +436,9 @@
 // test/extended/testdata/multi-namespace-pipeline.yaml
 // test/extended/testdata/multi-namespace-template.yaml
 // test/extended/testdata/net-attach-defs/bridge-nad.yml
+// test/extended/testdata/net-attach-defs/whereabouts-nad.yml
+// test/extended/testdata/net-attach-defs/whereabouts-race-awake.yml
+// test/extended/testdata/net-attach-defs/whereabouts-race-sleepy.yml
 // test/extended/testdata/oauthserver/cabundle-cm.yaml
 // test/extended/testdata/oauthserver/oauth-network.yaml
 // test/extended/testdata/oauthserver/oauth-pod.yaml
@@ -48183,6 +48186,122 @@ func testExtendedTestdataNetAttachDefsBridgeNadYml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataNetAttachDefsWhereaboutsNadYml = []byte(`apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: wa-conf
+spec: 
+  config: '{
+	"cniVersion": "0.3.0",
+	"name": "whereaboutstestbridge",
+	"type": "bridge",
+	"bridge": "watestbr0",
+	"isDefaultGateway": true,
+	"forceAddress": false,
+	"ipMasq": true,
+	"hairpinMode": true,
+	"ipam": {
+		"type": "whereabouts",
+		"range": "192.168.2.225/29",
+		"exclude": [
+		  "192.168.2.225/30"
+		],
+		"log_file": "/tmp/whereabouts.log",
+    "log_level": "debug" 
+	}
+}'`)
+
+func testExtendedTestdataNetAttachDefsWhereaboutsNadYmlBytes() ([]byte, error) {
+	return _testExtendedTestdataNetAttachDefsWhereaboutsNadYml, nil
+}
+
+func testExtendedTestdataNetAttachDefsWhereaboutsNadYml() (*asset, error) {
+	bytes, err := testExtendedTestdataNetAttachDefsWhereaboutsNadYmlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/net-attach-defs/whereabouts-nad.yml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNetAttachDefsWhereaboutsRaceAwakeYml = []byte(`apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: wa-awake-conf
+spec:
+  config: '{
+  "cniVersion": "0.3.0",
+  "name": "whereaboutsexample",
+  "type": "bridge",
+  "bridge": "watestbr1",
+  "isDefaultGateway": true,
+  "forceAddress": false,
+  "ipMasq": true,
+  "hairpinMode": true,
+  "ipam": {
+    "type": "whereabouts",
+    "range": "192.168.2.240/28",
+    "log_file": "/tmp/whereabouts.log",
+    "log_level": "debug" 
+  }
+}'
+`)
+
+func testExtendedTestdataNetAttachDefsWhereaboutsRaceAwakeYmlBytes() ([]byte, error) {
+	return _testExtendedTestdataNetAttachDefsWhereaboutsRaceAwakeYml, nil
+}
+
+func testExtendedTestdataNetAttachDefsWhereaboutsRaceAwakeYml() (*asset, error) {
+	bytes, err := testExtendedTestdataNetAttachDefsWhereaboutsRaceAwakeYmlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/net-attach-defs/whereabouts-race-awake.yml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml = []byte(`apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: wa-sleepy-conf
+spec:
+  config: '{
+  "cniVersion": "0.3.0",
+  "name": "whereaboutsexample",
+  "type": "bridge",
+  "bridge": "watestbr1",
+  "isDefaultGateway": true,
+  "forceAddress": false,
+  "ipMasq": true,
+  "hairpinMode": true,
+  "ipam": {
+    "type": "whereabouts",
+    "sleep_for_race": 5,
+    "range": "192.168.2.240/28",
+    "log_file": "/tmp/whereabouts.log",
+    "log_level": "debug"
+  }
+}'`)
+
+func testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYmlBytes() ([]byte, error) {
+	return _testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml, nil
+}
+
+func testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml() (*asset, error) {
+	bytes, err := testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYmlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/net-attach-defs/whereabouts-race-sleepy.yml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataOauthserverCabundleCmYaml = []byte(`apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -53895,6 +54014,9 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/multi-namespace-pipeline.yaml":                                                   testExtendedTestdataMultiNamespacePipelineYaml,
 	"test/extended/testdata/multi-namespace-template.yaml":                                                   testExtendedTestdataMultiNamespaceTemplateYaml,
 	"test/extended/testdata/net-attach-defs/bridge-nad.yml":                                                  testExtendedTestdataNetAttachDefsBridgeNadYml,
+	"test/extended/testdata/net-attach-defs/whereabouts-nad.yml":                                             testExtendedTestdataNetAttachDefsWhereaboutsNadYml,
+	"test/extended/testdata/net-attach-defs/whereabouts-race-awake.yml":                                      testExtendedTestdataNetAttachDefsWhereaboutsRaceAwakeYml,
+	"test/extended/testdata/net-attach-defs/whereabouts-race-sleepy.yml":                                     testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml,
 	"test/extended/testdata/oauthserver/cabundle-cm.yaml":                                                    testExtendedTestdataOauthserverCabundleCmYaml,
 	"test/extended/testdata/oauthserver/oauth-network.yaml":                                                  testExtendedTestdataOauthserverOauthNetworkYaml,
 	"test/extended/testdata/oauthserver/oauth-pod.yaml":                                                      testExtendedTestdataOauthserverOauthPodYaml,
@@ -54639,7 +54761,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"multi-namespace-pipeline.yaml": {testExtendedTestdataMultiNamespacePipelineYaml, map[string]*bintree{}},
 				"multi-namespace-template.yaml": {testExtendedTestdataMultiNamespaceTemplateYaml, map[string]*bintree{}},
 				"net-attach-defs": {nil, map[string]*bintree{
-					"bridge-nad.yml": {testExtendedTestdataNetAttachDefsBridgeNadYml, map[string]*bintree{}},
+					"bridge-nad.yml":              {testExtendedTestdataNetAttachDefsBridgeNadYml, map[string]*bintree{}},
+					"whereabouts-nad.yml":         {testExtendedTestdataNetAttachDefsWhereaboutsNadYml, map[string]*bintree{}},
+					"whereabouts-race-awake.yml":  {testExtendedTestdataNetAttachDefsWhereaboutsRaceAwakeYml, map[string]*bintree{}},
+					"whereabouts-race-sleepy.yml": {testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml, map[string]*bintree{}},
 				}},
 				"oauthserver": {nil, map[string]*bintree{
 					"cabundle-cm.yaml":   {testExtendedTestdataOauthserverCabundleCmYaml, map[string]*bintree{}},
