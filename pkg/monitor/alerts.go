@@ -162,6 +162,13 @@ func createEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.V
 				lastTime = nil
 			}
 
+			// now add the one for the last start time.  If we do not have a last time, it means we saw the start, but not
+			// the end.  We don't know when this alert ended, but our threshold time from above is five seconds so we will
+			// simply assign that here as "better than nothing"
+			if lastTime == nil {
+				t := alertStartTime.Add(5 * time.Second)
+				lastTime = &t
+			}
 			currAlertInterval := alertIntervalTemplate // shallow copy
 			currAlertInterval.From = *alertStartTime
 			currAlertInterval.To = *lastTime
