@@ -163,6 +163,8 @@ func archHasDefaultIndex(oc *exutil.CLI) bool {
 		switch node.Status.NodeInfo.Architecture {
 		case "amd64":
 			return true
+		case "arm64":
+			return true
 		case "ppc64le":
 			return true
 		case "s390x":
