@@ -32,6 +32,9 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 		excludedNamespaces := sets.NewString("openshift-kube-apiserver", "openshift-kube-controller-manager", "openshift-kube-scheduler", "openshift-etcd", "openshift-openstack-infra", "openshift-ovirt-infra")
 		// exclude these pods from checks
 		whitelistPods := sets.NewString("network-operator", "dns-operator", "olm-operators", "gcp-routes-controller", "ovnkube-master", "must-gather")
+		// The kube-apiserver proxy exists only in Hypershift. It is used to proxy the kubelet->kube-apiserver connection, hence it must be a static pod
+		// which makes the kubelet add a keyless noExecution toleration, so we have to exclude it here.
+		whitelistPods.Insert("kube-apiserver-proxy")
 		for _, pod := range pods.Items {
 			// exclude non-control plane namespaces
 			if !hasPrefixSet(pod.Namespace, namespacePrefixes) {
