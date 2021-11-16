@@ -292,21 +292,21 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		o.Expect(out).To(o.ContainSubstring(`cannot list resource "rolebindings" in API group "rbac.authorization.k8s.io"`))
 
 		g.By("Test that scoped storage-admin now an admin in project foo")
-		o.Expect(oc.Run("new-project").Args("--as=storage-adm2", "--as-group=system:authenticated:oauth", "--as-group=sytem:authenticated", "policy-can-i").Execute()).NotTo(o.HaveOccurred())
+		o.Expect(oc.Run("new-project").Args("--skip-config-write=true", "--as=storage-adm2", "--as-group=system:authenticated:oauth", "--as-group=sytem:authenticated", "policy-can-i").Execute()).NotTo(o.HaveOccurred())
 
-		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm2", "create", "pod", "--all-namespaces").Output()
+		out, err = oc.Run("auth", "can-i").Args("--namespace=policy-can-i", "--as=storage-adm2", "create", "pod", "--all-namespaces").Output()
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(out).To(o.HaveSuffix("no"))
 
-		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm2", "create", "pod").Output()
+		out, err = oc.Run("auth", "can-i").Args("--namespace=policy-can-i", "--as=storage-adm2", "create", "pod").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.HaveSuffix("yes"))
 
-		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm2", "create", "pvc").Output()
+		out, err = oc.Run("auth", "can-i").Args("--namespace=policy-can-i", "--as=storage-adm2", "create", "pvc").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.HaveSuffix("yes"))
 
-		out, err = oc.Run("auth", "can-i").Args("--as=storage-adm2", "create", "endpoints").Output()
+		out, err = oc.Run("auth", "can-i").Args("--namespace=policy-can-i", "--as=storage-adm2", "create", "endpoints").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.HaveSuffix("yes"))
 
