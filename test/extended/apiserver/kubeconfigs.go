@@ -21,12 +21,13 @@ var _ = g.Describe("[Conformance][sig-api-machinery][Feature:APIServer] local ku
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("apiserver")
 
-	for _, kubeconfig := range []string{
+	for _, kc := range []string{
 		"localhost.kubeconfig",
 		"lb-ext.kubeconfig",
 		"lb-int.kubeconfig",
 		"localhost-recovery.kubeconfig",
 	} {
+		kubeconfig := kc
 		g.It(fmt.Sprintf("%q should be present on all masters and work", kubeconfig), func() {
 			masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 				LabelSelector: `node-role.kubernetes.io/master`,
