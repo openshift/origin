@@ -10,8 +10,8 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/ibmcloud"
 	"go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
 	corev1 "k8s.io/api/core/v1"
@@ -19,7 +19,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
@@ -29,8 +28,11 @@ var _ = g.Describe("[sig-api-machinery] API data in etcd", func() {
 	oc := exutil.NewCLI("etcd-storage-path").AsAdmin()
 
 	_ = g.It("should be stored at the correct location and version for all resources [Serial]", func() {
-		if e2e.TestContext.Provider == ibmcloud.ProviderName {
-			e2eskipper.Skipf("IBM ROKS clusters run etcd outside of the cluster. Etcd cannot be accessed directly from within the cluster")
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			e2eskipper.Skipf("External clusters run etcd outside of the cluster. Etcd cannot be accessed directly from within the cluster")
 		}
 
 		etcdClientCreater := &etcdPortForwardClient{kubeClient: oc.AdminKubeClient()}

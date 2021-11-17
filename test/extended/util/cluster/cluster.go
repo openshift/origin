@@ -62,6 +62,9 @@ type ClusterConfiguration struct {
 
 	// IsProxied determines whether we are accessing the cluster through an HTTP proxy
 	IsProxied bool
+
+	// IsIBMROKS determines whether the cluster is Managed IBM Cloud (ROKS)
+	IsIBMROKS bool
 }
 
 func (c *ClusterConfiguration) ToJSONString() string {
@@ -193,6 +196,11 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 			return nil, err
 		}
 		config.ConfigFile = tmpFile.Name()
+	case state.PlatformStatus.IBMCloud != nil:
+		// Determine if Managed IBM Cloud cluster (ROKS)
+		if *state.ControlPlaneTopology == configv1.ExternalTopologyMode {
+			config.IsIBMROKS = true
+		}
 	}
 
 	config.NetworkPlugin = string(state.NetworkSpec.DefaultNetwork.Type)
@@ -235,6 +243,9 @@ func (c *ClusterConfiguration) MatchFn() func(string) bool {
 	var skips []string
 	skips = append(skips, fmt.Sprintf("[Skipped:%s]", c.ProviderName))
 
+	if c.IsIBMROKS {
+		skips = append(skips, "[Skipped:ibmroks]")
+	}
 	if c.NetworkPlugin != "" {
 		skips = append(skips, fmt.Sprintf("[Skipped:Network/%s]", c.NetworkPlugin))
 		if c.NetworkPluginMode != "" {

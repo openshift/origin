@@ -39,7 +39,6 @@ import (
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/ibmcloud"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 )
 
@@ -596,8 +595,11 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 
 				g.By("verifying all expected jobs have a working target")
 
-				// For IBM cloud clusters, skip control plane components and the CVO
-				if e2e.TestContext.Provider != ibmcloud.ProviderName {
+				controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// For External clusters, skip control plane components and the CVO
+				if *controlPlaneTopology != configv1.ExternalTopologyMode {
 					lastErrs = all(
 						// The OpenShift control plane
 						targets.Expect(labels{"job": "api"}, "up", "^https://.*/metrics$"),

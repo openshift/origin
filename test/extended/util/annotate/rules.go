@@ -293,7 +293,7 @@ var (
 			`Unidling should work with TCP`,
 			`Unidling should handle many TCP connections`,
 		},
-		"[Skipped:ibmcloud]": {
+		"[Skipped:ibmroks]": {
 			// skip Gluster tests (not supported on ROKS worker nodes)
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1825009 - e2e: skip Glusterfs-related tests upstream for rhel7 worker nodes
 			`\[Driver: gluster\]`,

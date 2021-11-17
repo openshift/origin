@@ -12,12 +12,11 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 
+	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
 var _ = g.Describe("[sig-auth][Feature:OAuthServer] well-known endpoint", func() {
@@ -36,10 +35,13 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] well-known endpoint", func()
 		err = json.Unmarshal([]byte(metadataJSON), metadata)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		// If not running on an IBM ROKS cluster,
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// If not running on an External cluster,
 		// compare to openshift-authentication route
-		// (On a ROKS cluster the openshift-authentication route does not live in the cluster)
-		if e2e.TestContext.Provider != ibmcloud.ProviderName {
+		// (On an External cluster the openshift-authentication route does not live in the cluster)
+		if *controlPlaneTopology != configv1.ExternalTopologyMode {
 			route, err := oc.AdminRouteClient().RouteV1().Routes(oauthNamespace).Get(context.Background(), oauthRoute, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			u, err := url.Parse("https://" + route.Spec.Host)
