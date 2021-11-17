@@ -35,11 +35,25 @@ var s2iImages = map[string][]tc{
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 		{
+			Version:  "27",
+			Cmd:      "ruby --version",
+			Expected: "ruby 2.7",
+			Tag:      "2.7-ubi7",
+			Arches:   []string{"amd64", "ppc64le", "s390x"},
+		},
+		{
 			Version:  "26",
 			Cmd:      "ruby --version",
 			Expected: "ruby 2.6",
 			Tag:      "2.6-ubi8",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
+		{
+			Version:  "26",
+			Cmd:      "ruby --version",
+			Expected: "ruby 2.6",
+			Tag:      "2.6-ubi7",
+			Arches:   []string{"amd64", "ppc64le", "s390x"},
 		},
 	},
 	"python": {
@@ -49,6 +63,13 @@ var s2iImages = map[string][]tc{
 			Expected: "Python 2.7",
 			Tag:      "2.7-ubi8",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
+		{
+			Version:  "27",
+			Cmd:      "python --version",
+			Expected: "Python 2.7",
+			Tag:      "2.7-ubi7",
+			Arches:   []string{"amd64", "ppc64le", "s390x"},
 		},
 		{
 			Version:  "36",
@@ -63,6 +84,13 @@ var s2iImages = map[string][]tc{
 			Expected: "Python 3.8",
 			Tag:      "3.8-ubi8",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
+		{
+			Version:  "38",
+			Cmd:      "python --version",
+			Expected: "Python 3.8",
+			Tag:      "3.8-ubi7",
+			Arches:   []string{"amd64", "ppc64le", "s390x"},
 		},
 		{
 			Version:  "39",
@@ -87,6 +115,13 @@ var s2iImages = map[string][]tc{
 			Tag:      "14-ubi8",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
+		{
+			Version:  "14",
+			Cmd:      "node --version",
+			Expected: "v14",
+			Tag:      "14-ubi7",
+			Arches:   []string{"amd64", "ppc64le", "s390x"},
+		},
 	},
 	"perl": {
 		{
@@ -95,6 +130,13 @@ var s2iImages = map[string][]tc{
 			Expected: "v5.30",
 			Tag:      "5.30-ubi8",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
+		{
+			Version:  "530",
+			Cmd:      "perl --version",
+			Expected: "v5.30",
+			Tag:      "5.30-el7",
+			Arches:   []string{"amd64", "ppc64le", "s390x"},
 		},
 	},
 	"php": {
@@ -105,6 +147,13 @@ var s2iImages = map[string][]tc{
 			Tag:      "7.4-ubi8",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
+		{
+			Version:  "73",
+			Cmd:      "php --version",
+			Expected: "7.3",
+			Tag:      "7.3-ubi7",
+			Arches:   []string{"amd64", "ppc64le", "s390x"},
+		},
 	},
 	"nginx": {
 		{
@@ -113,6 +162,36 @@ var s2iImages = map[string][]tc{
 			Expected: "nginx/1.18",
 			Tag:      "1.18-ubi8",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
+		{
+			Version:  "118",
+			Cmd:      "nginx -V",
+			Expected: "nginx/1.18",
+			Tag:      "1.18-ubi7",
+			Arches:   []string{"amd64", "ppc64le", "s390x"},
+		},
+	},
+	"dotnet": {
+		{
+			Version:  "50",
+			Cmd:      "dotnet --version",
+			Expected: "5.0",
+			Tag:      "5.0-ubi8",
+			Arches:   []string{"amd64"},
+		},
+		{
+			Version:  "31",
+			Cmd:      "dotnet --version",
+			Expected: "3.1",
+			Tag:      "3.1-ubi8",
+			Arches:   []string{"amd64"},
+		},
+		{
+			Version:  "31",
+			Cmd:      "dotnet --version",
+			Expected: "3.1",
+			Tag:      "3.1-el7",
+			Arches:   []string{"amd64"},
 		},
 	},
 }
