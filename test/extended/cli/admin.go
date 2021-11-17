@@ -332,7 +332,8 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		oc.Run("delete").Args("-f", "-").InputString(policyRoles).Execute()
 	})
 
-	g.It("cluster-role-reapers", func() {
+	// "oc adm prune auth clusterrole/edit" is a disruptive command and needs to be run in a Serial test
+	g.It("cluster-role-reapers [Serial]", func() {
 		clusterRole := gen.GenerateName("basic-user2-")
 		clusterBinding := gen.GenerateName("basic-users2-")
 		policyClusterRoles, _, err := ocns.Run("process").Args("-f", policyClusterRolesPath, "-p", fmt.Sprintf("ROLE_NAME=%s", clusterRole), "-p", fmt.Sprintf("BINDING_NAME=%s", clusterBinding)).Outputs()

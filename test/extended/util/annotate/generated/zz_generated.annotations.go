@@ -1277,7 +1277,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc adm build-chain": "build-chain [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc adm cluster-role-reapers": "cluster-role-reapers [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm cluster-role-reapers [Serial]": "cluster-role-reapers [Serial] [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-cli] oc adm groups": "groups [Suite:openshift/conformance/parallel]",
 
