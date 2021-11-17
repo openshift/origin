@@ -20,8 +20,8 @@ type tc struct {
 	// Internal: We resolve this in JustBeforeEach
 	DockerImageReference string
 
-	// whether this image is supported on s390x or ppc64le
-	NonAMD bool
+	// Architectures on which this image is available
+	Arches []string
 }
 
 // This is a complete list of supported S2I images
@@ -32,14 +32,14 @@ var s2iImages = map[string][]tc{
 			Cmd:      "ruby --version",
 			Expected: "ruby 2.7",
 			Tag:      "2.7-ubi8",
-			NonAMD:   true,
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 		{
 			Version:  "26",
 			Cmd:      "ruby --version",
 			Expected: "ruby 2.6",
 			Tag:      "2.6-ubi8",
-			NonAMD:   true,
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 	},
 	"python": {
@@ -48,14 +48,14 @@ var s2iImages = map[string][]tc{
 			Cmd:      "python --version",
 			Expected: "Python 2.7",
 			Tag:      "2.7-ubi8",
-			NonAMD:   true,
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 		{
 			Version:  "36",
 			Cmd:      "python --version",
 			Expected: "Python 3.6",
 			Tag:      "3.6-ubi8",
-			NonAMD:   true,
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 	},
 	"nodejs": {
@@ -64,14 +64,14 @@ var s2iImages = map[string][]tc{
 			Cmd:      "node --version",
 			Expected: "v12",
 			Tag:      "12-ubi8",
-			NonAMD:   true,
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 		{
 			Version:  "14",
 			Cmd:      "node --version",
 			Expected: "v14",
 			Tag:      "14-ubi8",
-			NonAMD:   true,
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 	},
 	"perl": {
@@ -80,7 +80,7 @@ var s2iImages = map[string][]tc{
 			Cmd:      "perl --version",
 			Expected: "v5.30",
 			Tag:      "5.30-ubi8",
-			NonAMD:   true,
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 	},
 	"php": {
@@ -89,14 +89,14 @@ var s2iImages = map[string][]tc{
 			Cmd:      "php --version",
 			Expected: "7.3",
 			Tag:      "7.3-ubi8",
-			NonAMD:   true,
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 		{
 			Version:  "74",
 			Cmd:      "php --version",
 			Expected: "7.4",
 			Tag:      "7.4-ubi8",
-			NonAMD:   true,
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 	},
 }
