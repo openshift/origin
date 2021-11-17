@@ -69,22 +69,24 @@ import (
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
 // clients.
 type CLI struct {
-	execPath           string
-	verb               string
-	configPath         string
-	adminConfigPath    string
-	token              string
-	username           string
-	globalArgs         []string
-	commandArgs        []string
-	finalArgs          []string
-	namespacesToDelete []string
-	stdin              *bytes.Buffer
-	stdout             io.Writer
-	stderr             io.Writer
-	verbose            bool
-	withoutNamespace   bool
-	kubeFramework      *framework.Framework
+	execPath            string
+	verb                string
+	configPath          string
+	adminConfigPath     string
+	origAdminConfigPath string
+	token               string
+	username            string
+	globalArgs          []string
+	commandArgs         []string
+	finalArgs           []string
+	namespacesToDelete  []string
+	stdin               *bytes.Buffer
+	stdout              io.Writer
+	stderr              io.Writer
+	verbose             bool
+	withoutNamespace    bool
+	tmpKubeConfig       bool
+	kubeFramework       *framework.Framework
 
 	resourcesToDelete []resourceRef
 }
@@ -139,6 +141,7 @@ func NewCLIWithoutNamespace(project string) *CLI {
 	}
 	g.AfterEach(cli.TeardownProject)
 	g.AfterEach(cli.kubeFramework.AfterEach)
+	g.BeforeEach(cli.SetupCLI)
 	g.BeforeEach(cli.kubeFramework.BeforeEach)
 	return cli
 }
@@ -390,6 +393,21 @@ func (c *CLI) TeardownProject() {
 		err := dynamicClient.Resource(resource.Resource).Namespace(resource.Namespace).Delete(context.Background(), resource.Name, metav1.DeleteOptions{})
 		framework.Logf("Deleted %v, err: %v", resource, err)
 	}
+
+	// Point back at the original config file as this CLI
+	// object can continue to be used in other Teardown blocks
+	if c.origAdminConfigPath != "" {
+		os.Remove(c.adminConfigPath)
+		c.adminConfigPath = c.origAdminConfigPath
+		c.origAdminConfigPath = ""
+	}
+}
+
+// SetupCLI takes a copy of KUBECONFIG to ensure the cli doesn't write to the original
+// and doesn't read the origional as often (reducing the likelyhood of being read while being written to by another test)
+func (c *CLI) SetupCLI() {
+	c.origAdminConfigPath = c.adminConfigPath
+	c.adminConfigPath = copyToTmp(c.adminConfigPath)
 }
 
 // Verbose turns on printing verbose messages when executing OpenShift commands
@@ -883,4 +901,23 @@ func installConfigFromCluster(client clientcorev1.ConfigMapsGetter) (*installCon
 		return nil, err
 	}
 	return config, nil
+}
+
+func copyToTmp(filename string) string {
+	if len(filename) == 0 {
+		return filename
+	}
+	f, err := ioutil.TempFile("", "adminconfigfile")
+	if err != nil {
+		FatalErr(err)
+	}
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		FatalErr(err)
+	}
+	err = ioutil.WriteFile(f.Name(), data, 0600)
+	if err != nil {
+		FatalErr(err)
+	}
+	return f.Name()
 }
