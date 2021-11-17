@@ -158,6 +158,7 @@ func (c *CLI) Username() string {
 // AsAdmin changes current config file path to the admin config.
 func (c *CLI) AsAdmin() *CLI {
 	nc := *c
+	nc.cleanUpConf()
 	nc.configPath = c.adminConfigPath
 	return &nc
 }
@@ -176,6 +177,7 @@ func (c *CLI) ChangeUser(name string) *CLI {
 	if err != nil {
 		FatalErr(err)
 	}
+	c.cleanUpConf()
 	c.configPath = f.Name()
 	err = clientcmd.WriteToFile(*kubeConfig, c.configPath)
 	if err != nil {
@@ -205,6 +207,7 @@ func (c CLI) WithoutNamespace() *CLI {
 
 // WithToken instructs the command should be invoked with --token rather than --kubeconfig flag
 func (c CLI) WithToken(token string) *CLI {
+	c.cleanUpConf()
 	c.configPath = ""
 	c.token = token
 	return &c
@@ -883,4 +886,10 @@ func installConfigFromCluster(client clientcorev1.ConfigMapsGetter) (*installCon
 		return nil, err
 	}
 	return config, nil
+}
+
+func (c *CLI) cleanUpConf() {
+	if len(c.configPath) > 0 && (c.configPath != c.adminConfigPath) {
+		os.Remove(c.configPath)
+	}
 }
