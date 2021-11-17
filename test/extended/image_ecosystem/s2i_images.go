@@ -57,6 +57,20 @@ var s2iImages = map[string][]tc{
 			Tag:      "3.6-ubi8",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
+		{
+			Version:  "38",
+			Cmd:      "python --version",
+			Expected: "Python 3.8",
+			Tag:      "3.8-ubi8",
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
+		{
+			Version:  "39",
+			Cmd:      "python --version",
+			Expected: "Python 3.9",
+			Tag:      "3.9-ubi8",
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
 	},
 	"nodejs": {
 		{
@@ -85,17 +99,19 @@ var s2iImages = map[string][]tc{
 	},
 	"php": {
 		{
-			Version:  "73",
-			Cmd:      "php --version",
-			Expected: "7.3",
-			Tag:      "7.3-ubi8",
-			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
-		},
-		{
 			Version:  "74",
 			Cmd:      "php --version",
 			Expected: "7.4",
 			Tag:      "7.4-ubi8",
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
+	},
+	"nginx": {
+		{
+			Version:  "118",
+			Cmd:      "nginx -V",
+			Expected: "nginx/1.18",
+			Tag:      "1.18-ubi8",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 	},
