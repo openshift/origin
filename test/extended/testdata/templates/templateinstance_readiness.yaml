@@ -49,7 +49,7 @@ objects:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: registry.ci.openshift.org/ocp/4.8:test-build-simples2i
+          name: quay.io/redhat-developer/test-build-simples2i:1.2
     output:
       to:
         kind: ImageStreamTag

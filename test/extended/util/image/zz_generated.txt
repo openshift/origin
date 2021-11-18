@@ -58,5 +58,5 @@ k8s.gcr.io/sig-storage/nfs-provisioner:v2.2.2 quay.io/openshift/community-e2e-im
 k8s.gcr.io/sig-storage/snapshot-controller:v2.1.1 quay.io/openshift/community-e2e-images:e2e-k8s-gcr-io-sig-storage-snapshot-controller-v2-1-1-n5BM_jX2npV3RxHM
 k8s.gcr.io/sig-storage/snapshot-controller:v3.0.2 quay.io/openshift/community-e2e-images:e2e-k8s-gcr-io-sig-storage-snapshot-controller-v3-0-2-IVmgAhsROusslTdY
 quay.io/redhat-developer/nfs-server:1.1 quay.io/openshift/community-e2e-images:e2e-quay-io-redhat-developer-nfs-server-1-1-dlXGfzrk5aNo8EjC
-registry.ci.openshift.org/ocp/4.8:test-build-roots2i quay.io/openshift/community-e2e-images:e2e-registry-ci-openshift-org-ocp-4-8-test-build-roots2i-FmW7zebvtGKkls4B
-registry.ci.openshift.org/ocp/4.8:test-build-simples2i quay.io/openshift/community-e2e-images:e2e-registry-ci-openshift-org-ocp-4-8-test-build-simples2i-7A9bkBd9X4G-ELh0
+quay.io/redhat-developer/test-build-roots2i:1.2 quay.io/openshift/community-e2e-images:e2e-quay-io-redhat-developer-test-build-roots2i-1-2-gLJ7WcnS2TSllJ32
+quay.io/redhat-developer/test-build-simples2i:1.2 quay.io/openshift/community-e2e-images:e2e-quay-io-redhat-developer-test-build-simples2i-1-2-thirLMR-JKplfkmE

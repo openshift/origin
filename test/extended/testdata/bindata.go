@@ -17140,7 +17140,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: registry.ci.openshift.org/ocp/4.8:test-build-simples2i
+          name: quay.io/redhat-developer/test-build-simples2i:1.2
     resources: {}
     postCommit: {}
     nodeSelector: null
@@ -18259,7 +18259,7 @@ var _testExtendedTestdataBuildsBuildTimingTestS2iBuildJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "registry.ci.openshift.org/ocp/4.8:test-build-simples2i"
+          "name": "quay.io/redhat-developer/test-build-simples2i:1.2"
         },
         "env": [
           {
@@ -18805,7 +18805,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.ci.openshift.org/ocp/4.8:test-build-simples2i
+        name: quay.io/redhat-developer/test-build-simples2i:1.2
 `)
 
 func testExtendedTestdataBuildsStatusfailFailedassembleYamlBytes() ([]byte, error) {
@@ -19040,7 +19040,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.ci.openshift.org/ocp/4.8:test-build-simples2i
+        name: quay.io/redhat-developer/test-build-simples2i:1.2
     type: Source
 `)
 
@@ -19076,7 +19076,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.ci.openshift.org/ocp/4.8:test-build-simples2i
+        name: quay.io/redhat-developer/test-build-simples2i:1.2
     type: Source
 `)
 
@@ -19305,7 +19305,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: registry.ci.openshift.org/ocp/4.8:test-build-simples2i
+          name: quay.io/redhat-developer/test-build-simples2i:1.2
       type: Source
 - apiVersion: build.openshift.io/v1
   kind: BuildConfig
@@ -19323,7 +19323,7 @@ items:
           value: "5"
         from:
           kind: DockerImage
-          name: registry.ci.openshift.org/ocp/4.8:test-build-simples2i
+          name: quay.io/redhat-developer/test-build-simples2i:1.2
       type: Source
 `)
 
@@ -19452,7 +19452,7 @@ items:
           value: 127.0.0.1:3128
         from:
           kind: DockerImage
-          name: registry.ci.openshift.org/ocp/4.8:test-build-simples2i
+          name: quay.io/redhat-developer/test-build-simples2i:1.2
 - kind: BuildConfig
   apiVersion: v1
   metadata:
@@ -19474,7 +19474,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: registry.ci.openshift.org/ocp/4.8:test-build-simples2i
+          name: quay.io/redhat-developer/test-build-simples2i:1.2
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
@@ -19564,7 +19564,7 @@ var _testExtendedTestdataBuildsTestBuildRevisionJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "registry.ci.openshift.org/ocp/4.8:test-build-simples2i"
+              "name": "quay.io/redhat-developer/test-build-simples2i:1.2"
             }
           }
         },
@@ -21073,7 +21073,7 @@ var _testExtendedTestdataBuildsTestNosrcBuildJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "registry.ci.openshift.org/ocp/4.8:test-build-simples2i"
+              "name": "quay.io/redhat-developer/test-build-simples2i:1.2"
             }
           }
         }
@@ -21125,7 +21125,7 @@ var _testExtendedTestdataBuildsTestS2iBuildQuotaJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "registry.ci.openshift.org/ocp/4.8:test-build-simples2i"
+          "name": "quay.io/redhat-developer/test-build-simples2i:1.2"
         },
         "env": [
           {
@@ -21182,7 +21182,7 @@ var _testExtendedTestdataBuildsTestS2iBuildJson = []byte(`{
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "registry.ci.openshift.org/ocp/4.8:test-build-simples2i"
+          "name": "quay.io/redhat-developer/test-build-simples2i:1.2"
         }
       }
     },
@@ -21253,7 +21253,7 @@ var _testExtendedTestdataBuildsTestS2iNoOutputnameJson = []byte(`{
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "registry.ci.openshift.org/ocp/4.8:test-build-simples2i"
+          "name": "quay.io/redhat-developer/test-build-simples2i:1.2"
         }
       }
     }
@@ -21399,7 +21399,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.ci.openshift.org/ocp/4.8:test-build-simples2i
+        name: quay.io/redhat-developer/test-build-simples2i:1.2
       env:
         - name: BUILD_LOGLEVEL
           value: "5"
@@ -21535,7 +21535,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.ci.openshift.org/ocp/4.8:test-build-simples2i
+        name: quay.io/redhat-developer/test-build-simples2i:1.2
       env:
         - name: BUILD_LOGLEVEL
           value: "5"
@@ -21702,7 +21702,7 @@ spec:
   runPolicy: Serial
   source:
     dockerfile:
-      'FROM registry.ci.openshift.org/ocp/4.8:test-build-simples2i'
+      'FROM quay.io/redhat-developer/test-build-simples2i:1.2'
   strategy:
     type: Docker
     dockerStrategy:
@@ -21840,7 +21840,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.ci.openshift.org/ocp/4.8:test-build-simples2i
+        name: quay.io/redhat-developer/test-build-simples2i:1.2
       volumes:
       - mounts:
         - destinationPath: "/var/run/secrets/some-secret"
@@ -52480,7 +52480,7 @@ objects:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: registry.ci.openshift.org/ocp/4.8:test-build-simples2i
+          name: quay.io/redhat-developer/test-build-simples2i:1.2
     output:
       to:
         kind: ImageStreamTag
