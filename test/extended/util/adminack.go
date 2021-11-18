@@ -123,20 +123,20 @@ func getCurrentVersion(ctx context.Context, config *restclient.Config) string {
 	return ""
 }
 
-// getEffectiveMinor attempts to do a simple parse of the version provided.  If it does not parse, the value is considered
+// GetMajorMinor attempts to do a simple parse of the version provided.  If it does not parse, the value is considered
 // an empty string, which works for a comparison for equivalence.
-func getEffectiveMinor(version string) string {
+func GetMajorMinor(version string) string {
 	splits := strings.Split(version, ".")
 	if len(splits) < 2 {
 		return ""
 	}
-	return splits[1]
+	return strings.Join(splits[:2], ".")
 }
 
 func gateApplicableToCurrentVersion(gateAckVersion string, currentVersion string) bool {
 	parts := strings.Split(gateAckVersion, "-")
-	ackMinor := getEffectiveMinor(parts[1])
-	cvMinor := getEffectiveMinor(currentVersion)
+	ackMinor := GetMajorMinor(parts[1])
+	cvMinor := GetMajorMinor(currentVersion)
 	if ackMinor == cvMinor {
 		return true
 	}
