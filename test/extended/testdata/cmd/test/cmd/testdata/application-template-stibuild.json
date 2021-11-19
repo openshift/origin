@@ -1,6 +1,6 @@
 {
   "kind": "Template",
-  "apiVersion": "v1",
+  "apiVersion": "template.openshift.io/v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
     "annotations": {
