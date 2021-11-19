@@ -9,6 +9,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	configv1 "github.com/openshift/api/config/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
@@ -29,6 +30,13 @@ var _ = g.Describe("[Conformance][sig-api-machinery][Feature:APIServer] local ku
 	} {
 		kubeconfig := kc
 		g.It(fmt.Sprintf("%q should be present on all masters and work", kubeconfig), func() {
+			// external controlplane topology doesn't have master nodes
+			controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if *controlPlaneTopology == configv1.ExternalTopologyMode {
+				g.Skip("ExternalControlPlaneTopology doesn't have master node kubeconfigs")
+			}
+
 			masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 				LabelSelector: `node-role.kubernetes.io/master`,
 			})
