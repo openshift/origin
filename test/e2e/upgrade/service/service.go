@@ -54,6 +54,10 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 	if infra.Status.PlatformStatus.Type == configv1.OvirtPlatformType || infra.Status.PlatformStatus.Type == configv1.KubevirtPlatformType || infra.Status.PlatformStatus.Type == configv1.LibvirtPlatformType || infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType || infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType {
 		t.unsupportedPlatform = true
 	}
+	// single node clusters are not supported because the replication controller has 2 replicas with anti-affinity for running on the same node.
+	if infra.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode {
+		t.unsupportedPlatform = true
+	}
 	if t.unsupportedPlatform {
 		return
 	}
