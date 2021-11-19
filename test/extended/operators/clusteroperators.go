@@ -14,6 +14,8 @@ import (
 
 	config "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-arch] ClusterOperators", func() {
@@ -59,8 +61,19 @@ var _ = g.Describe("[sig-arch] ClusterOperators", func() {
 					o.Expect(clusterOperator.Status.RelatedObjects).To(o.ContainElement(isNamespace()), "ClusterOperator: %s", clusterOperator.Name)
 				}
 			}
+
 		})
+
+		oc := exutil.NewCLI("clusteroperators")
 		g.Specify("at least one related object that is not a namespace", func() {
+			controlplaneTopology, err := exutil.GetControlPlaneTopology(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if *controlplaneTopology == config.ExternalTopologyMode {
+				// The packageserver runs in a different cluster along the other controlplane components
+				// when the controlplane is external.
+				whitelistNoOperatorConfig.Insert("operator-lifecycle-manager-packageserver")
+			}
 			for _, clusterOperator := range clusterOperators {
 				if !whitelistNoOperatorConfig.Has(clusterOperator.Name) {
 					o.Expect(clusterOperator.Status.RelatedObjects).To(o.ContainElement(o.Not(isNamespace())), "ClusterOperator: %s", clusterOperator.Name)
