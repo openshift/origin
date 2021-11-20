@@ -23,11 +23,23 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 
+	apiconfigv1 "github.com/openshift/api/config/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
 )
+
+func getTopologies(f *framework.Framework) (controlPlaneTopology, infraTopology apiconfigv1.TopologyMode) {
+	oc := util.NewCLIWithFramework(f)
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(),
+		"cluster", metav1.GetOptions{})
+
+	framework.ExpectNoError(err, "unable to determine cluster topology")
+
+	return infra.Status.ControlPlaneTopology, infra.Status.InfrastructureTopology
+}
 
 // AvailableTest tests that the image registry is available before, during, and
 // after a cluster upgrade.
@@ -129,13 +141,23 @@ func (t *AvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 	// if err != nil {
 	// 	framework.Logf("Cannot require full control plane availability, some versions could not be checked: %v", err)
 	// }
-	// switch {
+	// switch controlPlaneTopology, _ := getTopologies(f); {
+	// case controlPlaneTopology == apiconfigv1.SingleReplicaTopologyMode:
+	// 	// we cannot avoid downtime during upgrades on single-node control plane topologies (we observe around ~25% disruption)
+	// 	toleratedDisruption = 0.30
 	// case framework.ProviderIs("azure"), framework.ProviderIs("aws"), framework.ProviderIs("gce"):
 	// 	if hasAllFixes {
 	// 		framework.Logf("Cluster contains no versions older than 4.8, tolerating no disruption")
 	// 		toleratedDisruption = 0
 	// 	}
 	// }
+
+	switch controlPlaneTopology, _ := getTopologies(f); {
+	case controlPlaneTopology == apiconfigv1.SingleReplicaTopologyMode:
+		// we cannot avoid downtime during upgrades on single-node control plane topologies (we observe around ~25% disruption)
+		toleratedDisruption = 0.30
+	}
+
 	disruption.ExpectNoDisruption(f, toleratedDisruption, end.Sub(start), m.Intervals(time.Time{}, time.Time{}), "Image registry was unreachable during disruption (https://bugzilla.redhat.com/show_bug.cgi?id=1972827)")
 }
 
