@@ -132,6 +132,11 @@ func (t *availableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 	case controlPlaneTopology == apiconfigv1.SingleReplicaTopologyMode:
 		// we cannot avoid API downtime during upgrades on single-node control plane topologies (we observe around ~10% disruption)
 		toleratedDisruption = 0.15
+
+		// We observe even higher disruption on Azure single-node upgrades
+		if framework.ProviderIs("azure") {
+			toleratedDisruption = 0.23
+		}
 	case framework.ProviderIs("azure"), framework.ProviderIs("aws"), framework.ProviderIs("gce"):
 		if hasAllFixes {
 			framework.Logf("Cluster contains no versions older than 4.8, tolerating no disruption")
