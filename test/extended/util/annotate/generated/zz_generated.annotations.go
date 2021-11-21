@@ -1313,11 +1313,17 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc annotate pod": "pod [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc api-resources can output expected information about api-resources": "can output expected information about api-resources [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc basics can create and interact with a list of resources": "can create and interact with a list of resources [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc basics can create deploymentconfig and clusterquota": "can create deploymentconfig and clusterquota [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc basics can describe an OAuth access token": "can describe an OAuth access token [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc basics can get version information from API": "can get version information from API [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc basics can get version information from CLI": "can get version information from CLI [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc basics can output expected --dry-run text": "can output expected --dry-run text [Suite:openshift/conformance/parallel]",
 
@@ -1382,8 +1388,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli] oc statefulset creates and deletes statefulsets": "creates and deletes statefulsets [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc status returns expected help messages": "returns expected help messages [Suite:openshift/conformance/parallel]",
-
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/apiresources.sh": "test/cmd/apiresources.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/authentication.sh": "test/cmd/authentication.sh",
 

@@ -186,7 +186,6 @@
 // test/extended/testdata/cmd/hack/lib/util/misc.sh
 // test/extended/testdata/cmd/hack/lib/util/text.sh
 // test/extended/testdata/cmd/hack/lib/util/trap.sh
-// test/extended/testdata/cmd/test/cmd/apiresources.sh
 // test/extended/testdata/cmd/test/cmd/authentication.sh
 // test/extended/testdata/cmd/test/cmd/builds.sh
 // test/extended/testdata/cmd/test/cmd/completions.sh
@@ -28701,38 +28700,6 @@ func testExtendedTestdataCmdHackLibUtilTrapSh() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdApiresourcesSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-os::test::junit::declare_suite_start "cmd/apiresources"
-
-os::cmd::expect_success_and_text 'oc api-resources' 'imagestreamtags'
-os::cmd::expect_success_and_text 'oc api-resources --api-group=build.openshift.io' 'BuildConfig'
-os::cmd::expect_success_and_text 'oc api-resources --namespaced=false' 'Image'
-os::cmd::expect_success_and_text 'oc api-resources --verbs=get' 'project.openshift.io'
-
-os::cmd::expect_success_and_text 'oc api-versions' 'route.openshift.io/v1'
-
-echo "apiresources: ok"
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdApiresourcesShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdApiresourcesSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdApiresourcesSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdApiresourcesShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/apiresources.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdAuthenticationSh = []byte(`#!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
@@ -53698,7 +53665,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/hack/lib/util/misc.sh":                                                       testExtendedTestdataCmdHackLibUtilMiscSh,
 	"test/extended/testdata/cmd/hack/lib/util/text.sh":                                                       testExtendedTestdataCmdHackLibUtilTextSh,
 	"test/extended/testdata/cmd/hack/lib/util/trap.sh":                                                       testExtendedTestdataCmdHackLibUtilTrapSh,
-	"test/extended/testdata/cmd/test/cmd/apiresources.sh":                                                    testExtendedTestdataCmdTestCmdApiresourcesSh,
 	"test/extended/testdata/cmd/test/cmd/authentication.sh":                                                  testExtendedTestdataCmdTestCmdAuthenticationSh,
 	"test/extended/testdata/cmd/test/cmd/builds.sh":                                                          testExtendedTestdataCmdTestCmdBuildsSh,
 	"test/extended/testdata/cmd/test/cmd/completions.sh":                                                     testExtendedTestdataCmdTestCmdCompletionsSh,
@@ -54359,7 +54325,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					}},
 					"test": {nil, map[string]*bintree{
 						"cmd": {nil, map[string]*bintree{
-							"apiresources.sh":       {testExtendedTestdataCmdTestCmdApiresourcesSh, map[string]*bintree{}},
 							"authentication.sh":     {testExtendedTestdataCmdTestCmdAuthenticationSh, map[string]*bintree{}},
 							"builds.sh":             {testExtendedTestdataCmdTestCmdBuildsSh, map[string]*bintree{}},
 							"completions.sh":        {testExtendedTestdataCmdTestCmdCompletionsSh, map[string]*bintree{}},

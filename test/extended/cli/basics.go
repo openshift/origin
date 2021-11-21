@@ -1,6 +1,11 @@
 package cli
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/json"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -162,5 +167,64 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 
 		err = oc.Run("delete").Args("all", "-l", "name=mytemplate").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
+	g.It("can get version information from API", func() {
+		kubeCA := oc.UserConfig().CAData
+		transport := http.DefaultTransport
+
+		if len(kubeCA) > 0 {
+			rootCAs, err := x509.SystemCertPool()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if rootCAs == nil {
+				rootCAs = x509.NewCertPool()
+			}
+
+			ok := rootCAs.AppendCertsFromPEM(kubeCA)
+			o.Expect(ok).To(o.BeTrue())
+
+			transport = &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs: rootCAs,
+				},
+			}
+		}
+
+		hc := http.Client{
+			Transport: transport,
+		}
+
+		host := oc.UserConfig().Host
+		o.Expect(host).NotTo(o.BeEmpty())
+
+		resp, err := hc.Get(host + "/version")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer resp.Body.Close()
+
+		o.Expect(resp.StatusCode).To(o.Equal(http.StatusOK))
+
+		body, err := io.ReadAll(resp.Body)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		version := map[string]string{}
+		err = json.Unmarshal(body, &version)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		o.Expect(version["major"]).NotTo(o.BeEmpty())
+		o.Expect(version["minor"]).NotTo(o.BeEmpty())
+		o.Expect(version["gitVersion"]).NotTo(o.BeEmpty())
+		o.Expect(version["gitTreeState"]).NotTo(o.BeEmpty())
+		o.Expect(version["buildDate"]).NotTo(o.BeEmpty())
+		o.Expect(version["goVersion"]).NotTo(o.BeEmpty())
+		o.Expect(version["compiler"]).NotTo(o.BeEmpty())
+		o.Expect(version["platform"]).NotTo(o.BeEmpty())
+	})
+
+	g.It("can get version information from CLI", func() {
+		out, err := oc.Run("version").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("Client Version: "))
+		o.Expect(out).To(o.ContainSubstring("Kubernetes Version: "))
 	})
 })
