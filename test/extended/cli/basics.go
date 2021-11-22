@@ -188,6 +188,7 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 				TLSClientConfig: &tls.Config{
 					RootCAs: rootCAs,
 				},
+				Proxy: http.ProxyFromEnvironment,
 			}
 		}
 
