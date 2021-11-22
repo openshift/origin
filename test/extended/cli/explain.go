@@ -109,8 +109,6 @@ var (
 
 		{Group: "operator.openshift.io", Version: "v1alpha1", Resource: "imagecontentsourcepolicies"},
 
-		{Group: "operator.openshift.io", Version: "v1", Resource: "authentications"},
-		{Group: "operator.openshift.io", Version: "v1", Resource: "cloudcredentials"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "clustercsidrivers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "configs"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "consoles"},
@@ -142,6 +140,10 @@ var (
 		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "kubeletconfigs"},
 		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigpools"},
 		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigs"},
+	}
+	additionalOperatorTypes = []schema.GroupVersionResource{
+		{Group: "operator.openshift.io", Version: "v1", Resource: "authentications"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "cloudcredentials"},
 	}
 
 	autoscalingTypes = []schema.GroupVersionResource{
@@ -391,6 +393,7 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 	crdTypes = append(crdTypes, autoscalingTypes...)
 	crdTypes = append(crdTypes, machineTypes...)
 	crdTypes = append(crdTypes, metal3Types...)
+	crdTypes = append(crdTypes, additionalOperatorTypes...)
 	g.It("list uncovered GroupVersionResources", func() {
 		resourceMap := make(map[schema.GroupVersionResource]bool)
 		kubeClient := kclientset.NewForConfigOrDie(oc.AdminConfig())
