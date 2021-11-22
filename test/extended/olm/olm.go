@@ -11,6 +11,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -82,9 +83,21 @@ var _ = g.Describe("[sig-operator] OLM should", func() {
 	// OCP-24061 - [bz 1685230] OLM operator should use imagePullPolicy: IfNotPresent
 	// author: bandrade@redhat.com
 	g.It("have imagePullPolicy:IfNotPresent on thier deployments", func() {
+		oc := oc.AsAdmin().WithoutNamespace()
+		namespace := "openshift-operator-lifecycle-manager"
+
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			_, namespace, err = exutil.GetHypershiftManagementClusterConfigAndNamespace()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			oc = exutil.NewHypershiftManagementCLI("default").AsAdmin().WithoutNamespace()
+		}
+
 		deploymentResource := []string{"catalog-operator", "olm-operator", "packageserver"}
 		for _, v := range deploymentResource {
-			msg, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-operator-lifecycle-manager", "deployment", v, "-o=jsonpath={.spec.template.spec.containers[*].imagePullPolicy}").Output()
+			msg, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", namespace, "deployment", v, fmt.Sprintf(`-o=jsonpath={.spec.template.spec.containers[?(@.name=="%s")].imagePullPolicy}`, v)).Output()
 			e2e.Logf("%s.imagePullPolicy:%s", v, msg)
 			if err != nil {
 				e2e.Failf("Unable to get %s, error:%v", msg, err)
