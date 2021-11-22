@@ -139,16 +139,27 @@ var _ = g.Describe("[sig-arch] ocp payload should be based on existing source", 
 	// OCP-20981, [BZ 1626434]The olm/catalog binary should output the exact version info
 	// author: jiazha@redhat.com
 	g.It("OLM version should contain the source commit id", func() {
+
+		oc := oc
+		namespace := "openshift-operator-lifecycle-manager"
+
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			_, namespace, err = exutil.GetHypershiftManagementClusterConfigAndNamespace()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			oc = exutil.NewHypershiftManagementCLI("default").AsAdmin().WithoutNamespace()
+		}
 		sameCommit := ""
 		subPods := []string{"catalog-operator", "olm-operator", "packageserver"}
 
 		for _, v := range subPods {
-			podName, err := oc.AsAdmin().Run("get").Args("-n", "openshift-operator-lifecycle-manager", "pods", "-l", fmt.Sprintf("app=%s", v), "-o=jsonpath={.items[0].metadata.name}").Output()
+			podName, err := oc.AsAdmin().Run("get").Args("-n", namespace, "pods", "-l", fmt.Sprintf("app=%s", v), "-o=jsonpath={.items[0].metadata.name}").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("get olm version from pod %s", podName))
 			oc.SetNamespace("openshift-operator-lifecycle-manager")
-			olmVersion, err := oc.AsAdmin().Run("exec").Args("-n", "openshift-operator-lifecycle-manager", podName, "--", "olm", "--version").Output()
+			olmVersion, err := oc.AsAdmin().Run("exec").Args("-n", namespace, podName, "-c", v, "--", "olm", "--version").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			idSlice := strings.Split(olmVersion, ":")
 			gitCommitID := strings.TrimSpace(idSlice[len(idSlice)-1])
