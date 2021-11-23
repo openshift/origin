@@ -647,7 +647,14 @@ func createPDWithRetry(zone string) (string, error) {
 	return "", err
 }
 
-// CreatePDWithRetry creates PD with retry.
+func CreateShare() (string, string, error) {
+	return framework.TestContext.CloudConfig.Provider.CreateShare()
+}
+
+func DeleteShare(accountName, shareName string) error {
+	return framework.TestContext.CloudConfig.Provider.DeleteShare(accountName, shareName)
+}
+
 func CreatePDWithRetry() (string, error) {
 	return createPDWithRetry("")
 }
