@@ -34151,7 +34151,6 @@ metadata:
   resourceVersion: "1"
   uid: 19cff995-5546-11e5-9f57-080027c5bfa9
 spec:
-  clusterIP: 172.30.0.100
   ports:
   - nodePort: 0
     port: 443
@@ -35830,7 +35829,6 @@ items:
     resourceVersion: "259"
     uid: 024d82eb-7193-11e5-b84d-080027c5bfa9
   spec:
-    clusterIP: 172.30.182.32
     ports:
     - name: web
       port: 5432
