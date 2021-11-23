@@ -251,9 +251,9 @@ func DisruptionContinuingMessage(locator string, connectionType BackendConnectio
 	case NewConnectionType:
 		return fmt.Sprintf("%s is not responding to GET requests over new connections: %v", locator, err)
 	case ReusedConnectionType:
-		return fmt.Sprintf("%s is not  responding to GET requests over reused connections: %v", locator, err)
+		return fmt.Sprintf("%s is not responding to GET requests over reused connections: %v", locator, err)
 	default:
-		return fmt.Sprintf("%s is not  responding to GET requests over %v connections: %v", locator, "Unknown", err)
+		return fmt.Sprintf("%s is not responding to GET requests over %v connections: %v", locator, "Unknown", err)
 	}
 }
 
