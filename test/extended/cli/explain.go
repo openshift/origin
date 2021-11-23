@@ -75,11 +75,6 @@ var (
 
 		{Group: "packages.operators.coreos.com", Version: "v1", Resource: "packagemanifests"},
 
-		// metal3.io groups:
-
-		{Group: "metal3.io", Version: "v1alpha1", Resource: "baremetalhosts"},
-		{Group: "metal3.io", Version: "v1alpha1", Resource: "provisionings"},
-
 		// openshift.io groups:
 
 		{Group: "authorization.openshift.io", Version: "v1", Resource: "selfsubjectrulesreviews"},
@@ -114,8 +109,6 @@ var (
 
 		{Group: "operator.openshift.io", Version: "v1alpha1", Resource: "imagecontentsourcepolicies"},
 
-		{Group: "operator.openshift.io", Version: "v1", Resource: "authentications"},
-		{Group: "operator.openshift.io", Version: "v1", Resource: "cloudcredentials"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "clustercsidrivers"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "configs"},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "consoles"},
@@ -148,6 +141,10 @@ var (
 		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigpools"},
 		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigs"},
 	}
+	additionalOperatorTypes = []schema.GroupVersionResource{
+		{Group: "operator.openshift.io", Version: "v1", Resource: "authentications"},
+		{Group: "operator.openshift.io", Version: "v1", Resource: "cloudcredentials"},
+	}
 
 	autoscalingTypes = []schema.GroupVersionResource{
 		{Group: "autoscaling.openshift.io", Version: "v1beta1", Resource: "machineautoscalers"},
@@ -158,6 +155,11 @@ var (
 		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinehealthchecks"},
 		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machines"},
 		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinesets"},
+	}
+
+	metal3Types = []schema.GroupVersionResource{
+		{Group: "metal3.io", Version: "v1alpha1", Resource: "baremetalhosts"},
+		{Group: "metal3.io", Version: "v1alpha1", Resource: "provisionings"},
 	}
 
 	specialTypes = []explainExceptions{
@@ -390,6 +392,8 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 	crdTypes := append(baseCRDTypes, mcoTypes...)
 	crdTypes = append(crdTypes, autoscalingTypes...)
 	crdTypes = append(crdTypes, machineTypes...)
+	crdTypes = append(crdTypes, metal3Types...)
+	crdTypes = append(crdTypes, additionalOperatorTypes...)
 	g.It("list uncovered GroupVersionResources", func() {
 		resourceMap := make(map[schema.GroupVersionResource]bool)
 		kubeClient := kclientset.NewForConfigOrDie(oc.AdminConfig())
