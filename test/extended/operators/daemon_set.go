@@ -7,10 +7,13 @@ import (
 	"strings"
 
 	g "github.com/onsi/ginkgo"
+	o "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/kube-openapi/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -49,6 +52,16 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 		if err != nil {
 			e2e.Failf("unable to build label requirement: %v", err)
 		}
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// These shouldn't be DaemonSets as they end up being scheduled to all nodes because contrary to selfhosted OCP
+		// there are no master nodes. Today it is unclear how networking will look like in the future so it isn't worth
+		// chaning yet. Future work and removal of these exceptions is tracked in https://issues.redhat.com/browse/HOSTEDCP-279
+		hyperShiftExceptions := sets.NewString(
+			"openshift-multus/multus-admission-controller",
+			"openshift-sdn/sdn-controller",
+		)
 
 		var debug []string
 		var invalidDaemonSets []string
@@ -62,6 +75,10 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 					continue
 				}
 			}
+			if *controlPlaneTopology == configv1.ExternalTopologyMode && hyperShiftExceptions.Has(ds.Namespace+"/"+ds.Name) {
+				continue
+			}
+
 			key := fmt.Sprintf("%s/%s", ds.Namespace, ds.Name)
 			switch {
 			case ds.Spec.UpdateStrategy.RollingUpdate == nil,
