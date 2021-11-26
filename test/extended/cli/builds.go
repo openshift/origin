@@ -204,9 +204,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 
 		g.JustBeforeEach(func() {
 			g.By("getting the api server host")
-			err := oc.Run("project").Args("default").Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			out, err := oc.WithoutNamespace().Run("status").Args().Output()
+			out, err := oc.WithoutNamespace().Run("--namespace=default", "status").Args().Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			e2e.Logf("got status value of: %s", out)
 			matcher := regexp.MustCompile("https?://.*?443")
