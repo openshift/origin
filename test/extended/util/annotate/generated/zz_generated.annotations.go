@@ -2,6 +2,7 @@ package generated
 
 import (
 	"fmt"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/types"
 )
@@ -2132,6 +2133,8 @@ var annotations = map[string]string{
 	"[Top Level] [sig-installer][Feature:baremetal][Serial] A baremetal deployment without a provisioning network should allow setting the ProvisioningNetwork to 'Managed' with valid settings": "allow setting the ProvisioningNetwork to 'Managed' with valid settings [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-installer][Feature:baremetal][Serial] A baremetal deployment without a provisioning network should show the Provisioning Network as 'Disabled'": "show the Provisioning Network as 'Disabled' [Suite:openshift/conformance/serial]",
+
+	"[Top Level] [sig-installer][Feature:baremetal][Serial] Baremetal platform should configure BIOS settings during cleaning": "configure BIOS settings during cleaning [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-installer][Feature:baremetal][Serial] Baremetal platform should ensure cluster baremetal operator and metal3 deployment return back healthy after they are deleted": "cluster baremetal operator and metal3 deployment return back healthy after they are deleted [Suite:openshift/conformance/serial]",
 

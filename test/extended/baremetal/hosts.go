@@ -3,6 +3,7 @@ package baremetal
 import (
 	"context"
 	"fmt"
+	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -100,7 +101,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(hfs).NotTo(o.Equal(nil))
 
-			// Reenable this when fix to prevent settings with 0 entries is in BMO
+			// Reenable this when add check that host is using redfish driver
 			// g.By("check that hostfirmwaresettings settings have been populated")
 			// expectStringMapField(*hfs, "hostfirmwaresettings", "status.settings").ToNot(o.BeEmpty())
 
@@ -186,6 +187,81 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(found).To(o.BeFalse())
 	})
+
+	g.It("configure BIOS settings during cleaning", func() {
+		var procTurboMode = "ProcTurboMode"
+
+		skipIfNotBaremetal(oc)
+
+		dc := oc.AdminDynamicClient()
+
+		// Deploy extra worker and wait for it to be available
+		host, _ := helper.DeployExtraWorker(0)
+		hostName := getStringField(*host, "baremetalhost", "metadata.name")
+
+		hfsClient := hostfirmwaresettingsClient(dc)
+		hfs := getHostFirmwareSettings(hfsClient, hostName)
+
+		status, _, err := unstructured.NestedStringMap(hfs.Object, "status", "settings")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		spec, _, err := unstructured.NestedStringMap(hfs.Object, "spec", "settings")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(spec).NotTo(o.Equal(nil))
+
+		// Change HostFirmwareSetting to an invalid value
+		spec[procTurboMode] = "Foo"
+		g.By(fmt.Sprintf("setting firmwaresetting %s invalid value for host %s", procTurboMode, hostName))
+		err = unstructured.SetNestedStringMap(hfs.Object, spec, "spec", "settings")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		_, err = hfsClient.Update(context.Background(), hfs, metav1.UpdateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		time.Sleep(2 * time.Second)
+		hfs = getHostFirmwareSettings(hfsClient, hostName)
+		g.By(fmt.Sprintf("verifying Condition Valid is set to false"))
+		checkConditionStatus(*hfs, "Valid", "False")
+
+		// clear settings
+		err = unstructured.SetNestedStringMap(hfs.Object, map[string]string{}, "spec", "settings")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		_, err = hfsClient.Update(context.Background(), hfs, metav1.UpdateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		time.Sleep(2 * time.Second)
+		hfs = getHostFirmwareSettings(hfsClient, hostName)
+		checkConditionStatus(*hfs, "Valid", "True")
+
+		// Change HostFirmwareSetting to valid value different than current
+		status, _, err = unstructured.NestedStringMap(hfs.Object, "status", "settings")
+		v, ok := status[procTurboMode]
+		o.Expect(ok).To(o.BeTrue(), "setting not available for host %s", hostName)
+		newValue := "Enabled"
+		if v == "Enabled" {
+			newValue = "Disabled"
+		}
+		spec[procTurboMode] = newValue
+		g.By(fmt.Sprintf("setting firmwaresetting %s to %s for host %s", procTurboMode, newValue, hostName))
+
+		err = unstructured.SetNestedStringMap(hfs.Object, spec, "spec", "settings")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		_, err = hfsClient.Update(context.Background(), hfs, metav1.UpdateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Host should transition to preparing to go through cleaning
+		host = helper.WaitForProvisioningState(host, "preparing")
+
+		// after it returns to available check that setting has changed
+		host = helper.WaitForProvisioningState(host, "available")
+		hfs = getHostFirmwareSettings(hfsClient, hostName)
+
+		status, _, err = unstructured.NestedStringMap(hfs.Object, "status", "settings")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		v, ok = status[procTurboMode]
+		o.Expect(ok).To(o.BeTrue(), "setting not available for host %s", hostName)
+		o.Expect(v).To(o.Equal(newValue), "host status not updated to %s", newValue)
+
+	})
+
 })
 
 var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] A baremetal deployment without a provisioning network should", func() {

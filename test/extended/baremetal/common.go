@@ -179,3 +179,10 @@ func getStringField(object unstructured.Unstructured, resource string, nestedFie
 		return unstructured.NestedFieldNoCopy(obj, fields...)
 	})
 }
+
+func getHostFirmwareSettings(hfsClient dynamic.ResourceInterface, hostname string) *unstructured.Unstructured {
+	hfs, err := hfsClient.Get(context.Background(), hostname, metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(hfs).NotTo(o.Equal(nil))
+	return hfs
+}
