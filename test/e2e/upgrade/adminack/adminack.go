@@ -2,6 +2,7 @@ package adminack
 
 import (
 	"context"
+	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -43,7 +44,14 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
 	ctx := context.Background()
 
-	adminAckTest := &clusterversionoperator.AdminAckTest{Oc: t.oc, Config: t.config}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
+		<-done
+		cancel()
+	}()
+
+	adminAckTest := &clusterversionoperator.AdminAckTest{Oc: t.oc, Config: t.config, Poll: 10 * time.Minute}
 	adminAckTest.Test(ctx)
 }
 
