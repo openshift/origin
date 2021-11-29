@@ -37,6 +37,12 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 	})
 
 	g.It("runs successfully", func() {
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			g.Skip("oc must-gather doesn't currently support external controlPlaneTopology")
+		}
+
 		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer os.RemoveAll(tempDir)
@@ -96,6 +102,12 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 	})
 
 	g.It("runs successfully with options", func() {
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			g.Skip("oc must-gather doesn't currently support external controlPlaneTopology")
+		}
+
 		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer os.RemoveAll(tempDir)
