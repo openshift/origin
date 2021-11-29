@@ -19,7 +19,6 @@ package storage
 import (
 	"context"
 	"fmt"
-
 	"github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -111,7 +110,7 @@ func PodsUseStaticPVsOrFail(f *framework.Framework, podCount int, image string) 
 		className := ""
 		pvcConfig := e2epv.PersistentVolumeClaimConfig{StorageClassName: &className}
 
-		config.pv, config.pvc, err = e2epv.CreatePVPVC(c, f.Timeouts, pvConfig, pvcConfig, ns, true)
+		config.pv, config.pvc, err = e2epv.CreatePVPVC(c, pvConfig, pvcConfig, ns, true)
 		framework.ExpectNoError(err)
 	}
 
