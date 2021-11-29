@@ -1,0 +1,14 @@
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: hostdevice-nad
+spec:
+  config: '{
+        "name": "hostdevice-nad",
+        "type": "host-device",
+        "device": "exampledevice0",
+        "ipam": {
+                "type": "static",
+                "addresses": [{"address": "10.10.0.1/24"}]
+        }
+}'

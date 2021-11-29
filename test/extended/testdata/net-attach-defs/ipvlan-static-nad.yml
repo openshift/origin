@@ -1,0 +1,16 @@
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: ipvlan-static-nad
+spec:
+  config: '{
+        "name": "multustestbridge",
+        "type": "ipvlan",
+        "name": "ipvlan1-static",
+        "type": "ipvlan",
+        "mode": "l2",
+        "ipam": {
+                "type": "static",
+                "addresses": [{"address": "10.10.0.1/24"}]
+        }
+}'

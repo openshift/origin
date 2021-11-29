@@ -47,5 +47,87 @@ var _ = g.Describe("[sig-network][Feature:Multus]", func() {
 		o.Expect(output).Should(o.ContainSubstring("inet 10.10.0.1/24"))
 	})
 
+	g.It("should use multus to create net1 device from network-attachment-definition", func() {
+		var err error
+		ns = f.Namespace.Name
+
+		fmt.Println("Hello from multus")
+		g.By("creating a net-attach-def using hostdevice-staticCNI")
+		nad_yaml := exutil.FixturePath("testdata", "net-attach-defs", "hostdevice-nad.yml")
+		g.By(fmt.Sprintf("calling oc create -f %s", nad_yaml))
+		err = oc.AsAdmin().Run("create").Args("-f", nad_yaml).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred(), "created net-attach-def")
+
+		g.By("launching pod with an annotation to use the net-attach-def")
+		annotation := map[string]string{
+			"k8s.v1.cni.cncf.io/networks":                 "hostdevice-nad",
+			"scheduler.alpha.kubernetes.io/node-selector": "multi-net-hostdevice",
+		}
+
+		testPod := frameworkpod.CreateExecPodOrFail(f.ClientSet, ns, podName, func(pod *v1.Pod) {
+			pod.ObjectMeta.Annotations = annotation
+		})
+
+		g.By("checking for net1 interface on pod")
+		output, err := oc.AsAdmin().Run("exec").Args(testPod.Name, "--", "ip", "a", "show", "dev", "net1").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		fmt.Println(output)
+		o.Expect(output).Should(o.ContainSubstring("net1"))
+		o.Expect(output).Should(o.ContainSubstring("10.10.0.1/24"))
+	})
+
+	g.It("should use multus to create net1 device from network-attachment-definition", func() {
+		var err error
+		ns = f.Namespace.Name
+
+		fmt.Println("Hello from multus")
+		g.By("creating a net-attach-def using ipvlan-staticCNI")
+		nad_yaml := exutil.FixturePath("testdata", "net-attach-defs", "ipvlan-static-nad.yml")
+		g.By(fmt.Sprintf("calling oc create -f %s", nad_yaml))
+		err = oc.AsAdmin().Run("create").Args("-f", nad_yaml).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred(), "created net-attach-def")
+
+		g.By("launching pod with an annotation to use the net-attach-def")
+		annotation := map[string]string{
+			"k8s.v1.cni.cncf.io/networks": "ipvlan-static-nad",
+		}
+		testPod := frameworkpod.CreateExecPodOrFail(f.ClientSet, ns, podName, func(pod *v1.Pod) {
+			pod.ObjectMeta.Annotations = annotation
+		})
+
+		g.By("checking for net1 interface on pod")
+		output, err := oc.AsAdmin().Run("exec").Args(testPod.Name, "--", "ip", "a", "show", "dev", "net1").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		fmt.Println(output)
+		o.Expect(output).Should(o.ContainSubstring("net1"))
+		o.Expect(output).Should(o.ContainSubstring("10.10.0.1/24"))
+	})
+
+	g.It("should use multus to create net1 device from network-attachment-definition", func() {
+		var err error
+		ns = f.Namespace.Name
+
+		fmt.Println("Hello from multus")
+		g.By("creating a net-attach-def using macvlan-staticCNI")
+		nad_yaml := exutil.FixturePath("testdata", "net-attach-defs", "macvlan-static-nad.yml")
+		g.By(fmt.Sprintf("calling oc create -f %s", nad_yaml))
+		err = oc.AsAdmin().Run("create").Args("-f", nad_yaml).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred(), "created net-attach-def")
+
+		g.By("launching pod with an annotation to use the net-attach-def")
+		annotation := map[string]string{
+			"k8s.v1.cni.cncf.io/networks": "macvlan-static-nad",
+		}
+		testPod := frameworkpod.CreateExecPodOrFail(f.ClientSet, ns, podName, func(pod *v1.Pod) {
+			pod.ObjectMeta.Annotations = annotation
+		})
+
+		g.By("checking for net1 interface on pod")
+		output, err := oc.AsAdmin().Run("exec").Args(testPod.Name, "--", "ip", "a", "show", "dev", "net1").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		fmt.Println(output)
+		o.Expect(output).Should(o.ContainSubstring("net1"))
+		o.Expect(output).Should(o.ContainSubstring("10.10.0.1/24"))
+	})
 	// TODO: additional multus tests (see https://issues.redhat.com/browse/SDN-1180)
 })

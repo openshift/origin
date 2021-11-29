@@ -436,6 +436,9 @@
 // test/extended/testdata/multi-namespace-pipeline.yaml
 // test/extended/testdata/multi-namespace-template.yaml
 // test/extended/testdata/net-attach-defs/bridge-nad.yml
+// test/extended/testdata/net-attach-defs/hostdevice-nad.yml
+// test/extended/testdata/net-attach-defs/ipvlan-static-nad.yml
+// test/extended/testdata/net-attach-defs/macvlan-static-nad.yml
 // test/extended/testdata/net-attach-defs/whereabouts-nad.yml
 // test/extended/testdata/net-attach-defs/whereabouts-race-awake.yml
 // test/extended/testdata/net-attach-defs/whereabouts-race-sleepy.yml
@@ -48086,6 +48089,102 @@ func testExtendedTestdataNetAttachDefsBridgeNadYml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataNetAttachDefsHostdeviceNadYml = []byte(`apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: hostdevice-nad
+spec:
+  config: '{
+        "name": "hostdevice-nad",
+        "type": "host-device",
+        "device": "exampledevice0",
+        "ipam": {
+                "type": "static",
+                "addresses": [{"address": "10.10.0.1/24"}]
+        }
+}'
+`)
+
+func testExtendedTestdataNetAttachDefsHostdeviceNadYmlBytes() ([]byte, error) {
+	return _testExtendedTestdataNetAttachDefsHostdeviceNadYml, nil
+}
+
+func testExtendedTestdataNetAttachDefsHostdeviceNadYml() (*asset, error) {
+	bytes, err := testExtendedTestdataNetAttachDefsHostdeviceNadYmlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/net-attach-defs/hostdevice-nad.yml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNetAttachDefsIpvlanStaticNadYml = []byte(`apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: ipvlan-static-nad
+spec:
+  config: '{
+        "name": "multustestbridge",
+        "type": "ipvlan",
+        "name": "ipvlan1-static",
+        "type": "ipvlan",
+        "mode": "l2",
+        "ipam": {
+                "type": "static",
+                "addresses": [{"address": "10.10.0.1/24"}]
+        }
+}'
+`)
+
+func testExtendedTestdataNetAttachDefsIpvlanStaticNadYmlBytes() ([]byte, error) {
+	return _testExtendedTestdataNetAttachDefsIpvlanStaticNadYml, nil
+}
+
+func testExtendedTestdataNetAttachDefsIpvlanStaticNadYml() (*asset, error) {
+	bytes, err := testExtendedTestdataNetAttachDefsIpvlanStaticNadYmlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/net-attach-defs/ipvlan-static-nad.yml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNetAttachDefsMacvlanStaticNadYml = []byte(`apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: macvlan-static-nad
+spec:
+  config: '{
+        "name": "multustestmacvlan",
+        "type": "macvlan",
+        "type": "macvlan",
+        "mode": "bridge",
+        "ipam": {
+                "type": "static",
+                "addresses": [{"address": "10.10.0.1/24"}]
+        }
+}'
+`)
+
+func testExtendedTestdataNetAttachDefsMacvlanStaticNadYmlBytes() ([]byte, error) {
+	return _testExtendedTestdataNetAttachDefsMacvlanStaticNadYml, nil
+}
+
+func testExtendedTestdataNetAttachDefsMacvlanStaticNadYml() (*asset, error) {
+	bytes, err := testExtendedTestdataNetAttachDefsMacvlanStaticNadYmlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/net-attach-defs/macvlan-static-nad.yml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataNetAttachDefsWhereaboutsNadYml = []byte(`apiVersion: "k8s.cni.cncf.io/v1"
 kind: NetworkAttachmentDefinition
 metadata:
@@ -53914,6 +54013,9 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/multi-namespace-pipeline.yaml":                                                   testExtendedTestdataMultiNamespacePipelineYaml,
 	"test/extended/testdata/multi-namespace-template.yaml":                                                   testExtendedTestdataMultiNamespaceTemplateYaml,
 	"test/extended/testdata/net-attach-defs/bridge-nad.yml":                                                  testExtendedTestdataNetAttachDefsBridgeNadYml,
+	"test/extended/testdata/net-attach-defs/hostdevice-nad.yml":                                              testExtendedTestdataNetAttachDefsHostdeviceNadYml,
+	"test/extended/testdata/net-attach-defs/ipvlan-static-nad.yml":                                           testExtendedTestdataNetAttachDefsIpvlanStaticNadYml,
+	"test/extended/testdata/net-attach-defs/macvlan-static-nad.yml":                                          testExtendedTestdataNetAttachDefsMacvlanStaticNadYml,
 	"test/extended/testdata/net-attach-defs/whereabouts-nad.yml":                                             testExtendedTestdataNetAttachDefsWhereaboutsNadYml,
 	"test/extended/testdata/net-attach-defs/whereabouts-race-awake.yml":                                      testExtendedTestdataNetAttachDefsWhereaboutsRaceAwakeYml,
 	"test/extended/testdata/net-attach-defs/whereabouts-race-sleepy.yml":                                     testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml,
@@ -54662,6 +54764,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"multi-namespace-template.yaml": {testExtendedTestdataMultiNamespaceTemplateYaml, map[string]*bintree{}},
 				"net-attach-defs": {nil, map[string]*bintree{
 					"bridge-nad.yml":              {testExtendedTestdataNetAttachDefsBridgeNadYml, map[string]*bintree{}},
+					"hostdevice-nad.yml":          {testExtendedTestdataNetAttachDefsHostdeviceNadYml, map[string]*bintree{}},
+					"ipvlan-static-nad.yml":       {testExtendedTestdataNetAttachDefsIpvlanStaticNadYml, map[string]*bintree{}},
+					"macvlan-static-nad.yml":      {testExtendedTestdataNetAttachDefsMacvlanStaticNadYml, map[string]*bintree{}},
 					"whereabouts-nad.yml":         {testExtendedTestdataNetAttachDefsWhereaboutsNadYml, map[string]*bintree{}},
 					"whereabouts-race-awake.yml":  {testExtendedTestdataNetAttachDefsWhereaboutsRaceAwakeYml, map[string]*bintree{}},
 					"whereabouts-race-sleepy.yml": {testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml, map[string]*bintree{}},

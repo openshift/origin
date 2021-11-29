@@ -1,0 +1,15 @@
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: macvlan-static-nad
+spec:
+  config: '{
+        "name": "multustestmacvlan",
+        "type": "macvlan",
+        "type": "macvlan",
+        "mode": "bridge",
+        "ipam": {
+                "type": "static",
+                "addresses": [{"address": "10.10.0.1/24"}]
+        }
+}'
