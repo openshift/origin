@@ -7,6 +7,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/openshift/clusterversionoperator"
 
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -42,7 +43,7 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
 	ctx := context.Background()
 
-	adminAckTest := &exutil.AdminAckTest{Oc: t.oc, Config: t.config}
+	adminAckTest := &clusterversionoperator.AdminAckTest{Oc: t.oc, Config: t.config}
 	adminAckTest.Test(ctx)
 }
 

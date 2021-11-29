@@ -7,6 +7,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/openshift/clusterversionoperator"
 
 	"k8s.io/kubernetes/test/e2e/framework"
 )
@@ -21,7 +22,7 @@ var _ = g.Describe("[sig-cluster-lifecycle]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			ctx := context.Background()
 
-			adminAckTest := &exutil.AdminAckTest{Oc: oc, Config: config}
+			adminAckTest := &clusterversionoperator.AdminAckTest{Oc: oc, Config: config}
 			adminAckTest.Test(ctx)
 		})
 	})

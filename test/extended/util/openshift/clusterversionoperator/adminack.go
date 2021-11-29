@@ -1,4 +1,5 @@
-package util
+// Package clusterversionoperator contains utilities for exercising the cluster-version operator.
+package clusterversionoperator
 
 import (
 	"context"
@@ -16,11 +17,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 // AdminAckTest contains artifacts used during test
 type AdminAckTest struct {
-	Oc     *CLI
+	Oc     *exutil.CLI
 	Config *restclient.Config
 }
 
@@ -143,7 +146,7 @@ func gateApplicableToCurrentVersion(gateAckVersion string, currentVersion string
 	return false
 }
 
-func getAdminGatesConfigMap(ctx context.Context, oc *CLI) (*corev1.ConfigMap, string) {
+func getAdminGatesConfigMap(ctx context.Context, oc *exutil.CLI) (*corev1.ConfigMap, string) {
 	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(ctx, "admin-gates", metav1.GetOptions{})
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
@@ -155,7 +158,7 @@ func getAdminGatesConfigMap(ctx context.Context, oc *CLI) (*corev1.ConfigMap, st
 	return cm, ""
 }
 
-func getAdminAcksConfigMap(ctx context.Context, oc *CLI) (*corev1.ConfigMap, string) {
+func getAdminAcksConfigMap(ctx context.Context, oc *exutil.CLI) (*corev1.ConfigMap, string) {
 	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Get(ctx, "admin-acks", metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Sprintf("Error accessing configmap openshift-config/admin-acks, err=%v", err)
@@ -185,7 +188,7 @@ func upgradeableExplicitlyFalse(ctx context.Context, config *restclient.Config) 
 }
 
 // setAdminGate gets the admin ack configmap and then updates it with given gate name and given value.
-func setAdminGate(ctx context.Context, gateName string, gateValue string, oc *CLI) string {
+func setAdminGate(ctx context.Context, gateName string, gateValue string, oc *exutil.CLI) string {
 	ackCm, errMsg := getAdminAcksConfigMap(ctx, oc)
 	if len(errMsg) != 0 {
 		framework.Failf(errMsg)
