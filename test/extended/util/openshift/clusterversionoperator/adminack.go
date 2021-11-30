@@ -25,6 +25,7 @@ import (
 type AdminAckTest struct {
 	Oc     *exutil.CLI
 	Config *restclient.Config
+	Poll   time.Duration
 }
 
 const adminAckGateFmt string = "^ack-[4-5][.]([0-9]{1,})-[^-]"
@@ -39,6 +40,24 @@ var adminAckGateRegexp = regexp.MustCompile(adminAckGateFmt)
 // admin-acks configmap to ack the given admin-ack gate. Once all gates have been ack'ed, the test waits for the
 // Upgradeable condition to change to true.
 func (t *AdminAckTest) Test(ctx context.Context) {
+	if t.Poll == 0 {
+		t.test(ctx, nil)
+		return
+	}
+
+	exercisedGates := map[string]struct{}{}
+	if err := wait.PollImmediateUntilWithContext(ctx, t.Poll, func(ctx context.Context) (bool, error) {
+		t.test(ctx, exercisedGates)
+		return false, nil
+	}); err == nil || err == wait.ErrWaitTimeout {
+		return
+	} else {
+		framework.Fail(err.Error())
+	}
+}
+
+func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struct{}) {
+	exists := struct{}{}
 
 	gateCm, errMsg := getAdminGatesConfigMap(ctx, t.Oc)
 	if len(errMsg) != 0 {
@@ -56,6 +75,11 @@ func (t *AdminAckTest) Test(ctx context.Context) {
 	currentVersion := getCurrentVersion(ctx, t.Config)
 	var msg string
 	for k, v := range gateCm.Data {
+		if exercisedGates != nil {
+			if _, ok := exercisedGates[k]; ok {
+				continue
+			}
+		}
 		ackVersion := adminAckGateRegexp.FindString(k)
 		if ackVersion == "" {
 			framework.Failf(fmt.Sprintf("Configmap openshift-config-managed/admin-gates gate %s has invalid format; must comply with %q.", k, adminAckGateFmt))
@@ -87,6 +111,9 @@ func (t *AdminAckTest) Test(ctx context.Context) {
 		// Update admin ack configmap with ack
 		if errMsg = setAdminGate(ctx, k, "true", t.Oc); len(errMsg) != 0 {
 			framework.Failf(errMsg)
+		}
+		if exercisedGates != nil {
+			exercisedGates[k] = exists
 		}
 	}
 	if errMsg = waitForUpgradeable(ctx, t.Config); len(errMsg) != 0 {
