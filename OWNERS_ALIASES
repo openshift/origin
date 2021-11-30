@@ -1,0 +1,13 @@
+# See the OWNERS_ALIASES docs: https://git.k8s.io/community/contributors/guide/owners.md#owners_aliases
+
+aliases:
+  cluster-version-operator-test-case-approvers:
+  - LalatenduMohanty
+  - jottofar
+  - vrutkovs
+  - wking
+  cluster-version-operator-test-case-reviewers:
+  - LalatenduMohanty
+  - jottofar
+  - vrutkovs
+  - wking
