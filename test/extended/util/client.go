@@ -143,6 +143,32 @@ func NewCLIWithoutNamespace(project string) *CLI {
 	return cli
 }
 
+// NewHypershiftManagementCLI returns a CLI that interacts with the Hypershift management cluster.
+// Contrary to a normal CLI it does not perform any cleanup and it must not be used for any mutating
+// operations. Also contrary to a normal CLI it must be constructed inside an `It` block. This is
+// because retrieval of hypershift management cluster config can fail, but assertions are only
+// allowed inside an It block. AfterEach and BeforeEach are not allowed there though.
+func NewHypershiftManagementCLI(project string) *CLI {
+	kubeconfig, _, err := GetHypershiftManagementClusterConfigAndNamespace()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	return &CLI{
+		kubeFramework: &framework.Framework{
+			SkipNamespaceCreation:    true,
+			BaseName:                 project,
+			AddonResourceConstraints: make(map[string]framework.ResourceConstraint),
+			Options: framework.Options{
+				ClientQPS:   20,
+				ClientBurst: 50,
+			},
+			Timeouts: framework.NewTimeoutContextWithDefaults(),
+		},
+		username:         "admin",
+		execPath:         "oc",
+		adminConfigPath:  kubeconfig,
+		withoutNamespace: true,
+	}
+}
+
 // KubeFramework returns Kubernetes framework which contains helper functions
 // specific for Kubernetes resources
 func (c *CLI) KubeFramework() *framework.Framework {
