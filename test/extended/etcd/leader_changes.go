@@ -9,6 +9,7 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
 
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/prometheus/client"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -17,6 +18,12 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("etcd-leader-change").AsAdmin()
 	g.It("leader changes are not excessive [Late]", func() {
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			oc = exutil.NewHypershiftManagementCLI("default").AsAdmin().WithoutNamespace()
+		}
+
 		prometheus, err := client.NewE2EPrometheusRouterClient(oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
@@ -24,7 +31,11 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 		testDuration := exutil.DurationSinceStartInSeconds().String()
 
 		g.By("Examining the number of etcd leadership changes over the run")
-		result, _, err := prometheus.Query(context.Background(), fmt.Sprintf("max(max by (pod,job) (increase(etcd_server_leader_changes_seen_total[%s])))", testDuration), time.Now())
+		etcdNamespace := "openshift-etcd"
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			etcdNamespace = "clusters-.*"
+		}
+		result, _, err := prometheus.Query(context.Background(), fmt.Sprintf(`max(max by (pod,job) (increase(etcd_server_leader_changes_seen_total{namespace=~"%s"}[%s])))`, etcdNamespace, testDuration), time.Now())
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		vec, ok := result.(model.Vector)
