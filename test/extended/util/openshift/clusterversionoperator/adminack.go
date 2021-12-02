@@ -35,10 +35,9 @@ var adminAckGateRegexp = regexp.MustCompile(adminAckGateFmt)
 // Test simply returns successfully if admin ack functionality is not part of the baseline being tested. Otherwise,
 // for each configured admin ack gate, test verifies the gate name format and that it contains a description. If
 // valid and the gate is applicable to the OCP version under test, test checks the value of the admin ack gate.
-// If the gate has been ack'ed the test verifies that Upgradeable condition is true and clears the ack. Test then
-// verifies Upgradeable condition is false and contains correct reason and correct message. It then modifies the
-// admin-acks configmap to ack the given admin-ack gate. Once all gates have been ack'ed, the test waits for the
-// Upgradeable condition to change to true.
+// If the gate has been ack'ed the test verifies that the Upgradeable condition does not complain about the ack. Test
+// then clears the ack and verifies that the Upgradeable condition complains about the ack. Test then sets the ack
+// and verifies that the Upgradeable condition no longer complains about the ack.
 func (t *AdminAckTest) Test(ctx context.Context) {
 	if t.Poll == 0 {
 		t.test(ctx, nil)
@@ -111,12 +110,12 @@ func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struc
 		if err := setAdminGate(ctx, k, "true", t.Oc); err != nil {
 			framework.Fail(err.Error())
 		}
+		if err = waitForAdminAckNotRequired(ctx, t.Config, msg); err != nil {
+			framework.Fail(err.Error())
+		}
 		if exercisedGates != nil {
 			exercisedGates[k] = exists
 		}
-	}
-	if err := waitForUpgradeable(ctx, t.Config); err != nil {
-		framework.Fail(err.Error())
 	}
 	framework.Logf("Admin Ack verified")
 }
@@ -227,7 +226,7 @@ func setAdminGate(ctx context.Context, gateName string, gateValue string, oc *ex
 }
 
 func waitForAdminAckRequired(ctx context.Context, config *restclient.Config, message string) error {
-	framework.Logf("Waiting for Upgradeable to be AdminAckRequired...")
+	framework.Logf("Waiting for Upgradeable to be AdminAckRequired for %q ...", message)
 	if err := wait.PollImmediate(10*time.Second, 3*time.Minute, func() (bool, error) {
 		if adminAckRequiredWithMessage(ctx, config, message) {
 			return true, nil
@@ -239,15 +238,15 @@ func waitForAdminAckRequired(ctx context.Context, config *restclient.Config, mes
 	return nil
 }
 
-func waitForUpgradeable(ctx context.Context, config *restclient.Config) error {
-	framework.Logf("Waiting for Upgradeable true...")
+func waitForAdminAckNotRequired(ctx context.Context, config *restclient.Config, message string) error {
+	framework.Logf("Waiting for Upgradeable to not be AdminAckRequired for %q ...", message)
 	if err := wait.PollImmediate(10*time.Second, 3*time.Minute, func() (bool, error) {
-		if !upgradeableExplicitlyFalse(ctx, config) {
+		if !adminAckRequiredWithMessage(ctx, config, message) {
 			return true, nil
 		}
 		return false, nil
 	}); err != nil {
-		return fmt.Errorf("Error while waiting for Upgradeable to go true: %w\n%s", err, getUpgradeable(ctx, config))
+		return fmt.Errorf("Error while waiting for Upgradeable to not be AdminAckRequired with message %q: %w\n%s", message, err, getUpgradeable(ctx, config))
 	}
 	return nil
 }
