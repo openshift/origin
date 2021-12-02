@@ -357,6 +357,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 
 			// this replaces coverage from the TestBuildDefaultEnvironment integration test
 			g.It("Apply env configuration to build pod", func() {
+				g.Skip("BZ 2026488 - rolling out openshift-controller-manager fails cluster stability tests")
 				g.By("apply env cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -410,6 +411,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 
 			// this replaces coverage from the TestBuildDefaultLabels integration test
 			g.It("Apply default image label configuration to build pod", func() {
+				g.Skip("BZ 2026488 - rolling out openshift-controller-manager fails cluster stability tests")
 				g.By("apply label cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -464,6 +466,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 
 			// this replaces coverage from the TestBuildOverrideLabels integration test
 			g.It("Apply override image label configuration to build pod", func() {
+				g.Skip("BZ 2026488 - rolling out openshift-controller-manager fails cluster stability tests")
 				g.By("apply label cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -519,6 +522,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 
 			// this replaces coverage from the TestBuildDefaultNodeSelectors integration test
 			g.It("Apply node selector configuration to build pod", func() {
+				g.Skip("BZ 2026488 - rolling out openshift-controller-manager fails cluster stability tests")
 				g.By("apply node selector cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -553,6 +557,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 
 			// this replaces coverage from the TestBuildOverrideTolerations integration test
 			g.It("Apply toleration override configuration to build pod", func() {
+				g.Skip("BZ 2026488 - rolling out openshift-controller-manager fails cluster stability tests")
 				g.By("apply toleration cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -606,6 +611,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			})
 
 			g.It("Apply resource configuration to build pod", func() {
+				g.Skip("BZ 2026488 - rolling out openshift-controller-manager fails cluster stability tests")
 				g.By("apply resource cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
