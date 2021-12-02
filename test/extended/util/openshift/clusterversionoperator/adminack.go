@@ -61,7 +61,7 @@ func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struc
 
 	gateCm, errMsg := getAdminGatesConfigMap(ctx, t.Oc)
 	if len(errMsg) != 0 {
-		framework.Failf(errMsg)
+		framework.Fail(errMsg)
 	}
 	// Check if this release has admin ack functionality.
 	if gateCm == nil || (gateCm != nil && len(gateCm.Data) == 0) {
@@ -70,7 +70,7 @@ func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struc
 	}
 	ackCm, errMsg := getAdminAcksConfigMap(ctx, t.Oc)
 	if len(errMsg) != 0 {
-		framework.Failf(errMsg)
+		framework.Fail(errMsg)
 	}
 	currentVersion := getCurrentVersion(ctx, t.Config)
 	var msg string
@@ -82,10 +82,10 @@ func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struc
 		}
 		ackVersion := adminAckGateRegexp.FindString(k)
 		if ackVersion == "" {
-			framework.Failf(fmt.Sprintf("Configmap openshift-config-managed/admin-gates gate %s has invalid format; must comply with %q.", k, adminAckGateFmt))
+			framework.Failf("Configmap openshift-config-managed/admin-gates gate %s has invalid format; must comply with %q.", k, adminAckGateFmt)
 		}
 		if v == "" {
-			framework.Failf(fmt.Sprintf("Configmap openshift-config-managed/admin-gates gate %s does not contain description.", k))
+			framework.Failf("Configmap openshift-config-managed/admin-gates gate %s does not contain description.", k)
 		}
 		if !gateApplicableToCurrentVersion(ackVersion, currentVersion) {
 			continue
@@ -93,31 +93,30 @@ func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struc
 		if ackCm.Data[k] == "true" {
 			if upgradeableExplicitlyFalse(ctx, t.Config) {
 				if adminAckRequiredWithMessage(ctx, t.Config, v) {
-					framework.Failf(fmt.Sprintf("Gate %s has been ack'ed but Upgradeable is "+
-						"false with reason AdminAckRequired and message %q.", k, v))
+					framework.Failf("Gate %s has been ack'ed but Upgradeable is "+
+						"false with reason AdminAckRequired and message %q.", k, v)
 				}
-				framework.Logf(fmt.Sprintf("Gate %s has been ack'ed. Upgradeable is "+
-					"false but not due to this gate which would set reason AdminAckRequired with message %s.", k, v) +
-					" " + getUpgradeable(ctx, t.Config))
+				framework.Logf("Gate %s has been ack'ed. Upgradeable is "+
+					"false but not due to this gate which would set reason AdminAckRequired with message %s. %s", k, v, getUpgradeable(ctx, t.Config))
 			}
 			// Clear admin ack configmap gate ack
 			if errMsg = setAdminGate(ctx, k, "", t.Oc); len(errMsg) != 0 {
-				framework.Failf(errMsg)
+				framework.Fail(errMsg)
 			}
 		}
 		if errMsg = waitForAdminAckRequired(ctx, t.Config, msg); len(errMsg) != 0 {
-			framework.Failf(errMsg)
+			framework.Fail(errMsg)
 		}
 		// Update admin ack configmap with ack
 		if errMsg = setAdminGate(ctx, k, "true", t.Oc); len(errMsg) != 0 {
-			framework.Failf(errMsg)
+			framework.Fail(errMsg)
 		}
 		if exercisedGates != nil {
 			exercisedGates[k] = exists
 		}
 	}
 	if errMsg = waitForUpgradeable(ctx, t.Config); len(errMsg) != 0 {
-		framework.Failf(errMsg)
+		framework.Fail(errMsg)
 	}
 	framework.Logf("Admin Ack verified")
 }
@@ -126,11 +125,11 @@ func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struc
 func getClusterVersion(ctx context.Context, config *restclient.Config) *configv1.ClusterVersion {
 	c, err := configv1client.NewForConfig(config)
 	if err != nil {
-		framework.Failf(fmt.Sprintf("Error getting config, err=%v", err))
+		framework.Failf("Error getting config, err=%v", err)
 	}
 	cv, err := c.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
 	if err != nil {
-		framework.Failf(fmt.Sprintf("Error getting custer version, err=%v", err))
+		framework.Failf("Error getting custer version, err=%v", err)
 	}
 	return cv
 }
@@ -218,7 +217,7 @@ func upgradeableExplicitlyFalse(ctx context.Context, config *restclient.Config) 
 func setAdminGate(ctx context.Context, gateName string, gateValue string, oc *exutil.CLI) string {
 	ackCm, errMsg := getAdminAcksConfigMap(ctx, oc)
 	if len(errMsg) != 0 {
-		framework.Failf(errMsg)
+		framework.Fail(errMsg)
 	}
 	ackCm.Data[gateName] = gateValue
 	_, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Update(ctx, ackCm, metav1.UpdateOptions{})
