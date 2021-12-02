@@ -32,7 +32,7 @@ require (
 	github.com/onsi/gomega v1.10.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/openshift/api v0.0.0-20210913115639-4809c1ef6b8e
-	github.com/openshift/apiserver-library-go v0.0.0-20210831182412-e8d18275584f
+	github.com/openshift/apiserver-library-go v0.0.0-20211029110727-d0db65ce4823
 	github.com/openshift/build-machinery-go v0.0.0-20210806203541-4ea9b6da3a37
 	github.com/openshift/client-go v0.0.0-20210831095141-e19a065e79f7
 	github.com/openshift/library-go v0.0.0-20210909124717-1c18e732a117
@@ -99,7 +99,7 @@ replace (
 	k8s.io/kube-scheduler => github.com/openshift/kubernetes/staging/src/k8s.io/kube-scheduler v0.0.0-20210927145003-95252e0418ca
 	k8s.io/kubectl => github.com/openshift/kubernetes/staging/src/k8s.io/kubectl v0.0.0-20210927145003-95252e0418ca
 	k8s.io/kubelet => github.com/openshift/kubernetes/staging/src/k8s.io/kubelet v0.0.0-20210927145003-95252e0418ca
-	k8s.io/kubernetes => github.com/openshift/kubernetes v1.22.2-0.20210927145003-95252e0418ca
+	k8s.io/kubernetes => github.com/openshift/kubernetes v1.22.2-0.20211202143459-df3a3403b721
 	k8s.io/legacy-cloud-providers => github.com/openshift/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20210927145003-95252e0418ca
 	k8s.io/metrics => github.com/openshift/kubernetes/staging/src/k8s.io/metrics v0.0.0-20210927145003-95252e0418ca
 	k8s.io/mount-utils => github.com/openshift/kubernetes/staging/src/k8s.io/mount-utils v0.0.0-20210927145003-95252e0418ca
