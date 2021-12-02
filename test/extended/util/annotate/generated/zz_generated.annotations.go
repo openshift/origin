@@ -1389,8 +1389,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc status returns expected help messages": "returns expected help messages [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc version check kubernetes version matches the io.openshift.build.versions label": "check kubernetes version matches the io.openshift.build.versions label [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/authentication.sh": "test/cmd/authentication.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/builds.sh": "test/cmd/builds.sh",

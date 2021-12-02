@@ -155,7 +155,6 @@ var (
 			`\[sig-operator\] an end user can use OLM can subscribe to the operator`,
 			`\[sig-network\] Networking should provide Internet connection for containers`,
 			`\[sig-imageregistry\]\[Serial\]\[Suite:openshift/registry/serial\] Image signature workflow can push a signed image to openshift registry and verify it`,
-			`\[sig-cli\] oc version check kubernetes version matches the io.openshift.build.versions label`,
 
 			// Need to access non-cached images like ruby and mongodb
 			`\[sig-apps\]\[Feature:DeploymentConfig\] deploymentconfigs with multiple image change triggers should run a successful deployment with a trigger used by different containers`,
