@@ -33,6 +33,7 @@ import (
 	"github.com/openshift/origin/test/e2e/upgrade/adminack"
 	"github.com/openshift/origin/test/e2e/upgrade/alert"
 	"github.com/openshift/origin/test/e2e/upgrade/service"
+	"github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
@@ -294,6 +295,13 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			//   https://bugzilla.redhat.com/show_bug.cgi?id=1942164
 			durationToSoftFailure = baseDurationToSoftFailure + (15 * time.Minute)
 		}
+	}
+
+	if cv, err := c.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{}); err != nil {
+		return err
+	} else if util.GetMajorMinor(version.Version.String()) != util.GetMajorMinor(cv.Status.Desired.Version) {
+		framework.Logf("Upgrade from %s to %s changes the major.minor, so allowing an additional 15 minutes", cv.Status.Desired.Version, version.Version.String())
+		durationToSoftFailure += 15 * time.Minute
 	}
 
 	framework.Logf("Starting upgrade to version=%s image=%s attempt=%s", version.Version.String(), version.NodeImage, uid)
