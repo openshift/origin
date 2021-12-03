@@ -218,6 +218,9 @@ func setAdminGate(ctx context.Context, gateName string, gateValue string, oc *ex
 	if err != nil {
 		return err
 	}
+	if ackCm.Data == nil {
+		ackCm.Data = make(map[string]string)
+	}
 	ackCm.Data[gateName] = gateValue
 	if _, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Update(ctx, ackCm, metav1.UpdateOptions{}); err != nil {
 		return fmt.Errorf("Unable to update configmap openshift-config/admin-acks: %w", err)
