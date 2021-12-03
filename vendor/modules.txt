@@ -707,7 +707,7 @@ github.com/openshift/api/template/v1
 github.com/openshift/api/unidling/v1alpha1
 github.com/openshift/api/user
 github.com/openshift/api/user/v1
-# github.com/openshift/apiserver-library-go v0.0.0-20210831182412-e8d18275584f
+# github.com/openshift/apiserver-library-go v0.0.0-20211029110727-d0db65ce4823
 ## explicit
 github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy
 github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -2218,7 +2218,7 @@ k8s.io/kubelet/pkg/apis/pluginregistration/v1
 k8s.io/kubelet/pkg/apis/podresources/v1
 k8s.io/kubelet/pkg/apis/podresources/v1alpha1
 k8s.io/kubelet/pkg/apis/stats/v1alpha1
-# k8s.io/kubernetes v1.22.1 => github.com/openshift/kubernetes v1.22.2-0.20210927145003-95252e0418ca
+# k8s.io/kubernetes v1.22.1 => github.com/openshift/kubernetes v1.22.2-0.20211202143459-df3a3403b721
 ## explicit
 k8s.io/kubernetes/cmd/kube-apiserver/app
 k8s.io/kubernetes/cmd/kube-apiserver/app/options
@@ -3180,7 +3180,7 @@ sigs.k8s.io/yaml
 # k8s.io/kube-scheduler => github.com/openshift/kubernetes/staging/src/k8s.io/kube-scheduler v0.0.0-20210927145003-95252e0418ca
 # k8s.io/kubectl => github.com/openshift/kubernetes/staging/src/k8s.io/kubectl v0.0.0-20210927145003-95252e0418ca
 # k8s.io/kubelet => github.com/openshift/kubernetes/staging/src/k8s.io/kubelet v0.0.0-20210927145003-95252e0418ca
-# k8s.io/kubernetes => github.com/openshift/kubernetes v1.22.2-0.20210927145003-95252e0418ca
+# k8s.io/kubernetes => github.com/openshift/kubernetes v1.22.2-0.20211202143459-df3a3403b721
 # k8s.io/legacy-cloud-providers => github.com/openshift/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20210927145003-95252e0418ca
 # k8s.io/metrics => github.com/openshift/kubernetes/staging/src/k8s.io/metrics v0.0.0-20210927145003-95252e0418ca
 # k8s.io/mount-utils => github.com/openshift/kubernetes/staging/src/k8s.io/mount-utils v0.0.0-20210927145003-95252e0418ca
