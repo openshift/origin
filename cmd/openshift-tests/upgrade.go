@@ -16,7 +16,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/upgrades"
 )
 
-// upgradeSuites are all known upgade test suites this binary should run
+// upgradeSuites are all known upgrade test suites this binary should run
 var upgradeSuites = testSuites{
 	{
 		TestSuite: ginkgo.TestSuite{
