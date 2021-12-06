@@ -2,6 +2,7 @@ package disruption
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -14,6 +15,7 @@ import (
 
 type BackendSampler interface {
 	GetDisruptionBackendName() string
+	GetLocator() string
 	GetURL() (string, error)
 	SetEventRecorder(recorder events.EventRecorder)
 	StartEndpointMonitoring(ctx context.Context, m *monitor.Monitor) error
@@ -81,7 +83,7 @@ func (t *backendDisruptionTest) Setup(f *framework.Framework) {
 	url, err := t.backend.GetURL()
 	framework.ExpectNoError(err)
 	if len(url) == 0 {
-		framework.Failf("backend has no URL: %#v", t.backend)
+		framework.Failf("backend has no URL: %v", t.backend.GetLocator())
 	}
 }
 
@@ -90,22 +92,22 @@ func (t *backendDisruptionTest) Test(f *framework.Framework, done <-chan struct{
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 	newBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: f.ClientSet.EventsV1()})
-	t.backend.SetEventRecorder(newBroadcaster.NewRecorder(scheme.Scheme, "openshift.io/"+t.Name()))
+	t.backend.SetEventRecorder(newBroadcaster.NewRecorder(scheme.Scheme, "openshift.io/"+t.backend.GetDisruptionBackendName()))
 	newBroadcaster.StartRecordingToSink(stopCh)
 
-	ginkgo.By("continuously hitting backend")
+	ginkgo.By(fmt.Sprintf("continuously hitting backend: %s", t.backend.GetLocator()))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	m := monitor.NewMonitorWithInterval(1 * time.Second)
 	err := t.backend.StartEndpointMonitoring(ctx, m)
-	framework.ExpectNoError(err, "unable to monitor backend")
+	framework.ExpectNoError(err, fmt.Sprintf("unable to monitor: %s", t.backend.GetLocator()))
 
 	start := time.Now()
 	m.StartSampling(ctx)
 
 	// Wait to ensure the route is still available after the test ends.
 	<-done
-	ginkgo.By("waiting for any post disruption failures")
+	ginkgo.By(fmt.Sprintf("waiting for any post disruption failures: %s", t.backend.GetLocator()))
 	time.Sleep(30 * time.Second)
 	cancel()
 	end := time.Now()
@@ -113,7 +115,13 @@ func (t *backendDisruptionTest) Test(f *framework.Framework, done <-chan struct{
 	allowedDisruption, err := t.getAllowedDisruption(f, end.Sub(start))
 	framework.ExpectNoError(err)
 
-	ExpectNoDisruptionForDuration(f, *allowedDisruption, end.Sub(start), m.Intervals(time.Time{}, time.Time{}), "backendSampler was unreachable during disruption")
+	ExpectNoDisruptionForDuration(
+		f,
+		*allowedDisruption,
+		end.Sub(start),
+		m.Intervals(time.Time{}, time.Time{}),
+		fmt.Sprintf("%s was unreachable during disruption", t.backend.GetLocator()),
+	)
 }
 
 // Teardown cleans up any remaining resources.
