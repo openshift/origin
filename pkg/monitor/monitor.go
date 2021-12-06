@@ -268,7 +268,7 @@ func (m *Monitor) Conditions(from, to time.Time) monitorapi.Intervals {
 	return filterSamples(samples, from, to)
 }
 
-// EventIntervals returns all events that occur between from and to, including
+// Intervals returns all events that occur between from and to, including
 // any sampled conditions that were encountered during that period.
 // Intervals are returned in order of their occurrence. The returned slice
 // is a copy of the monitor's state and is safe to update.
