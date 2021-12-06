@@ -5,30 +5,28 @@ import (
 	"fmt"
 	"time"
 
-	disruption2 "github.com/openshift/origin/pkg/monitor"
-
+	apiconfigv1 "github.com/openshift/api/config/v1"
+	routev1 "github.com/openshift/api/route/v1"
+	routeclient "github.com/openshift/client-go/route/clientset/versioned"
+	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/disruption"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
-
-	apiconfigv1 "github.com/openshift/api/config/v1"
-	routev1 "github.com/openshift/api/route/v1"
-	routeclient "github.com/openshift/client-go/route/clientset/versioned"
-	"github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/disruption"
 )
 
 func NewImageRegistryAvailableWithNewConnectionsTest() upgrades.Test {
 	return disruption.NewBackendDisruptionTest(
 		"[sig-imageregistry] Image registry remains available using new connections",
-		disruption2.NewRouteBackend(
+		monitor.NewRouteBackend(
 			"openshift-image-registry",
 			"test-disruption-new",
 			"image-registry",
 			"/healthz",
-			disruption2.NewConnectionType),
+			monitor.NewConnectionType),
 	).
 		WithAllowedDisruption(allowedImageRegistryDisruption).
 		WithPreSetup(setupImageRegistryFor("test-disruption-new")).
@@ -39,12 +37,12 @@ func NewImageRegistryAvailableWithNewConnectionsTest() upgrades.Test {
 func NewImageRegistryAvailableWithReusedConnectionsTest() upgrades.Test {
 	return disruption.NewBackendDisruptionTest(
 		"[sig-imageregistry] Image registry remains available using reused connections",
-		disruption2.NewRouteBackend(
+		monitor.NewRouteBackend(
 			"openshift-image-registry",
 			"test-disruption-reused",
 			"image-registry",
 			"/healthz",
-			disruption2.ReusedConnectionType),
+			monitor.ReusedConnectionType),
 	).
 		WithAllowedDisruption(allowedImageRegistryDisruption).
 		WithPreSetup(setupImageRegistryFor("test-disruption-reused")).

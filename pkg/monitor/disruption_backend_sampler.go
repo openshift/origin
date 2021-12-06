@@ -264,12 +264,15 @@ func (b *BackendSampler) StartEndpointMonitoring(ctx context.Context, m *Monitor
 		return err
 	}
 
-	go NewSampler(m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
+	go NewSampler(m, time.Second, func(previouslyAvailable bool) (condition *monitorapi.Condition, next bool) {
 		resp, getErr := httpClient.Get(url)
 		var body []byte
 		var bodyReadErr, sampleErr error
 		if getErr == nil {
 			body, bodyReadErr = ioutil.ReadAll(resp.Body)
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				framework.Logf("error closing body: %v: %v", b.locator, closeErr)
+			}
 		}
 
 		// we don't have an error, but the response code was an error, then we have to set an artificial error for the logic below to work.
@@ -288,15 +291,15 @@ func (b *BackendSampler) StartEndpointMonitoring(ctx context.Context, m *Monitor
 		currentlyAvailable := sampleErr == nil
 
 		switch {
-		case sampleErr == nil && previous:
+		case currentlyAvailable && previouslyAvailable:
 			// we are continuing to function.  no condition change.
 			return nil, currentlyAvailable
 
-		case sampleErr != nil && !previous:
+		case !currentlyAvailable && !previouslyAvailable:
 			// we are continuing to fail, no condition change.
 			return nil, currentlyAvailable
 
-		case sampleErr == nil && !previous:
+		case currentlyAvailable && !previouslyAvailable:
 			message := DisruptionEndedMessage(b.GetLocator(), b.GetConnectionType())
 			framework.Logf(message)
 			if b.eventRecorder != nil {
@@ -310,7 +313,7 @@ func (b *BackendSampler) StartEndpointMonitoring(ctx context.Context, m *Monitor
 				Message: message,
 			}, currentlyAvailable
 
-		case sampleErr != nil && previous:
+		case !currentlyAvailable && previouslyAvailable:
 			message := DisruptionBeganMessage(b.GetLocator(), b.GetConnectionType(), sampleErr)
 			framework.Logf(message)
 			if b.eventRecorder != nil {
@@ -325,18 +328,7 @@ func (b *BackendSampler) StartEndpointMonitoring(ctx context.Context, m *Monitor
 			}, currentlyAvailable
 
 		default:
-			message := "math broke resulting in this weird error you need to find"
-			framework.Logf(message)
-			if b.eventRecorder != nil {
-				b.eventRecorder.Eventf(
-					&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: b.disruptionBackendName}, nil,
-					v1.EventTypeWarning, "DisruptionConfused", "detected", message)
-			}
-			return &monitorapi.Condition{
-				Level:   monitorapi.Error,
-				Locator: b.GetLocator(),
-				Message: message,
-			}, currentlyAvailable
+			panic("math broke resulting in this weird error you need to find")
 		}
 
 	}).WhenFailing(ctx, &monitorapi.Condition{
