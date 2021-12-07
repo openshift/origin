@@ -139,7 +139,7 @@ func (b *BackendSampler) GetConnectionType() BackendConnectionType {
 
 func (b *BackendSampler) getTimeout() time.Duration {
 	if b.timeout == nil {
-		return 1 * time.Second
+		return 5 * time.Second
 	}
 	return *b.timeout
 }
