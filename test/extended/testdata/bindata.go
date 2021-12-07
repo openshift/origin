@@ -53181,17 +53181,14 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     }
 
     function isEndpointConnectivity(eventInterval) {
-        if (eventInterval.locator.includes("disruption/")) {
-            return true
-        }
         if (eventInterval.locator.startsWith("ns/e2e-k8s-service-lb-available")) {
             return true
         }
         if (eventInterval.locator.includes(" route/")) {
             return true
         }
-
         return false
+
     }
 
     function isAPIServerConnectivity(eventInterval) {
