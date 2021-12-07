@@ -325,6 +325,22 @@ func ExpectNoDisruption(f *framework.Framework, tolerate float64, total time.Dur
 	}
 }
 
+// ExpectNoDisruptionForDuration fails if the sum of the duration of all events exceeds allowedDisruption, reports a
+// disruption flake if any disruption occurs, and uses reason to prefix the message.
+func ExpectNoDisruptionForDuration(f *framework.Framework, allowedDisruption time.Duration, total time.Duration, events monitorapi.Intervals, reason string) {
+	FrameworkEventIntervals(f, events)
+	disruptionDuration := events.Duration(0, 1*time.Second)
+	describe := events.Strings()
+	if disruptionDuration > allowedDisruption {
+		framework.Failf("%s for at least %s of %s (maxAllowed=%s):\n\n%s", reason, disruptionDuration.Truncate(time.Second), total.Truncate(time.Second), allowedDisruption.Truncate(time.Second), strings.Join(describe, "\n"))
+	} else if disruptionDuration > 0 {
+		FrameworkFlakef(f, "%s for at least %s of %s (maxAllowed=%s), this is currently sufficient to pass the"+
+			" test/job but not considered completely correct.\nTolerating up to %s disruption:\n\n%s",
+			reason, disruptionDuration.Truncate(time.Second), total.Truncate(time.Second), allowedDisruption.Truncate(time.Second), allowedDisruption.Truncate(time.Second),
+			strings.Join(describe, "\n"))
+	}
+}
+
 // FrameworkFlakef records a flake on the current framework.
 func FrameworkFlakef(f *framework.Framework, format string, options ...interface{}) {
 	framework.Logf(format, options...)
