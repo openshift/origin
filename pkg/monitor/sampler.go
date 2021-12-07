@@ -8,6 +8,11 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
+type ConditionalSampler interface {
+	ConditionWhenFailing(context.Context, *monitorapi.Condition) SamplerFunc
+	WhenFailing(context.Context, *monitorapi.Condition)
+}
+
 type sampler struct {
 	onFailing *monitorapi.Condition
 	interval  time.Duration
@@ -18,7 +23,7 @@ type sampler struct {
 	available bool
 }
 
-func NewSampler(recorder Recorder, interval time.Duration, sampleFn SampleFunc) ConditionalSampler {
+func NewSampler(recorder Recorder, interval time.Duration, sampleFn func(previous bool) (*monitorapi.Condition, bool)) ConditionalSampler {
 	s := &sampler{
 		available: true,
 		recorder:  recorder,
@@ -33,31 +38,27 @@ func (s *sampler) run(ctx context.Context) {
 	defer ticker.Stop()
 	var lastInterval int = -1
 	for {
-		previousSampleWasAvailable := s.isAvailable()
+		success := s.isAvailable()
 		// the sampleFn may take a significant period of time to run.  In such a case, we want our start interval
 		// for when a failure started to be the time when the request was first made, not the time when the call
 		// returned.  Imagine a timeout set on a DNS lookup of 30s: when the GET finally fails and returns, the outage
 		// was actually 30s before.
 		startTime := time.Now().UTC()
-		condition, currentSampleIsAvailable := s.sampleFn(previousSampleWasAvailable)
+		condition, ok := s.sampleFn(success)
 		if condition != nil {
 			s.recorder.RecordAt(startTime, *condition)
 		}
 		if s.onFailing != nil {
 			switch {
-			case !previousSampleWasAvailable && currentSampleIsAvailable:
+			case !success && ok:
 				if lastInterval != -1 {
 					s.recorder.EndInterval(lastInterval, time.Now().UTC())
 				}
-			case previousSampleWasAvailable && !currentSampleIsAvailable:
-				if condition != nil { // if an edge condition is provided, use this to load the interval
-					lastInterval = s.recorder.StartInterval(startTime, *condition)
-				} else {
-					lastInterval = s.recorder.StartInterval(startTime, *s.onFailing)
-				}
+			case success && !ok:
+				lastInterval = s.recorder.StartInterval(startTime, *s.onFailing)
 			}
 		}
-		s.setAvailable(currentSampleIsAvailable)
+		s.setAvailable(ok)
 
 		select {
 		case <-ticker.C:

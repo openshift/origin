@@ -71,8 +71,7 @@ func AllTests() []upgrades.Test {
 		&apps.JobUpgradeTest{},
 		&node.ConfigMapUpgradeTest{},
 		&apps.DaemonSetUpgradeTest{},
-		imageregistry.NewImageRegistryAvailableWithNewConnectionsTest(),
-		imageregistry.NewImageRegistryAvailableWithReusedConnectionsTest(),
+		&imageregistry.AvailableTest{},
 		&prometheus.MetricsAvailableAfterUpgradeTest{},
 	}
 }

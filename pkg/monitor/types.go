@@ -1,7 +1,6 @@
 package monitor
 
 import (
-	"context"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -32,17 +31,6 @@ type Recorder interface {
 
 	AddSampler(fn SamplerFunc)
 }
-
-type ConditionalSampler interface {
-	ConditionWhenFailing(context.Context, *monitorapi.Condition) SamplerFunc
-	WhenFailing(context.Context, *monitorapi.Condition)
-}
-
-// SampleFunc takes a bool representing "were you failing last time" and returns
-//  1. a nil condition if there is no noteworthy state change
-//  2. a condition if there is a noteworthy state change
-//  3. a bool indicating if it is currently available
-type SampleFunc func(previouslyAvailable bool) (edgeCondition *monitorapi.Condition, currentlyAvailable bool)
 
 type sample struct {
 	at         time.Time
