@@ -128,7 +128,7 @@ func createAPIServerBackendSampler(clusterConfig *rest.Config, disruptionBackend
 	}
 	// default gets auto-created, so this should always exist
 	backendSampler :=
-		NewAPIServerBackend(disruptionBackendName, url, connectionType).
+		NewBackend(disruptionBackendName, url, connectionType).
 			WithHost(clusterConfig.Host).
 			WithTLSConfig(tlsConfig).
 			WithBearerTokenAuth(kubeTransportConfig.BearerToken, kubeTransportConfig.BearerTokenFile)

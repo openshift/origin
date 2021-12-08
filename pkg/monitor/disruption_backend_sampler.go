@@ -62,7 +62,7 @@ type routeCoordinates struct {
 	name      string
 }
 
-func NewAPIServerBackend(disruptionBackendName, path string, connectionType BackendConnectionType) *BackendSampler {
+func NewBackend(disruptionBackendName, path string, connectionType BackendConnectionType) *BackendSampler {
 	return &BackendSampler{
 		connectionType:        connectionType,
 		locator:               LocateDisruptionCheck(disruptionBackendName, connectionType),
@@ -123,6 +123,10 @@ func (b *BackendSampler) BodyMatches(body []byte) error {
 	}
 
 	return nil
+}
+
+func (b *BackendSampler) SetHost(host string) {
+	b.host = host
 }
 
 func (b *BackendSampler) GetDisruptionBackendName() string {

@@ -20,7 +20,7 @@ import (
 // for each request.
 func NewOAuthRouteAvailableWithNewConnectionsTest() upgrades.Test {
 	return disruption.NewBackendDisruptionTest(
-		"[sig-network-edge] OAuth remains available via cluster backendSampler ingress using new connections",
+		"[sig-network-edge] OAuth remains available via cluster ingress using new connections",
 		monitor.NewRouteBackend(
 			"openshift-authentication",
 			"oauth-openshift",
@@ -36,7 +36,7 @@ func NewOAuthRouteAvailableWithNewConnectionsTest() upgrades.Test {
 // for requests.
 func NewOAuthRouteAvailableWithConnectionReuseTest() upgrades.Test {
 	return disruption.NewBackendDisruptionTest(
-		"[sig-network-edge] OAuth remains available via cluster backendSampler ingress using reused connections",
+		"[sig-network-edge] OAuth remains available via cluster ingress using reused connections",
 		monitor.NewRouteBackend(
 			"openshift-authentication",
 			"oauth-openshift",
@@ -52,7 +52,7 @@ func NewOAuthRouteAvailableWithConnectionReuseTest() upgrades.Test {
 // for each request.
 func NewConsoleRouteAvailableWithNewConnectionsTest() upgrades.Test {
 	return disruption.NewBackendDisruptionTest(
-		"[sig-network-edge] Console remains available via cluster backendSampler ingress using new connections",
+		"[sig-network-edge] Console remains available via cluster ingress using new connections",
 		monitor.NewRouteBackend(
 			"openshift-console",
 			"console",
@@ -68,7 +68,7 @@ func NewConsoleRouteAvailableWithNewConnectionsTest() upgrades.Test {
 // for requests.
 func NewConsoleRouteAvailableWithConnectionReuseTest() upgrades.Test {
 	return disruption.NewBackendDisruptionTest(
-		"[sig-network-edge] Console remains available via cluster backendSampler ingress using reused connections",
+		"[sig-network-edge] Console remains available via cluster ingress using reused connections",
 		monitor.NewRouteBackend(
 			"openshift-console",
 			"console",
