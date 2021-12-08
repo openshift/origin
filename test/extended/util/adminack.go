@@ -22,6 +22,7 @@ import (
 type AdminAckTest struct {
 	Oc     *CLI
 	Config *restclient.Config
+	Poll   time.Duration
 }
 
 const adminAckGateFmt string = "^ack-[4-5][.]([0-9]{1,})-[^-]"
@@ -31,34 +32,56 @@ var adminAckGateRegexp = regexp.MustCompile(adminAckGateFmt)
 // Test simply returns successfully if admin ack functionality is not part of the baseline being tested. Otherwise,
 // for each configured admin ack gate, test verifies the gate name format and that it contains a description. If
 // valid and the gate is applicable to the OCP version under test, test checks the value of the admin ack gate.
-// If the gate has been ack'ed the test verifies that Upgradeable condition is true and clears the ack. Test then
-// verifies Upgradeable condition is false and contains correct reason and correct message. It then modifies the
-// admin-acks configmap to ack the given admin-ack gate. Once all gates have been ack'ed, the test waits for the
-// Upgradeable condition to change to true.
+// If the gate has been ack'ed the test verifies that the Upgradeable condition does not complain about the ack. Test
+// then clears the ack and verifies that the Upgradeable condition complains about the ack. Test then sets the ack
+// and verifies that the Upgradeable condition no longer complains about the ack.
 func (t *AdminAckTest) Test(ctx context.Context) {
+	if t.Poll == 0 {
+		t.test(ctx, nil)
+		return
+	}
 
-	gateCm, errMsg := getAdminGatesConfigMap(ctx, t.Oc)
-	if len(errMsg) != 0 {
-		framework.Failf(errMsg)
+	exercisedGates := map[string]struct{}{}
+	if err := wait.PollImmediateUntilWithContext(ctx, t.Poll, func(ctx context.Context) (bool, error) {
+		t.test(ctx, exercisedGates)
+		return false, nil
+	}); err == nil || err == wait.ErrWaitTimeout {
+		return
+	} else {
+		framework.Fail(err.Error())
+	}
+}
+
+func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struct{}) {
+	exists := struct{}{}
+
+	gateCm, err := getAdminGatesConfigMap(ctx, t.Oc)
+	if err != nil {
+		framework.Fail(err.Error())
 	}
 	// Check if this release has admin ack functionality.
 	if gateCm == nil || (gateCm != nil && len(gateCm.Data) == 0) {
 		framework.Logf("Skipping admin ack test. Admin ack is not in this baseline or contains no gates.")
 		return
 	}
-	ackCm, errMsg := getAdminAcksConfigMap(ctx, t.Oc)
-	if len(errMsg) != 0 {
-		framework.Failf(errMsg)
+	ackCm, err := getAdminAcksConfigMap(ctx, t.Oc)
+	if err != nil {
+		framework.Fail(err.Error())
 	}
 	currentVersion := getCurrentVersion(ctx, t.Config)
 	var msg string
 	for k, v := range gateCm.Data {
+		if exercisedGates != nil {
+			if _, ok := exercisedGates[k]; ok {
+				continue
+			}
+		}
 		ackVersion := adminAckGateRegexp.FindString(k)
 		if ackVersion == "" {
-			framework.Failf(fmt.Sprintf("Configmap openshift-config-managed/admin-gates gate %s has invalid format; must comply with %q.", k, adminAckGateFmt))
+			framework.Failf("Configmap openshift-config-managed/admin-gates gate %s has invalid format; must comply with %q.", k, adminAckGateFmt)
 		}
 		if v == "" {
-			framework.Failf(fmt.Sprintf("Configmap openshift-config-managed/admin-gates gate %s does not contain description.", k))
+			framework.Failf("Configmap openshift-config-managed/admin-gates gate %s does not contain description.", k)
 		}
 		if !gateApplicableToCurrentVersion(ackVersion, currentVersion) {
 			continue
@@ -66,28 +89,30 @@ func (t *AdminAckTest) Test(ctx context.Context) {
 		if ackCm.Data[k] == "true" {
 			if upgradeableExplicitlyFalse(ctx, t.Config) {
 				if adminAckRequiredWithMessage(ctx, t.Config, v) {
-					framework.Failf(fmt.Sprintf("Gate %s has been ack'ed but Upgradeable is "+
-						"false with reason AdminAckRequired and message %q.", k, v))
+					framework.Failf("Gate %s has been ack'ed but Upgradeable is "+
+						"false with reason AdminAckRequired and message %q.", k, v)
 				}
-				framework.Logf(fmt.Sprintf("Gate %s has been ack'ed. Upgradeable is "+
-					"false but not due to this gate which would set reason AdminAckRequired with message %s.", k, v) +
-					" " + getUpgradeable(ctx, t.Config))
+				framework.Logf("Gate %s has been ack'ed. Upgradeable is "+
+					"false but not due to this gate which would set reason AdminAckRequired with message %s. %s", k, v, getUpgradeable(ctx, t.Config))
 			}
 			// Clear admin ack configmap gate ack
-			if errMsg = setAdminGate(ctx, k, "", t.Oc); len(errMsg) != 0 {
-				framework.Failf(errMsg)
+			if err := setAdminGate(ctx, k, "", t.Oc); err != nil {
+				framework.Fail(err.Error())
 			}
 		}
-		if errMsg = waitForAdminAckRequired(ctx, t.Config, msg); len(errMsg) != 0 {
-			framework.Failf(errMsg)
+		if err := waitForAdminAckRequired(ctx, t.Config, msg); err != nil {
+			framework.Fail(err.Error())
 		}
 		// Update admin ack configmap with ack
-		if errMsg = setAdminGate(ctx, k, "true", t.Oc); len(errMsg) != 0 {
-			framework.Failf(errMsg)
+		if err := setAdminGate(ctx, k, "true", t.Oc); err != nil {
+			framework.Fail(err.Error())
 		}
-	}
-	if errMsg = waitForUpgradeable(ctx, t.Config); len(errMsg) != 0 {
-		framework.Failf(errMsg)
+		if err = waitForAdminAckNotRequired(ctx, t.Config, msg); err != nil {
+			framework.Fail(err.Error())
+		}
+		if exercisedGates != nil {
+			exercisedGates[k] = exists
+		}
 	}
 	framework.Logf("Admin Ack verified")
 }
@@ -96,11 +121,11 @@ func (t *AdminAckTest) Test(ctx context.Context) {
 func getClusterVersion(ctx context.Context, config *restclient.Config) *configv1.ClusterVersion {
 	c, err := configv1client.NewForConfig(config)
 	if err != nil {
-		framework.Failf(fmt.Sprintf("Error getting config, err=%v", err))
+		framework.Failf("Error getting config, err=%v", err)
 	}
 	cv, err := c.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
 	if err != nil {
-		framework.Failf(fmt.Sprintf("Error getting custer version, err=%v", err))
+		framework.Failf("Error getting custer version, err=%v", err)
 	}
 	return cv
 }
@@ -143,24 +168,24 @@ func gateApplicableToCurrentVersion(gateAckVersion string, currentVersion string
 	return false
 }
 
-func getAdminGatesConfigMap(ctx context.Context, oc *CLI) (*corev1.ConfigMap, string) {
+func getAdminGatesConfigMap(ctx context.Context, oc *CLI) (*corev1.ConfigMap, error) {
 	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(ctx, "admin-gates", metav1.GetOptions{})
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
-			return nil, fmt.Sprintf("Error accessing configmap openshift-config-managed/admin-gates, err=%v", err)
+			return nil, fmt.Errorf("Error accessing configmap openshift-config-managed/admin-gates: %w", err)
 		} else {
-			return nil, ""
+			return nil, nil
 		}
 	}
-	return cm, ""
+	return cm, nil
 }
 
-func getAdminAcksConfigMap(ctx context.Context, oc *CLI) (*corev1.ConfigMap, string) {
+func getAdminAcksConfigMap(ctx context.Context, oc *CLI) (*corev1.ConfigMap, error) {
 	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Get(ctx, "admin-acks", metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Sprintf("Error accessing configmap openshift-config/admin-acks, err=%v", err)
+		return nil, fmt.Errorf("Error accessing configmap openshift-config/admin-acks: %w", err)
 	}
-	return cm, ""
+	return cm, nil
 }
 
 // adminAckRequiredWithMessage returns true if Upgradeable condition reason contains AdminAckRequired
@@ -185,44 +210,45 @@ func upgradeableExplicitlyFalse(ctx context.Context, config *restclient.Config) 
 }
 
 // setAdminGate gets the admin ack configmap and then updates it with given gate name and given value.
-func setAdminGate(ctx context.Context, gateName string, gateValue string, oc *CLI) string {
-	ackCm, errMsg := getAdminAcksConfigMap(ctx, oc)
-	if len(errMsg) != 0 {
-		framework.Failf(errMsg)
+func setAdminGate(ctx context.Context, gateName string, gateValue string, oc *CLI) error {
+	ackCm, err := getAdminAcksConfigMap(ctx, oc)
+	if err != nil {
+		return err
+	}
+	if ackCm.Data == nil {
+		ackCm.Data = make(map[string]string)
 	}
 	ackCm.Data[gateName] = gateValue
-	_, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Update(ctx, ackCm, metav1.UpdateOptions{})
-	if err != nil {
-		return fmt.Sprintf("Unable to update configmap openshift-config/admin-acks, err=%v.", err)
+	if _, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Update(ctx, ackCm, metav1.UpdateOptions{}); err != nil {
+		return fmt.Errorf("Unable to update configmap openshift-config/admin-acks: %w", err)
 	}
-	return ""
+	return nil
 }
 
-func waitForAdminAckRequired(ctx context.Context, config *restclient.Config, message string) string {
-	framework.Logf("Waiting for Upgradeable to be AdminAckRequired...")
+func waitForAdminAckRequired(ctx context.Context, config *restclient.Config, message string) error {
+	framework.Logf("Waiting for Upgradeable to be AdminAckRequired for %q ...", message)
 	if err := wait.PollImmediate(10*time.Second, 3*time.Minute, func() (bool, error) {
 		if adminAckRequiredWithMessage(ctx, config, message) {
 			return true, nil
 		}
 		return false, nil
 	}); err != nil {
-		return fmt.Sprintf("Error while waiting for Upgradeable to go AdminAckRequired with message %q, err=%v", message, err) +
-			" " + getUpgradeable(ctx, config)
+		return fmt.Errorf("Error while waiting for Upgradeable to go AdminAckRequired with message %q: %w\n%s", message, err, getUpgradeable(ctx, config))
 	}
-	return ""
+	return nil
 }
 
-func waitForUpgradeable(ctx context.Context, config *restclient.Config) string {
-	framework.Logf("Waiting for Upgradeable true...")
+func waitForAdminAckNotRequired(ctx context.Context, config *restclient.Config, message string) error {
+	framework.Logf("Waiting for Upgradeable to not be AdminAckRequired for %q ...", message)
 	if err := wait.PollImmediate(10*time.Second, 3*time.Minute, func() (bool, error) {
-		if !upgradeableExplicitlyFalse(ctx, config) {
+		if !adminAckRequiredWithMessage(ctx, config, message) {
 			return true, nil
 		}
 		return false, nil
 	}); err != nil {
-		return fmt.Sprintf("Error while waiting for Upgradeable to go true, err=%v", err) + " " + getUpgradeable(ctx, config)
+		return fmt.Errorf("Error while waiting for Upgradeable to not be AdminAckRequired with message %q: %w\n%s", message, err, getUpgradeable(ctx, config))
 	}
-	return ""
+	return nil
 }
 
 func getUpgradeableStatusCondition(conditions []configv1.ClusterOperatorStatusCondition) *configv1.ClusterOperatorStatusCondition {
