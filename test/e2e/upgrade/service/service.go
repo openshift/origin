@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -21,49 +22,58 @@ import (
 	"k8s.io/kubernetes/test/e2e/upgrades"
 )
 
-// serviceLoadBalancerUpgradeTest tests that a service is available before, during, and
+// serviceLoadBalancerSetupTeardown tests that a service is available before, during, and
 // after a cluster upgrade.
-type serviceLoadBalancerUpgradeTest struct {
+type serviceLoadBalancerSetupTeardown struct {
 	// filled in by presetup
 	jig                 *service.TestJig
 	tcpService          *v1.Service
 	unsupportedPlatform bool
 
-	backendDisruptionTest disruption.BackendDisruptionUpgradeTest
+	setup         sync.Once
+	teardown      sync.Once
+	testsInFlight sync.WaitGroup
 }
 
-func NewServiceLoadBalancerWithNewConnectionsTest() upgrades.Test {
-	serviceLBTest := &serviceLoadBalancerUpgradeTest{}
-	serviceLBTest.backendDisruptionTest =
-		disruption.NewBackendDisruptionTest(
-			"[sig-network-edge] Application behind service load balancer with PDB remains available using new connections",
-			backenddisruption.NewSimpleBackend(
-				"", // late binding host
-				"service-loadbalancer-with-pdb",
-				"/echo?msg=Hello",
-				backenddisruption.NewConnectionType).
-				WithExpectedBody("Hello"),
-		).WithAllowedDisruption(allowedServiceLBDisruption).
-			WithPreSetup(serviceLBTest.loadBalancerSetup)
+// returns new and used disruption tests.  They have to share a single service and set of pods and teardown because it's
+// doing something that is exposed on a node, so these are shared so that we can get this finished.
+func NewServiceLoadBalancerDisruptionTests() (upgrades.Test, upgrades.Test) {
+	serviceLBSetup := &serviceLoadBalancerSetupTeardown{
+		setup:         sync.Once{},
+		testsInFlight: sync.WaitGroup{},
+	}
 
-	return serviceLBTest
-}
+	newConnections := disruption.NewBackendDisruptionTest(
+		"[sig-network-edge] Application behind service load balancer with PDB remains available using new connections",
+		backenddisruption.NewSimpleBackend(
+			"", // late binding host
+			"service-loadbalancer-with-pdb",
+			"/echo?msg=Hello",
+			backenddisruption.NewConnectionType).
+			WithExpectedBody("Hello"),
+	).WithAllowedDisruption(allowedServiceLBDisruption).
+		WithPreSetup(serviceLBSetup.loadBalancerSetup).
+		WithPostTeardown(serviceLBSetup.loadBalancerTeardown)
 
-func NewServiceLoadBalancerWithReusedConnectionsTest() upgrades.Test {
-	serviceLBTest := &serviceLoadBalancerUpgradeTest{}
-	serviceLBTest.backendDisruptionTest =
-		disruption.NewBackendDisruptionTest(
-			"[sig-network-edge] Application behind service load balancer with PDB remains available using reused connections",
-			backenddisruption.NewSimpleBackend(
-				"", // late binding host
-				"service-loadbalancer-with-pdb",
-				"/echo?msg=Hello",
-				backenddisruption.ReusedConnectionType).
-				WithExpectedBody("Hello"),
-		).WithAllowedDisruption(allowedServiceLBDisruption).
-			WithPreSetup(serviceLBTest.loadBalancerSetup)
+	usedConnections := disruption.NewBackendDisruptionTest(
+		"[sig-network-edge] Application behind service load balancer with PDB remains available using reused connections",
+		backenddisruption.NewSimpleBackend(
+			"", // late binding host
+			"service-loadbalancer-with-pdb",
+			"/echo?msg=Hello",
+			backenddisruption.ReusedConnectionType).
+			WithExpectedBody("Hello"),
+	).WithAllowedDisruption(allowedServiceLBDisruption).
+		WithPreSetup(serviceLBSetup.loadBalancerSetup).
+		WithPostTeardown(serviceLBSetup.loadBalancerTeardown)
 
-	return serviceLBTest
+	return &serviceLoadBalancerUpdateTest{
+			BackendDisruptionUpgradeTest: newConnections,
+			setupTeardown:                serviceLBSetup,
+		}, &serviceLoadBalancerUpdateTest{
+			BackendDisruptionUpgradeTest: usedConnections,
+			setupTeardown:                serviceLBSetup,
+		}
 }
 
 func allowedServiceLBDisruption(f *framework.Framework, totalDuration time.Duration) (*time.Duration, error) {
@@ -74,14 +84,9 @@ func allowedServiceLBDisruption(f *framework.Framework, totalDuration time.Durat
 	return &allowedDisruption, nil
 }
 
-func (t *serviceLoadBalancerUpgradeTest) Name() string { return t.backendDisruptionTest.Name() }
-func (t *serviceLoadBalancerUpgradeTest) DisplayName() string {
-	return t.backendDisruptionTest.DisplayName()
-}
-
 func shouldTestPDBs() bool { return true }
 
-func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framework, backendSampler disruption.BackendSampler) error {
+func (t *serviceLoadBalancerSetupTeardown) loadBalancerSetup(f *framework.Framework, backendSampler disruption.BackendSampler) error {
 	configClient, err := configclient.NewForConfig(f.ClientConfig())
 	framework.ExpectNoError(err)
 	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
@@ -98,63 +103,68 @@ func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framewor
 		return nil
 	}
 
-	serviceName := "service-test"
-	jig := service.NewTestJig(f.ClientSet, f.Namespace.Name, serviceName)
+	t.setup.Do(
+		func() {
+			serviceName := "service-test"
+			jig := service.NewTestJig(f.ClientSet, f.Namespace.Name, serviceName)
 
-	ns := f.Namespace
-	cs := f.ClientSet
+			ns := f.Namespace
+			cs := f.ClientSet
 
-	ginkgo.By("creating a TCP service " + serviceName + " with type=LoadBalancer in namespace " + ns.Name)
-	tcpService, err := jig.CreateTCPService(func(s *v1.Service) {
-		s.Spec.Type = v1.ServiceTypeLoadBalancer
-		// ServiceExternalTrafficPolicyTypeCluster performs during disruption, Local does not
-		s.Spec.ExternalTrafficPolicy = v1.ServiceExternalTrafficPolicyTypeCluster
-		if s.Annotations == nil {
-			s.Annotations = make(map[string]string)
-		}
-		// We tune the LB checks to match the longest intervals available so that interactions between
-		// upgrading components and the service are more obvious.
-		// - AWS allows configuration, default is 70s (6 failed with 10s interval in 1.17) set to match GCP
-		s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval"] = "8"
-		s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold"] = "3"
-		s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold"] = "2"
-		// - Azure is hardcoded to 15s (2 failed with 5s interval in 1.17) and is sufficient
-		// - GCP has a non-configurable interval of 32s (3 failed health checks with 8s interval in 1.17)
-		//   - thus pods need to stay up for > 32s, so pod shutdown period will will be 45s
-	})
-	framework.ExpectNoError(err)
-	tcpService, err = jig.WaitForLoadBalancer(service.GetServiceLoadBalancerCreationTimeout(cs))
-	framework.ExpectNoError(err)
+			ginkgo.By("creating a TCP service " + serviceName + " with type=LoadBalancer in namespace " + ns.Name)
+			tcpService, err := jig.CreateTCPService(func(s *v1.Service) {
+				s.Spec.Type = v1.ServiceTypeLoadBalancer
+				// ServiceExternalTrafficPolicyTypeCluster performs during disruption, Local does not
+				s.Spec.ExternalTrafficPolicy = v1.ServiceExternalTrafficPolicyTypeCluster
+				if s.Annotations == nil {
+					s.Annotations = make(map[string]string)
+				}
+				// We tune the LB checks to match the longest intervals available so that interactions between
+				// upgrading components and the service are more obvious.
+				// - AWS allows configuration, default is 70s (6 failed with 10s interval in 1.17) set to match GCP
+				s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval"] = "8"
+				s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold"] = "3"
+				s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold"] = "2"
+				// - Azure is hardcoded to 15s (2 failed with 5s interval in 1.17) and is sufficient
+				// - GCP has a non-configurable interval of 32s (3 failed health checks with 8s interval in 1.17)
+				//   - thus pods need to stay up for > 32s, so pod shutdown period will will be 45s
+			})
+			framework.ExpectNoError(err)
+			tcpService, err = jig.WaitForLoadBalancer(service.GetServiceLoadBalancerCreationTimeout(cs))
+			framework.ExpectNoError(err)
 
-	// Get info to hit it with
-	tcpIngressIP := service.GetIngressPoint(&tcpService.Status.LoadBalancer.Ingress[0])
-	svcPort := int(tcpService.Spec.Ports[0].Port)
+			ginkgo.By("creating RC to be part of service " + serviceName)
+			rc, err := jig.Run(func(rc *v1.ReplicationController) {
+				// ensure the pod waits long enough during update for the LB to see the newly ready pod, which
+				// must be longer than the worst load balancer above (GCP at 32s)
+				rc.Spec.MinReadySeconds = 33
+				// ensure the pod waits long enough for most LBs to take it out of rotation, which has to be
+				// longer than the LB failed health check duration + 1 cycle
+				rc.Spec.Template.Spec.Containers[0].Lifecycle = &v1.Lifecycle{
+					PreStop: &v1.Handler{
+						Exec: &v1.ExecAction{Command: []string{"sleep", "45"}},
+					},
+				}
+				// ensure the pod is not forcibly deleted at 30s, but waits longer than the graceful sleep
+				minute := int64(60)
+				rc.Spec.Template.Spec.TerminationGracePeriodSeconds = &minute
 
-	ginkgo.By("creating RC to be part of service " + serviceName)
-	rc, err := jig.Run(func(rc *v1.ReplicationController) {
-		// ensure the pod waits long enough during update for the LB to see the newly ready pod, which
-		// must be longer than the worst load balancer above (GCP at 32s)
-		rc.Spec.MinReadySeconds = 33
-		// ensure the pod waits long enough for most LBs to take it out of rotation, which has to be
-		// longer than the LB failed health check duration + 1 cycle
-		rc.Spec.Template.Spec.Containers[0].Lifecycle = &v1.Lifecycle{
-			PreStop: &v1.Handler{
-				Exec: &v1.ExecAction{Command: []string{"sleep", "45"}},
-			},
-		}
-		// ensure the pod is not forcibly deleted at 30s, but waits longer than the graceful sleep
-		minute := int64(60)
-		rc.Spec.Template.Spec.TerminationGracePeriodSeconds = &minute
+				jig.AddRCAntiAffinity(rc)
+			})
+			framework.ExpectNoError(err)
 
-		jig.AddRCAntiAffinity(rc)
-	})
-	framework.ExpectNoError(err)
+			if shouldTestPDBs() {
+				ginkgo.By("creating a PodDisruptionBudget to cover the ReplicationController")
+				_, err = jig.CreatePDB(rc)
+				framework.ExpectNoError(err)
+			}
 
-	if shouldTestPDBs() {
-		ginkgo.By("creating a PodDisruptionBudget to cover the ReplicationController")
-		_, err = jig.CreatePDB(rc)
-		framework.ExpectNoError(err)
-	}
+			t.jig = jig
+			t.tcpService = tcpService
+		})
+
+	tcpIngressIP := service.GetIngressPoint(&t.tcpService.Status.LoadBalancer.Ingress[0])
+	svcPort := int(t.tcpService.Spec.Ports[0].Port)
 
 	// Hit it once before considering ourselves ready
 	ginkgo.By("hitting pods through the service's LoadBalancer")
@@ -165,34 +175,24 @@ func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framewor
 
 	backendSampler.SetHost(fmt.Sprintf("http://%s", net.JoinHostPort(tcpIngressIP, strconv.Itoa(svcPort))))
 
-	t.jig = jig
-	t.tcpService = tcpService
 	return nil
 }
 
-// Test runs a connectivity check to the service.
-func (t *serviceLoadBalancerUpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
-	if t.unsupportedPlatform {
-		return
-	}
-
-	t.backendDisruptionTest.Test(f, done, upgrade)
+func (t *serviceLoadBalancerSetupTeardown) loadBalancerTeardown(f *framework.Framework) error {
+	t.testsInFlight.Wait()
 
 	// verify finalizer behavior
-	defer func() {
-		ginkgo.By("Check that service can be deleted with finalizer")
-		service.WaitForServiceDeletedWithFinalizer(t.jig.Client, t.tcpService.Namespace, t.tcpService.Name)
-	}()
-	ginkgo.By("Check that finalizer is present on loadBalancer type service")
-	service.WaitForServiceUpdatedWithFinalizer(t.jig.Client, t.tcpService.Namespace, t.tcpService.Name, true)
-}
+	// we can only do this once and only after all the tests are done
+	t.teardown.Do(func() {
+		defer func() {
+			ginkgo.By("Check that service can be deleted with finalizer")
+			service.WaitForServiceDeletedWithFinalizer(t.jig.Client, t.tcpService.Namespace, t.tcpService.Name)
+		}()
+		ginkgo.By("Check that finalizer is present on loadBalancer type service")
+		service.WaitForServiceUpdatedWithFinalizer(t.jig.Client, t.tcpService.Namespace, t.tcpService.Name, true)
+	})
 
-func (t *serviceLoadBalancerUpgradeTest) Teardown(f *framework.Framework) {
-	t.backendDisruptionTest.Teardown(f)
-}
-
-func (t *serviceLoadBalancerUpgradeTest) Setup(f *framework.Framework) {
-	t.backendDisruptionTest.Setup(f)
+	return nil
 }
 
 // TestReachableHTTPWithMinSuccessCount tests that the given host serves HTTP on the given port for a minimum of successCount number of
@@ -213,4 +213,21 @@ func TestReachableHTTPWithMinSuccessCount(host string, port int, successCount in
 		return false, nil // caller can retry
 	})
 	framework.ExpectNoError(err)
+}
+
+type serviceLoadBalancerUpdateTest struct {
+	disruption.BackendDisruptionUpgradeTest
+
+	setupTeardown *serviceLoadBalancerSetupTeardown
+}
+
+// Test runs a connectivity check to the service.
+func (t *serviceLoadBalancerUpdateTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
+	if t.setupTeardown.unsupportedPlatform {
+		return
+	}
+	t.setupTeardown.testsInFlight.Add(1)
+	defer t.setupTeardown.testsInFlight.Done()
+
+	t.BackendDisruptionUpgradeTest.Test(f, done, upgrade)
 }

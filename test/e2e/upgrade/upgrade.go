@@ -50,6 +50,8 @@ func NoTests() []upgrades.Test {
 
 // AllTests includes all tests (minimal + disruption)
 func AllTests() []upgrades.Test {
+	serviceLoadBalancerWithNewConnectionsTest, serviceLoadBalancerWithReusedConnectionsTest := service.NewServiceLoadBalancerDisruptionTests()
+
 	return []upgrades.Test{
 		&adminack.UpgradeTest{},
 		controlplane.NewKubeAvailableWithNewConnectionsTest(),
@@ -64,8 +66,8 @@ func AllTests() []upgrades.Test {
 		frontends.NewOAuthRouteAvailableWithConnectionReuseTest(),
 		frontends.NewConsoleRouteAvailableWithNewConnectionsTest(),
 		frontends.NewConsoleRouteAvailableWithConnectionReuseTest(),
-		service.NewServiceLoadBalancerWithNewConnectionsTest(),
-		service.NewServiceLoadBalancerWithReusedConnectionsTest(),
+		serviceLoadBalancerWithNewConnectionsTest,
+		serviceLoadBalancerWithReusedConnectionsTest,
 		&node.SecretUpgradeTest{},
 		&apps.ReplicaSetUpgradeTest{},
 		&apps.StatefulSetUpgradeTest{},
