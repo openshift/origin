@@ -41,6 +41,7 @@ import (
 	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	"k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/kubernetes/test/e2e/framework/statefulset"
 	"k8s.io/kubernetes/test/utils/image"
 
@@ -2054,4 +2055,12 @@ func GetHypershiftManagementClusterConfigAndNamespace() (string, string, error) 
 	hypershiftManagementClusterNamespace = namespace
 
 	return hypershiftManagementClusterKubeconfig, hypershiftManagementClusterNamespace, nil
+}
+
+func SkipIfExternalControlplaneTopology(oc *CLI, reason string) {
+	controlPlaneTopology, err := GetControlPlaneTopology(oc)
+	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
+	if *controlPlaneTopology == configv1.ExternalTopologyMode {
+		skipper.Skipf(reason)
+	}
 }
