@@ -313,8 +313,10 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 // if the sum of the intervals is greater than 1m, or report a flake if any interval is found.
 func ExpectNoDisruption(f *framework.Framework, tolerate float64, total time.Duration, events monitorapi.Intervals, reason string) {
 	FrameworkEventIntervals(f, events)
-	duration := events.Duration(0, 1*time.Second)
 	describe := events.Strings()
+
+	errorEvents := events.Filter(monitorapi.IsErrorEvent)
+	duration := errorEvents.Duration(0, 1*time.Second)
 	if percent := float64(duration) / float64(total); percent > tolerate {
 		framework.Failf("%s for at least %s of %s (%0.0f%%, but only %0.0f%% is tolerated):\n\n%s", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, tolerate*100, strings.Join(describe, "\n"))
 	} else if duration > 0 {
@@ -329,8 +331,10 @@ func ExpectNoDisruption(f *framework.Framework, tolerate float64, total time.Dur
 // disruption flake if any disruption occurs, and uses reason to prefix the message.
 func ExpectNoDisruptionForDuration(f *framework.Framework, allowedDisruption time.Duration, total time.Duration, events monitorapi.Intervals, reason string) {
 	FrameworkEventIntervals(f, events)
-	disruptionDuration := events.Duration(0, 1*time.Second)
 	describe := events.Strings()
+
+	errorEvents := events.Filter(monitorapi.IsErrorEvent)
+	disruptionDuration := errorEvents.Duration(0, 1*time.Second)
 	if disruptionDuration > allowedDisruption {
 		framework.Failf("%s for at least %s of %s (maxAllowed=%s):\n\n%s", reason, disruptionDuration.Truncate(time.Second), total.Truncate(time.Second), allowedDisruption.Truncate(time.Second), strings.Join(describe, "\n"))
 	} else if disruptionDuration > 0 {

@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/backenddisruption"
+
 	apiconfigv1 "github.com/openshift/api/config/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
-	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,12 +22,12 @@ import (
 func NewImageRegistryAvailableWithNewConnectionsTest() upgrades.Test {
 	return disruption.NewBackendDisruptionTest(
 		"[sig-imageregistry] Image registry remains available using new connections",
-		monitor.NewRouteBackend(
+		backenddisruption.NewRouteBackend(
 			"openshift-image-registry",
 			"test-disruption-new",
 			"image-registry",
 			"/healthz",
-			monitor.NewConnectionType),
+			backenddisruption.NewConnectionType),
 	).
 		WithAllowedDisruption(allowedImageRegistryDisruption).
 		WithPreSetup(setupImageRegistryFor("test-disruption-new")).
@@ -37,12 +38,12 @@ func NewImageRegistryAvailableWithNewConnectionsTest() upgrades.Test {
 func NewImageRegistryAvailableWithReusedConnectionsTest() upgrades.Test {
 	return disruption.NewBackendDisruptionTest(
 		"[sig-imageregistry] Image registry remains available using reused connections",
-		monitor.NewRouteBackend(
+		backenddisruption.NewRouteBackend(
 			"openshift-image-registry",
 			"test-disruption-reused",
 			"image-registry",
 			"/healthz",
-			monitor.ReusedConnectionType),
+			backenddisruption.ReusedConnectionType),
 	).
 		WithAllowedDisruption(allowedImageRegistryDisruption).
 		WithPreSetup(setupImageRegistryFor("test-disruption-reused")).
@@ -139,6 +140,10 @@ func setupImageRegistryFor(routeName string) disruption.SetupFunc {
 		if err != nil {
 			return fmt.Errorf("failed to get route host: %w", err)
 		}
+
+		// in CI we observe a gap between the route having status and the route actually being exposed consistently.
+		// this results in a 503 for 4 seconds observed so far.  I'm choosing 30 seconds more or less at random.
+		time.Sleep(30 * time.Second)
 
 		return nil
 	}

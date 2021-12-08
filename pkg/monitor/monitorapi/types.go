@@ -164,15 +164,26 @@ func (intervals Intervals) Duration(defaultDuration, minDuration time.Duration) 
 	return duration
 }
 
+// EventIntervalMatchesFunc is a function for matching eventIntervales
+type EventIntervalMatchesFunc func(eventInterval EventInterval) bool
+
+// IsErrorEvent returns true if the eventInterval is an Error
+func IsErrorEvent(eventInterval EventInterval) bool {
+	if eventInterval.Level == Error {
+		return true
+	}
+	return false
+}
+
 // Filter returns a copy of intervals with only intervals that match the provided
 // function.
-func (intervals Intervals) Filter(fn func(i EventInterval) bool) Intervals {
+func (intervals Intervals) Filter(eventFilterMatches EventIntervalMatchesFunc) Intervals {
 	if len(intervals) == 0 {
 		return Intervals(nil)
 	}
 	copied := make(Intervals, 0, len(intervals))
 	for _, interval := range intervals {
-		if fn(interval) {
+		if eventFilterMatches(interval) {
 			copied = append(copied, interval)
 		}
 	}

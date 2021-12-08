@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/backenddisruption"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
 	"github.com/onsi/ginkgo"
@@ -193,8 +195,8 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 		},
 	}
 
-	reusedConnectionLocator := monitor.LocateDisruptionCheck("service-loadbalancer-with-pdb", monitor.ReusedConnectionType)
-	newConnectionLocator := monitor.LocateDisruptionCheck("service-loadbalancer-with-pdb", monitor.NewConnectionType)
+	reusedConnectionLocator := backenddisruption.LocateDisruptionCheck("service-loadbalancer-with-pdb", backenddisruption.ReusedConnectionType)
+	newConnectionLocator := backenddisruption.LocateDisruptionCheck("service-loadbalancer-with-pdb", backenddisruption.NewConnectionType)
 	go monitor.NewSampler(m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
 		resp, err := continuousClient.Get(url)
 		if err == nil {
@@ -209,7 +211,7 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 			condition = &monitorapi.Condition{
 				Level:   monitorapi.Info,
 				Locator: reusedConnectionLocator,
-				Message: monitor.DisruptionEndedMessage(reusedConnectionLocator, monitor.ReusedConnectionType),
+				Message: backenddisruption.DisruptionEndedMessage(reusedConnectionLocator, backenddisruption.ReusedConnectionType),
 			}
 		case err != nil && previous:
 			framework.Logf("Service %s is unreachable on reused connections: %v", svc.Name, err)
@@ -217,7 +219,7 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 			condition = &monitorapi.Condition{
 				Level:   monitorapi.Error,
 				Locator: reusedConnectionLocator,
-				Message: monitor.DisruptionBeganMessage(reusedConnectionLocator, monitor.ReusedConnectionType, err),
+				Message: backenddisruption.DisruptionBeganMessage(reusedConnectionLocator, backenddisruption.ReusedConnectionType, err),
 			}
 		case err != nil:
 			framework.Logf("Service %s is unreachable on reused connections: %v", svc.Name, err)
@@ -226,7 +228,7 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 	}).WhenFailing(ctx, &monitorapi.Condition{
 		Level:   monitorapi.Error,
 		Locator: reusedConnectionLocator,
-		Message: monitor.DisruptionContinuingMessage(reusedConnectionLocator, monitor.ReusedConnectionType, fmt.Errorf("missing error in the code")),
+		Message: backenddisruption.DisruptionContinuingMessage(reusedConnectionLocator, backenddisruption.ReusedConnectionType, fmt.Errorf("missing error in the code")),
 	})
 
 	// this client creates fresh connections and detects failure to establish connections
@@ -257,7 +259,7 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 			condition = &monitorapi.Condition{
 				Level:   monitorapi.Info,
 				Locator: newConnectionLocator,
-				Message: monitor.DisruptionEndedMessage(newConnectionLocator, monitor.NewConnectionType),
+				Message: backenddisruption.DisruptionEndedMessage(newConnectionLocator, backenddisruption.NewConnectionType),
 			}
 		case err != nil && previous:
 			framework.Logf("Service %s is unreachable on new connections: %v", svc.Name, err)
@@ -265,7 +267,7 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 			condition = &monitorapi.Condition{
 				Level:   monitorapi.Error,
 				Locator: newConnectionLocator,
-				Message: monitor.DisruptionBeganMessage(newConnectionLocator, monitor.NewConnectionType, err),
+				Message: backenddisruption.DisruptionBeganMessage(newConnectionLocator, backenddisruption.NewConnectionType, err),
 			}
 		case err != nil:
 			framework.Logf("Service %s is unreachable on new connections: %v", svc.Name, err)
@@ -274,7 +276,7 @@ func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Se
 	}).WhenFailing(ctx, &monitorapi.Condition{
 		Level:   monitorapi.Error,
 		Locator: newConnectionLocator,
-		Message: monitor.DisruptionContinuingMessage(newConnectionLocator, monitor.NewConnectionType, fmt.Errorf("missing error in the code")),
+		Message: backenddisruption.DisruptionContinuingMessage(newConnectionLocator, backenddisruption.NewConnectionType, fmt.Errorf("missing error in the code")),
 	})
 
 	return nil

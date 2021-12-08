@@ -4,10 +4,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/backenddisruption"
+
 	"github.com/blang/semver"
 	apiconfigv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
-	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,12 +22,12 @@ import (
 func NewOAuthRouteAvailableWithNewConnectionsTest() upgrades.Test {
 	return disruption.NewBackendDisruptionTest(
 		"[sig-network-edge] OAuth remains available via cluster backendSampler ingress using new connections",
-		monitor.NewRouteBackend(
+		backenddisruption.NewRouteBackend(
 			"openshift-authentication",
 			"oauth-openshift",
 			"ingress-to-oauth-server",
 			"/healthz",
-			monitor.NewConnectionType).
+			backenddisruption.NewConnectionType).
 			WithExpectedBody("ok"),
 	).WithAllowedDisruption(allowedIngressDisruption)
 }
@@ -36,13 +37,13 @@ func NewOAuthRouteAvailableWithNewConnectionsTest() upgrades.Test {
 // for requests.
 func NewOAuthRouteAvailableWithConnectionReuseTest() upgrades.Test {
 	return disruption.NewBackendDisruptionTest(
-		"[sig-network-edge] OAuth remains available via cluster backendSampler ingress using reused connections",
-		monitor.NewRouteBackend(
+		"[sig-network-edge] OAuth remains available via cluster ingress using reused connections",
+		backenddisruption.NewRouteBackend(
 			"openshift-authentication",
 			"oauth-openshift",
 			"ingress-to-oauth-server",
 			"/healthz",
-			monitor.ReusedConnectionType).
+			backenddisruption.ReusedConnectionType).
 			WithExpectedBody("ok"),
 	).WithAllowedDisruption(allowedIngressDisruption)
 }
@@ -52,13 +53,13 @@ func NewOAuthRouteAvailableWithConnectionReuseTest() upgrades.Test {
 // for each request.
 func NewConsoleRouteAvailableWithNewConnectionsTest() upgrades.Test {
 	return disruption.NewBackendDisruptionTest(
-		"[sig-network-edge] Console remains available via cluster backendSampler ingress using new connections",
-		monitor.NewRouteBackend(
+		"[sig-network-edge] Console remains available via cluster ingress using new connections",
+		backenddisruption.NewRouteBackend(
 			"openshift-console",
 			"console",
 			"ingress-to-console",
 			"/healthz",
-			monitor.ReusedConnectionType).
+			backenddisruption.NewConnectionType).
 			WithExpectedBodyRegex(`(Red Hat OpenShift Container Platform|OKD)`),
 	).WithAllowedDisruption(allowedIngressDisruption)
 }
@@ -68,13 +69,13 @@ func NewConsoleRouteAvailableWithNewConnectionsTest() upgrades.Test {
 // for requests.
 func NewConsoleRouteAvailableWithConnectionReuseTest() upgrades.Test {
 	return disruption.NewBackendDisruptionTest(
-		"[sig-network-edge] Console remains available via cluster backendSampler ingress using reused connections",
-		monitor.NewRouteBackend(
+		"[sig-network-edge] Console remains available via cluster ingress using reused connections",
+		backenddisruption.NewRouteBackend(
 			"openshift-console",
 			"console",
 			"ingress-to-console",
 			"/healthz",
-			monitor.ReusedConnectionType).
+			backenddisruption.ReusedConnectionType).
 			WithExpectedBodyRegex(`(Red Hat OpenShift Container Platform|OKD)`),
 	).WithAllowedDisruption(allowedIngressDisruption)
 }
