@@ -37,7 +37,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a root user imag
 		Before(oc)
 		defer After(oc)
 
-		firstArgString := fmt.Sprintf("%s~https://github.com/sclorg/nodejs-ex", image.LocationFor("registry.ci.openshift.org/ocp/4.8:test-build-roots2i"))
+		firstArgString := fmt.Sprintf("%s~https://github.com/sclorg/nodejs-ex", image.LocationFor("quay.io/redhat-developer/test-build-roots2i:1.2"))
 		err := oc.Run("new-app").Args(firstArgString, "--name", "nodejsfail").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -114,7 +114,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a root user imag
 		roleBinding, err = oc.AdminKubeClient().RbacV1().RoleBindings(oc.Namespace()).Create(context.Background(), roleBinding, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		firstArgString := fmt.Sprintf("%s~https://github.com/sclorg/nodejs-ex", image.LocationFor("registry.ci.openshift.org/ocp/4.8:test-build-roots2i"))
+		firstArgString := fmt.Sprintf("%s~https://github.com/sclorg/nodejs-ex", image.LocationFor("quay.io/redhat-developer/test-build-roots2i:1.2"))
 		err = oc.Run("new-build").Args(firstArgString, "--name", "nodejspass").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 

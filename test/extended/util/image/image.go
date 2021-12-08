@@ -14,7 +14,7 @@ import (
 func init() {
 	allowedImages = map[string]int{
 		// used by jenkins tests
-		"quay.io/redhat-developer/nfs-server:1.0": -1,
+		"quay.io/redhat-developer/nfs-server:1.1": -1,
 
 		// used by open ldap tests
 		"docker.io/mrogers950/origin-openldap-test:fedora29": -1,
@@ -27,10 +27,10 @@ func init() {
 
 		// used by build s2i e2e's to verify that builder with USER root are not allowed
 		// the github.com/openshift/build-test-images repo is built out of github.com/openshift/release
-		"registry.ci.openshift.org/ocp/4.8:test-build-roots2i": -1,
+		"quay.io/redhat-developer/test-build-roots2i:1.2": -1,
 
 		// used by all the rest build s2s e2e tests
-		"registry.ci.openshift.org/ocp/4.8:test-build-simples2i": -1,
+		"quay.io/redhat-developer/test-build-simples2i:1.2": -1,
 
 		// moved to GCR
 		"k8s.gcr.io/sig-storage/csi-attacher:v3.1.0":              -1,
