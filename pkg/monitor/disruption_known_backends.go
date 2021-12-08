@@ -124,5 +124,6 @@ func createAPIServerBackendSampler(clusterConfig *rest.Config, disruptionBackend
 	if err != nil {
 		return nil, err
 	}
+
 	return backendSampler, nil
 }

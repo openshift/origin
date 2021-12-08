@@ -198,6 +198,10 @@ func (b *BackendSampler) bodyMatches(body []byte) error {
 	return nil
 }
 
+func (b *BackendSampler) SetHost(host string) {
+	b.host = host
+}
+
 func (b *BackendSampler) GetDisruptionBackendName() string {
 	return b.disruptionBackendName
 }

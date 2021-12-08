@@ -1,53 +1,87 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
-	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/openshift/origin/pkg/monitor/backenddisruption"
-
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
 	"github.com/onsi/ginkgo"
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
-	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/events"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enetwork "k8s.io/kubernetes/test/e2e/framework/network"
 	"k8s.io/kubernetes/test/e2e/framework/service"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 )
 
-// UpgradeTest tests that a service is available before, during, and
+// serviceLoadBalancerUpgradeTest tests that a service is available before, during, and
 // after a cluster upgrade.
-type UpgradeTest struct {
-	jig        *service.TestJig
-	tcpService *v1.Service
-
+type serviceLoadBalancerUpgradeTest struct {
+	// filled in by presetup
+	jig                 *service.TestJig
+	tcpService          *v1.Service
 	unsupportedPlatform bool
+
+	backendDisruptionTest disruption.BackendDisruptionUpgradeTest
 }
 
-func (UpgradeTest) Name() string { return "k8s-service-lb-available" }
-func (UpgradeTest) DisplayName() string {
-	return "[sig-network-edge] Application behind service load balancer with PDB is not disrupted"
+func NewServiceLoadBalancerWithNewConnectionsTest() upgrades.Test {
+	serviceLBTest := &serviceLoadBalancerUpgradeTest{}
+	serviceLBTest.backendDisruptionTest =
+		disruption.NewBackendDisruptionTest(
+			"[sig-network-edge] Application behind service load balancer with PDB remains available using new connections",
+			backenddisruption.NewSimpleBackend(
+				"", // late binding host
+				"service-loadbalancer-with-pdb",
+				"/echo?msg=Hello",
+				backenddisruption.NewConnectionType).
+				WithExpectedBody("Hello"),
+		).WithAllowedDisruption(allowedServiceLBDisruption).
+			WithPreSetup(serviceLBTest.loadBalancerSetup)
+
+	return serviceLBTest
+}
+
+func NewServiceLoadBalancerWithReusedConnectionsTest() upgrades.Test {
+	serviceLBTest := &serviceLoadBalancerUpgradeTest{}
+	serviceLBTest.backendDisruptionTest =
+		disruption.NewBackendDisruptionTest(
+			"[sig-network-edge] Application behind service load balancer with PDB remains available using reused connections",
+			backenddisruption.NewSimpleBackend(
+				"", // late binding host
+				"service-loadbalancer-with-pdb",
+				"/echo?msg=Hello",
+				backenddisruption.ReusedConnectionType).
+				WithExpectedBody("Hello"),
+		).WithAllowedDisruption(allowedServiceLBDisruption).
+			WithPreSetup(serviceLBTest.loadBalancerSetup)
+
+	return serviceLBTest
+}
+
+func allowedServiceLBDisruption(f *framework.Framework, totalDuration time.Duration) (*time.Duration, error) {
+	toleratedDisruption := 0.02
+	allowedDisruptionNanoseconds := int64(float64(totalDuration.Nanoseconds()) * toleratedDisruption)
+	allowedDisruption := time.Duration(allowedDisruptionNanoseconds)
+
+	return &allowedDisruption, nil
+}
+
+func (t *serviceLoadBalancerUpgradeTest) Name() string { return t.backendDisruptionTest.Name() }
+func (t *serviceLoadBalancerUpgradeTest) DisplayName() string {
+	return t.backendDisruptionTest.DisplayName()
 }
 
 func shouldTestPDBs() bool { return true }
 
-// Setup creates a service with a load balancer and makes sure it's reachable.
-func (t *UpgradeTest) Setup(f *framework.Framework) {
+func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framework, backendSampler disruption.BackendSampler) error {
 	configClient, err := configclient.NewForConfig(f.ClientConfig())
 	framework.ExpectNoError(err)
 	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
@@ -61,7 +95,7 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 		t.unsupportedPlatform = true
 	}
 	if t.unsupportedPlatform {
-		return
+		return nil
 	}
 
 	serviceName := "service-test"
@@ -126,45 +160,23 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 	ginkgo.By("hitting pods through the service's LoadBalancer")
 	timeout := 10 * time.Minute
 	// require thirty seconds of passing requests to continue (in case the SLB becomes available and then degrades)
+	// TODO this seems weird to @deads2k, why is status not trustworthy
 	TestReachableHTTPWithMinSuccessCount(tcpIngressIP, svcPort, 30, timeout)
+
+	backendSampler.SetHost(fmt.Sprintf("http://%s", net.JoinHostPort(tcpIngressIP, strconv.Itoa(svcPort))))
 
 	t.jig = jig
 	t.tcpService = tcpService
+	return nil
 }
 
 // Test runs a connectivity check to the service.
-func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
+func (t *serviceLoadBalancerUpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
 	if t.unsupportedPlatform {
 		return
 	}
 
-	client, err := framework.LoadClientset()
-	framework.ExpectNoError(err)
-
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-	newBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: client.EventsV1()})
-	r := newBroadcaster.NewRecorder(scheme.Scheme, "openshift.io/upgrade-test-service")
-	newBroadcaster.StartRecordingToSink(stopCh)
-
-	ginkgo.By("continuously hitting pods through the service's LoadBalancer")
-
-	ctx, cancel := context.WithCancel(context.Background())
-	m := monitor.NewMonitorWithInterval(1 * time.Second)
-	err = startEndpointMonitoring(ctx, m, t.tcpService, r)
-	framework.ExpectNoError(err, "unable to monitor API")
-
-	start := time.Now()
-	m.StartSampling(ctx)
-
-	// wait to ensure API is still up after the test ends
-	<-done
-	ginkgo.By("waiting for any post disruption failures")
-	time.Sleep(15 * time.Second)
-	cancel()
-	end := time.Now()
-
-	disruption.ExpectNoDisruption(f, 0.02, end.Sub(start), m.Intervals(time.Time{}, time.Time{}), "Service was unreachable during disruption")
+	t.backendDisruptionTest.Test(f, done, upgrade)
 
 	// verify finalizer behavior
 	defer func() {
@@ -175,115 +187,12 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	service.WaitForServiceUpdatedWithFinalizer(t.jig.Client, t.tcpService.Namespace, t.tcpService.Name, true)
 }
 
-// Teardown cleans up any remaining resources.
-func (t *UpgradeTest) Teardown(f *framework.Framework) {
-	// rely on the namespace deletion to clean up everything
+func (t *serviceLoadBalancerUpgradeTest) Teardown(f *framework.Framework) {
+	t.backendDisruptionTest.Teardown(f)
 }
 
-func startEndpointMonitoring(ctx context.Context, m *monitor.Monitor, svc *v1.Service, r events.EventRecorder) error {
-	tcpIngressIP := service.GetIngressPoint(&svc.Status.LoadBalancer.Ingress[0])
-	svcPort := int(svc.Spec.Ports[0].Port)
-	url := fmt.Sprintf("http://%s/echo?msg=Hello", net.JoinHostPort(tcpIngressIP, strconv.Itoa(svcPort)))
-	// this client reuses connections and detects abrupt breaks
-	continuousClient := &http.Client{
-		Timeout: 10 * time.Second,
-		Transport: &http.Transport{
-			Dial: (&net.Dialer{
-				Timeout: 15 * time.Second,
-			}).Dial,
-			TLSHandshakeTimeout: 15 * time.Second,
-		},
-	}
-
-	reusedConnectionLocator := backenddisruption.LocateDisruptionCheck("service-loadbalancer-with-pdb", backenddisruption.ReusedConnectionType)
-	newConnectionLocator := backenddisruption.LocateDisruptionCheck("service-loadbalancer-with-pdb", backenddisruption.NewConnectionType)
-	go monitor.NewSampler(m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
-		resp, err := continuousClient.Get(url)
-		if err == nil {
-			defer resp.Body.Close()
-			body, err := ioutil.ReadAll(resp.Body)
-			if err == nil && !bytes.Contains(body, []byte("Hello")) {
-				err = fmt.Errorf("service returned success but did not contain the correct body contents: %q", string(body))
-			}
-		}
-		switch {
-		case err == nil && !previous:
-			condition = &monitorapi.Condition{
-				Level:   monitorapi.Info,
-				Locator: reusedConnectionLocator,
-				Message: backenddisruption.DisruptionEndedMessage(reusedConnectionLocator, backenddisruption.ReusedConnectionType),
-			}
-		case err != nil && previous:
-			framework.Logf("Service %s is unreachable on reused connections: %v", svc.Name, err)
-			r.Eventf(&v1.ObjectReference{Kind: "Service", Namespace: "kube-system", Name: "service-upgrade-test"}, nil, v1.EventTypeWarning, "Unreachable", "detected", "on reused connections")
-			condition = &monitorapi.Condition{
-				Level:   monitorapi.Error,
-				Locator: reusedConnectionLocator,
-				Message: backenddisruption.DisruptionBeganMessage(reusedConnectionLocator, backenddisruption.ReusedConnectionType, err),
-			}
-		case err != nil:
-			framework.Logf("Service %s is unreachable on reused connections: %v", svc.Name, err)
-		}
-		return condition, err == nil
-	}).WhenFailing(ctx, &monitorapi.Condition{
-		Level:   monitorapi.Error,
-		Locator: reusedConnectionLocator,
-		Message: backenddisruption.DisruptionContinuingMessage(reusedConnectionLocator, backenddisruption.ReusedConnectionType, fmt.Errorf("missing error in the code")),
-	})
-
-	// this client creates fresh connections and detects failure to establish connections
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-		Transport: &http.Transport{
-			Dial: (&net.Dialer{
-				Timeout:   15 * time.Second,
-				KeepAlive: -1,
-			}).Dial,
-			TLSHandshakeTimeout: 15 * time.Second,
-			IdleConnTimeout:     15 * time.Second,
-			DisableKeepAlives:   true,
-		},
-	}
-
-	go monitor.NewSampler(m, time.Second, func(previous bool) (condition *monitorapi.Condition, next bool) {
-		resp, err := client.Get(url)
-		if err == nil {
-			defer resp.Body.Close()
-			body, err := ioutil.ReadAll(resp.Body)
-			if err == nil && !bytes.Contains(body, []byte("Hello")) {
-				err = fmt.Errorf("service returned success but did not contain the correct body contents: %q", string(body))
-			}
-		}
-		switch {
-		case err == nil && !previous:
-			condition = &monitorapi.Condition{
-				Level:   monitorapi.Info,
-				Locator: newConnectionLocator,
-				Message: backenddisruption.DisruptionEndedMessage(newConnectionLocator, backenddisruption.NewConnectionType),
-			}
-		case err != nil && previous:
-			framework.Logf("Service %s is unreachable on new connections: %v", svc.Name, err)
-			r.Eventf(&v1.ObjectReference{Kind: "Service", Namespace: "kube-system", Name: "service-upgrade-test"}, nil, v1.EventTypeWarning, "Unreachable", "detected", "on new connections")
-			condition = &monitorapi.Condition{
-				Level:   monitorapi.Error,
-				Locator: newConnectionLocator,
-				Message: backenddisruption.DisruptionBeganMessage(newConnectionLocator, backenddisruption.NewConnectionType, err),
-			}
-		case err != nil:
-			framework.Logf("Service %s is unreachable on new connections: %v", svc.Name, err)
-		}
-		return condition, err == nil
-	}).WhenFailing(ctx, &monitorapi.Condition{
-		Level:   monitorapi.Error,
-		Locator: newConnectionLocator,
-		Message: backenddisruption.DisruptionContinuingMessage(newConnectionLocator, backenddisruption.NewConnectionType, fmt.Errorf("missing error in the code")),
-	})
-
-	return nil
-}
-
-func locateService(svc *v1.Service) string {
-	return fmt.Sprintf("ns/%s svc/%s", svc.Namespace, svc.Name)
+func (t *serviceLoadBalancerUpgradeTest) Setup(f *framework.Framework) {
+	t.backendDisruptionTest.Setup(f)
 }
 
 // TestReachableHTTPWithMinSuccessCount tests that the given host serves HTTP on the given port for a minimum of successCount number of

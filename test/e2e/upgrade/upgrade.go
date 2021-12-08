@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/test/e2e/upgrade/service"
+
 	v1 "k8s.io/api/core/v1"
 	eventsv1 "k8s.io/api/events/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,7 +35,6 @@ import (
 	"github.com/openshift/origin/test/e2e/upgrade/adminack"
 	"github.com/openshift/origin/test/e2e/upgrade/alert"
 	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
-	"github.com/openshift/origin/test/e2e/upgrade/service"
 	"github.com/openshift/origin/test/extended/prometheus"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
@@ -63,7 +64,8 @@ func AllTests() []upgrades.Test {
 		frontends.NewOAuthRouteAvailableWithConnectionReuseTest(),
 		frontends.NewConsoleRouteAvailableWithNewConnectionsTest(),
 		frontends.NewConsoleRouteAvailableWithConnectionReuseTest(),
-		&service.UpgradeTest{},
+		service.NewServiceLoadBalancerWithNewConnectionsTest(),
+		service.NewServiceLoadBalancerWithReusedConnectionsTest(),
 		&node.SecretUpgradeTest{},
 		&apps.ReplicaSetUpgradeTest{},
 		&apps.StatefulSetUpgradeTest{},
