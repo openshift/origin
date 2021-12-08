@@ -85,17 +85,24 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*ginkgo.JUnitTestCase
 			}
 		}
 	}
-	if len(failures) == 0 && len(flakes) == 0 {
-		successes := []*ginkgo.JUnitTestCase{}
-		for _, by := range bySubStrings {
-			successes = append(successes, &ginkgo.JUnitTestCase{Name: testName + by.by})
+	failuresBySubtest, flakesBySubtest := categorizeBySubset(bySubStrings, failures, flakes)
+	successes := []*ginkgo.JUnitTestCase{}
+	for _, by := range bySubStrings {
+		if _, ok := failuresBySubtest[by.by]; ok {
+			continue
 		}
+		if _, ok := flakesBySubtest[by.by]; ok {
+			continue
+		}
+
+		successes = append(successes, &ginkgo.JUnitTestCase{Name: testName + by.by})
+	}
+
+	if len(failures) == 0 && len(flakes) == 0 {
 		return successes
 	}
 
 	ret := []*ginkgo.JUnitTestCase{}
-	failuresBySubtest, flakesBySubtest := categorizeBySubset(bySubStrings, failures, flakes)
-
 	// now iterate the individual failures to create failure entries
 	for by, subFailures := range failuresBySubtest {
 		failure := &ginkgo.JUnitTestCase{
@@ -122,6 +129,9 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*ginkgo.JUnitTestCase
 		}
 		ret = append(ret, success)
 	}
+
+	// add our successes
+	ret = append(ret, successes...)
 
 	return append(ret)
 }
