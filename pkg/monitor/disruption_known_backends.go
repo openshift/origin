@@ -45,7 +45,7 @@ func startKubeAPIMonitoringWithNewConnections(ctx context.Context, m *Monitor, c
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, m)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
 func startOpenShiftAPIMonitoringWithNewConnections(ctx context.Context, m *Monitor, clusterConfig *rest.Config) error {
@@ -53,7 +53,7 @@ func startOpenShiftAPIMonitoringWithNewConnections(ctx context.Context, m *Monit
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, m)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
 func startOAuthAPIMonitoringWithNewConnections(ctx context.Context, m *Monitor, clusterConfig *rest.Config) error {
@@ -61,7 +61,7 @@ func startOAuthAPIMonitoringWithNewConnections(ctx context.Context, m *Monitor, 
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, m)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
 func startKubeAPIMonitoringWithConnectionReuse(ctx context.Context, m *Monitor, clusterConfig *rest.Config) error {
@@ -69,7 +69,7 @@ func startKubeAPIMonitoringWithConnectionReuse(ctx context.Context, m *Monitor, 
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, m)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
 func startOpenShiftAPIMonitoringWithConnectionReuse(ctx context.Context, m *Monitor, clusterConfig *rest.Config) error {
@@ -77,7 +77,7 @@ func startOpenShiftAPIMonitoringWithConnectionReuse(ctx context.Context, m *Moni
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, m)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
 func startOAuthAPIMonitoringWithConnectionReuse(ctx context.Context, m *Monitor, clusterConfig *rest.Config) error {
@@ -85,7 +85,7 @@ func startOAuthAPIMonitoringWithConnectionReuse(ctx context.Context, m *Monitor,
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, m)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
 func CreateKubeAPIMonitoringWithNewConnections(clusterConfig *rest.Config) (*BackendSampler, error) {

@@ -18,8 +18,7 @@ type BackendSampler interface {
 	GetLocator() string
 	SetHost(host string)
 	GetURL() (string, error)
-	SetEventRecorder(recorder events.EventRecorder)
-	StartEndpointMonitoring(ctx context.Context, m *monitor.Monitor) error
+	StartEndpointMonitoring(ctx context.Context, m monitor.Recorder, eventRecorder events.EventRecorder) error
 }
 
 type BackendDisruptionUpgradeTest interface {
@@ -98,18 +97,17 @@ func (t *backendDisruptionTest) Test(f *framework.Framework, done <-chan struct{
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 	newBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: f.ClientSet.EventsV1()})
-	t.backend.SetEventRecorder(newBroadcaster.NewRecorder(scheme.Scheme, "openshift.io/"+t.backend.GetDisruptionBackendName()))
+	eventRecorder := newBroadcaster.NewRecorder(scheme.Scheme, "openshift.io/"+t.backend.GetDisruptionBackendName())
 	newBroadcaster.StartRecordingToSink(stopCh)
 
 	ginkgo.By(fmt.Sprintf("continuously hitting backend: %s", t.backend.GetLocator()))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	m := monitor.NewMonitorWithInterval(1 * time.Second)
-	err := t.backend.StartEndpointMonitoring(ctx, m)
+	err := t.backend.StartEndpointMonitoring(ctx, m, eventRecorder)
 	framework.ExpectNoError(err, fmt.Sprintf("unable to monitor: %s", t.backend.GetLocator()))
 
 	start := time.Now()
-	m.StartSampling(ctx)
 
 	// Wait to ensure the route is still available after the test ends.
 	<-done
