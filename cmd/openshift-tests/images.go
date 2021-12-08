@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	configv1client "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -210,12 +211,19 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 
 	// any image not in the allowed prefixes is considered a failure, as the user
 	// may have added a new test image without calling the appropriate helpers
-	return func(events monitorapi.Intervals, _ time.Duration, _ *rest.Config) []*ginkgo.JUnitTestCase {
+	return func(events monitorapi.Intervals, _ time.Duration, cfg *rest.Config) []*ginkgo.JUnitTestCase {
 		imageStreamPrefixes, err := imagePrefixesFromNamespaceImageStreams("openshift")
 		if err != nil {
 			klog.Errorf("Unable to identify image prefixes from the openshift namespace: %v", err)
 		}
 		allowedPrefixes.Insert(imageStreamPrefixes.UnsortedList()...)
+
+		releaseImage, err := getReleaseImage(cfg)
+		if err != nil {
+			klog.Errorf("failed to get release image: %v", err)
+		} else {
+			allowedPrefixes.Insert(releaseImage)
+		}
 
 		allowedPrefixes := allowedPrefixes.List()
 
@@ -337,4 +345,19 @@ func imagePrefixesFromNamespaceImageStreams(ns string) (sets.String, error) {
 		}
 	}
 	return allowedPrefixes, nil
+}
+
+// getReleaseImage does exactly that. We need to add it as exception, as there are some oauth tests that use it to find the
+// oauth server image when the ControlPlaneToplogy is external, where there is no oauth server deployed inside the cluster that
+// could be used: https://github.com/openshift/origin/blob/176aeb92845af9eb50b1d0fe8e98a78dee29215e/test/extended/util/oauthserver/oauthserver.go#L489-L532
+func getReleaseImage(cfg *rest.Config) (string, error) {
+	client, err := configv1client.NewForConfig(cfg)
+	if err != nil {
+		return "", fmt.Errorf("failed to construct configv1client: %w", err)
+	}
+	cv, err := client.ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get clusterversion: %w", err)
+	}
+	return cv.Status.Desired.Image, nil
 }
