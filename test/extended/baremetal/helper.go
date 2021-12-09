@@ -3,6 +3,7 @@ package baremetal
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -27,7 +28,8 @@ type BaremetalTestHelper struct {
 	clientSet *kubernetes.Clientset
 	bmcClient dynamic.ResourceInterface
 
-	hostsCreated []*unstructured.Unstructured
+	// List of extra workers created
+	extraWorkers []*unstructured.Unstructured
 }
 
 // NewBaremetalTestHelper creates a new test helper instance. It is
@@ -76,7 +78,7 @@ func (b *BaremetalTestHelper) getExtraWorkerSecretData(index int) *v1.Secret {
 	return &secret
 }
 
-// getExtraWorkerSecretData gets and decodes the baremetal host associated for the
+// getExtraWorkerData gets and decodes the baremetal host associated for the
 // specified extra worker. If not found, the test will fail
 func (b *BaremetalTestHelper) getExtraWorkerData(index int) *unstructured.Unstructured {
 	ew, err := b.extraWorkersRetrieveData()
@@ -111,34 +113,46 @@ func (b *BaremetalTestHelper) CreateExtraWorker(host *unstructured.Unstructured,
 	host, err = b.bmcClient.Create(context.Background(), host, metav1.CreateOptions{})
 	o.Expect(err).ToNot(o.HaveOccurred())
 
-	b.hostsCreated = append(b.hostsCreated, host)
+	b.extraWorkers = append(b.extraWorkers, host)
 
 	return host, secret
 }
 
-func (b *BaremetalTestHelper) getHostName(host *unstructured.Unstructured) string {
-	return getStringField(*host, "baremetalhost", "metadata.name")
-}
-
 // DeleteAllExtraWorkers deletes all the extra workers created in the current session
 func (b *BaremetalTestHelper) DeleteAllExtraWorkers() {
-	for _, host := range b.hostsCreated {
-		hostName := b.getHostName(host)
-
-		err := b.bmcClient.Delete(context.Background(), hostName, metav1.DeleteOptions{})
+	for _, worker := range b.extraWorkers {
+		err := b.bmcClient.Delete(context.Background(), worker.GetName(), metav1.DeleteOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
+
+		b.waitForDeletion(worker)
 	}
+}
+
+func (b *BaremetalTestHelper) waitForDeletion(obj *unstructured.Unstructured) {
+	g.By(fmt.Sprintf("waiting for %s to be deleted", obj.GetName()))
+	err := wait.PollImmediate(1*time.Second, 1*time.Minute, func() (done bool, err error) {
+		_, err = b.bmcClient.Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return true, nil
+			}
+
+			return false, err
+		}
+		return false, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 // WaitForProvisioningState waits for the given baremetal host to reach the specified provisioning state.
 // If successfull, returns the updated host resource, otherwise the test will fail
 func (b *BaremetalTestHelper) WaitForProvisioningState(host *unstructured.Unstructured, expectedProvisioningState string) *unstructured.Unstructured {
 
-	hostName := b.getHostName(host)
+	hostName := host.GetName()
 	var newHost *unstructured.Unstructured
 
 	g.By(fmt.Sprintf("wait until %s becomes %s", hostName, expectedProvisioningState))
-	err := wait.PollImmediate(5*time.Second, 2*time.Minute, func() (done bool, err error) {
+	err := wait.PollImmediate(5*time.Second, 5*time.Minute, func() (done bool, err error) {
 		newHost, err = b.bmcClient.Get(context.TODO(), hostName, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
@@ -160,4 +174,26 @@ func (b *BaremetalTestHelper) WaitForProvisioningState(host *unstructured.Unstru
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	return newHost
+}
+
+func (b *BaremetalTestHelper) Setup() {
+
+	//This code will ensure that any previous extra worker will be cleaned up
+	//(and waits also for the related secret to be deleted)
+	//This should make easier the migration of the serial metal ipi jobs
+	//for the adoption of the new way of deployng extra worker
+	//Once the migration will be completed, this block could be safely removed
+	hosts, err := b.bmcClient.List(context.TODO(), metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	for _, host := range hosts.Items {
+		if strings.Contains(host.GetName(), "extraworker") {
+			g.By(fmt.Sprintf("Deleting host %s", host.GetName()))
+
+			err = b.bmcClient.Delete(context.TODO(), host.GetName(), metav1.DeleteOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			b.waitForDeletion(&host)
+		}
+	}
 }
