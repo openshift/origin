@@ -72,7 +72,6 @@ func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struc
 		framework.Fail(err.Error())
 	}
 	currentVersion := getCurrentVersion(ctx, t.Config)
-	var msg string
 	for k, v := range gateCm.Data {
 		if exercisedGates != nil {
 			if _, ok := exercisedGates[k]; ok {
@@ -103,14 +102,14 @@ func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struc
 				framework.Fail(err.Error())
 			}
 		}
-		if err := waitForAdminAckRequired(ctx, t.Config, msg); err != nil {
+		if err := waitForAdminAckRequired(ctx, t.Config, v); err != nil {
 			framework.Fail(err.Error())
 		}
 		// Update admin ack configmap with ack
 		if err := setAdminGate(ctx, k, "true", t.Oc); err != nil {
 			framework.Fail(err.Error())
 		}
-		if err = waitForAdminAckNotRequired(ctx, t.Config, msg); err != nil {
+		if err = waitForAdminAckNotRequired(ctx, t.Config, v); err != nil {
 			framework.Fail(err.Error())
 		}
 		if exercisedGates != nil {
