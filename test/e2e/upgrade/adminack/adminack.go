@@ -42,8 +42,6 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 // modifies the admin-acks configmap to ack the necessary admin-ack gate and then waits for the Upgradeable
 // condition to change to true.
 func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
-	ctx := context.Background()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go func() {
