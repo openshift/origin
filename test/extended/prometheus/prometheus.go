@@ -520,16 +520,22 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
 
-			tests := map[string]bool{
-				// Should have successfully sent at least some metrics to
-				// remote write endpoint uncomment this once sending telemetry
-				// via remote write is merged, and remove the other two checks.
-				// `prometheus_remote_storage_succeeded_samples_total{job="prometheus-k8s"} >= 1`: true,
-
-				// should have successfully sent at least once to remote
-				`metricsclient_request_send{client="federate_to",job="telemeter-client",status_code="200"} >= 1`: true,
-				// should have scraped some metrics from prometheus
-				`federate_samples{job="telemeter-client"} >= 10`: true,
+			tests := map[string]bool{}
+			if hasTelemeterClient(oc.AdminKubeClient()) {
+				e2e.Logf("Found telemeter-client pod")
+				tests = map[string]bool{
+					// should have successfully sent at least once to remote
+					`metricsclient_request_send{client="federate_to",job="telemeter-client",status_code="200"} >= 1`: true,
+					// should have scraped some metrics from prometheus
+					`federate_samples{job="telemeter-client"} >= 10`: true,
+				}
+			} else {
+				e2e.Logf("Found no telemeter-client pod, assuming prometheus remote_write")
+				tests = map[string]bool{
+					// Should have successfully sent at least some metrics to
+					// remote write endpoint
+					`prometheus_remote_storage_succeeded_samples_total{job="prometheus-k8s"} >= 1`: true,
+				}
 			}
 			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -1095,4 +1101,17 @@ func isTechPreviewCluster(oc *exutil.CLI) bool {
 	}
 
 	return featureGate.Spec.FeatureSet == configv1.TechPreviewNoUpgrade
+}
+
+func hasTelemeterClient(client clientset.Interface) bool {
+	_, err := client.CoreV1().Pods("openshift-monitoring").List(context.Background(), metav1.ListOptions{
+		LabelSelector: "app.kubernetes.io/name=telemeter-client",
+	})
+	if err != nil {
+		if kapierrs.IsNotFound(err) {
+			return false
+		}
+		e2e.Failf("could not list pods: %v", err)
+	}
+	return true
 }
