@@ -51,7 +51,7 @@ const (
 	oauthConfigPath  = "/var/config/system/configmaps/oauth-config"
 	serviceCADirPath = "/var/config/system/configmaps/service-ca"
 
-	configObjectsDir = "/var/oauth/configobjects/"
+	configObjectsDir = "/var/oauth/configobjects"
 
 	RouteName = "test-oauth-route"
 	SAName    = "e2e-oauth"
