@@ -7,3 +7,5 @@ approvers:
 - smarterclayton
 - soltysh
 - sttts
+labels:
+- "e2e-images-update"
