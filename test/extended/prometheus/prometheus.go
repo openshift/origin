@@ -580,8 +580,8 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				return false, nil
 			})).NotTo(o.HaveOccurred(), fmt.Sprintf("Did not find tsdb_samples_appended_total, tsdb_head_samples_appended_total, or prometheus_tsdb_head_samples_appended_total"))
 
-			g.By("verifying the oauth-proxy reports a 403 on the root URL")
-			err := helper.ExpectURLStatusCodeExec(ns, execPod.Name, url, 403)
+			g.By("verifying the Thanos querier service requires authentication")
+			err := helper.ExpectURLStatusCodeExec(ns, execPod.Name, url, 401, 403)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying a service account token is able to authenticate")
