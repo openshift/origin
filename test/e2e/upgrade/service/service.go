@@ -80,6 +80,11 @@ func (t *serviceLoadBalancerUpgradeTest) DisplayName() string {
 	return t.backendDisruptionTest.DisplayName()
 }
 
+// RequiresKubeNamespace indicates we get an e2e-k8s- namespace so we can bind low ports.
+func (t *serviceLoadBalancerUpgradeTest) RequiresKubeNamespace() bool {
+	return true
+}
+
 func shouldTestPDBs() bool { return true }
 
 func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framework, backendSampler disruption.BackendSampler) error {
