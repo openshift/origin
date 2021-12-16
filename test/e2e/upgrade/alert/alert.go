@@ -150,24 +150,13 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 
 	testDuration := time.Now().Sub(start).Truncate(time.Second)
 
-	// Invariant: The watchdog alert should be firing continuously during the whole upgrade via the thanos
-	// querier (which should have no gaps when it queries the individual stores). Allow zero or one changes
-	// to the presence of this series (zero if data is preserved over upgrade, one if data is lost on upgrade).
-	// This would not catch the alert stopping firing, but we catch that in other places and tests.
-	watchdogQuery := fmt.Sprintf(`changes((max((ALERTS{alertstate="firing",alertname="Watchdog",severity="none"}) or (absent(ALERTS{alertstate="firing",alertname="Watchdog",severity="none"})*0)))[%s:1s]) > 1`, testDuration)
-	result, err := helper.RunQuery(watchdogQuery, ns, execPod.Name, t.url, t.bearerToken)
-	o.Expect(err).NotTo(o.HaveOccurred(), "unable to check watchdog alert over upgrade window")
-	if len(result.Data.Result) > 0 {
-		unexpectedViolations.Insert("Watchdog alert had missing intervals during the run, which may be a sign of a Prometheus outage in violation of the prometheus query SLO of 100% uptime during upgrade")
-	}
-
 	// Invariant: No non-info level alerts should have fired during the upgrade
 	firingAlertQuery := fmt.Sprintf(`
 sort_desc(
 count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog|AlertmanagerReceiversNotConfigured"}[%[1]s:1s])
 ) > 0
 `, testDuration)
-	result, err = helper.RunQuery(firingAlertQuery, ns, execPod.Name, t.url, t.bearerToken)
+	result, err := helper.RunQuery(firingAlertQuery, ns, execPod.Name, t.url, t.bearerToken)
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to check firing alerts during upgrade")
 	for _, series := range result.Data.Result {
 		labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
