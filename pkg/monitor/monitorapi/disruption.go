@@ -34,5 +34,5 @@ func BackendDisruptionSeconds(locator string, events Intervals) (time.Duration, 
 			connectionType = "Unknown"
 		}
 	}
-	return disruptionEvents.Duration(0, 1*time.Second), disruptionMessages, connectionType
+	return disruptionEvents.Duration(1 * time.Second), disruptionMessages, connectionType
 }

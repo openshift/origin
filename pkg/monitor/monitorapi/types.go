@@ -142,37 +142,48 @@ func (intervals Intervals) Strings() []string {
 }
 
 // Duration returns the sum of all intervals in the range. If To is less than or
-// equal to From, defaultDuration is used instead (use Clamp() if open intervals
+// equal to From, 0 is used instead (use Clamp() if open intervals
 // should be not considered instant).
 // minDuration is the smallest duration to add.  If a duration is less than the minDuration,
 // then the minDuration is used instead.  This is useful for measuring samples.
 // For example, consider a case of one second polling for server availability.
 // If a sample fails, you don't definitively know whether it was down just after t-1s or just before t.
 // On average, it would be 500ms, but a useful minimum in this case could be 1s.
-func (intervals Intervals) Duration(defaultDuration, minDuration time.Duration) time.Duration {
-	var duration time.Duration
+func (intervals Intervals) Duration(minCurrentDuration time.Duration) time.Duration {
+	var totalDuration time.Duration
 	for _, interval := range intervals {
-		d := interval.To.Sub(interval.From)
-		if d <= 0 {
-			duration += defaultDuration
-		} else if d < minDuration {
-			d += minDuration
+		currentDuration := interval.To.Sub(interval.From)
+		if currentDuration <= 0 {
+			totalDuration += 0
+		} else if currentDuration < minCurrentDuration {
+			totalDuration += minCurrentDuration
 		} else {
-			duration += d
+			totalDuration += currentDuration
 		}
 	}
-	return duration
+	return totalDuration
+}
+
+// EventIntervalMatchesFunc is a function for matching eventIntervales
+type EventIntervalMatchesFunc func(eventInterval EventInterval) bool
+
+// IsErrorEvent returns true if the eventInterval is an Error
+func IsErrorEvent(eventInterval EventInterval) bool {
+	if eventInterval.Level == Error {
+		return true
+	}
+	return false
 }
 
 // Filter returns a copy of intervals with only intervals that match the provided
 // function.
-func (intervals Intervals) Filter(fn func(i EventInterval) bool) Intervals {
+func (intervals Intervals) Filter(eventFilterMatches EventIntervalMatchesFunc) Intervals {
 	if len(intervals) == 0 {
 		return Intervals(nil)
 	}
 	copied := make(Intervals, 0, len(intervals))
 	for _, interval := range intervals {
-		if fn(interval) {
+		if eventFilterMatches(interval) {
 			copied = append(copied, interval)
 		}
 	}

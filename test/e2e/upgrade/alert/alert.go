@@ -160,7 +160,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 		t.oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 	}()
 
-	testDuration := time.Now().Sub(start).Truncate(time.Second)
+	testDuration := time.Now().Sub(start).Round(time.Second)
 
 	// Invariant: The watchdog alert should be firing continuously during the whole upgrade via the thanos
 	// querier (which should have no gaps when it queries the individual stores). Allow zero or one changes
