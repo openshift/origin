@@ -1843,33 +1843,33 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Conntrack should drop INVALID conntrack entries": "should drop INVALID conntrack entries [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS configMap nameserver Change stubDomain should be able to change stubDomain configuration [Slow][Serial]": "should be able to change stubDomain configuration [Slow][Serial] [Disabled:SpecialConfig] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS configMap nameserver Change stubDomain should be able to change stubDomain configuration [Slow][Serial]": "should be able to change stubDomain configuration [Slow][Serial] [Disabled:Broken] [Disabled:SpecialConfig] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS configMap nameserver Forward PTR lookup should forward PTR records lookup to upstream nameserver [Slow][Serial]": "should forward PTR records lookup to upstream nameserver [Slow][Serial] [Disabled:SpecialConfig] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS configMap nameserver Forward PTR lookup should forward PTR records lookup to upstream nameserver [Slow][Serial]": "should forward PTR records lookup to upstream nameserver [Slow][Serial] [Disabled:Broken] [Disabled:SpecialConfig] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS configMap nameserver Forward external name lookup should forward externalname lookup to upstream nameserver [Slow][Serial]": "should forward externalname lookup to upstream nameserver [Slow][Serial] [Disabled:SpecialConfig] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS configMap nameserver Forward external name lookup should forward externalname lookup to upstream nameserver [Slow][Serial]": "should forward externalname lookup to upstream nameserver [Slow][Serial] [Disabled:Broken] [Disabled:SpecialConfig] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS should provide /etc/hosts entries for the cluster [LinuxOnly] [Conformance]": "should provide /etc/hosts entries for the cluster [LinuxOnly] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS should provide /etc/hosts entries for the cluster [LinuxOnly] [Conformance]": "should provide /etc/hosts entries for the cluster [LinuxOnly] [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS should provide DNS for ExternalName services [Conformance]": "should provide DNS for ExternalName services [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS should provide DNS for ExternalName services [Conformance]": "should provide DNS for ExternalName services [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS should provide DNS for pods for Hostname [LinuxOnly] [Conformance]": "should provide DNS for pods for Hostname [LinuxOnly] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS should provide DNS for pods for Hostname [LinuxOnly] [Conformance]": "should provide DNS for pods for Hostname [LinuxOnly] [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS should provide DNS for pods for Subdomain [Conformance]": "should provide DNS for pods for Subdomain [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS should provide DNS for pods for Subdomain [Conformance]": "should provide DNS for pods for Subdomain [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS should provide DNS for services  [Conformance]": "should provide DNS for services  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS should provide DNS for services  [Conformance]": "should provide DNS for services  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS should provide DNS for the cluster  [Conformance]": "should provide DNS for the cluster  [Conformance] [Skipped:Proxy] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS should provide DNS for the cluster  [Conformance]": "should provide DNS for the cluster  [Conformance] [Disabled:Broken] [Skipped:Proxy] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS should provide DNS for the cluster [Provider:GCE]": "should provide DNS for the cluster [Provider:GCE] [Skipped:Proxy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS should provide DNS for the cluster [Provider:GCE]": "should provide DNS for the cluster [Provider:GCE] [Disabled:Broken] [Skipped:Proxy] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS should resolve DNS of partial qualified names for services [LinuxOnly] [Conformance]": "should resolve DNS of partial qualified names for services [LinuxOnly] [Conformance] [Skipped:Proxy] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS should resolve DNS of partial qualified names for services [LinuxOnly] [Conformance]": "should resolve DNS of partial qualified names for services [LinuxOnly] [Conformance] [Disabled:Broken] [Skipped:Proxy] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS should resolve DNS of partial qualified names for the cluster [LinuxOnly]": "should resolve DNS of partial qualified names for the cluster [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS should resolve DNS of partial qualified names for the cluster [LinuxOnly]": "should resolve DNS of partial qualified names for the cluster [LinuxOnly] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS should support configurable pod DNS nameservers [Conformance]": "should support configurable pod DNS nameservers [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS should support configurable pod DNS nameservers [Conformance]": "should support configurable pod DNS nameservers [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] DNS should support configurable pod resolv.conf": "should support configurable pod resolv.conf [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] DNS should support configurable pod resolv.conf": "should support configurable pod resolv.conf [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-network] EndpointSlice should create Endpoints and EndpointSlices for Pods matching a Service [Conformance]": "should create Endpoints and EndpointSlices for Pods matching a Service [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
