@@ -28,14 +28,14 @@ func testServerAvailability(locator string, events monitorapi.Intervals, duratio
 			Name:     testName,
 			Duration: duration.Seconds(),
 			FailureOutput: &ginkgo.FailureOutput{
-				Output: fmt.Sprintf("%s was failing for %s seconds (%0.0f%% of the test duration)", locator, errDuration.Truncate(time.Second), 100*percent),
+				Output: fmt.Sprintf("%s was failing for %s seconds (%0.0f%% of the test duration)", locator, errDuration.Round(time.Second), 100*percent),
 			},
 			SystemOut: strings.Join(errMessages, "\n"),
 		}
 		// Return *two* tests results to pretend this is a flake not to fail whole testsuite.
 		return []*ginkgo.JUnitTestCase{test, successTest}
 	} else {
-		successTest.SystemOut = fmt.Sprintf("%s was failing for %s seconds (%0.0f%% of the test duration)", locator, errDuration.Truncate(time.Second), 100*percent)
+		successTest.SystemOut = fmt.Sprintf("%s was failing for %s seconds (%0.0f%% of the test duration)", locator, errDuration.Round(time.Second), 100*percent)
 		return []*ginkgo.JUnitTestCase{successTest}
 	}
 }

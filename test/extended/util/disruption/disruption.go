@@ -316,13 +316,13 @@ func ExpectNoDisruption(f *framework.Framework, tolerate float64, total time.Dur
 	describe := events.Strings()
 
 	errorEvents := events.Filter(monitorapi.IsErrorEvent)
-	duration := errorEvents.Duration(0, 1*time.Second)
+	duration := errorEvents.Duration(1 * time.Second)
 	if percent := float64(duration) / float64(total); percent > tolerate {
-		framework.Failf("%s for at least %s of %s (%0.0f%%, but only %0.0f%% is tolerated):\n\n%s", reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, tolerate*100, strings.Join(describe, "\n"))
+		framework.Failf("%s for at least %s of %s (%0.0f%%, but only %0.0f%% is tolerated):\n\n%s", reason, duration.Round(time.Second), total.Round(time.Second), percent*100, tolerate*100, strings.Join(describe, "\n"))
 	} else if duration > 0 {
 		FrameworkFlakef(f, "%s for at least %s of %s (%0.0f%%), this is currently sufficient to pass the"+
 			" test/job but not considered completely correct.\nTolerating up to %0.0f%% disruption:\n\n%s",
-			reason, duration.Truncate(time.Second), total.Truncate(time.Second), percent*100, tolerate*100,
+			reason, duration.Round(time.Second), total.Round(time.Second), percent*100, tolerate*100,
 			strings.Join(describe, "\n"))
 	}
 }
@@ -334,13 +334,13 @@ func ExpectNoDisruptionForDuration(f *framework.Framework, allowedDisruption tim
 	describe := events.Strings()
 
 	errorEvents := events.Filter(monitorapi.IsErrorEvent)
-	disruptionDuration := errorEvents.Duration(0, 1*time.Second)
+	disruptionDuration := errorEvents.Duration(1 * time.Second)
 	if disruptionDuration > allowedDisruption {
-		framework.Failf("%s for at least %s of %s (maxAllowed=%s):\n\n%s", reason, disruptionDuration.Truncate(time.Second), total.Truncate(time.Second), allowedDisruption.Truncate(time.Second), strings.Join(describe, "\n"))
+		framework.Failf("%s for at least %s of %s (maxAllowed=%s):\n\n%s", reason, disruptionDuration.Round(time.Second), total.Round(time.Second), allowedDisruption.Round(time.Second), strings.Join(describe, "\n"))
 	} else if disruptionDuration > 0 {
 		FrameworkFlakef(f, "%s for at least %s of %s (maxAllowed=%s), this is currently sufficient to pass the"+
 			" test/job but not considered completely correct.\nTolerating up to %s disruption:\n\n%s",
-			reason, disruptionDuration.Truncate(time.Second), total.Truncate(time.Second), allowedDisruption.Truncate(time.Second), allowedDisruption.Truncate(time.Second),
+			reason, disruptionDuration.Round(time.Second), total.Round(time.Second), allowedDisruption.Round(time.Second), allowedDisruption.Round(time.Second),
 			strings.Join(describe, "\n"))
 	}
 }

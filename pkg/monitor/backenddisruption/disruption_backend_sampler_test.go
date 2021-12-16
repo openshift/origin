@@ -23,10 +23,10 @@ func TestBackendSampler_checkConnection(t *testing.T) {
 		case req.URL.Path == "/302-bad-response":
 			w.WriteHeader(302)
 			w.Write([]byte("302-bad-response"))
-		case req.URL.Path == "/302":
-			w.Header().Set("Location", "http://google.com")
-			w.WriteHeader(302)
-			w.Write([]byte("302"))
+		//case req.URL.Path == "/302": // the client-auto-follows
+		//	w.Header().Set("Location", "http://google.com")
+		//	w.WriteHeader(302)
+		//	w.Write([]byte("302"))
 		case req.URL.Path == "/503":
 			w.WriteHeader(503)
 			w.Write([]byte("503"))
@@ -136,6 +136,8 @@ func TestBackendSampler_checkConnection(t *testing.T) {
 			}
 
 			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
 			if tt.fields.cancelImmediately {
 				cancel()
 			}
