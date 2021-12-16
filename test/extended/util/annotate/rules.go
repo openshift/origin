@@ -52,6 +52,7 @@ var (
 			`\[sig-arch\] *`,
 			`\[sig-cluster-lifecycle\] *`,
 			`\[sig-api-machinery\] *`,
+			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should enforce except clause while egress access to server in CIDR block`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1945091
 			`\[Feature:GenericEphemeralVolume\]`,

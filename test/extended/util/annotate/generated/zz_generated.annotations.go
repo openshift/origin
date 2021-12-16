@@ -2077,7 +2077,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should enforce egress policy allowing traffic to a server in a different namespace based on PodSelector and NamespaceSelector [Feature:NetworkPolicy]": "should enforce egress policy allowing traffic to a server in a different namespace based on PodSelector and NamespaceSelector [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should enforce except clause while egress access to server in CIDR block [Feature:NetworkPolicy]": "should enforce except clause while egress access to server in CIDR block [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should enforce except clause while egress access to server in CIDR block [Feature:NetworkPolicy]": "should enforce except clause while egress access to server in CIDR block [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
 	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should enforce multiple egress policies with egress allow-all policy taking precedence [Feature:NetworkPolicy]": "should enforce multiple egress policies with egress allow-all policy taking precedence [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
