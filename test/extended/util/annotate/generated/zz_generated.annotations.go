@@ -7,13 +7,13 @@ import (
 )
 
 var annotations = map[string]string{
-	"[Top Level] [Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-ext.kubeconfig\" should be present on all masters and work": "\"lb-ext.kubeconfig\" should be present on all masters and work [Suite:openshift/conformance/parallel/minimal]",
+	"[Top Level] [Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-ext.kubeconfig\" should be present on all masters and work": "\"lb-ext.kubeconfig\" should be present on all masters and work [Disabled:Broken]",
 
-	"[Top Level] [Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-int.kubeconfig\" should be present on all masters and work": "\"lb-int.kubeconfig\" should be present on all masters and work [Suite:openshift/conformance/parallel/minimal]",
+	"[Top Level] [Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-int.kubeconfig\" should be present on all masters and work": "\"lb-int.kubeconfig\" should be present on all masters and work [Disabled:Broken]",
 
-	"[Top Level] [Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work": "\"localhost-recovery.kubeconfig\" should be present on all masters and work [Suite:openshift/conformance/parallel/minimal]",
+	"[Top Level] [Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work": "\"localhost-recovery.kubeconfig\" should be present on all masters and work [Disabled:Broken]",
 
-	"[Top Level] [Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost.kubeconfig\" should be present on all masters and work": "\"localhost.kubeconfig\" should be present on all masters and work [Suite:openshift/conformance/parallel/minimal]",
+	"[Top Level] [Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost.kubeconfig\" should be present on all masters and work": "\"localhost.kubeconfig\" should be present on all masters and work [Disabled:Broken]",
 
 	"[Top Level] [Conformance][sig-sno][Serial] Cluster should allow a fast rollout of kube-apiserver with no pods restarts during API disruption": "should allow a fast rollout of kube-apiserver with no pods restarts during API disruption [Suite:openshift/conformance/serial/minimal]",
 
@@ -47,285 +47,285 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-api-machinery] API data in etcd should be stored at the correct location and version for all resources [Serial]": "should be stored at the correct location and version for all resources [Serial] [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery] API priority and fairness should ensure that requests can be classified by adding FlowSchema and PriorityLevelConfiguration": "should ensure that requests can be classified by adding FlowSchema and PriorityLevelConfiguration [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] API priority and fairness should ensure that requests can be classified by adding FlowSchema and PriorityLevelConfiguration": "should ensure that requests can be classified by adding FlowSchema and PriorityLevelConfiguration [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] API priority and fairness should ensure that requests can't be drowned out (fairness)": "should ensure that requests can't be drowned out (fairness) [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] API priority and fairness should ensure that requests can't be drowned out (fairness)": "should ensure that requests can't be drowned out (fairness) [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] API priority and fairness should ensure that requests can't be drowned out (priority)": "should ensure that requests can't be drowned out (priority) [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] API priority and fairness should ensure that requests can't be drowned out (priority)": "should ensure that requests can't be drowned out (priority) [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] APIServer CR fields validation additionalCORSAllowedOrigins": "additionalCORSAllowedOrigins [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery] APIServer CR fields validation additionalCORSAllowedOrigins": "additionalCORSAllowedOrigins [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] listing mutating webhooks should work [Conformance]": "listing mutating webhooks should work [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] listing mutating webhooks should work [Conformance]": "listing mutating webhooks should work [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] listing validating webhooks should work [Conformance]": "listing validating webhooks should work [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] listing validating webhooks should work [Conformance]": "listing validating webhooks should work [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] patching/updating a mutating webhook should work [Conformance]": "patching/updating a mutating webhook should work [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] patching/updating a mutating webhook should work [Conformance]": "patching/updating a mutating webhook should work [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] patching/updating a validating webhook should work [Conformance]": "patching/updating a validating webhook should work [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] patching/updating a validating webhook should work [Conformance]": "patching/updating a validating webhook should work [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should be able to deny attaching pod [Conformance]": "should be able to deny attaching pod [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should be able to deny attaching pod [Conformance]": "should be able to deny attaching pod [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should be able to deny custom resource creation, update and deletion [Conformance]": "should be able to deny custom resource creation, update and deletion [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should be able to deny custom resource creation, update and deletion [Conformance]": "should be able to deny custom resource creation, update and deletion [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should be able to deny pod and configmap creation [Conformance]": "should be able to deny pod and configmap creation [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should be able to deny pod and configmap creation [Conformance]": "should be able to deny pod and configmap creation [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should deny crd creation [Conformance]": "should deny crd creation [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should deny crd creation [Conformance]": "should deny crd creation [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should honor timeout [Conformance]": "should honor timeout [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should honor timeout [Conformance]": "should honor timeout [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should include webhook resources in discovery documents [Conformance]": "should include webhook resources in discovery documents [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should include webhook resources in discovery documents [Conformance]": "should include webhook resources in discovery documents [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should mutate configmap [Conformance]": "should mutate configmap [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should mutate configmap [Conformance]": "should mutate configmap [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should mutate custom resource [Conformance]": "should mutate custom resource [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should mutate custom resource [Conformance]": "should mutate custom resource [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should mutate custom resource with different stored version [Conformance]": "should mutate custom resource with different stored version [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should mutate custom resource with different stored version [Conformance]": "should mutate custom resource with different stored version [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should mutate custom resource with pruning [Conformance]": "should mutate custom resource with pruning [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should mutate custom resource with pruning [Conformance]": "should mutate custom resource with pruning [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should mutate pod and apply defaults after mutation [Conformance]": "should mutate pod and apply defaults after mutation [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should mutate pod and apply defaults after mutation [Conformance]": "should mutate pod and apply defaults after mutation [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should not be able to mutate or prevent deletion of webhook configuration objects [Conformance]": "should not be able to mutate or prevent deletion of webhook configuration objects [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should not be able to mutate or prevent deletion of webhook configuration objects [Conformance]": "should not be able to mutate or prevent deletion of webhook configuration objects [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should unconditionally reject operations on fail closed webhook [Conformance]": "should unconditionally reject operations on fail closed webhook [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] AdmissionWebhook [Privileged:ClusterAdmin] should unconditionally reject operations on fail closed webhook [Conformance]": "should unconditionally reject operations on fail closed webhook [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Aggregator Should be able to support the 1.17 Sample API Server using the current Aggregator [Conformance]": "Should be able to support the 1.17 Sample API Server using the current Aggregator [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Aggregator Should be able to support the 1.17 Sample API Server using the current Aggregator [Conformance]": "Should be able to support the 1.17 Sample API Server using the current Aggregator [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] CustomResourceConversionWebhook [Privileged:ClusterAdmin] should be able to convert a non homogeneous list of CRs [Conformance]": "should be able to convert a non homogeneous list of CRs [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] CustomResourceConversionWebhook [Privileged:ClusterAdmin] should be able to convert a non homogeneous list of CRs [Conformance]": "should be able to convert a non homogeneous list of CRs [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] CustomResourceConversionWebhook [Privileged:ClusterAdmin] should be able to convert from CR v1 to CR v2 [Conformance]": "should be able to convert from CR v1 to CR v2 [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] CustomResourceConversionWebhook [Privileged:ClusterAdmin] should be able to convert from CR v1 to CR v2 [Conformance]": "should be able to convert from CR v1 to CR v2 [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] CustomResourceDefinition Watch [Privileged:ClusterAdmin] CustomResourceDefinition Watch watch on custom resource definition objects [Conformance]": "watch on custom resource definition objects [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] CustomResourceDefinition Watch [Privileged:ClusterAdmin] CustomResourceDefinition Watch watch on custom resource definition objects [Conformance]": "watch on custom resource definition objects [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] CustomResourceDefinition resources [Privileged:ClusterAdmin] Simple CustomResourceDefinition creating/deleting custom resource definition objects works  [Conformance]": "creating/deleting custom resource definition objects works  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] CustomResourceDefinition resources [Privileged:ClusterAdmin] Simple CustomResourceDefinition creating/deleting custom resource definition objects works  [Conformance]": "creating/deleting custom resource definition objects works  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] CustomResourceDefinition resources [Privileged:ClusterAdmin] Simple CustomResourceDefinition getting/updating/patching custom resource definition status sub-resource works  [Conformance]": "getting/updating/patching custom resource definition status sub-resource works  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] CustomResourceDefinition resources [Privileged:ClusterAdmin] Simple CustomResourceDefinition getting/updating/patching custom resource definition status sub-resource works  [Conformance]": "getting/updating/patching custom resource definition status sub-resource works  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] CustomResourceDefinition resources [Privileged:ClusterAdmin] Simple CustomResourceDefinition listing custom resource definition objects works  [Conformance]": "listing custom resource definition objects works  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] CustomResourceDefinition resources [Privileged:ClusterAdmin] Simple CustomResourceDefinition listing custom resource definition objects works  [Conformance]": "listing custom resource definition objects works  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] CustomResourceDefinition resources [Privileged:ClusterAdmin] custom resource defaulting for requests and from storage works  [Conformance]": "custom resource defaulting for requests and from storage works  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] CustomResourceDefinition resources [Privileged:ClusterAdmin] custom resource defaulting for requests and from storage works  [Conformance]": "custom resource defaulting for requests and from storage works  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] CustomResourceDefinition resources [Privileged:ClusterAdmin] should include custom resource definition resources in discovery documents [Conformance]": "should include custom resource definition resources in discovery documents [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] CustomResourceDefinition resources [Privileged:ClusterAdmin] should include custom resource definition resources in discovery documents [Conformance]": "should include custom resource definition resources in discovery documents [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] [Flaky] kubectl explain works for CR with the same resource name as built-in object.": "[Flaky] kubectl explain works for CR with the same resource name as built-in object. [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] [Flaky] kubectl explain works for CR with the same resource name as built-in object.": "[Flaky] kubectl explain works for CR with the same resource name as built-in object. [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] removes definition from spec when one version gets changed to not be served [Conformance]": "removes definition from spec when one version gets changed to not be served [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] removes definition from spec when one version gets changed to not be served [Conformance]": "removes definition from spec when one version gets changed to not be served [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] updates the published spec when one version gets renamed [Conformance]": "updates the published spec when one version gets renamed [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] updates the published spec when one version gets renamed [Conformance]": "updates the published spec when one version gets renamed [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] works for CRD preserving unknown fields at the schema root [Conformance]": "works for CRD preserving unknown fields at the schema root [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] works for CRD preserving unknown fields at the schema root [Conformance]": "works for CRD preserving unknown fields at the schema root [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] works for CRD preserving unknown fields in an embedded object [Conformance]": "works for CRD preserving unknown fields in an embedded object [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] works for CRD preserving unknown fields in an embedded object [Conformance]": "works for CRD preserving unknown fields in an embedded object [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] works for CRD with validation schema [Conformance]": "works for CRD with validation schema [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] works for CRD with validation schema [Conformance]": "works for CRD with validation schema [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] works for CRD without validation schema [Conformance]": "works for CRD without validation schema [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] works for CRD without validation schema [Conformance]": "works for CRD without validation schema [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] works for multiple CRDs of different groups [Conformance]": "works for multiple CRDs of different groups [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] works for multiple CRDs of different groups [Conformance]": "works for multiple CRDs of different groups [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] works for multiple CRDs of same group and version but different kinds [Conformance]": "works for multiple CRDs of same group and version but different kinds [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] works for multiple CRDs of same group and version but different kinds [Conformance]": "works for multiple CRDs of same group and version but different kinds [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] works for multiple CRDs of same group but different versions [Conformance]": "works for multiple CRDs of same group but different versions [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] CustomResourcePublishOpenAPI [Privileged:ClusterAdmin] works for multiple CRDs of same group but different versions [Conformance]": "works for multiple CRDs of same group but different versions [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Discovery Custom resource should have storage version hash": "Custom resource should have storage version hash [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Discovery Custom resource should have storage version hash": "Custom resource should have storage version hash [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Discovery should validate PreferredVersion for each APIGroup [Conformance]": "should validate PreferredVersion for each APIGroup [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Discovery should validate PreferredVersion for each APIGroup [Conformance]": "should validate PreferredVersion for each APIGroup [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Etcd failure [Disruptive] should recover from SIGKILL": "should recover from SIGKILL [Serial] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Etcd failure [Disruptive] should recover from SIGKILL": "should recover from SIGKILL [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Etcd failure [Disruptive] should recover from network partition with master": "should recover from network partition with master [Serial] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Etcd failure [Disruptive] should recover from network partition with master": "should recover from network partition with master [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Garbage collector should delete RS created by deployment when not orphaning [Conformance]": "should delete RS created by deployment when not orphaning [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Garbage collector should delete RS created by deployment when not orphaning [Conformance]": "should delete RS created by deployment when not orphaning [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Garbage collector should delete jobs and pods created by cronjob": "should delete jobs and pods created by cronjob [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Garbage collector should delete jobs and pods created by cronjob": "should delete jobs and pods created by cronjob [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Garbage collector should delete pods created by rc when not orphaning [Conformance]": "should delete pods created by rc when not orphaning [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Garbage collector should delete pods created by rc when not orphaning [Conformance]": "should delete pods created by rc when not orphaning [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Garbage collector should keep the rc around until all its pods are deleted if the deleteOptions says so [Conformance]": "should keep the rc around until all its pods are deleted if the deleteOptions says so [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Garbage collector should keep the rc around until all its pods are deleted if the deleteOptions says so [Conformance]": "should keep the rc around until all its pods are deleted if the deleteOptions says so [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Garbage collector should not be blocked by dependency circle [Conformance]": "should not be blocked by dependency circle [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Garbage collector should not be blocked by dependency circle [Conformance]": "should not be blocked by dependency circle [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Garbage collector should not delete dependents that have both valid owner and owner that's waiting for dependents to be deleted [Conformance]": "should not delete dependents that have both valid owner and owner that's waiting for dependents to be deleted [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Garbage collector should not delete dependents that have both valid owner and owner that's waiting for dependents to be deleted [Conformance]": "should not delete dependents that have both valid owner and owner that's waiting for dependents to be deleted [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Garbage collector should orphan RS created by deployment when deleteOptions.PropagationPolicy is Orphan [Conformance]": "should orphan RS created by deployment when deleteOptions.PropagationPolicy is Orphan [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Garbage collector should orphan RS created by deployment when deleteOptions.PropagationPolicy is Orphan [Conformance]": "should orphan RS created by deployment when deleteOptions.PropagationPolicy is Orphan [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Garbage collector should orphan pods created by rc if delete options say so [Conformance]": "should orphan pods created by rc if delete options say so [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Garbage collector should orphan pods created by rc if delete options say so [Conformance]": "should orphan pods created by rc if delete options say so [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Garbage collector should orphan pods created by rc if deleteOptions.OrphanDependents is nil": "should orphan pods created by rc if deleteOptions.OrphanDependents is nil [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Garbage collector should orphan pods created by rc if deleteOptions.OrphanDependents is nil": "should orphan pods created by rc if deleteOptions.OrphanDependents is nil [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Garbage collector should support cascading deletion of custom resources": "should support cascading deletion of custom resources [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Garbage collector should support cascading deletion of custom resources": "should support cascading deletion of custom resources [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Garbage collector should support orphan deletion of custom resources": "should support orphan deletion of custom resources [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Garbage collector should support orphan deletion of custom resources": "should support orphan deletion of custom resources [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Generated clientset should create pods, set the deletionTimestamp and deletionGracePeriodSeconds of the pod": "should create pods, set the deletionTimestamp and deletionGracePeriodSeconds of the pod [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Generated clientset should create pods, set the deletionTimestamp and deletionGracePeriodSeconds of the pod": "should create pods, set the deletionTimestamp and deletionGracePeriodSeconds of the pod [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Generated clientset should create v1 cronJobs, delete cronJobs, watch cronJobs": "should create v1 cronJobs, delete cronJobs, watch cronJobs [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Generated clientset should create v1 cronJobs, delete cronJobs, watch cronJobs": "should create v1 cronJobs, delete cronJobs, watch cronJobs [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Namespaces [Serial] should always delete fast (ALL of 100 namespaces in 150 seconds) [Feature:ComprehensiveNamespaceDraining]": "should always delete fast (ALL of 100 namespaces in 150 seconds) [Feature:ComprehensiveNamespaceDraining] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Namespaces [Serial] should always delete fast (ALL of 100 namespaces in 150 seconds) [Feature:ComprehensiveNamespaceDraining]": "should always delete fast (ALL of 100 namespaces in 150 seconds) [Feature:ComprehensiveNamespaceDraining] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Namespaces [Serial] should delete fast enough (90 percent of 100 namespaces in 150 seconds)": "should delete fast enough (90 percent of 100 namespaces in 150 seconds) [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Namespaces [Serial] should delete fast enough (90 percent of 100 namespaces in 150 seconds)": "should delete fast enough (90 percent of 100 namespaces in 150 seconds) [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Namespaces [Serial] should ensure that all pods are removed when a namespace is deleted [Conformance]": "should ensure that all pods are removed when a namespace is deleted [Conformance] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Namespaces [Serial] should ensure that all pods are removed when a namespace is deleted [Conformance]": "should ensure that all pods are removed when a namespace is deleted [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Namespaces [Serial] should ensure that all services are removed when a namespace is deleted [Conformance]": "should ensure that all services are removed when a namespace is deleted [Conformance] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Namespaces [Serial] should ensure that all services are removed when a namespace is deleted [Conformance]": "should ensure that all services are removed when a namespace is deleted [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Namespaces [Serial] should patch a Namespace [Conformance]": "should patch a Namespace [Conformance] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Namespaces [Serial] should patch a Namespace [Conformance]": "should patch a Namespace [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota [Feature:PodPriority] should verify ResourceQuota's multiple priority class scope (quota set to pod count: 2) against 2 pods with same priority classes.": "should verify ResourceQuota's multiple priority class scope (quota set to pod count: 2) against 2 pods with same priority classes. [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota [Feature:PodPriority] should verify ResourceQuota's multiple priority class scope (quota set to pod count: 2) against 2 pods with same priority classes.": "should verify ResourceQuota's multiple priority class scope (quota set to pod count: 2) against 2 pods with same priority classes. [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota [Feature:PodPriority] should verify ResourceQuota's priority class scope (cpu, memory quota set) against a pod with same priority class.": "should verify ResourceQuota's priority class scope (cpu, memory quota set) against a pod with same priority class. [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota [Feature:PodPriority] should verify ResourceQuota's priority class scope (cpu, memory quota set) against a pod with same priority class.": "should verify ResourceQuota's priority class scope (cpu, memory quota set) against a pod with same priority class. [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota [Feature:PodPriority] should verify ResourceQuota's priority class scope (quota set to pod count: 1) against 2 pods with different priority class.": "should verify ResourceQuota's priority class scope (quota set to pod count: 1) against 2 pods with different priority class. [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota [Feature:PodPriority] should verify ResourceQuota's priority class scope (quota set to pod count: 1) against 2 pods with different priority class.": "should verify ResourceQuota's priority class scope (quota set to pod count: 1) against 2 pods with different priority class. [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota [Feature:PodPriority] should verify ResourceQuota's priority class scope (quota set to pod count: 1) against 2 pods with same priority class.": "should verify ResourceQuota's priority class scope (quota set to pod count: 1) against 2 pods with same priority class. [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota [Feature:PodPriority] should verify ResourceQuota's priority class scope (quota set to pod count: 1) against 2 pods with same priority class.": "should verify ResourceQuota's priority class scope (quota set to pod count: 1) against 2 pods with same priority class. [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota [Feature:PodPriority] should verify ResourceQuota's priority class scope (quota set to pod count: 1) against a pod with different priority class (ScopeSelectorOpExists).": "should verify ResourceQuota's priority class scope (quota set to pod count: 1) against a pod with different priority class (ScopeSelectorOpExists). [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota [Feature:PodPriority] should verify ResourceQuota's priority class scope (quota set to pod count: 1) against a pod with different priority class (ScopeSelectorOpExists).": "should verify ResourceQuota's priority class scope (quota set to pod count: 1) against a pod with different priority class (ScopeSelectorOpExists). [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota [Feature:PodPriority] should verify ResourceQuota's priority class scope (quota set to pod count: 1) against a pod with different priority class (ScopeSelectorOpNotIn).": "should verify ResourceQuota's priority class scope (quota set to pod count: 1) against a pod with different priority class (ScopeSelectorOpNotIn). [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota [Feature:PodPriority] should verify ResourceQuota's priority class scope (quota set to pod count: 1) against a pod with different priority class (ScopeSelectorOpNotIn).": "should verify ResourceQuota's priority class scope (quota set to pod count: 1) against a pod with different priority class (ScopeSelectorOpNotIn). [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota [Feature:PodPriority] should verify ResourceQuota's priority class scope (quota set to pod count: 1) against a pod with same priority class.": "should verify ResourceQuota's priority class scope (quota set to pod count: 1) against a pod with same priority class. [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota [Feature:PodPriority] should verify ResourceQuota's priority class scope (quota set to pod count: 1) against a pod with same priority class.": "should verify ResourceQuota's priority class scope (quota set to pod count: 1) against a pod with same priority class. [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota [Feature:ScopeSelectors] should verify ResourceQuota with best effort scope using scope-selectors.": "should verify ResourceQuota with best effort scope using scope-selectors. [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota [Feature:ScopeSelectors] should verify ResourceQuota with best effort scope using scope-selectors.": "should verify ResourceQuota with best effort scope using scope-selectors. [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota [Feature:ScopeSelectors] should verify ResourceQuota with terminating scopes through scope selectors.": "should verify ResourceQuota with terminating scopes through scope selectors. [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota [Feature:ScopeSelectors] should verify ResourceQuota with terminating scopes through scope selectors.": "should verify ResourceQuota with terminating scopes through scope selectors. [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota should be able to update and delete ResourceQuota. [Conformance]": "should be able to update and delete ResourceQuota. [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota should be able to update and delete ResourceQuota. [Conformance]": "should be able to update and delete ResourceQuota. [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a configMap. [Conformance]": "should create a ResourceQuota and capture the life of a configMap. [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a configMap. [Conformance]": "should create a ResourceQuota and capture the life of a configMap. [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a custom resource.": "should create a ResourceQuota and capture the life of a custom resource. [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a custom resource.": "should create a ResourceQuota and capture the life of a custom resource. [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a persistent volume claim with a storage class": "should create a ResourceQuota and capture the life of a persistent volume claim with a storage class [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a persistent volume claim with a storage class": "should create a ResourceQuota and capture the life of a persistent volume claim with a storage class [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a persistent volume claim": "should create a ResourceQuota and capture the life of a persistent volume claim [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a persistent volume claim": "should create a ResourceQuota and capture the life of a persistent volume claim [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a pod. [Conformance]": "should create a ResourceQuota and capture the life of a pod. [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a pod. [Conformance]": "should create a ResourceQuota and capture the life of a pod. [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a replica set. [Conformance]": "should create a ResourceQuota and capture the life of a replica set. [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a replica set. [Conformance]": "should create a ResourceQuota and capture the life of a replica set. [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a replication controller. [Conformance]": "should create a ResourceQuota and capture the life of a replication controller. [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a replication controller. [Conformance]": "should create a ResourceQuota and capture the life of a replication controller. [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a secret. [Conformance]": "should create a ResourceQuota and capture the life of a secret. [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a secret. [Conformance]": "should create a ResourceQuota and capture the life of a secret. [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a service. [Conformance]": "should create a ResourceQuota and capture the life of a service. [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a service. [Conformance]": "should create a ResourceQuota and capture the life of a service. [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and ensure its status is promptly calculated. [Conformance]": "should create a ResourceQuota and ensure its status is promptly calculated. [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota should create a ResourceQuota and ensure its status is promptly calculated. [Conformance]": "should create a ResourceQuota and ensure its status is promptly calculated. [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota should verify ResourceQuota with best effort scope. [Conformance]": "should verify ResourceQuota with best effort scope. [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota should verify ResourceQuota with best effort scope. [Conformance]": "should verify ResourceQuota with best effort scope. [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota should verify ResourceQuota with cross namespace pod affinity scope using scope-selectors.": "should verify ResourceQuota with cross namespace pod affinity scope using scope-selectors. [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota should verify ResourceQuota with cross namespace pod affinity scope using scope-selectors.": "should verify ResourceQuota with cross namespace pod affinity scope using scope-selectors. [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ResourceQuota should verify ResourceQuota with terminating scopes. [Conformance]": "should verify ResourceQuota with terminating scopes. [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ResourceQuota should verify ResourceQuota with terminating scopes. [Conformance]": "should verify ResourceQuota with terminating scopes. [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Server request timeout default timeout should be used if the specified timeout in the request URL is 0s": "default timeout should be used if the specified timeout in the request URL is 0s [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Server request timeout default timeout should be used if the specified timeout in the request URL is 0s": "default timeout should be used if the specified timeout in the request URL is 0s [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Server request timeout should return HTTP status code 400 if the user specifies an invalid timeout in the request URL": "should return HTTP status code 400 if the user specifies an invalid timeout in the request URL [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Server request timeout should return HTTP status code 400 if the user specifies an invalid timeout in the request URL": "should return HTTP status code 400 if the user specifies an invalid timeout in the request URL [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Server request timeout the request should be served with a default timeout if the specified timeout in the request URL exceeds maximum allowed": "the request should be served with a default timeout if the specified timeout in the request URL exceeds maximum allowed [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Server request timeout the request should be served with a default timeout if the specified timeout in the request URL exceeds maximum allowed": "the request should be served with a default timeout if the specified timeout in the request URL exceeds maximum allowed [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ServerSideApply should create an applied object if it does not already exist": "should create an applied object if it does not already exist [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ServerSideApply should create an applied object if it does not already exist": "should create an applied object if it does not already exist [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ServerSideApply should give up ownership of a field if forced applied by a controller": "should give up ownership of a field if forced applied by a controller [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ServerSideApply should give up ownership of a field if forced applied by a controller": "should give up ownership of a field if forced applied by a controller [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ServerSideApply should ignore conflict errors if force apply is used": "should ignore conflict errors if force apply is used [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ServerSideApply should ignore conflict errors if force apply is used": "should ignore conflict errors if force apply is used [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ServerSideApply should not remove a field if an owner unsets the field but other managers still have ownership of the field": "should not remove a field if an owner unsets the field but other managers still have ownership of the field [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ServerSideApply should not remove a field if an owner unsets the field but other managers still have ownership of the field": "should not remove a field if an owner unsets the field but other managers still have ownership of the field [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ServerSideApply should remove a field if it is owned but removed in the apply request": "should remove a field if it is owned but removed in the apply request [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ServerSideApply should remove a field if it is owned but removed in the apply request": "should remove a field if it is owned but removed in the apply request [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ServerSideApply should work for CRDs": "should work for CRDs [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ServerSideApply should work for CRDs": "should work for CRDs [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] ServerSideApply should work for subresources": "should work for subresources [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] ServerSideApply should work for subresources": "should work for subresources [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Servers with support for API chunking should return chunks of results for list calls": "should return chunks of results for list calls [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Servers with support for API chunking should return chunks of results for list calls": "should return chunks of results for list calls [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Servers with support for API chunking should support continue listing from the last key if the original version has been compacted away, though the list is inconsistent [Slow]": "should support continue listing from the last key if the original version has been compacted away, though the list is inconsistent [Slow] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Servers with support for API chunking should support continue listing from the last key if the original version has been compacted away, though the list is inconsistent [Slow]": "should support continue listing from the last key if the original version has been compacted away, though the list is inconsistent [Slow] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Servers with support for Table transformation should return a 406 for a backend which does not implement metadata [Conformance]": "should return a 406 for a backend which does not implement metadata [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Servers with support for Table transformation should return a 406 for a backend which does not implement metadata [Conformance]": "should return a 406 for a backend which does not implement metadata [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Servers with support for Table transformation should return chunks of table results for list calls": "should return chunks of table results for list calls [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Servers with support for Table transformation should return chunks of table results for list calls": "should return chunks of table results for list calls [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Servers with support for Table transformation should return generic metadata details across all namespaces for nodes": "should return generic metadata details across all namespaces for nodes [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Servers with support for Table transformation should return generic metadata details across all namespaces for nodes": "should return generic metadata details across all namespaces for nodes [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Servers with support for Table transformation should return pod details": "should return pod details [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Servers with support for Table transformation should return pod details": "should return pod details [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] StorageVersion resources [Feature:StorageVersionAPI] storage version with non-existing id should be GC'ed": "storage version with non-existing id should be GC'ed [Disabled:Alpha] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] StorageVersion resources [Feature:StorageVersionAPI] storage version with non-existing id should be GC'ed": "storage version with non-existing id should be GC'ed [Disabled:Alpha] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Watchers should be able to restart watching from the last resource version observed by the previous watch [Conformance]": "should be able to restart watching from the last resource version observed by the previous watch [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Watchers should be able to restart watching from the last resource version observed by the previous watch [Conformance]": "should be able to restart watching from the last resource version observed by the previous watch [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Watchers should be able to start watching from a specific resource version [Conformance]": "should be able to start watching from a specific resource version [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Watchers should be able to start watching from a specific resource version [Conformance]": "should be able to start watching from a specific resource version [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Watchers should observe add, update, and delete watch notifications on configmaps [Conformance]": "should observe add, update, and delete watch notifications on configmaps [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Watchers should observe add, update, and delete watch notifications on configmaps [Conformance]": "should observe add, update, and delete watch notifications on configmaps [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Watchers should observe an object deletion if it stops meeting the requirements of the selector [Conformance]": "should observe an object deletion if it stops meeting the requirements of the selector [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Watchers should observe an object deletion if it stops meeting the requirements of the selector [Conformance]": "should observe an object deletion if it stops meeting the requirements of the selector [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] Watchers should receive events on concurrent watches in same order [Conformance]": "should receive events on concurrent watches in same order [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] Watchers should receive events on concurrent watches in same order [Conformance]": "should receive events on concurrent watches in same order [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] client-go should negotiate watch and report errors with accept \"application/json,application/vnd.kubernetes.protobuf\"": "watch and report errors with accept \"application/json,application/vnd.kubernetes.protobuf\" [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] client-go should negotiate watch and report errors with accept \"application/json,application/vnd.kubernetes.protobuf\"": "watch and report errors with accept \"application/json,application/vnd.kubernetes.protobuf\" [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] client-go should negotiate watch and report errors with accept \"application/json\"": "watch and report errors with accept \"application/json\" [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] client-go should negotiate watch and report errors with accept \"application/json\"": "watch and report errors with accept \"application/json\" [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] client-go should negotiate watch and report errors with accept \"application/vnd.kubernetes.protobuf,application/json\"": "watch and report errors with accept \"application/vnd.kubernetes.protobuf,application/json\" [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] client-go should negotiate watch and report errors with accept \"application/vnd.kubernetes.protobuf,application/json\"": "watch and report errors with accept \"application/vnd.kubernetes.protobuf,application/json\" [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] client-go should negotiate watch and report errors with accept \"application/vnd.kubernetes.protobuf\"": "watch and report errors with accept \"application/vnd.kubernetes.protobuf\" [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] client-go should negotiate watch and report errors with accept \"application/vnd.kubernetes.protobuf\"": "watch and report errors with accept \"application/vnd.kubernetes.protobuf\" [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] health handlers should contain necessary checks": "should contain necessary checks [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] health handlers should contain necessary checks": "should contain necessary checks [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery] server version should find the server version [Conformance]": "should find the server version [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-api-machinery] server version should find the server version [Conformance]": "should find the server version [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-api-machinery][Feature:APIServer] TestTLSDefaults": "TestTLSDefaults [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:APIServer] TestTLSDefaults": "TestTLSDefaults [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:APIServer] anonymous browsers should get a 403 from /": "anonymous browsers should get a 403 from / [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:APIServer] anonymous browsers should get a 403 from /": "anonymous browsers should get a 403 from / [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:APIServer] authenticated browser should get a 200 from /": "authenticated browser should get a 200 from / [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:APIServer] authenticated browser should get a 200 from /": "authenticated browser should get a 200 from / [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and don't send request early": "API LBs follow /readyz of kube-apiserver and don't send request early [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and don't send request early": "API LBs follow /readyz of kube-apiserver and don't send request early [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and stop sending requests": "API LBs follow /readyz of kube-apiserver and stop sending requests [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and stop sending requests": "API LBs follow /readyz of kube-apiserver and stop sending requests [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] kube-apiserver terminates within graceful termination period": "kube-apiserver terminates within graceful termination period [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] kube-apiserver terminates within graceful termination period": "kube-apiserver terminates within graceful termination period [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] kubelet terminates kube-apiserver gracefully": "kubelet terminates kube-apiserver gracefully [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] kubelet terminates kube-apiserver gracefully": "kubelet terminates kube-apiserver gracefully [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:Audit] Basic audit should audit API calls": "should audit API calls [Disabled:SpecialConfig]",
+	"[Top Level] [sig-api-machinery][Feature:Audit] Basic audit should audit API calls": "should audit API calls [Disabled:Broken] [Disabled:SpecialConfig]",
 
-	"[Top Level] [sig-api-machinery][Feature:ClusterResourceQuota] Cluster resource quota should control resource limits across namespaces": "should control resource limits across namespaces [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ClusterResourceQuota] Cluster resource quota should control resource limits across namespaces": "should control resource limits across namespaces [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:ResourceQuota] Object count should properly count the number of imagestreams resources": "should properly count the number of imagestreams resources [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ResourceQuota] Object count should properly count the number of imagestreams resources": "should properly count the number of imagestreams resources [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for apps.openshift.io/v1, Resource=deploymentconfigs": "should work for apps.openshift.io/v1, Resource=deploymentconfigs [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for apps.openshift.io/v1, Resource=deploymentconfigs": "should work for apps.openshift.io/v1, Resource=deploymentconfigs [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for build.openshift.io/v1, Resource=buildconfigs": "should work for build.openshift.io/v1, Resource=buildconfigs [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for build.openshift.io/v1, Resource=buildconfigs": "should work for build.openshift.io/v1, Resource=buildconfigs [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for build.openshift.io/v1, Resource=builds": "should work for build.openshift.io/v1, Resource=builds [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for build.openshift.io/v1, Resource=builds": "should work for build.openshift.io/v1, Resource=builds [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for image.openshift.io/v1, Resource=images": "should work for image.openshift.io/v1, Resource=images [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for image.openshift.io/v1, Resource=images": "should work for image.openshift.io/v1, Resource=images [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for image.openshift.io/v1, Resource=imagestreams": "should work for image.openshift.io/v1, Resource=imagestreams [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for image.openshift.io/v1, Resource=imagestreams": "should work for image.openshift.io/v1, Resource=imagestreams [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for oauth.openshift.io/v1, Resource=oauthaccesstokens": "should work for oauth.openshift.io/v1, Resource=oauthaccesstokens [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for oauth.openshift.io/v1, Resource=oauthaccesstokens": "should work for oauth.openshift.io/v1, Resource=oauthaccesstokens [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for oauth.openshift.io/v1, Resource=oauthauthorizetokens": "should work for oauth.openshift.io/v1, Resource=oauthauthorizetokens [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for oauth.openshift.io/v1, Resource=oauthauthorizetokens": "should work for oauth.openshift.io/v1, Resource=oauthauthorizetokens [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for oauth.openshift.io/v1, Resource=oauthclientauthorizations": "should work for oauth.openshift.io/v1, Resource=oauthclientauthorizations [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for oauth.openshift.io/v1, Resource=oauthclientauthorizations": "should work for oauth.openshift.io/v1, Resource=oauthclientauthorizations [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for oauth.openshift.io/v1, Resource=oauthclients": "should work for oauth.openshift.io/v1, Resource=oauthclients [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for oauth.openshift.io/v1, Resource=oauthclients": "should work for oauth.openshift.io/v1, Resource=oauthclients [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for route.openshift.io/v1, Resource=routes": "should work for route.openshift.io/v1, Resource=routes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for route.openshift.io/v1, Resource=routes": "should work for route.openshift.io/v1, Resource=routes [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for security.openshift.io/v1, Resource=rangeallocations": "should work for security.openshift.io/v1, Resource=rangeallocations [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for security.openshift.io/v1, Resource=rangeallocations": "should work for security.openshift.io/v1, Resource=rangeallocations [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for template.openshift.io/v1, Resource=brokertemplateinstances": "should work for template.openshift.io/v1, Resource=brokertemplateinstances [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for template.openshift.io/v1, Resource=brokertemplateinstances": "should work for template.openshift.io/v1, Resource=brokertemplateinstances [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for template.openshift.io/v1, Resource=templateinstances": "should work for template.openshift.io/v1, Resource=templateinstances [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for template.openshift.io/v1, Resource=templateinstances": "should work for template.openshift.io/v1, Resource=templateinstances [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for template.openshift.io/v1, Resource=templates": "should work for template.openshift.io/v1, Resource=templates [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for template.openshift.io/v1, Resource=templates": "should work for template.openshift.io/v1, Resource=templates [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for user.openshift.io/v1, Resource=groups": "should work for user.openshift.io/v1, Resource=groups [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for user.openshift.io/v1, Resource=groups": "should work for user.openshift.io/v1, Resource=groups [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for user.openshift.io/v1, Resource=identities": "should work for user.openshift.io/v1, Resource=identities [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for user.openshift.io/v1, Resource=identities": "should work for user.openshift.io/v1, Resource=identities [Disabled:Broken]",
 
-	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for user.openshift.io/v1, Resource=users": "should work for user.openshift.io/v1, Resource=users [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for user.openshift.io/v1, Resource=users": "should work for user.openshift.io/v1, Resource=users [Disabled:Broken]",
 
 	"[Top Level] [sig-apps] CronJob should be able to schedule after more than 100 missed schedule": "should be able to schedule after more than 100 missed schedule [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -1473,21 +1473,21 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods using a watch should watch for changes and rsync them": "should watch for changes and rsync them",
 
-	"[Top Level] [sig-cluster-lifecycle] CSRs from machines that are not recognized by the cloud provider are not approved": "CSRs from machines that are not recognized by the cloud provider are not approved [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cluster-lifecycle] CSRs from machines that are not recognized by the cloud provider are not approved": "CSRs from machines that are not recognized by the cloud provider are not approved [Disabled:Broken]",
 
-	"[Top Level] [sig-cluster-lifecycle] Pods cannot access the /config/master API endpoint": "Pods cannot access the /config/master API endpoint [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cluster-lifecycle] Pods cannot access the /config/master API endpoint": "Pods cannot access the /config/master API endpoint [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-cluster-lifecycle] TestAdminAck should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cluster-lifecycle] TestAdminAck should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive] [Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks": "[Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks [Serial]",
+	"[Top Level] [sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive] [Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks": "[Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks [Disabled:Broken] [Serial]",
 
-	"[Top Level] [sig-cluster-lifecycle][Feature:Machines] Managed cluster should have machine resources": "have machine resources [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cluster-lifecycle][Feature:Machines] Managed cluster should have machine resources": "have machine resources [Disabled:Broken]",
 
-	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Disruptive] Managed cluster should recover from deleted worker machines": "recover from deleted worker machines [Serial]",
+	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Disruptive] Managed cluster should recover from deleted worker machines": "recover from deleted worker machines [Disabled:Broken] [Serial]",
 
-	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Early] Managed cluster should have same number of Machines and Nodes": "have same number of Machines and Nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Early] Managed cluster should have same number of Machines and Nodes": "have same number of Machines and Nodes [Disabled:Broken]",
 
-	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Serial] Managed cluster should grow and decrease when scaling different machineSets simultaneously": "grow and decrease when scaling different machineSets simultaneously [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Serial] Managed cluster should grow and decrease when scaling different machineSets simultaneously": "grow and decrease when scaling different machineSets simultaneously [Disabled:Broken]",
 
 	"[Top Level] [sig-coreos] [Conformance] CoreOS bootimages TestBootimagesPresent": "TestBootimagesPresent [Suite:openshift/conformance/parallel/minimal]",
 

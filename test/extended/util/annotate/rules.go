@@ -50,6 +50,8 @@ var (
 			`\[sig-instrumentation\] *`,
 			`\[sig-auth\] *`,
 			`\[sig-arch\] *`,
+			`\[sig-cluster-lifecycle\] *`,
+			`\[sig-api-machinery\] *`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1945091
 			`\[Feature:GenericEphemeralVolume\]`,
