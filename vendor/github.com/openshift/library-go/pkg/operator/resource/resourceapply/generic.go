@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -17,6 +18,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	migrationv1alpha1 "sigs.k8s.io/kube-storage-version-migrator/pkg/apis/migration/v1alpha1"
+	migrationclient "sigs.k8s.io/kube-storage-version-migrator/pkg/clients/clientset"
 
 	"github.com/openshift/api"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -33,7 +36,9 @@ func init() {
 	utilruntime.Must(api.InstallKube(genericScheme))
 	utilruntime.Must(apiextensionsv1beta1.AddToScheme(genericScheme))
 	utilruntime.Must(apiextensionsv1.AddToScheme(genericScheme))
-
+	utilruntime.Must(migrationv1alpha1.AddToScheme(genericScheme))
+	// TODO: remove once openshift/api/pull/929 is merged
+	utilruntime.Must(policyv1.AddToScheme(genericScheme))
 }
 
 type AssetFunc func(name string) ([]byte, error)
@@ -51,6 +56,7 @@ type ClientHolder struct {
 	apiExtensionsClient apiextensionsclient.Interface
 	kubeInformers       v1helpers.KubeInformersForNamespaces
 	dynamicClient       dynamic.Interface
+	migrationClient     migrationclient.Interface
 }
 
 func NewClientHolder() *ClientHolder {
@@ -78,6 +84,11 @@ func (c *ClientHolder) WithAPIExtensionsClient(client apiextensionsclient.Interf
 
 func (c *ClientHolder) WithDynamicClient(client dynamic.Interface) *ClientHolder {
 	c.dynamicClient = client
+	return c
+}
+
+func (c *ClientHolder) WithMigrationClient(client migrationclient.Interface) *ClientHolder {
+	c.migrationClient = client
 	return c
 }
 
@@ -165,6 +176,12 @@ func ApplyDirectly(clients *ClientHolder, recorder events.Recorder, manifests As
 			} else {
 				result.Result, result.Changed, result.Error = ApplyRoleBinding(clients.kubeClient.RbacV1(), recorder, t)
 			}
+		case *policyv1.PodDisruptionBudget:
+			if clients.kubeClient == nil {
+				result.Error = fmt.Errorf("missing kubeClient")
+			} else {
+				result.Result, result.Changed, result.Error = ApplyPodDisruptionBudget(clients.kubeClient.PolicyV1(), recorder, t)
+			}
 		case *apiextensionsv1beta1.CustomResourceDefinition:
 			if clients.apiExtensionsClient == nil {
 				result.Error = fmt.Errorf("missing apiExtensionsClient")
@@ -188,6 +205,12 @@ func ApplyDirectly(clients *ClientHolder, recorder events.Recorder, manifests As
 				result.Error = fmt.Errorf("missing kubeClient")
 			} else {
 				result.Result, result.Changed, result.Error = ApplyCSIDriver(clients.kubeClient.StorageV1(), recorder, t)
+			}
+		case *migrationv1alpha1.StorageVersionMigration:
+			if clients.migrationClient == nil {
+				result.Error = fmt.Errorf("missing migrationClient")
+			} else {
+				result.Result, result.Changed, result.Error = ApplyStorageVersionMigration(clients.migrationClient, recorder, t)
 			}
 		case *unstructured.Unstructured:
 			if clients.dynamicClient == nil {

@@ -1309,6 +1309,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc rsh specific flags should work well when access to a remote shell": "should work well when access to a remote shell [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc version check kubernetes version": "check kubernetes version [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/annotations.sh": "test/cmd/annotations.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/apiresources.sh": "test/cmd/apiresources.sh",
@@ -12034,8 +12036,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-storage] Mounted flexvolume volume expand [Slow] [Feature:ExpandInUsePersistentVolumes] should be resizable when mounted": "should be resizable when mounted [Suite:k8s]",
 
 	"[Top Level] [sig-storage] Mounted volume expand Should verify mounted devices can be resized": "Should verify mounted devices can be resized [Suite:openshift/conformance/parallel] [Suite:k8s]",
-
-	"[Top Level] [sig-storage] Multi-AZ Cluster Volumes should only be allowed to provision PDs in zones where nodes exist": "should only be allowed to provision PDs in zones where nodes exist [Skipped:gce] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] Multi-AZ Cluster Volumes should schedule pods in the same zones as statically provisioned PVs": "should schedule pods in the same zones as statically provisioned PVs [Suite:openshift/conformance/parallel] [Suite:k8s]",
 

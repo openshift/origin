@@ -1,10 +1,11 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: networks.operator.openshift.io
   annotations:
+    api-approved.openshift.io: https://github.com/openshift/api/pull/475
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
+  name: networks.operator.openshift.io
 spec:
   group: operator.openshift.io
   names:
@@ -15,8 +16,6 @@ spec:
   scope: Cluster
   versions:
   - name: v1
-    served: true
-    storage: true
     schema:
       openAPIV3Schema:
         description: Network describes the cluster's desired network configuration.
@@ -423,7 +422,7 @@ spec:
                         minItems: 1
                         items:
                           type: string
-                          pattern: ^(([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]):[0-9]+$
+                          pattern: ^(([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]):([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$
                   netFlow:
                     description: netFlow defines the NetFlow configuration.
                     type: object
@@ -437,7 +436,7 @@ spec:
                         minItems: 1
                         items:
                           type: string
-                          pattern: ^(([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]):[0-9]+$
+                          pattern: ^(([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]):([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$
                   sFlow:
                     description: sFlow defines the SFlow configuration.
                     type: object
@@ -450,7 +449,7 @@ spec:
                         minItems: 1
                         items:
                           type: string
-                          pattern: ^(([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]):[0-9]+$
+                          pattern: ^(([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]):([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$
               kubeProxyConfig:
                 description: kubeProxyConfig lets us configure desired proxy configuration.
                   If not specified, sensible defaults will be chosen by OpenShift
@@ -623,3 +622,5 @@ spec:
               version:
                 description: version is the level this availability applies to
                 type: string
+    served: true
+    storage: true

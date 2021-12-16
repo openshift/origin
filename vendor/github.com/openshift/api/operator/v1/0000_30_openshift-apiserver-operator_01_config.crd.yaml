@@ -1,26 +1,23 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: openshiftapiservers.operator.openshift.io
   annotations:
+    api-approved.openshift.io: https://github.com/openshift/api/pull/475
     include.release.openshift.io/ibm-cloud-managed: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
+  name: openshiftapiservers.operator.openshift.io
 spec:
-  scope: Cluster
   group: operator.openshift.io
   names:
+    categories:
+    - coreoperators
     kind: OpenShiftAPIServer
     plural: openshiftapiservers
     singular: openshiftapiserver
-    categories:
-    - coreoperators
+  scope: Cluster
   versions:
   - name: v1
-    served: true
-    storage: true
-    subresources:
-      status: {}
     schema:
       openAPIV3Schema:
         description: OpenShiftAPIServer provides information to configure an operator
@@ -168,3 +165,7 @@ spec:
               version:
                 description: version is the level this availability applies to
                 type: string
+    served: true
+    storage: true
+    subresources:
+      status: {}
