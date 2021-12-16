@@ -278,19 +278,24 @@ func (b *BackendSampler) wrapWithAuth(rt http.RoundTripper) (http.RoundTripper, 
 }
 
 func (b *BackendSampler) GetHTTPClient() (*http.Client, error) {
+	timeoutForEntireRequest := b.getTimeout()
+	timeoutForPartOfRequest := timeoutForEntireRequest / 5 // this is less so that we can see failures for individual portions of the request
+
 	b.initHTTPClient.Do(func() {
 		var httpTransport *http.Transport
 		switch b.GetConnectionType() {
 		case NewConnectionType:
 			httpTransport = &http.Transport{
 				Dial: (&net.Dialer{
-					Timeout:   b.getTimeout(),
+					Timeout:   timeoutForPartOfRequest,
 					KeepAlive: -1, // this looks unnecessary to me, but it was set in other code.
 				}).Dial,
-				TLSClientConfig:     b.getTLSConfig(),
-				TLSHandshakeTimeout: b.getTimeout(),
-				DisableKeepAlives:   true, // this prevents connections from being reused
-				IdleConnTimeout:     b.getTimeout(),
+				TLSClientConfig:       b.getTLSConfig(),
+				DisableKeepAlives:     true, // this prevents connections from being reused
+				TLSHandshakeTimeout:   timeoutForPartOfRequest,
+				IdleConnTimeout:       timeoutForPartOfRequest,
+				ResponseHeaderTimeout: timeoutForPartOfRequest,
+				ExpectContinueTimeout: timeoutForPartOfRequest,
 			}
 
 		case ReusedConnectionType:
@@ -298,9 +303,11 @@ func (b *BackendSampler) GetHTTPClient() (*http.Client, error) {
 				Dial: (&net.Dialer{
 					Timeout: b.getTimeout(),
 				}).Dial,
-				TLSClientConfig:     b.getTLSConfig(),
-				TLSHandshakeTimeout: b.getTimeout(),
-				IdleConnTimeout:     b.getTimeout(),
+				TLSClientConfig:       b.getTLSConfig(),
+				TLSHandshakeTimeout:   timeoutForPartOfRequest,
+				IdleConnTimeout:       timeoutForPartOfRequest,
+				ResponseHeaderTimeout: timeoutForPartOfRequest,
+				ExpectContinueTimeout: timeoutForPartOfRequest,
 			}
 
 		default:
@@ -318,7 +325,7 @@ func (b *BackendSampler) GetHTTPClient() (*http.Client, error) {
 
 		b.httpClient = &http.Client{
 			Transport: roundTripper,
-			Timeout:   b.getTimeout(),
+			Timeout:   timeoutForEntireRequest,
 		}
 		b.httpClientErr = nil
 	})
@@ -337,7 +344,9 @@ func (b *BackendSampler) checkConnection(ctx context.Context) error {
 		return err
 	}
 
-	requestContext, requestCancel := context.WithTimeout(ctx, b.getTimeout())
+	// this is longer than the http client timeout to avoid tripping, but is here to be sure we finish eventually
+	backstopContextTimeout := b.getTimeout() * 2
+	requestContext, requestCancel := context.WithTimeout(ctx, backstopContextTimeout)
 	defer requestCancel()
 	req, err := http.NewRequestWithContext(requestContext, http.MethodGet, url, nil)
 	if err != nil {
