@@ -126,5 +126,10 @@ func allowedIngressDisruption(f *framework.Framework, totalDuration time.Duratio
 	allowedDisruptionNanoseconds := int64(float64(totalDuration.Nanoseconds()) * toleratedDisruption)
 	allowedDisruption := time.Duration(allowedDisruptionNanoseconds)
 
+	// TODO this should be removed early in 1/2022, but the new sampler is more responsive than the old so we cannot be tight and merge
+	if allowedDisruption < 10*time.Second {
+		allowedDisruption = 10 * time.Second
+	}
+
 	return &allowedDisruption, nil
 }
