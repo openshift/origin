@@ -19,6 +19,8 @@ import (
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
+	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -225,7 +227,12 @@ func (opt *Options) Run(suite *TestSuite) error {
 	if err != nil {
 		return err
 	}
-	m, err := monitor.Start(ctx, restConfig)
+	m, err := monitor.Start(ctx, restConfig,
+		[]monitor.StartEventIntervalRecorderFunc{
+			controlplane.StartAllAPIMonitoring,
+			frontends.StartAllIngressMonitoring,
+		},
+	)
 	if err != nil {
 		return err
 	}

@@ -14,6 +14,8 @@ import (
 // a command line interaction.
 type Options struct {
 	Out, ErrOut io.Writer
+
+	AdditionalEventIntervalRecorders []StartEventIntervalRecorderFunc
 }
 
 // Run starts monitoring the cluster by invoking Start, periodically printing the
@@ -42,7 +44,7 @@ func (opt *Options) Run() error {
 	if err != nil {
 		return err
 	}
-	m, err := Start(ctx, restConfig)
+	m, err := Start(ctx, restConfig, opt.AdditionalEventIntervalRecorders)
 	if err != nil {
 		return err
 	}

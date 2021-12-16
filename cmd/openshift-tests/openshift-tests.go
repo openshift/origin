@@ -14,14 +14,6 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-
-	utilflag "k8s.io/component-base/cli/flag"
-	"k8s.io/component-base/logs"
-	"k8s.io/klog/v2"
-	"k8s.io/kubectl/pkg/util/templates"
-
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/monitor"
@@ -30,6 +22,14 @@ import (
 	"github.com/openshift/origin/pkg/version"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/cluster"
+	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
+	"github.com/openshift/origin/test/extended/util/disruption/frontends"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	utilflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2"
+	"k8s.io/kubectl/pkg/util/templates"
 )
 
 func main() {
@@ -95,6 +95,10 @@ func newRunMonitorCommand() *cobra.Command {
 	monitorOpt := &monitor.Options{
 		Out:    os.Stdout,
 		ErrOut: os.Stderr,
+		AdditionalEventIntervalRecorders: []monitor.StartEventIntervalRecorderFunc{
+			controlplane.StartAllAPIMonitoring,
+			frontends.StartAllIngressMonitoring,
+		},
 	}
 	cmd := &cobra.Command{
 		Use:   "run-monitor",

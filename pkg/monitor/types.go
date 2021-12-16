@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"k8s.io/client-go/rest"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -48,3 +50,7 @@ type sample struct {
 	at         time.Time
 	conditions []*monitorapi.Condition
 }
+
+// StartEventIntervalRecorder is non-blocking and must stop on a context cancel.  It is expected to call the recorder
+// an is encouraged to use EventIntervals to record edges.  They are often paired with TestSuite.SyntheticEventTests.
+type StartEventIntervalRecorderFunc func(ctx context.Context, recorder Recorder, clusterConfig *rest.Config) error
