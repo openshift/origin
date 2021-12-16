@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"net/http"
+	"net/url"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -55,6 +58,9 @@ type ClusterConfiguration struct {
 
 	// HasSCTP determines whether SCTP connectivity tests can be run in the cluster
 	HasSCTP bool
+
+	// IsProxied determines whether we are accessing the cluster through an HTTP proxy
+	IsProxied bool
 }
 
 func (c *ClusterConfiguration) ToJSONString() string {
@@ -68,6 +74,7 @@ func (c *ClusterConfiguration) ToJSONString() string {
 // ClusterState provides information about the cluster that is used to generate
 // ClusterConfiguration
 type ClusterState struct {
+	APIURL               *url.URL
 	PlatformStatus       *configv1.PlatformStatus
 	Masters              *corev1.NodeList
 	NonMasters           *corev1.NodeList
@@ -91,6 +98,12 @@ func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 	}
 
 	state := &ClusterState{}
+
+	url, _, err := rest.DefaultServerURL(clientConfig.Host, clientConfig.APIPath, schema.GroupVersion{}, false)
+	if err != nil {
+		return nil, err
+	}
+	state.APIURL = url
 
 	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
@@ -193,6 +206,19 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 		}
 	}
 
+	// ProxyFromEnvironment returns the URL of the proxy to use for a
+	// given request, as indicated by the environment variables
+	// HTTP_PROXY, HTTPS_PROXY and NO_PROXY. If ProxyFromEnvironment returns
+	// a proxy to us for a dummy API request, then we set our config to
+	// be proxied.
+	proxy, err := http.ProxyFromEnvironment(&http.Request{
+		Method: http.MethodGet,
+		URL:    state.APIURL,
+	})
+	if err == nil && proxy != nil {
+		config.IsProxied = true
+	}
+
 	// FIXME: detect SCTP availability; there's no explicit config for it, so we'd
 	// have to scan MachineConfig objects to figure this out? For now, callers can
 	// can just manually override with --provider...
@@ -215,6 +241,10 @@ func (c *ClusterConfiguration) MatchFn() func(string) bool {
 
 	if c.Disconnected {
 		skips = append(skips, "[Skipped:Disconnected]")
+	}
+
+	if c.IsProxied {
+		skips = append(skips, "[Skipped:Proxy]")
 	}
 
 	if c.SingleReplicaTopology {

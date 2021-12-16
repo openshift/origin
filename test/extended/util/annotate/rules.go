@@ -79,6 +79,22 @@ var (
 		"[Skipped:ovirt]": {},
 		"[Skipped:gce]":   {},
 
+		// These tests are skipped when openshift-tests needs to use a proxy to reach the
+		// cluster -- either because the test won't work while proxied, or because the test
+		// itself is testing a functionality using it's own proxy.
+		"[Skipped:Proxy]": {
+			// These tests setup their own proxy, which won't work when we need to access the
+			// cluster through a proxy.
+			`\[sig-cli\] Kubectl client Simple pod should support exec through an HTTP proxy`,
+			`\[sig-cli\] Kubectl client Simple pod should support exec through kubectl proxy`,
+
+			// Kube currently uses the x/net/websockets pkg, which doesn't work with proxies.
+			// See: https://github.com/kubernetes/kubernetes/pull/103595
+			`\[sig-node\] Pods should support retrieving logs from the container over websockets`,
+			`\[sig-cli\] Kubectl Port forwarding With a server listening on localhost should support forwarding over websockets`,
+			`\[sig-cli\] Kubectl Port forwarding With a server listening on 0.0.0.0 should support forwarding over websockets`,
+			`\[sig-node\] Pods should support remote command execution over websockets`,
+		},
 		"[Skipped:SingleReplicaTopology]": {
 			`\[sig-apps\] Daemon set \[Serial\] should rollback without unnecessary restarts \[Conformance\]`,
 			`\[sig-node\] NoExecuteTaintManager Single Pod \[Serial\] doesn't evict pod with tolerations from tainted nodes`,
