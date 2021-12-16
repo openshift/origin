@@ -46,6 +46,7 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1952457
 			`\[sig-node\] crictl should be able to run crictl on the node`,
 			`\[sig-node\] *`,
+			`\[sig-storage\] *`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1945091
 			`\[Feature:GenericEphemeralVolume\]`,
