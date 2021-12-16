@@ -377,6 +377,7 @@ spec:
                       type:
                         description: type identifies the identity provider type for this entry.
                         type: string
+                  x-kubernetes-list-type: atomic
                 templates:
                   description: templates allow you to customize pages like the login page.
                   type: object

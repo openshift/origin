@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // EnsureObjectMeta writes namespace, name, labels, and annotations.  Don't set other things here.
@@ -14,13 +15,15 @@ func EnsureObjectMeta(modified *bool, existing *metav1.ObjectMeta, required meta
 	SetStringIfSet(modified, &existing.Name, required.Name)
 	MergeMap(modified, &existing.Labels, required.Labels)
 	MergeMap(modified, &existing.Annotations, required.Annotations)
+	MergeOwnerRefs(modified, &existing.OwnerReferences, required.OwnerReferences)
 }
 
-// WithCleanLabelsAndAnnotations cleans the metadata off the removal annotations/labels
+// WithCleanLabelsAndAnnotations cleans the metadata off the removal annotations/labels/ownerrefs
 // (those that end with trailing "-")
 func WithCleanLabelsAndAnnotations(obj metav1.Object) metav1.Object {
 	obj.SetAnnotations(cleanRemovalKeys(obj.GetAnnotations()))
 	obj.SetLabels(cleanRemovalKeys(obj.GetLabels()))
+	obj.SetOwnerReferences(cleanRemovalOwnerRefs(obj.GetOwnerReferences()))
 	return obj
 }
 
@@ -186,4 +189,89 @@ func SetMapStringStringIfSet(modified *bool, existing *map[string]string, requir
 	if !reflect.DeepEqual(*existing, required) {
 		*existing = required
 	}
+}
+
+func MergeOwnerRefs(modified *bool, existing *[]metav1.OwnerReference, required []metav1.OwnerReference) {
+	if *existing == nil {
+		*existing = []metav1.OwnerReference{}
+	}
+
+	for _, o := range required {
+		removeOwner := false
+
+		// if "required" ownerRefs contain an owner.UID with "-" as suffix, remove that
+		// ownerRef from the existing ownerRefs instead of replacing the value
+		// NOTE: this is the same format as kubectl annotate and kubectl label
+		if strings.HasSuffix(string(o.UID), "-") {
+			removeOwner = true
+		}
+
+		existedIndex := 0
+
+		for existedIndex < len(*existing) {
+			if ownerRefMatched(o, (*existing)[existedIndex]) {
+				break
+			}
+			existedIndex++
+		}
+
+		if existedIndex == len(*existing) {
+			// There is no matched ownerref found, append the ownerref
+			// if it is not to be removed.
+			if !removeOwner {
+				*existing = append(*existing, o)
+				*modified = true
+			}
+			continue
+		}
+
+		if removeOwner {
+			*existing = append((*existing)[:existedIndex], (*existing)[existedIndex+1:]...)
+			*modified = true
+			continue
+		}
+
+		if !reflect.DeepEqual(o, (*existing)[existedIndex]) {
+			(*existing)[existedIndex] = o
+			*modified = true
+		}
+	}
+}
+
+func ownerRefMatched(existing, required metav1.OwnerReference) bool {
+	if existing.Name != required.Name {
+		return false
+	}
+
+	if existing.Kind != required.Kind {
+		return false
+	}
+
+	existingGV, err := schema.ParseGroupVersion(existing.APIVersion)
+
+	if err != nil {
+		return false
+	}
+
+	requiredGV, err := schema.ParseGroupVersion(required.APIVersion)
+
+	if err != nil {
+		return false
+	}
+
+	if existingGV.Group != requiredGV.Group {
+		return false
+	}
+
+	return true
+}
+
+func cleanRemovalOwnerRefs(required []metav1.OwnerReference) []metav1.OwnerReference {
+	for k := 0; k < len(required); k++ {
+		if strings.HasSuffix(string(required[k].UID), "-") {
+			required = append(required[:k], required[k+1:]...)
+			k--
+		}
+	}
+	return required
 }
