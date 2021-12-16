@@ -1747,15 +1747,15 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should not allow updating BootMacAddress": "not allow updating BootMacAddress [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation] Events API should delete a collection of events [Conformance]": "should delete a collection of events [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-instrumentation] Events API should delete a collection of events [Conformance]": "should delete a collection of events [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-instrumentation] Events API should ensure that an event can be fetched, patched, deleted, and listed [Conformance]": "should ensure that an event can be fetched, patched, deleted, and listed [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-instrumentation] Events API should ensure that an event can be fetched, patched, deleted, and listed [Conformance]": "should ensure that an event can be fetched, patched, deleted, and listed [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-instrumentation] Events should delete a collection of events [Conformance]": "should delete a collection of events [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-instrumentation] Events should delete a collection of events [Conformance]": "should delete a collection of events [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-instrumentation] Events should ensure that an event can be fetched, patched, deleted, and listed [Conformance]": "should ensure that an event can be fetched, patched, deleted, and listed [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-instrumentation] Events should ensure that an event can be fetched, patched, deleted, and listed [Conformance]": "should ensure that an event can be fetched, patched, deleted, and listed [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-instrumentation] Logging soak [Performance] [Slow] [Disruptive] should survive logging 1KB every 1s seconds, for a duration of 2m0s": "should survive logging 1KB every 1s seconds, for a duration of 2m0s [Serial] [Suite:k8s]",
+	"[Top Level] [sig-instrumentation] Logging soak [Performance] [Slow] [Disruptive] should survive logging 1KB every 1s seconds, for a duration of 2m0s": "should survive logging 1KB every 1s seconds, for a duration of 2m0s [Disabled:Broken] [Serial] [Suite:k8s]",
 
 	"[Top Level] [sig-instrumentation] MetricsGrabber should grab all metrics from API server.": "should grab all metrics from API server. [Disabled:Broken] [Suite:k8s]",
 
@@ -1765,49 +1765,49 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation] MetricsGrabber should grab all metrics from a Scheduler.": "should grab all metrics from a Scheduler. [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should have a AlertmanagerReceiversNotConfigured alert in firing state": "should have a AlertmanagerReceiversNotConfigured alert in firing state [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should have a AlertmanagerReceiversNotConfigured alert in firing state": "should have a AlertmanagerReceiversNotConfigured alert in firing state [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should have important platform topology metrics": "should have important platform topology metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should have important platform topology metrics": "should have important platform topology metrics [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should have non-Pod host cAdvisor metrics": "should have non-Pod host cAdvisor metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should have non-Pod host cAdvisor metrics": "should have non-Pod host cAdvisor metrics [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should provide ingress metrics": "should provide ingress metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should provide ingress metrics": "should provide ingress metrics [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should provide named network metrics": "should provide named network metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should provide named network metrics": "should provide named network metrics [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should report telemetry if a cloud.openshift.com token is present [Late]": "should report telemetry if a cloud.openshift.com token is present [Late] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should report telemetry if a cloud.openshift.com token is present [Late]": "should report telemetry if a cloud.openshift.com token is present [Late] [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should start and expose a secured proxy and unsecured metrics": "should start and expose a secured proxy and unsecured metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should start and expose a secured proxy and unsecured metrics": "should start and expose a secured proxy and unsecured metrics [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster shouldn't have failing rules evaluation": "shouldn't have failing rules evaluation [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster shouldn't have failing rules evaluation": "shouldn't have failing rules evaluation [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early]": "shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early]": "shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early] [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster when using openshift-sdn should be able to get the sdn ovs flows": "should be able to get the sdn ovs flows [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster when using openshift-sdn should be able to get the sdn ovs flows": "should be able to get the sdn ovs flows [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-instrumentation] Stackdriver Monitoring should have accelerator metrics [Feature:StackdriverAcceleratorMonitoring]": "should have accelerator metrics [Feature:StackdriverAcceleratorMonitoring] [Disabled:Unimplemented] [Suite:k8s]",
+	"[Top Level] [sig-instrumentation] Stackdriver Monitoring should have accelerator metrics [Feature:StackdriverAcceleratorMonitoring]": "should have accelerator metrics [Feature:StackdriverAcceleratorMonitoring] [Disabled:Broken] [Disabled:Unimplemented] [Suite:k8s]",
 
-	"[Top Level] [sig-instrumentation] Stackdriver Monitoring should have cluster metrics [Feature:StackdriverMonitoring]": "should have cluster metrics [Feature:StackdriverMonitoring] [Disabled:Unimplemented] [Suite:k8s]",
+	"[Top Level] [sig-instrumentation] Stackdriver Monitoring should have cluster metrics [Feature:StackdriverMonitoring]": "should have cluster metrics [Feature:StackdriverMonitoring] [Disabled:Broken] [Disabled:Unimplemented] [Suite:k8s]",
 
-	"[Top Level] [sig-instrumentation] Stackdriver Monitoring should run Custom Metrics - Stackdriver Adapter for external metrics [Feature:StackdriverExternalMetrics]": "should run Custom Metrics - Stackdriver Adapter for external metrics [Feature:StackdriverExternalMetrics] [Disabled:Unimplemented] [Suite:k8s]",
+	"[Top Level] [sig-instrumentation] Stackdriver Monitoring should run Custom Metrics - Stackdriver Adapter for external metrics [Feature:StackdriverExternalMetrics]": "should run Custom Metrics - Stackdriver Adapter for external metrics [Feature:StackdriverExternalMetrics] [Disabled:Broken] [Disabled:Unimplemented] [Suite:k8s]",
 
-	"[Top Level] [sig-instrumentation] Stackdriver Monitoring should run Custom Metrics - Stackdriver Adapter for new resource model [Feature:StackdriverCustomMetrics]": "should run Custom Metrics - Stackdriver Adapter for new resource model [Feature:StackdriverCustomMetrics] [Disabled:Unimplemented] [Suite:k8s]",
+	"[Top Level] [sig-instrumentation] Stackdriver Monitoring should run Custom Metrics - Stackdriver Adapter for new resource model [Feature:StackdriverCustomMetrics]": "should run Custom Metrics - Stackdriver Adapter for new resource model [Feature:StackdriverCustomMetrics] [Disabled:Broken] [Disabled:Unimplemented] [Suite:k8s]",
 
-	"[Top Level] [sig-instrumentation] Stackdriver Monitoring should run Custom Metrics - Stackdriver Adapter for old resource model [Feature:StackdriverCustomMetrics]": "should run Custom Metrics - Stackdriver Adapter for old resource model [Feature:StackdriverCustomMetrics] [Disabled:Unimplemented] [Suite:k8s]",
+	"[Top Level] [sig-instrumentation] Stackdriver Monitoring should run Custom Metrics - Stackdriver Adapter for old resource model [Feature:StackdriverCustomMetrics]": "should run Custom Metrics - Stackdriver Adapter for old resource model [Feature:StackdriverCustomMetrics] [Disabled:Broken] [Disabled:Unimplemented] [Suite:k8s]",
 
-	"[Top Level] [sig-instrumentation] Stackdriver Monitoring should run Stackdriver Metadata Agent [Feature:StackdriverMetadataAgent]": "should run Stackdriver Metadata Agent [Feature:StackdriverMetadataAgent] [Disabled:Unimplemented] [Suite:k8s]",
+	"[Top Level] [sig-instrumentation] Stackdriver Monitoring should run Stackdriver Metadata Agent [Feature:StackdriverMetadataAgent]": "should run Stackdriver Metadata Agent [Feature:StackdriverMetadataAgent] [Disabled:Broken] [Disabled:Unimplemented] [Suite:k8s]",
 
-	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster": "shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster": "shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't report any alerts in firing or pending state apart from Watchdog and AlertmanagerReceiversNotConfigured and have no gaps in Watchdog firing": "shouldn't report any alerts in firing or pending state apart from Watchdog and AlertmanagerReceiversNotConfigured and have no gaps in Watchdog firing [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't report any alerts in firing or pending state apart from Watchdog and AlertmanagerReceiversNotConfigured and have no gaps in Watchdog firing": "shouldn't report any alerts in firing or pending state apart from Watchdog and AlertmanagerReceiversNotConfigured and have no gaps in Watchdog firing [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-instrumentation][Late] OpenShift alerting rules should have a runbook_url annotation if the alert is critical": "should have a runbook_url annotation if the alert is critical [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation][Late] OpenShift alerting rules should have a runbook_url annotation if the alert is critical": "should have a runbook_url annotation if the alert is critical [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-instrumentation][Late] OpenShift alerting rules should have a valid severity label": "should have a valid severity label [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation][Late] OpenShift alerting rules should have a valid severity label": "should have a valid severity label [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-instrumentation][Late] OpenShift alerting rules should have description and summary annotations": "should have description and summary annotations [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation][Late] OpenShift alerting rules should have description and summary annotations": "should have description and summary annotations [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-instrumentation][sig-builds][Feature:Builds] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics": "should start and expose a secured proxy and verify build metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation][sig-builds][Feature:Builds] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics": "should start and expose a secured proxy and verify build metrics [Disabled:Broken] [Skipped:Disconnected]",
 
 	"[Top Level] [sig-network-edge] DNS should answer A and AAAA queries for a dual-stack service": "should answer A and AAAA queries for a dual-stack service [Suite:openshift/conformance/parallel]",
 
