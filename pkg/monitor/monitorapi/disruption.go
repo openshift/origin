@@ -1,38 +1,26 @@
 package monitorapi
 
 import (
-	"strings"
 	"time"
 )
 
 // BackendDisruptionSeconds return duration disrupted, disruptionMessages, and New or Reused
 func BackendDisruptionSeconds(locator string, events Intervals) (time.Duration, []string, string) {
 	disruptionEvents := events.Filter(
-		func(i EventInterval) bool {
-			if i.Locator != locator {
-				return false
-			}
-			switch {
-			case strings.Contains(i.Message, "stopped responding to"):
-				return true
-			case strings.Contains(i.Message, "is not responding to"):
-				return true
-			default:
-				return false
-			}
-		},
+		And(
+			IsEventForLocator(locator),
+			IsErrorEvent,
+		),
 	)
 	disruptionMessages := disruptionEvents.Strings()
-	connectionType := "Unknown"
-	for _, disruptionMessage := range disruptionMessages {
-		switch {
-		case strings.Contains(disruptionMessage, "over reused connections"):
-			connectionType = "Reused"
-		case strings.Contains(disruptionMessage, "over new connections"):
-			connectionType = "New"
-		default:
-			connectionType = "Unknown"
-		}
-	}
+	connectionType := DisruptionConnectionTypeFrom(LocatorParts(locator))
+
 	return disruptionEvents.Duration(1 * time.Second), disruptionMessages, connectionType
+}
+
+func IsDisruptionEvent(eventInterval EventInterval) bool {
+	if disruptionBackend := DisruptionFrom(LocatorParts(eventInterval.Locator)); len(disruptionBackend) > 0 {
+		return true
+	}
+	return false
 }

@@ -40,7 +40,7 @@ func NewServiceLoadBalancerWithNewConnectionsTest() upgrades.Test {
 			"[sig-network-edge] Application behind service load balancer with PDB remains available using new connections",
 			backenddisruption.NewSimpleBackend(
 				"", // late binding host
-				"service-loadbalancer-with-pdb",
+				"service-load-balancer-with-pdb",
 				"/echo?msg=Hello",
 				backenddisruption.NewConnectionType).
 				WithExpectedBody("Hello"),
@@ -57,7 +57,7 @@ func NewServiceLoadBalancerWithReusedConnectionsTest() upgrades.Test {
 			"[sig-network-edge] Application behind service load balancer with PDB remains available using reused connections",
 			backenddisruption.NewSimpleBackend(
 				"", // late binding host
-				"service-loadbalancer-with-pdb",
+				"service-load-balancer-with-pdb",
 				"/echo?msg=Hello",
 				backenddisruption.ReusedConnectionType).
 				WithExpectedBody("Hello"),

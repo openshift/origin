@@ -175,6 +175,17 @@ func IsErrorEvent(eventInterval EventInterval) bool {
 	return false
 }
 
+func And(filters ...EventIntervalMatchesFunc) EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		for _, filter := range filters {
+			if !filter(eventInterval) {
+				return false
+			}
+		}
+		return true
+	}
+}
+
 // Filter returns a copy of intervals with only intervals that match the provided
 // function.
 func (intervals Intervals) Filter(eventFilterMatches EventIntervalMatchesFunc) Intervals {
