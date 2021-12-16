@@ -327,261 +327,261 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for user.openshift.io/v1, Resource=users": "should work for user.openshift.io/v1, Resource=users [Disabled:Broken]",
 
-	"[Top Level] [sig-apps] CronJob should be able to schedule after more than 100 missed schedule": "should be able to schedule after more than 100 missed schedule [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] CronJob should be able to schedule after more than 100 missed schedule": "should be able to schedule after more than 100 missed schedule [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] CronJob should delete failed finished jobs with limit of one job": "should delete failed finished jobs with limit of one job [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] CronJob should delete failed finished jobs with limit of one job": "should delete failed finished jobs with limit of one job [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] CronJob should delete successful finished jobs with limit of one successful job": "should delete successful finished jobs with limit of one successful job [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] CronJob should delete successful finished jobs with limit of one successful job": "should delete successful finished jobs with limit of one successful job [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] CronJob should not emit unexpected warnings": "should not emit unexpected warnings [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] CronJob should not emit unexpected warnings": "should not emit unexpected warnings [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] CronJob should not schedule jobs when suspended [Slow] [Conformance]": "should not schedule jobs when suspended [Slow] [Conformance] [Suite:k8s]",
+	"[Top Level] [sig-apps] CronJob should not schedule jobs when suspended [Slow] [Conformance]": "should not schedule jobs when suspended [Slow] [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] CronJob should not schedule new jobs when ForbidConcurrent [Slow] [Conformance]": "should not schedule new jobs when ForbidConcurrent [Slow] [Conformance] [Suite:k8s]",
+	"[Top Level] [sig-apps] CronJob should not schedule new jobs when ForbidConcurrent [Slow] [Conformance]": "should not schedule new jobs when ForbidConcurrent [Slow] [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] CronJob should remove from active list jobs that have been deleted": "should remove from active list jobs that have been deleted [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] CronJob should remove from active list jobs that have been deleted": "should remove from active list jobs that have been deleted [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] CronJob should replace jobs when ReplaceConcurrent [Conformance]": "should replace jobs when ReplaceConcurrent [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] CronJob should replace jobs when ReplaceConcurrent [Conformance]": "should replace jobs when ReplaceConcurrent [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] CronJob should schedule multiple jobs concurrently [Conformance]": "should schedule multiple jobs concurrently [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] CronJob should schedule multiple jobs concurrently [Conformance]": "should schedule multiple jobs concurrently [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] CronJob should support CronJob API operations [Conformance]": "should support CronJob API operations [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] CronJob should support CronJob API operations [Conformance]": "should support CronJob API operations [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Daemon set [Serial] should list and delete a collection of DaemonSets [Conformance]": "should list and delete a collection of DaemonSets [Conformance] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Daemon set [Serial] should list and delete a collection of DaemonSets [Conformance]": "should list and delete a collection of DaemonSets [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Daemon set [Serial] should not update pod when spec was updated and update strategy is OnDelete": "should not update pod when spec was updated and update strategy is OnDelete [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-apps] Daemon set [Serial] should not update pod when spec was updated and update strategy is OnDelete": "should not update pod when spec was updated and update strategy is OnDelete [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Daemon set [Serial] should retry creating failed daemon pods [Conformance]": "should retry creating failed daemon pods [Conformance] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Daemon set [Serial] should retry creating failed daemon pods [Conformance]": "should retry creating failed daemon pods [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Daemon set [Serial] should rollback without unnecessary restarts [Conformance]": "should rollback without unnecessary restarts [Conformance] [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Daemon set [Serial] should rollback without unnecessary restarts [Conformance]": "should rollback without unnecessary restarts [Conformance] [Disabled:Broken] [Skipped:SingleReplicaTopology] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Daemon set [Serial] should run and stop complex daemon [Conformance]": "should run and stop complex daemon [Conformance] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Daemon set [Serial] should run and stop complex daemon [Conformance]": "should run and stop complex daemon [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Daemon set [Serial] should run and stop complex daemon with node affinity": "should run and stop complex daemon with node affinity [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-apps] Daemon set [Serial] should run and stop complex daemon with node affinity": "should run and stop complex daemon with node affinity [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Daemon set [Serial] should run and stop simple daemon [Conformance]": "should run and stop simple daemon [Conformance] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Daemon set [Serial] should run and stop simple daemon [Conformance]": "should run and stop simple daemon [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Daemon set [Serial] should surge pods onto nodes when spec was updated and update strategy is RollingUpdate": "should surge pods onto nodes when spec was updated and update strategy is RollingUpdate [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-apps] Daemon set [Serial] should surge pods onto nodes when spec was updated and update strategy is RollingUpdate": "should surge pods onto nodes when spec was updated and update strategy is RollingUpdate [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Daemon set [Serial] should update pod when spec was updated and update strategy is RollingUpdate [Conformance]": "should update pod when spec was updated and update strategy is RollingUpdate [Conformance] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Daemon set [Serial] should update pod when spec was updated and update strategy is RollingUpdate [Conformance]": "should update pod when spec was updated and update strategy is RollingUpdate [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Daemon set [Serial] should verify changes to a daemon set status [Conformance]": "should verify changes to a daemon set status [Conformance] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Daemon set [Serial] should verify changes to a daemon set status [Conformance]": "should verify changes to a daemon set status [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] DaemonRestart [Disruptive] Controller Manager should not create/delete replicas across restart": "Controller Manager should not create/delete replicas across restart [Serial] [Suite:k8s]",
+	"[Top Level] [sig-apps] DaemonRestart [Disruptive] Controller Manager should not create/delete replicas across restart": "Controller Manager should not create/delete replicas across restart [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] DaemonRestart [Disruptive] Kube-proxy should recover after being killed accidentally": "Kube-proxy should recover after being killed accidentally [Serial] [Suite:k8s]",
+	"[Top Level] [sig-apps] DaemonRestart [Disruptive] Kube-proxy should recover after being killed accidentally": "Kube-proxy should recover after being killed accidentally [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] DaemonRestart [Disruptive] Kubelet should not restart containers across restart": "Kubelet should not restart containers across restart [Serial] [Suite:k8s]",
+	"[Top Level] [sig-apps] DaemonRestart [Disruptive] Kubelet should not restart containers across restart": "Kubelet should not restart containers across restart [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] DaemonRestart [Disruptive] Scheduler should continue assigning pods to nodes across restart": "Scheduler should continue assigning pods to nodes across restart [Serial] [Suite:k8s]",
+	"[Top Level] [sig-apps] DaemonRestart [Disruptive] Scheduler should continue assigning pods to nodes across restart": "Scheduler should continue assigning pods to nodes across restart [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Deployment Deployment should have a working scale subresource [Conformance]": "Deployment should have a working scale subresource [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Deployment Deployment should have a working scale subresource [Conformance]": "Deployment should have a working scale subresource [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Deployment RecreateDeployment should delete old pods and create new ones [Conformance]": "RecreateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Deployment RecreateDeployment should delete old pods and create new ones [Conformance]": "RecreateDeployment should delete old pods and create new ones [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance]": "RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance]": "RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Deployment deployment reaping should cascade to its replica sets and pods": "deployment reaping should cascade to its replica sets and pods [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] Deployment deployment reaping should cascade to its replica sets and pods": "deployment reaping should cascade to its replica sets and pods [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Deployment deployment should delete old replica sets [Conformance]": "deployment should delete old replica sets [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Deployment deployment should delete old replica sets [Conformance]": "deployment should delete old replica sets [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Deployment deployment should support proportional scaling [Conformance]": "deployment should support proportional scaling [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Deployment deployment should support proportional scaling [Conformance]": "deployment should support proportional scaling [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Deployment deployment should support rollover [Conformance]": "deployment should support rollover [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Deployment deployment should support rollover [Conformance]": "deployment should support rollover [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Deployment iterative rollouts should eventually progress": "iterative rollouts should eventually progress [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] Deployment iterative rollouts should eventually progress": "iterative rollouts should eventually progress [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Deployment should not disrupt a cloud load-balancer's connectivity during rollout": "should not disrupt a cloud load-balancer's connectivity during rollout [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] Deployment should not disrupt a cloud load-balancer's connectivity during rollout": "should not disrupt a cloud load-balancer's connectivity during rollout [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Deployment should run the lifecycle of a Deployment [Conformance]": "should run the lifecycle of a Deployment [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Deployment should run the lifecycle of a Deployment [Conformance]": "should run the lifecycle of a Deployment [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Deployment should validate Deployment Status endpoints [Conformance]": "should validate Deployment Status endpoints [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Deployment should validate Deployment Status endpoints [Conformance]": "should validate Deployment Status endpoints [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Deployment test Deployment ReplicaSet orphaning and adoption regarding controllerRef": "test Deployment ReplicaSet orphaning and adoption regarding controllerRef [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] Deployment test Deployment ReplicaSet orphaning and adoption regarding controllerRef": "test Deployment ReplicaSet orphaning and adoption regarding controllerRef [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] DisruptionController Listing PodDisruptionBudgets for all namespaces should list and delete a collection of PodDisruptionBudgets [Conformance]": "should list and delete a collection of PodDisruptionBudgets [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] DisruptionController Listing PodDisruptionBudgets for all namespaces should list and delete a collection of PodDisruptionBudgets [Conformance]": "should list and delete a collection of PodDisruptionBudgets [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] DisruptionController evictions: enough pods, absolute => should allow an eviction": "evictions: enough pods, absolute => should allow an eviction [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] DisruptionController evictions: enough pods, absolute => should allow an eviction": "evictions: enough pods, absolute => should allow an eviction [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] DisruptionController evictions: enough pods, replicaSet, percentage => should allow an eviction": "evictions: enough pods, replicaSet, percentage => should allow an eviction [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] DisruptionController evictions: enough pods, replicaSet, percentage => should allow an eviction": "evictions: enough pods, replicaSet, percentage => should allow an eviction [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] DisruptionController evictions: maxUnavailable allow single eviction, percentage => should allow an eviction": "evictions: maxUnavailable allow single eviction, percentage => should allow an eviction [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] DisruptionController evictions: maxUnavailable allow single eviction, percentage => should allow an eviction": "evictions: maxUnavailable allow single eviction, percentage => should allow an eviction [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] DisruptionController evictions: maxUnavailable deny evictions, integer => should not allow an eviction [Serial]": "evictions: maxUnavailable deny evictions, integer => should not allow an eviction [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-apps] DisruptionController evictions: maxUnavailable deny evictions, integer => should not allow an eviction [Serial]": "evictions: maxUnavailable deny evictions, integer => should not allow an eviction [Serial] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] DisruptionController evictions: no PDB => should allow an eviction": "evictions: no PDB => should allow an eviction [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] DisruptionController evictions: no PDB => should allow an eviction": "evictions: no PDB => should allow an eviction [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] DisruptionController evictions: too few pods, absolute => should not allow an eviction": "evictions: too few pods, absolute => should not allow an eviction [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] DisruptionController evictions: too few pods, absolute => should not allow an eviction": "evictions: too few pods, absolute => should not allow an eviction [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] DisruptionController evictions: too few pods, replicaSet, percentage => should not allow an eviction [Serial]": "evictions: too few pods, replicaSet, percentage => should not allow an eviction [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-apps] DisruptionController evictions: too few pods, replicaSet, percentage => should not allow an eviction [Serial]": "evictions: too few pods, replicaSet, percentage => should not allow an eviction [Serial] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] DisruptionController should block an eviction until the PDB is updated to allow it [Conformance]": "should block an eviction until the PDB is updated to allow it [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] DisruptionController should block an eviction until the PDB is updated to allow it [Conformance]": "should block an eviction until the PDB is updated to allow it [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] DisruptionController should create a PodDisruptionBudget [Conformance]": "should create a PodDisruptionBudget [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] DisruptionController should create a PodDisruptionBudget [Conformance]": "should create a PodDisruptionBudget [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] DisruptionController should observe PodDisruptionBudget status updated [Conformance]": "should observe PodDisruptionBudget status updated [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] DisruptionController should observe PodDisruptionBudget status updated [Conformance]": "should observe PodDisruptionBudget status updated [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] DisruptionController should observe that the PodDisruptionBudget status is not updated for unmanaged pods": "should observe that the PodDisruptionBudget status is not updated for unmanaged pods [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] DisruptionController should observe that the PodDisruptionBudget status is not updated for unmanaged pods": "should observe that the PodDisruptionBudget status is not updated for unmanaged pods [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] DisruptionController should update/patch PodDisruptionBudget status [Conformance]": "should update/patch PodDisruptionBudget status [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] DisruptionController should update/patch PodDisruptionBudget status [Conformance]": "should update/patch PodDisruptionBudget status [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Job should adopt matching orphans and release non-matching pods [Conformance]": "should adopt matching orphans and release non-matching pods [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Job should adopt matching orphans and release non-matching pods [Conformance]": "should adopt matching orphans and release non-matching pods [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Job should create pods for an Indexed job with completion indexes and specified hostname": "should create pods for an Indexed job with completion indexes and specified hostname [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] Job should create pods for an Indexed job with completion indexes and specified hostname": "should create pods for an Indexed job with completion indexes and specified hostname [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Job should delete a job [Conformance]": "should delete a job [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Job should delete a job [Conformance]": "should delete a job [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Job should delete pods when suspended": "should delete pods when suspended [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] Job should delete pods when suspended": "should delete pods when suspended [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Job should fail to exceed backoffLimit": "should fail to exceed backoffLimit [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] Job should fail to exceed backoffLimit": "should fail to exceed backoffLimit [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Job should fail when exceeds active deadline": "should fail when exceeds active deadline [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] Job should fail when exceeds active deadline": "should fail when exceeds active deadline [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Job should not create pods when created in suspend state": "should not create pods when created in suspend state [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] Job should not create pods when created in suspend state": "should not create pods when created in suspend state [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Job should remove pods when job is deleted": "should remove pods when job is deleted [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] Job should remove pods when job is deleted": "should remove pods when job is deleted [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Job should run a job to completion when tasks sometimes fail and are locally restarted [Conformance]": "should run a job to completion when tasks sometimes fail and are locally restarted [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] Job should run a job to completion when tasks sometimes fail and are locally restarted [Conformance]": "should run a job to completion when tasks sometimes fail and are locally restarted [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Job should run a job to completion when tasks sometimes fail and are not locally restarted": "should run a job to completion when tasks sometimes fail and are not locally restarted [Flaky] [Suite:k8s]",
+	"[Top Level] [sig-apps] Job should run a job to completion when tasks sometimes fail and are not locally restarted": "should run a job to completion when tasks sometimes fail and are not locally restarted [Disabled:Broken] [Flaky] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] Job should run a job to completion when tasks succeed": "should run a job to completion when tasks succeed [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] Job should run a job to completion when tasks succeed": "should run a job to completion when tasks succeed [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] ReplicaSet Replace and Patch tests [Conformance]": "Replace and Patch tests [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] ReplicaSet Replace and Patch tests [Conformance]": "Replace and Patch tests [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] ReplicaSet Replicaset should have a working scale subresource [Conformance]": "Replicaset should have a working scale subresource [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] ReplicaSet Replicaset should have a working scale subresource [Conformance]": "Replicaset should have a working scale subresource [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] ReplicaSet should adopt matching pods on creation and release no longer matching pods [Conformance]": "should adopt matching pods on creation and release no longer matching pods [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] ReplicaSet should adopt matching pods on creation and release no longer matching pods [Conformance]": "should adopt matching pods on creation and release no longer matching pods [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] ReplicaSet should list and delete a collection of ReplicaSets [Conformance]": "should list and delete a collection of ReplicaSets [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] ReplicaSet should list and delete a collection of ReplicaSets [Conformance]": "should list and delete a collection of ReplicaSets [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] ReplicaSet should serve a basic image on each replica with a private image": "should serve a basic image on each replica with a private image [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] ReplicaSet should serve a basic image on each replica with a private image": "should serve a basic image on each replica with a private image [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] ReplicaSet should serve a basic image on each replica with a public image  [Conformance]": "should serve a basic image on each replica with a public image  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] ReplicaSet should serve a basic image on each replica with a public image  [Conformance]": "should serve a basic image on each replica with a public image  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] ReplicaSet should surface a failure condition on a common issue like exceeded quota": "should surface a failure condition on a common issue like exceeded quota [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] ReplicaSet should surface a failure condition on a common issue like exceeded quota": "should surface a failure condition on a common issue like exceeded quota [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] ReplicaSet should validate Replicaset Status endpoints [Conformance]": "should validate Replicaset Status endpoints [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] ReplicaSet should validate Replicaset Status endpoints [Conformance]": "should validate Replicaset Status endpoints [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] ReplicationController should adopt matching pods on creation [Conformance]": "should adopt matching pods on creation [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] ReplicationController should adopt matching pods on creation [Conformance]": "should adopt matching pods on creation [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] ReplicationController should release no longer matching pods [Conformance]": "should release no longer matching pods [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] ReplicationController should release no longer matching pods [Conformance]": "should release no longer matching pods [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] ReplicationController should serve a basic image on each replica with a private image": "should serve a basic image on each replica with a private image [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] ReplicationController should serve a basic image on each replica with a private image": "should serve a basic image on each replica with a private image [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] ReplicationController should serve a basic image on each replica with a public image  [Conformance]": "should serve a basic image on each replica with a public image  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] ReplicationController should serve a basic image on each replica with a public image  [Conformance]": "should serve a basic image on each replica with a public image  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] ReplicationController should surface a failure condition on a common issue like exceeded quota [Conformance]": "should surface a failure condition on a common issue like exceeded quota [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] ReplicationController should surface a failure condition on a common issue like exceeded quota [Conformance]": "should surface a failure condition on a common issue like exceeded quota [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] ReplicationController should test the lifecycle of a ReplicationController [Conformance]": "should test the lifecycle of a ReplicationController [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] ReplicationController should test the lifecycle of a ReplicationController [Conformance]": "should test the lifecycle of a ReplicationController [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] Burst scaling should run to completion even with unhealthy pods [Slow] [Conformance]": "Burst scaling should run to completion even with unhealthy pods [Slow] [Conformance] [Suite:k8s]",
+	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] Burst scaling should run to completion even with unhealthy pods [Slow] [Conformance]": "Burst scaling should run to completion even with unhealthy pods [Slow] [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] Scaling should happen in predictable order and halt if any stateful pod is unhealthy [Slow] [Conformance]": "Scaling should happen in predictable order and halt if any stateful pod is unhealthy [Slow] [Conformance] [Suite:k8s]",
+	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] Scaling should happen in predictable order and halt if any stateful pod is unhealthy [Slow] [Conformance]": "Scaling should happen in predictable order and halt if any stateful pod is unhealthy [Slow] [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] Should recreate evicted statefulset [Conformance]": "Should recreate evicted statefulset [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] Should recreate evicted statefulset [Conformance]": "Should recreate evicted statefulset [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should adopt matching orphans and release non-matching pods": "should adopt matching orphans and release non-matching pods [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should adopt matching orphans and release non-matching pods": "should adopt matching orphans and release non-matching pods [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should have a working scale subresource [Conformance]": "should have a working scale subresource [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should have a working scale subresource [Conformance]": "should have a working scale subresource [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should implement legacy replacement when the update strategy is OnDelete": "should implement legacy replacement when the update strategy is OnDelete [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should implement legacy replacement when the update strategy is OnDelete": "should implement legacy replacement when the update strategy is OnDelete [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should list, patch and delete a collection of StatefulSets [Conformance]": "should list, patch and delete a collection of StatefulSets [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should list, patch and delete a collection of StatefulSets [Conformance]": "should list, patch and delete a collection of StatefulSets [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should not deadlock when a pod's predecessor fails": "should not deadlock when a pod's predecessor fails [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should not deadlock when a pod's predecessor fails": "should not deadlock when a pod's predecessor fails [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform canary updates and phased rolling updates of template modifications [Conformance]": "should perform canary updates and phased rolling updates of template modifications [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform canary updates and phased rolling updates of template modifications [Conformance]": "should perform canary updates and phased rolling updates of template modifications [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform rolling updates and roll backs of template modifications [Conformance]": "should perform rolling updates and roll backs of template modifications [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform rolling updates and roll backs of template modifications [Conformance]": "should perform rolling updates and roll backs of template modifications [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform rolling updates and roll backs of template modifications with PVCs": "should perform rolling updates and roll backs of template modifications with PVCs [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform rolling updates and roll backs of template modifications with PVCs": "should perform rolling updates and roll backs of template modifications with PVCs [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should provide basic identity": "should provide basic identity [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should provide basic identity": "should provide basic identity [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should validate Statefulset Status endpoints [Conformance]": "should validate Statefulset Status endpoints [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should validate Statefulset Status endpoints [Conformance]": "should validate Statefulset Status endpoints [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] StatefulSet Deploy clustered applications [Feature:StatefulSet] [Slow] should creating a working CockroachDB cluster": "should creating a working CockroachDB cluster [Suite:k8s]",
+	"[Top Level] [sig-apps] StatefulSet Deploy clustered applications [Feature:StatefulSet] [Slow] should creating a working CockroachDB cluster": "should creating a working CockroachDB cluster [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] StatefulSet Deploy clustered applications [Feature:StatefulSet] [Slow] should creating a working mysql cluster": "should creating a working mysql cluster [Suite:k8s]",
+	"[Top Level] [sig-apps] StatefulSet Deploy clustered applications [Feature:StatefulSet] [Slow] should creating a working mysql cluster": "should creating a working mysql cluster [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] StatefulSet Deploy clustered applications [Feature:StatefulSet] [Slow] should creating a working redis cluster": "should creating a working redis cluster [Suite:k8s]",
+	"[Top Level] [sig-apps] StatefulSet Deploy clustered applications [Feature:StatefulSet] [Slow] should creating a working redis cluster": "should creating a working redis cluster [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] StatefulSet Deploy clustered applications [Feature:StatefulSet] [Slow] should creating a working zookeeper cluster": "should creating a working zookeeper cluster [Suite:k8s]",
+	"[Top Level] [sig-apps] StatefulSet Deploy clustered applications [Feature:StatefulSet] [Slow] should creating a working zookeeper cluster": "should creating a working zookeeper cluster [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] StatefulSet MinReadySeconds should be honored when enabled [Feature:StatefulSetMinReadySeconds] [alpha]": "MinReadySeconds should be honored when enabled [Feature:StatefulSetMinReadySeconds] [alpha] [Disabled:Alpha] [Suite:k8s]",
+	"[Top Level] [sig-apps] StatefulSet MinReadySeconds should be honored when enabled [Feature:StatefulSetMinReadySeconds] [alpha]": "MinReadySeconds should be honored when enabled [Feature:StatefulSetMinReadySeconds] [alpha] [Disabled:Alpha] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps] [Feature:TTLAfterFinished] job should be deleted once it finishes after TTL seconds": "job should be deleted once it finishes after TTL seconds [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-apps] [Feature:TTLAfterFinished] job should be deleted once it finishes after TTL seconds": "job should be deleted once it finishes after TTL seconds [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs  should adhere to Three Laws of Controllers": "should adhere to Three Laws of Controllers [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs  should adhere to Three Laws of Controllers": "should adhere to Three Laws of Controllers [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs adoption will orphan all RCs and adopt them back when recreated": "will orphan all RCs and adopt them back when recreated [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs adoption will orphan all RCs and adopt them back when recreated": "will orphan all RCs and adopt them back when recreated [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs generation should deploy based on a status version bump": "should deploy based on a status version bump [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs generation should deploy based on a status version bump": "should deploy based on a status version bump [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs ignores deployer and lets the config with a NewReplicationControllerCreated reason should let the deployment config with a NewReplicationControllerCreated reason": "should let the deployment config with a NewReplicationControllerCreated reason [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs ignores deployer and lets the config with a NewReplicationControllerCreated reason should let the deployment config with a NewReplicationControllerCreated reason": "should let the deployment config with a NewReplicationControllerCreated reason [Disabled:Broken]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs initially should not deploy if pods never transition to ready": "should not deploy if pods never transition to ready [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs initially should not deploy if pods never transition to ready": "should not deploy if pods never transition to ready [Disabled:Broken]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs keep the deployer pod invariant valid should deal with cancellation after deployer pod succeeded": "should deal with cancellation after deployer pod succeeded [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs keep the deployer pod invariant valid should deal with cancellation after deployer pod succeeded": "should deal with cancellation after deployer pod succeeded [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs keep the deployer pod invariant valid should deal with cancellation of running deployment": "should deal with cancellation of running deployment [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs keep the deployer pod invariant valid should deal with cancellation of running deployment": "should deal with cancellation of running deployment [Disabled:Broken]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs keep the deployer pod invariant valid should deal with config change in case the deployment is still running": "should deal with config change in case the deployment is still running [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs keep the deployer pod invariant valid should deal with config change in case the deployment is still running": "should deal with config change in case the deployment is still running [Disabled:Broken]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs paused should disable actions on deployments": "should disable actions on deployments [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs paused should disable actions on deployments": "should disable actions on deployments [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs reaper [Slow] should delete all failed deployer pods and hook pods": "should delete all failed deployer pods and hook pods",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs reaper [Slow] should delete all failed deployer pods and hook pods": "should delete all failed deployer pods and hook pods [Disabled:Broken]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs rolled back should rollback to an older deployment": "should rollback to an older deployment [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs rolled back should rollback to an older deployment": "should rollback to an older deployment [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs should respect image stream tag reference policy resolve the image pull spec": "resolve the image pull spec [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs should respect image stream tag reference policy resolve the image pull spec": "resolve the image pull spec [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs viewing rollout history should print the rollout history": "should print the rollout history [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs viewing rollout history should print the rollout history": "should print the rollout history [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs when changing image change trigger should successfully trigger from an updated image": "should successfully trigger from an updated image [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs when changing image change trigger should successfully trigger from an updated image": "should successfully trigger from an updated image [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs when run iteratively should immediately start a new deployment": "should immediately start a new deployment [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs when run iteratively should immediately start a new deployment": "should immediately start a new deployment [Disabled:Broken]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs when run iteratively should only deploy the last deployment": "should only deploy the last deployment [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs when run iteratively should only deploy the last deployment": "should only deploy the last deployment [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs when tagging images should successfully tag the deployed image": "should successfully tag the deployed image [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs when tagging images should successfully tag the deployed image": "should successfully tag the deployed image [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with custom deployments should run the custom deployment steps": "should run the custom deployment steps [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with custom deployments should run the custom deployment steps": "should run the custom deployment steps [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with enhanced status should include various info in status": "should include various info in status [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with enhanced status should include various info in status": "should include various info in status [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with env in params referencing the configmap should expand the config map key to a value": "should expand the config map key to a value [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with env in params referencing the configmap should expand the config map key to a value": "should expand the config map key to a value [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with failing hook should get all logs from retried hooks": "should get all logs from retried hooks [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with failing hook should get all logs from retried hooks": "should get all logs from retried hooks [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with minimum ready seconds set should not transition the deployment to Complete before satisfied": "should not transition the deployment to Complete before satisfied [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with minimum ready seconds set should not transition the deployment to Complete before satisfied": "should not transition the deployment to Complete before satisfied [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with multiple image change triggers should run a successful deployment with a trigger used by different containers": "should run a successful deployment with a trigger used by different containers [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with multiple image change triggers should run a successful deployment with a trigger used by different containers": "should run a successful deployment with a trigger used by different containers [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with multiple image change triggers should run a successful deployment with multiple triggers": "should run a successful deployment with multiple triggers [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with multiple image change triggers should run a successful deployment with multiple triggers": "should run a successful deployment with multiple triggers [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with revision history limits should never persist more old deployments than acceptable after being observed by the controller": "should never persist more old deployments than acceptable after being observed by the controller [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with revision history limits should never persist more old deployments than acceptable after being observed by the controller": "should never persist more old deployments than acceptable after being observed by the controller [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with test deployments should run a deployment to completion and then scale to zero": "should run a deployment to completion and then scale to zero [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs with test deployments should run a deployment to completion and then scale to zero": "should run a deployment to completion and then scale to zero [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs won't deploy RC with unresolved images when patched with empty image": "when patched with empty image [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:DeploymentConfig] deploymentconfigs won't deploy RC with unresolved images when patched with empty image": "when patched with empty image [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:Jobs] Users should be able to create and run a job in a user project": "Users should be able to create and run a job in a user project [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:Jobs] Users should be able to create and run a job in a user project": "Users should be able to create and run a job in a user project [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-apps][Feature:OpenShiftControllerManager] TestDeployScale": "TestDeployScale [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:OpenShiftControllerManager] TestDeployScale": "TestDeployScale [Disabled:Broken]",
 
-	"[Top Level] [sig-apps][Feature:OpenShiftControllerManager] TestDeploymentConfigDefaults": "TestDeploymentConfigDefaults [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:OpenShiftControllerManager] TestDeploymentConfigDefaults": "TestDeploymentConfigDefaults [Disabled:Broken]",
 
-	"[Top Level] [sig-apps][Feature:OpenShiftControllerManager] TestTriggers_MultipleICTs": "TestTriggers_MultipleICTs [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:OpenShiftControllerManager] TestTriggers_MultipleICTs": "TestTriggers_MultipleICTs [Disabled:Broken]",
 
-	"[Top Level] [sig-apps][Feature:OpenShiftControllerManager] TestTriggers_configChange": "TestTriggers_configChange [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:OpenShiftControllerManager] TestTriggers_configChange": "TestTriggers_configChange [Disabled:Broken]",
 
-	"[Top Level] [sig-apps][Feature:OpenShiftControllerManager] TestTriggers_imageChange": "TestTriggers_imageChange [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:OpenShiftControllerManager] TestTriggers_imageChange": "TestTriggers_imageChange [Disabled:Broken]",
 
-	"[Top Level] [sig-apps][Feature:OpenShiftControllerManager] TestTriggers_imageChange_nonAutomatic": "TestTriggers_imageChange_nonAutomatic [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:OpenShiftControllerManager] TestTriggers_imageChange_nonAutomatic": "TestTriggers_imageChange_nonAutomatic [Disabled:Broken]",
 
-	"[Top Level] [sig-apps][Feature:OpenShiftControllerManager] TestTriggers_manual": "TestTriggers_manual [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-apps][Feature:OpenShiftControllerManager] TestTriggers_manual": "TestTriggers_manual [Disabled:Broken]",
 
 	"[Top Level] [sig-arch] Cluster topology single node tests Verify that OpenShift components deploy one replica in SingleReplica topology mode": "Verify that OpenShift components deploy one replica in SingleReplica topology mode [Disabled:Broken]",
 
@@ -1161,317 +1161,317 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-builds][Feature:Builds][webhook] TestWebhookGitHubPushWithImageStream": "TestWebhookGitHubPushWithImageStream [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on 0.0.0.0 should support forwarding over websockets": "should support forwarding over websockets [Skipped:Proxy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on 0.0.0.0 should support forwarding over websockets": "should support forwarding over websockets [Disabled:Broken] [Skipped:Proxy] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on 0.0.0.0 that expects NO client request should support a client that connects, sends DATA, and disconnects": "should support a client that connects, sends DATA, and disconnects [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on 0.0.0.0 that expects NO client request should support a client that connects, sends DATA, and disconnects": "should support a client that connects, sends DATA, and disconnects [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on 0.0.0.0 that expects a client request should support a client that connects, sends DATA, and disconnects": "should support a client that connects, sends DATA, and disconnects [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on 0.0.0.0 that expects a client request should support a client that connects, sends DATA, and disconnects": "should support a client that connects, sends DATA, and disconnects [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on 0.0.0.0 that expects a client request should support a client that connects, sends NO DATA, and disconnects": "should support a client that connects, sends NO DATA, and disconnects [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on 0.0.0.0 that expects a client request should support a client that connects, sends NO DATA, and disconnects": "should support a client that connects, sends NO DATA, and disconnects [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on localhost should support forwarding over websockets": "should support forwarding over websockets [Skipped:Proxy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on localhost should support forwarding over websockets": "should support forwarding over websockets [Disabled:Broken] [Skipped:Proxy] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on localhost that expects NO client request should support a client that connects, sends DATA, and disconnects": "should support a client that connects, sends DATA, and disconnects [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on localhost that expects NO client request should support a client that connects, sends DATA, and disconnects": "should support a client that connects, sends DATA, and disconnects [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on localhost that expects a client request should support a client that connects, sends DATA, and disconnects": "should support a client that connects, sends DATA, and disconnects [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on localhost that expects a client request should support a client that connects, sends DATA, and disconnects": "should support a client that connects, sends DATA, and disconnects [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on localhost that expects a client request should support a client that connects, sends NO DATA, and disconnects": "should support a client that connects, sends NO DATA, and disconnects [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on localhost that expects a client request should support a client that connects, sends NO DATA, and disconnects": "should support a client that connects, sends NO DATA, and disconnects [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Guestbook application should create and stop a working application  [Conformance]": "should create and stop a working application  [Conformance] [Slow] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Guestbook application should create and stop a working application  [Conformance]": "should create and stop a working application  [Conformance] [Disabled:Broken] [Slow] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl api-versions should check if v1 is in available api versions  [Conformance]": "should check if v1 is in available api versions  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl api-versions should check if v1 is in available api versions  [Conformance]": "should check if v1 is in available api versions  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl apply apply set/view last-applied": "apply set/view last-applied [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl apply apply set/view last-applied": "apply set/view last-applied [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl apply should apply a new configuration to an existing RC": "should apply a new configuration to an existing RC [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl apply should apply a new configuration to an existing RC": "should apply a new configuration to an existing RC [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl apply should reuse port when apply to an existing SVC": "should reuse port when apply to an existing SVC [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl apply should reuse port when apply to an existing SVC": "should reuse port when apply to an existing SVC [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl client-side validation should create/apply a CR with unknown fields for CRD with no validation schema": "should create/apply a CR with unknown fields for CRD with no validation schema [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl client-side validation should create/apply a CR with unknown fields for CRD with no validation schema": "should create/apply a CR with unknown fields for CRD with no validation schema [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl client-side validation should create/apply a valid CR for CRD with validation schema": "should create/apply a valid CR for CRD with validation schema [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl client-side validation should create/apply a valid CR for CRD with validation schema": "should create/apply a valid CR for CRD with validation schema [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl client-side validation should create/apply a valid CR with arbitrary-extra properties for CRD with partially-specified validation schema": "should create/apply a valid CR with arbitrary-extra properties for CRD with partially-specified validation schema [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl client-side validation should create/apply a valid CR with arbitrary-extra properties for CRD with partially-specified validation schema": "should create/apply a valid CR with arbitrary-extra properties for CRD with partially-specified validation schema [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl cluster-info dump should check if cluster-info dump succeeds": "should check if cluster-info dump succeeds [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl cluster-info dump should check if cluster-info dump succeeds": "should check if cluster-info dump succeeds [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl cluster-info should check if Kubernetes control plane services is included in cluster-info  [Conformance]": "should check if Kubernetes control plane services is included in cluster-info  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl cluster-info should check if Kubernetes control plane services is included in cluster-info  [Conformance]": "should check if Kubernetes control plane services is included in cluster-info  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl copy should copy a file from a running Pod": "should copy a file from a running Pod [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl copy should copy a file from a running Pod": "should copy a file from a running Pod [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl create quota should create a quota with scopes": "should create a quota with scopes [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl create quota should create a quota with scopes": "should create a quota with scopes [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl create quota should create a quota without scopes": "should create a quota without scopes [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl create quota should create a quota without scopes": "should create a quota without scopes [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl create quota should reject quota with invalid scopes": "should reject quota with invalid scopes [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl create quota should reject quota with invalid scopes": "should reject quota with invalid scopes [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl describe should check if kubectl describe prints relevant information for cronjob": "should check if kubectl describe prints relevant information for cronjob [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl describe should check if kubectl describe prints relevant information for cronjob": "should check if kubectl describe prints relevant information for cronjob [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl describe should check if kubectl describe prints relevant information for rc and pods  [Conformance]": "should check if kubectl describe prints relevant information for rc and pods  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl describe should check if kubectl describe prints relevant information for rc and pods  [Conformance]": "should check if kubectl describe prints relevant information for rc and pods  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl diff should check if kubectl diff finds a difference for Deployments [Conformance]": "should check if kubectl diff finds a difference for Deployments [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl diff should check if kubectl diff finds a difference for Deployments [Conformance]": "should check if kubectl diff finds a difference for Deployments [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl expose should create services for rc  [Conformance]": "should create services for rc  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl expose should create services for rc  [Conformance]": "should create services for rc  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl get componentstatuses should get componentstatuses": "should get componentstatuses [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl get componentstatuses should get componentstatuses": "should get componentstatuses [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl label should update the label on a resource  [Conformance]": "should update the label on a resource  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl label should update the label on a resource  [Conformance]": "should update the label on a resource  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl logs should be able to retrieve and filter logs  [Conformance]": "should be able to retrieve and filter logs  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl logs should be able to retrieve and filter logs  [Conformance]": "should be able to retrieve and filter logs  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl patch should add annotations for pods in rc  [Conformance]": "should add annotations for pods in rc  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl patch should add annotations for pods in rc  [Conformance]": "should add annotations for pods in rc  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl replace should update a single-container pod's image  [Conformance]": "should update a single-container pod's image  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl replace should update a single-container pod's image  [Conformance]": "should update a single-container pod's image  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl run pod should create a pod from an image when restart is Never  [Conformance]": "should create a pod from an image when restart is Never  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl run pod should create a pod from an image when restart is Never  [Conformance]": "should create a pod from an image when restart is Never  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl server-side dry-run should check if kubectl can dry-run update Pods [Conformance]": "should check if kubectl can dry-run update Pods [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl server-side dry-run should check if kubectl can dry-run update Pods [Conformance]": "should check if kubectl can dry-run update Pods [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl taint [Serial] should remove all the taints with the same key off a node": "should remove all the taints with the same key off a node [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl taint [Serial] should remove all the taints with the same key off a node": "should remove all the taints with the same key off a node [Disabled:Broken] [Skipped:SingleReplicaTopology] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl taint [Serial] should update the taint on a node": "should update the taint on a node [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl taint [Serial] should update the taint on a node": "should update the taint on a node [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Kubectl version should check is all data is printed  [Conformance]": "should check is all data is printed  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Kubectl version should check is all data is printed  [Conformance]": "should check is all data is printed  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Proxy server should support --unix-socket=/path  [Conformance]": "should support --unix-socket=/path  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Proxy server should support --unix-socket=/path  [Conformance]": "should support --unix-socket=/path  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Proxy server should support proxy with --port 0  [Conformance]": "should support proxy with --port 0  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Proxy server should support proxy with --port 0  [Conformance]": "should support proxy with --port 0  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should contain last line of the log": "should contain last line of the log [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should contain last line of the log": "should contain last line of the log [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-cli] Kubectl client Simple pod should handle in-cluster config": "should handle in-cluster config [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes [Slow] running a failing command with --leave-stdin-open": "[Slow] running a failing command with --leave-stdin-open [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes [Slow] running a failing command with --leave-stdin-open": "[Slow] running a failing command with --leave-stdin-open [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes [Slow] running a failing command without --restart=Never": "[Slow] running a failing command without --restart=Never [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes [Slow] running a failing command without --restart=Never": "[Slow] running a failing command without --restart=Never [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes [Slow] running a failing command without --restart=Never, but with --rm": "[Slow] running a failing command without --restart=Never, but with --rm [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes [Slow] running a failing command without --restart=Never, but with --rm": "[Slow] running a failing command without --restart=Never, but with --rm [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes execing into a container with a failing command": "execing into a container with a failing command [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes execing into a container with a failing command": "execing into a container with a failing command [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes execing into a container with a successful command": "execing into a container with a successful command [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes execing into a container with a successful command": "execing into a container with a successful command [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes running a failing command": "running a failing command [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes running a failing command": "running a failing command [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes running a successful command": "running a successful command [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should return command exit codes running a successful command": "running a successful command [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should support exec through an HTTP proxy": "should support exec through an HTTP proxy [Skipped:Proxy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should support exec through an HTTP proxy": "should support exec through an HTTP proxy [Disabled:Broken] [Skipped:Proxy] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should support exec through kubectl proxy": "should support exec through kubectl proxy [Skipped:Proxy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should support exec through kubectl proxy": "should support exec through kubectl proxy [Disabled:Broken] [Skipped:Proxy] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should support exec using resource/name": "should support exec using resource/name [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should support exec using resource/name": "should support exec using resource/name [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should support exec": "should support exec [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should support exec": "should support exec [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should support inline execution and attach": "should support inline execution and attach [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should support inline execution and attach": "should support inline execution and attach [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Simple pod should support port-forward": "should support port-forward [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Simple pod should support port-forward": "should support port-forward [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Update Demo should create and stop a replication controller  [Conformance]": "should create and stop a replication controller  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Update Demo should create and stop a replication controller  [Conformance]": "should create and stop a replication controller  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client Update Demo should scale a replication controller  [Conformance]": "should scale a replication controller  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client Update Demo should scale a replication controller  [Conformance]": "should scale a replication controller  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] Kubectl client kubectl wait should ignore not found error with --for=delete": "should ignore not found error with --for=delete [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-cli] Kubectl client kubectl wait should ignore not found error with --for=delete": "should ignore not found error with --for=delete [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-cli] oc --request-timeout works as expected": "works as expected [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc --request-timeout works as expected": "works as expected [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc adm build-chain": "build-chain [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm build-chain": "build-chain [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc adm cluster-role-reapers [Serial]": "cluster-role-reapers [Serial] [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-cli] oc adm cluster-role-reapers [Serial]": "cluster-role-reapers [Serial] [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc adm groups": "groups [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm groups": "groups [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc adm images": "images [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm images": "images [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc adm must-gather runs successfully for audit logs": "runs successfully for audit logs [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm must-gather runs successfully for audit logs": "runs successfully for audit logs [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc adm must-gather runs successfully with options": "runs successfully with options [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm must-gather runs successfully with options": "runs successfully with options [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc adm must-gather runs successfully": "runs successfully [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm must-gather runs successfully": "runs successfully [Disabled:Broken]",
 
 	"[Top Level] [sig-cli] oc adm must-gather when looking at the audit logs [sig-node] kubelet runs apiserver processes strictly sequentially in order to not risk audit log corruption": "runs apiserver processes strictly sequentially in order to not risk audit log corruption [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc adm new-project": "new-project [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm new-project": "new-project [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc adm node-logs": "node-logs [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm node-logs": "node-logs [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc adm policy": "policy [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm policy": "policy [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc adm role-reapers": "role-reapers [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm role-reapers": "role-reapers [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc adm role-selectors": "role-selectors [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm role-selectors": "role-selectors [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc adm serviceaccounts": "serviceaccounts [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm serviceaccounts": "serviceaccounts [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc adm storage-admin": "storage-admin [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm storage-admin": "storage-admin [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc adm ui-project-commands": "ui-project-commands [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm ui-project-commands": "ui-project-commands [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc adm user-creation": "user-creation [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm user-creation": "user-creation [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc adm who-can": "who-can [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm who-can": "who-can [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc annotate pod": "pod [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc annotate pod": "pod [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc api-resources can output expected information about api-resources": "can output expected information about api-resources [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc api-resources can output expected information about api-resources": "can output expected information about api-resources [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc basics can create and interact with a list of resources": "can create and interact with a list of resources [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc basics can create and interact with a list of resources": "can create and interact with a list of resources [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc basics can create deploymentconfig and clusterquota": "can create deploymentconfig and clusterquota [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc basics can create deploymentconfig and clusterquota": "can create deploymentconfig and clusterquota [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc basics can describe an OAuth access token": "can describe an OAuth access token [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc basics can describe an OAuth access token": "can describe an OAuth access token [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc basics can get version information from API": "can get version information from API [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc basics can get version information from API": "can get version information from API [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc basics can get version information from CLI": "can get version information from CLI [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc basics can get version information from CLI": "can get version information from CLI [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc basics can output expected --dry-run text": "can output expected --dry-run text [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc basics can output expected --dry-run text": "can output expected --dry-run text [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc basics can patch resources": "can patch resources [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc basics can patch resources": "can patch resources [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc basics can process templates": "can process templates [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc basics can process templates": "can process templates [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc builds complex build start-build": "start-build [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc builds complex build start-build": "start-build [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-cli] oc builds complex build webhooks CRUD": "webhooks CRUD [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc builds complex build webhooks CRUD": "webhooks CRUD [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-cli] oc builds get buildconfig": "get buildconfig [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc builds get buildconfig": "get buildconfig [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-cli] oc builds new-build": "new-build [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc builds new-build": "new-build [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-cli] oc builds patch buildconfig": "patch buildconfig [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc builds patch buildconfig": "patch buildconfig [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-cli] oc can get list of nodes": "can get list of nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc can get list of nodes": "can get list of nodes [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc can run inside of a busybox container": "can run inside of a busybox container [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc can run inside of a busybox container": "can run inside of a busybox container [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc debug deployment configs from a build": "deployment configs from a build [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc debug deployment configs from a build": "deployment configs from a build [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-cli] oc debug dissect deployment config debug": "dissect deployment config debug [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc debug dissect deployment config debug": "dissect deployment config debug [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc debug does not require a real resource on the server": "does not require a real resource on the server [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc debug does not require a real resource on the server": "does not require a real resource on the server [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc debug ensure debug does not depend on a container actually existing for the selected resource": "ensure debug does not depend on a container actually existing for the selected resource [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc debug ensure debug does not depend on a container actually existing for the selected resource": "ensure debug does not depend on a container actually existing for the selected resource [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc debug ensure it works with image streams": "ensure it works with image streams [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc debug ensure it works with image streams": "ensure it works with image streams [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-cli] oc env can set environment variables": "can set environment variables [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc env can set environment variables": "can set environment variables [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc explain list uncovered GroupVersionResources": "list uncovered GroupVersionResources [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc explain list uncovered GroupVersionResources": "list uncovered GroupVersionResources [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc explain networking types when using openshift-sdn should contain proper fields description for special networking types": "should contain proper fields description for special networking types [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc explain networking types when using openshift-sdn should contain proper fields description for special networking types": "should contain proper fields description for special networking types [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc explain should contain proper fields description for special types": "should contain proper fields description for special types [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc explain should contain proper fields description for special types": "should contain proper fields description for special types [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc explain should contain proper spec+status for CRDs": "should contain proper spec+status for CRDs [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc explain should contain proper spec+status for CRDs": "should contain proper spec+status for CRDs [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc explain should contain spec+status for builtinTypes": "should contain spec+status for builtinTypes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc explain should contain spec+status for builtinTypes": "should contain spec+status for builtinTypes [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc expose can ensure the expose command is functioning as expected": "can ensure the expose command is functioning as expected [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc expose can ensure the expose command is functioning as expected": "can ensure the expose command is functioning as expected [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc label pod": "pod [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc label pod": "pod [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc observe works as expected": "works as expected [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc observe works as expected": "works as expected [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc probe can ensure the probe command is functioning as expected on deploymentconfigs": "can ensure the probe command is functioning as expected on deploymentconfigs [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc probe can ensure the probe command is functioning as expected on deploymentconfigs": "can ensure the probe command is functioning as expected on deploymentconfigs [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc probe can ensure the probe command is functioning as expected on pods": "can ensure the probe command is functioning as expected on pods [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc probe can ensure the probe command is functioning as expected on pods": "can ensure the probe command is functioning as expected on pods [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc project --show-labels works for projects": "--show-labels works for projects [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc project --show-labels works for projects": "--show-labels works for projects [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc rsh specific flags should work well when access to a remote shell": "should work well when access to a remote shell [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc rsh specific flags should work well when access to a remote shell": "should work well when access to a remote shell [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-cli] oc secret creates and retrieves expected": "creates and retrieves expected [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc secret creates and retrieves expected": "creates and retrieves expected [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc service creates and deletes services": "creates and deletes services [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc service creates and deletes services": "creates and deletes services [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc statefulset creates and deletes statefulsets": "creates and deletes statefulsets [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc statefulset creates and deletes statefulsets": "creates and deletes statefulsets [Disabled:Broken]",
 
-	"[Top Level] [sig-cli] oc status returns expected help messages": "returns expected help messages [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc status returns expected help messages": "returns expected help messages [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/authentication.sh": "test/cmd/authentication.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/authentication.sh": "test/cmd/authentication.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/builds.sh": "test/cmd/builds.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/builds.sh": "test/cmd/builds.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/completions.sh": "test/cmd/completions.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/completions.sh": "test/cmd/completions.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/config.sh": "test/cmd/config.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/config.sh": "test/cmd/config.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/create.sh": "test/cmd/create.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/create.sh": "test/cmd/create.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/deployments.sh": "test/cmd/deployments.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/deployments.sh": "test/cmd/deployments.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/describer.sh": "test/cmd/describer.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/describer.sh": "test/cmd/describer.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/edit.sh": "test/cmd/edit.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/edit.sh": "test/cmd/edit.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/env.sh": "test/cmd/env.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/env.sh": "test/cmd/env.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/framework-test.sh": "test/cmd/framework-test.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/framework-test.sh": "test/cmd/framework-test.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/get.sh": "test/cmd/get.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/get.sh": "test/cmd/get.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/help.sh": "test/cmd/help.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/help.sh": "test/cmd/help.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/idle.sh": "test/cmd/idle.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/idle.sh": "test/cmd/idle.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/image-lookup.sh": "test/cmd/image-lookup.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/image-lookup.sh": "test/cmd/image-lookup.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/images.sh": "test/cmd/images.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/images.sh": "test/cmd/images.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/printer.sh": "test/cmd/printer.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/printer.sh": "test/cmd/printer.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/projects.sh": "test/cmd/projects.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/projects.sh": "test/cmd/projects.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/quota.sh": "test/cmd/quota.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/quota.sh": "test/cmd/quota.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/routes.sh": "test/cmd/routes.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/routes.sh": "test/cmd/routes.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/run.sh": "test/cmd/run.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/run.sh": "test/cmd/run.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/secrets.sh": "test/cmd/secrets.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/secrets.sh": "test/cmd/secrets.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/services.sh": "test/cmd/services.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/services.sh": "test/cmd/services.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-data.sh": "test/cmd/set-data.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-data.sh": "test/cmd/set-data.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-image.sh": "test/cmd/set-image.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-image.sh": "test/cmd/set-image.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-liveness-probe.sh": "test/cmd/set-liveness-probe.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-liveness-probe.sh": "test/cmd/set-liveness-probe.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/setbuildhook.sh": "test/cmd/setbuildhook.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/setbuildhook.sh": "test/cmd/setbuildhook.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/setbuildsecret.sh": "test/cmd/setbuildsecret.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/setbuildsecret.sh": "test/cmd/setbuildsecret.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/status.sh": "test/cmd/status.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/status.sh": "test/cmd/status.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/templates.sh": "test/cmd/templates.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/templates.sh": "test/cmd/templates.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/triggers.sh": "test/cmd/triggers.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/triggers.sh": "test/cmd/triggers.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/volumes.sh": "test/cmd/volumes.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/volumes.sh": "test/cmd/volumes.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/whoami.sh": "test/cmd/whoami.sh",
+	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/whoami.sh": "test/cmd/whoami.sh [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods copy by strategy should copy files with the rsync strategy": "should copy files with the rsync strategy",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods copy by strategy should copy files with the rsync strategy": "should copy files with the rsync strategy [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods copy by strategy should copy files with the rsync-daemon strategy": "should copy files with the rsync-daemon strategy",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods copy by strategy should copy files with the rsync-daemon strategy": "should copy files with the rsync-daemon strategy [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods copy by strategy should copy files with the tar strategy": "should copy files with the tar strategy",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods copy by strategy should copy files with the tar strategy": "should copy files with the tar strategy [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor multiple --exclude flags": "should honor multiple --exclude flags",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor multiple --exclude flags": "should honor multiple --exclude flags [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor multiple --include flags": "should honor multiple --include flags",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor multiple --include flags": "should honor multiple --include flags [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor the --exclude flag": "should honor the --exclude flag",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor the --exclude flag": "should honor the --exclude flag [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor the --include flag": "should honor the --include flag",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor the --include flag": "should honor the --include flag [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor the --no-perms flag": "should honor the --no-perms flag",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor the --no-perms flag": "should honor the --no-perms flag [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor the --progress flag": "should honor the --progress flag",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods rsync specific flags should honor the --progress flag": "should honor the --progress flag [Disabled:Broken]",
 
-	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods using a watch should watch for changes and rsync them": "should watch for changes and rsync them",
+	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods using a watch should watch for changes and rsync them": "should watch for changes and rsync them [Disabled:Broken]",
 
 	"[Top Level] [sig-cluster-lifecycle] CSRs from machines that are not recognized by the cloud provider are not approved": "CSRs from machines that are not recognized by the cloud provider are not approved [Disabled:Broken]",
 
