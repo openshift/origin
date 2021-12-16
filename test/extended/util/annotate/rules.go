@@ -54,7 +54,10 @@ var (
 			`\[sig-api-machinery\] *`,
 			`\[sig-apps\] *`,
 			`\[sig-cli\] *`,
+			`\[sig-arch\] *`,
 			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should enforce except clause while egress access to server in CIDR block`,
+			`\[sig-network\] Services *`,
+			`\[sig-network\] Networking Granular Checks: *`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1945091
 			`\[Feature:GenericEphemeralVolume\]`,

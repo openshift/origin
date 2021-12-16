@@ -2119,57 +2119,57 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should work with Ingress,Egress specified together [Feature:NetworkPolicy]": "should work with Ingress,Egress specified together [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Pods should function for intra-pod communication: http [NodeConformance] [Conformance]": "should function for intra-pod communication: http [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Pods should function for intra-pod communication: http [NodeConformance] [Conformance]": "should function for intra-pod communication: http [NodeConformance] [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Pods should function for intra-pod communication: sctp [LinuxOnly][Feature:SCTPConnectivity][Disruptive]": "should function for intra-pod communication: sctp [LinuxOnly][Feature:SCTPConnectivity][Disruptive] [Serial] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Pods should function for intra-pod communication: sctp [LinuxOnly][Feature:SCTPConnectivity][Disruptive]": "should function for intra-pod communication: sctp [LinuxOnly][Feature:SCTPConnectivity][Disruptive] [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Pods should function for intra-pod communication: udp [NodeConformance] [Conformance]": "should function for intra-pod communication: udp [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Pods should function for intra-pod communication: udp [NodeConformance] [Conformance]": "should function for intra-pod communication: udp [NodeConformance] [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Pods should function for node-pod communication: http [LinuxOnly] [NodeConformance] [Conformance]": "should function for node-pod communication: http [LinuxOnly] [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Pods should function for node-pod communication: http [LinuxOnly] [NodeConformance] [Conformance]": "should function for node-pod communication: http [LinuxOnly] [NodeConformance] [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Pods should function for node-pod communication: sctp [LinuxOnly][Feature:SCTPConnectivity][Disruptive]": "should function for node-pod communication: sctp [LinuxOnly][Feature:SCTPConnectivity][Disruptive] [Serial] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Pods should function for node-pod communication: sctp [LinuxOnly][Feature:SCTPConnectivity][Disruptive]": "should function for node-pod communication: sctp [LinuxOnly][Feature:SCTPConnectivity][Disruptive] [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Pods should function for node-pod communication: udp [LinuxOnly] [NodeConformance] [Conformance]": "should function for node-pod communication: udp [LinuxOnly] [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Pods should function for node-pod communication: udp [LinuxOnly] [NodeConformance] [Conformance]": "should function for node-pod communication: udp [LinuxOnly] [NodeConformance] [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should be able to handle large requests: http": "should be able to handle large requests: http [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should be able to handle large requests: http": "should be able to handle large requests: http [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should be able to handle large requests: udp": "should be able to handle large requests: udp [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should be able to handle large requests: udp": "should be able to handle large requests: udp [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for client IP based session affinity: http [LinuxOnly]": "should function for client IP based session affinity: http [LinuxOnly] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for client IP based session affinity: http [LinuxOnly]": "should function for client IP based session affinity: http [LinuxOnly] [Disabled:Broken] [Skipped:Network/OVNKubernetes] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for client IP based session affinity: udp [LinuxOnly]": "should function for client IP based session affinity: udp [LinuxOnly] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for client IP based session affinity: udp [LinuxOnly]": "should function for client IP based session affinity: udp [LinuxOnly] [Disabled:Broken] [Skipped:Network/OVNKubernetes] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for endpoint-Service: http": "should function for endpoint-Service: http [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for endpoint-Service: http": "should function for endpoint-Service: http [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for endpoint-Service: sctp [Feature:SCTPConnectivity][Disruptive]": "should function for endpoint-Service: sctp [Feature:SCTPConnectivity][Disruptive] [Serial] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for endpoint-Service: sctp [Feature:SCTPConnectivity][Disruptive]": "should function for endpoint-Service: sctp [Feature:SCTPConnectivity][Disruptive] [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for endpoint-Service: udp": "should function for endpoint-Service: udp [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for endpoint-Service: udp": "should function for endpoint-Service: udp [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for multiple endpoint-Services with same selector": "should function for multiple endpoint-Services with same selector [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for multiple endpoint-Services with same selector": "should function for multiple endpoint-Services with same selector [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for node-Service: http": "should function for node-Service: http [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for node-Service: http": "should function for node-Service: http [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for node-Service: sctp [Feature:SCTPConnectivity][Disruptive]": "should function for node-Service: sctp [Feature:SCTPConnectivity][Disruptive] [Serial] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for node-Service: sctp [Feature:SCTPConnectivity][Disruptive]": "should function for node-Service: sctp [Feature:SCTPConnectivity][Disruptive] [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for node-Service: udp": "should function for node-Service: udp [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for node-Service: udp": "should function for node-Service: udp [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for pod-Service: http": "should function for pod-Service: http [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for pod-Service: http": "should function for pod-Service: http [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for pod-Service: sctp [Feature:SCTPConnectivity][Disruptive]": "should function for pod-Service: sctp [Feature:SCTPConnectivity][Disruptive] [Serial] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for pod-Service: sctp [Feature:SCTPConnectivity][Disruptive]": "should function for pod-Service: sctp [Feature:SCTPConnectivity][Disruptive] [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should function for pod-Service: udp": "should function for pod-Service: udp [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should function for pod-Service: udp": "should function for pod-Service: udp [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Networking Granular Checks: Services should function for service endpoints using hostNetwork": "should function for service endpoints using hostNetwork [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should support basic nodePort: udp functionality": "should support basic nodePort: udp functionality [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should support basic nodePort: udp functionality": "should support basic nodePort: udp functionality [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should update endpoints: http": "should update endpoints: http [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should update endpoints: http": "should update endpoints: http [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should update endpoints: udp": "should update endpoints: udp [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should update endpoints: udp": "should update endpoints: udp [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should update nodePort: http [Slow]": "should update nodePort: http [Slow] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should update nodePort: http [Slow]": "should update nodePort: http [Slow] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Networking Granular Checks: Services should update nodePort: udp [Slow]": "should update nodePort: udp [Slow] [Suite:k8s]",
+	"[Top Level] [sig-network] Networking Granular Checks: Services should update nodePort: udp [Slow]": "should update nodePort: udp [Slow] [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Networking IPerf2 [Feature:Networking-Performance] should run iperf2": "should run iperf2 [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2203,59 +2203,59 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Service endpoints latency should not be very high  [Conformance]": "should not be very high  [Conformance] [Serial] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services GCE [Slow] should be able to create and tear down a standard-tier load balancer [Slow]": "should be able to create and tear down a standard-tier load balancer [Slow] [Suite:k8s]",
+	"[Top Level] [sig-network] Services GCE [Slow] should be able to create and tear down a standard-tier load balancer [Slow]": "should be able to create and tear down a standard-tier load balancer [Slow] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should allow pods to hairpin back to themselves through services": "should allow pods to hairpin back to themselves through services [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should allow pods to hairpin back to themselves through services": "should allow pods to hairpin back to themselves through services [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should be able to change the type from ClusterIP to ExternalName [Conformance]": "should be able to change the type from ClusterIP to ExternalName [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should be able to change the type from ClusterIP to ExternalName [Conformance]": "should be able to change the type from ClusterIP to ExternalName [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should be able to change the type from ExternalName to ClusterIP [Conformance]": "should be able to change the type from ExternalName to ClusterIP [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should be able to change the type from ExternalName to ClusterIP [Conformance]": "should be able to change the type from ExternalName to ClusterIP [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should be able to change the type from ExternalName to NodePort [Conformance]": "should be able to change the type from ExternalName to NodePort [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should be able to change the type from ExternalName to NodePort [Conformance]": "should be able to change the type from ExternalName to NodePort [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should be able to change the type from NodePort to ExternalName [Conformance]": "should be able to change the type from NodePort to ExternalName [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should be able to change the type from NodePort to ExternalName [Conformance]": "should be able to change the type from NodePort to ExternalName [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should be able to create a functioning NodePort service [Conformance]": "should be able to create a functioning NodePort service [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should be able to create a functioning NodePort service [Conformance]": "should be able to create a functioning NodePort service [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should be able to switch session affinity for NodePort service [LinuxOnly] [Conformance]": "should be able to switch session affinity for NodePort service [LinuxOnly] [Conformance] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should be able to switch session affinity for NodePort service [LinuxOnly] [Conformance]": "should be able to switch session affinity for NodePort service [LinuxOnly] [Conformance] [Disabled:Broken] [Skipped:Network/OVNKubernetes] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should be able to switch session affinity for service with type clusterIP [LinuxOnly] [Conformance]": "should be able to switch session affinity for service with type clusterIP [LinuxOnly] [Conformance] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should be able to switch session affinity for service with type clusterIP [LinuxOnly] [Conformance]": "should be able to switch session affinity for service with type clusterIP [LinuxOnly] [Conformance] [Disabled:Broken] [Skipped:Network/OVNKubernetes] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Services should be able to up and down services": "should be able to up and down services [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should be able to update service type to NodePort listening on same port number but different protocols": "should be able to update service type to NodePort listening on same port number but different protocols [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should be able to update service type to NodePort listening on same port number but different protocols": "should be able to update service type to NodePort listening on same port number but different protocols [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should be possible to connect to a service via ExternalIP when the external IP is not assigned to a node": "should be possible to connect to a service via ExternalIP when the external IP is not assigned to a node [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should be possible to connect to a service via ExternalIP when the external IP is not assigned to a node": "should be possible to connect to a service via ExternalIP when the external IP is not assigned to a node [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should be rejected when no endpoints exist": "should be rejected when no endpoints exist [Skipped:ibmroks] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should be rejected when no endpoints exist": "should be rejected when no endpoints exist [Disabled:Broken] [Skipped:ibmroks] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should check NodePort out-of-range": "should check NodePort out-of-range [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should check NodePort out-of-range": "should check NodePort out-of-range [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should complete a service status lifecycle [Conformance]": "should complete a service status lifecycle [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should complete a service status lifecycle [Conformance]": "should complete a service status lifecycle [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should create endpoints for unready pods": "should create endpoints for unready pods [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should create endpoints for unready pods": "should create endpoints for unready pods [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should find a service from listing all namespaces [Conformance]": "should find a service from listing all namespaces [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should find a service from listing all namespaces [Conformance]": "should find a service from listing all namespaces [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should have session affinity timeout work for NodePort service [LinuxOnly] [Conformance]": "should have session affinity timeout work for NodePort service [LinuxOnly] [Conformance] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should have session affinity timeout work for NodePort service [LinuxOnly] [Conformance]": "should have session affinity timeout work for NodePort service [LinuxOnly] [Conformance] [Disabled:Broken] [Skipped:Network/OVNKubernetes] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should have session affinity timeout work for service with type clusterIP [LinuxOnly] [Conformance]": "should have session affinity timeout work for service with type clusterIP [LinuxOnly] [Conformance] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should have session affinity timeout work for service with type clusterIP [LinuxOnly] [Conformance]": "should have session affinity timeout work for service with type clusterIP [LinuxOnly] [Conformance] [Disabled:Broken] [Skipped:Network/OVNKubernetes] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should have session affinity work for NodePort service [LinuxOnly] [Conformance]": "should have session affinity work for NodePort service [LinuxOnly] [Conformance] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should have session affinity work for NodePort service [LinuxOnly] [Conformance]": "should have session affinity work for NodePort service [LinuxOnly] [Conformance] [Disabled:Broken] [Skipped:Network/OVNKubernetes] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should have session affinity work for service with type clusterIP [LinuxOnly] [Conformance]": "should have session affinity work for service with type clusterIP [LinuxOnly] [Conformance] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should have session affinity work for service with type clusterIP [LinuxOnly] [Conformance]": "should have session affinity work for service with type clusterIP [LinuxOnly] [Conformance] [Disabled:Broken] [Skipped:Network/OVNKubernetes] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Services should implement service.kubernetes.io/headless": "should implement service.kubernetes.io/headless [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Services should implement service.kubernetes.io/service-proxy-name": "should implement service.kubernetes.io/service-proxy-name [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should preserve source pod IP for traffic thru service cluster IP [LinuxOnly]": "should preserve source pod IP for traffic thru service cluster IP [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should preserve source pod IP for traffic thru service cluster IP [LinuxOnly]": "should preserve source pod IP for traffic thru service cluster IP [LinuxOnly] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should prevent NodePort collisions": "should prevent NodePort collisions [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should prevent NodePort collisions": "should prevent NodePort collisions [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should provide secure master service  [Conformance]": "should provide secure master service  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should provide secure master service  [Conformance]": "should provide secure master service  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should release NodePorts on delete": "should release NodePorts on delete [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should release NodePorts on delete": "should release NodePorts on delete [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Services should respect internalTrafficPolicy=Local Pod (hostNetwork: true) to Pod (hostNetwork: true) [Feature:ServiceInternalTrafficPolicy]": "should respect internalTrafficPolicy=Local Pod (hostNetwork: true) to Pod (hostNetwork: true) [Feature:ServiceInternalTrafficPolicy] [Disabled:Broken] [Skipped:Network/OVNKubernetes] [Suite:k8s]",
 
@@ -2263,17 +2263,17 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Services should respect internalTrafficPolicy=Local Pod to Pod (hostNetwork: true) [Feature:ServiceInternalTrafficPolicy]": "should respect internalTrafficPolicy=Local Pod to Pod (hostNetwork: true) [Feature:ServiceInternalTrafficPolicy] [Disabled:Broken] [Skipped:Network/OVNKubernetes] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should respect internalTrafficPolicy=Local Pod to Pod [Feature:ServiceInternalTrafficPolicy]": "should respect internalTrafficPolicy=Local Pod to Pod [Feature:ServiceInternalTrafficPolicy] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should respect internalTrafficPolicy=Local Pod to Pod [Feature:ServiceInternalTrafficPolicy]": "should respect internalTrafficPolicy=Local Pod to Pod [Feature:ServiceInternalTrafficPolicy] [Disabled:Broken] [Skipped:Network/OVNKubernetes] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should serve a basic endpoint from pods  [Conformance]": "should serve a basic endpoint from pods  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should serve a basic endpoint from pods  [Conformance]": "should serve a basic endpoint from pods  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should serve multiport endpoints from pods  [Conformance]": "should serve multiport endpoints from pods  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should serve multiport endpoints from pods  [Conformance]": "should serve multiport endpoints from pods  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should test the lifecycle of an Endpoint [Conformance]": "should test the lifecycle of an Endpoint [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should test the lifecycle of an Endpoint [Conformance]": "should test the lifecycle of an Endpoint [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should work after restarting apiserver [Disruptive]": "should work after restarting apiserver [Disruptive] [Serial] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should work after restarting apiserver [Disruptive]": "should work after restarting apiserver [Disruptive] [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should work after restarting kube-proxy [Disruptive]": "should work after restarting kube-proxy [Disruptive] [Serial] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should work after restarting kube-proxy [Disruptive]": "should work after restarting kube-proxy [Disruptive] [Disabled:Broken] [Serial] [Suite:k8s]",
 
 	"[Top Level] [sig-network] [Feature:IPv6DualStack] Granular Checks: Services Secondary IP Family [LinuxOnly] should be able to handle large requests: http": "should be able to handle large requests: http [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
