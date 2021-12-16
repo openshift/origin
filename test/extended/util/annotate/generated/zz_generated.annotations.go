@@ -17,7 +17,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [Conformance][sig-sno][Serial] Cluster should allow a fast rollout of kube-apiserver with no pods restarts during API disruption": "should allow a fast rollout of kube-apiserver with no pods restarts during API disruption [Suite:openshift/conformance/serial/minimal]",
 
-	"[Top Level] [Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP] test RequestHeaders IdP": "test RequestHeaders IdP [Suite:openshift/conformance/serial]",
+	"[Top Level] [Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP] test RequestHeaders IdP": "test RequestHeaders IdP [Disabled:Broken]",
 
 	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster [Disabled:Broken] with non-gu workload should run with no regressions with single pod, single container requesting 1 core": "with single pod, single container requesting 1 core",
 
@@ -619,177 +619,177 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch][Late] operators should not create watch channels very often": "operators should not create watch channels very often [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth] Certificates API [Privileged:ClusterAdmin] should support CSR API operations [Conformance]": "should support CSR API operations [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-auth] Certificates API [Privileged:ClusterAdmin] should support CSR API operations [Conformance]": "should support CSR API operations [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] Certificates API [Privileged:ClusterAdmin] should support building a client with a CSR": "should support building a client with a CSR [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-auth] Certificates API [Privileged:ClusterAdmin] should support building a client with a CSR": "should support building a client with a CSR [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] Metadata Concealment should run a check-metadata-concealment job to completion": "should run a check-metadata-concealment job to completion [Skipped:gce] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-auth] Metadata Concealment should run a check-metadata-concealment job to completion": "should run a check-metadata-concealment job to completion [Disabled:Broken] [Skipped:gce] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] PodSecurityPolicy [Feature:PodSecurityPolicy] should allow pods under the privileged policy.PodSecurityPolicy": "should allow pods under the privileged policy.PodSecurityPolicy [Disabled:Alpha] [Disabled:Unsupported] [Suite:k8s]",
+	"[Top Level] [sig-auth] PodSecurityPolicy [Feature:PodSecurityPolicy] should allow pods under the privileged policy.PodSecurityPolicy": "should allow pods under the privileged policy.PodSecurityPolicy [Disabled:Alpha] [Disabled:Broken] [Disabled:Unsupported] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] PodSecurityPolicy [Feature:PodSecurityPolicy] should enforce the restricted policy.PodSecurityPolicy": "should enforce the restricted policy.PodSecurityPolicy [Disabled:Alpha] [Disabled:Unsupported] [Suite:k8s]",
+	"[Top Level] [sig-auth] PodSecurityPolicy [Feature:PodSecurityPolicy] should enforce the restricted policy.PodSecurityPolicy": "should enforce the restricted policy.PodSecurityPolicy [Disabled:Alpha] [Disabled:Broken] [Disabled:Unsupported] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] PodSecurityPolicy [Feature:PodSecurityPolicy] should forbid pod creation when no PSP is available": "should forbid pod creation when no PSP is available [Disabled:Alpha] [Disabled:Unsupported] [Suite:k8s]",
+	"[Top Level] [sig-auth] PodSecurityPolicy [Feature:PodSecurityPolicy] should forbid pod creation when no PSP is available": "should forbid pod creation when no PSP is available [Disabled:Alpha] [Disabled:Broken] [Disabled:Unsupported] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] ServiceAccounts ServiceAccountIssuerDiscovery should support OIDC discovery of service account issuer [Conformance]": "ServiceAccountIssuerDiscovery should support OIDC discovery of service account issuer [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-auth] ServiceAccounts ServiceAccountIssuerDiscovery should support OIDC discovery of service account issuer [Conformance]": "ServiceAccountIssuerDiscovery should support OIDC discovery of service account issuer [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] ServiceAccounts should allow opting out of API token automount  [Conformance]": "should allow opting out of API token automount  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-auth] ServiceAccounts should allow opting out of API token automount  [Conformance]": "should allow opting out of API token automount  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-auth] ServiceAccounts should ensure a single API token exists": "should ensure a single API token exists [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] ServiceAccounts should guarantee kube-root-ca.crt exist in any namespace [Conformance]": "should guarantee kube-root-ca.crt exist in any namespace [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-auth] ServiceAccounts should guarantee kube-root-ca.crt exist in any namespace [Conformance]": "should guarantee kube-root-ca.crt exist in any namespace [Conformance] [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-auth] ServiceAccounts should mount an API token into pods  [Conformance]": "should mount an API token into pods  [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] ServiceAccounts should mount projected service account token [Conformance]": "should mount projected service account token [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-auth] ServiceAccounts should mount projected service account token [Conformance]": "should mount projected service account token [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] ServiceAccounts should run through the lifecycle of a ServiceAccount [Conformance]": "should run through the lifecycle of a ServiceAccount [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-auth] ServiceAccounts should run through the lifecycle of a ServiceAccount [Conformance]": "should run through the lifecycle of a ServiceAccount [Conformance] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] ServiceAccounts should set ownership and permission when RunAsUser or FsGroup is present [LinuxOnly] [NodeFeature:FSGroup]": "should set ownership and permission when RunAsUser or FsGroup is present [LinuxOnly] [NodeFeature:FSGroup] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-auth] ServiceAccounts should set ownership and permission when RunAsUser or FsGroup is present [LinuxOnly] [NodeFeature:FSGroup]": "should set ownership and permission when RunAsUser or FsGroup is present [LinuxOnly] [NodeFeature:FSGroup] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] ServiceAccounts should support InClusterConfig with token rotation [Slow]": "should support InClusterConfig with token rotation [Slow] [Suite:k8s]",
+	"[Top Level] [sig-auth] ServiceAccounts should support InClusterConfig with token rotation [Slow]": "should support InClusterConfig with token rotation [Slow] [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] [Feature:NodeAuthenticator] The kubelet can delegate ServiceAccount tokens to the API server": "The kubelet can delegate ServiceAccount tokens to the API server [Skipped:ibmroks] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-auth] [Feature:NodeAuthenticator] The kubelet can delegate ServiceAccount tokens to the API server": "The kubelet can delegate ServiceAccount tokens to the API server [Disabled:Broken] [Skipped:ibmroks] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] [Feature:NodeAuthenticator] The kubelet's main port 10250 should reject requests with no credentials": "The kubelet's main port 10250 should reject requests with no credentials [Skipped:ibmroks] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-auth] [Feature:NodeAuthenticator] The kubelet's main port 10250 should reject requests with no credentials": "The kubelet's main port 10250 should reject requests with no credentials [Disabled:Broken] [Skipped:ibmroks] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] [Feature:NodeAuthorizer] A node shouldn't be able to create another node": "A node shouldn't be able to create another node [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-auth] [Feature:NodeAuthorizer] A node shouldn't be able to create another node": "A node shouldn't be able to create another node [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] [Feature:NodeAuthorizer] A node shouldn't be able to delete another node": "A node shouldn't be able to delete another node [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-auth] [Feature:NodeAuthorizer] A node shouldn't be able to delete another node": "A node shouldn't be able to delete another node [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] [Feature:NodeAuthorizer] Getting a non-existent configmap should exit with the Forbidden error, not a NotFound error": "Getting a non-existent configmap should exit with the Forbidden error, not a NotFound error [Skipped:ibmroks] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-auth] [Feature:NodeAuthorizer] Getting a non-existent configmap should exit with the Forbidden error, not a NotFound error": "Getting a non-existent configmap should exit with the Forbidden error, not a NotFound error [Disabled:Broken] [Skipped:ibmroks] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] [Feature:NodeAuthorizer] Getting a non-existent secret should exit with the Forbidden error, not a NotFound error": "Getting a non-existent secret should exit with the Forbidden error, not a NotFound error [Skipped:ibmroks] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-auth] [Feature:NodeAuthorizer] Getting a non-existent secret should exit with the Forbidden error, not a NotFound error": "Getting a non-existent secret should exit with the Forbidden error, not a NotFound error [Disabled:Broken] [Skipped:ibmroks] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] [Feature:NodeAuthorizer] Getting a secret for a workload the node has access to should succeed": "Getting a secret for a workload the node has access to should succeed [Skipped:ibmroks] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-auth] [Feature:NodeAuthorizer] Getting a secret for a workload the node has access to should succeed": "Getting a secret for a workload the node has access to should succeed [Disabled:Broken] [Skipped:ibmroks] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] [Feature:NodeAuthorizer] Getting an existing configmap should exit with the Forbidden error": "Getting an existing configmap should exit with the Forbidden error [Skipped:ibmroks] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-auth] [Feature:NodeAuthorizer] Getting an existing configmap should exit with the Forbidden error": "Getting an existing configmap should exit with the Forbidden error [Disabled:Broken] [Skipped:ibmroks] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] [Feature:NodeAuthorizer] Getting an existing secret should exit with the Forbidden error": "Getting an existing secret should exit with the Forbidden error [Skipped:ibmroks] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-auth] [Feature:NodeAuthorizer] Getting an existing secret should exit with the Forbidden error": "Getting an existing secret should exit with the Forbidden error [Disabled:Broken] [Skipped:ibmroks] [Suite:k8s]",
 
-	"[Top Level] [sig-auth][Feature:Authentication]  TestFrontProxy should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:Authentication]  TestFrontProxy should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:BootstrapUser] The bootstrap user should successfully login with password decoded from kubeadmin secret [Disruptive]": "should successfully login with password decoded from kubeadmin secret [Disruptive] [Serial]",
+	"[Top Level] [sig-auth][Feature:BootstrapUser] The bootstrap user should successfully login with password decoded from kubeadmin secret [Disruptive]": "should successfully login with password decoded from kubeadmin secret [Disruptive] [Disabled:Broken] [Serial]",
 
-	"[Top Level] [sig-auth][Feature:HTPasswdAuth] HTPasswd IDP should successfully configure htpasswd and be responsive": "should successfully configure htpasswd and be responsive [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:HTPasswdAuth] HTPasswd IDP should successfully configure htpasswd and be responsive": "should successfully configure htpasswd and be responsive [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:LDAP] LDAP IDP should authenticate against an ldap server": "should authenticate against an ldap server [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:LDAP] LDAP IDP should authenticate against an ldap server": "should authenticate against an ldap server [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:LDAP] LDAP should start an OpenLDAP test server": "should start an OpenLDAP test server [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:LDAP] LDAP should start an OpenLDAP test server": "should start an OpenLDAP test server [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:LDAP][Serial] ldap group sync can sync groups from ldap": "can sync groups from ldap [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-auth][Feature:LDAP][Serial] ldap group sync can sync groups from ldap": "can sync groups from ldap [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] ClientSecretWithPlus should create oauthclient": "should create oauthclient [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] ClientSecretWithPlus should create oauthclient": "should create oauthclient [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] OAuth Authenticator accepts sha256 access tokens": "accepts sha256 access tokens [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] OAuth Authenticator accepts sha256 access tokens": "accepts sha256 access tokens [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] OAuth server has the correct token and certificate fallback semantics": "has the correct token and certificate fallback semantics [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] OAuth server has the correct token and certificate fallback semantics": "has the correct token and certificate fallback semantics [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] OAuth server should use http1.1 only to prevent http2 connection reuse": "should use http1.1 only to prevent http2 connection reuse [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] OAuth server should use http1.1 only to prevent http2 connection reuse": "should use http1.1 only to prevent http2 connection reuse [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the authorize URL": "authorize URL [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the authorize URL": "authorize URL [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the grant URL": "grant URL [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the grant URL": "grant URL [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the login URL for the allow all IDP": "login URL for the allow all IDP [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the login URL for the allow all IDP": "login URL for the allow all IDP [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the login URL for the bootstrap IDP": "login URL for the bootstrap IDP [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the login URL for the bootstrap IDP": "login URL for the bootstrap IDP [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the login URL for when there is only one IDP": "login URL for when there is only one IDP [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the login URL for when there is only one IDP": "login URL for when there is only one IDP [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the logout URL": "logout URL [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the logout URL": "logout URL [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the root URL": "root URL [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the root URL": "root URL [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the token URL": "token URL [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the token URL": "token URL [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the token request URL": "token request URL [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the token request URL": "token request URL [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age to generate tokens that do not expire works as expected when using a code authorization flow": "works as expected when using a code authorization flow [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age to generate tokens that do not expire works as expected when using a code authorization flow": "works as expected when using a code authorization flow [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age to generate tokens that do not expire works as expected when using a token authorization flow": "works as expected when using a token authorization flow [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age to generate tokens that do not expire works as expected when using a token authorization flow": "works as expected when using a token authorization flow [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age to generate tokens that expire shortly works as expected when using a code authorization flow": "works as expected when using a code authorization flow [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age to generate tokens that expire shortly works as expected when using a code authorization flow": "works as expected when using a code authorization flow [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age to generate tokens that expire shortly works as expected when using a token authorization flow": "works as expected when using a token authorization flow [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age to generate tokens that expire shortly works as expected when using a token authorization flow": "works as expected when using a token authorization flow [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] well-known endpoint should be reachable": "should be reachable [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] well-known endpoint should be reachable": "should be reachable [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz  RunLegacyClusterRoleBindingEndpoint should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz  RunLegacyClusterRoleBindingEndpoint should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz  RunLegacyClusterRoleEndpoint should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz  RunLegacyClusterRoleEndpoint should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz  RunLegacyEndpointConfirmNoEscalation should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz  RunLegacyEndpointConfirmNoEscalation should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz  RunLegacyLocalRoleBindingEndpoint should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz  RunLegacyLocalRoleBindingEndpoint should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz  RunLegacyLocalRoleEndpoint should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz  RunLegacyLocalRoleEndpoint should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] The default cluster RBAC policy should have correct RBAC rules": "should have correct RBAC rules [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] The default cluster RBAC policy should have correct RBAC rules": "should have correct RBAC rules [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] authorization  TestAuthorizationSubjectAccessReview should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] authorization  TestAuthorizationSubjectAccessReview should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] authorization  TestAuthorizationSubjectAccessReviewAPIGroup should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] authorization  TestAuthorizationSubjectAccessReviewAPIGroup should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] authorization  TestBrowserSafeAuthorizer should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] authorization  TestBrowserSafeAuthorizer should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] authorization  TestClusterReaderCoverage should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] authorization  TestClusterReaderCoverage should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] scopes TestScopeEscalations should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] scopes TestScopeEscalations should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] scopes TestScopedImpersonation should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] scopes TestScopedImpersonation should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] scopes TestScopedTokens should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] scopes TestScopedTokens should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] scopes TestTokensWithIllegalScopes should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] scopes TestTokensWithIllegalScopes should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] scopes TestUnknownScopes should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] scopes TestUnknownScopes should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] self-SAR compatibility  TestBootstrapPolicySelfSubjectAccessReviews should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] self-SAR compatibility  TestBootstrapPolicySelfSubjectAccessReviews should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] self-SAR compatibility  TestSelfSubjectAccessReviewsNonExistingNamespace should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] self-SAR compatibility  TestSelfSubjectAccessReviewsNonExistingNamespace should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization][Serial] authorization  TestAuthorizationResourceAccessReview should succeed": "should succeed [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization][Serial] authorization  TestAuthorizationResourceAccessReview should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestInvalidRoleRefs should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestInvalidRoleRefs should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestProjectIsNamespace should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestProjectIsNamespace should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestProjectWatch should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestProjectWatch should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestProjectWatchWithSelectionPredicate should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestProjectWatchWithSelectionPredicate should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestScopedProjectAccess should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestScopedProjectAccess should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestUnprivilegedNewProject": "TestUnprivilegedNewProject [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestUnprivilegedNewProject": "TestUnprivilegedNewProject [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:ProjectAPI][Serial]  TestUnprivilegedNewProjectDenied": "TestUnprivilegedNewProjectDenied [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-auth][Feature:ProjectAPI][Serial]  TestUnprivilegedNewProjectDenied": "TestUnprivilegedNewProjectDenied [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional  Create a RBAC rolebinding when subject is not already bound and is not permitted by any RBR should fail": "should fail [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional  Create a RBAC rolebinding when subject is not already bound and is not permitted by any RBR should fail": "should fail [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional  Create a rolebinding that also contains system:non-existing users should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional  Create a rolebinding that also contains system:non-existing users should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional  Create a rolebinding when subject is already bound should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional  Create a rolebinding when subject is already bound should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional  Create a rolebinding when subject is not already bound and is not permitted by any RBR should fail": "should fail [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional  Create a rolebinding when subject is not already bound and is not permitted by any RBR should fail": "should fail [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional  Create a rolebinding when subject is permitted by RBR should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional  Create a rolebinding when subject is permitted by RBR should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional  Create a rolebinding when there are no restrictions should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional  Create a rolebinding when there are no restrictions should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional  Rolebinding restrictions tests single project should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional  Rolebinding restrictions tests single project should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:SCC][Early] should not have pod creation failures during install": "should not have pod creation failures during install [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:SCC][Early] should not have pod creation failures during install": "should not have pod creation failures during install [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestAllowedSCCViaRBAC": "TestAllowedSCCViaRBAC [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestAllowedSCCViaRBAC": "TestAllowedSCCViaRBAC [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestPodDefaultCapabilities": "TestPodDefaultCapabilities [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestPodDefaultCapabilities": "TestPodDefaultCapabilities [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestPodUpdateSCCEnforcement": "TestPodUpdateSCCEnforcement [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestPodUpdateSCCEnforcement": "TestPodUpdateSCCEnforcement [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:UserAPI] groups should work": "groups should work [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:UserAPI] groups should work": "groups should work [Disabled:Broken]",
 
-	"[Top Level] [sig-auth][Feature:UserAPI] users can manipulate groups": "users can manipulate groups [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:UserAPI] users can manipulate groups": "users can manipulate groups [Disabled:Broken]",
 
 	"[Top Level] [sig-autoscaling] Cluster size autoscaler scalability [Slow] CA ignores unschedulable pods while scheduling schedulable pods [Feature:ClusterAutoscalerScalability6]": "CA ignores unschedulable pods while scheduling schedulable pods [Feature:ClusterAutoscalerScalability6] [Suite:k8s]",
 
