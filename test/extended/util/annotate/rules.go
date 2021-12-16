@@ -49,6 +49,7 @@ var (
 			`\[sig-storage\] *`,
 			`\[sig-instrumentation\] *`,
 			`\[sig-auth\] *`,
+			`\[sig-arch\] *`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1945091
 			`\[Feature:GenericEphemeralVolume\]`,

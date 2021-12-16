@@ -583,41 +583,41 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-apps][Feature:OpenShiftControllerManager] TestTriggers_manual": "TestTriggers_manual [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-arch] Cluster topology single node tests Verify that OpenShift components deploy one replica in SingleReplica topology mode": "Verify that OpenShift components deploy one replica in SingleReplica topology mode [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] Cluster topology single node tests Verify that OpenShift components deploy one replica in SingleReplica topology mode": "Verify that OpenShift components deploy one replica in SingleReplica topology mode [Disabled:Broken]",
 
-	"[Top Level] [sig-arch] ClusterOperators should define at least one namespace in their lists of related objects": "at least one namespace in their lists of related objects [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] ClusterOperators should define at least one namespace in their lists of related objects": "at least one namespace in their lists of related objects [Disabled:Broken]",
 
-	"[Top Level] [sig-arch] ClusterOperators should define at least one related object that is not a namespace": "at least one related object that is not a namespace [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] ClusterOperators should define at least one related object that is not a namespace": "at least one related object that is not a namespace [Disabled:Broken]",
 
-	"[Top Level] [sig-arch] Managed cluster should ensure control plane operators do not make themselves unevictable": "ensure control plane operators do not make themselves unevictable [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] Managed cluster should ensure control plane operators do not make themselves unevictable": "ensure control plane operators do not make themselves unevictable [Disabled:Broken]",
 
-	"[Top Level] [sig-arch] Managed cluster should ensure control plane pods do not run in best-effort QoS": "ensure control plane pods do not run in best-effort QoS [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] Managed cluster should ensure control plane pods do not run in best-effort QoS": "ensure control plane pods do not run in best-effort QoS [Disabled:Broken]",
 
-	"[Top Level] [sig-arch] Managed cluster should ensure platform components have system-* priority class associated": "ensure platform components have system-* priority class associated [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] Managed cluster should ensure platform components have system-* priority class associated": "ensure platform components have system-* priority class associated [Disabled:Broken]",
 
-	"[Top Level] [sig-arch] Managed cluster should ensure pods use downstream images from our release image with proper ImagePullPolicy": "should ensure pods use downstream images from our release image with proper ImagePullPolicy [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] Managed cluster should ensure pods use downstream images from our release image with proper ImagePullPolicy": "should ensure pods use downstream images from our release image with proper ImagePullPolicy [Disabled:Broken]",
 
-	"[Top Level] [sig-arch] Managed cluster should have operators on the cluster version": "have operators on the cluster version [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] Managed cluster should have operators on the cluster version": "have operators on the cluster version [Disabled:Broken]",
 
-	"[Top Level] [sig-arch] Managed cluster should only include cluster daemonsets that have maxUnavailable update of 10 or 33 percent": "should only include cluster daemonsets that have maxUnavailable update of 10 or 33 percent [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] Managed cluster should only include cluster daemonsets that have maxUnavailable update of 10 or 33 percent": "should only include cluster daemonsets that have maxUnavailable update of 10 or 33 percent [Disabled:Broken]",
 
-	"[Top Level] [sig-arch] Managed cluster should recover when operator-owned objects are deleted [Disruptive]": "when operator-owned objects are deleted [Disruptive] [Serial]",
+	"[Top Level] [sig-arch] Managed cluster should recover when operator-owned objects are deleted [Disruptive]": "when operator-owned objects are deleted [Disruptive] [Disabled:Broken] [Serial]",
 
-	"[Top Level] [sig-arch] Managed cluster should set requests but not limits": "should set requests but not limits [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] Managed cluster should set requests but not limits": "should set requests but not limits [Disabled:Broken]",
 
-	"[Top Level] [sig-arch] Managed cluster should should expose cluster services outside the cluster": "should expose cluster services outside the cluster [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] Managed cluster should should expose cluster services outside the cluster": "should expose cluster services outside the cluster [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-arch] [Conformance] FIPS TestFIPS": "TestFIPS [Suite:openshift/conformance/parallel/minimal]",
+	"[Top Level] [sig-arch] [Conformance] FIPS TestFIPS": "TestFIPS [Disabled:Broken]",
 
-	"[Top Level] [sig-arch] ocp payload should be based on existing source OLM version should contain the source commit id": "OLM version should contain the source commit id [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] ocp payload should be based on existing source OLM version should contain the source commit id": "OLM version should contain the source commit id [Disabled:Broken]",
 
-	"[Top Level] [sig-arch][Early] Managed cluster should start all core operators": "start all core operators [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch][Early] Managed cluster should start all core operators": "start all core operators [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-arch][Feature:ClusterUpgrade] Cluster should remain functional during upgrade [Disruptive]": "Cluster should remain functional during upgrade [Disruptive] [Serial]",
+	"[Top Level] [sig-arch][Feature:ClusterUpgrade] Cluster should remain functional during upgrade [Disruptive]": "Cluster should remain functional during upgrade [Disruptive] [Disabled:Broken] [Serial]",
 
-	"[Top Level] [sig-arch][Late] clients should not use APIs that are removed in upcoming releases": "clients should not use APIs that are removed in upcoming releases [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch][Late] clients should not use APIs that are removed in upcoming releases": "clients should not use APIs that are removed in upcoming releases [Disabled:Broken]",
 
-	"[Top Level] [sig-arch][Late] operators should not create watch channels very often": "operators should not create watch channels very often [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch][Late] operators should not create watch channels very often": "operators should not create watch channels very often [Disabled:Broken]",
 
 	"[Top Level] [sig-auth] Certificates API [Privileged:ClusterAdmin] should support CSR API operations [Conformance]": "should support CSR API operations [Conformance] [Disabled:Broken] [Suite:k8s]",
 
