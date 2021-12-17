@@ -40,7 +40,7 @@ var _ = g.Describe("[sig-cli] oc label", func() {
 		g.By("removing the label")
 		out, err = oc.Run("label").Args("pod", "hello-openshift", "new-label-").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("pod/hello-openshift labeled"))
+		o.Expect(out).To(o.Or(o.ContainSubstring("pod/hello-openshift labeled"), o.ContainSubstring("pod/hello-openshift unlabeled")))
 
 		g.By("validating missing label")
 		out, err = oc.Run("get").Args("pod", "hello-openshift", "--template", podLabelTemplate).Output()
