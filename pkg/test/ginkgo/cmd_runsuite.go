@@ -205,7 +205,7 @@ func (opt *Options) Run(suite *TestSuite) error {
 
 	ctx, cancelFn := context.WithCancel(context.Background())
 	defer cancelFn()
-	abortCh := make(chan os.Signal)
+	abortCh := make(chan os.Signal, 2)
 	go func() {
 		<-abortCh
 		fmt.Fprintf(opt.ErrOut, "Interrupted, terminating tests\n")
