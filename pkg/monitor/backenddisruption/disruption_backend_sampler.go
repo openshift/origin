@@ -216,7 +216,7 @@ func (b *BackendSampler) GetConnectionType() BackendConnectionType {
 
 func (b *BackendSampler) getTimeout() time.Duration {
 	if b.timeout == nil {
-		return 5 * time.Second
+		return 10 * time.Second
 	}
 	return *b.timeout
 }
@@ -283,9 +283,7 @@ func (b *BackendSampler) wrapWithAuth(rt http.RoundTripper) (http.RoundTripper, 
 
 func (b *BackendSampler) GetHTTPClient() (*http.Client, error) {
 	timeoutForEntireRequest := b.getTimeout()
-	timeoutForPartOfRequest := timeoutForEntireRequest / 5 // this is less so that we can see failures for individual portions of the request
-	tcpDialTimeout := timeoutForPartOfRequest * 2          // we see more tcp i/o timeouts than expected at 1s
-	responseHeaderTimeout := timeoutForPartOfRequest * 2   // we see more timeouts waiting for response headers than expected at 1s
+	timeoutForPartOfRequest := timeoutForEntireRequest / 2 // this is less so that we can see failures for individual portions of the request
 
 	b.initHTTPClient.Do(func() {
 		var httpTransport *http.Transport
@@ -293,26 +291,26 @@ func (b *BackendSampler) GetHTTPClient() (*http.Client, error) {
 		case NewConnectionType:
 			httpTransport = &http.Transport{
 				Dial: (&net.Dialer{
-					Timeout:   tcpDialTimeout,
+					Timeout:   timeoutForPartOfRequest,
 					KeepAlive: -1, // this looks unnecessary to me, but it was set in other code.
 				}).Dial,
 				TLSClientConfig:       b.getTLSConfig(),
 				DisableKeepAlives:     true, // this prevents connections from being reused
 				TLSHandshakeTimeout:   timeoutForPartOfRequest,
 				IdleConnTimeout:       timeoutForPartOfRequest,
-				ResponseHeaderTimeout: responseHeaderTimeout,
+				ResponseHeaderTimeout: timeoutForPartOfRequest,
 				ExpectContinueTimeout: timeoutForPartOfRequest,
 			}
 
 		case ReusedConnectionType:
 			httpTransport = &http.Transport{
 				Dial: (&net.Dialer{
-					Timeout: tcpDialTimeout,
+					Timeout: timeoutForPartOfRequest,
 				}).Dial,
 				TLSClientConfig:       b.getTLSConfig(),
 				TLSHandshakeTimeout:   timeoutForPartOfRequest,
 				IdleConnTimeout:       timeoutForPartOfRequest,
-				ResponseHeaderTimeout: responseHeaderTimeout,
+				ResponseHeaderTimeout: timeoutForPartOfRequest,
 				ExpectContinueTimeout: timeoutForPartOfRequest,
 			}
 
@@ -351,7 +349,7 @@ func (b *BackendSampler) checkConnection(ctx context.Context) error {
 	}
 
 	// this is longer than the http client timeout to avoid tripping, but is here to be sure we finish eventually
-	backstopContextTimeout := b.getTimeout() * 2
+	backstopContextTimeout := b.getTimeout() * 3 / 2 // (1.5)
 	requestContext, requestCancel := context.WithTimeout(ctx, backstopContextTimeout)
 	defer requestCancel()
 	req, err := http.NewRequestWithContext(requestContext, http.MethodGet, url, nil)
@@ -409,7 +407,7 @@ func (b *BackendSampler) RunEndpointMonitoring(ctx context.Context, monitorRecor
 	defer consumerCancel()
 	go func() {
 		<-producerContext.Done()
-		consumptionGrace := b.getTimeout() * 3 // we need to wait longer than backstopContextTimeout to ensure we're finished producing
+		consumptionGrace := b.getTimeout() * 2 // we need to wait longer than backstopContextTimeout to ensure we're finished producing
 		time.Sleep(consumptionGrace)
 		consumerCancel()
 	}()
