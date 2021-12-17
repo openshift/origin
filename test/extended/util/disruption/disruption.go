@@ -295,6 +295,10 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 		if isGoModulePath(reflect.ValueOf(t).Elem().Type().PkgPath(), "k8s.io/kubernetes", "test/e2e") {
 			ns = "e2e-k8s-" + ns
 		}
+		if mayRequireKube, ok := t.(RequiresKubeNamespace); ok && mayRequireKube.RequiresKubeNamespace() {
+			ns = "e2e-k8s-" + ns
+		}
+
 		testFrameworks[t.Name()] = &framework.Framework{
 			BaseName:                 ns,
 			AddonResourceConstraints: make(map[string]framework.ResourceConstraint),

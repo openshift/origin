@@ -99,7 +99,7 @@ func allowedImageRegistryDisruption(f *framework.Framework, totalDuration time.D
 
 // Setup creates a route that exposes the registry to tests.
 func setupImageRegistryFor(routeName string) disruption.SetupFunc {
-	return func(f *framework.Framework) error {
+	return func(f *framework.Framework, _ disruption.BackendSampler) error {
 		ctx := context.Background()
 
 		routeClient, err := routeclient.NewForConfig(f.ClientConfig())

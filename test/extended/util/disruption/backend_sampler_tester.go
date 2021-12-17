@@ -18,9 +18,15 @@ type BackendSampler interface {
 	GetConnectionType() backenddisruption.BackendConnectionType
 	GetDisruptionBackendName() string
 	GetLocator() string
+	SetHost(host string)
 	GetURL() (string, error)
 	RunEndpointMonitoring(ctx context.Context, m backenddisruption.Recorder, eventRecorder events.EventRecorder) error
 	Stop()
+}
+
+type BackendDisruptionUpgradeTest interface {
+	upgrades.Test
+	DisplayName() string
 }
 
 func NewBackendDisruptionTest(testName string, backend BackendSampler) *backendDisruptionTest {
@@ -36,7 +42,7 @@ func (t *backendDisruptionTest) WithAllowedDisruption(allowedDisruptionFn Allowe
 	return t
 }
 
-type SetupFunc func(f *framework.Framework) error
+type SetupFunc func(f *framework.Framework, backendSampler BackendSampler) error
 
 func (t *backendDisruptionTest) WithPreSetup(preSetup SetupFunc) *backendDisruptionTest {
 	t.preSetup = preSetup
@@ -81,7 +87,7 @@ func (t *backendDisruptionTest) DisplayName() string {
 // the backendSampler with the route's host.
 func (t *backendDisruptionTest) Setup(f *framework.Framework) {
 	if t.preSetup != nil {
-		framework.ExpectNoError(t.preSetup(f))
+		framework.ExpectNoError(t.preSetup(f, t.backend))
 	}
 
 	url, err := t.backend.GetURL()

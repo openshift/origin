@@ -21,7 +21,7 @@ import (
 // for each request.
 func NewOAuthRouteAvailableWithNewConnectionsTest() upgrades.Test {
 	return disruption.NewBackendDisruptionTest(
-		"[sig-network-edge] OAuth remains available via cluster backendSampler ingress using new connections",
+		"[sig-network-edge] OAuth remains available via cluster ingress using new connections",
 		backenddisruption.NewRouteBackend(
 			"openshift-authentication",
 			"oauth-openshift",
