@@ -14481,7 +14481,7 @@ objects:
           value: ${NPM_MIRROR}
         from:
           kind: ImageStreamTag
-          name: nodejs:12
+          name: nodejs:${NODEJS_VERSION}
           namespace: ${NAMESPACE}
       type: Source
     triggers:
@@ -14728,6 +14728,21 @@ parameters:
   name: NAME
   required: true
   value: nodejs-postgresql-example
+- description: The OpenShift Namespace where the NodeJS and postgresql ImageStreams reside.
+  displayName: Namespace
+  name: NAMESPACE
+  required: true
+  value: openshift
+- description: Version of NodeJS image to be used (14-ubi8, or latest).
+  displayName: Version of NodeJS Image
+  name: NODEJS_VERSION
+  required: true
+  value: 14-ubi8
+- description: Version of PostgreSQL image to be used (12-el8, or latest).
+  displayName: Version of PostgreSQL Image
+  name: POSTGRESQL_VERSION
+  required: true
+  value: 12-el8
 - description: The exposed hostname that will route to the Node.js service, if left
     blank a value will be defaulted.
   displayName: Application Hostname
@@ -14797,11 +14812,6 @@ parameters:
 - description: The custom NPM mirror URL
   displayName: Custom NPM Mirror URL
   name: NPM_MIRROR
-- description: The OpenShift Namespace where the NodeJS and postgresql ImageStreams reside.
-  displayName: Namespace
-  name: NAMESPACE
-  required: true
-  value: openshift
 - description: Whether to enable verbose logging of Jenkinsfile steps in pipeline
   displayName: Verbose
   name: VERBOSE
@@ -15602,11 +15612,11 @@ parameters:
     name: NAMESPACE
     required: true
     value: openshift
-  - description: Version of NodeJS image to be used (10-ubi8, 12-ubi8, or latest).
+  - description: Version of NodeJS image to be used (14-ubi8, or latest).
     displayName: Version of NodeJS Image
     name: NODEJS_VERSION
     required: true
-    value: 12-ubi8
+    value: 14-ubi8
   - description: Version of PostgreSQL image to be used (12-el8, or latest).
     displayName: Version of PostgreSQL Image
     name: POSTGRESQL_VERSION

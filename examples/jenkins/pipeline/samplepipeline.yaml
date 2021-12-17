@@ -307,11 +307,11 @@ parameters:
     name: NAMESPACE
     required: true
     value: openshift
-  - description: Version of NodeJS image to be used (10-ubi8, 12-ubi8, or latest).
+  - description: Version of NodeJS image to be used (14-ubi8, or latest).
     displayName: Version of NodeJS Image
     name: NODEJS_VERSION
     required: true
-    value: 12-ubi8
+    value: 14-ubi8
   - description: Version of PostgreSQL image to be used (12-el8, or latest).
     displayName: Version of PostgreSQL Image
     name: POSTGRESQL_VERSION
