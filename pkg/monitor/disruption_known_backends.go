@@ -13,34 +13,6 @@ import (
 // we also got stuck on writing the disruption backends.  We need a way to track which disruption checks we have started,
 // so we can properly write out "zero"
 
-var (
-	LocatorKubeAPIServerNewConnection         = backenddisruption.LocateDisruptionCheck("kube-api", backenddisruption.NewConnectionType)
-	LocatorKubeAPIServerReusedConnection      = backenddisruption.LocateDisruptionCheck("kube-api", backenddisruption.ReusedConnectionType)
-	LocatorOpenshiftAPIServerNewConnection    = backenddisruption.LocateDisruptionCheck("openshift-api", backenddisruption.NewConnectionType)
-	LocatorOpenshiftAPIServerReusedConnection = backenddisruption.LocateDisruptionCheck("openshift-api", backenddisruption.ReusedConnectionType)
-	LocatorOAuthAPIServerNewConnection        = backenddisruption.LocateDisruptionCheck("oauth-api", backenddisruption.NewConnectionType)
-	LocatorOAuthAPIServerReusedConnection     = backenddisruption.LocateDisruptionCheck("oauth-api", backenddisruption.ReusedConnectionType)
-)
-
-// BackendDisruptionLocatorsToName maps from the locator name used to track disruption to the name used to recognize it in
-// the job aggregator.
-var BackendDisruptionLocatorsToName = map[string]string{
-	LocatorKubeAPIServerNewConnection:         "kube-api-new-connections",
-	LocatorOpenshiftAPIServerNewConnection:    "openshift-api-new-connections",
-	LocatorOAuthAPIServerNewConnection:        "oauth-api-new-connections",
-	LocatorKubeAPIServerReusedConnection:      "kube-api-reused-connections",
-	LocatorOpenshiftAPIServerReusedConnection: "openshift-api-reused-connections",
-	LocatorOAuthAPIServerReusedConnection:     "oauth-api-reused-connections",
-	backenddisruption.LocateRouteForDisruptionCheck("openshift-authentication", "oauth-openshift", "ingress-to-oauth-server", backenddisruption.NewConnectionType):    "ingress-to-oauth-server-new-connections",
-	backenddisruption.LocateRouteForDisruptionCheck("openshift-authentication", "oauth-openshift", "ingress-to-oauth-server", backenddisruption.ReusedConnectionType): "ingress-to-oauth-server-used-connections",
-	backenddisruption.LocateRouteForDisruptionCheck("openshift-console", "console", "ingress-to-console", backenddisruption.NewConnectionType):                        "ingress-to-console-new-connections",
-	backenddisruption.LocateRouteForDisruptionCheck("openshift-console", "console", "ingress-to-console", backenddisruption.ReusedConnectionType):                     "ingress-to-console-used-connections",
-	backenddisruption.LocateRouteForDisruptionCheck("openshift-image-registry", "test-disruption", "image-registry", backenddisruption.NewConnectionType):             "image-registry-new-connections",
-	backenddisruption.LocateRouteForDisruptionCheck("openshift-image-registry", "test-disruption", "image-registry", backenddisruption.ReusedConnectionType):          "image-registry-reused-connections",
-	backenddisruption.LocateDisruptionCheck("service-loadbalancer-with-pdb", backenddisruption.NewConnectionType):                                                     "service-load-balancer-with-pdb-new-connections",
-	backenddisruption.LocateDisruptionCheck("service-loadbalancer-with-pdb", backenddisruption.ReusedConnectionType):                                                  "service-load-balancer-with-pdb-reused-connections",
-}
-
 func startKubeAPIMonitoringWithNewConnections(ctx context.Context, m *Monitor, clusterConfig *rest.Config) error {
 	backendSampler, err := CreateKubeAPIMonitoringWithNewConnections(clusterConfig)
 	if err != nil {

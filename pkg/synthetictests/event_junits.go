@@ -3,12 +3,9 @@ package synthetictests
 import (
 	"time"
 
-	"k8s.io/client-go/rest"
-
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
-	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/test/ginkgo"
+	"k8s.io/client-go/rest"
 )
 
 // StableSystemEventInvariants are invariants that should hold true when a cluster is in
@@ -24,12 +21,8 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testKubeletToAPIServerGracefulTermination(events)...)
 	tests = append(tests, testPodTransitions(events)...)
 	tests = append(tests, testPodSandboxCreation(events)...)
-	tests = append(tests, testServerAvailability(monitor.LocatorKubeAPIServerNewConnection, events, duration)...)
-	tests = append(tests, testServerAvailability(monitor.LocatorOpenshiftAPIServerNewConnection, events, duration)...)
-	tests = append(tests, testServerAvailability(monitor.LocatorOAuthAPIServerNewConnection, events, duration)...)
-	tests = append(tests, testServerAvailability(monitor.LocatorKubeAPIServerReusedConnection, events, duration)...)
-	tests = append(tests, testServerAvailability(monitor.LocatorOpenshiftAPIServerReusedConnection, events, duration)...)
-	tests = append(tests, testServerAvailability(monitor.LocatorOAuthAPIServerReusedConnection, events, duration)...)
+	tests = append(tests, testAllAPIAvailability(events, duration)...)
+	tests = append(tests, testAllIngressAvailability(events, duration)...)
 	tests = append(tests, testStableSystemOperatorStateTransitions(events)...)
 	tests = append(tests, testDuplicatedEventForStableSystem(events, kubeClientConfig)...)
 

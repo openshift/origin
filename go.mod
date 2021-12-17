@@ -73,6 +73,7 @@ require (
 	k8s.io/kubernetes v1.22.1
 	k8s.io/legacy-cloud-providers v0.22.1
 	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a
+	sigs.k8s.io/kustomize/kyaml v0.11.0
 	sigs.k8s.io/yaml v1.2.0
 )
 

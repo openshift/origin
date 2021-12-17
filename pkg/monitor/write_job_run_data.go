@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 
+	"sigs.k8s.io/kustomize/kyaml/sets"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/test/extended/testdata"
@@ -65,8 +67,10 @@ type BackendDisruptionList struct {
 }
 
 type BackendDisruption struct {
-	// Name ensure self-identification
+	// Name ensure self-identification, it includes the connection type
 	Name string
+	// BackendName is the name of backend.  It is the same across all connection types.
+	BackendName string
 	// ConnectionType is New or Reused
 	ConnectionType     string
 	DisruptedDuration  metav1.Duration
@@ -81,16 +85,28 @@ func writeDisruptionData(filename string, disruption *BackendDisruptionList) err
 	return ioutil.WriteFile(filename, jsonContent, 0644)
 }
 
-func computeDisruptionData(events monitorapi.Intervals) *BackendDisruptionList {
+func computeDisruptionData(eventIntervals monitorapi.Intervals) *BackendDisruptionList {
 	ret := &BackendDisruptionList{
 		BackendDisruptions: map[string]*BackendDisruption{},
 	}
 
-	for locator, name := range BackendDisruptionLocatorsToName {
-		disruptionDuration, disruptionMessages, connectionType := monitorapi.BackendDisruptionSeconds(locator, events)
-		ret.BackendDisruptions[name] = &BackendDisruption{
-			Name:               name,
-			ConnectionType:     connectionType,
+	allBackendLocators := sets.String{}
+	allDisruptionEventsIntervals := eventIntervals.Filter(monitorapi.IsDisruptionEvent)
+	for _, eventInterval := range allDisruptionEventsIntervals {
+		allBackendLocators.Insert(eventInterval.Locator)
+	}
+
+	for _, locator := range allBackendLocators.List() {
+		locatorParts := monitorapi.LocatorParts(locator)
+		disruptionBackend := monitorapi.DisruptionFrom(locatorParts)
+		connectionType := monitorapi.DisruptionConnectionTypeFrom(locatorParts)
+		aggregatedDisruptionName := strings.ToLower(fmt.Sprintf("%s-%s-connections", disruptionBackend, connectionType))
+
+		disruptionDuration, disruptionMessages, connectionType := monitorapi.BackendDisruptionSeconds(locator, allDisruptionEventsIntervals)
+		ret.BackendDisruptions[aggregatedDisruptionName] = &BackendDisruption{
+			Name:               aggregatedDisruptionName,
+			BackendName:        disruptionBackend,
+			ConnectionType:     strings.Title(connectionType),
 			DisruptedDuration:  metav1.Duration{Duration: disruptionDuration},
 			DisruptionMessages: disruptionMessages,
 		}

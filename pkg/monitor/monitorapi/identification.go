@@ -91,3 +91,20 @@ func NamespaceFrom(locatorParts map[string]string) string {
 func AlertFrom(locatorParts map[string]string) string {
 	return locatorParts["alert"]
 }
+
+func DisruptionFrom(locatorParts map[string]string) string {
+	return locatorParts["disruption"]
+}
+
+func DisruptionConnectionTypeFrom(locatorParts map[string]string) string {
+	return locatorParts["connection"]
+}
+
+func IsEventForLocator(locator string) EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		if eventInterval.Locator == locator {
+			return true
+		}
+		return false
+	}
+}
