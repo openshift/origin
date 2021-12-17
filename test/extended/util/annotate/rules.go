@@ -116,6 +116,7 @@ var (
 
 			// These tests are flacky and require internet access
 			// See https://bugzilla.redhat.com/show_bug.cgi?id=2019375
+			// and https://bugzilla.redhat.com/show_bug.cgi?id=2033628
 			`\[sig-builds\]\[Feature:Builds\] build can reference a cluster service with a build being created from new-build should be able to run a build that references a cluster service`,
 			`\[sig-builds\]\[Feature:Builds\] oc new-app should succeed with a --name of 58 characters`,
 			`\[sig-network\] DNS should resolve DNS of partial qualified names for services`,
