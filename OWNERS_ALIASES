@@ -11,3 +11,43 @@ aliases:
   - jottofar
   - vrutkovs
   - wking
+  team-leads:
+  - JAORMX # Infrastructure Security and Compliance
+  - JoelSpeed # Cluster Infrastructure
+  - LalatenduMohanty # Over the Air Updates
+  - Miciah # Network Edge
+  - adambkaplan # Build + Jenkins
+  - ashishkamra # Performance and Latency Sensitive Application Platform
+  - beekhof # Machine Lifecycle
+  - brenton # Technical Release Team
+  - bthurber # Partner Accelerators
+  - c3d # OpenShift Sandboxed Containers
+  - celebdor # Ecosystem Edge
+  - dmage # Image Registry
+  - dulek # Kuryr Networking
+  - hexfusion # etcd
+  - jaypoulz # Multi Arch
+  - jcantrill # Cluster Logging
+  - jmrodri # Operator SDK
+  - joelddiaz # Hive
+  - jparrill # Portfolio Integration
+  - jsafrane # Storage
+  - jwmatthews # App Migration
+  - kevinrizza # Operator Lifecycle Manager
+  - mandre # Shift on Stack
+  - miabbott # CoreOS
+  - pedjak # App Services
+  - petr-muller # Test Platform
+  - romfreiman # Single Node OpenShift
+  - rphillips # Node
+  - s-urbaniak # Authentication
+  - sadasu # Metal Platform
+  - selansen # Windows Containers
+  - simonpasquier # Monitoring - In Cluster
+  - sinnykumari # MCO
+  - soltysh # Workloads
+  - sosiouxme # Automated Release Tooling
+  - staebler # OpenShift Installer
+  - sttts # API Server
+  - trozet # Networking
+  - umohnani8 # Container Engine Tools
