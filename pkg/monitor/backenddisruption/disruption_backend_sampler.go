@@ -13,10 +13,8 @@ import (
 	"sync"
 	"time"
 
-	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/events"
@@ -49,17 +47,7 @@ type BackendSampler struct {
 	// is the `/path` part of the url.  It must start with a slash.
 	path string
 
-	// TODO this block of variables doesn't match with deads2k's long term vision of different initialization feeding the
-	//  simplest possible type.  But he hasn't had time to refactor it yet.
-	// routeCoordinates are used to build the locator and used for late-binding of the host being connected to.
-	routeCoordinates *routeCoordinates
-	// initializeHost is used to ensure we only look up the route once instead of on every request
-	initializeHost sync.Once
-	// host is the https://host:port part of the URL
-	host string
-	// hostErr is the error (if we got one) from initializeHost.  This easier than retrying if we fail and probably
-	// good enough for CI.
-	hostErr error
+	hostGetter HostGetter
 
 	// bearerToken is the token to be used when contacting a server. Authorization : Bearer XXXXXX
 	bearerToken string
@@ -98,23 +86,37 @@ type routeCoordinates struct {
 	name string
 }
 
-// NewSimleBackend constructs a BackendSampler suitable for use against a generic server
+// NewSimpleBackend constructs a BackendSampler suitable for use against a generic server
 func NewSimpleBackend(host, disruptionBackendName, path string, connectionType BackendConnectionType) *BackendSampler {
 	ret := &BackendSampler{
 		connectionType:        connectionType,
 		locator:               LocateDisruptionCheck(disruptionBackendName, connectionType),
 		disruptionBackendName: disruptionBackendName,
 		path:                  path,
-		host:                  host,
+		hostGetter:            NewSimpleHostGetter(host),
+	}
+
+	return ret
+}
+
+// NewBackend constructs a BackendSampler suitable for use against a generic server, with a late binding HostGetter that
+// allows for later mutation
+func NewBackend(hostGetter HostGetter, disruptionBackendName, path string, connectionType BackendConnectionType) *BackendSampler {
+	ret := &BackendSampler{
+		connectionType:        connectionType,
+		locator:               LocateDisruptionCheck(disruptionBackendName, connectionType),
+		disruptionBackendName: disruptionBackendName,
+		path:                  path,
+		hostGetter:            hostGetter,
 	}
 
 	return ret
 }
 
 // NewAPIServerBackend constructs a BackendSampler suitable for use against a kube-like API server
-func NewAPIServerBackend(clusterConfig *rest.Config, disruptionBackendName, path string, connectionType BackendConnectionType) (*BackendSampler, error) {
+func NewAPIServerBackend(clientConfig *rest.Config, disruptionBackendName, path string, connectionType BackendConnectionType) (*BackendSampler, error) {
 
-	kubeTransportConfig, err := clusterConfig.TransportConfig()
+	kubeTransportConfig, err := clientConfig.TransportConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +130,7 @@ func NewAPIServerBackend(clusterConfig *rest.Config, disruptionBackendName, path
 		locator:               LocateDisruptionCheck(disruptionBackendName, connectionType),
 		disruptionBackendName: disruptionBackendName,
 		path:                  path,
-		host:                  clusterConfig.Host,
+		hostGetter:            NewKubeAPIHostGetter(clientConfig),
 		tlsConfig:             tlsConfig,
 		bearerToken:           kubeTransportConfig.BearerToken,
 		bearerTokenFile:       kubeTransportConfig.BearerTokenFile,
@@ -138,23 +140,14 @@ func NewAPIServerBackend(clusterConfig *rest.Config, disruptionBackendName, path
 }
 
 // NewRouteBackend constructs a BackendSampler suitable for use against a routes.route.openshift.io
-func NewRouteBackend(namespace, name, disruptionBackendName, path string, connectionType BackendConnectionType) *BackendSampler {
+func NewRouteBackend(clientConfig *rest.Config, namespace, name, disruptionBackendName, path string, connectionType BackendConnectionType) *BackendSampler {
 	return &BackendSampler{
 		connectionType:        connectionType,
 		locator:               LocateRouteForDisruptionCheck(namespace, name, disruptionBackendName, connectionType),
 		disruptionBackendName: disruptionBackendName,
 		path:                  path,
-		routeCoordinates: &routeCoordinates{
-			namespace: namespace,
-			name:      name,
-		},
+		hostGetter:            NewRouteHostGetter(clientConfig, namespace, name),
 	}
-}
-
-// WithHost sets the "https://host:port" to connect to for the test.  Many times it is implied by the constructor type
-func (b *BackendSampler) WithHost(host string) *BackendSampler {
-	b.host = host
-	return b
 }
 
 // WithBearerTokenAuth sets bearer tokens to use
@@ -198,10 +191,6 @@ func (b *BackendSampler) bodyMatches(body []byte) error {
 	return nil
 }
 
-func (b *BackendSampler) SetHost(host string) {
-	b.host = host
-}
-
 func (b *BackendSampler) GetDisruptionBackendName() string {
 	return b.disruptionBackendName
 }
@@ -222,43 +211,14 @@ func (b *BackendSampler) getTimeout() time.Duration {
 }
 
 func (b *BackendSampler) GetURL() (string, error) {
-	b.initializeHost.Do(func() {
-		if len(b.host) > 0 {
-			return
-		}
-		if b.routeCoordinates == nil {
-			b.hostErr = fmt.Errorf("no route coordinates to lookup host")
-			return
-		}
-		config, err := framework.LoadConfig()
-		if err != nil {
-			b.hostErr = err
-			return
-		}
-		client, err := routeclientset.NewForConfig(config)
-		if err != nil {
-			b.hostErr = err
-			return
-		}
-		route, err := client.RouteV1().Routes(b.routeCoordinates.namespace).Get(context.Background(), b.routeCoordinates.name, metav1.GetOptions{})
-		if err != nil {
-			b.hostErr = err
-			return
-		}
-		for _, ingress := range route.Status.Ingress {
-			if len(ingress.Host) > 0 {
-				b.host = fmt.Sprintf("https://%s", ingress.Host)
-				break
-			}
-		}
-	})
-	if b.hostErr != nil {
-		return "", b.hostErr
+	host, err := b.hostGetter.GetHost()
+	if err != nil {
+		return "", err
 	}
-	if len(b.host) == 0 {
+	if len(host) == 0 {
 		return "", fmt.Errorf("missing URL")
 	}
-	return b.host + b.path, nil
+	return host + b.path, nil
 }
 
 func (b *BackendSampler) getTLSConfig() *tls.Config {

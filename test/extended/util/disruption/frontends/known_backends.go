@@ -3,6 +3,8 @@ package frontends
 import (
 	"context"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"k8s.io/client-go/rest"
@@ -25,7 +27,10 @@ func StartAllIngressMonitoring(ctx context.Context, m monitor.Recorder, clusterC
 }
 
 func createOAuthRouteAvailableWithNewConnections() *backenddisruption.BackendSampler {
+	restConfig, err := monitor.GetMonitorRESTConfig()
+	utilruntime.Must(err)
 	return backenddisruption.NewRouteBackend(
+		restConfig,
 		"openshift-authentication",
 		"oauth-openshift",
 		"ingress-to-oauth-server",
@@ -35,7 +40,10 @@ func createOAuthRouteAvailableWithNewConnections() *backenddisruption.BackendSam
 }
 
 func createOAuthRouteAvailableWithConnectionReuse() *backenddisruption.BackendSampler {
+	restConfig, err := monitor.GetMonitorRESTConfig()
+	utilruntime.Must(err)
 	return backenddisruption.NewRouteBackend(
+		restConfig,
 		"openshift-authentication",
 		"oauth-openshift",
 		"ingress-to-oauth-server",
@@ -45,7 +53,10 @@ func createOAuthRouteAvailableWithConnectionReuse() *backenddisruption.BackendSa
 }
 
 func createConsoleRouteAvailableWithNewConnections() *backenddisruption.BackendSampler {
+	restConfig, err := monitor.GetMonitorRESTConfig()
+	utilruntime.Must(err)
 	return backenddisruption.NewRouteBackend(
+		restConfig,
 		"openshift-console",
 		"console",
 		"ingress-to-console",
@@ -55,7 +66,10 @@ func createConsoleRouteAvailableWithNewConnections() *backenddisruption.BackendS
 }
 
 func createConsoleRouteAvailableWithConnectionReuse() *backenddisruption.BackendSampler {
+	restConfig, err := monitor.GetMonitorRESTConfig()
+	utilruntime.Must(err)
 	return backenddisruption.NewRouteBackend(
+		restConfig,
 		"openshift-console",
 		"console",
 		"ingress-to-console",

@@ -25,21 +25,24 @@ import (
 // serviceLoadBalancerUpgradeTest tests that a service is available before, during, and
 // after a cluster upgrade.
 type serviceLoadBalancerUpgradeTest struct {
-	// filled in by presetup
+	// filled in by pre-setup
 	jig                 *service.TestJig
 	tcpService          *v1.Service
 	unsupportedPlatform bool
+	hostGetter          *backenddisruption.SimpleHostGetter
 
 	backendDisruptionTest disruption.BackendDisruptionUpgradeTest
 }
 
 func NewServiceLoadBalancerWithNewConnectionsTest() upgrades.Test {
-	serviceLBTest := &serviceLoadBalancerUpgradeTest{}
+	serviceLBTest := &serviceLoadBalancerUpgradeTest{
+		hostGetter: backenddisruption.NewSimpleHostGetter(""), // late binding host
+	}
 	serviceLBTest.backendDisruptionTest =
 		disruption.NewBackendDisruptionTest(
 			"[sig-network-edge] Application behind service load balancer with PDB remains available using new connections",
-			backenddisruption.NewSimpleBackend(
-				"", // late binding host
+			backenddisruption.NewBackend(
+				serviceLBTest.hostGetter,
 				"service-load-balancer-with-pdb",
 				"/echo?msg=Hello",
 				backenddisruption.NewConnectionType).
@@ -51,12 +54,14 @@ func NewServiceLoadBalancerWithNewConnectionsTest() upgrades.Test {
 }
 
 func NewServiceLoadBalancerWithReusedConnectionsTest() upgrades.Test {
-	serviceLBTest := &serviceLoadBalancerUpgradeTest{}
+	serviceLBTest := &serviceLoadBalancerUpgradeTest{
+		hostGetter: backenddisruption.NewSimpleHostGetter(""), // late binding host
+	}
 	serviceLBTest.backendDisruptionTest =
 		disruption.NewBackendDisruptionTest(
 			"[sig-network-edge] Application behind service load balancer with PDB remains available using reused connections",
-			backenddisruption.NewSimpleBackend(
-				"", // late binding host
+			backenddisruption.NewBackend(
+				serviceLBTest.hostGetter,
 				"service-load-balancer-with-pdb",
 				"/echo?msg=Hello",
 				backenddisruption.ReusedConnectionType).
@@ -190,7 +195,7 @@ func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framewor
 	// TODO this seems weird to @deads2k, why is status not trustworthy
 	TestReachableHTTPWithMinSuccessCount(tcpIngressIP, svcPort, 30, timeout)
 
-	backendSampler.SetHost(fmt.Sprintf("http://%s", net.JoinHostPort(tcpIngressIP, strconv.Itoa(svcPort))))
+	t.hostGetter.SetHost(fmt.Sprintf("http://%s", net.JoinHostPort(tcpIngressIP, strconv.Itoa(svcPort))))
 
 	t.jig = jig
 	t.tcpService = tcpService
