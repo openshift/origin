@@ -22,7 +22,7 @@ type Options struct {
 func (opt *Options) Run() error {
 	ctx, cancelFn := context.WithCancel(context.Background())
 	defer cancelFn()
-	abortCh := make(chan os.Signal)
+	abortCh := make(chan os.Signal, 2)
 	go func() {
 		<-abortCh
 		fmt.Fprintf(opt.ErrOut, "Interrupted, terminating\n")
