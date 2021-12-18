@@ -115,8 +115,7 @@ func allowedIngressDisruption(f *framework.Framework, totalDuration time.Duratio
 		framework.Logf("Control-plane topology is single-replica - allowing disruption")
 	case network.Status.NetworkType == "OVNKubernetes":
 		framework.Logf("Network type is OVNKubernetes, temporarily allowing disruption due to BZ https://bugzilla.redhat.com/show_bug.cgi?id=1983829")
-	// framework.ProviderIs("gce") removed here in 4.9 due to regression. BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1983758
-	case framework.ProviderIs("azure"), framework.ProviderIs("aws"):
+	case framework.ProviderIs("azure"), framework.ProviderIs("aws"), framework.ProviderIs("gce"):
 		if hasAllFixes {
 			framework.Logf("Cluster contains no versions older than 4.8, tolerating no disruption")
 			toleratedDisruption = 0
