@@ -162,7 +162,7 @@ func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framewor
 		// ensure the pod waits long enough for most LBs to take it out of rotation, which has to be
 		// longer than the LB failed health check duration + 1 cycle
 		rc.Spec.Template.Spec.Containers[0].Lifecycle = &v1.Lifecycle{
-			PreStop: &v1.Handler{
+			PreStop: &v1.LifecycleHandler{
 				Exec: &v1.ExecAction{Command: []string{"sleep", "45"}},
 			},
 		}

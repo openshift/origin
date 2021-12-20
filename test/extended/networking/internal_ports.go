@@ -78,7 +78,7 @@ var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 								},
 								ReadinessProbe: &v1.Probe{
 									InitialDelaySeconds: 10,
-									Handler: v1.Handler{
+									ProbeHandler: v1.ProbeHandler{
 										HTTPGet: &v1.HTTPGetAction{
 											Port: intstr.FromInt(nodeTCPPort),
 										},
