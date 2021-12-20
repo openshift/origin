@@ -18,7 +18,6 @@ type BackendSampler interface {
 	GetConnectionType() backenddisruption.BackendConnectionType
 	GetDisruptionBackendName() string
 	GetLocator() string
-	SetHost(host string)
 	GetURL() (string, error)
 	RunEndpointMonitoring(ctx context.Context, m backenddisruption.Recorder, eventRecorder events.EventRecorder) error
 	Stop()

@@ -32,7 +32,7 @@ func GetMonitorRESTConfig() (*rest.Config, error) {
 
 // Start begins monitoring the cluster referenced by the default kube configuration until
 // context is finished.
-func Start(ctx context.Context, restConfig *rest.Config) (*Monitor, error) {
+func Start(ctx context.Context, restConfig *rest.Config, additionalEventIntervalRecorders []StartEventIntervalRecorderFunc) (*Monitor, error) {
 	m := NewMonitorWithInterval(time.Second)
 	client, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
@@ -43,24 +43,12 @@ func Start(ctx context.Context, restConfig *rest.Config) (*Monitor, error) {
 		return nil, err
 	}
 
-	if err := startKubeAPIMonitoringWithNewConnections(ctx, m, restConfig); err != nil {
-		return nil, err
+	for _, additionalEventIntervalRecorder := range additionalEventIntervalRecorders {
+		if err := additionalEventIntervalRecorder(ctx, m, restConfig); err != nil {
+			return nil, err
+		}
 	}
-	if err := startOpenShiftAPIMonitoringWithNewConnections(ctx, m, restConfig); err != nil {
-		return nil, err
-	}
-	if err := startOAuthAPIMonitoringWithNewConnections(ctx, m, restConfig); err != nil {
-		return nil, err
-	}
-	if err := startKubeAPIMonitoringWithConnectionReuse(ctx, m, restConfig); err != nil {
-		return nil, err
-	}
-	if err := startOpenShiftAPIMonitoringWithConnectionReuse(ctx, m, restConfig); err != nil {
-		return nil, err
-	}
-	if err := startOAuthAPIMonitoringWithConnectionReuse(ctx, m, restConfig); err != nil {
-		return nil, err
-	}
+
 	startPodMonitoring(ctx, m, client)
 	startNodeMonitoring(ctx, m, client)
 	startEventMonitoring(ctx, m, client)

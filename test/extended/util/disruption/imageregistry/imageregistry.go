@@ -5,24 +5,28 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/backenddisruption"
-
 	apiconfigv1 "github.com/openshift/api/config/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
+	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 )
 
 func NewImageRegistryAvailableWithNewConnectionsTest() upgrades.Test {
+	restConfig, err := monitor.GetMonitorRESTConfig()
+	utilruntime.Must(err)
 	return disruption.NewBackendDisruptionTest(
 		"[sig-imageregistry] Image registry remains available using new connections",
 		backenddisruption.NewRouteBackend(
+			restConfig,
 			"openshift-image-registry",
 			"test-disruption-new",
 			"image-registry",
@@ -36,9 +40,12 @@ func NewImageRegistryAvailableWithNewConnectionsTest() upgrades.Test {
 }
 
 func NewImageRegistryAvailableWithReusedConnectionsTest() upgrades.Test {
+	restConfig, err := monitor.GetMonitorRESTConfig()
+	utilruntime.Must(err)
 	return disruption.NewBackendDisruptionTest(
 		"[sig-imageregistry] Image registry remains available using reused connections",
 		backenddisruption.NewRouteBackend(
+			restConfig,
 			"openshift-image-registry",
 			"test-disruption-reused",
 			"image-registry",

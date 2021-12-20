@@ -21,7 +21,7 @@ import (
 func NewKubeAvailableWithNewConnectionsTest() upgrades.Test {
 	restConfig, err := monitor.GetMonitorRESTConfig()
 	utilruntime.Must(err)
-	backendSampler, err := monitor.CreateKubeAPIMonitoringWithNewConnections(restConfig)
+	backendSampler, err := createKubeAPIMonitoringWithNewConnections(restConfig)
 	utilruntime.Must(err)
 	return disruption.NewBackendDisruptionTest(
 		"[sig-api-machinery] Kubernetes APIs remain available for new connections",
@@ -33,7 +33,7 @@ func NewKubeAvailableWithNewConnectionsTest() upgrades.Test {
 func NewOpenShiftAvailableNewConnectionsTest() upgrades.Test {
 	restConfig, err := monitor.GetMonitorRESTConfig()
 	utilruntime.Must(err)
-	backendSampler, err := monitor.CreateOpenShiftAPIMonitoringWithNewConnections(restConfig)
+	backendSampler, err := createOpenShiftAPIMonitoringWithNewConnections(restConfig)
 	utilruntime.Must(err)
 	return disruption.NewBackendDisruptionTest(
 		"[sig-api-machinery] OpenShift APIs remain available for new connections",
@@ -45,7 +45,7 @@ func NewOpenShiftAvailableNewConnectionsTest() upgrades.Test {
 func NewOAuthAvailableNewConnectionsTest() upgrades.Test {
 	restConfig, err := monitor.GetMonitorRESTConfig()
 	utilruntime.Must(err)
-	backendSampler, err := monitor.CreateOAuthAPIMonitoringWithNewConnections(restConfig)
+	backendSampler, err := createOAuthAPIMonitoringWithNewConnections(restConfig)
 	utilruntime.Must(err)
 	return disruption.NewBackendDisruptionTest(
 		"[sig-api-machinery] OAuth APIs remain available for new connections",
@@ -57,7 +57,7 @@ func NewOAuthAvailableNewConnectionsTest() upgrades.Test {
 func NewKubeAvailableWithConnectionReuseTest() upgrades.Test {
 	restConfig, err := monitor.GetMonitorRESTConfig()
 	utilruntime.Must(err)
-	backendSampler, err := monitor.CreateKubeAPIMonitoringWithConnectionReuse(restConfig)
+	backendSampler, err := createKubeAPIMonitoringWithConnectionReuse(restConfig)
 	utilruntime.Must(err)
 	return disruption.NewBackendDisruptionTest(
 		"[sig-api-machinery] Kubernetes APIs remain available with reused connections",
@@ -69,7 +69,7 @@ func NewKubeAvailableWithConnectionReuseTest() upgrades.Test {
 func NewOpenShiftAvailableWithConnectionReuseTest() upgrades.Test {
 	restConfig, err := monitor.GetMonitorRESTConfig()
 	utilruntime.Must(err)
-	backendSampler, err := monitor.CreateOpenShiftAPIMonitoringWithConnectionReuse(restConfig)
+	backendSampler, err := createOpenShiftAPIMonitoringWithConnectionReuse(restConfig)
 	utilruntime.Must(err)
 	return disruption.NewBackendDisruptionTest(
 		"[sig-api-machinery] OpenShift APIs remain available with reused connections",
@@ -81,7 +81,7 @@ func NewOpenShiftAvailableWithConnectionReuseTest() upgrades.Test {
 func NewOAuthAvailableWithConnectionReuseTest() upgrades.Test {
 	restConfig, err := monitor.GetMonitorRESTConfig()
 	utilruntime.Must(err)
-	backendSampler, err := monitor.CreateOAuthAPIMonitoringWithConnectionReuse(restConfig)
+	backendSampler, err := createOAuthAPIMonitoringWithConnectionReuse(restConfig)
 	utilruntime.Must(err)
 	return disruption.NewBackendDisruptionTest(
 		"[sig-api-machinery] OAuth APIs remain available with reused connections",
