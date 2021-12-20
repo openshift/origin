@@ -2,11 +2,8 @@ package frontends
 
 import (
 	"context"
-	"time"
 
-	"github.com/blang/semver"
 	apiconfigv1 "github.com/openshift/api/config/v1"
-	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,7 +18,7 @@ func NewOAuthRouteAvailableWithNewConnectionsTest() upgrades.Test {
 	return disruption.NewBackendDisruptionTest(
 		"[sig-network-edge] OAuth remains available via cluster ingress using new connections",
 		createOAuthRouteAvailableWithNewConnections(),
-	).WithAllowedDisruption(allowedIngressDisruption)
+	)
 }
 
 // NewOAuthRouteAvailableWithConnectionReuseTest tests that the oauth route
@@ -31,7 +28,7 @@ func NewOAuthRouteAvailableWithConnectionReuseTest() upgrades.Test {
 	return disruption.NewBackendDisruptionTest(
 		"[sig-network-edge] OAuth remains available via cluster ingress using reused connections",
 		createOAuthRouteAvailableWithConnectionReuse(),
-	).WithAllowedDisruption(allowedIngressDisruption)
+	)
 }
 
 // NewConsoleRouteAvailableWithNewConnectionsTest tests that the console route
@@ -41,7 +38,7 @@ func NewConsoleRouteAvailableWithNewConnectionsTest() upgrades.Test {
 	return disruption.NewBackendDisruptionTest(
 		"[sig-network-edge] Console remains available via cluster ingress using new connections",
 		createConsoleRouteAvailableWithNewConnections(),
-	).WithAllowedDisruption(allowedIngressDisruption)
+	)
 }
 
 // NewConsoleRouteAvailableWithConnectionReuseTest tests that the console route
@@ -51,7 +48,7 @@ func NewConsoleRouteAvailableWithConnectionReuseTest() upgrades.Test {
 	return disruption.NewBackendDisruptionTest(
 		"[sig-network-edge] Console remains available via cluster ingress using reused connections",
 		createConsoleRouteAvailableWithConnectionReuse(),
-	).WithAllowedDisruption(allowedIngressDisruption)
+	)
 }
 
 func getTopologies(f *framework.Framework) (controlPlaneTopology, infraTopology apiconfigv1.TopologyMode) {
@@ -62,47 +59,4 @@ func getTopologies(f *framework.Framework) (controlPlaneTopology, infraTopology 
 	framework.ExpectNoError(err, "unable to determine cluster topology")
 
 	return infra.Status.ControlPlaneTopology, infra.Status.InfrastructureTopology
-}
-
-func allowedIngressDisruption(f *framework.Framework, totalDuration time.Duration) (*time.Duration, error) {
-	// Fetch network type for considering whether we allow disruption. For OVN, we currently have to allow disruption
-	// as those tests are failing: BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1983829
-	c, err := configv1client.NewForConfig(f.ClientConfig())
-	if err != nil {
-		return nil, err
-	}
-	network, err := c.ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	// starting from 4.8, enforce the requirement that frontends remains available
-	hasAllFixes, err := util.AllClusterVersionsAreGTE(semver.Version{Major: 4, Minor: 8}, f.ClientConfig())
-	if err != nil {
-		framework.Logf("Cannot require full cluster ingress backendSampler availability; some versions could not be checked: %v", err)
-	}
-
-	toleratedDisruption := 0.20
-	switch controlPlaneTopology, _ := getTopologies(f); {
-	case controlPlaneTopology == apiconfigv1.SingleReplicaTopologyMode:
-		// we cannot avoid API downtime during upgrades on single-node control plane topologies (we observe around ~10% disruption)
-		framework.Logf("Control-plane topology is single-replica - allowing disruption")
-	case network.Status.NetworkType == "OVNKubernetes":
-		framework.Logf("Network type is OVNKubernetes, temporarily allowing disruption due to BZ https://bugzilla.redhat.com/show_bug.cgi?id=1983829")
-	case framework.ProviderIs("azure"), framework.ProviderIs("aws"), framework.ProviderIs("gce"):
-		if hasAllFixes {
-			framework.Logf("Cluster contains no versions older than 4.8, tolerating no disruption")
-			toleratedDisruption = 0
-		}
-	}
-
-	allowedDisruptionNanoseconds := int64(float64(totalDuration.Nanoseconds()) * toleratedDisruption)
-	allowedDisruption := time.Duration(allowedDisruptionNanoseconds)
-
-	// TODO this should be removed early in 1/2022, but the new sampler is more responsive than the old so we cannot be tight and merge
-	if allowedDisruption < 15*time.Second {
-		allowedDisruption = 15 * time.Second
-	}
-
-	return &allowedDisruption, nil
 }
