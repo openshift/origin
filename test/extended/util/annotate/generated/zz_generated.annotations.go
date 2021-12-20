@@ -899,267 +899,267 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-autoscaling] [HPA] Horizontal pod autoscaling (scale resource: Custom Metrics from Stackdriver) should scale up with two metrics of type Pod from Stackdriver [Feature:CustomMetricsAutoscaling]": "should scale up with two metrics of type Pod from Stackdriver [Feature:CustomMetricsAutoscaling] [Skipped:gce] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-builds][Feature:Builds] Multi-stage image builds should succeed": "should succeed [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] Multi-stage image builds should succeed": "should succeed [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] Optimized image builds  should succeed": "should succeed [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] Optimized image builds  should succeed": "should succeed [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] build can reference a cluster service  with a build being created from new-build should be able to run a build that references a cluster service": "should be able to run a build that references a cluster service [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] build can reference a cluster service  with a build being created from new-build should be able to run a build that references a cluster service": "should be able to run a build that references a cluster service [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] build have source revision metadata  started build should contain source revision information": "should contain source revision information [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] build have source revision metadata  started build should contain source revision information": "should contain source revision information [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] build with empty source  started build should build even with an empty source in build config": "should build even with an empty source in build config [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] build with empty source  started build should build even with an empty source in build config": "should build even with an empty source in build config [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] build without output image  building from templates should create an image from a S2i template without an output image reference defined": "should create an image from a S2i template without an output image reference defined [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] build without output image  building from templates should create an image from a S2i template without an output image reference defined": "should create an image from a S2i template without an output image reference defined [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] build without output image  building from templates should create an image from a docker template without an output image reference defined": "should create an image from a docker template without an output image reference defined [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] build without output image  building from templates should create an image from a docker template without an output image reference defined": "should create an image from a docker template without an output image reference defined [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] buildconfig secret injector  should inject secrets to the appropriate buildconfigs": "should inject secrets to the appropriate buildconfigs [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] buildconfig secret injector  should inject secrets to the appropriate buildconfigs": "should inject secrets to the appropriate buildconfigs [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds] clone repository using git:// protocol  should clone using git:// if no proxy is configured": "should clone using git:// if no proxy is configured [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] clone repository using git:// protocol  should clone using git:// if no proxy is configured": "should clone using git:// if no proxy is configured [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] custom build with buildah  being created from new-build should complete build with custom builder image": "should complete build with custom builder image [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] custom build with buildah  being created from new-build should complete build with custom builder image": "should complete build with custom builder image [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] imagechangetriggers  imagechangetriggers should trigger builds of all types": "imagechangetriggers should trigger builds of all types [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] imagechangetriggers  imagechangetriggers should trigger builds of all types": "imagechangetriggers should trigger builds of all types [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] oc new-app  should fail with a --name longer than 58 characters": "should fail with a --name longer than 58 characters [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] oc new-app  should fail with a --name longer than 58 characters": "should fail with a --name longer than 58 characters [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] oc new-app  should succeed with a --name of 58 characters": "should succeed with a --name of 58 characters [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] oc new-app  should succeed with a --name of 58 characters": "should succeed with a --name of 58 characters [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] oc new-app  should succeed with an imagestream": "should succeed with an imagestream [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] oc new-app  should succeed with an imagestream": "should succeed with an imagestream [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] prune builds based on settings in the buildconfig  buildconfigs should have a default history limit set when created via the group api": "buildconfigs should have a default history limit set when created via the group api [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] prune builds based on settings in the buildconfig  buildconfigs should have a default history limit set when created via the group api": "buildconfigs should have a default history limit set when created via the group api [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] prune builds based on settings in the buildconfig  should prune builds after a buildConfig change": "should prune builds after a buildConfig change [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] prune builds based on settings in the buildconfig  should prune builds after a buildConfig change": "should prune builds after a buildConfig change [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] prune builds based on settings in the buildconfig  should prune canceled builds based on the failedBuildsHistoryLimit setting": "should prune canceled builds based on the failedBuildsHistoryLimit setting [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] prune builds based on settings in the buildconfig  should prune canceled builds based on the failedBuildsHistoryLimit setting": "should prune canceled builds based on the failedBuildsHistoryLimit setting [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] prune builds based on settings in the buildconfig  should prune completed builds based on the successfulBuildsHistoryLimit setting": "should prune completed builds based on the successfulBuildsHistoryLimit setting [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] prune builds based on settings in the buildconfig  should prune completed builds based on the successfulBuildsHistoryLimit setting": "should prune completed builds based on the successfulBuildsHistoryLimit setting [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] prune builds based on settings in the buildconfig  should prune errored builds based on the failedBuildsHistoryLimit setting": "should prune errored builds based on the failedBuildsHistoryLimit setting [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] prune builds based on settings in the buildconfig  should prune errored builds based on the failedBuildsHistoryLimit setting": "should prune errored builds based on the failedBuildsHistoryLimit setting [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] prune builds based on settings in the buildconfig  should prune failed builds based on the failedBuildsHistoryLimit setting": "should prune failed builds based on the failedBuildsHistoryLimit setting [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] prune builds based on settings in the buildconfig  should prune failed builds based on the failedBuildsHistoryLimit setting": "should prune failed builds based on the failedBuildsHistoryLimit setting [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] remove all builds when build configuration is removed  oc delete buildconfig should start builds and delete the buildconfig": "should start builds and delete the buildconfig [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] remove all builds when build configuration is removed  oc delete buildconfig should start builds and delete the buildconfig": "should start builds and delete the buildconfig [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds] result image should have proper labels set  Docker build from a template should create a image from \"test-docker-build.json\" template with proper Docker labels": "should create a image from \"test-docker-build.json\" template with proper Docker labels [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] result image should have proper labels set  Docker build from a template should create a image from \"test-docker-build.json\" template with proper Docker labels": "should create a image from \"test-docker-build.json\" template with proper Docker labels [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] result image should have proper labels set  S2I build from a template should create a image from \"test-s2i-build.json\" template with proper Docker labels": "should create a image from \"test-s2i-build.json\" template with proper Docker labels [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] result image should have proper labels set  S2I build from a template should create a image from \"test-s2i-build.json\" template with proper Docker labels": "should create a image from \"test-s2i-build.json\" template with proper Docker labels [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] s2i build with a quota  Building from a template should create an s2i build with a quota and run it": "should create an s2i build with a quota and run it [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] s2i build with a quota  Building from a template should create an s2i build with a quota and run it": "should create an s2i build with a quota and run it [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] s2i build with a root user image should create a root build and fail without a privileged SCC": "should create a root build and fail without a privileged SCC [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] s2i build with a root user image should create a root build and fail without a privileged SCC": "should create a root build and fail without a privileged SCC [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds] s2i build with a root user image should create a root build and pass with a privileged SCC": "should create a root build and pass with a privileged SCC [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] s2i build with a root user image should create a root build and pass with a privileged SCC": "should create a root build and pass with a privileged SCC [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] verify /run filesystem contents  are writeable using a simple Docker Strategy Build": "using a simple Docker Strategy Build [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] verify /run filesystem contents  are writeable using a simple Docker Strategy Build": "using a simple Docker Strategy Build [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds] verify /run filesystem contents  do not have unexpected content using a simple Docker Strategy Build": "using a simple Docker Strategy Build [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] verify /run filesystem contents  do not have unexpected content using a simple Docker Strategy Build": "using a simple Docker Strategy Build [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config no ocm rollout Apply default proxy configuration to docker build pod through env vars": "Apply default proxy configuration to docker build pod through env vars",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config no ocm rollout Apply default proxy configuration to docker build pod through env vars": "Apply default proxy configuration to docker build pod through env vars [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config no ocm rollout Apply default proxy configuration to source build pod through env vars": "Apply default proxy configuration to source build pod through env vars",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config no ocm rollout Apply default proxy configuration to source build pod through env vars": "Apply default proxy configuration to source build pod through env vars [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config no ocm rollout Apply git proxy configuration to build pod": "Apply git proxy configuration to build pod",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config no ocm rollout Apply git proxy configuration to build pod": "Apply git proxy configuration to build pod [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply default image label configuration to build pod": "Apply default image label configuration to build pod",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply default image label configuration to build pod": "Apply default image label configuration to build pod [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply env configuration to build pod": "Apply env configuration to build pod",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply env configuration to build pod": "Apply env configuration to build pod [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply node selector configuration to build pod": "Apply node selector configuration to build pod",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply node selector configuration to build pod": "Apply node selector configuration to build pod [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply override image label configuration to build pod": "Apply override image label configuration to build pod",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply override image label configuration to build pod": "Apply override image label configuration to build pod [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply resource configuration to build pod": "Apply resource configuration to build pod",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply resource configuration to build pod": "Apply resource configuration to build pod [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply toleration override configuration to build pod": "Apply toleration override configuration to build pod",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  build config with ocm rollout Apply toleration override configuration to build pod": "Apply toleration override configuration to build pod [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  registries config context should allow registries to be blacklisted": "should allow registries to be blacklisted",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  registries config context should allow registries to be blacklisted": "should allow registries to be blacklisted [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  registries config context should allow registries to be whitelisted": "should allow registries to be whitelisted",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  registries config context should allow registries to be whitelisted": "should allow registries to be whitelisted [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  registries config context should default registry search to docker.io for image pulls": "should default registry search to docker.io for image pulls",
+	"[Top Level] [sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration  registries config context should default registry search to docker.io for image pulls": "should default registry search to docker.io for image pulls [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] Capabilities should be dropped for s2i builders  s2i build with a rootable builder should not be able to switch to root with an assemble script": "should not be able to switch to root with an assemble script",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] Capabilities should be dropped for s2i builders  s2i build with a rootable builder should not be able to switch to root with an assemble script": "should not be able to switch to root with an assemble script [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build should be able to start a build from Dockerfile with FROM reference to scratch": "should be able to start a build from Dockerfile with FROM reference to scratch",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build should be able to start a build from Dockerfile with FROM reference to scratch": "should be able to start a build from Dockerfile with FROM reference to scratch [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build should create a image via new-build and infer the origin tag": "should create a image via new-build and infer the origin tag",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build should create a image via new-build and infer the origin tag": "should create a image via new-build and infer the origin tag [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build should create a image via new-build": "should create a image via new-build",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build should create a image via new-build": "should create a image via new-build [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build testing build image with dockerfile contains a file path uses a variable in its name": "testing build image with dockerfile contains a file path uses a variable in its name",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build testing build image with dockerfile contains a file path uses a variable in its name": "testing build image with dockerfile contains a file path uses a variable in its name [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build testing build image with invalid dockerfile content": "testing build image with invalid dockerfile content",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have Dockerfile input  being created from new-build testing build image with invalid dockerfile content": "testing build image with invalid dockerfile content [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  buildconfig with input source image and docker strategy should complete successfully and contain the expected file": "should complete successfully and contain the expected file",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  buildconfig with input source image and docker strategy should complete successfully and contain the expected file": "should complete successfully and contain the expected file [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  buildconfig with input source image and s2i strategy should complete successfully and contain the expected file": "should complete successfully and contain the expected file",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  buildconfig with input source image and s2i strategy should complete successfully and contain the expected file": "should complete successfully and contain the expected file [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  creating a build with an input source image and custom strategy should resolve the imagestream references and secrets": "should resolve the imagestream references and secrets",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  creating a build with an input source image and custom strategy should resolve the imagestream references and secrets": "should resolve the imagestream references and secrets [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  creating a build with an input source image and docker strategy should resolve the imagestream references and secrets": "should resolve the imagestream references and secrets",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  creating a build with an input source image and docker strategy should resolve the imagestream references and secrets": "should resolve the imagestream references and secrets [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  creating a build with an input source image and s2i strategy should resolve the imagestream references and secrets": "should resolve the imagestream references and secrets",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build can have container image source  creating a build with an input source image and s2i strategy should resolve the imagestream references and secrets": "should resolve the imagestream references and secrets [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build controller  RunBuildCompletePodDeleteTest should succeed": "should succeed",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build controller  RunBuildCompletePodDeleteTest should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build controller  RunBuildDeleteTest should succeed": "should succeed",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build controller  RunBuildDeleteTest should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] build controller  RunBuildRunningPodDeleteTest should succeed": "should succeed",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] build controller  RunBuildRunningPodDeleteTest should succeed": "should succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should have deadlines  oc start-build docker-build --wait Docker: should start a build and wait for the build failed and build pod being killed by kubelet": "Docker: should start a build and wait for the build failed and build pod being killed by kubelet",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should have deadlines  oc start-build docker-build --wait Docker: should start a build and wait for the build failed and build pod being killed by kubelet": "Docker: should start a build and wait for the build failed and build pod being killed by kubelet [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should have deadlines  oc start-build source-build --wait Source: should start a build and wait for the build failed and build pod being killed by kubelet": "Source: should start a build and wait for the build failed and build pod being killed by kubelet",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should have deadlines  oc start-build source-build --wait Source: should start a build and wait for the build failed and build pod being killed by kubelet": "Source: should start a build and wait for the build failed and build pod being killed by kubelet [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should support proxies  start build with broken proxy and a no_proxy override should start a docker build and wait for the build to succeed": "should start a docker build and wait for the build to succeed",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should support proxies  start build with broken proxy and a no_proxy override should start a docker build and wait for the build to succeed": "should start a docker build and wait for the build to succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should support proxies  start build with broken proxy and a no_proxy override should start an s2i build and wait for the build to succeed": "should start an s2i build and wait for the build to succeed",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should support proxies  start build with broken proxy and a no_proxy override should start an s2i build and wait for the build to succeed": "should start an s2i build and wait for the build to succeed [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should support proxies  start build with broken proxy should start a build and wait for the build to fail": "should start a build and wait for the build to fail",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should support proxies  start build with broken proxy should start a build and wait for the build to fail": "should start a build and wait for the build to fail [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should support proxies  start build with cluster-wide custom PKI should mount the custom PKI into the build if specified": "should mount the custom PKI into the build if specified",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] builds should support proxies  start build with cluster-wide custom PKI should mount the custom PKI into the build if specified": "should mount the custom PKI into the build if specified [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] builds with a context directory  docker context directory build should docker build an application using a context directory": "should docker build an application using a context directory",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] builds with a context directory  docker context directory build should docker build an application using a context directory": "should docker build an application using a context directory [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] builds with a context directory  s2i context directory build should s2i build an application using a context directory": "should s2i build an application using a context directory",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] builds with a context directory  s2i context directory build should s2i build an application using a context directory": "should s2i build an application using a context directory [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] can use build secrets  build with secrets and configMaps should contain secrets during the docker strategy build": "should contain secrets during the docker strategy build",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] can use build secrets  build with secrets and configMaps should contain secrets during the docker strategy build": "should contain secrets during the docker strategy build [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] can use build secrets  build with secrets and configMaps should contain secrets during the source strategy build": "should contain secrets during the source strategy build",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] can use build secrets  build with secrets and configMaps should contain secrets during the source strategy build": "should contain secrets during the source strategy build [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] can use private repositories as build input  build using an HTTP token should be able to clone source code via an HTTP token": "should be able to clone source code via an HTTP token",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] can use private repositories as build input  build using an HTTP token should be able to clone source code via an HTTP token": "should be able to clone source code via an HTTP token [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] can use private repositories as build input  build using an ssh private key should be able to clone source code via ssh using SCP-style URIs": "should be able to clone source code via ssh using SCP-style URIs",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] can use private repositories as build input  build using an ssh private key should be able to clone source code via ssh using SCP-style URIs": "should be able to clone source code via ssh using SCP-style URIs [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] can use private repositories as build input  build using an ssh private key should be able to clone source code via ssh": "should be able to clone source code via ssh",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] can use private repositories as build input  build using an ssh private key should be able to clone source code via ssh": "should be able to clone source code via ssh [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status  Docker build started with log level >5 should save the image digest when finished": "should save the image digest when finished",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status  Docker build started with log level >5 should save the image digest when finished": "should save the image digest when finished [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status  Docker build started with normal log level should save the image digest when finished": "should save the image digest when finished",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status  Docker build started with normal log level should save the image digest when finished": "should save the image digest when finished [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status  S2I build started with log level >5 should save the image digest when finished": "should save the image digest when finished",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status  S2I build started with log level >5 should save the image digest when finished": "should save the image digest when finished [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status  S2I build started with normal log level should save the image digest when finished": "should save the image digest when finished",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status  S2I build started with normal log level should save the image digest when finished": "should save the image digest when finished [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] incremental s2i build  Building from a template should create a build from \"incremental-auth-build.json\" template and run it": "should create a build from \"incremental-auth-build.json\" template and run it",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] incremental s2i build  Building from a template should create a build from \"incremental-auth-build.json\" template and run it": "should create a build from \"incremental-auth-build.json\" template and run it [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] s2i build with environment file in sources  Building from a template should create a image from \"test-env-build.json\" template and run it in a pod": "should create a image from \"test-env-build.json\" template and run it in a pod",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] s2i build with environment file in sources  Building from a template should create a image from \"test-env-build.json\" template and run it in a pod": "should create a image from \"test-env-build.json\" template and run it in a pod [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context Setting build-args on Docker builds Should accept build args that are specified in the Dockerfile": "Should accept build args that are specified in the Dockerfile",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context Setting build-args on Docker builds Should accept build args that are specified in the Dockerfile": "Should accept build args that are specified in the Dockerfile [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context Setting build-args on Docker builds Should complete with a warning on non-existent build-arg": "Should complete with a warning on non-existent build-arg",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context Setting build-args on Docker builds Should complete with a warning on non-existent build-arg": "Should complete with a warning on non-existent build-arg [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context Setting build-args on Docker builds Should copy build args from BuildConfig to Build": "Should copy build args from BuildConfig to Build",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context Setting build-args on Docker builds Should copy build args from BuildConfig to Build": "Should copy build args from BuildConfig to Build [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context Trigger builds with branch refs matching directories on master branch Should checkout the config branch, not config directory": "Should checkout the config branch, not config directory",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context Trigger builds with branch refs matching directories on master branch Should checkout the config branch, not config directory": "Should checkout the config branch, not config directory [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds shoud accept --from-archive with https URL as an input": "shoud accept --from-archive with https URL as an input",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds shoud accept --from-archive with https URL as an input": "shoud accept --from-archive with https URL as an input [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds shoud accept --from-file with https URL as an input": "shoud accept --from-file with https URL as an input",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds shoud accept --from-file with https URL as an input": "shoud accept --from-file with https URL as an input [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should accept --from-dir as input": "should accept --from-dir as input",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should accept --from-dir as input": "should accept --from-dir as input [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should accept --from-file as input": "should accept --from-file as input",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should accept --from-file as input": "should accept --from-file as input [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should accept --from-repo as input": "should accept --from-repo as input",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should accept --from-repo as input": "should accept --from-repo as input [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should accept --from-repo with --commit as input": "should accept --from-repo with --commit as input",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should accept --from-repo with --commit as input": "should accept --from-repo with --commit as input [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should reject binary build requests without a --from-xxxx value": "should reject binary build requests without a --from-xxxx value",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context binary builds should reject binary build requests without a --from-xxxx value": "should reject binary build requests without a --from-xxxx value [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context cancel a binary build that doesn't start running in 5 minutes should start a build and wait for the build to be cancelled": "should start a build and wait for the build to be cancelled",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context cancel a binary build that doesn't start running in 5 minutes should start a build and wait for the build to be cancelled": "should start a build and wait for the build to be cancelled [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context cancel a build started by oc start-build --wait should start a build and wait for the build to cancel": "should start a build and wait for the build to cancel",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context cancel a build started by oc start-build --wait should start a build and wait for the build to cancel": "should start a build and wait for the build to cancel [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context oc start-build --wait should start a build and wait for the build to complete": "should start a build and wait for the build to complete",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context oc start-build --wait should start a build and wait for the build to complete": "should start a build and wait for the build to complete [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context oc start-build --wait should start a build and wait for the build to fail": "should start a build and wait for the build to fail",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context oc start-build --wait should start a build and wait for the build to fail": "should start a build and wait for the build to fail [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context oc start-build with pr ref should start a build from a PR ref, wait for the build to complete, and confirm the right level was used": "should start a build from a PR ref, wait for the build to complete, and confirm the right level was used",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context oc start-build with pr ref should start a build from a PR ref, wait for the build to complete, and confirm the right level was used": "should start a build from a PR ref, wait for the build to complete, and confirm the right level was used [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context override environment BUILD_LOGLEVEL in buildconfig can be overridden by build-loglevel": "BUILD_LOGLEVEL in buildconfig can be overridden by build-loglevel",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context override environment BUILD_LOGLEVEL in buildconfig can be overridden by build-loglevel": "BUILD_LOGLEVEL in buildconfig can be overridden by build-loglevel [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context override environment BUILD_LOGLEVEL in buildconfig should create verbose output": "BUILD_LOGLEVEL in buildconfig should create verbose output",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context override environment BUILD_LOGLEVEL in buildconfig should create verbose output": "BUILD_LOGLEVEL in buildconfig should create verbose output [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context override environment should accept environment variables": "should accept environment variables",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context override environment should accept environment variables": "should accept environment variables [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context s2i build maintaining symlinks should s2i build image and maintain symlinks": "should s2i build image and maintain symlinks",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context s2i build maintaining symlinks should s2i build image and maintain symlinks": "should s2i build image and maintain symlinks [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context start a build via a webhook should be able to start builds via the webhook with valid secrets and fail with invalid secrets": "should be able to start builds via the webhook with valid secrets and fail with invalid secrets",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] starting a build using CLI  start-build test context start a build via a webhook should be able to start builds via the webhook with valid secrets and fail with invalid secrets": "should be able to start builds via the webhook with valid secrets and fail with invalid secrets [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] testing build configuration hooks  testing postCommit hook should run docker postCommit hooks": "should run docker postCommit hooks",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] testing build configuration hooks  testing postCommit hook should run docker postCommit hooks": "should run docker postCommit hooks [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] testing build configuration hooks  testing postCommit hook should run s2i postCommit hooks": "should run s2i postCommit hooks",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] testing build configuration hooks  testing postCommit hook should run s2i postCommit hooks": "should run s2i postCommit hooks [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status Docker fetch image content failure should contain the Docker build fetch image content reason and message": "should contain the Docker build fetch image content reason and message",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status Docker fetch image content failure should contain the Docker build fetch image content reason and message": "should contain the Docker build fetch image content reason and message [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status Docker fetch source failure should contain the Docker build fetch source failure reason and message": "should contain the Docker build fetch source failure reason and message",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status Docker fetch source failure should contain the Docker build fetch source failure reason and message": "should contain the Docker build fetch source failure reason and message [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status OutOfMemoryKilled should contain OutOfMemoryKilled failure reason and message": "should contain OutOfMemoryKilled failure reason and message",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status OutOfMemoryKilled should contain OutOfMemoryKilled failure reason and message": "should contain OutOfMemoryKilled failure reason and message [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status S2I bad context dir failure should contain the S2I bad context dir failure reason and message": "should contain the S2I bad context dir failure reason and message",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status S2I bad context dir failure should contain the S2I bad context dir failure reason and message": "should contain the S2I bad context dir failure reason and message [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status S2I fetch source failure should contain the S2I fetch source failure reason and message": "should contain the S2I fetch source failure reason and message",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status S2I fetch source failure should contain the S2I fetch source failure reason and message": "should contain the S2I fetch source failure reason and message [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status failed assemble container should contain the failure reason related to an assemble script failing in s2i": "should contain the failure reason related to an assemble script failing in s2i",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status failed assemble container should contain the failure reason related to an assemble script failing in s2i": "should contain the failure reason related to an assemble script failing in s2i [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status failed https proxy invalid url should contain the generic failure reason and message": "should contain the generic failure reason and message",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status failed https proxy invalid url should contain the generic failure reason and message": "should contain the generic failure reason and message [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status fetch builder image failure should contain the fetch builder image failure reason and message": "should contain the fetch builder image failure reason and message",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status fetch builder image failure should contain the fetch builder image failure reason and message": "should contain the fetch builder image failure reason and message [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status postcommit hook failure should contain the post commit hook failure reason and message": "should contain the post commit hook failure reason and message",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status postcommit hook failure should contain the post commit hook failure reason and message": "should contain the post commit hook failure reason and message [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status push image to registry failure should contain the image push to registry failure reason and message": "should contain the image push to registry failure reason and message",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] update failure status  Build status push image to registry failure should contain the image push to registry failure reason and message": "should contain the image push to registry failure reason and message [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Parallel build run policy runs the builds in parallel": "runs the builds in parallel",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Parallel build run policy runs the builds in parallel": "runs the builds in parallel [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Serial build run policy handling cancellation starts the next build immediately after one is canceled": "starts the next build immediately after one is canceled",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Serial build run policy handling cancellation starts the next build immediately after one is canceled": "starts the next build immediately after one is canceled [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Serial build run policy handling deletion starts the next build immediately after running one is deleted": "starts the next build immediately after running one is deleted",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Serial build run policy handling deletion starts the next build immediately after running one is deleted": "starts the next build immediately after running one is deleted [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Serial build run policy handling failure starts the next build immediately after one fails": "starts the next build immediately after one fails",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Serial build run policy handling failure starts the next build immediately after one fails": "starts the next build immediately after one fails [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Serial build run policy runs the builds in serial order": "runs the builds in serial order",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with Serial build run policy runs the builds in serial order": "runs the builds in serial order [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with SerialLatestOnly build run policy runs the builds in serial order but cancel previous builds": "runs the builds in serial order but cancel previous builds",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] using build configuration runPolicy  build configuration with SerialLatestOnly build run policy runs the builds in serial order but cancel previous builds": "runs the builds in serial order but cancel previous builds [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] using pull secrets in a build  start-build test context binary builds should be able to run a build that is implicitly pulling from the internal registry": "should be able to run a build that is implicitly pulling from the internal registry",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] using pull secrets in a build  start-build test context binary builds should be able to run a build that is implicitly pulling from the internal registry": "should be able to run a build that is implicitly pulling from the internal registry [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] using pull secrets in a build  start-build test context pulling from an external authenticated registry should be able to use a pull secret in a build": "should be able to use a pull secret in a build",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] using pull secrets in a build  start-build test context pulling from an external authenticated registry should be able to use a pull secret in a build": "should be able to use a pull secret in a build [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][Slow] using pull secrets in a build  start-build test context pulling from an external authenticated registry should be able to use a pull secret linked to the builder service account": "should be able to use a pull secret linked to the builder service account",
+	"[Top Level] [sig-builds][Feature:Builds][Slow] using pull secrets in a build  start-build test context pulling from an external authenticated registry should be able to use a pull secret linked to the builder service account": "should be able to use a pull secret linked to the builder service account [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][pullsearch] docker build where the registry is not specified  Building from a Dockerfile whose FROM image ref does not specify the image registry should create a docker build that has buildah search from our predefined list of image registries and succeed": "should create a docker build that has buildah search from our predefined list of image registries and succeed [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds][pullsearch] docker build where the registry is not specified  Building from a Dockerfile whose FROM image ref does not specify the image registry should create a docker build that has buildah search from our predefined list of image registries and succeed": "should create a docker build that has buildah search from our predefined list of image registries and succeed [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds][pullsecret] docker build using a pull secret  Building from a template should create a docker build that pulls using a secret run it": "should create a docker build that pulls using a secret run it [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds][pullsecret] docker build using a pull secret  Building from a template should create a docker build that pulls using a secret run it": "should create a docker build that pulls using a secret run it [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slow] openshift pipeline build  Sync plugin tests using the ephemeral template": "using the ephemeral template",
+	"[Top Level] [sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slow] openshift pipeline build  Sync plugin tests using the ephemeral template": "using the ephemeral template [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slow] openshift pipeline build  jenkins-client-plugin tests using the ephemeral template": "using the ephemeral template",
+	"[Top Level] [sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slow] openshift pipeline build  jenkins-client-plugin tests using the ephemeral template": "using the ephemeral template [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][timing] capture build stages and durations  should record build stages and durations for docker": "should record build stages and durations for docker [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds][timing] capture build stages and durations  should record build stages and durations for docker": "should record build stages and durations for docker [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds][timing] capture build stages and durations  should record build stages and durations for s2i": "should record build stages and durations for s2i [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds][timing] capture build stages and durations  should record build stages and durations for s2i": "should record build stages and durations for s2i [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables  should fail resolving unresolvable valueFrom in docker build environment variable references": "should fail resolving unresolvable valueFrom in docker build environment variable references [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables  should fail resolving unresolvable valueFrom in docker build environment variable references": "should fail resolving unresolvable valueFrom in docker build environment variable references [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables  should fail resolving unresolvable valueFrom in sti build environment variable references": "should fail resolving unresolvable valueFrom in sti build environment variable references [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables  should fail resolving unresolvable valueFrom in sti build environment variable references": "should fail resolving unresolvable valueFrom in sti build environment variable references [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables  should successfully resolve valueFrom in docker build environment variables": "should successfully resolve valueFrom in docker build environment variables [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables  should successfully resolve valueFrom in docker build environment variables": "should successfully resolve valueFrom in docker build environment variables [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables  should successfully resolve valueFrom in s2i build environment variables": "should successfully resolve valueFrom in s2i build environment variables [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables  should successfully resolve valueFrom in s2i build environment variables": "should successfully resolve valueFrom in s2i build environment variables [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-builds][Feature:Builds][volumes] build volumes  should mount given secrets and configmaps into the build pod for docker strategy builds": "should mount given secrets and configmaps into the build pod for docker strategy builds [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds][volumes] build volumes  should mount given secrets and configmaps into the build pod for docker strategy builds": "should mount given secrets and configmaps into the build pod for docker strategy builds [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][volumes] build volumes  should mount given secrets and configmaps into the build pod for source strategy builds": "should mount given secrets and configmaps into the build pod for source strategy builds [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds][volumes] build volumes  should mount given secrets and configmaps into the build pod for source strategy builds": "should mount given secrets and configmaps into the build pod for source strategy builds [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][webhook] TestWebhook": "TestWebhook [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds][webhook] TestWebhook": "TestWebhook [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][webhook] TestWebhookGitHubPing": "TestWebhookGitHubPing [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds][webhook] TestWebhookGitHubPing": "TestWebhookGitHubPing [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][webhook] TestWebhookGitHubPushWithImage": "TestWebhookGitHubPushWithImage [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds][webhook] TestWebhookGitHubPushWithImage": "TestWebhookGitHubPushWithImage [Disabled:Broken]",
 
-	"[Top Level] [sig-builds][Feature:Builds][webhook] TestWebhookGitHubPushWithImageStream": "TestWebhookGitHubPushWithImageStream [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds][webhook] TestWebhookGitHubPushWithImageStream": "TestWebhookGitHubPushWithImageStream [Disabled:Broken]",
 
 	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on 0.0.0.0 should support forwarding over websockets": "should support forwarding over websockets [Disabled:Broken] [Skipped:Proxy] [Suite:k8s]",
 
@@ -1645,99 +1645,99 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-etcd][Feature:DisasterRecovery][Disruptive] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss": "[Feature:EtcdRecovery] Cluster should restore itself after quorum loss [Serial]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageAppend] Image append should create images by appending them": "should create images by appending them [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageAppend] Image append should create images by appending them": "should create images by appending them [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageExtract] Image extract should extract content from an image": "should extract content from an image [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageExtract] Image extract should extract content from an image": "should extract content from an image [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageInfo] Image info should display information about images": "should display information about images [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageInfo] Image info should display information about images": "should display information about images [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageLayers] Image layer subresource should identify a deleted image as missing": "should identify a deleted image as missing [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageLayers] Image layer subresource should identify a deleted image as missing": "should identify a deleted image as missing [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageLayers] Image layer subresource should return layers from tagged images": "should return layers from tagged images [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageLayers] Image layer subresource should return layers from tagged images": "should return layers from tagged images [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should perform lookup when the Deployment gets the resolve-names annotation later": "should perform lookup when the Deployment gets the resolve-names annotation later [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should perform lookup when the Deployment gets the resolve-names annotation later": "should perform lookup when the Deployment gets the resolve-names annotation later [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should perform lookup when the object has the resolve-names annotation": "should perform lookup when the object has the resolve-names annotation [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should perform lookup when the object has the resolve-names annotation": "should perform lookup when the object has the resolve-names annotation [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should update OpenShift object image fields when local names are on": "should update OpenShift object image fields when local names are on [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should update OpenShift object image fields when local names are on": "should update OpenShift object image fields when local names are on [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should update standard Kube object image fields when local names are on": "should update standard Kube object image fields when local names are on [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should update standard Kube object image fields when local names are on": "should update standard Kube object image fields when local names are on [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageMirror][Slow] Image mirror mirror image from integrated registry into few external registries": "mirror image from integrated registry into few external registries",
+	"[Top Level] [sig-imageregistry][Feature:ImageMirror][Slow] Image mirror mirror image from integrated registry into few external registries": "mirror image from integrated registry into few external registries [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageMirror][Slow] Image mirror mirror image from integrated registry to external registry": "mirror image from integrated registry to external registry",
+	"[Top Level] [sig-imageregistry][Feature:ImageMirror][Slow] Image mirror mirror image from integrated registry to external registry": "mirror image from integrated registry to external registry [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image hard prune should delete orphaned blobs": "should delete orphaned blobs",
+	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image hard prune should delete orphaned blobs": "should delete orphaned blobs [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image hard prune should show orphaned blob deletions in dry-run mode": "should show orphaned blob deletions in dry-run mode",
+	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image hard prune should show orphaned blob deletions in dry-run mode": "should show orphaned blob deletions in dry-run mode [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune of schema 1 should prune old image": "should prune old image",
+	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune of schema 1 should prune old image": "should prune old image [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune of schema 2 should prune old image with config": "should prune old image with config",
+	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune of schema 2 should prune old image with config": "should prune old image with config [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune with --all=false flag should prune only internally managed images": "should prune only internally managed images",
+	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune with --all=false flag should prune only internally managed images": "should prune only internally managed images [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune with --prune-registry==false should prune old image but skip registry": "should prune old image but skip registry",
+	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune with --prune-registry==false should prune old image but skip registry": "should prune old image but skip registry [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune with default --all flag should prune both internally managed and external images": "should prune both internally managed and external images",
+	"[Top Level] [sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image prune with default --all flag should prune both internally managed and external images": "should prune both internally managed and external images [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageQuota] Image resource quota should deny a push of built image exceeding openshift.io/imagestreams quota": "should deny a push of built image exceeding openshift.io/imagestreams quota [Disabled:SpecialConfig]",
+	"[Top Level] [sig-imageregistry][Feature:ImageQuota] Image resource quota should deny a push of built image exceeding openshift.io/imagestreams quota": "should deny a push of built image exceeding openshift.io/imagestreams quota [Disabled:Broken] [Disabled:SpecialConfig]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny a container image reference exceeding limit on openshift.io/image-tags resource": "should deny a container image reference exceeding limit on openshift.io/image-tags resource [Disabled:SpecialConfig]",
+	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny a container image reference exceeding limit on openshift.io/image-tags resource": "should deny a container image reference exceeding limit on openshift.io/image-tags resource [Disabled:Broken] [Disabled:SpecialConfig]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny a push of built image exceeding limit on openshift.io/images resource": "should deny a push of built image exceeding limit on openshift.io/images resource [Disabled:SpecialConfig]",
+	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny a push of built image exceeding limit on openshift.io/images resource": "should deny a push of built image exceeding limit on openshift.io/images resource [Disabled:Broken] [Disabled:SpecialConfig]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny a push of built image exceeding openshift.io/Image limit": "should deny a push of built image exceeding openshift.io/Image limit [Disabled:SpecialConfig]",
+	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny a push of built image exceeding openshift.io/Image limit": "should deny a push of built image exceeding openshift.io/Image limit [Disabled:Broken] [Disabled:SpecialConfig]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny an import of a repository exceeding limit on openshift.io/image-tags resource": "should deny an import of a repository exceeding limit on openshift.io/image-tags resource [Disabled:SpecialConfig]",
+	"[Top Level] [sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range should deny an import of a repository exceeding limit on openshift.io/image-tags resource": "should deny an import of a repository exceeding limit on openshift.io/image-tags resource [Disabled:Broken] [Disabled:SpecialConfig]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API TestImportImageFromBlockedRegistry": "TestImportImageFromBlockedRegistry",
+	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API TestImportImageFromBlockedRegistry": "TestImportImageFromBlockedRegistry [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API TestImportImageFromInsecureRegistry": "TestImportImageFromInsecureRegistry",
+	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API TestImportImageFromInsecureRegistry": "TestImportImageFromInsecureRegistry [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API TestImportRepositoryFromBlockedRegistry": "TestImportRepositoryFromBlockedRegistry",
+	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API TestImportRepositoryFromBlockedRegistry": "TestImportRepositoryFromBlockedRegistry [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API TestImportRepositoryFromInsecureRegistry": "TestImportRepositoryFromInsecureRegistry",
+	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API TestImportRepositoryFromInsecureRegistry": "TestImportRepositoryFromInsecureRegistry [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Annotation trigger reconciles after the image is overwritten": "reconciles after the image is overwritten [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Annotation trigger reconciles after the image is overwritten": "reconciles after the image is overwritten [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Image change build triggers TestMultipleImageChangeBuildTriggers": "TestMultipleImageChangeBuildTriggers [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Image change build triggers TestMultipleImageChangeBuildTriggers": "TestMultipleImageChangeBuildTriggers [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Image change build triggers TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom": "TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Image change build triggers TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom": "TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Image change build triggers TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange": "TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Image change build triggers TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange": "TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Image change build triggers TestSimpleImageChangeBuildTriggerFromImageStreamTagDocker": "TestSimpleImageChangeBuildTriggerFromImageStreamTagDocker [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Image change build triggers TestSimpleImageChangeBuildTriggerFromImageStreamTagDocker": "TestSimpleImageChangeBuildTriggerFromImageStreamTagDocker [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Image change build triggers TestSimpleImageChangeBuildTriggerFromImageStreamTagDockerWithConfigChange": "TestSimpleImageChangeBuildTriggerFromImageStreamTagDockerWithConfigChange [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Image change build triggers TestSimpleImageChangeBuildTriggerFromImageStreamTagDockerWithConfigChange": "TestSimpleImageChangeBuildTriggerFromImageStreamTagDockerWithConfigChange [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Image change build triggers TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI": "TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Image change build triggers TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI": "TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Image change build triggers TestSimpleImageChangeBuildTriggerFromImageStreamTagSTIWithConfigChange": "TestSimpleImageChangeBuildTriggerFromImageStreamTagSTIWithConfigChange [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Image change build triggers TestSimpleImageChangeBuildTriggerFromImageStreamTagSTIWithConfigChange": "TestSimpleImageChangeBuildTriggerFromImageStreamTagSTIWithConfigChange [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageTriggers][Serial] ImageStream API TestImageStreamMappingCreate": "TestImageStreamMappingCreate [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-imageregistry][Feature:ImageTriggers][Serial] ImageStream API TestImageStreamMappingCreate": "TestImageStreamMappingCreate [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageTriggers][Serial] ImageStream API TestImageStreamTagLifecycleHook": "TestImageStreamTagLifecycleHook [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-imageregistry][Feature:ImageTriggers][Serial] ImageStream API TestImageStreamTagLifecycleHook": "TestImageStreamTagLifecycleHook [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageTriggers][Serial] ImageStream API TestImageStreamWithoutDockerImageConfig": "TestImageStreamWithoutDockerImageConfig [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-imageregistry][Feature:ImageTriggers][Serial] ImageStream API TestImageStreamWithoutDockerImageConfig": "TestImageStreamWithoutDockerImageConfig [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageTriggers][Serial] ImageStream admission TestImageStreamAdmitSpecUpdate": "TestImageStreamAdmitSpecUpdate [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-imageregistry][Feature:ImageTriggers][Serial] ImageStream admission TestImageStreamAdmitSpecUpdate": "TestImageStreamAdmitSpecUpdate [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageTriggers][Serial] ImageStream admission TestImageStreamAdmitStatusUpdate": "TestImageStreamAdmitStatusUpdate [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-imageregistry][Feature:ImageTriggers][Serial] ImageStream admission TestImageStreamAdmitStatusUpdate": "TestImageStreamAdmitStatusUpdate [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageTriggers][Serial] ImageStream admission TestImageStreamTagsAdmission": "TestImageStreamTagsAdmission [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-imageregistry][Feature:ImageTriggers][Serial] ImageStream admission TestImageStreamTagsAdmission": "TestImageStreamTagsAdmission [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:Image] oc tag should change image reference for internal images": "should change image reference for internal images [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:Image] oc tag should change image reference for internal images": "should change image reference for internal images [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-imageregistry][Feature:Image] oc tag should preserve image reference for external images": "should preserve image reference for external images [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:Image] oc tag should preserve image reference for external images": "should preserve image reference for external images [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:Image] oc tag should work when only imagestreams api is available": "should work when only imagestreams api is available [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:Image] oc tag should work when only imagestreams api is available": "should work when only imagestreams api is available [Disabled:Broken] [Skipped:Disconnected]",
 
-	"[Top Level] [sig-imageregistry][Feature:Image] signature TestImageAddSignature": "TestImageAddSignature [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:Image] signature TestImageAddSignature": "TestImageAddSignature [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Feature:Image] signature TestImageRemoveSignature": "TestImageRemoveSignature [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:Image] signature TestImageRemoveSignature": "TestImageRemoveSignature [Disabled:Broken]",
 
-	"[Top Level] [sig-imageregistry][Serial][Suite:openshift/registry/serial] Image signature workflow can push a signed image to openshift registry and verify it": "can push a signed image to openshift registry and verify it [Skipped:Disconnected] [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-imageregistry][Serial][Suite:openshift/registry/serial] Image signature workflow can push a signed image to openshift registry and verify it": "can push a signed image to openshift registry and verify it [Disabled:Broken] [Skipped:Disconnected]",
 
 	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should have a metal3 deployment": "have a metal3 deployment [Suite:openshift/conformance/parallel]",
 
@@ -2731,25 +2731,25 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-node][Late] should not have pod creation failures due to systemd timeouts": "should not have pod creation failures due to systemd timeouts [Disabled:Broken]",
 
-	"[Top Level] [sig-operator] OLM should Implement packages API server and list packagemanifest info with namespace not NULL": "Implement packages API server and list packagemanifest info with namespace not NULL [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] OLM should Implement packages API server and list packagemanifest info with namespace not NULL": "Implement packages API server and list packagemanifest info with namespace not NULL [Disabled:Broken]",
 
-	"[Top Level] [sig-operator] OLM should be installed with catalogsources at version v1alpha1": "be installed with catalogsources at version v1alpha1 [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] OLM should be installed with catalogsources at version v1alpha1": "be installed with catalogsources at version v1alpha1 [Disabled:Broken]",
 
-	"[Top Level] [sig-operator] OLM should be installed with clusterserviceversions at version v1alpha1": "be installed with clusterserviceversions at version v1alpha1 [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] OLM should be installed with clusterserviceversions at version v1alpha1": "be installed with clusterserviceversions at version v1alpha1 [Disabled:Broken]",
 
-	"[Top Level] [sig-operator] OLM should be installed with installplans at version v1alpha1": "be installed with installplans at version v1alpha1 [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] OLM should be installed with installplans at version v1alpha1": "be installed with installplans at version v1alpha1 [Disabled:Broken]",
 
-	"[Top Level] [sig-operator] OLM should be installed with operatorgroups at version v1": "be installed with operatorgroups at version v1 [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] OLM should be installed with operatorgroups at version v1": "be installed with operatorgroups at version v1 [Disabled:Broken]",
 
-	"[Top Level] [sig-operator] OLM should be installed with packagemanifests at version v1": "be installed with packagemanifests at version v1 [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] OLM should be installed with packagemanifests at version v1": "be installed with packagemanifests at version v1 [Disabled:Broken]",
 
-	"[Top Level] [sig-operator] OLM should be installed with subscriptions at version v1alpha1": "be installed with subscriptions at version v1alpha1 [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] OLM should be installed with subscriptions at version v1alpha1": "be installed with subscriptions at version v1alpha1 [Disabled:Broken]",
 
-	"[Top Level] [sig-operator] OLM should have imagePullPolicy:IfNotPresent on thier deployments": "have imagePullPolicy:IfNotPresent on thier deployments [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] OLM should have imagePullPolicy:IfNotPresent on thier deployments": "have imagePullPolicy:IfNotPresent on thier deployments [Disabled:Broken]",
 
-	"[Top Level] [sig-operator] an end user can use OLM Report Upgradeable in OLM ClusterOperators status": "Report Upgradeable in OLM ClusterOperators status [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] an end user can use OLM Report Upgradeable in OLM ClusterOperators status": "Report Upgradeable in OLM ClusterOperators status [Disabled:Broken]",
 
-	"[Top Level] [sig-operator] an end user can use OLM can subscribe to the operator": "can subscribe to the operator [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] an end user can use OLM can subscribe to the operator": "can subscribe to the operator [Disabled:Broken] [Skipped:Disconnected]",
 
 	"[Top Level] [sig-scalability][Feature:Performance] Load cluster should populate the cluster [Slow][Serial]": "should populate the cluster [Slow][Serial]",
 
