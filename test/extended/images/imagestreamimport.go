@@ -231,7 +231,7 @@ func deployEphemeralImageRegistry(oc *exutil.CLI) error {
 				InitialDelaySeconds: 5,
 				FailureThreshold:    3,
 				SuccessThreshold:    3,
-				Handler: corev1.Handler{
+				ProbeHandler: corev1.ProbeHandler{
 					TCPSocket: &corev1.TCPSocketAction{
 						Port: intstr.FromInt(5000),
 					},
