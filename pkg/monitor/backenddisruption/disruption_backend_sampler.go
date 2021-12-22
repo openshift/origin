@@ -260,6 +260,7 @@ func (b *BackendSampler) GetHTTPClient() (*http.Client, error) {
 				IdleConnTimeout:       timeoutForPartOfRequest,
 				ResponseHeaderTimeout: timeoutForPartOfRequest,
 				ExpectContinueTimeout: timeoutForPartOfRequest,
+				Proxy:                 http.ProxyFromEnvironment,
 			}
 
 		case ReusedConnectionType:
@@ -272,6 +273,7 @@ func (b *BackendSampler) GetHTTPClient() (*http.Client, error) {
 				IdleConnTimeout:       timeoutForPartOfRequest,
 				ResponseHeaderTimeout: timeoutForPartOfRequest,
 				ExpectContinueTimeout: timeoutForPartOfRequest,
+				Proxy:                 http.ProxyFromEnvironment,
 			}
 
 		default:
