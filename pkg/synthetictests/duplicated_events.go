@@ -136,6 +136,11 @@ var knownEventsBugs = []knownProblem{
 		BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=2017435",
 		Topology: topologyPointer(v1.SingleReplicaTopologyMode),
 	},
+	{
+		Regexp:    regexp.MustCompile(`ns/openshift-controller-manager daemonset/controller-manager - reason/SuccessfulDelete \(combined from similar events\): Deleted pod: controller-manager-[a-z0-9-]+`),
+		BZ:        "https://bugzilla.redhat.com/show_bug.cgi?id=2034984",
+		TestSuite: stringPointer("openshift/build"),
+	},
 	//{ TODO this should only be skipped for single-node
 	//	name:    "single=node-storage",
 	//  BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1990662
@@ -155,6 +160,9 @@ type duplicateEventsEvaluator struct {
 
 	// topology contains the topology of the cluster under test.
 	topology v1.TopologyMode
+
+	// testSuite contains the name of the test suite invoked.
+	testSuite string
 }
 
 type knownProblem struct {
@@ -166,9 +174,12 @@ type knownProblem struct {
 
 	// Topology limits the exception to a specific topology (e.g. single replica)
 	Topology *v1.TopologyMode
+
+	// TestSuite limits the exception to a specific test suite (e.g. openshift/builds)
+	TestSuite *string
 }
 
-func testDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*ginkgo.JUnitTestCase {
+func testDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig *rest.Config, testSuite string) []*ginkgo.JUnitTestCase {
 	allowedPatterns := []*regexp.Regexp{}
 	allowedPatterns = append(allowedPatterns, allowedRepeatedEventPatterns...)
 	allowedPatterns = append(allowedPatterns, allowedUpgradeRepeatedEventPatterns...)
@@ -177,6 +188,7 @@ func testDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 		allowedRepeatedEventPatterns: allowedPatterns,
 		allowedRepeatedEventFns:      allowedRepeatedEventFns,
 		knownRepeatedEventsBugs:      knownEventsBugs,
+		testSuite:                    testSuite,
 	}
 
 	if err := evaluator.getClusterInfo(kubeClientConfig); err != nil {
@@ -189,11 +201,12 @@ func testDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 	return tests
 }
 
-func testDuplicatedEventForStableSystem(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*ginkgo.JUnitTestCase {
+func testDuplicatedEventForStableSystem(events monitorapi.Intervals, kubeClientConfig *rest.Config, testSuite string) []*ginkgo.JUnitTestCase {
 	evaluator := duplicateEventsEvaluator{
 		allowedRepeatedEventPatterns: allowedRepeatedEventPatterns,
 		allowedRepeatedEventFns:      allowedRepeatedEventFns,
 		knownRepeatedEventsBugs:      knownEventsBugs,
+		testSuite:                    testSuite,
 	}
 
 	if err := evaluator.getClusterInfo(kubeClientConfig); err != nil {
@@ -289,6 +302,11 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 
 				// Check if this exception only applies to a specific topology
 				if kp.Topology != nil && *kp.Topology != d.topology {
+					continue
+				}
+
+				// Check if this exception only applies to a specific test suite
+				if kp.TestSuite != nil && *kp.TestSuite != d.testSuite {
 					continue
 				}
 
@@ -463,4 +481,8 @@ func topologyPointer(topology v1.TopologyMode) *v1.TopologyMode {
 
 func platformPointer(platform v1.PlatformType) *v1.PlatformType {
 	return &platform
+}
+
+func stringPointer(testSuite string) *string {
+	return &testSuite
 }
