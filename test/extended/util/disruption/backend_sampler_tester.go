@@ -91,12 +91,6 @@ func (t *backendDisruptionTest) Setup(f *framework.Framework) {
 	if t.preSetup != nil {
 		framework.ExpectNoError(t.preSetup(f, t.backend))
 	}
-
-	url, err := t.backend.GetURL()
-	framework.ExpectNoError(err)
-	if len(url) == 0 {
-		framework.Failf("backend has no URL: %v", t.backend.GetLocator())
-	}
 }
 
 // Test runs a connectivity check to a route.
