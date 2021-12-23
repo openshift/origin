@@ -9,6 +9,7 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	bmhelper "github.com/openshift/origin/test/extended/baremetal"
 	"github.com/stretchr/objx"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,7 +27,7 @@ const (
 	machineAPIGroup                = "machine.openshift.io"
 	machineSetOwningLabel          = "machine.openshift.io/cluster-api-machineset"
 	machineSetDeleteNodeAnnotaiton = "machine.openshift.io/cluster-api-delete-machine"
-	scalingTime                    = 12 * time.Minute
+	scalingTime                    = 15 * time.Minute
 )
 
 // machineSetClient returns a client for machines scoped to the proper namespace
@@ -186,6 +187,35 @@ func scaleMachineSet(name string, replicas int) error {
 }
 
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cluster should", func() {
+
+	var (
+		c      *kubernetes.Clientset
+		dc     dynamic.Interface
+		helper *bmhelper.BaremetalTestHelper
+	)
+
+	g.BeforeEach(func() {
+
+		cfg, err := e2e.LoadConfig()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		c, err = e2e.LoadClientset()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		dc, err = dynamic.NewForConfig(cfg)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// For baremetal platforms, an extra worker must be previously
+		// deployed to allow subsequent scaling operations
+		helper = bmhelper.NewBaremetalTestHelper(dc)
+		if helper.CanDeployExtraWorkers() {
+			helper.Setup()
+			helper.DeployExtraWorker(0)
+		}
+	})
+
+	g.AfterEach(func() {
+		helper.DeleteAllExtraWorkers()
+	})
+
 	g.It("grow and decrease when scaling different machineSets simultaneously", func() {
 		// expect new nodes to come up for machineSet
 		verifyNodeScalingFunc := func(c *kubernetes.Clientset, dc dynamic.Interface, expectedScaleOut int, machineSet objx.Map) bool {
@@ -205,13 +235,6 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 			}
 			return !notReady && len(nodes) == expectedScaleOut
 		}
-
-		cfg, err := e2e.LoadConfig()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		c, err := e2e.LoadClientset()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		dc, err := dynamic.NewForConfig(cfg)
-		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("checking for the openshift machine api operator")
 		// TODO: skip if platform != aws
@@ -282,7 +305,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 				return false
 			}
 
-			g.By(fmt.Sprintf("ensure worker is healthy"))
+			g.By("ensure worker is healthy")
 			for _, node := range nodeList.Items {
 				for _, condition := range node.Status.Conditions {
 					switch condition.Type {

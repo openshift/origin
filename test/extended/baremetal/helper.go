@@ -8,7 +8,6 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	exutil "github.com/openshift/origin/test/extended/util"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,13 +33,13 @@ type BaremetalTestHelper struct {
 
 // NewBaremetalTestHelper creates a new test helper instance. It is
 // meant to be used in the BeforeEach method
-func NewBaremetalTestHelper(oc *exutil.CLI) *BaremetalTestHelper {
+func NewBaremetalTestHelper(dc dynamic.Interface) *BaremetalTestHelper {
 	clientSet, err := e2e.LoadClientset()
 	o.Expect(err).ToNot(o.HaveOccurred())
 
 	return &BaremetalTestHelper{
 		clientSet: clientSet,
-		bmcClient: baremetalClient(oc.AdminDynamicClient()),
+		bmcClient: baremetalClient(dc),
 	}
 }
 
@@ -63,6 +62,13 @@ func (b *BaremetalTestHelper) extraWorkerKey(index int) string {
 	return fmt.Sprintf("extraworker-%d-bmh", index)
 }
 
+// CanDeployExtraWorkers checks if current platform contains
+// the necessary data to deploy additional workers
+func (b *BaremetalTestHelper) CanDeployExtraWorkers() bool {
+	_, err := b.extraWorkersRetrieveData()
+	return err == nil
+}
+
 // getExtraWorkerSecretData gets and decodes the secret associated for the
 // specified extra worker. If not found, the test will fail
 func (b *BaremetalTestHelper) getExtraWorkerSecretData(index int) *v1.Secret {
@@ -70,7 +76,7 @@ func (b *BaremetalTestHelper) getExtraWorkerSecretData(index int) *v1.Secret {
 	o.Expect(err).ToNot(o.HaveOccurred())
 
 	yamlData, ok := ew.Data[b.extraWorkersSecretKey(index)]
-	o.Expect(ok).To(o.BeTrue(), fmt.Sprintf("unable to find data for extra worker %d", index))
+	o.Expect(ok).To(o.BeTrue(), fmt.Sprintf("unable to find secret data for extra worker %d", index))
 
 	var secret v1.Secret
 	err = yaml.Unmarshal(yamlData, &secret)
@@ -103,6 +109,15 @@ func (b *BaremetalTestHelper) GetExtraWorkerData(index int) (*unstructured.Unstr
 	return b.getExtraWorkerData(index), b.getExtraWorkerSecretData(index)
 }
 
+// DeployExtraWorker is an utility function that creates the specified worker
+// and waits until it reaches the Available state
+func (b *BaremetalTestHelper) DeployExtraWorker(index int) (*unstructured.Unstructured, *v1.Secret) {
+	hostData, secretData := b.GetExtraWorkerData(index)
+	host, secret := b.CreateExtraWorker(hostData, secretData)
+	b.WaitForProvisioningState(host, "available")
+	return host, secret
+}
+
 // CreateExtraWorker creates a new BaremetalHost (and associated Secret).
 // If successfull, returns the newly created host and secret resources
 func (b *BaremetalTestHelper) CreateExtraWorker(host *unstructured.Unstructured, secret *v1.Secret) (*unstructured.Unstructured, *v1.Secret) {
@@ -130,7 +145,7 @@ func (b *BaremetalTestHelper) DeleteAllExtraWorkers() {
 
 func (b *BaremetalTestHelper) waitForDeletion(obj *unstructured.Unstructured) {
 	g.By(fmt.Sprintf("waiting for %s to be deleted", obj.GetName()))
-	err := wait.PollImmediate(1*time.Second, 1*time.Minute, func() (done bool, err error) {
+	err := wait.PollImmediate(5*time.Second, 5*time.Minute, func() (done bool, err error) {
 		_, err = b.bmcClient.Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
@@ -152,7 +167,7 @@ func (b *BaremetalTestHelper) WaitForProvisioningState(host *unstructured.Unstru
 	var newHost *unstructured.Unstructured
 
 	g.By(fmt.Sprintf("wait until %s becomes %s", hostName, expectedProvisioningState))
-	err := wait.PollImmediate(5*time.Second, 5*time.Minute, func() (done bool, err error) {
+	err := wait.PollImmediate(5*time.Second, 15*time.Minute, func() (done bool, err error) {
 		newHost, err = b.bmcClient.Get(context.TODO(), hostName, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {

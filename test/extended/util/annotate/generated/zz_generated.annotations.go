@@ -2,7 +2,6 @@ package generated
 
 import (
 	"fmt"
-
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/types"
 )
