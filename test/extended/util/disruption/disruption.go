@@ -312,25 +312,6 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 	return testFrameworks
 }
 
-// ExpectNoDisruption fails if the sum of the duration of all events exceeds tolerate as a fraction ([0-1]) of total, reports a
-// disruption flake if any disruption occurs, and uses reason to prefix the message. I.e. tolerate 0.1 of 10m total will fail
-// if the sum of the intervals is greater than 1m, or report a flake if any interval is found.
-func ExpectNoDisruption(f *framework.Framework, tolerate float64, total time.Duration, events monitorapi.Intervals, reason string) {
-	FrameworkEventIntervals(f, events)
-	describe := events.Strings()
-
-	errorEvents := events.Filter(monitorapi.IsErrorEvent)
-	duration := errorEvents.Duration(1 * time.Second)
-	if percent := float64(duration) / float64(total); percent > tolerate {
-		framework.Failf("%s for at least %s of %s (%0.0f%%, but only %0.0f%% is tolerated):\n\n%s", reason, duration.Round(time.Second), total.Round(time.Second), percent*100, tolerate*100, strings.Join(describe, "\n"))
-	} else if duration > 0 {
-		FrameworkFlakef(f, "%s for at least %s of %s (%0.0f%%), this is currently sufficient to pass the"+
-			" test/job but not considered completely correct.\nTolerating up to %0.0f%% disruption:\n\n%s",
-			reason, duration.Round(time.Second), total.Round(time.Second), percent*100, tolerate*100,
-			strings.Join(describe, "\n"))
-	}
-}
-
 // ExpectNoDisruptionForDuration fails if the sum of the duration of all events exceeds allowedDisruption, reports a
 // disruption flake if any disruption occurs, and uses reason to prefix the message.
 func ExpectNoDisruptionForDuration(f *framework.Framework, allowedDisruption time.Duration, total time.Duration, events monitorapi.Intervals, reason string) {

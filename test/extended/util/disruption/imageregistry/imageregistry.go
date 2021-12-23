@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	apiconfigv1 "github.com/openshift/api/config/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
-	"github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -33,7 +31,6 @@ func NewImageRegistryAvailableWithNewConnectionsTest() upgrades.Test {
 			"/healthz",
 			backenddisruption.NewConnectionType),
 	).
-		WithAllowedDisruption(allowedImageRegistryDisruption).
 		WithPreSetup(setupImageRegistryFor("test-disruption-new")).
 		WithPostTeardown(teardownImageRegistryFor("test-disruption-new"))
 
@@ -52,56 +49,9 @@ func NewImageRegistryAvailableWithReusedConnectionsTest() upgrades.Test {
 			"/healthz",
 			backenddisruption.ReusedConnectionType),
 	).
-		WithAllowedDisruption(allowedImageRegistryDisruption).
 		WithPreSetup(setupImageRegistryFor("test-disruption-reused")).
 		WithPostTeardown(teardownImageRegistryFor("test-disruption-reused"))
 
-}
-
-func getTopologies(f *framework.Framework) (controlPlaneTopology, infraTopology apiconfigv1.TopologyMode) {
-	oc := util.NewCLIWithFramework(f)
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(),
-		"cluster", metav1.GetOptions{})
-
-	framework.ExpectNoError(err, "unable to determine cluster topology")
-
-	return infra.Status.ControlPlaneTopology, infra.Status.InfrastructureTopology
-}
-
-func allowedImageRegistryDisruption(f *framework.Framework, totalDuration time.Duration) (*time.Duration, error) {
-	toleratedDisruption := 0.20
-	// BUG: https://bugzilla.redhat.com/show_bug.cgi?id=1972827
-	// starting from 4.x, enforce the requirement that ingress remains available
-	// hasAllFixes, err := util.AllClusterVersionsAreGTE(semver.Version{Major: 4, Minor: 8}, config)
-	// if err != nil {
-	// 	framework.Logf("Cannot require full control plane availability, some versions could not be checked: %v", err)
-	// }
-	// switch controlPlaneTopology, _ := getTopologies(f); {
-	// case controlPlaneTopology == apiconfigv1.SingleReplicaTopologyMode:
-	// 	// we cannot avoid downtime during upgrades on single-node control plane topologies (we observe around ~25% disruption)
-	// 	toleratedDisruption = 0.30
-	// case framework.ProviderIs("azure"), framework.ProviderIs("aws"), framework.ProviderIs("gce"):
-	// 	if hasAllFixes {
-	// 		framework.Logf("Cluster contains no versions older than 4.8, tolerating no disruption")
-	// 		toleratedDisruption = 0
-	// 	}
-	// }
-
-	switch controlPlaneTopology, _ := getTopologies(f); {
-	case controlPlaneTopology == apiconfigv1.SingleReplicaTopologyMode:
-		// we cannot avoid downtime during upgrades on single-node control plane topologies (we observe around ~25% disruption)
-		toleratedDisruption = 0.30
-	}
-
-	allowedDisruptionNanoseconds := int64(float64(totalDuration.Nanoseconds()) * toleratedDisruption)
-	allowedDisruption := time.Duration(allowedDisruptionNanoseconds)
-
-	// TODO this should be removed early in 1/2022, but the new sampler is more responsive than the old so we cannot be tight and merge
-	if allowedDisruption < 15*time.Second {
-		allowedDisruption = 15 * time.Second
-	}
-
-	return &allowedDisruption, nil
 }
 
 // Setup creates a route that exposes the registry to tests.

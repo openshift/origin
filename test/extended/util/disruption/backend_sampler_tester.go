@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openshift/origin/pkg/synthetictests/allowedbackenddisruption"
+
 	"github.com/onsi/ginkgo"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
@@ -29,11 +31,12 @@ type BackendDisruptionUpgradeTest interface {
 }
 
 func NewBackendDisruptionTest(testName string, backend BackendSampler) *backendDisruptionTest {
-	return &backendDisruptionTest{
-		testName:             testName,
-		backend:              backend,
-		getAllowedDisruption: NoDisruption,
+	ret := &backendDisruptionTest{
+		testName: testName,
+		backend:  backend,
 	}
+	ret.getAllowedDisruption = ret.historicalP95Disruption
+	return ret
 }
 
 func (t *backendDisruptionTest) WithAllowedDisruption(allowedDisruptionFn AllowedDisruptionFunc) *backendDisruptionTest {
@@ -55,9 +58,9 @@ func (t *backendDisruptionTest) WithPostTeardown(postTearDown TearDownFunc) *bac
 	return t
 }
 
-func NoDisruption(f *framework.Framework, totalDuration time.Duration) (*time.Duration, error) {
-	zero := 0 * time.Second
-	return &zero, nil
+func (t *backendDisruptionTest) historicalP95Disruption(f *framework.Framework, totalDuration time.Duration) (*time.Duration, error) {
+	backendName := t.backend.GetDisruptionBackendName() + "-" + string(t.backend.GetConnectionType()) + "-connections"
+	return allowedbackenddisruption.GetAllowedDisruption(context.Background(), backendName, f.ClientConfig())
 }
 
 type AllowedDisruptionFunc func(f *framework.Framework, totalDuration time.Duration) (*time.Duration, error)

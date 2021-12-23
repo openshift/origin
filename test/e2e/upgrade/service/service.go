@@ -47,7 +47,7 @@ func NewServiceLoadBalancerWithNewConnectionsTest() upgrades.Test {
 				"/echo?msg=Hello",
 				backenddisruption.NewConnectionType).
 				WithExpectedBody("Hello"),
-		).WithAllowedDisruption(allowedServiceLBDisruption).
+		).
 			WithPreSetup(serviceLBTest.loadBalancerSetup)
 
 	return serviceLBTest
@@ -66,18 +66,10 @@ func NewServiceLoadBalancerWithReusedConnectionsTest() upgrades.Test {
 				"/echo?msg=Hello",
 				backenddisruption.ReusedConnectionType).
 				WithExpectedBody("Hello"),
-		).WithAllowedDisruption(allowedServiceLBDisruption).
+		).
 			WithPreSetup(serviceLBTest.loadBalancerSetup)
 
 	return serviceLBTest
-}
-
-func allowedServiceLBDisruption(f *framework.Framework, totalDuration time.Duration) (*time.Duration, error) {
-	toleratedDisruption := 0.02
-	allowedDisruptionNanoseconds := int64(float64(totalDuration.Nanoseconds()) * toleratedDisruption)
-	allowedDisruption := time.Duration(allowedDisruptionNanoseconds)
-
-	return &allowedDisruption, nil
 }
 
 func (t *serviceLoadBalancerUpgradeTest) Name() string { return t.backendDisruptionTest.Name() }
