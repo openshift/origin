@@ -85,27 +85,6 @@ func (t *serviceLoadBalancerUpgradeTest) RequiresKubeNamespace() bool {
 func shouldTestPDBs() bool { return true }
 
 func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framework, backendSampler disruption.BackendSampler) error {
-	// we must update our namespace to bypass SCC so that we can avoid default mutation of our pod and SCC evaluation.
-	// technically we could also choose to bind an SCC, but I don't see a lot of value in doing that and we have to wait
-	// for a secondary cache to fill to reflect that.  If we miss that cache filling, we'll get assigned a restricted on
-	// and fail.
-	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		ns, err := f.ClientSet.CoreV1().Namespaces().Get(context.Background(), f.Namespace.Name, metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-		if ns.Labels == nil {
-			ns.Labels = map[string]string{}
-		}
-		ns.Labels["security.openshift.io/disable-securitycontextconstraints"] = "true"
-		ns, err = f.ClientSet.CoreV1().Namespaces().Update(context.Background(), ns, metav1.UpdateOptions{})
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	framework.ExpectNoError(err)
-
 	configClient, err := configclient.NewForConfig(f.ClientConfig())
 	framework.ExpectNoError(err)
 	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
@@ -121,6 +100,27 @@ func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framewor
 	if t.unsupportedPlatform {
 		return nil
 	}
+
+	// we must update our namespace to bypass SCC so that we can avoid default mutation of our pod and SCC evaluation.
+	// technically we could also choose to bind an SCC, but I don't see a lot of value in doing that and we have to wait
+	// for a secondary cache to fill to reflect that.  If we miss that cache filling, we'll get assigned a restricted on
+	// and fail.
+	err = retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		ns, err := f.ClientSet.CoreV1().Namespaces().Get(context.Background(), f.Namespace.Name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if ns.Labels == nil {
+			ns.Labels = map[string]string{}
+		}
+		ns.Labels["security.openshift.io/disable-securitycontextconstraints"] = "true"
+		ns, err = f.ClientSet.CoreV1().Namespaces().Update(context.Background(), ns, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	framework.ExpectNoError(err)
 
 	serviceName := "service-test"
 	jig := service.NewTestJig(f.ClientSet, f.Namespace.Name, serviceName)
