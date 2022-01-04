@@ -51,6 +51,10 @@ func GetAllowedDisruption(ctx context.Context, backendName string, clientConfig 
 		platform = "vsphere"
 	case configv1.BareMetalPlatformType:
 		platform = "metal"
+	case configv1.OvirtPlatformType:
+		platform = "ovirt"
+	case configv1.OpenStackPlatformType:
+		platform = "openstack"
 	}
 
 	networkType := ""
