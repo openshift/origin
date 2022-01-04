@@ -392,7 +392,7 @@ func (opt *Options) Run(suite *TestSuite) error {
 	if len(events) > 0 {
 		var buf *bytes.Buffer
 		syntheticTestResults, buf, _ = createSyntheticTestsFromMonitor(events, duration)
-		testCases := syntheticEventTests.JUnitsForEvents(events, duration, restConfig)
+		testCases := syntheticEventTests.JUnitsForEvents(events, duration, restConfig, suite.Name)
 		syntheticTestResults = append(syntheticTestResults, testCases...)
 
 		if len(syntheticTestResults) > 0 {

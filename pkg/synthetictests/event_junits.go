@@ -12,8 +12,8 @@ import (
 // steady state (not being changed externally). Use these with suites that assume the
 // cluster is under no adversarial change (config changes, induced disruption to nodes,
 // etcd, or apis).
-func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config) (tests []*ginkgo.JUnitTestCase) {
-	tests = SystemEventInvariants(events, duration, kubeClientConfig)
+func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config, testSuite string) (tests []*ginkgo.JUnitTestCase) {
+	tests = SystemEventInvariants(events, duration, kubeClientConfig, testSuite)
 	tests = append(tests, testContainerFailures(events)...)
 	tests = append(tests, testDeleteGracePeriodZero(events)...)
 	tests = append(tests, testKubeApiserverProcessOverlap(events)...)
@@ -24,15 +24,15 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testAllAPIAvailability(events, duration)...)
 	tests = append(tests, testAllIngressAvailability(events, duration)...)
 	tests = append(tests, testStableSystemOperatorStateTransitions(events)...)
-	tests = append(tests, testDuplicatedEventForStableSystem(events, kubeClientConfig)...)
+	tests = append(tests, testDuplicatedEventForStableSystem(events, kubeClientConfig, testSuite)...)
 
 	return tests
 }
 
 // SystemUpgradeEventInvariants are invariants tested against events that should hold true in a cluster
 // that is being upgraded without induced disruption
-func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config) (tests []*ginkgo.JUnitTestCase) {
-	tests = SystemEventInvariants(events, duration, kubeClientConfig)
+func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config, testSuite string) (tests []*ginkgo.JUnitTestCase) {
+	tests = SystemEventInvariants(events, duration, kubeClientConfig, testSuite)
 	tests = append(tests, testContainerFailures(events)...)
 	tests = append(tests, testDeleteGracePeriodZero(events)...)
 	tests = append(tests, testKubeApiserverProcessOverlap(events)...)
@@ -42,14 +42,14 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testPodSandboxCreation(events)...)
 	tests = append(tests, testNodeUpgradeTransitions(events)...)
 	tests = append(tests, testUpgradeOperatorStateTransitions(events)...)
-	tests = append(tests, testDuplicatedEventForUpgrade(events, kubeClientConfig)...)
+	tests = append(tests, testDuplicatedEventForUpgrade(events, kubeClientConfig, testSuite)...)
 	return tests
 }
 
 // SystemEventInvariants are invariants tested against events that should hold true in any cluster,
 // even one undergoing disruption. These are usually focused on things that must be true on a single
 // machine, even if the machine crashes.
-func SystemEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config) (tests []*ginkgo.JUnitTestCase) {
+func SystemEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config, testSuite string) (tests []*ginkgo.JUnitTestCase) {
 	tests = append(tests, testSystemDTimeout(events)...)
 	return tests
 }
