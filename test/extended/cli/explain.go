@@ -67,8 +67,12 @@ var (
 		{Group: "monitoring.coreos.com", Version: "v1", Resource: "servicemonitors"},
 		{Group: "monitoring.coreos.com", Version: "v1", Resource: "thanosrulers"},
 
+		{Group: "operators.coreos.com", Version: "v1", Resource: "olmconfigs"},
 		{Group: "operators.coreos.com", Version: "v1", Resource: "operators"},
+		{Group: "operators.coreos.com", Version: "v1", Resource: "operatorconditions"},
 		{Group: "operators.coreos.com", Version: "v1", Resource: "operatorgroups"},
+
+		{Group: "operators.coreos.com", Version: "v2", Resource: "operatorconditions"},
 
 		{Group: "operators.coreos.com", Version: "v1alpha1", Resource: "catalogsources"},
 		{Group: "operators.coreos.com", Version: "v1alpha1", Resource: "clusterserviceversions"},
@@ -79,6 +83,8 @@ var (
 		{Group: "packages.operators.coreos.com", Version: "v1", Resource: "packagemanifests"},
 
 		// openshift.io groups:
+
+		{Group: "apiserver.openshift.io", Version: "v1", Resource: "apirequestcounts"},
 
 		{Group: "authorization.openshift.io", Version: "v1", Resource: "selfsubjectrulesreviews"},
 		{Group: "authorization.openshift.io", Version: "v1", Resource: "subjectrulesreviews"},
@@ -109,6 +115,8 @@ var (
 		{Group: "imageregistry.operator.openshift.io", Version: "v1", Resource: "imagepruners"},
 
 		{Group: "ingress.operator.openshift.io", Version: "v1", Resource: "dnsrecords"},
+
+		{Group: "controlplane.operator.openshift.io", Version: "v1alpha1", Resource: "podnetworkconnectivitychecks"},
 
 		{Group: "operator.openshift.io", Version: "v1alpha1", Resource: "imagecontentsourcepolicies"},
 
@@ -162,6 +170,10 @@ var (
 
 	metal3Types = []schema.GroupVersionResource{
 		{Group: "metal3.io", Version: "v1alpha1", Resource: "baremetalhosts"},
+		{Group: "metal3.io", Version: "v1alpha1", Resource: "bmceventsubscriptions"},
+		{Group: "metal3.io", Version: "v1alpha1", Resource: "firmwareschemas"},
+		{Group: "metal3.io", Version: "v1alpha1", Resource: "hostfirmwaresettings"},
+		{Group: "metal3.io", Version: "v1alpha1", Resource: "preprovisioningimages"},
 		{Group: "metal3.io", Version: "v1alpha1", Resource: "provisionings"},
 	}
 
@@ -227,6 +239,11 @@ var (
 			pattern: `FIELD\: +scopes`,
 		},
 		{
+			gv:      schema.GroupVersion{Group: "config.openshift.io", Version: "v1"},
+			field:   "imagecontentpolicies",
+			pattern: `FIELDS\:.*`,
+		},
+		{
 			gv:      schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
 			field:   "images.dockerImageReference",
 			pattern: `FIELD\: +dockerImageReference.*<string>`,
@@ -275,6 +292,11 @@ var (
 			gv:      schema.GroupVersion{Group: "oauth.openshift.io", Version: "v1"},
 			field:   "oauthclients.redirectURIs",
 			pattern: `FIELD\: +redirectURIs`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "oauth.openshift.io", Version: "v1"},
+			field:   "useroauthaccesstokens.clientName",
+			pattern: `FIELD\: +clientName`,
 		},
 		{
 			gv:      schema.GroupVersion{Group: "project.openshift.io", Version: "v1"},
@@ -344,6 +366,11 @@ var (
 		{
 			gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
 			field:   "consolenotifications.spec",
+			pattern: `DESCRIPTION\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1alpha1"},
+			field:   "consoleplugins.spec",
 			pattern: `DESCRIPTION\:.*`,
 		},
 		{
