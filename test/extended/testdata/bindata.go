@@ -14481,7 +14481,7 @@ objects:
           value: ${NPM_MIRROR}
         from:
           kind: ImageStreamTag
-          name: nodejs:12
+          name: nodejs:${NODEJS_VERSION}
           namespace: ${NAMESPACE}
       type: Source
     triggers:
@@ -14728,6 +14728,21 @@ parameters:
   name: NAME
   required: true
   value: nodejs-postgresql-example
+- description: The OpenShift Namespace where the NodeJS and postgresql ImageStreams reside.
+  displayName: Namespace
+  name: NAMESPACE
+  required: true
+  value: openshift
+- description: Version of NodeJS image to be used (14-ubi8, or latest).
+  displayName: Version of NodeJS Image
+  name: NODEJS_VERSION
+  required: true
+  value: 14-ubi8
+- description: Version of PostgreSQL image to be used (12-el8, or latest).
+  displayName: Version of PostgreSQL Image
+  name: POSTGRESQL_VERSION
+  required: true
+  value: 12-el8
 - description: The exposed hostname that will route to the Node.js service, if left
     blank a value will be defaulted.
   displayName: Application Hostname
@@ -14797,11 +14812,6 @@ parameters:
 - description: The custom NPM mirror URL
   displayName: Custom NPM Mirror URL
   name: NPM_MIRROR
-- description: The OpenShift Namespace where the NodeJS and postgresql ImageStreams reside.
-  displayName: Namespace
-  name: NAMESPACE
-  required: true
-  value: openshift
 - description: Whether to enable verbose logging of Jenkinsfile steps in pipeline
   displayName: Verbose
   name: VERBOSE
@@ -15602,11 +15612,11 @@ parameters:
     name: NAMESPACE
     required: true
     value: openshift
-  - description: Version of NodeJS image to be used (10-ubi8, 12-ubi8, or latest).
+  - description: Version of NodeJS image to be used (14-ubi8, or latest).
     displayName: Version of NodeJS Image
     name: NODEJS_VERSION
     required: true
-    value: 12-ubi8
+    value: 14-ubi8
   - description: Version of PostgreSQL image to be used (12-el8, or latest).
     displayName: Version of PostgreSQL Image
     name: POSTGRESQL_VERSION
@@ -23958,8 +23968,8 @@ var _testExtendedTestdataClusterQuickstartsCakephpMysqlJson = []byte(`{
 		{
 			"name": "PHP_VERSION",
 			"displayName": "PHP Version",
-			"description": "Version of PHP image to be used (7.3-ubi7, 7.3-ubi8, or latest).",
-			"value": "7.3-ubi8",
+			"description": "Version of PHP image to be used (7.4-ubi7, 7.4-ubi8, or latest).",
+			"value": "7.4-ubi8",
 			"required": true
 		},
 		{
@@ -24079,7 +24089,8 @@ var _testExtendedTestdataClusterQuickstartsCakephpMysqlJson = []byte(`{
 		"app": "cakephp-mysql-example",
 		"template": "cakephp-mysql-example"
 	}
-}`)
+}
+`)
 
 func testExtendedTestdataClusterQuickstartsCakephpMysqlJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataClusterQuickstartsCakephpMysqlJson, nil
@@ -25242,7 +25253,7 @@ var _testExtendedTestdataClusterQuickstartsNodejsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -25256,7 +25267,7 @@ var _testExtendedTestdataClusterQuickstartsNodejsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -25266,7 +25277,7 @@ var _testExtendedTestdataClusterQuickstartsNodejsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -25330,7 +25341,7 @@ var _testExtendedTestdataClusterQuickstartsNodejsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -25473,7 +25484,7 @@ var _testExtendedTestdataClusterQuickstartsNodejsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -25610,8 +25621,8 @@ var _testExtendedTestdataClusterQuickstartsNodejsPostgresqlJson = []byte(`{
 		{
 			"name": "NODEJS_VERSION",
 			"displayName": "Version of NodeJS Image",
-			"description": "Version of NodeJS image to be used (10-ubi8, 12-ubi8, or latest).",
-			"value": "12-ubi8",
+			"description": "Version of NodeJS image to be used (14-ubi8, or latest).",
+			"value": "14-ubi8",
 			"required": true
 		},
 		{
@@ -25714,7 +25725,8 @@ var _testExtendedTestdataClusterQuickstartsNodejsPostgresqlJson = []byte(`{
 		"app": "nodejs-postgresql-example",
 		"template": "nodejs-postgresql-example"
 	}
-}`)
+}
+`)
 
 func testExtendedTestdataClusterQuickstartsNodejsPostgresqlJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataClusterQuickstartsNodejsPostgresqlJson, nil
@@ -25850,7 +25862,7 @@ var _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson = []byte(`{
 						],
 						"from": {
 							"kind": "ImageStreamTag",
-							"name": "ruby:2.6-ubi8",
+							"name": "ruby:2.7-ubi8",
 							"namespace": "${NAMESPACE}"
 						}
 					},
@@ -26315,7 +26327,8 @@ var _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson = []byte(`{
 		"app": "rails-postgresql-example",
 		"template": "rails-postgresql-example"
 	}
-}`)
+}
+`)
 
 func testExtendedTestdataClusterQuickstartsRailsPostgresqlJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson, nil
