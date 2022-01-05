@@ -2,6 +2,7 @@ package images
 
 import (
 	"context"
+	"os"
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
@@ -15,6 +16,7 @@ import (
 	"github.com/openshift/library-go/pkg/image/imageutil"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	images "github.com/openshift/origin/test/extended/util/image"
 )
 
 func cliPodWithPullSecret(cli *exutil.CLI, shell string) *kapiv1.Pod {
@@ -70,6 +72,13 @@ func cliPodWithPullSecret(cli *exutil.CLI, shell string) *kapiv1.Pod {
 var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func() {
 	defer g.GinkgoRecover()
 
+	mirrorRegistryDefined := os.Getenv("TEST_IMAGE_MIRROR_REGISTRY") != ""
+	busyboxImage := "docker.io/library/busybox:latest"
+
+	if mirrorRegistryDefined {
+		busyboxImage, _ = images.GetE2eImageMappedToRegistry(busyboxImage, "library")
+	}
+
 	var oc *exutil.CLI
 	var ns string
 
@@ -99,7 +108,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 			oc image append --insecure --to %[2]s/%[1]s/test:scratch2 --image='{"Cmd":["/bin/sleep"]}' --created-at=0
 
 			# modify a busybox image
-			oc image append --insecure --from docker.io/library/busybox:latest --to %[2]s/%[1]s/test:busybox1 --image '{"Cmd":["/bin/sleep"]}'
+			oc image append --insecure --from %[3]s --to %[2]s/%[1]s/test:busybox1 --image '{"Cmd":["/bin/sleep"]}'
 
 			# verify mounting works
 			oc create is test2
@@ -111,7 +120,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 			touch /tmp/test/dir/2
 			tar cvzf /tmp/layer.tar.gz -C /tmp/test/ .
 			oc image append --insecure --from=%[2]s/%[1]s/test:busybox1 --to %[2]s/%[1]s/test:busybox2 /tmp/layer.tar.gz
-		`, ns, registry)))
+		`, ns, registry, busyboxImage)))
 		cli.WaitForSuccess(pod.Name, podStartupTimeout)
 
 		istag, err := oc.ImageClient().ImageV1().ImageStreamTags(ns).Get(context.Background(), "test:scratch1", metav1.GetOptions{})

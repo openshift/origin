@@ -3,6 +3,8 @@ package images
 import (
 	"context"
 	"fmt"
+	imageutil "github.com/openshift/origin/test/extended/util/image"
+	"os"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -26,6 +28,14 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 	var oc *exutil.CLI
 	var ns []string
 	ctx := context.Background()
+
+	mirrorRegistryDefined := os.Getenv("TEST_IMAGE_MIRROR_REGISTRY") != ""
+	busyboxImage := "busybox:latest"
+	mysqlImage := "mysql:latest"
+	if mirrorRegistryDefined {
+		busyboxImage, _ = imageutil.GetE2eImageMappedToRegistry(busyboxImage, "library")
+		mysqlImage, _ = imageutil.GetE2eImageMappedToRegistry(mysqlImage, "library")
+	}
 
 	g.AfterEach(func() {
 		if g.CurrentGinkgoTestDescription().Failed {
@@ -85,11 +95,11 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 				Import: true,
 				Images: []imagev1.ImageImportSpec{
 					{
-						From: corev1.ObjectReference{Kind: "DockerImage", Name: "busybox:latest"},
+						From: corev1.ObjectReference{Kind: "DockerImage", Name: busyboxImage},
 						To:   &corev1.LocalObjectReference{Name: "busybox"},
 					},
 					{
-						From: corev1.ObjectReference{Kind: "DockerImage", Name: "mysql:latest"},
+						From: corev1.ObjectReference{Kind: "DockerImage", Name: mysqlImage},
 						To:   &corev1.LocalObjectReference{Name: "mysql"},
 					},
 				},

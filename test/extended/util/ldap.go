@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/origin/test/extended/testdata"
+	imageutil "github.com/openshift/origin/test/extended/util/image"
 )
 
 const (
@@ -181,7 +182,13 @@ func checkLDAPConn(oc *CLI, host string) error {
 // Run an ldapsearch in a pod against host.
 func runLDAPSearchInPod(oc *CLI, host string) (string, error) {
 	mounts, volumes := LDAPClientMounts()
-	output, errs := RunOneShotCommandPod(oc, "runonce-ldapsearch-pod", OpenLDAPTestImage, fmt.Sprintf(ldapSearchCommandFormat, host), mounts, volumes, nil, 8*time.Minute)
+	mirrorRegistryDefined := os.Getenv("TEST_IMAGE_MIRROR_REGISTRY") != ""
+	ldapImage := OpenLDAPTestImage
+	if mirrorRegistryDefined {
+		ldapImage, _ = imageutil.GetE2eImageMappedToRegistry(OpenLDAPTestImage, "")
+	}
+
+	output, errs := RunOneShotCommandPod(oc, "runonce-ldapsearch-pod", ldapImage, fmt.Sprintf(ldapSearchCommandFormat, host), mounts, volumes, nil, 8*time.Minute)
 	if len(errs) != 0 {
 		return output, fmt.Errorf("errors encountered trying to run ldapsearch pod: %v", errs)
 	}
