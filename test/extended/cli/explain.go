@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -14,7 +15,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kclientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -509,18 +512,32 @@ func verifyCRDSpecStatusExplain(oc *exutil.CLI, crdClient apiextensionsclientset
 }
 
 func verifyExplain(oc *exutil.CLI, crdClient apiextensionsclientset.Interface, gvr schema.GroupVersionResource, pattern string, args ...string) error {
-	result, err := oc.Run("explain").Args(args...).Output()
-	if err != nil {
-		return fmt.Errorf("failed to explain %q: %v", args, err)
-	}
-	r := regexp.MustCompile(pattern)
-	if !r.Match([]byte(result)) {
-		if crdClient != nil {
-			if crd, err := crdClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.Background(), gvr.GroupResource().String(), metav1.GetOptions{}); err == nil {
-				e2e.Logf("CRD yaml is:\n%s\n", runtime.EncodeOrDie(apiextensionsscheme.Codecs.LegacyCodec(apiextensionsscheme.Scheme.PrioritizedVersionsAllGroups()...), crd))
+	return retry.OnError(
+		wait.Backoff{
+			Duration: 2 * time.Second,
+			Steps:    3,
+			Factor:   5.0,
+			Jitter:   0.1,
+		},
+		func(err error) bool {
+			// retry error when temporarily can't reach apiserver
+			matched, _ := regexp.MatchString("exit status .+ Unable to connect to the server: dial tcp: .+ ", err.Error())
+			return matched
+		},
+		func() error {
+			stdout, stderr, err := oc.Run("explain").Args(args...).Outputs()
+			if err != nil {
+				return fmt.Errorf("%v: %s", err, stderr)
 			}
-		}
-		return fmt.Errorf("oc explain %q result {%s} doesn't match pattern {%s}", args, result, pattern)
-	}
-	return nil
+			r := regexp.MustCompile(pattern)
+			if !r.Match([]byte(stdout)) {
+				if crdClient != nil {
+					if crd, err := crdClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.Background(), gvr.GroupResource().String(), metav1.GetOptions{}); err == nil {
+						e2e.Logf("CRD yaml is:\n%s\n", runtime.EncodeOrDie(apiextensionsscheme.Codecs.LegacyCodec(apiextensionsscheme.Scheme.PrioritizedVersionsAllGroups()...), crd))
+					}
+				}
+				return fmt.Errorf("oc explain %q result {%s} doesn't match pattern {%s}", args, stdout, pattern)
+			}
+			return nil
+		})
 }
