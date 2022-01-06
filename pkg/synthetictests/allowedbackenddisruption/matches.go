@@ -100,15 +100,19 @@ func GetClosestP95Value(backendName, release, fromRelease, platform, networkType
 	}
 	_, p95AsMap := getCurrentResults()
 
-	zeroSeconds := 0 * time.Second
+	// chose so we can find them easily in the log
+	defaultSeconds, err := time.ParseDuration("2.718s")
+	if err != nil {
+		panic(err)
+	}
 
 	if p95, ok := p95AsMap[exactMatchKey]; ok {
 		ret, err := time.ParseDuration(fmt.Sprintf("%2fs", p95.P95))
 		if err != nil {
-			return &zeroSeconds
+			return &defaultSeconds
 		}
 		return &ret
 	}
 
-	return &zeroSeconds
+	return &defaultSeconds
 }

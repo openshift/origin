@@ -21,6 +21,7 @@ func TestGetClosestP95Value(t *testing.T) {
 		fromRelease string
 		platform    string
 		networkType string
+		topology    string
 	}
 	tests := []struct {
 		name string
@@ -35,24 +36,25 @@ func TestGetClosestP95Value(t *testing.T) {
 				fromRelease: "4.10",
 				platform:    "gcp",
 				networkType: "sdn",
+				topology:    "ha",
 			},
 			want: mustDuration("2s"),
 		},
 		{
-			name: "test-that-failed-in-ci",
+			name: "missing",
 			args: args{
 				backendName: "kube-api-reused-connections",
 				release:     "4.10",
 				fromRelease: "4.10",
 				platform:    "azure",
-				networkType: "sdn",
+				topology:    "missing",
 			},
-			want: mustDuration("10.4s"),
+			want: mustDuration("2.718s"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := GetClosestP95Value(tt.args.backendName, tt.args.release, tt.args.fromRelease, tt.args.platform, tt.args.networkType); !reflect.DeepEqual(got, tt.want) {
+			if got := GetClosestP95Value(tt.args.backendName, tt.args.release, tt.args.fromRelease, tt.args.platform, tt.args.networkType, tt.args.topology); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetClosestP95Value() = %v, want %v", got, tt.want)
 			}
 		})
