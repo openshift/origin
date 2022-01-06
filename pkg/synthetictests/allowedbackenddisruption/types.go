@@ -16,34 +16,34 @@ SELECT
 	FromRelease,
 	Platform,
 	Network,
+	Topology,
 	ANY_VALUE(P95) AS P95,
-FROM (
-	SELECT
-		Jobs.Release,
-		Jobs.FromRelease,
-		Jobs.Platform,
-		Jobs.Network,
-		BackendName,
-		PERCENTILE_CONT(BackendDisruption.DisruptionSeconds, 0.95) OVER(PARTITION BY BackendDisruption.BackendName, Jobs.Network, Jobs.Platform, Jobs.Release, Jobs.FromRelease) AS P95,
-	FROM
-		openshift-ci-data-analysis.ci_data.BackendDisruption as BackendDisruption
-	INNER JOIN
-		openshift-ci-data-analysis.ci_data.BackendDisruption_JobRuns as JobRuns on JobRuns.Name = BackendDisruption.JobRunName
-	INNER JOIN
-		openshift-ci-data-analysis.ci_data.Jobs as Jobs on Jobs.JobName = JobRuns.JobName
-	WHERE
-		JobRuns.StartTime BETWEEN TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 10 DAY)
-	AND
-		TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 3 DAY)
-)
-GROUP BY
-	BackendName, Release, FromRelease, Platform, Network
+	FROM (
+		SELECT
+			Jobs.Release,
+			Jobs.FromRelease,
+			Jobs.Platform,
+			Jobs.Network,
+			Jobs.Topology,
+			BackendName,
+			PERCENTILE_CONT(BackendDisruption.DisruptionSeconds, 0.95) OVER(PARTITION BY BackendDisruption.BackendName, Jobs.Network, Jobs.Platform, Jobs.Release, Jobs.FromRelease, Jobs.Topology) AS P95,
+		FROM
+			openshift-ci-data-analysis.ci_data.BackendDisruption as BackendDisruption
+		INNER JOIN
+			openshift-ci-data-analysis.ci_data.BackendDisruption_JobRuns as JobRuns on JobRuns.Name = BackendDisruption.JobRunName
+		INNER JOIN
+			openshift-ci-data-analysis.ci_data.Jobs as Jobs on Jobs.JobName = JobRuns.JobName
+		WHERE
+			JobRuns.StartTime > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 21 DAY)
+	)
+	GROUP BY
+		BackendName, Release, FromRelease, Platform, Network, Topology
 `
 
 	p95Query = `
 SELECT * FROM openshift-ci-data-analysis.ci_data.BackendDisruption_Unified_LastWeek_P95 
 order by 
- BackendName, Release, FromRelease, Platform, Network
+ BackendName, Release, FromRelease, Topology, Platform, Network
 `
 )
 
@@ -67,6 +67,7 @@ type LastWeekP95Key struct {
 	FromRelease string
 	Platform    string
 	Network     string
+	Topology    string
 }
 
 func getCurrentResults() ([]LastWeekP95, map[LastWeekP95Key]LastWeekP95) {

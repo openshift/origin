@@ -36,6 +36,17 @@ func TestGetClosestP95Value(t *testing.T) {
 				platform:    "gcp",
 				networkType: "sdn",
 			},
+			want: mustDuration("2s"),
+		},
+		{
+			name: "test-that-failed-in-ci",
+			args: args{
+				backendName: "kube-api-reused-connections",
+				release:     "4.10",
+				fromRelease: "4.10",
+				platform:    "azure",
+				networkType: "sdn",
+			},
 			want: mustDuration("10.4s"),
 		},
 	}
