@@ -25,6 +25,10 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testAllIngressAvailability(events, duration)...)
 	tests = append(tests, testStableSystemOperatorStateTransitions(events)...)
 	tests = append(tests, testDuplicatedEventForStableSystem(events, kubeClientConfig, testSuite)...)
+	tests = append(tests, testErrImagePullConnTimeoutOpenShiftNamespaces(events)...)
+	tests = append(tests, testErrImagePullConnTimeout(events)...)
+	tests = append(tests, testErrImagePullGenericOpenShiftNamespaces(events)...)
+	tests = append(tests, testErrImagePullGeneric(events)...)
 
 	return tests
 }
@@ -43,6 +47,10 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testNodeUpgradeTransitions(events)...)
 	tests = append(tests, testUpgradeOperatorStateTransitions(events)...)
 	tests = append(tests, testDuplicatedEventForUpgrade(events, kubeClientConfig, testSuite)...)
+	tests = append(tests, testErrImagePullConnTimeoutOpenShiftNamespaces(events)...)
+	tests = append(tests, testErrImagePullConnTimeout(events)...)
+	tests = append(tests, testErrImagePullGenericOpenShiftNamespaces(events)...)
+	tests = append(tests, testErrImagePullGeneric(events)...)
 	return tests
 }
 

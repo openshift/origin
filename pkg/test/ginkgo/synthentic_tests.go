@@ -59,11 +59,12 @@ func createSyntheticTestsFromMonitor(events monitorapi.Intervals, monitorDuratio
 	}
 	fmt.Fprintln(buf)
 
+	monitorTestName := "[sig-arch] Monitor cluster while tests execute"
 	if errorCount > 0 {
 		syntheticTestResults = append(
 			syntheticTestResults,
 			&JUnitTestCase{
-				Name:      "[sig-arch] Monitor cluster while tests execute",
+				Name:      monitorTestName,
 				SystemOut: buf.String(),
 				Duration:  monitorDuration.Seconds(),
 				FailureOutput: &FailureOutput{
@@ -73,8 +74,18 @@ func createSyntheticTestsFromMonitor(events monitorapi.Intervals, monitorDuratio
 			// write a passing test to trigger detection of this issue as a flake, indicating we have no idea whether
 			// these are actual failures or not
 			&JUnitTestCase{
-				Name:     "[sig-arch] Monitor cluster while tests execute",
+				Name:     monitorTestName,
 				Duration: monitorDuration.Seconds(),
+			},
+		)
+	} else {
+		// even if no error events, add a passed test including the output so we can scan with search.ci:
+		syntheticTestResults = append(
+			syntheticTestResults,
+			&JUnitTestCase{
+				Name:      monitorTestName,
+				Duration:  monitorDuration.Seconds(),
+				SystemOut: buf.String(),
 			},
 		)
 	}

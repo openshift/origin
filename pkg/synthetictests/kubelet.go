@@ -3,6 +3,7 @@ package synthetictests
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -361,5 +362,88 @@ func testSystemDTimeout(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
 	}
 
 	// write a passing test to trigger detection of this issue as a flake. Doing this first to try to see how frequent the issue actually is
+	return []*ginkgo.JUnitTestCase{failure, success}
+}
+
+var errImagePullTimeoutRE = regexp.MustCompile("ErrImagePull.*read: connection timed out")
+var errImagePullGenericRE = regexp.MustCompile("ErrImagePull")
+
+// namespaceRestriction is an enum for clearly indicating if were only interested in events in openshift- namespaces,
+// or those that are not.
+type namespaceRestriction int
+
+const (
+	InOpenShiftNS    namespaceRestriction = 0
+	NotInOpenshiftNS namespaceRestriction = 1
+)
+
+func testErrImagePullConnTimeoutOpenShiftNamespaces(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+	const testName = "[sig-node] should not encounter ErrImagePull read connection timeout in openshift namespace pods"
+	return buildTestsFailIfRegexMatch(testName, errImagePullTimeoutRE, nil, InOpenShiftNS, events)
+}
+
+func testErrImagePullConnTimeout(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+	const testName = "[sig-node] should not encounter ErrImagePull read connection timeout in non-openshift namespace pods"
+	return buildTestsFailIfRegexMatch(testName, errImagePullTimeoutRE, nil, NotInOpenshiftNS, events)
+}
+
+func testErrImagePullGenericOpenShiftNamespaces(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+	const testName = "[sig-node] should not encounter ErrImagePull in openshift namespace pods"
+	return buildTestsFailIfRegexMatch(testName, errImagePullGenericRE, errImagePullTimeoutRE, InOpenShiftNS, events)
+}
+
+func testErrImagePullGeneric(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+	const testName = "[sig-node] should not encounter ErrImagePull in non-openshift namespace pods"
+	return buildTestsFailIfRegexMatch(testName, errImagePullGenericRE, errImagePullTimeoutRE, NotInOpenshiftNS, events)
+}
+
+func buildTestsFailIfRegexMatch(testName string, matchRE, dontMatchRE *regexp.Regexp,
+	nsRestriction namespaceRestriction, events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+
+	var matchedIntervals monitorapi.Intervals
+	for _, event := range events {
+		estr := event.String()
+
+		// Skip if the namespace doesn't match what the test was interested in:
+		if (nsRestriction == InOpenShiftNS && !strings.Contains(estr, "ns/openshift-")) ||
+			(nsRestriction == NotInOpenshiftNS && strings.Contains(estr, "ns/openshift-")) {
+			continue
+		}
+
+		// Skip if we don't match the search regex:
+		if !matchRE.MatchString(estr) {
+			continue
+		}
+
+		// Skip if we *do* match the don't match regex:
+		if dontMatchRE != nil && dontMatchRE.MatchString(estr) {
+			continue
+		}
+
+		matchedIntervals = append(matchedIntervals, event)
+	}
+
+	success := &ginkgo.JUnitTestCase{Name: testName}
+	if len(matchedIntervals) == 0 {
+		return []*ginkgo.JUnitTestCase{success}
+	}
+
+	locators := make([]string, 0, len(matchedIntervals))
+	for _, ei := range matchedIntervals {
+		locators = append(locators, ei.Locator)
+	}
+	sort.Strings(locators)
+
+	failure := &ginkgo.JUnitTestCase{
+		Name:      testName,
+		SystemOut: strings.Join(matchedIntervals.Strings(), "\n"),
+		FailureOutput: &ginkgo.FailureOutput{
+			Output: fmt.Sprintf("Found %d ErrImagePull intervals for: \n\n%s",
+				len(locators), strings.Join(locators, "\n")),
+		},
+	}
+
+	// Always including a flake for now because we're unsure what the results of this test will be. In future
+	// we hope to drop this.
 	return []*ginkgo.JUnitTestCase{failure, success}
 }
