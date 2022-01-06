@@ -2,6 +2,8 @@ package images
 
 import (
 	"context"
+	imageutil "github.com/openshift/origin/test/extended/util/image"
+	"os"
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
@@ -18,6 +20,14 @@ import (
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", func() {
 	defer g.GinkgoRecover()
+
+	mirrorRegistryDefined := os.Getenv("TEST_IMAGE_MIRROR_REGISTRY") != ""
+	busyboxImage := "busybox:latest"
+	mysqlImage := "mysql:latest"
+	if mirrorRegistryDefined {
+		busyboxImage, _ = imageutil.GetE2eImageMappedToRegistry(busyboxImage, "library")
+		mysqlImage, _ = imageutil.GetE2eImageMappedToRegistry(mysqlImage, "library")
+	}
 
 	var oc *exutil.CLI
 	var ns string
@@ -48,11 +58,11 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 				Import: true,
 				Images: []imageapi.ImageImportSpec{
 					{
-						From: kapi.ObjectReference{Kind: "DockerImage", Name: "busybox:latest"},
+						From: kapi.ObjectReference{Kind: "DockerImage", Name: busyboxImage},
 						To:   &kapi.LocalObjectReference{Name: "busybox"},
 					},
 					{
-						From: kapi.ObjectReference{Kind: "DockerImage", Name: "mysql:latest"},
+						From: kapi.ObjectReference{Kind: "DockerImage", Name: mysqlImage},
 						To:   &kapi.LocalObjectReference{Name: "mysql"},
 					},
 				},

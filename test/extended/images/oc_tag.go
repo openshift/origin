@@ -3,6 +3,8 @@ package images
 import (
 	"context"
 	"fmt"
+	imageutil "github.com/openshift/origin/test/extended/util/image"
+	"os"
 	"strings"
 
 	g "github.com/onsi/ginkgo"
@@ -20,13 +22,19 @@ var _ = g.Describe("[sig-imageregistry][Feature:Image] oc tag", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("image-oc-tag")
 	ctx := context.Background()
+	mirrorRegistry := os.Getenv("TEST_IMAGE_MIRROR_REGISTRY")
+
+	externalImage := "busybox"
+	expectedPrefix := "busybox@"
+	if mirrorRegistry != "" {
+		expectedPrefix = fmt.Sprintf("%s/library/%s@", mirrorRegistry, externalImage)
+		externalImage, _ = imageutil.GetE2eImageMappedToRegistry(externalImage, "library")
+	}
 
 	g.It("should preserve image reference for external images", func() {
 		const (
-			externalRepository = "busybox"
-			externalImage      = "busybox:latest"
-			isName             = "busybox"
-			isName2            = "busybox2"
+			isName  = "busybox"
+			isName2 = "busybox2"
 		)
 
 		g.By("import an external image")
@@ -44,7 +52,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:Image] oc tag", func() {
 		tag1 := is.Status.Tags[0]
 		o.Expect(tag1.Tag).To(o.Equal("latest"))
 		o.Expect(tag1.Items).To(o.HaveLen(1))
-		o.Expect(tag1.Items[0].DockerImageReference).To(o.HavePrefix(externalRepository + "@"))
+		o.Expect(tag1.Items[0].DockerImageReference).To(o.HavePrefix(expectedPrefix))
 
 		g.By("copy the image to another image stream")
 
@@ -65,12 +73,15 @@ var _ = g.Describe("[sig-imageregistry][Feature:Image] oc tag", func() {
 	})
 
 	g.It("should change image reference for internal images", func() {
+
+		dockerfile := fmt.Sprintf(`
+			FROM %s 
+ 			RUN touch /test-image
+		`, externalImage)
+
 		const (
-			isName     = "localimage"
-			isName2    = "localimage2"
-			dockerfile = `FROM busybox:latest
-RUN touch /test-image
-`
+			isName  = "localimage"
+			isName2 = "localimage2"
 		)
 
 		g.By("determine the name of the integrated registry")
@@ -119,7 +130,7 @@ RUN touch /test-image
 	})
 
 	g.It("should work when only imagestreams api is available", func() {
-		err := oc.Run("tag").Args("--source=docker", "busybox:latest", "testis:latest").Execute()
+		err := oc.Run("tag").Args("--source=docker", externalImage, "testis:latest").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = exutil.WaitForAnImageStreamTag(oc, oc.Namespace(), "testis", "latest")

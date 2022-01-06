@@ -2,6 +2,9 @@ package trigger
 
 import (
 	"context"
+	"fmt"
+	imageutil "github.com/openshift/origin/test/extended/util/image"
+	"os"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -22,6 +25,12 @@ var (
 var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers] Annotation trigger", func() {
 	defer g.GinkgoRecover()
 
+	mirrorRegistryDefined := os.Getenv("TEST_IMAGE_MIRROR_REGISTRY") != ""
+	centosImage := "docker.io/library/centos:latest"
+	if mirrorRegistryDefined {
+		centosImage, _ = imageutil.GetE2eImageMappedToRegistry(centosImage, "library")
+	}
+
 	oc := exutil.NewCLI("cli-deployment")
 
 	var (
@@ -41,8 +50,8 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers] Annotation trigge
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(o.Equal(" "))
 
-		g.By("tagging the docker.io/library/centos:latest as test:v1 image to create ImageStream")
-		out, err := oc.Run("tag").Args("docker.io/library/centos:latest", "test:v1").Output()
+		g.By(fmt.Sprintf("tagging the %s as test:v1 image to create ImageStream", centosImage))
+		out, err := oc.Run("tag").Args(centosImage, "test:v1").Output()
 		framework.Logf("%s", out)
 		o.Expect(err).NotTo(o.HaveOccurred())
 

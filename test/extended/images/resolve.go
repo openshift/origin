@@ -2,18 +2,19 @@ package images
 
 import (
 	"context"
+	imageutil "github.com/openshift/origin/test/extended/util/image"
+	"os"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	exutil "github.com/openshift/origin/test/extended/util"
 	appsv1 "k8s.io/api/apps/v1"
 	kbatchv1 "k8s.io/api/batch/v1"
 	kbatchv1beta1 "k8s.io/api/batch/v1beta1"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-
-	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func() {
@@ -21,13 +22,19 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 	var oc = exutil.NewCLI("resolve-local-names")
 	one := int64(0)
 	ctx := context.Background()
+	mirrorRegistryDefined := os.Getenv("TEST_IMAGE_MIRROR_REGISTRY") != ""
+	busyboxImage := "busybox:latest"
+	expectedBusyboxImageTag := "busybox:latest"
+	if mirrorRegistryDefined {
+		busyboxImage, _ = imageutil.GetE2eImageMappedToRegistry(busyboxImage, "library")
+	}
 
 	g.It("should update standard Kube object image fields when local names are on", func() {
-		err := oc.Run("import-image").Args("busybox:latest", "--confirm").Execute()
+		err := oc.Run("import-image").Args(busyboxImage, "--confirm").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.Run("set", "image-lookup").Args("busybox").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		tag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(ctx, "busybox:latest", metav1.GetOptions{})
+		tag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(ctx, expectedBusyboxImageTag, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(tag.LookupPolicy.Local).To(o.BeTrue())
 
@@ -81,9 +88,9 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 	})
 
 	g.It("should perform lookup when the object has the resolve-names annotation", func() {
-		err := oc.Run("import-image").Args("busybox:latest", "--confirm").Execute()
+		err := oc.Run("import-image").Args(busyboxImage, "--confirm").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		tag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(ctx, "busybox:latest", metav1.GetOptions{})
+		tag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(ctx, expectedBusyboxImageTag, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("auto replacing local references on Pods")
@@ -415,9 +422,9 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 	})
 
 	g.It("should perform lookup when the Deployment gets the resolve-names annotation later", func() {
-		err := oc.Run("import-image").Args("busybox:latest", "--confirm").Execute()
+		err := oc.Run("import-image").Args(busyboxImage, "--confirm").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		tag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(ctx, "busybox:latest", metav1.GetOptions{})
+		tag, err := oc.ImageClient().ImageV1().ImageStreamTags(oc.Namespace()).Get(ctx, expectedBusyboxImageTag, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		deployment, err := oc.KubeClient().AppsV1().Deployments(oc.Namespace()).Create(ctx, &appsv1.Deployment{
