@@ -58,10 +58,58 @@
   {
     "BackendName": "image-registry-new-connections",
     "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "ovn",
-    "P95": "63.89999999999997"
+    "P95": "9.0"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -69,7 +117,7 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "60.0"
+    "P95": "3.0"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -77,7 +125,15 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "64.199999999999974"
+    "P95": "14.0"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "256.7"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -85,7 +141,15 @@
     "FromRelease": "4.10",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "62.0"
+    "P95": "4.0"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "3210.0499999999993"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -93,7 +157,15 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "2368.1999999999994"
+    "P95": "2929.7999999999997"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "14.499999999999998"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -101,7 +173,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
-    "P95": "62.0"
+    "P95": "10.0"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -109,7 +181,15 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "57.54999999999999"
+    "P95": "20.0"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "19.249999999999993"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -117,7 +197,7 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "72.0"
+    "P95": "32.649999999999956"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -125,7 +205,23 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "104.0"
+    "P95": "64.949999999999989"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "11.499999999999988"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "4546.5499999999984"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -133,7 +229,23 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3443.9"
+    "P95": "3364.0"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "394.69999999999993"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "112.49999999999999"
   },
   {
     "BackendName": "image-registry-reused-connections",
@@ -193,6 +305,1270 @@
   },
   {
     "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "5.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "5.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "252.35"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "2.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "3210.0499999999993"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "2929.7999999999997"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "16.7"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "5.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "18.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "3.4999999999999987"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "7.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "8.9499999999999869"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "9.1"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "4546.0999999999985"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "3363.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "352.49999999999994"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "108.49999999999999"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "38.199999999999967"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "4.8",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "29.999999999999961"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "",
+    "Network": "sdn",
+    "P95": "0.29999999999999849"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "0.14999999999999836"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "1.0"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "3132.0"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "3632.5"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "17.0"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "4.9999999999999849"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "26.0"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "600.8"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "4.0"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "4302.45"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "3457.9999999999995"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "21.4"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "201.0"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "46.849999999999987"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "26.999999999999993"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "63.599999999999959"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "135.89999999999998"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "29.099999999999959"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "7679.8499999999995"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "6596.0"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "11.399999999999995"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "13.249999999999991"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "0.14999999999999836"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "3164.1"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "3638.4"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "15.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "2.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "12.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "598.94999999999993"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "4.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "4305.8"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "3457.5999999999995"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "13.8"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "198.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "40.149999999999991"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "12.499999999999996"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "32.599999999999959"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "40.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "20.199999999999996"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "7701.5999999999995"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "6596.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "12.149999999999997"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "12.749999999999996"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "205.29999999999998"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "297.95"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "3483.0"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "21.4"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "33.75"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "19.0"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "56.0"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "3920.45"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "5.9999999999999964"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "2.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "0.14999999999999836"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "3132.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "3632.5"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "17.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "6.9999999999999849"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "27.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "537.35"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "4.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "4301.45"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "3457.9999999999995"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "55.699999999999989"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "19.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "44.849999999999987"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "28.499999999999989"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "65.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "126.94999999999999"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "33.999999999999979"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "7680.4"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "6596.5999999999995"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "10.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "11.25"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "3164.1"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "3638.4"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "aws",
@@ -200,7 +1576,7 @@
     "P95": "10.0"
   },
   {
-    "BackendName": "image-registry-reused-connections",
+    "BackendName": "ingress-to-oauth-server-reused-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "aws",
@@ -208,71 +1584,887 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "image-registry-reused-connections",
+    "BackendName": "ingress-to-oauth-server-reused-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "5.099999999999989"
+    "P95": "6.0"
   },
   {
-    "BackendName": "image-registry-reused-connections",
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "503.59999999999991"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "20.799999999999965"
+    "P95": "2.0"
   },
   {
-    "BackendName": "image-registry-reused-connections",
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "4306.4"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "2368.1999999999994"
+    "P95": "3457.5999999999995"
   },
   {
-    "BackendName": "image-registry-reused-connections",
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "29.199999999999996"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "10.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "39.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "8.8999999999999986"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "25.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "13.949999999999987"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "18.499999999999993"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "7701.5999999999995"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "6596.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "7.1499999999999977"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "5.6999999999999993"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
     "P95": "0.0"
   },
   {
-    "BackendName": "image-registry-reused-connections",
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "210.59999999999997"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "273.55"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "3483.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "21.4"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "29.55"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "19.54999999999999"
+    "P95": "46.249999999999993"
   },
   {
-    "BackendName": "image-registry-reused-connections",
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "1.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "10.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "3921.4"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "53.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "2.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "4.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "3864.2"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "3790.2"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "2.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "1.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "3.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "838.25"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "6.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "7004.75"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "6302.9999999999991"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "4.1"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "2.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "1.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "0.24999999999999933"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "14.699999999999967"
+    "P95": "6.0"
   },
   {
-    "BackendName": "image-registry-reused-connections",
+    "BackendName": "kube-api-new-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "7.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "5.3999999999999648"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "10815.15"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "6880.8"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "17.699999999999996"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "26.249999999999993"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "4.8",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "3864.2"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "3790.2"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
     "Network": "ovn",
     "P95": "8.0"
   },
   {
-    "BackendName": "image-registry-reused-connections",
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "5.8999999999999844"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "3.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "823.7"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "2.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "7004.3"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "6302.9999999999991"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "3.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "5.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "4.84999999999999"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "3.2499999999999964"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "5.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "3.9499999999999877"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "3.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "10815.15"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3443.9"
+    "P95": "6880.8"
   },
   {
-    "BackendName": "image-registry-reused-connections",
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "18.399999999999995"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "24.749999999999996"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
     "Release": "4.9",
     "FromRelease": "4.8",
     "Platform": "aws",
@@ -280,15 +2472,15 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "image-registry-reused-connections",
+    "BackendName": "kube-api-reused-connections",
     "Release": "4.9",
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "40.0"
+    "P95": "0.0"
   },
   {
-    "BackendName": "image-registry-reused-connections",
+    "BackendName": "kube-api-reused-connections",
     "Release": "4.9",
     "FromRelease": "4.8",
     "Platform": "metal",
@@ -296,7 +2488,7 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "image-registry-reused-connections",
+    "BackendName": "kube-api-reused-connections",
     "Release": "4.9",
     "FromRelease": "4.9",
     "Platform": "aws",
@@ -304,15 +2496,15 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "image-registry-reused-connections",
+    "BackendName": "kube-api-reused-connections",
     "Release": "4.9",
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "30.0"
+    "P95": "0.0"
   },
   {
-    "BackendName": "image-registry-reused-connections",
+    "BackendName": "kube-api-reused-connections",
     "Release": "4.9",
     "FromRelease": "4.9",
     "Platform": "metal",
@@ -320,7 +2512,7 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "ingress-to-console-new-connections",
+    "BackendName": "oauth-api-new-connections",
     "Release": "4.10",
     "FromRelease": "",
     "Platform": "",
@@ -328,7 +2520,7 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "ingress-to-console-new-connections",
+    "BackendName": "oauth-api-new-connections",
     "Release": "4.10",
     "FromRelease": "",
     "Platform": "aws",
@@ -336,7 +2528,7 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "ingress-to-console-new-connections",
+    "BackendName": "oauth-api-new-connections",
     "Release": "4.10",
     "FromRelease": "",
     "Platform": "aws",
@@ -344,7 +2536,7 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "ingress-to-console-new-connections",
+    "BackendName": "oauth-api-new-connections",
     "Release": "4.10",
     "FromRelease": "",
     "Platform": "azure",
@@ -352,7 +2544,7 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "ingress-to-console-new-connections",
+    "BackendName": "oauth-api-new-connections",
     "Release": "4.10",
     "FromRelease": "",
     "Platform": "azure",
@@ -360,103 +2552,279 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "ingress-to-console-new-connections",
+    "BackendName": "oauth-api-new-connections",
     "Release": "4.10",
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "0.0"
+    "P95": "3.7999999999999963"
   },
   {
-    "BackendName": "ingress-to-console-new-connections",
+    "BackendName": "oauth-api-new-connections",
     "Release": "4.10",
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "P95": "3.5999999999999819"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "3864.2"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "3790.2"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
     "P95": "0.0"
   },
   {
-    "BackendName": "ingress-to-console-new-connections",
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "ovn",
-    "P95": "62.0"
+    "P95": "5.0"
   },
   {
-    "BackendName": "ingress-to-console-new-connections",
+    "BackendName": "oauth-api-new-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "62.0"
+    "P95": "2.0"
   },
   {
-    "BackendName": "ingress-to-console-new-connections",
+    "BackendName": "oauth-api-new-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "66.05"
+    "P95": "3.0"
   },
   {
-    "BackendName": "ingress-to-console-new-connections",
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "1031.15"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "62.0"
+    "P95": "7.0"
   },
   {
-    "BackendName": "ingress-to-console-new-connections",
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "7004.75"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "2926.2"
+    "P95": "6302.9999999999991"
   },
   {
-    "BackendName": "ingress-to-console-new-connections",
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "6.3999999999999995"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
-    "P95": "64.299999999999983"
+    "P95": "5.0"
   },
   {
-    "BackendName": "ingress-to-console-new-connections",
+    "BackendName": "oauth-api-new-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "70.799999999999983"
+    "P95": "14.849999999999991"
   },
   {
-    "BackendName": "ingress-to-console-new-connections",
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "105.99999999999974"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "81.34999999999998"
+    "P95": "31.0"
   },
   {
-    "BackendName": "ingress-to-console-new-connections",
+    "BackendName": "oauth-api-new-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "103.49999999999999"
+    "P95": "7.9499999999999877"
   },
   {
-    "BackendName": "ingress-to-console-new-connections",
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "30.899999999999977"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "10815.15"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3443.2"
+    "P95": "6880.8"
   },
   {
-    "BackendName": "ingress-to-console-reused-connections",
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "24.399999999999995"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "30.999999999999993"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "4.8",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.99999999999999556"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
     "Release": "4.10",
     "FromRelease": "",
     "Platform": "",
@@ -464,7 +2832,7 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "ingress-to-console-reused-connections",
+    "BackendName": "oauth-api-reused-connections",
     "Release": "4.10",
     "FromRelease": "",
     "Platform": "aws",
@@ -472,7 +2840,7 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "ingress-to-console-reused-connections",
+    "BackendName": "oauth-api-reused-connections",
     "Release": "4.10",
     "FromRelease": "",
     "Platform": "aws",
@@ -480,7 +2848,7 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "ingress-to-console-reused-connections",
+    "BackendName": "oauth-api-reused-connections",
     "Release": "4.10",
     "FromRelease": "",
     "Platform": "azure",
@@ -488,7 +2856,7 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "ingress-to-console-reused-connections",
+    "BackendName": "oauth-api-reused-connections",
     "Release": "4.10",
     "FromRelease": "",
     "Platform": "azure",
@@ -496,7 +2864,7 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "ingress-to-console-reused-connections",
+    "BackendName": "oauth-api-reused-connections",
     "Release": "4.10",
     "FromRelease": "",
     "Platform": "gcp",
@@ -504,7 +2872,7 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "ingress-to-console-reused-connections",
+    "BackendName": "oauth-api-reused-connections",
     "Release": "4.10",
     "FromRelease": "",
     "Platform": "gcp",
@@ -512,7 +2880,991 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "ingress-to-console-reused-connections",
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "3864.2"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "3790.2"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "9.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "5.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "4.19999999999999"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "1017.5999999999999"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "2.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "7004.75"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "6302.9999999999991"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "8.1"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "6.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "15.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "6.4999999999999911"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "28.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "6.9499999999999877"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "19.099999999999998"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "10815.15"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "6880.2"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "19.699999999999996"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "26.999999999999993"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "61.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "4.8",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "2.8999999999999981"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "4.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "3864.2"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "3790.2"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "3.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "1.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "4.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "1080.75"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "6.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "7004.75"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "6302.9999999999991"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "8.4999999999999982"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "3.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "14.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "131.74999999999972"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "26.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "9.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "28.399999999999974"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "10815.15"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "6880.8"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "26.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "32.249999999999993"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "4.8",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.9",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "3864.2"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "3790.2"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "8.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "5.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "4.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "1069.35"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "2.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "7004.75"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "6302.9999999999991"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "10.299999999999997"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "6.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "14.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "17.249999999999993"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "25.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "6.9499999999999877"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "21.299999999999997"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "10815.15"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "6880.8"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "24.79999999999999"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "29.499999999999996"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "61.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "4.8",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.9",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "aws",
@@ -520,1351 +3872,143 @@
     "P95": "18.0"
   },
   {
-    "BackendName": "ingress-to-console-reused-connections",
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "ingress-to-console-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "ovn",
-    "P95": "52.05"
-  },
-  {
-    "BackendName": "ingress-to-console-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "39.1999999999996"
-  },
-  {
-    "BackendName": "ingress-to-console-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "2926.2"
-  },
-  {
-    "BackendName": "ingress-to-console-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "61.299999999999983"
-  },
-  {
-    "BackendName": "ingress-to-console-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "58.399999999999878"
-  },
-  {
-    "BackendName": "ingress-to-console-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "sdn",
-    "P95": "41.049999999999947"
-  },
-  {
-    "BackendName": "ingress-to-console-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "P95": "66.749999999999972"
-  },
-  {
-    "BackendName": "ingress-to-console-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "3443.9"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "62.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "62.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "ovn",
-    "P95": "62.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "61.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "2926.2"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "62.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "71.19999999999996"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "sdn",
-    "P95": "73.34999999999998"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "P95": "103.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "3443.9"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "14.849999999999957"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "22.499999999999709"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "ovn",
-    "P95": "53.05"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "10.399999999999983"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "2926.2"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "10.299999999999983"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "37.999999999999943"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "sdn",
-    "P95": "23.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "P95": "13.249999999999984"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "3443.9"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "6.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "P95": "0.69999999999999885"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "P95": "4.79999999999999"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "3.39999999999998"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "2.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "15.399999999999983"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "8340.5999999999985"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "2.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "2.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "sdn",
-    "P95": "26.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "ovn",
     "P95": "12.0"
   },
   {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "10633.8"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "4.8",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "4.8",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "4.8",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "6.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "P95": "0.69999999999999885"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "P95": "3.7999999999999936"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "2.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "2.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "0.0"
+    "P95": "9.0"
   },
   {
-    "BackendName": "kube-api-reused-connections",
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "21.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "8340.1999999999989"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "1.2999999999999834"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "1.8499999999999972"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "24.0"
+    "P95": "4.0"
   },
   {
-    "BackendName": "kube-api-reused-connections",
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
     "Release": "4.10",
-    "FromRelease": "4.9",
+    "FromRelease": "4.10",
     "Platform": "gcp",
-    "Network": "ovn",
-    "P95": "13.749999999999995"
+    "Network": "sdn",
+    "P95": "1.0"
   },
   {
-    "BackendName": "kube-api-reused-connections",
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
     "Release": "4.10",
-    "FromRelease": "4.9",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "10633.8"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
     "P95": "0.0"
   },
   {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "4.8",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.9",
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "0.0"
+    "P95": "2.3999999999999995"
   },
   {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "4.8",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "6.0"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "P95": "0.69999999999999885"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "P95": "5.399999999999995"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "2.3499999999999952"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "3.0"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "15.399999999999983"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "8340.1999999999989"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
-    "P95": "3.0"
+    "P95": "19.0"
   },
   {
-    "BackendName": "oauth-api-new-connections",
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "aws",
-    "Network": "sdn",
-    "P95": "21.0"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "sdn",
-    "P95": "48.049999999999947"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "P95": "14.749999999999995"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "10633.8"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "4.8",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "4.8",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "4.8",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "0.39999999999999769"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "0.34999999999999942"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "6.0"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "P95": "1.0499999999999983"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "P95": "4.79999999999999"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "2.3499999999999952"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "3.0"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
     "Network": "sdn",
     "P95": "15.0"
   },
   {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "8340.5999999999985"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "2.0"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "16.849999999999998"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "azure",
-    "Network": "sdn",
-    "P95": "45.34999999999998"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
     "Network": "ovn",
-    "P95": "138.75"
+    "P95": "89.499999999999986"
   },
   {
-    "BackendName": "oauth-api-reused-connections",
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "10633.8"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "4.8",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "62.0"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "4.8",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "4.8",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "6.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
     "Platform": "azure",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "P95": "6.7999999999999829"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "3.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "3.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
     "Network": "sdn",
     "P95": "12.0"
   },
   {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "8340.1999999999989"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "2.2999999999999834"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "21.849999999999998"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "sdn",
-    "P95": "42.049999999999947"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "16.499999999999989"
+    "P95": "151.0"
   },
   {
-    "BackendName": "openshift-api-new-connections",
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "11.799999999999986"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "metal",
-    "Network": "sdn",
-    "P95": "10633.8"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "4.8",
-    "Platform": "aws",
     "Network": "ovn",
     "P95": "0.0"
   },
   {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "4.8",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "4.8",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.9",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.9",
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
     "P95": "0.0"
   },
   {
-    "BackendName": "openshift-api-reused-connections",
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
     "FromRelease": "",
     "Platform": "",
@@ -1872,7 +4016,7 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "openshift-api-reused-connections",
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
     "FromRelease": "",
     "Platform": "aws",
@@ -1880,271 +4024,127 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "openshift-api-reused-connections",
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
     "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "6.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "P95": "0.34999999999999942"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "P95": "6.7999999999999829"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "1.349999999999995"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "3.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
     "P95": "0.0"
   },
   {
-    "BackendName": "openshift-api-reused-connections",
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
-    "FromRelease": "4.10",
+    "FromRelease": "",
     "Platform": "azure",
     "Network": "ovn",
     "P95": "0.0"
   },
   {
-    "BackendName": "openshift-api-reused-connections",
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
+    "FromRelease": "",
+    "Platform": "azure",
     "Network": "sdn",
-    "P95": "15.399999999999983"
+    "P95": "0.0"
   },
   {
-    "BackendName": "openshift-api-reused-connections",
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
-    "FromRelease": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
     "Platform": "metal",
-    "Network": "sdn",
-    "P95": "8340.1999999999989"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
     "Network": "ovn",
-    "P95": "3.0"
+    "P95": "0.0"
   },
   {
-    "BackendName": "openshift-api-reused-connections",
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "17.849999999999998"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "sdn",
-    "P95": "40.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "P95": "134.49999999999991"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "10633.8"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.9",
     "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "4.8",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "62.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "4.8",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "4.8",
     "Platform": "metal",
     "Network": "sdn",
     "P95": "0.0"
   },
   {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.9",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
     "FromRelease": "",
-    "Platform": "",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
+    "Platform": "ovirt",
     "Network": "ovn",
     "P95": "0.0"
   },
   {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
     "FromRelease": "",
-    "Platform": "aws",
+    "Platform": "ovirt",
     "Network": "sdn",
     "P95": "0.0"
   },
   {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
     "FromRelease": "",
-    "Platform": "azure",
+    "Platform": "vsphere",
     "Network": "ovn",
     "P95": "0.0"
   },
   {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
     "FromRelease": "",
-    "Platform": "azure",
+    "Platform": "vsphere",
     "Network": "sdn",
     "P95": "0.0"
   },
   {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "ovn",
-    "P95": "23.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
     "P95": "10.0"
   },
   {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "2.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "24.049999999999994"
+    "P95": "4.0"
   },
   {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "P95": "2.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "gcp",
@@ -2152,7 +4152,15 @@
     "P95": "10.0"
   },
   {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "metal",
@@ -2160,172 +4168,68 @@
     "P95": "0.0"
   },
   {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "P95": "19.099999999999998"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
-    "P95": "25.0"
+    "P95": "11.0"
   },
   {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "15.399999999999988"
+    "P95": "19.099999999999941"
   },
   {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "azure",
-    "Network": "sdn",
-    "P95": "26.0"
+    "Network": "ovn",
+    "P95": "87.999999999999986"
   },
   {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
     "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "P95": "233.49999999999989"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
     "Platform": "azure",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "0.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "21.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
     "Network": "sdn",
     "P95": "20.0"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
     "Network": "ovn",
-    "P95": "30.0"
+    "P95": "110.0"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
-    "FromRelease": "4.10",
+    "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "30.0"
+    "P95": "9.3999999999999737"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.10",
-    "FromRelease": "4.10",
+    "FromRelease": "4.9",
     "Platform": "metal",
-    "Network": "sdn",
+    "Network": "ovn",
     "P95": "0.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "ovn",
-    "P95": "21.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "P95": "30.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "sdn",
-    "P95": "50.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-reused-connections",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "P95": "135.49999999999997"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -2337,11 +4241,27 @@
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
     "Release": "4.9",
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "ovn",
-    "P95": "60.349999999999994"
+    "P95": "42.0"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -2349,7 +4269,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "24.79999999999999"
+    "P95": "24.699999999999996"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -2365,7 +4285,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "11.0"
+    "P95": "8.6499999999999915"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -2373,7 +4293,7 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "33.999999999999979"
+    "P95": "39.999999999999957"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",

@@ -43,7 +43,8 @@ GROUP BY
 	p95Query = `
 SELECT * FROM openshift-ci-data-analysis.ci_data.BackendDisruption_Unified_LastWeek_P95 
 order by 
- BackendName, Release, FromRelease, Platform, Network`
+ BackendName, Release, FromRelease, Platform, Network
+`
 )
 
 //go:embed query_results.json
