@@ -65,7 +65,15 @@ func GetAllowedDisruption(ctx context.Context, backendName string, clientConfig 
 		networkType = "ovn"
 	}
 
-	return GetClosestP95Value(backendName, release, fromRelease, platform, networkType), nil
+	topology := ""
+	switch infrastructure.Status.ControlPlaneTopology {
+	case configv1.HighlyAvailableTopologyMode:
+		topology = "ha"
+	case configv1.SingleReplicaTopologyMode:
+		topology = "single"
+	}
+
+	return GetClosestP95Value(backendName, release, fromRelease, platform, networkType, topology), nil
 }
 
 func versionFromHistory(history configv1.UpdateHistory) string {
@@ -81,25 +89,30 @@ func versionFromHistory(history configv1.UpdateHistory) string {
 	return version
 }
 
-func GetClosestP95Value(backendName, release, fromRelease, platform, networkType string) *time.Duration {
+func GetClosestP95Value(backendName, release, fromRelease, platform, networkType, topology string) *time.Duration {
 	exactMatchKey := LastWeekP95Key{
 		BackendName: backendName,
 		Release:     release,
 		FromRelease: fromRelease,
 		Platform:    platform,
 		Network:     networkType,
+		Topology:    topology,
 	}
 	_, p95AsMap := getCurrentResults()
 
-	zeroSeconds := 0 * time.Second
+	// chose so we can find them easily in the log
+	defaultSeconds, err := time.ParseDuration("2.718s")
+	if err != nil {
+		panic(err)
+	}
 
 	if p95, ok := p95AsMap[exactMatchKey]; ok {
 		ret, err := time.ParseDuration(fmt.Sprintf("%2fs", p95.P95))
 		if err != nil {
-			return &zeroSeconds
+			return &defaultSeconds
 		}
 		return &ret
 	}
 
-	return &zeroSeconds
+	return &defaultSeconds
 }

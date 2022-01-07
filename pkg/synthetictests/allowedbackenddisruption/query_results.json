@@ -5,6 +5,7 @@
     "FromRelease": "",
     "Platform": "",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -13,6 +14,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -21,6 +23,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -29,6 +32,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -37,6 +41,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -45,6 +50,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -53,6 +59,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -61,6 +68,7 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -69,6 +77,7 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -77,6 +86,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -85,6 +95,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -93,6 +104,7 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -101,6 +113,25 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
     "P95": "0.0"
   },
   {
@@ -109,7 +140,8 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "ovn",
-    "P95": "9.0"
+    "Topology": "ha",
+    "P95": "8.6499999999999559"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -117,38 +149,43 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.0"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "14.849999999999991"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
     "P95": "3.0"
   },
   {
     "BackendName": "image-registry-new-connections",
     "Release": "4.10",
     "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "ovn",
-    "P95": "14.0"
-  },
-  {
-    "BackendName": "image-registry-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "sdn",
-    "P95": "256.7"
-  },
-  {
-    "BackendName": "image-registry-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "P95": "4.0"
-  },
-  {
-    "BackendName": "image-registry-new-connections",
-    "Release": "4.10",
-    "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "3210.0499999999993"
   },
   {
@@ -157,7 +194,26 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "2929.7999999999997"
+    "Topology": "ha",
+    "P95": "2921.1"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "217.65"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "261.0"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -165,6 +221,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "14.499999999999998"
   },
   {
@@ -173,6 +230,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "10.0"
   },
   {
@@ -181,6 +239,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "20.0"
   },
   {
@@ -189,7 +248,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "19.249999999999993"
+    "Topology": "ha",
+    "P95": "18.599999999999991"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -197,7 +257,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "32.649999999999956"
+    "Topology": "ha",
+    "P95": "32.0"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -205,7 +266,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "64.949999999999989"
+    "Topology": "ha",
+    "P95": "64.59999999999998"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -213,7 +275,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "11.499999999999988"
+    "Topology": "ha",
+    "P95": "12.64999999999999"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -221,7 +284,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "4546.5499999999984"
+    "Topology": "ha",
+    "P95": "4410.6499999999978"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -229,7 +293,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3364.0"
+    "Topology": "ha",
+    "P95": "3359.0"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -237,6 +302,7 @@
     "FromRelease": "4.9",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "394.69999999999993"
   },
   {
@@ -245,7 +311,8 @@
     "FromRelease": "4.9",
     "Platform": "vsphere",
     "Network": "sdn",
-    "P95": "112.49999999999999"
+    "Topology": "ha",
+    "P95": "111.6"
   },
   {
     "BackendName": "image-registry-reused-connections",
@@ -253,6 +320,7 @@
     "FromRelease": "",
     "Platform": "",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -261,6 +329,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -269,6 +338,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -277,6 +347,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -285,6 +356,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -293,6 +365,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -301,6 +374,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -309,6 +383,7 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -317,6 +392,7 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -325,6 +401,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -333,6 +410,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -341,6 +419,7 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -349,6 +428,25 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
     "P95": "0.0"
   },
   {
@@ -357,6 +455,7 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "5.0"
   },
   {
@@ -365,6 +464,7 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -373,6 +473,7 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "5.0"
   },
   {
@@ -381,7 +482,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "252.35"
+    "Topology": "ha",
+    "P95": "0.0"
   },
   {
     "BackendName": "image-registry-reused-connections",
@@ -389,6 +491,7 @@
     "FromRelease": "4.10",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "2.0"
   },
   {
@@ -397,6 +500,7 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "3210.0499999999993"
   },
   {
@@ -405,7 +509,26 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "2929.7999999999997"
+    "Topology": "ha",
+    "P95": "2921.1"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "217.65"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "255.0"
   },
   {
     "BackendName": "image-registry-reused-connections",
@@ -413,6 +536,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "16.7"
   },
   {
@@ -421,6 +545,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "5.0"
   },
   {
@@ -429,6 +554,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "18.0"
   },
   {
@@ -437,7 +563,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "3.4999999999999987"
+    "Topology": "ha",
+    "P95": "4.1999999999999993"
   },
   {
     "BackendName": "image-registry-reused-connections",
@@ -445,6 +572,7 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "7.0"
   },
   {
@@ -453,7 +581,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "8.9499999999999869"
+    "Topology": "ha",
+    "P95": "8.5999999999999872"
   },
   {
     "BackendName": "image-registry-reused-connections",
@@ -461,7 +590,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "9.1"
+    "Topology": "ha",
+    "P95": "9.0499999999999989"
   },
   {
     "BackendName": "image-registry-reused-connections",
@@ -469,7 +599,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "4546.0999999999985"
+    "Topology": "ha",
+    "P95": "4410.2999999999984"
   },
   {
     "BackendName": "image-registry-reused-connections",
@@ -477,7 +608,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3363.0"
+    "Topology": "ha",
+    "P95": "3358.0"
   },
   {
     "BackendName": "image-registry-reused-connections",
@@ -485,6 +617,7 @@
     "FromRelease": "4.9",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "352.49999999999994"
   },
   {
@@ -493,7 +626,8 @@
     "FromRelease": "4.9",
     "Platform": "vsphere",
     "Network": "sdn",
-    "P95": "108.49999999999999"
+    "Topology": "ha",
+    "P95": "107.39999999999998"
   },
   {
     "BackendName": "image-registry-reused-connections",
@@ -501,6 +635,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -509,7 +644,8 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "38.199999999999967"
+    "Topology": "ha",
+    "P95": "37.299999999999969"
   },
   {
     "BackendName": "image-registry-reused-connections",
@@ -517,6 +653,7 @@
     "FromRelease": "4.8",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -525,6 +662,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -533,7 +671,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "29.999999999999961"
+    "Topology": "ha",
+    "P95": "29.099999999999959"
   },
   {
     "BackendName": "image-registry-reused-connections",
@@ -541,6 +680,7 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -549,7 +689,8 @@
     "FromRelease": "",
     "Platform": "",
     "Network": "sdn",
-    "P95": "0.29999999999999849"
+    "Topology": "ha",
+    "P95": "0.49999999999999867"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -557,6 +698,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -565,6 +707,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -573,6 +716,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -581,6 +725,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -589,7 +734,8 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "0.14999999999999836"
+    "Topology": "ha",
+    "P95": "1.0499999999999983"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -597,6 +743,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "1.0"
   },
   {
@@ -605,7 +752,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "3132.0"
+    "Topology": "ha",
+    "P95": "3129.0"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -613,7 +761,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3632.5"
+    "Topology": "ha",
+    "P95": "3639.1"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -621,6 +770,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -629,6 +779,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -637,6 +788,7 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -645,7 +797,26 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "15.549999999999994"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "544.8"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -653,6 +824,7 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "17.0"
   },
   {
@@ -661,7 +833,8 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "4.9999999999999849"
+    "Topology": "ha",
+    "P95": "4.0"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -669,6 +842,7 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "26.0"
   },
   {
@@ -677,7 +851,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "600.8"
+    "Topology": "ha",
+    "P95": "0.14999999999999925"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -685,6 +860,7 @@
     "FromRelease": "4.10",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "4.0"
   },
   {
@@ -693,6 +869,7 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "4302.45"
   },
   {
@@ -701,7 +878,26 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3457.9999999999995"
+    "Topology": "ha",
+    "P95": "3391.9999999999995"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "502.4"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "606.3"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -709,6 +905,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "21.4"
   },
   {
@@ -717,6 +914,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "201.0"
   },
   {
@@ -725,7 +923,8 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "46.849999999999987"
+    "Topology": "ha",
+    "P95": "46.54999999999999"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -733,7 +932,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "26.999999999999993"
+    "Topology": "ha",
+    "P95": "26.399999999999991"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -741,7 +941,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "63.599999999999959"
+    "Topology": "ha",
+    "P95": "65.549999999999955"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -749,7 +950,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "135.89999999999998"
+    "Topology": "ha",
+    "P95": "135.19999999999996"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -757,7 +959,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "29.099999999999959"
+    "Topology": "ha",
+    "P95": "34.149999999999963"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -765,7 +968,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "7679.8499999999995"
+    "Topology": "ha",
+    "P95": "7658.5499999999993"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -773,7 +977,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "6596.0"
+    "Topology": "ha",
+    "P95": "6588.0"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -781,6 +986,7 @@
     "FromRelease": "4.9",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "11.399999999999995"
   },
   {
@@ -789,7 +995,8 @@
     "FromRelease": "4.9",
     "Platform": "vsphere",
     "Network": "sdn",
-    "P95": "13.249999999999991"
+    "Topology": "ha",
+    "P95": "12.599999999999991"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -797,6 +1004,7 @@
     "FromRelease": "",
     "Platform": "",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -805,6 +1013,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -813,6 +1022,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -821,6 +1031,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -829,6 +1040,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -837,7 +1049,8 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "0.14999999999999836"
+    "Topology": "ha",
+    "P95": "1.0499999999999983"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -845,6 +1058,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -853,7 +1067,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "3164.1"
+    "Topology": "ha",
+    "P95": "3153.0"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -861,7 +1076,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3638.4"
+    "Topology": "ha",
+    "P95": "3640.6"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -869,6 +1085,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -877,6 +1094,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -885,6 +1103,7 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -893,7 +1112,26 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "4.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "545.1"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -901,6 +1139,7 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "15.0"
   },
   {
@@ -909,7 +1148,8 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "2.0"
+    "Topology": "ha",
+    "P95": "1.0"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -917,7 +1157,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "12.0"
+    "Topology": "ha",
+    "P95": "12.199999999999989"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -925,7 +1166,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "598.94999999999993"
+    "Topology": "ha",
+    "P95": "2.1999999999999993"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -933,7 +1175,8 @@
     "FromRelease": "4.10",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "4.0"
+    "Topology": "ha",
+    "P95": "3.0"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -941,6 +1184,7 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "4305.8"
   },
   {
@@ -949,7 +1193,26 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3457.5999999999995"
+    "Topology": "ha",
+    "P95": "3391.4499999999994"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "497.2"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "604.0"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -957,6 +1220,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "13.8"
   },
   {
@@ -965,7 +1229,8 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
-    "P95": "198.0"
+    "Topology": "ha",
+    "P95": "198.39999999999995"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -973,7 +1238,8 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "40.149999999999991"
+    "Topology": "ha",
+    "P95": "40.0"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -981,7 +1247,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "12.499999999999996"
+    "Topology": "ha",
+    "P95": "12.249999999999996"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -989,7 +1256,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "32.599999999999959"
+    "Topology": "ha",
+    "P95": "33.0"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -997,6 +1265,7 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "40.0"
   },
   {
@@ -1005,7 +1274,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "20.199999999999996"
+    "Topology": "ha",
+    "P95": "19.799999999999994"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -1013,7 +1283,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "7701.5999999999995"
+    "Topology": "ha",
+    "P95": "7680.4"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -1021,7 +1292,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "6596.0"
+    "Topology": "ha",
+    "P95": "6588.0"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -1029,7 +1301,8 @@
     "FromRelease": "4.9",
     "Platform": "ovirt",
     "Network": "sdn",
-    "P95": "12.149999999999997"
+    "Topology": "ha",
+    "P95": "12.049999999999997"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -1037,7 +1310,8 @@
     "FromRelease": "4.9",
     "Platform": "vsphere",
     "Network": "sdn",
-    "P95": "12.749999999999996"
+    "Topology": "ha",
+    "P95": "12.499999999999996"
   },
   {
     "BackendName": "ingress-to-console-used-connections",
@@ -1045,6 +1319,7 @@
     "FromRelease": "",
     "Platform": "",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1053,6 +1328,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1061,6 +1337,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1069,6 +1346,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1077,6 +1355,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1085,6 +1364,7 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1093,6 +1373,7 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1101,6 +1382,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1109,6 +1391,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1117,6 +1400,7 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1125,6 +1409,16 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
     "P95": "0.0"
   },
   {
@@ -1133,7 +1427,8 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "205.29999999999998"
+    "Topology": "ha",
+    "P95": "9.5"
   },
   {
     "BackendName": "ingress-to-console-used-connections",
@@ -1141,7 +1436,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "297.95"
+    "Topology": "ha",
+    "P95": "0.0"
   },
   {
     "BackendName": "ingress-to-console-used-connections",
@@ -1149,7 +1445,26 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "3483.0"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "227.0"
+  },
+  {
+    "BackendName": "ingress-to-console-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "300.3"
   },
   {
     "BackendName": "ingress-to-console-used-connections",
@@ -1157,6 +1472,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "21.4"
   },
   {
@@ -1165,6 +1481,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "33.75"
   },
   {
@@ -1173,7 +1490,8 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "19.0"
+    "Topology": "ha",
+    "P95": "19.2"
   },
   {
     "BackendName": "ingress-to-console-used-connections",
@@ -1181,6 +1499,7 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "56.0"
   },
   {
@@ -1189,6 +1508,7 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1197,6 +1517,7 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "3920.45"
   },
   {
@@ -1205,7 +1526,8 @@
     "FromRelease": "4.9",
     "Platform": "ovirt",
     "Network": "sdn",
-    "P95": "5.9999999999999964"
+    "Topology": "ha",
+    "P95": "0.0"
   },
   {
     "BackendName": "ingress-to-console-used-connections",
@@ -1213,6 +1535,7 @@
     "FromRelease": "4.9",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1221,6 +1544,7 @@
     "FromRelease": "",
     "Platform": "",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1229,6 +1553,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1237,7 +1562,8 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "2.0"
+    "Topology": "ha",
+    "P95": "0.0"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -1245,6 +1571,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1253,6 +1580,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1261,7 +1589,8 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "0.14999999999999836"
+    "Topology": "ha",
+    "P95": "1.0499999999999983"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -1269,6 +1598,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1277,7 +1607,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "3132.0"
+    "Topology": "ha",
+    "P95": "3129.0"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -1285,7 +1616,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3632.5"
+    "Topology": "ha",
+    "P95": "3639.1"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -1293,6 +1625,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1301,6 +1634,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1309,6 +1643,7 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1317,15 +1652,35 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
     "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "91.85"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "544.8"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "ovn",
-    "P95": "17.0"
+    "Topology": "ha",
+    "P95": "16.0"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -1333,7 +1688,8 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "6.9999999999999849"
+    "Topology": "ha",
+    "P95": "4.0"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -1341,7 +1697,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "27.0"
+    "Topology": "ha",
+    "P95": "27.199999999999989"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -1349,7 +1706,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "537.35"
+    "Topology": "ha",
+    "P95": "0.0"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -1357,6 +1715,7 @@
     "FromRelease": "4.10",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "4.0"
   },
   {
@@ -1365,6 +1724,7 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "4301.45"
   },
   {
@@ -1373,7 +1733,26 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3457.9999999999995"
+    "Topology": "ha",
+    "P95": "3391.9999999999995"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "530.65"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "570.59999999999945"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -1381,6 +1760,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "55.699999999999989"
   },
   {
@@ -1389,6 +1769,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "19.0"
   },
   {
@@ -1397,7 +1778,8 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "44.849999999999987"
+    "Topology": "ha",
+    "P95": "44.54999999999999"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -1405,7 +1787,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "28.499999999999989"
+    "Topology": "ha",
+    "P95": "27.79999999999999"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -1413,7 +1796,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "65.0"
+    "Topology": "ha",
+    "P95": "65.549999999999955"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -1421,7 +1805,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "126.94999999999999"
+    "Topology": "ha",
+    "P95": "127.0"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -1429,7 +1814,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "33.999999999999979"
+    "Topology": "ha",
+    "P95": "32.499999999999972"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -1437,7 +1823,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "7680.4"
+    "Topology": "ha",
+    "P95": "7659.2"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -1445,7 +1832,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "6596.5999999999995"
+    "Topology": "ha",
+    "P95": "6588.7"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -1453,6 +1841,7 @@
     "FromRelease": "4.9",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "10.0"
   },
   {
@@ -1461,7 +1850,8 @@
     "FromRelease": "4.9",
     "Platform": "vsphere",
     "Network": "sdn",
-    "P95": "11.25"
+    "Topology": "ha",
+    "P95": "11.2"
   },
   {
     "BackendName": "ingress-to-oauth-server-reused-connections",
@@ -1469,6 +1859,7 @@
     "FromRelease": "",
     "Platform": "",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1477,6 +1868,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1485,6 +1877,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1493,6 +1886,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1501,6 +1895,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1509,6 +1904,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1517,6 +1913,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1525,7 +1922,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "3164.1"
+    "Topology": "ha",
+    "P95": "3153.0"
   },
   {
     "BackendName": "ingress-to-oauth-server-reused-connections",
@@ -1533,7 +1931,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3638.4"
+    "Topology": "ha",
+    "P95": "3640.6"
   },
   {
     "BackendName": "ingress-to-oauth-server-reused-connections",
@@ -1541,6 +1940,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1549,6 +1949,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1557,6 +1958,7 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1565,7 +1967,26 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "38.24999999999995"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "545.1"
   },
   {
     "BackendName": "ingress-to-oauth-server-reused-connections",
@@ -1573,6 +1994,7 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "10.0"
   },
   {
@@ -1581,6 +2003,7 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1589,7 +2012,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "6.0"
+    "Topology": "ha",
+    "P95": "6.1999999999999895"
   },
   {
     "BackendName": "ingress-to-oauth-server-reused-connections",
@@ -1597,7 +2021,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "503.59999999999991"
+    "Topology": "ha",
+    "P95": "0.0"
   },
   {
     "BackendName": "ingress-to-oauth-server-reused-connections",
@@ -1605,6 +2030,7 @@
     "FromRelease": "4.10",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "2.0"
   },
   {
@@ -1613,6 +2039,7 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "4306.4"
   },
   {
@@ -1621,7 +2048,26 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3457.5999999999995"
+    "Topology": "ha",
+    "P95": "3391.4499999999994"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "472.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "578.24999999999966"
   },
   {
     "BackendName": "ingress-to-oauth-server-reused-connections",
@@ -1629,6 +2075,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "29.199999999999996"
   },
   {
@@ -1637,6 +2084,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "10.0"
   },
   {
@@ -1645,7 +2093,8 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "39.0"
+    "Topology": "ha",
+    "P95": "38.79999999999999"
   },
   {
     "BackendName": "ingress-to-oauth-server-reused-connections",
@@ -1653,7 +2102,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "8.8999999999999986"
+    "Topology": "ha",
+    "P95": "8.7499999999999982"
   },
   {
     "BackendName": "ingress-to-oauth-server-reused-connections",
@@ -1661,6 +2111,7 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "25.0"
   },
   {
@@ -1669,7 +2120,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "13.949999999999987"
+    "Topology": "ha",
+    "P95": "13.0"
   },
   {
     "BackendName": "ingress-to-oauth-server-reused-connections",
@@ -1677,7 +2129,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "18.499999999999993"
+    "Topology": "ha",
+    "P95": "17.999999999999993"
   },
   {
     "BackendName": "ingress-to-oauth-server-reused-connections",
@@ -1685,7 +2138,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "7701.5999999999995"
+    "Topology": "ha",
+    "P95": "7680.4"
   },
   {
     "BackendName": "ingress-to-oauth-server-reused-connections",
@@ -1693,7 +2147,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "6596.0"
+    "Topology": "ha",
+    "P95": "6588.0"
   },
   {
     "BackendName": "ingress-to-oauth-server-reused-connections",
@@ -1701,7 +2156,8 @@
     "FromRelease": "4.9",
     "Platform": "ovirt",
     "Network": "sdn",
-    "P95": "7.1499999999999977"
+    "Topology": "ha",
+    "P95": "7.0499999999999972"
   },
   {
     "BackendName": "ingress-to-oauth-server-reused-connections",
@@ -1709,7 +2165,8 @@
     "FromRelease": "4.9",
     "Platform": "vsphere",
     "Network": "sdn",
-    "P95": "5.6999999999999993"
+    "Topology": "ha",
+    "P95": "5.5999999999999988"
   },
   {
     "BackendName": "ingress-to-oauth-server-used-connections",
@@ -1717,6 +2174,7 @@
     "FromRelease": "",
     "Platform": "",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1725,6 +2183,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1733,6 +2192,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1741,6 +2201,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1749,6 +2210,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1757,6 +2219,7 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1765,6 +2228,7 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1773,6 +2237,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1781,6 +2246,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1789,6 +2255,7 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1797,6 +2264,16 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
     "P95": "0.0"
   },
   {
@@ -1805,7 +2282,8 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "210.59999999999997"
+    "Topology": "ha",
+    "P95": "0.0"
   },
   {
     "BackendName": "ingress-to-oauth-server-used-connections",
@@ -1813,7 +2291,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "273.55"
+    "Topology": "ha",
+    "P95": "0.0"
   },
   {
     "BackendName": "ingress-to-oauth-server-used-connections",
@@ -1821,7 +2300,26 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "3483.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "234.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-used-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "274.7"
   },
   {
     "BackendName": "ingress-to-oauth-server-used-connections",
@@ -1829,6 +2327,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "21.4"
   },
   {
@@ -1837,6 +2336,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "29.55"
   },
   {
@@ -1845,7 +2345,8 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "46.249999999999993"
+    "Topology": "ha",
+    "P95": "19.4"
   },
   {
     "BackendName": "ingress-to-oauth-server-used-connections",
@@ -1853,6 +2354,7 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "1.0"
   },
   {
@@ -1861,6 +2363,7 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "10.0"
   },
   {
@@ -1869,6 +2372,7 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "3921.4"
   },
   {
@@ -1877,6 +2381,7 @@
     "FromRelease": "4.9",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "53.0"
   },
   {
@@ -1885,6 +2390,7 @@
     "FromRelease": "4.9",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1893,6 +2399,7 @@
     "FromRelease": "",
     "Platform": "",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1901,6 +2408,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1909,6 +2417,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1917,6 +2426,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1925,6 +2435,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1933,6 +2444,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "2.0"
   },
   {
@@ -1941,6 +2453,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "4.0"
   },
   {
@@ -1949,7 +2462,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "3864.2"
+    "Topology": "ha",
+    "P95": "3822.9"
   },
   {
     "BackendName": "kube-api-new-connections",
@@ -1957,7 +2471,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3790.2"
+    "Topology": "ha",
+    "P95": "3786.0"
   },
   {
     "BackendName": "kube-api-new-connections",
@@ -1965,6 +2480,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1973,6 +2489,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1981,6 +2498,7 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -1989,6 +2507,25 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "6.6999999999999975"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
     "P95": "0.0"
   },
   {
@@ -1997,6 +2534,7 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "2.0"
   },
   {
@@ -2005,7 +2543,8 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "1.0"
+    "Topology": "ha",
+    "P95": "0.79999999999998472"
   },
   {
     "BackendName": "kube-api-new-connections",
@@ -2013,6 +2552,7 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "3.0"
   },
   {
@@ -2021,7 +2561,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "838.25"
+    "Topology": "ha",
+    "P95": "5.99999999999997"
   },
   {
     "BackendName": "kube-api-new-connections",
@@ -2029,6 +2570,7 @@
     "FromRelease": "4.10",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "6.0"
   },
   {
@@ -2037,6 +2579,7 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "7004.75"
   },
   {
@@ -2045,7 +2588,26 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "6302.9999999999991"
+    "Topology": "ha",
+    "P95": "6239.9999999999991"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "425.4"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "859.5999999999998"
   },
   {
     "BackendName": "kube-api-new-connections",
@@ -2053,6 +2615,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "4.1"
   },
   {
@@ -2061,6 +2624,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "2.0"
   },
   {
@@ -2069,6 +2633,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "1.0"
   },
   {
@@ -2077,7 +2642,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "0.24999999999999933"
+    "Topology": "ha",
+    "P95": "0.19999999999999929"
   },
   {
     "BackendName": "kube-api-new-connections",
@@ -2085,6 +2651,7 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "6.0"
   },
   {
@@ -2093,6 +2660,7 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "7.0"
   },
   {
@@ -2101,7 +2669,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "5.3999999999999648"
+    "Topology": "ha",
+    "P95": "4.1499999999999639"
   },
   {
     "BackendName": "kube-api-new-connections",
@@ -2109,7 +2678,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "10815.15"
+    "Topology": "ha",
+    "P95": "10796.449999999999"
   },
   {
     "BackendName": "kube-api-new-connections",
@@ -2117,7 +2687,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "6880.8"
+    "Topology": "ha",
+    "P95": "6871.0999999999995"
   },
   {
     "BackendName": "kube-api-new-connections",
@@ -2125,7 +2696,8 @@
     "FromRelease": "4.9",
     "Platform": "ovirt",
     "Network": "sdn",
-    "P95": "17.699999999999996"
+    "Topology": "ha",
+    "P95": "17.0"
   },
   {
     "BackendName": "kube-api-new-connections",
@@ -2133,7 +2705,8 @@
     "FromRelease": "4.9",
     "Platform": "vsphere",
     "Network": "sdn",
-    "P95": "26.249999999999993"
+    "Topology": "ha",
+    "P95": "25.799999999999994"
   },
   {
     "BackendName": "kube-api-new-connections",
@@ -2141,6 +2714,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2149,6 +2723,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2157,6 +2732,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2165,6 +2741,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2173,6 +2750,7 @@
     "FromRelease": "4.8",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2181,6 +2759,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2189,6 +2768,7 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2197,6 +2777,7 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2205,6 +2786,7 @@
     "FromRelease": "",
     "Platform": "",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2213,6 +2795,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2221,6 +2804,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2229,6 +2813,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2237,6 +2822,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2245,6 +2831,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2253,6 +2840,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2261,7 +2849,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "3864.2"
+    "Topology": "ha",
+    "P95": "3822.9"
   },
   {
     "BackendName": "kube-api-reused-connections",
@@ -2269,7 +2858,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3790.2"
+    "Topology": "ha",
+    "P95": "3786.0"
   },
   {
     "BackendName": "kube-api-reused-connections",
@@ -2277,6 +2867,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2285,6 +2876,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2293,6 +2885,7 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2301,6 +2894,25 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "5.6999999999999975"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
     "P95": "0.0"
   },
   {
@@ -2309,6 +2921,7 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "8.0"
   },
   {
@@ -2317,7 +2930,8 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "5.8999999999999844"
+    "Topology": "ha",
+    "P95": "3.7999999999999847"
   },
   {
     "BackendName": "kube-api-reused-connections",
@@ -2325,6 +2939,7 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "3.0"
   },
   {
@@ -2333,7 +2948,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "823.7"
+    "Topology": "ha",
+    "P95": "3.0"
   },
   {
     "BackendName": "kube-api-reused-connections",
@@ -2341,6 +2957,7 @@
     "FromRelease": "4.10",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "2.0"
   },
   {
@@ -2349,6 +2966,7 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "7004.3"
   },
   {
@@ -2357,7 +2975,26 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "6302.9999999999991"
+    "Topology": "ha",
+    "P95": "6239.9999999999991"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "422.7"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "838.89999999999975"
   },
   {
     "BackendName": "kube-api-reused-connections",
@@ -2365,6 +3002,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "3.0"
   },
   {
@@ -2373,6 +3011,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "5.0"
   },
   {
@@ -2381,7 +3020,8 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "4.84999999999999"
+    "Topology": "ha",
+    "P95": "4.54999999999999"
   },
   {
     "BackendName": "kube-api-reused-connections",
@@ -2389,7 +3029,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "3.2499999999999964"
+    "Topology": "ha",
+    "P95": "2.9999999999999964"
   },
   {
     "BackendName": "kube-api-reused-connections",
@@ -2397,6 +3038,7 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "5.0"
   },
   {
@@ -2405,7 +3047,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "3.9499999999999877"
+    "Topology": "ha",
+    "P95": "3.5999999999999863"
   },
   {
     "BackendName": "kube-api-reused-connections",
@@ -2413,6 +3056,7 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "3.0"
   },
   {
@@ -2421,7 +3065,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "10815.15"
+    "Topology": "ha",
+    "P95": "10796.449999999999"
   },
   {
     "BackendName": "kube-api-reused-connections",
@@ -2429,7 +3074,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "6880.8"
+    "Topology": "ha",
+    "P95": "6871.0999999999995"
   },
   {
     "BackendName": "kube-api-reused-connections",
@@ -2437,7 +3083,8 @@
     "FromRelease": "4.9",
     "Platform": "ovirt",
     "Network": "sdn",
-    "P95": "18.399999999999995"
+    "Topology": "ha",
+    "P95": "16.399999999999995"
   },
   {
     "BackendName": "kube-api-reused-connections",
@@ -2445,7 +3092,8 @@
     "FromRelease": "4.9",
     "Platform": "vsphere",
     "Network": "sdn",
-    "P95": "24.749999999999996"
+    "Topology": "ha",
+    "P95": "24.399999999999995"
   },
   {
     "BackendName": "kube-api-reused-connections",
@@ -2453,6 +3101,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2461,6 +3110,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2469,6 +3119,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2477,6 +3128,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2485,6 +3137,7 @@
     "FromRelease": "4.8",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2493,6 +3146,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2501,6 +3155,7 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2509,6 +3164,7 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2517,6 +3173,7 @@
     "FromRelease": "",
     "Platform": "",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2525,6 +3182,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2533,6 +3191,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2541,6 +3200,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2549,6 +3209,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2557,7 +3218,8 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "3.7999999999999963"
+    "Topology": "ha",
+    "P95": "4.0"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2565,7 +3227,8 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "3.5999999999999819"
+    "Topology": "ha",
+    "P95": "4.0"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2573,7 +3236,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "3864.2"
+    "Topology": "ha",
+    "P95": "3822.9"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2581,7 +3245,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3790.2"
+    "Topology": "ha",
+    "P95": "3786.0"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2589,6 +3254,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2597,6 +3263,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2605,6 +3272,7 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2613,6 +3281,25 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "7.6999999999999975"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
     "P95": "0.0"
   },
   {
@@ -2621,6 +3308,7 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "5.0"
   },
   {
@@ -2629,7 +3317,8 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "2.0"
+    "Topology": "ha",
+    "P95": "1.7999999999999847"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2637,7 +3326,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "3.0"
+    "Topology": "ha",
+    "P95": "5.0"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2645,7 +3335,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "1031.15"
+    "Topology": "ha",
+    "P95": "12.799999999999946"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2653,6 +3344,7 @@
     "FromRelease": "4.10",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "7.0"
   },
   {
@@ -2661,6 +3353,7 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "7004.75"
   },
   {
@@ -2669,7 +3362,26 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "6302.9999999999991"
+    "Topology": "ha",
+    "P95": "6239.9999999999991"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "725.1"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "1045.4999999999998"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2677,6 +3389,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "6.3999999999999995"
   },
   {
@@ -2685,6 +3398,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "5.0"
   },
   {
@@ -2693,7 +3407,8 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "14.849999999999991"
+    "Topology": "ha",
+    "P95": "14.54999999999999"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2701,7 +3416,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "105.99999999999974"
+    "Topology": "ha",
+    "P95": "86.399999999999721"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2709,6 +3425,7 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "31.0"
   },
   {
@@ -2717,7 +3434,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "7.9499999999999877"
+    "Topology": "ha",
+    "P95": "8.0"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2725,7 +3443,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "30.899999999999977"
+    "Topology": "ha",
+    "P95": "29.449999999999974"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2733,7 +3452,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "10815.15"
+    "Topology": "ha",
+    "P95": "10796.449999999999"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2741,7 +3461,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "6880.8"
+    "Topology": "ha",
+    "P95": "6871.0999999999995"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2749,7 +3470,8 @@
     "FromRelease": "4.9",
     "Platform": "ovirt",
     "Network": "sdn",
-    "P95": "24.399999999999995"
+    "Topology": "ha",
+    "P95": "23.0"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2757,7 +3479,8 @@
     "FromRelease": "4.9",
     "Platform": "vsphere",
     "Network": "sdn",
-    "P95": "30.999999999999993"
+    "Topology": "ha",
+    "P95": "30.599999999999994"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2765,6 +3488,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2773,6 +3497,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2781,6 +3506,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2789,6 +3515,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2797,6 +3524,7 @@
     "FromRelease": "4.8",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2805,6 +3533,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2813,7 +3542,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "0.99999999999999556"
+    "Topology": "ha",
+    "P95": "0.0"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2821,6 +3551,7 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2829,6 +3560,7 @@
     "FromRelease": "",
     "Platform": "",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2837,6 +3569,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2845,6 +3578,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2853,6 +3587,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2861,6 +3596,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2869,6 +3605,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2877,6 +3614,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2885,7 +3623,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "3864.2"
+    "Topology": "ha",
+    "P95": "3822.9"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -2893,7 +3632,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3790.2"
+    "Topology": "ha",
+    "P95": "3786.0"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -2901,6 +3641,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2909,6 +3650,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2917,6 +3659,7 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -2925,6 +3668,25 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "8.6999999999999975"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
     "P95": "0.0"
   },
   {
@@ -2933,6 +3695,7 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "9.0"
   },
   {
@@ -2941,7 +3704,8 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "5.0"
+    "Topology": "ha",
+    "P95": "4.0"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -2949,7 +3713,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "4.19999999999999"
+    "Topology": "ha",
+    "P95": "5.0"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -2957,7 +3722,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "1017.5999999999999"
+    "Topology": "ha",
+    "P95": "6.8499999999999854"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -2965,6 +3731,7 @@
     "FromRelease": "4.10",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "2.0"
   },
   {
@@ -2973,6 +3740,7 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "7004.75"
   },
   {
@@ -2981,7 +3749,26 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "6302.9999999999991"
+    "Topology": "ha",
+    "P95": "6239.9999999999991"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "725.65"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "1036.1"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -2989,6 +3776,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "8.1"
   },
   {
@@ -2997,6 +3785,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "6.0"
   },
   {
@@ -3005,7 +3794,8 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "15.0"
+    "Topology": "ha",
+    "P95": "15.54999999999999"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -3013,7 +3803,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "6.4999999999999911"
+    "Topology": "ha",
+    "P95": "5.79999999999999"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -3021,7 +3812,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "28.0"
+    "Topology": "ha",
+    "P95": "28.549999999999958"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -3029,7 +3821,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "6.9499999999999877"
+    "Topology": "ha",
+    "P95": "6.5999999999999863"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -3037,7 +3830,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "19.099999999999998"
+    "Topology": "ha",
+    "P95": "19.05"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -3045,7 +3839,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "10815.15"
+    "Topology": "ha",
+    "P95": "10796.449999999999"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -3053,7 +3848,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "6880.2"
+    "Topology": "ha",
+    "P95": "6870.4"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -3061,7 +3857,8 @@
     "FromRelease": "4.9",
     "Platform": "ovirt",
     "Network": "sdn",
-    "P95": "19.699999999999996"
+    "Topology": "ha",
+    "P95": "18.399999999999995"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -3069,7 +3866,8 @@
     "FromRelease": "4.9",
     "Platform": "vsphere",
     "Network": "sdn",
-    "P95": "26.999999999999993"
+    "Topology": "ha",
+    "P95": "28.199999999999996"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -3077,6 +3875,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3085,6 +3884,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3093,6 +3893,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "61.0"
   },
   {
@@ -3101,6 +3902,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3109,6 +3911,7 @@
     "FromRelease": "4.8",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3117,6 +3920,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3125,6 +3929,7 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3133,6 +3938,7 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3141,6 +3947,7 @@
     "FromRelease": "",
     "Platform": "",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3149,6 +3956,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3157,6 +3965,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3165,6 +3974,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3173,6 +3983,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3181,7 +3992,8 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "2.8999999999999981"
+    "Topology": "ha",
+    "P95": "5.3999999999999941"
   },
   {
     "BackendName": "openshift-api-new-connections",
@@ -3189,6 +4001,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "4.0"
   },
   {
@@ -3197,7 +4010,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "3864.2"
+    "Topology": "ha",
+    "P95": "3822.9"
   },
   {
     "BackendName": "openshift-api-new-connections",
@@ -3205,7 +4019,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3790.2"
+    "Topology": "ha",
+    "P95": "3786.0"
   },
   {
     "BackendName": "openshift-api-new-connections",
@@ -3213,6 +4028,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3221,6 +4037,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3229,6 +4046,7 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3237,6 +4055,25 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "8.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
     "P95": "0.0"
   },
   {
@@ -3245,6 +4082,7 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "3.0"
   },
   {
@@ -3253,6 +4091,7 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "1.0"
   },
   {
@@ -3261,7 +4100,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "4.0"
+    "Topology": "ha",
+    "P95": "4.0499999999999892"
   },
   {
     "BackendName": "openshift-api-new-connections",
@@ -3269,7 +4109,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "1080.75"
+    "Topology": "ha",
+    "P95": "11.299999999999953"
   },
   {
     "BackendName": "openshift-api-new-connections",
@@ -3277,6 +4118,7 @@
     "FromRelease": "4.10",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "6.0"
   },
   {
@@ -3285,6 +4127,7 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "7004.75"
   },
   {
@@ -3293,7 +4136,26 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "6302.9999999999991"
+    "Topology": "ha",
+    "P95": "6239.9999999999991"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "793.55"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "1087.5"
   },
   {
     "BackendName": "openshift-api-new-connections",
@@ -3301,6 +4163,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "8.4999999999999982"
   },
   {
@@ -3309,6 +4172,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "3.0"
   },
   {
@@ -3317,6 +4181,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "14.0"
   },
   {
@@ -3325,7 +4190,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "131.74999999999972"
+    "Topology": "ha",
+    "P95": "110.5999999999997"
   },
   {
     "BackendName": "openshift-api-new-connections",
@@ -3333,6 +4199,7 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "26.0"
   },
   {
@@ -3341,6 +4208,7 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "9.0"
   },
   {
@@ -3349,7 +4217,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "28.399999999999974"
+    "Topology": "ha",
+    "P95": "26.699999999999971"
   },
   {
     "BackendName": "openshift-api-new-connections",
@@ -3357,7 +4226,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "10815.15"
+    "Topology": "ha",
+    "P95": "10796.449999999999"
   },
   {
     "BackendName": "openshift-api-new-connections",
@@ -3365,7 +4235,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "6880.8"
+    "Topology": "ha",
+    "P95": "6871.0999999999995"
   },
   {
     "BackendName": "openshift-api-new-connections",
@@ -3373,7 +4244,8 @@
     "FromRelease": "4.9",
     "Platform": "ovirt",
     "Network": "sdn",
-    "P95": "26.0"
+    "Topology": "ha",
+    "P95": "25.099999999999991"
   },
   {
     "BackendName": "openshift-api-new-connections",
@@ -3381,7 +4253,8 @@
     "FromRelease": "4.9",
     "Platform": "vsphere",
     "Network": "sdn",
-    "P95": "32.249999999999993"
+    "Topology": "ha",
+    "P95": "31.599999999999991"
   },
   {
     "BackendName": "openshift-api-new-connections",
@@ -3389,6 +4262,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3397,6 +4271,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3405,6 +4280,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3413,6 +4289,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3421,6 +4298,7 @@
     "FromRelease": "4.8",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3429,6 +4307,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3437,6 +4316,7 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3445,6 +4325,7 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3453,6 +4334,7 @@
     "FromRelease": "",
     "Platform": "",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3461,6 +4343,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3469,6 +4352,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3477,6 +4361,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3485,6 +4370,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3493,6 +4379,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3501,6 +4388,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3509,7 +4397,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "3864.2"
+    "Topology": "ha",
+    "P95": "3822.9"
   },
   {
     "BackendName": "openshift-api-reused-connections",
@@ -3517,7 +4406,8 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "3790.2"
+    "Topology": "ha",
+    "P95": "3786.0"
   },
   {
     "BackendName": "openshift-api-reused-connections",
@@ -3525,6 +4415,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3533,6 +4424,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3541,6 +4433,7 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3549,6 +4442,25 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "8.6999999999999975"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
     "P95": "0.0"
   },
   {
@@ -3557,7 +4469,8 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "ovn",
-    "P95": "8.0"
+    "Topology": "ha",
+    "P95": "8.4999999999999538"
   },
   {
     "BackendName": "openshift-api-reused-connections",
@@ -3565,7 +4478,8 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "5.0"
+    "Topology": "ha",
+    "P95": "3.7999999999999847"
   },
   {
     "BackendName": "openshift-api-reused-connections",
@@ -3573,6 +4487,7 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "4.0"
   },
   {
@@ -3581,7 +4496,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "1069.35"
+    "Topology": "ha",
+    "P95": "5.2999999999999829"
   },
   {
     "BackendName": "openshift-api-reused-connections",
@@ -3589,6 +4505,7 @@
     "FromRelease": "4.10",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "2.0"
   },
   {
@@ -3597,6 +4514,7 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "7004.75"
   },
   {
@@ -3605,7 +4523,26 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "6302.9999999999991"
+    "Topology": "ha",
+    "P95": "6239.9999999999991"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "793.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "1074.0"
   },
   {
     "BackendName": "openshift-api-reused-connections",
@@ -3613,6 +4550,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "10.299999999999997"
   },
   {
@@ -3621,6 +4559,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "6.0"
   },
   {
@@ -3629,6 +4568,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "14.0"
   },
   {
@@ -3637,7 +4577,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "17.249999999999993"
+    "Topology": "ha",
+    "P95": "16.799999999999994"
   },
   {
     "BackendName": "openshift-api-reused-connections",
@@ -3645,6 +4586,7 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "25.0"
   },
   {
@@ -3653,7 +4595,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "6.9499999999999877"
+    "Topology": "ha",
+    "P95": "6.5999999999999863"
   },
   {
     "BackendName": "openshift-api-reused-connections",
@@ -3661,7 +4604,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "21.299999999999997"
+    "Topology": "ha",
+    "P95": "21.15"
   },
   {
     "BackendName": "openshift-api-reused-connections",
@@ -3669,7 +4613,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "ovn",
-    "P95": "10815.15"
+    "Topology": "ha",
+    "P95": "10796.449999999999"
   },
   {
     "BackendName": "openshift-api-reused-connections",
@@ -3677,7 +4622,8 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
-    "P95": "6880.8"
+    "Topology": "ha",
+    "P95": "6871.0999999999995"
   },
   {
     "BackendName": "openshift-api-reused-connections",
@@ -3685,7 +4631,8 @@
     "FromRelease": "4.9",
     "Platform": "ovirt",
     "Network": "sdn",
-    "P95": "24.79999999999999"
+    "Topology": "ha",
+    "P95": "21.399999999999995"
   },
   {
     "BackendName": "openshift-api-reused-connections",
@@ -3693,7 +4640,8 @@
     "FromRelease": "4.9",
     "Platform": "vsphere",
     "Network": "sdn",
-    "P95": "29.499999999999996"
+    "Topology": "ha",
+    "P95": "29.199999999999996"
   },
   {
     "BackendName": "openshift-api-reused-connections",
@@ -3701,6 +4649,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3709,6 +4658,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3717,7 +4667,8 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "ovn",
-    "P95": "61.0"
+    "Topology": "ha",
+    "P95": "59.499999999999929"
   },
   {
     "BackendName": "openshift-api-reused-connections",
@@ -3725,6 +4676,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3733,6 +4685,7 @@
     "FromRelease": "4.8",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3741,6 +4694,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3749,6 +4703,7 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3757,6 +4712,7 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3765,6 +4721,7 @@
     "FromRelease": "",
     "Platform": "",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3773,6 +4730,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3781,6 +4739,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3789,6 +4748,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3797,6 +4757,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3805,6 +4766,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3813,6 +4775,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3821,6 +4784,7 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3829,6 +4793,7 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3837,6 +4802,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3845,6 +4811,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3853,6 +4820,7 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3861,6 +4829,25 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
     "P95": "0.0"
   },
   {
@@ -3869,6 +4856,7 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "18.0"
   },
   {
@@ -3877,7 +4865,8 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "12.0"
+    "Topology": "ha",
+    "P95": "13.0"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-new-connections",
@@ -3885,6 +4874,7 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "9.0"
   },
   {
@@ -3893,7 +4883,8 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "4.0"
+    "Topology": "ha",
+    "P95": "4.1499999999999995"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-new-connections",
@@ -3901,6 +4892,7 @@
     "FromRelease": "4.10",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "1.0"
   },
   {
@@ -3909,6 +4901,7 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3917,6 +4910,25 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
     "P95": "0.0"
   },
   {
@@ -3925,6 +4937,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "2.3999999999999995"
   },
   {
@@ -3933,6 +4946,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "19.0"
   },
   {
@@ -3941,6 +4955,7 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "15.0"
   },
   {
@@ -3949,7 +4964,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "89.499999999999986"
+    "Topology": "ha",
+    "P95": "88.399999999999977"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-new-connections",
@@ -3957,6 +4973,7 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "12.0"
   },
   {
@@ -3965,6 +4982,7 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "151.0"
   },
   {
@@ -3973,7 +4991,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "11.799999999999986"
+    "Topology": "ha",
+    "P95": "10.899999999999984"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-new-connections",
@@ -3981,6 +5000,7 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3989,6 +5009,7 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -3997,6 +5018,7 @@
     "FromRelease": "4.9",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4005,6 +5027,7 @@
     "FromRelease": "4.9",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4013,6 +5036,7 @@
     "FromRelease": "",
     "Platform": "",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4021,6 +5045,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4029,6 +5054,7 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4037,6 +5063,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4045,6 +5072,7 @@
     "FromRelease": "",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4053,6 +5081,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4061,6 +5090,7 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4069,6 +5099,7 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4077,6 +5108,7 @@
     "FromRelease": "",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4085,6 +5117,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4093,6 +5126,7 @@
     "FromRelease": "",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4101,6 +5135,7 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4109,6 +5144,25 @@
     "FromRelease": "",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
     "P95": "0.0"
   },
   {
@@ -4117,7 +5171,8 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "ovn",
-    "P95": "10.0"
+    "Topology": "ha",
+    "P95": "6.3999999999998227"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -4125,6 +5180,7 @@
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "2.0"
   },
   {
@@ -4133,6 +5189,7 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "4.0"
   },
   {
@@ -4141,6 +5198,7 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "2.0"
   },
   {
@@ -4149,7 +5207,8 @@
     "FromRelease": "4.10",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "10.0"
+    "Topology": "ha",
+    "P95": "4.0"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -4157,6 +5216,7 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4165,6 +5225,25 @@
     "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
     "P95": "0.0"
   },
   {
@@ -4173,6 +5252,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "19.099999999999998"
   },
   {
@@ -4181,7 +5261,8 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "ovn",
-    "P95": "11.0"
+    "Topology": "ha",
+    "P95": "10.0"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -4189,7 +5270,8 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "19.099999999999941"
+    "Topology": "ha",
+    "P95": "11.0"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -4197,7 +5279,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "ovn",
-    "P95": "87.999999999999986"
+    "Topology": "ha",
+    "P95": "87.199999999999989"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -4205,7 +5288,8 @@
     "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
-    "P95": "20.0"
+    "Topology": "ha",
+    "P95": "9.6999999999999158"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -4213,7 +5297,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "ovn",
-    "P95": "110.0"
+    "Topology": "ha",
+    "P95": "109.19999999999997"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -4221,7 +5306,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "9.3999999999999737"
+    "Topology": "ha",
+    "P95": "7.6999999999999709"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -4229,6 +5315,7 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4237,6 +5324,7 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4245,6 +5333,7 @@
     "FromRelease": "4.9",
     "Platform": "ovirt",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4253,6 +5342,7 @@
     "FromRelease": "4.9",
     "Platform": "vsphere",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4261,6 +5351,7 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
     "P95": "42.0"
   },
   {
@@ -4269,7 +5360,8 @@
     "FromRelease": "4.8",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "24.699999999999996"
+    "Topology": "ha",
+    "P95": "24.549999999999994"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -4277,6 +5369,7 @@
     "FromRelease": "4.8",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   },
   {
@@ -4285,7 +5378,8 @@
     "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
-    "P95": "8.6499999999999915"
+    "Topology": "ha",
+    "P95": "8.49999999999999"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -4293,7 +5387,8 @@
     "FromRelease": "4.9",
     "Platform": "gcp",
     "Network": "sdn",
-    "P95": "39.999999999999957"
+    "Topology": "ha",
+    "P95": "38.999999999999957"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -4301,6 +5396,7 @@
     "FromRelease": "4.9",
     "Platform": "metal",
     "Network": "sdn",
+    "Topology": "ha",
     "P95": "0.0"
   }
 ]
