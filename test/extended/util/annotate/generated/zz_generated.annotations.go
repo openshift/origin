@@ -1741,13 +1741,13 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-imageregistry][Serial][Suite:openshift/registry/serial] Image signature workflow can push a signed image to openshift registry and verify it": "can push a signed image to openshift registry and verify it [Skipped:Disconnected] [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should have a metal3 deployment": "have a metal3 deployment [Suite:openshift/conformance/parallel]",
-
 	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should have baremetalhost resources": "have baremetalhost resources [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should have hostfirmwaresetting resources": "have hostfirmwaresetting resources [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should not allow updating BootMacAddress": "not allow updating BootMacAddress [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphere/None platforms  have a metal3 deployment": "have a metal3 deployment [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-instrumentation] Events API should delete a collection of events [Conformance]": "should delete a collection of events [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
