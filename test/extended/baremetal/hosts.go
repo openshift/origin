@@ -141,15 +141,8 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 		o.Expect(hosts.Items).ToNot(o.BeEmpty())
 
 		for _, h := range hosts.Items {
+			expectStringField(h, "baremetalhost", "status.operationalStatus").To(o.BeEquivalentTo("OK"))
 			expectStringField(h, "baremetalhost", "status.provisioning.state").To(o.Or(o.BeEquivalentTo("provisioned"), o.BeEquivalentTo("externally provisioned")))
-			state := getStringField(h, "baremetalhost", "status.provisioning.state")
-			// When testing with CoreOS preprovisioning images, masters will faild to be adopted properly due to BZ 2032573
-			// Remove this check when fix for BZ 2032573 merges
-			if state != "externally provisioned" {
-				hostName := getStringField(h, "baremetalhost", "metadata.name")
-				g.By(fmt.Sprintf("check that baremetalhost %s operationalStatus is OK", hostName))
-				expectStringField(h, "baremetalhost", "status.operationalStatus").To(o.BeEquivalentTo("OK"))
-			}
 			expectBoolField(h, "baremetalhost", "spec.online").To(o.BeTrue())
 		}
 	})
