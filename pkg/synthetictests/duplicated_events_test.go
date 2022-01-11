@@ -86,7 +86,7 @@ func TestEventRegexExcluder(t *testing.T) {
 		},
 		{
 			name:    "vsphere-hw-13-default-upi-install",
-			message: `ns/openshift-cluster-storage-operator deployment/vsphere-problem-detector-operator - reason/VSphereOlderVersionDetected Marking cluster un-upgradeable because one or more VMs are on hardware version vmx-13`,
+			message: `ns/openshift-cluster-csi-drivers deployment/vmware-vsphere-csi-driver-operator - reason/check_deprecated_hw_version Marking cluster un-upgradeable because node control-plane-1 has hardware version vmx-13, which is below the minimum required version 15`,
 		},
 	}
 

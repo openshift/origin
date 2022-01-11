@@ -78,7 +78,7 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 	// currently UPI install defaults to HW 13 which causes events in 4.10 CI
 	// since 4.10 still supports vSphere 6.5, we can't default to HW 15 in RHCOS image but such clusters are unupgradable to 4.11 and hence
 	// events are still valid.
-	regexp.MustCompile(`ns/openshift-cluster-storage-operator\s+deployment/vsphere-problem-detector-operator - reason/VSphereOlderVersionDetected.+vmx-13`),
+	regexp.MustCompile(`ns/openshift-cluster-csi-drivers\s+deployment/vmware-vsphere-csi-driver-operator - reason/check_deprecated_hw_version.+vmx-13`),
 }
 
 var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
