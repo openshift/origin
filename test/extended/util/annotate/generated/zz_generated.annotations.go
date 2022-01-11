@@ -1905,7 +1905,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] ClusterDns [Feature:Example] should create pod that uses dns": "should create pod that uses dns [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when initial unready endpoints get ready": "should be able to preserve UDP traffic when initial unready endpoints get ready [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when initial unready endpoints get ready": "should be able to preserve UDP traffic when initial unready endpoints get ready [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when server pod cycles for a ClusterIP service": "should be able to preserve UDP traffic when server pod cycles for a ClusterIP service [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -1951,7 +1951,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] EndpointSliceMirroring should mirror a custom Endpoints resource through create update and delete [Conformance]": "should mirror a custom Endpoints resource through create update and delete [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Feature:Topology Hints should distribute endpoints evenly": "should distribute endpoints evenly [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Feature:Topology Hints should distribute endpoints evenly": "should distribute endpoints evenly [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Firewall rule [Slow] [Serial] should create valid firewall rules for LoadBalancer type service": "[Slow] [Serial] should create valid firewall rules for LoadBalancer type service [Suite:k8s]",
 
@@ -2653,7 +2653,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-node] Probing container should *not* be restarted with a /healthz http liveness probe [NodeConformance] [Conformance]": "should *not* be restarted with a /healthz http liveness probe [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-node] Probing container should *not* be restarted with a GRPC liveness probe [NodeAlphaFeature:GRPCContainerProbe][Feature:GRPCContainerProbe]": "should *not* be restarted with a GRPC liveness probe [NodeAlphaFeature:GRPCContainerProbe][Feature:GRPCContainerProbe] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-node] Probing container should *not* be restarted with a GRPC liveness probe [NodeAlphaFeature:GRPCContainerProbe][Feature:GRPCContainerProbe]": "should *not* be restarted with a GRPC liveness probe [NodeAlphaFeature:GRPCContainerProbe][Feature:GRPCContainerProbe] [Disabled:Alpha] [Suite:k8s]",
 
 	"[Top Level] [sig-node] Probing container should *not* be restarted with a exec \"cat /tmp/health\" liveness probe [NodeConformance] [Conformance]": "should *not* be restarted with a exec \"cat /tmp/health\" liveness probe [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -2669,7 +2669,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-node] Probing container should be restarted with a /healthz http liveness probe [NodeConformance] [Conformance]": "should be restarted with a /healthz http liveness probe [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-node] Probing container should be restarted with a GRPC liveness probe [NodeAlphaFeature:GRPCContainerProbe][Feature:GRPCContainerProbe]": "should be restarted with a GRPC liveness probe [NodeAlphaFeature:GRPCContainerProbe][Feature:GRPCContainerProbe] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-node] Probing container should be restarted with a GRPC liveness probe [NodeAlphaFeature:GRPCContainerProbe][Feature:GRPCContainerProbe]": "should be restarted with a GRPC liveness probe [NodeAlphaFeature:GRPCContainerProbe][Feature:GRPCContainerProbe] [Disabled:Alpha] [Suite:k8s]",
 
 	"[Top Level] [sig-node] Probing container should be restarted with a exec \"cat /tmp/health\" liveness probe [NodeConformance] [Conformance]": "should be restarted with a exec \"cat /tmp/health\" liveness probe [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
