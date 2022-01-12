@@ -64,8 +64,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Early] Managed clu
 var _ = g.Describe("[sig-node] Managed cluster", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc               = exutil.NewCLIWithoutNamespace("managed-cluster-node")
-		prometheusClient = oc.NewPrometheusClient(context.TODO())
+		oc = exutil.NewCLIWithoutNamespace("managed-cluster-node")
 	)
 
 	g.It("should report ready nodes the entire duration of the test run [Late]", func() {
@@ -80,7 +79,7 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 			// 1m30s and we can live with ith
 			fmt.Sprintf(`(min_over_time((max by (node) (kube_node_status_condition{condition="Ready",status="true"} offset 1m) and (((max by (node) (kube_node_status_condition offset 1m))) and (0*max by (node) (kube_node_status_condition offset 7m)) and (0*max by (node) (kube_node_status_condition))))[%s:1s])) < 1`, testDuration): false,
 		}
-		err := prometheus.RunQueries(context.TODO(), prometheusClient, tests, oc)
+		err := prometheus.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })

@@ -281,8 +281,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules", func(
 var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc               = exutil.NewCLIWithoutNamespace("prometheus")
-		prometheusClient = oc.NewPrometheusClient(context.TODO())
+		oc = exutil.NewCLIWithoutNamespace("prometheus")
 	)
 
 	g.It("shouldn't report any alerts in firing or pending state apart from Watchdog and AlertmanagerReceiversNotConfigured and have no gaps in Watchdog firing", func() {
@@ -368,7 +367,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		// to the presence of this series (zero if data is preserved over test, one if data is lost over test).
 		// This would not catch the alert stopping firing, but we catch that in other places and tests.
 		watchdogQuery := fmt.Sprintf(`changes((max((ALERTS{alertstate="firing",alertname="Watchdog",severity="none"}) or (absent(ALERTS{alertstate="firing",alertname="Watchdog",severity="none"})*0)))[%s:1s]) > 1`, testDuration)
-		result, err := helper.RunQuery(context.TODO(), prometheusClient, watchdogQuery)
+		result, err := helper.RunQuery(context.TODO(), oc.NewPrometheusClient(context.TODO()), watchdogQuery)
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to check watchdog alert over test window")
 		if len(result.Data.Result) > 0 {
 			unexpectedViolations.Insert("Watchdog alert had missing intervals during the run, which may be a sign of a Prometheus outage in violation of the prometheus query SLO of 100% uptime during normal execution")
@@ -380,7 +379,7 @@ sort_desc(
 count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog|AlertmanagerReceiversNotConfigured"}[%[1]s:1s])
 ) > 0
 `, testDuration)
-		result, err = helper.RunQuery(context.TODO(), prometheusClient, firingAlertQuery)
+		result, err = helper.RunQuery(context.TODO(), oc.NewPrometheusClient(context.TODO()), firingAlertQuery)
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to check firing alerts during test")
 		for _, series := range result.Data.Result {
 			labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
@@ -408,7 +407,7 @@ sort_desc(
   )[%[1]s:1s])
 )
 `, testDuration)
-		result, err = helper.RunQuery(context.TODO(), prometheusClient, pendingAlertQuery)
+		result, err = helper.RunQuery(context.TODO(), oc.NewPrometheusClient(context.TODO()), pendingAlertQuery)
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to retrieve pending alerts after upgrade")
 		for _, series := range result.Data.Result {
 			labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
@@ -454,7 +453,7 @@ sort_desc(
 			fmt.Sprintf(`avg_over_time(cluster:telemetry_selected_series:count[%s]) >= 600`, testDuration):  false,
 			fmt.Sprintf(`max_over_time(cluster:telemetry_selected_series:count[%s]) >= 1200`, testDuration): false,
 		}
-		err := helper.RunQueries(context.TODO(), prometheusClient, tests, oc)
+		err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		e2e.Logf("Total number of series sent via telemetry is below the limit")
@@ -464,8 +463,7 @@ sort_desc(
 var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc               = exutil.NewCLIWithoutNamespace("prometheus")
-		prometheusClient = oc.NewPrometheusClient(context.TODO())
+		oc = exutil.NewCLIWithoutNamespace("prometheus")
 
 		url, prometheusURL, bearerToken string
 	)
@@ -506,7 +504,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 					`prometheus_remote_storage_succeeded_samples_total{job="prometheus-k8s"} >= 1`: true,
 				}
 			}
-			err := helper.RunQueries(context.TODO(), prometheusClient, tests, oc)
+			err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			e2e.Logf("Telemetry is enabled: %s", bearerToken)
@@ -646,7 +644,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			tests := map[string]bool{
 				`ALERTS{alertstate=~"firing|pending",alertname="AlertmanagerReceiversNotConfigured"} == 1`: true,
 			}
-			err := helper.RunQueries(context.TODO(), prometheusClient, tests, oc)
+			err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			e2e.Logf("AlertmanagerReceiversNotConfigured alert is firing")
@@ -670,7 +668,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				`sum(node_role_os_version_machine:cpu_capacity_cores:sum{label_kubernetes_io_arch!="",label_node_role_kubernetes_io_master!=""}) > 0`:                                      true,
 				`sum(node_role_os_version_machine:cpu_capacity_sockets:sum{label_kubernetes_io_arch!="",label_node_hyperthread_enabled!="",label_node_role_kubernetes_io_master!=""}) > 0`: true,
 			}
-			err := helper.RunQueries(context.TODO(), prometheusClient, tests, oc)
+			err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -678,7 +676,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			tests := map[string]bool{
 				`container_cpu_usage_seconds_total{id!~"/kubepods.slice/.*"} >= 1`: true,
 			}
-			err := helper.RunQueries(context.TODO(), prometheusClient, tests, oc)
+			err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -689,7 +687,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			tests := map[string]bool{
 				fmt.Sprintf(`increase(prometheus_rule_evaluation_failures_total[%s]) >= 1`, testDuration): false,
 			}
-			err := helper.RunQueries(context.TODO(), prometheusClient, tests, oc)
+			err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -699,7 +697,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 					//something
 					`openshift_sdn_ovs_flows >= 1`: true,
 				}
-				err := helper.RunQueries(context.TODO(), prometheusClient, tests, oc)
+				err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 		})
@@ -726,7 +724,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			tests := map[string]bool{
 				fmt.Sprintf(`ALERTS{alertname!~"%s",alertstate="firing",severity!="info"} >= 1`, strings.Join(allowedAlertNames, "|")): false,
 			}
-			err := helper.RunQueries(context.TODO(), prometheusClient, tests, oc)
+			err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -764,7 +762,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				`template_router_reload_seconds_count{job="router-internal-default"} >= 1`: true,
 				`haproxy_server_up{job="router-internal-default"} >= 1`:                    true,
 			}
-			err := helper.RunQueries(context.TODO(), prometheusClient, queries, oc)
+			err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), queries, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -796,7 +794,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				fmt.Sprintf(`pod_network_name_info{pod="%s",namespace="%s",interface="eth0"} == 0`, execPod.Name, execPod.Namespace):                true,
 				fmt.Sprintf(`pod_network_name_info{pod="%s",namespace="%s",network_name="%s/secondary"} == 0`, execPod.Name, execPod.Namespace, ns): true,
 			}
-			err = helper.RunQueries(context.TODO(), prometheusClient, queries, oc)
+			err = helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), queries, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})

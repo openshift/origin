@@ -18,18 +18,8 @@ import (
 var _ = g.Describe("[sig-instrumentation][sig-builds][Feature:Builds] Prometheus", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc               = exutil.NewCLIWithoutNamespace("prometheus")
-		prometheusClient = oc.NewPrometheusClient(context.TODO())
-
-		url, bearerToken string
+		oc = exutil.NewCLIWithoutNamespace("prometheus")
 	)
-	g.BeforeEach(func() {
-		var ok bool
-		url, _, bearerToken, ok = helper.LocatePrometheus(oc)
-		if !ok {
-			e2eskipper.Skipf("Prometheus could not be located on this cluster, skipping prometheus test")
-		}
-	})
 
 	g.AfterEach(func() {
 		if g.CurrentGinkgoTestDescription().Failed {
@@ -66,7 +56,7 @@ var _ = g.Describe("[sig-instrumentation][sig-builds][Feature:Builds] Prometheus
 			terminalTests := map[string]bool{
 				buildCountMetricName: true,
 			}
-			err = helper.RunQueries(context.TODO(), prometheusClient, terminalTests, oc)
+			err = helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), terminalTests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// NOTE:  in manual testing on a laptop, starting several serial builds in succession was sufficient for catching
