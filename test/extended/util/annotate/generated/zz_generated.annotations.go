@@ -333,6 +333,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for user.openshift.io/v1, Resource=users": "should work for user.openshift.io/v1, Resource=users [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-api-machinery][Late] API Server latency should verify that the apiserver requests latency are within expected thresholds": "should verify that the apiserver requests latency are within expected thresholds [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-apps] CronJob should be able to schedule after more than 100 missed schedule": "should be able to schedule after more than 100 missed schedule [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-apps] CronJob should delete failed finished jobs with limit of one job": "should delete failed finished jobs with limit of one job [Suite:openshift/conformance/parallel] [Suite:k8s]",
