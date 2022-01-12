@@ -13,6 +13,7 @@ import (
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	"github.com/openshift/library-go/pkg/authorization/hardcodedauthorizer"
 	"github.com/openshift/library-go/pkg/config/client"
+	"github.com/openshift/library-go/pkg/config/clusterstatus"
 	"github.com/openshift/library-go/pkg/config/configdefaults"
 	leaderelectionconverter "github.com/openshift/library-go/pkg/config/leaderelection"
 	"github.com/openshift/library-go/pkg/config/serving"
@@ -89,6 +90,10 @@ type ControllerBuilder struct {
 	// This stub exists for unit test where we can check if the graceful termination work properly.
 	// Default function will klog.Warning(args) and os.Exit(1).
 	nonZeroExitFn func(args ...interface{})
+
+	// Keep track if we defaulted leader election, used to make sure we don't stomp on the users intent for leader election
+	// We use this flag to determine at runtime if we can alter leader election for SNO configurations
+	userExplicitlySetLeaderElectionValues bool
 }
 
 // NewController returns a builder struct for constructing the command you want to run
@@ -141,6 +146,11 @@ func (b *ControllerBuilder) WithLeaderElection(leaderElection configv1.LeaderEle
 	if leaderElection.Disable {
 		return b
 	}
+
+	// Set flag that SNO leader election configs can be used since user provided no timing configs
+	b.userExplicitlySetLeaderElectionValues = leaderElection.LeaseDuration.Duration != 0 ||
+		leaderElection.RenewDeadline.Duration != 0 ||
+		leaderElection.RetryPeriod.Duration != 0
 
 	defaulted := leaderelectionconverter.LeaderElectionDefaulting(leaderElection, defaultNamespace, defaultName)
 	b.leaderElection = &defaulted
@@ -215,7 +225,7 @@ func (b *ControllerBuilder) Run(ctx context.Context, config *unstructured.Unstru
 	controllerRef := b.componentOwnerReference
 
 	if controllerRef == nil {
-		controllerRef, err = events.GetControllerReferenceForCurrentPod(kubeClient, namespace, nil)
+		controllerRef, err = events.GetControllerReferenceForCurrentPod(ctx, kubeClient, namespace, nil)
 		if err != nil {
 			klog.Warningf("unable to get owner reference (falling back to namespace): %v", err)
 		}
@@ -304,6 +314,17 @@ func (b *ControllerBuilder) Run(ctx context.Context, config *unstructured.Unstru
 		return nil
 	}
 
+	if !b.userExplicitlySetLeaderElectionValues {
+		infraStatus, err := clusterstatus.GetClusterInfraStatus(ctx, clientConfig)
+		if err != nil || infraStatus == nil {
+			eventRecorder.Warningf("ClusterInfrastructureStatus", "unable to get cluster infrastructure status, using HA cluster values for leader election: %v", err)
+			klog.Warningf("unable to get cluster infrastructure status, using HA cluster values for leader election: %v", err)
+		} else {
+			snoLeaderElection := infraStatusTopologyLeaderElection(infraStatus, *b.leaderElection)
+			b.leaderElection = &snoLeaderElection
+		}
+	}
+
 	// ensure blocking TCP connections don't block the leader election
 	leaderConfig := rest.CopyConfig(protoConfig)
 	leaderConfig.Timeout = b.leaderElection.RenewDeadline.Duration
@@ -369,4 +390,18 @@ func (b *ControllerBuilder) getClientConfig() (*rest.Config, error) {
 	}
 
 	return client.GetKubeConfigOrInClusterConfig(kubeconfig, b.clientOverrides)
+}
+
+func infraStatusTopologyLeaderElection(infraStatus *configv1.InfrastructureStatus, original configv1.LeaderElection) configv1.LeaderElection {
+	// if we can't determine the infra toplogy, return original
+	if infraStatus == nil {
+		return original
+	}
+
+	// If we are running in a SingleReplicaTopologyMode and leader election is not disabled, configure leader election for SNO Toplogy
+	if infraStatus.ControlPlaneTopology == configv1.SingleReplicaTopologyMode && !original.Disable {
+		klog.Info("detected SingleReplicaTopologyMode, the original leader election has been altered for the default SingleReplicaToplogy")
+		return leaderelectionconverter.LeaderElectionSNOConfig(original)
+	}
+	return original
 }

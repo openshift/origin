@@ -226,7 +226,7 @@ func (c *baseController) reportDegraded(ctx context.Context, reportedError error
 		return reportedError
 	}
 	if reportedError != nil {
-		_, _, updateErr := v1helpers.UpdateStatus(c.syncDegradedClient, v1helpers.UpdateConditionFn(operatorv1.OperatorCondition{
+		_, _, updateErr := v1helpers.UpdateStatus(ctx, c.syncDegradedClient, v1helpers.UpdateConditionFn(operatorv1.OperatorCondition{
 			Type:    c.name + "Degraded",
 			Status:  operatorv1.ConditionTrue,
 			Reason:  "SyncError",
@@ -237,7 +237,7 @@ func (c *baseController) reportDegraded(ctx context.Context, reportedError error
 		}
 		return reportedError
 	}
-	_, _, updateErr := v1helpers.UpdateStatus(c.syncDegradedClient,
+	_, _, updateErr := v1helpers.UpdateStatus(ctx, c.syncDegradedClient,
 		v1helpers.UpdateConditionFn(operatorv1.OperatorCondition{
 			Type:   c.name + "Degraded",
 			Status: operatorv1.ConditionFalse,

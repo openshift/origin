@@ -45,6 +45,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/storagebackend"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	utilflowcontrol "k8s.io/apiserver/pkg/util/flowcontrol"
+	utilopenapi "k8s.io/apiserver/pkg/util/openapi"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -57,6 +58,7 @@ import (
 	"k8s.io/kubernetes/pkg/generated/openapi"
 	"k8s.io/kubernetes/pkg/kubeapiserver"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
+	netutils "k8s.io/utils/net"
 )
 
 // Config is a struct of configuration directives for NewControlPlaneComponents.
@@ -118,7 +120,7 @@ func DefaultOpenAPIConfig() *openapicommon.Config {
 			Description: "Default Response.",
 		},
 	}
-	openAPIConfig.GetDefinitions = openapi.GetOpenAPIDefinitions
+	openAPIConfig.GetDefinitions = utilopenapi.GetOpenAPIDefinitionsWithoutDisabledFeatures(openapi.GetOpenAPIDefinitions)
 
 	return openAPIConfig
 }
@@ -198,14 +200,14 @@ func startAPIServerOrDie(controlPlaneConfig *controlplane.Config, incomingServer
 	if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.APIPriorityAndFairness) {
 		controlPlaneConfig.GenericConfig.FlowControl = utilflowcontrol.New(
 			controlPlaneConfig.ExtraConfig.VersionedInformers,
-			clientset.FlowcontrolV1beta1(),
+			clientset.FlowcontrolV1beta2(),
 			controlPlaneConfig.GenericConfig.MaxRequestsInFlight+controlPlaneConfig.GenericConfig.MaxMutatingRequestsInFlight,
 			controlPlaneConfig.GenericConfig.RequestTimeout/4,
 		)
 	}
 
 	if controlPlaneConfig.ExtraConfig.ServiceIPRange.IP == nil {
-		controlPlaneConfig.ExtraConfig.ServiceIPRange = net.IPNet{IP: net.ParseIP("10.0.0.0"), Mask: net.CIDRMask(24, 32)}
+		controlPlaneConfig.ExtraConfig.ServiceIPRange = net.IPNet{IP: netutils.ParseIPSloppy("10.0.0.0"), Mask: net.CIDRMask(24, 32)}
 	}
 	m, err = controlPlaneConfig.Complete().New(genericapiserver.NewEmptyDelegate())
 	if err != nil {
@@ -263,7 +265,7 @@ func NewIntegrationTestControlPlaneConfig() *controlplane.Config {
 // configured with the provided options.
 func NewIntegrationTestControlPlaneConfigWithOptions(opts *ControlPlaneConfigOptions) *controlplane.Config {
 	controlPlaneConfig := NewControlPlaneConfigWithOptions(opts)
-	controlPlaneConfig.GenericConfig.PublicAddress = net.ParseIP("192.168.10.4")
+	controlPlaneConfig.GenericConfig.PublicAddress = netutils.ParseIPSloppy("192.168.10.4")
 	controlPlaneConfig.ExtraConfig.APIResourceConfigSource = controlplane.DefaultAPIResourceConfigSource()
 
 	// TODO: get rid of these tests or port them to secure serving

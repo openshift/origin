@@ -97,11 +97,11 @@ func (c *fakeStaticPodOperatorClient) GetStaticPodOperatorState() (*operatorv1.S
 	return c.fakeStaticPodOperatorSpec, c.fakeStaticPodOperatorStatus, c.resourceVersion, nil
 }
 
-func (c *fakeStaticPodOperatorClient) GetStaticPodOperatorStateWithQuorum() (*operatorv1.StaticPodOperatorSpec, *operatorv1.StaticPodOperatorStatus, string, error) {
+func (c *fakeStaticPodOperatorClient) GetStaticPodOperatorStateWithQuorum(ctx context.Context) (*operatorv1.StaticPodOperatorSpec, *operatorv1.StaticPodOperatorStatus, string, error) {
 	return c.fakeStaticPodOperatorSpec, c.fakeStaticPodOperatorStatus, c.resourceVersion, nil
 }
 
-func (c *fakeStaticPodOperatorClient) UpdateStaticPodOperatorStatus(resourceVersion string, status *operatorv1.StaticPodOperatorStatus) (*operatorv1.StaticPodOperatorStatus, error) {
+func (c *fakeStaticPodOperatorClient) UpdateStaticPodOperatorStatus(ctx context.Context, resourceVersion string, status *operatorv1.StaticPodOperatorStatus) (*operatorv1.StaticPodOperatorStatus, error) {
 	if c.resourceVersion != resourceVersion {
 		return nil, errors.NewConflict(schema.GroupResource{Group: operatorv1.GroupName, Resource: "TestOperatorConfig"}, "instance", fmt.Errorf("invalid resourceVersion"))
 	}
@@ -119,7 +119,7 @@ func (c *fakeStaticPodOperatorClient) UpdateStaticPodOperatorStatus(resourceVers
 	return c.fakeStaticPodOperatorStatus, nil
 }
 
-func (c *fakeStaticPodOperatorClient) UpdateStaticPodOperatorSpec(resourceVersion string, spec *operatorv1.StaticPodOperatorSpec) (*operatorv1.StaticPodOperatorSpec, string, error) {
+func (c *fakeStaticPodOperatorClient) UpdateStaticPodOperatorSpec(ctx context.Context, resourceVersion string, spec *operatorv1.StaticPodOperatorSpec) (*operatorv1.StaticPodOperatorSpec, string, error) {
 	if c.resourceVersion != resourceVersion {
 		return nil, "", errors.NewConflict(schema.GroupResource{Group: operatorv1.GroupName, Resource: "TestOperatorConfig"}, "instance", fmt.Errorf("invalid resourceVersion"))
 	}
@@ -140,10 +140,10 @@ func (c *fakeStaticPodOperatorClient) UpdateStaticPodOperatorSpec(resourceVersio
 func (c *fakeStaticPodOperatorClient) GetOperatorState() (*operatorv1.OperatorSpec, *operatorv1.OperatorStatus, string, error) {
 	return &c.fakeStaticPodOperatorSpec.OperatorSpec, &c.fakeStaticPodOperatorStatus.OperatorStatus, c.resourceVersion, nil
 }
-func (c *fakeStaticPodOperatorClient) UpdateOperatorSpec(string, *operatorv1.OperatorSpec) (spec *operatorv1.OperatorSpec, resourceVersion string, err error) {
+func (c *fakeStaticPodOperatorClient) UpdateOperatorSpec(ctx context.Context, s string, p *operatorv1.OperatorSpec) (spec *operatorv1.OperatorSpec, resourceVersion string, err error) {
 	panic("not supported")
 }
-func (c *fakeStaticPodOperatorClient) UpdateOperatorStatus(resourceVersion string, status *operatorv1.OperatorStatus) (*operatorv1.OperatorStatus, error) {
+func (c *fakeStaticPodOperatorClient) UpdateOperatorStatus(ctx context.Context, resourceVersion string, status *operatorv1.OperatorStatus) (*operatorv1.OperatorStatus, error) {
 	if c.resourceVersion != resourceVersion {
 		return nil, errors.NewConflict(schema.GroupResource{Group: operatorv1.GroupName, Resource: "TestOperatorConfig"}, "instance", fmt.Errorf("invalid resourceVersion"))
 	}
@@ -227,7 +227,7 @@ func (c *fakeOperatorClient) GetOperatorState() (*operatorv1.OperatorSpec, *oper
 	return c.fakeOperatorSpec, c.fakeOperatorStatus, c.resourceVersion, nil
 }
 
-func (c *fakeOperatorClient) UpdateOperatorStatus(resourceVersion string, status *operatorv1.OperatorStatus) (*operatorv1.OperatorStatus, error) {
+func (c *fakeOperatorClient) UpdateOperatorStatus(ctx context.Context, resourceVersion string, status *operatorv1.OperatorStatus) (*operatorv1.OperatorStatus, error) {
 	if c.resourceVersion != resourceVersion {
 		return nil, errors.NewConflict(schema.GroupResource{Group: operatorv1.GroupName, Resource: "TestOperatorConfig"}, "instance", fmt.Errorf("invalid resourceVersion"))
 	}
@@ -245,7 +245,7 @@ func (c *fakeOperatorClient) UpdateOperatorStatus(resourceVersion string, status
 	return c.fakeOperatorStatus, nil
 }
 
-func (c *fakeOperatorClient) UpdateOperatorSpec(resourceVersion string, spec *operatorv1.OperatorSpec) (*operatorv1.OperatorSpec, string, error) {
+func (c *fakeOperatorClient) UpdateOperatorSpec(ctx context.Context, resourceVersion string, spec *operatorv1.OperatorSpec) (*operatorv1.OperatorSpec, string, error) {
 	if c.resourceVersion != resourceVersion {
 		return nil, c.resourceVersion, errors.NewConflict(schema.GroupResource{Group: operatorv1.GroupName, Resource: "TestOperatorConfig"}, "instance", fmt.Errorf("invalid resourceVersion"))
 	}
@@ -258,7 +258,7 @@ func (c *fakeOperatorClient) UpdateOperatorSpec(resourceVersion string, spec *op
 	return c.fakeOperatorSpec, c.resourceVersion, nil
 }
 
-func (c *fakeOperatorClient) EnsureFinalizer(finalizer string) error {
+func (c *fakeOperatorClient) EnsureFinalizer(ctx context.Context, finalizer string) error {
 	if c.fakeObjectMeta == nil {
 		c.fakeObjectMeta = &metav1.ObjectMeta{}
 	}
@@ -271,7 +271,7 @@ func (c *fakeOperatorClient) EnsureFinalizer(finalizer string) error {
 	return nil
 }
 
-func (c *fakeOperatorClient) RemoveFinalizer(finalizer string) error {
+func (c *fakeOperatorClient) RemoveFinalizer(ctx context.Context, finalizer string) error {
 	newFinalizers := []string{}
 	for _, f := range c.fakeObjectMeta.Finalizers {
 		if f == finalizer {

@@ -44,3 +44,16 @@ func ApplyStorageVersionMigration(ctx context.Context, client migrationclientv1a
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
+
+func DeleteStorageVersionMigration(ctx context.Context, client migrationclientv1alpha1.Interface, recorder events.Recorder, required *migrationv1alpha1.StorageVersionMigration) (*migrationv1alpha1.StorageVersionMigration, bool, error) {
+	clientInterface := client.MigrationV1alpha1().StorageVersionMigrations()
+	err := clientInterface.Delete(ctx, required.Name, metav1.DeleteOptions{})
+	if err != nil && apierrors.IsNotFound(err) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	reportDeleteEvent(recorder, required, err)
+	return nil, true, nil
+}

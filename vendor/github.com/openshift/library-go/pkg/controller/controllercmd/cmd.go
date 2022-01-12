@@ -28,8 +28,8 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/serviceability"
 
-	// for metrics
-	_ "github.com/openshift/library-go/pkg/controller/metrics"
+	// load all the prometheus client-go metrics
+	_ "k8s.io/component-base/metrics/prometheus/clientgo"
 )
 
 // ControllerCommandConfig holds values required to construct a command to run.

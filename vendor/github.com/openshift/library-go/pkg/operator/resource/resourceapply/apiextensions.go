@@ -42,3 +42,15 @@ func ApplyCustomResourceDefinitionV1(ctx context.Context, client apiextclientv1.
 
 	return actual, true, err
 }
+
+func DeleteCustomResourceDefinitionV1(ctx context.Context, client apiextclientv1.CustomResourceDefinitionsGetter, recorder events.Recorder, required *apiextensionsv1.CustomResourceDefinition) (*apiextensionsv1.CustomResourceDefinition, bool, error) {
+	err := client.CustomResourceDefinitions().Delete(ctx, required.Name, metav1.DeleteOptions{})
+	if err != nil && apierrors.IsNotFound(err) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	reportDeleteEvent(recorder, required, err)
+	return nil, true, nil
+}

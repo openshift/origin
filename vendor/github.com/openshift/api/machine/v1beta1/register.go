@@ -34,6 +34,10 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(GroupVersion,
 		&Machine{},
 		&MachineList{},
+		&MachineSet{},
+		&MachineSetList{},
+		&MachineHealthCheck{},
+		&MachineHealthCheckList{},
 	)
 
 	return nil
