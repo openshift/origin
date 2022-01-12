@@ -173,18 +173,14 @@ github.com/container-storage-interface/spec/lib/go/csi
 github.com/containerd/cgroups/stats/v1
 # github.com/containerd/console v1.0.2
 github.com/containerd/console
-# github.com/containerd/containerd v1.4.9
+# github.com/containerd/containerd v1.4.11
 github.com/containerd/containerd/api/services/containers/v1
 github.com/containerd/containerd/api/services/tasks/v1
 github.com/containerd/containerd/api/services/version/v1
 github.com/containerd/containerd/api/types
 github.com/containerd/containerd/api/types/task
-github.com/containerd/containerd/containers
 github.com/containerd/containerd/errdefs
-github.com/containerd/containerd/identifiers
 github.com/containerd/containerd/log
-github.com/containerd/containerd/namespaces
-github.com/containerd/containerd/pkg/dialer
 github.com/containerd/containerd/platforms
 github.com/containerd/containerd/sys
 # github.com/containerd/ttrpc v1.0.2
@@ -335,14 +331,19 @@ github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes/wrappers
 # github.com/google/btree v1.0.1
 github.com/google/btree
-# github.com/google/cadvisor v0.43.0 => github.com/openshift/google-cadvisor v0.33.2-0.20210825140152-3e7875ab2744
+# github.com/google/cadvisor v0.43.0 => github.com/google/cadvisor v0.43.0
 github.com/google/cadvisor/accelerators
 github.com/google/cadvisor/cache/memory
 github.com/google/cadvisor/collector
 github.com/google/cadvisor/container
 github.com/google/cadvisor/container/common
 github.com/google/cadvisor/container/containerd
+github.com/google/cadvisor/container/containerd/containers
+github.com/google/cadvisor/container/containerd/errdefs
+github.com/google/cadvisor/container/containerd/identifiers
 github.com/google/cadvisor/container/containerd/install
+github.com/google/cadvisor/container/containerd/namespaces
+github.com/google/cadvisor/container/containerd/pkg/dialer
 github.com/google/cadvisor/container/crio
 github.com/google/cadvisor/container/crio/install
 github.com/google/cadvisor/container/docker
@@ -976,7 +977,7 @@ github.com/tmc/grpc-websocket-proxy/wsproxy
 # github.com/vishvananda/netlink v1.1.0
 github.com/vishvananda/netlink
 github.com/vishvananda/netlink/nl
-# github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae
+# github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df
 github.com/vishvananda/netns
 # github.com/vmware/govmomi v0.20.3
 github.com/vmware/govmomi
@@ -3233,7 +3234,7 @@ sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.2.0
 ## explicit
 sigs.k8s.io/yaml
-# github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.33.2-0.20210825140152-3e7875ab2744
+# github.com/google/cadvisor => github.com/google/cadvisor v0.43.0
 # github.com/onsi/ginkgo => github.com/openshift/onsi-ginkgo v4.7.0-origin.0+incompatible
 # k8s.io/api => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20220112121240-50f645e1e0b1
 # k8s.io/apiextensions-apiserver => github.com/openshift/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20220112121240-50f645e1e0b1
