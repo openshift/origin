@@ -57,7 +57,6 @@ type equalityChecker interface {
 // ApplyServiceMonitor applies the Prometheus service monitor.
 func ApplyServiceMonitor(ctx context.Context, client dynamic.Interface, recorder events.Recorder, required *unstructured.Unstructured) (*unstructured.Unstructured, bool, error) {
 	namespace := required.GetNamespace()
-
 	existing, err := client.Resource(serviceMonitorGVR).Namespace(namespace).Get(ctx, required.GetName(), metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		newObj, createErr := client.Resource(serviceMonitorGVR).Namespace(namespace).Create(ctx, required, metav1.CreateOptions{})
@@ -140,4 +139,30 @@ func ApplyPrometheusRule(ctx context.Context, client dynamic.Interface, recorder
 
 	recorder.Eventf("PrometheusRuleUpdated", "Updated PrometheusRule.monitoring.coreos.com/v1 because it changed")
 	return newObj, true, err
+}
+
+func DeletePrometheusRule(ctx context.Context, client dynamic.Interface, recorder events.Recorder, required *unstructured.Unstructured) (*unstructured.Unstructured, bool, error) {
+	namespace := required.GetNamespace()
+	err := client.Resource(prometheusRuleGVR).Namespace(namespace).Delete(ctx, required.GetName(), metav1.DeleteOptions{})
+	if err != nil && errors.IsNotFound(err) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	reportDeleteEvent(recorder, required, err)
+	return nil, true, nil
+}
+
+func DeleteServiceMonitor(ctx context.Context, client dynamic.Interface, recorder events.Recorder, required *unstructured.Unstructured) (*unstructured.Unstructured, bool, error) {
+	namespace := required.GetNamespace()
+	err := client.Resource(serviceMonitorGVR).Namespace(namespace).Delete(ctx, required.GetName(), metav1.DeleteOptions{})
+	if err != nil && errors.IsNotFound(err) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	reportDeleteEvent(recorder, required, err)
+	return nil, true, nil
 }

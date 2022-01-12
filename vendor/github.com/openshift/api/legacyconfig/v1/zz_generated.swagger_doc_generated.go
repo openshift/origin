@@ -494,7 +494,7 @@ func (LocalQuota) SwaggerDoc() map[string]string {
 
 var map_MasterAuthConfig = map[string]string{
 	"":                           "MasterAuthConfig configures authentication options in addition to the standard oauth token and client certificate authenticators",
-	"requestHeader":              "RequestHeader holds options for setting up a front proxy against the the API.  It is optional.",
+	"requestHeader":              "RequestHeader holds options for setting up a front proxy against the API.  It is optional.",
 	"webhookTokenAuthenticators": "WebhookTokenAuthnConfig, if present configures remote token reviewers",
 	"oauthMetadataFile":          "OAuthMetadataFile is a path to a file containing the discovery endpoint for OAuth 2.0 Authorization Server Metadata for an external OAuth server. See IETF Draft: // https://tools.ietf.org/html/draft-ietf-oauth-discovery-04#section-2 This option is mutually exclusive with OAuthConfig",
 }

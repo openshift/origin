@@ -70,6 +70,52 @@ spec:
               description: MachineSpec defines the desired state of Machine
               type: object
               properties:
+                lifecycleHooks:
+                  description: LifecycleHooks allow users to pause operations on the machine at certain predefined points within the machine lifecycle.
+                  type: object
+                  properties:
+                    preDrain:
+                      description: PreDrain hooks prevent the machine from being drained. This also blocks further lifecycle events, such as termination.
+                      type: array
+                      items:
+                        description: LifecycleHook represents a single instance of a lifecycle hook
+                        type: object
+                        required:
+                          - name
+                          - owner
+                        properties:
+                          name:
+                            description: Name defines a unique name for the lifcycle hook. The name should be unique and descriptive, ideally 1-3 words, in CamelCase or it may be namespaced, eg. foo.example.com/CamelCase. Names must be unique and should only be managed by a single entity.
+                            type: string
+                            maxLength: 256
+                            minLength: 3
+                            pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                          owner:
+                            description: Owner defines the owner of the lifecycle hook. This should be descriptive enough so that users can identify who/what is responsible for blocking the lifecycle. This could be the name of a controller (e.g. clusteroperator/etcd) or an administrator managing the hook.
+                            type: string
+                            maxLength: 512
+                            minLength: 3
+                    preTerminate:
+                      description: PreTerminate hooks prevent the machine from being terminated. PreTerminate hooks be actioned after the Machine has been drained.
+                      type: array
+                      items:
+                        description: LifecycleHook represents a single instance of a lifecycle hook
+                        type: object
+                        required:
+                          - name
+                          - owner
+                        properties:
+                          name:
+                            description: Name defines a unique name for the lifcycle hook. The name should be unique and descriptive, ideally 1-3 words, in CamelCase or it may be namespaced, eg. foo.example.com/CamelCase. Names must be unique and should only be managed by a single entity.
+                            type: string
+                            maxLength: 256
+                            minLength: 3
+                            pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                          owner:
+                            description: Owner defines the owner of the lifecycle hook. This should be descriptive enough so that users can identify who/what is responsible for blocking the lifecycle. This could be the name of a controller (e.g. clusteroperator/etcd) or an administrator managing the hook.
+                            type: string
+                            maxLength: 512
+                            minLength: 3
                 metadata:
                   description: ObjectMeta will autopopulate the Node created. Use this to indicate what labels, annotations, name prefix, etc., should be used when creating the Node.
                   type: object

@@ -114,3 +114,16 @@ func ApplyVolumeSnapshotClass(ctx context.Context, client dynamic.Interface, rec
 	recorder.Eventf("VolumeSnapshotClassUpdated", "Updated VolumeSnapshotClass.snapshot.storage.k8s.io/v1 because it changed")
 	return newObj, true, err
 }
+
+func DeleteVolumeSnapshotClass(ctx context.Context, client dynamic.Interface, recorder events.Recorder, required *unstructured.Unstructured) (*unstructured.Unstructured, bool, error) {
+	namespace := required.GetNamespace()
+	err := client.Resource(volumeSnapshotClassResourceGVR).Namespace(namespace).Delete(ctx, required.GetName(), metav1.DeleteOptions{})
+	if err != nil && errors.IsNotFound(err) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	reportDeleteEvent(recorder, required, err)
+	return nil, true, nil
+}
