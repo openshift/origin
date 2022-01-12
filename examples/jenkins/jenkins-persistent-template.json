@@ -1,6 +1,6 @@
 {
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "jenkins-persistent",
 		"creationTimestamp": null,
@@ -18,7 +18,7 @@
 	"message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
 	"objects": [
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"annotations": {
@@ -66,7 +66,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -230,7 +230,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "authorization.openshift.io/v1",
 			"groupNames": null,
 			"kind": "RoleBinding",
 			"metadata": {
@@ -358,6 +358,24 @@
 			"displayName": "Allows use of Jenkins Update Center repository with invalid SSL certificate",
 			"description": "Whether to allow use of a Jenkins Update Center that uses invalid certificate (self-signed, unknown CA). If any value other than 'false', certificate check is bypassed. By default, certificate check is enforced.",
 			"value": "false"
+		},
+		{
+			"name": "AGENT_BASE_IMAGE",
+			"displayName": "Image used for the 'jnlp' container of the sample 'java-sidecar' and 'nodejs-sidecar' PodTemplates",
+			"description": "Setting this value overrides the image used for the 'jnlp' container in the sample kubernetes plug-in PodTemplates provided with this image.  Otherwise, the image from the 'jenkins-agent-base:latest' ImageStreamTag in the 'openshift' namespace is used.",
+			"value": "image-registry.openshift-image-registry.svc:5000/openshift/jenkins-agent-base:latest"
+		},
+		{
+			"name": "JAVA_BUILDER_IMAGE",
+			"displayName": "Image used for the 'java' container of the sample 'java-builder' PodTemplate",
+			"description": "Setting this value overrides the image used for the 'java-builder' container in the sample kubernetes plug-in PodTemplates provided with this image.  Otherwise, the image from the 'java:latest' ImageStreamTag in the 'openshift' namespace is used.",
+			"value": "image-registry.openshift-image-registry.svc:5000/openshift/java:latest"
+		},
+		{
+			"name": "NODEJS_BUILDER_IMAGE",
+			"displayName": "Image used for the 'nodejs' container of the sample 'nodejs-builder' PodTemplate",
+			"description": "Setting this value overrides the image used for the 'nodejs-builder' container in the sample kubernetes plug-in PodTemplates provided with this image.  Otherwise, the image from the 'nodejs:latest' ImageStreamTag in the 'openshift' namespace is used.",
+			"value": "image-registry.openshift-image-registry.svc:5000/openshift/nodejs:latest"
 		}
 	],
 	"labels": {

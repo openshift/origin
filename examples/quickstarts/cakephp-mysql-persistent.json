@@ -1,6 +1,6 @@
 {
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "cakephp-mysql-persistent",
 		"creationTimestamp": null,
@@ -55,7 +55,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -69,7 +69,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -79,7 +79,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -139,7 +139,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -325,7 +325,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -469,8 +469,8 @@
 		{
 			"name": "PHP_VERSION",
 			"displayName": "PHP Version",
-			"description": "Version of PHP image to be used (7.3-ubi7, 7.3-ubi8, or latest).",
-			"value": "7.3-ubi8",
+			"description": "Version of PHP image to be used (7.3-ubi7, 7.4-ubi8, or latest).",
+			"value": "7.4-ubi8",
 			"required": true
 		},
 		{

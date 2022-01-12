@@ -1,6 +1,6 @@
 {
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "dancer-mysql-persistent",
 		"creationTimestamp": null,
@@ -54,7 +54,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -68,7 +68,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -78,7 +78,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -138,7 +138,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -298,7 +298,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -442,8 +442,8 @@
 		{
 			"name": "PERL_VERSION",
 			"displayName": "Version of Perl Image",
-			"description": "Version of Perl image to be used (5.26-el7, 5.26-ubi8, or latest).",
-			"value": "5.26-ubi8",
+			"description": "Version of Perl image to be used (5.30-el7, 5.30-ubi8, or latest).",
+			"value": "5.30-ubi8",
 			"required": true
 		},
 		{

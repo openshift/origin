@@ -1,6 +1,6 @@
 {
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "redis-ephemeral",
 		"creationTimestamp": null,
@@ -60,7 +60,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -211,8 +211,8 @@
 		{
 			"name": "REDIS_VERSION",
 			"displayName": "Version of Redis Image",
-			"description": "Version of Redis image to be used (5-el7, 5-el8, or latest).",
-			"value": "5-el8",
+			"description": "Version of Redis image to be used (5-el7, 5-el8, 6-el7, 6-el8, or latest).",
+			"value": "6-el8",
 			"required": true
 		}
 	],

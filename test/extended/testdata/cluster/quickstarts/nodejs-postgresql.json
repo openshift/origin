@@ -422,7 +422,7 @@
 		{
 			"name": "NODEJS_VERSION",
 			"displayName": "Version of NodeJS Image",
-			"description": "Version of NodeJS image to be used (14-ubi8, or latest).",
+			"description": "Version of NodeJS image to be used (12-ubi8, 14-ubi8, or latest).",
 			"value": "14-ubi8",
 			"required": true
 		},

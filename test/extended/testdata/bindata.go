@@ -554,7 +554,7 @@ func (fi bindataFileInfo) Sys() interface{} {
 
 var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "mariadb-ephemeral",
 		"creationTimestamp": null,
@@ -612,7 +612,7 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -834,7 +834,7 @@ func examplesDbTemplatesMariadbEphemeralTemplateJson() (*asset, error) {
 
 var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "mariadb-persistent",
 		"creationTimestamp": null,
@@ -909,7 +909,7 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -1138,7 +1138,7 @@ func examplesDbTemplatesMariadbPersistentTemplateJson() (*asset, error) {
 
 var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "mysql-ephemeral",
 		"creationTimestamp": null,
@@ -1204,7 +1204,7 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -1437,7 +1437,7 @@ func examplesDbTemplatesMysqlEphemeralTemplateJson() (*asset, error) {
 
 var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "mysql-persistent",
 		"creationTimestamp": null,
@@ -1512,7 +1512,7 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -1741,7 +1741,7 @@ func examplesDbTemplatesMysqlPersistentTemplateJson() (*asset, error) {
 
 var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "postgresql-ephemeral",
 		"creationTimestamp": null,
@@ -1805,7 +1805,7 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -2016,7 +2016,7 @@ func examplesDbTemplatesPostgresqlEphemeralTemplateJson() (*asset, error) {
 
 var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "postgresql-persistent",
 		"creationTimestamp": null,
@@ -2097,7 +2097,7 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -2315,7 +2315,7 @@ func examplesDbTemplatesPostgresqlPersistentTemplateJson() (*asset, error) {
 
 var _examplesDbTemplatesRedisEphemeralTemplateJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "redis-ephemeral",
 		"creationTimestamp": null,
@@ -2375,7 +2375,7 @@ var _examplesDbTemplatesRedisEphemeralTemplateJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -2526,8 +2526,8 @@ var _examplesDbTemplatesRedisEphemeralTemplateJson = []byte(`{
 		{
 			"name": "REDIS_VERSION",
 			"displayName": "Version of Redis Image",
-			"description": "Version of Redis image to be used (5-el7, 5-el8, or latest).",
-			"value": "5-el8",
+			"description": "Version of Redis image to be used (5-el7, 5-el8, 6-el7, 6-el8, or latest).",
+			"value": "6-el8",
 			"required": true
 		}
 	],
@@ -2553,7 +2553,7 @@ func examplesDbTemplatesRedisEphemeralTemplateJson() (*asset, error) {
 
 var _examplesDbTemplatesRedisPersistentTemplateJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "redis-persistent",
 		"creationTimestamp": null,
@@ -2630,7 +2630,7 @@ var _examplesDbTemplatesRedisPersistentTemplateJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -2788,8 +2788,8 @@ var _examplesDbTemplatesRedisPersistentTemplateJson = []byte(`{
 		{
 			"name": "REDIS_VERSION",
 			"displayName": "Version of Redis Image",
-			"description": "Version of Redis image to be used (5-el7, 5-el8, or latest).",
-			"value": "5-el8",
+			"description": "Version of Redis image to be used (5-el7, 5-el8, 6-el7, 6-el8, or latest).",
+			"value": "6-el8",
 			"required": true
 		}
 	],
@@ -2819,7 +2819,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
   "items": [
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "dotnet",
         "creationTimestamp": null,
@@ -2835,18 +2835,64 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run .NET applications. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/5.0/build/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of .NET available on OpenShift, including major versions updates.",
+              "description": "Build and run .NET applications. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/6.0/build/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of .NET available on OpenShift, including major versions updates.",
               "iconClass": "icon-dotnet",
               "openshift.io/display-name": ".NET (Latest)",
               "sampleContextDir": "app",
-              "sampleRef": "dotnet-5.0",
+              "sampleRef": "dotnet-6.0",
               "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex",
               "supports": "dotnet",
               "tags": "builder,.net,dotnet,dotnetcore,hidden"
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "5.0-ubi8"
+              "name": "6.0-ubi8"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "6.0-ubi8",
+            "annotations": {
+              "description": "Build and run .NET 6 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/6.0/build/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET 6 (UBI 8)",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnet-6.0",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex",
+              "supports": "dotnet:6.0,dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,dotnet60",
+              "version": "6.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi8/dotnet-60:6.0"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "6.0",
+            "annotations": {
+              "description": "Build and run .NET 6 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/6.0/build/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET 6 (UBI 8)",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-6.0",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex",
+              "supports": "dotnet:6.0,dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,dotnet60,hidden",
+              "version": "6.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi8/dotnet-60:6.0"
             },
             "generation": null,
             "importPolicy": {},
@@ -2968,75 +3014,6 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "referencePolicy": {
               "type": "Local"
             }
-          },
-          {
-            "name": "2.1-ubi8",
-            "annotations": {
-              "description": "Build and run .NET Core 2.1 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.1/build/README.md.",
-              "iconClass": "icon-dotnet",
-              "openshift.io/display-name": ".NET Core 2.1 (UBI 8)",
-              "sampleContextDir": "app",
-              "sampleRef": "dotnetcore-2.1",
-              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex",
-              "supports": "dotnet:2.1,dotnet",
-              "tags": "builder,.net,dotnet,dotnetcore,dotnet21",
-              "version": "2.1"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.access.redhat.com/ubi8/dotnet-21:2.1"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "2.1-el7",
-            "annotations": {
-              "description": "Build and run .NET Core 2.1 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.1/build/README.md.",
-              "iconClass": "icon-dotnet",
-              "openshift.io/display-name": ".NET Core 2.1 (CentOS 7)",
-              "sampleContextDir": "app",
-              "sampleRef": "dotnetcore-2.1",
-              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex",
-              "supports": "dotnet:2.1,dotnet",
-              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet21",
-              "version": "2.1"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.centos.org/dotnet/dotnet-21-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "2.1",
-            "annotations": {
-              "description": "Build and run .NET Core 2.1 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.1/build/README.md.",
-              "iconClass": "icon-dotnet",
-              "openshift.io/display-name": ".NET Core 2.1 (CentOS 7)",
-              "sampleContextDir": "app",
-              "sampleRef": "dotnetcore-2.1",
-              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex",
-              "supports": "dotnet:2.1,dotnet",
-              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet21,hidden",
-              "version": "2.1"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.centos.org/dotnet/dotnet-21-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
           }
         ]
       },
@@ -3046,7 +3023,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "httpd",
         "creationTimestamp": null,
@@ -3154,7 +3131,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "jenkins",
         "creationTimestamp": null,
@@ -3214,7 +3191,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "mariadb",
         "creationTimestamp": null,
@@ -3230,7 +3207,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a MariaDB database on CentOS. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/tree/master/10.3/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of MariaDB available on OpenShift, including major version updates.",
+              "description": "Provides a MariaDB database on CentOS. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/tree/master/10.5/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of MariaDB available on OpenShift, including major version updates.",
               "iconClass": "icon-mariadb",
               "openshift.io/display-name": "MariaDB (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -3238,7 +3215,27 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "10.3-el8"
+              "name": "10.5-el7"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "10.5-el7",
+            "annotations": {
+              "description": "Provides a MariaDB 10.5 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/tree/master/10.5/README.md.",
+              "iconClass": "icon-mariadb",
+              "openshift.io/display-name": "MariaDB 10.5 (CentOS 7)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,mariadb",
+              "version": "10.5"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "quay.io/centos7/mariadb-105-centos7:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -3314,7 +3311,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "mysql",
         "creationTimestamp": null,
@@ -3414,7 +3411,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "nginx",
         "creationTimestamp": null,
@@ -3430,7 +3427,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and serve static content via Nginx HTTP Server and a reverse proxy (nginx) on CentOS. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/nginx-container/blob/master/1.18/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Nginx available on OpenShift, including major version updates.",
+              "description": "Build and serve static content via Nginx HTTP Server and a reverse proxy (nginx) on CentOS. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/nginx-container/blob/master/1.20/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Nginx available on OpenShift, including major version updates.",
               "iconClass": "icon-nginx",
               "openshift.io/display-name": "Nginx HTTP server and a reverse proxy (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -3440,7 +3437,51 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "1.18-ubi8"
+              "name": "1.20-ubi8"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "1.20-ubi8",
+            "annotations": {
+              "description": "Build and serve static content via Nginx HTTP server and a reverse proxy (nginx) on RHEL 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/nginx-container/blob/master/1.20/README.md.",
+              "iconClass": "icon-nginx",
+              "openshift.io/display-name": "Nginx HTTP server and a reverse proxy 1.20 (UBI 8)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nginx-ex.git",
+              "supports": "nginx",
+              "tags": "builder,nginx",
+              "version": "1.20"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi8/nginx-120:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "1.20-ubi7",
+            "annotations": {
+              "description": "Build and serve static content via Nginx HTTP server and a reverse proxy (nginx) on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/nginx-container/blob/master/1.20/README.md.",
+              "iconClass": "icon-nginx",
+              "openshift.io/display-name": "Nginx HTTP server and a reverse proxy 1.20 (UBI 7)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nginx-ex.git",
+              "supports": "nginx",
+              "tags": "builder,nginx",
+              "version": "1.20"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi7/nginx-118:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -3491,72 +3532,6 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "referencePolicy": {
               "type": "Local"
             }
-          },
-          {
-            "name": "1.16-el8",
-            "annotations": {
-              "description": "Build and serve static content via Nginx HTTP Server and a reverse proxy (nginx) on CentOS 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/nginx-container/blob/master/1.16/README.md.",
-              "iconClass": "icon-nginx",
-              "openshift.io/display-name": "Nginx HTTP server and a reverse proxy 1.16 (CentOS 8)",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/nginx-ex.git",
-              "supports": "nginx",
-              "tags": "builder,nginx",
-              "version": "1.16"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/centos/nginx-116-centos8:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "1.16-el7",
-            "annotations": {
-              "description": "Build and serve static content via Nginx HTTP Server and a reverse proxy (nginx) on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/nginx-container/blob/master/1.16/README.md.",
-              "iconClass": "icon-nginx",
-              "openshift.io/display-name": "Nginx HTTP server and a reverse proxy 1.16 (CentOS 7)",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/nginx-ex.git",
-              "supports": "nginx",
-              "tags": "builder,nginx",
-              "version": "1.16"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "quay.io/centos7/nginx-116-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "1.16",
-            "annotations": {
-              "description": "Build and serve static content via Nginx HTTP Server and a reverse proxy (nginx) on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/nginx-container/blob/master/1.16/README.md.",
-              "iconClass": "icon-nginx",
-              "openshift.io/display-name": "Nginx HTTP server and a reverse proxy 1.16",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/nginx-ex.git",
-              "supports": "nginx",
-              "tags": "builder,nginx,hidden",
-              "version": "1.16"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "quay.io/centos7/nginx-116-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
           }
         ]
       },
@@ -3566,7 +3541,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "nodejs",
         "creationTimestamp": null,
@@ -3582,7 +3557,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Node.js applications on UBI. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/14/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Node.js available on OpenShift, including major version updates.",
+              "description": "Build and run Node.js applications on UBI. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/16/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Node.js available on OpenShift, including major version updates.",
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -3592,7 +3567,49 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "14-ubi8"
+              "name": "16-ubi8"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "16-ubi8",
+            "annotations": {
+              "description": "Build and run Node.js 16 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/16/README.md.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 16 (UBI 8)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "tags": "builder,nodejs",
+              "version": "16"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi8/nodejs-16:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "16-ubi8-minimal",
+            "annotations": {
+              "description": "Build and run Node.js 16 applications on UBI 8 Minimal. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/16-minimal/README.md.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 16 (UBI 8 Minimal)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "tags": "builder,nodejs",
+              "version": "16"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi8/nodejs-16-minimal:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -3624,7 +3641,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "14-ubi8-minimal",
             "annotations": {
-              "description": "Build and run Node.js 14 applications on UBI 8 Minimal. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/14/README.md.",
+              "description": "Build and run Node.js 14 applications on UBI 8 Minimal. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/14-minimal/README.md.",
               "iconClass": "icon-nodejs",
               "openshift.io/display-name": "Node.js 14 (UBI 8 Minimal)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -3662,69 +3679,6 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "referencePolicy": {
               "type": "Local"
             }
-          },
-          {
-            "name": "12-ubi8",
-            "annotations": {
-              "description": "Build and run Node.js 12 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/12/README.md.",
-              "iconClass": "icon-nodejs",
-              "openshift.io/display-name": "Node.js 12 (UBI 8)",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
-              "tags": "builder,nodejs",
-              "version": "12"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.access.redhat.com/ubi8/nodejs-12:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "12-ubi7",
-            "annotations": {
-              "description": "Build and run Node.js 12 applications on UBI 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/12/README.md.",
-              "iconClass": "icon-nodejs",
-              "openshift.io/display-name": "Node.js 12 (UBI 7)",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
-              "tags": "builder,nodejs,hidden",
-              "version": "12"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.access.redhat.com/ubi7/nodejs-12:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "12",
-            "annotations": {
-              "description": "Build and run Node.js 12 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/12/README.md.",
-              "iconClass": "icon-nodejs",
-              "openshift.io/display-name": "Node.js 12",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
-              "tags": "builder,nodejs,hidden",
-              "version": "12"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "quay.io/centos7/nodejs-12-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
           }
         ]
       },
@@ -3734,7 +3688,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "perl",
         "creationTimestamp": null,
@@ -3864,7 +3818,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "php",
         "creationTimestamp": null,
@@ -3913,28 +3867,6 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/ubi8/php-74:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "7.3-ubi8",
-            "annotations": {
-              "description": "Build and run PHP 7.3 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/7.3/README.md.",
-              "iconClass": "icon-php",
-              "openshift.io/display-name": "PHP 7.3 (UBI 8)",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
-              "supports": "php:7.3,php",
-              "tags": "builder,php",
-              "version": "7.3"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.access.redhat.com/ubi8/php-73:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -3994,7 +3926,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "postgresql",
         "creationTimestamp": null,
@@ -4027,6 +3959,26 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             }
           },
           {
+            "name": "13-el7",
+            "annotations": {
+              "description": "Provides a PostgreSQL 13 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
+              "iconClass": "icon-postgresql",
+              "openshift.io/display-name": "PostgreSQL 13 (CentOS 7)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,postgresql",
+              "version": "13"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "quay.io/centos7/postgresql-13-centos7:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
             "name": "12-el8",
             "annotations": {
               "description": "Provides a PostgreSQL 12 database on CentOS 8. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
@@ -4039,6 +3991,26 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/postgresql-12-centos8:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "13-el7",
+            "annotations": {
+              "description": "Provides a PostgreSQL 13 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
+              "iconClass": "icon-postgresql",
+              "openshift.io/display-name": "PostgreSQL 13 (CentOS 7)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "database,postgresql",
+              "version": "13"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "quay.io/centos7/postgresql-13-centos7:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -4145,26 +4117,6 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "referencePolicy": {
               "type": "Local"
             }
-          },
-          {
-            "name": "9.6-el8",
-            "annotations": {
-              "description": "Provides a PostgreSQL 9.6 database on CentOS 8. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
-              "iconClass": "icon-postgresql",
-              "openshift.io/display-name": "PostgreSQL 9.6 (CentOS 8)",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "tags": "database,postgresql",
-              "version": "9.6"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/centos/postgresql-96-centos8:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
           }
         ]
       },
@@ -4174,7 +4126,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "python",
         "creationTimestamp": null,
@@ -4370,7 +4322,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "redis",
         "creationTimestamp": null,
@@ -4470,7 +4422,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "ruby",
         "creationTimestamp": null,
@@ -4486,7 +4438,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Ruby applications on UBI. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.6/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major version updates.",
+              "description": "Build and run Ruby applications on UBI. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/3.0/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major version updates.",
               "iconClass": "icon-ruby",
               "openshift.io/display-name": "Ruby (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -4496,7 +4448,51 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "2.7-ubi8"
+              "name": "3.0-ubi8"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "3.0-ubi8",
+            "annotations": {
+              "description": "Build and run Ruby 3.0 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/3.0/README.md.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby 3.0 (UBI 8)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby:3.0,ruby",
+              "tags": "builder,ruby",
+              "version": "3.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi8/ruby-30:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "3.0-ubi7",
+            "annotations": {
+              "description": "Build and run Ruby 3.0 applications on UBI 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/3.0/README.md.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby 3.0 (UBI 7)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby:3.0,ruby",
+              "tags": "builder,ruby",
+              "version": "3.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi7/ruby-30:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -5088,6 +5084,50 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "quay.io/wildfly/wildfly-centos7:24.0"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "25.0",
+            "annotations": {
+              "description": "Build and run WildFly 25 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/wildfly/wildfly-s2i/blob/current/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 25",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:25,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "25.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "quay.io/wildfly/wildfly-centos7:25.0"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "26.0",
+            "annotations": {
+              "description": "Build and run WildFly 26 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/wildfly/wildfly-s2i/blob/current/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 26",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:26,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "26.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "quay.io/wildfly/wildfly-centos7:26.0"
             },
             "generation": null,
             "importPolicy": {},
@@ -6759,7 +6799,7 @@ func examplesSampleAppGithubWebhookExampleJson() (*asset, error) {
 
 var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "cakephp-mysql-persistent",
 		"creationTimestamp": null,
@@ -6814,7 +6854,7 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -6828,7 +6868,7 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -6838,7 +6878,7 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -6898,7 +6938,7 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -7084,7 +7124,7 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -7228,8 +7268,8 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
 		{
 			"name": "PHP_VERSION",
 			"displayName": "PHP Version",
-			"description": "Version of PHP image to be used (7.3-ubi7, 7.3-ubi8, or latest).",
-			"value": "7.3-ubi8",
+			"description": "Version of PHP image to be used (7.3-ubi7, 7.4-ubi8, or latest).",
+			"value": "7.4-ubi8",
 			"required": true
 		},
 		{
@@ -7375,7 +7415,7 @@ func examplesQuickstartsCakephpMysqlPersistentJson() (*asset, error) {
 
 var _examplesQuickstartsCakephpMysqlJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "cakephp-mysql-example",
 		"creationTimestamp": null,
@@ -7430,7 +7470,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -7444,7 +7484,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -7454,7 +7494,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -7514,7 +7554,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -7683,7 +7723,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -7825,8 +7865,8 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
 		{
 			"name": "PHP_VERSION",
 			"displayName": "PHP Version",
-			"description": "Version of PHP image to be used (7.3-ubi7, 7.3-ubi8, or latest).",
-			"value": "7.3-ubi8",
+			"description": "Version of PHP image to be used (7.3-ubi7, 7.4-ubi8, or latest).",
+			"value": "7.4-ubi8",
 			"required": true
 		},
 		{
@@ -7965,7 +8005,7 @@ func examplesQuickstartsCakephpMysqlJson() (*asset, error) {
 
 var _examplesQuickstartsDancerMysqlPersistentJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "dancer-mysql-persistent",
 		"creationTimestamp": null,
@@ -8019,7 +8059,7 @@ var _examplesQuickstartsDancerMysqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -8033,7 +8073,7 @@ var _examplesQuickstartsDancerMysqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -8043,7 +8083,7 @@ var _examplesQuickstartsDancerMysqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -8103,7 +8143,7 @@ var _examplesQuickstartsDancerMysqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -8263,7 +8303,7 @@ var _examplesQuickstartsDancerMysqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -8407,8 +8447,8 @@ var _examplesQuickstartsDancerMysqlPersistentJson = []byte(`{
 		{
 			"name": "PERL_VERSION",
 			"displayName": "Version of Perl Image",
-			"description": "Version of Perl image to be used (5.26-el7, 5.26-ubi8, or latest).",
-			"value": "5.26-ubi8",
+			"description": "Version of Perl image to be used (5.30-el7, 5.30-ubi8, or latest).",
+			"value": "5.30-ubi8",
 			"required": true
 		},
 		{
@@ -8532,7 +8572,7 @@ func examplesQuickstartsDancerMysqlPersistentJson() (*asset, error) {
 
 var _examplesQuickstartsDancerMysqlJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "dancer-mysql-example",
 		"creationTimestamp": null,
@@ -8586,7 +8626,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -8600,7 +8640,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -8610,7 +8650,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -8670,7 +8710,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -8813,7 +8853,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -8955,8 +8995,8 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
 		{
 			"name": "PERL_VERSION",
 			"displayName": "Version of Perl Image",
-			"description": "Version of Perl image to be used (5.26-el7, 5.26-ubi8, or latest).",
-			"value": "5.26-ubi8",
+			"description": "Version of Perl image to be used (5.30-el7, 5.30-ubi8, or latest).",
+			"value": "5.30-ubi8",
 			"required": true
 		},
 		{
@@ -9073,7 +9113,7 @@ func examplesQuickstartsDancerMysqlJson() (*asset, error) {
 
 var _examplesQuickstartsDjangoPostgresqlPersistentJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "django-psql-persistent",
 		"creationTimestamp": null,
@@ -9127,7 +9167,7 @@ var _examplesQuickstartsDjangoPostgresqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -9141,7 +9181,7 @@ var _examplesQuickstartsDjangoPostgresqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -9151,7 +9191,7 @@ var _examplesQuickstartsDjangoPostgresqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -9211,7 +9251,7 @@ var _examplesQuickstartsDjangoPostgresqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -9375,7 +9415,7 @@ var _examplesQuickstartsDjangoPostgresqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -9515,8 +9555,8 @@ var _examplesQuickstartsDjangoPostgresqlPersistentJson = []byte(`{
 		{
 			"name": "PYTHON_VERSION",
 			"displayName": "Version of Python Image",
-			"description": "Version of Python image to be used (3.6-ubi8, 3.8-ubi7, 3.8-ubi8, or latest).",
-			"value": "3.8-ubi8",
+			"description": "Version of Python image to be used (3.6-ubi8, 3.8-ubi8, 3.9-ubi8, or latest).",
+			"value": "3.9-ubi8",
 			"required": true
 		},
 		{
@@ -9648,7 +9688,7 @@ func examplesQuickstartsDjangoPostgresqlPersistentJson() (*asset, error) {
 
 var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "django-psql-example",
 		"creationTimestamp": null,
@@ -9702,7 +9742,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -9716,7 +9756,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -9726,7 +9766,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -9786,7 +9826,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -9933,7 +9973,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -10071,8 +10111,8 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
 		{
 			"name": "PYTHON_VERSION",
 			"displayName": "Version of Python Image",
-			"description": "Version of Python image to be used (3.6-ubi8, 3.8-ubi7, 3.8-ubi8, or latest).",
-			"value": "3.8-ubi8",
+			"description": "Version of Python image to be used (3.6-ubi8, 3.8-ubi8, 3.9-ubi8, or latest).",
+			"value": "3.9-ubi8",
 			"required": true
 		},
 		{
@@ -10197,7 +10237,7 @@ func examplesQuickstartsDjangoPostgresqlJson() (*asset, error) {
 
 var _examplesQuickstartsHttpdJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "httpd-example",
 		"creationTimestamp": null,
@@ -10238,7 +10278,7 @@ var _examplesQuickstartsHttpdJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -10252,7 +10292,7 @@ var _examplesQuickstartsHttpdJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -10262,7 +10302,7 @@ var _examplesQuickstartsHttpdJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -10319,7 +10359,7 @@ var _examplesQuickstartsHttpdJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -10482,7 +10522,7 @@ func examplesQuickstartsHttpdJson() (*asset, error) {
 
 var _examplesQuickstartsNginxJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "nginx-example",
 		"creationTimestamp": null,
@@ -10522,7 +10562,7 @@ var _examplesQuickstartsNginxJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"annotations": {
@@ -10539,7 +10579,7 @@ var _examplesQuickstartsNginxJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -10549,7 +10589,7 @@ var _examplesQuickstartsNginxJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -10606,7 +10646,7 @@ var _examplesQuickstartsNginxJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -10705,8 +10745,8 @@ var _examplesQuickstartsNginxJson = []byte(`{
 		{
 			"name": "NGINX_VERSION",
 			"displayName": "NGINX Version",
-			"description": "Version of NGINX image to be used (1.16-el8 by default).",
-			"value": "1.16-el8",
+			"description": "Version of NGINX image to be used (1.20-el8 by default).",
+			"value": "1.20-el8",
 			"required": true
 		},
 		{
@@ -10829,7 +10869,7 @@ var _examplesQuickstartsNodejsPostgresqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -10843,7 +10883,7 @@ var _examplesQuickstartsNodejsPostgresqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -10853,7 +10893,7 @@ var _examplesQuickstartsNodejsPostgresqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -10917,7 +10957,7 @@ var _examplesQuickstartsNodejsPostgresqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -11077,7 +11117,7 @@ var _examplesQuickstartsNodejsPostgresqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -11158,7 +11198,7 @@ var _examplesQuickstartsNodejsPostgresqlPersistentJson = []byte(`{
 								},
 								"volumeMounts": [
 									{
-										"mountPath": "/var/lib/postgresql/data",
+										"mountPath": "/var/lib/pgsql/data",
 										"name": "${DATABASE_SERVICE_NAME}-data"
 									}
 								]
@@ -11214,8 +11254,8 @@ var _examplesQuickstartsNodejsPostgresqlPersistentJson = []byte(`{
 		{
 			"name": "NODEJS_VERSION",
 			"displayName": "Version of NodeJS Image",
-			"description": "Version of NodeJS image to be used (10-ubi8, 12-ubi8, or latest).",
-			"value": "12-ubi8",
+			"description": "Version of NodeJS image to be used (12-ubi8, 14-ubi8, or latest).",
+			"value": "14-ubi8",
 			"required": true
 		},
 		{
@@ -11398,7 +11438,7 @@ var _examplesQuickstartsNodejsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -11412,7 +11452,7 @@ var _examplesQuickstartsNodejsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -11422,7 +11462,7 @@ var _examplesQuickstartsNodejsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -11486,7 +11526,7 @@ var _examplesQuickstartsNodejsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -11629,7 +11669,7 @@ var _examplesQuickstartsNodejsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -11766,8 +11806,8 @@ var _examplesQuickstartsNodejsPostgresqlJson = []byte(`{
 		{
 			"name": "NODEJS_VERSION",
 			"displayName": "Version of NodeJS Image",
-			"description": "Version of NodeJS image to be used (10-ubi8, 12-ubi8, or latest).",
-			"value": "12-ubi8",
+			"description": "Version of NodeJS image to be used (12-ubi8, 14-ubi8, or latest).",
+			"value": "14-ubi8",
 			"required": true
 		},
 		{
@@ -11889,7 +11929,7 @@ func examplesQuickstartsNodejsPostgresqlJson() (*asset, error) {
 
 var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "rails-pgsql-persistent",
 		"creationTimestamp": null,
@@ -11945,7 +11985,7 @@ var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -11959,7 +11999,7 @@ var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -11969,7 +12009,7 @@ var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -12006,7 +12046,7 @@ var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
 						],
 						"from": {
 							"kind": "ImageStreamTag",
-							"name": "ruby:2.6-ubi8",
+							"name": "ruby:2.7-ubi8",
 							"namespace": "${NAMESPACE}"
 						}
 					},
@@ -12029,7 +12069,7 @@ var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -12230,7 +12270,7 @@ var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -12516,7 +12556,7 @@ func examplesQuickstartsRailsPostgresqlPersistentJson() (*asset, error) {
 
 var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "rails-postgresql-example",
 		"creationTimestamp": null,
@@ -12572,7 +12612,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -12586,7 +12626,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -12596,7 +12636,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -12633,7 +12673,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
 						],
 						"from": {
 							"kind": "ImageStreamTag",
-							"name": "ruby:2.6-ubi8",
+							"name": "ruby:2.7-ubi8",
 							"namespace": "${NAMESPACE}"
 						}
 					},
@@ -12656,7 +12696,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -12840,7 +12880,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -13591,7 +13631,7 @@ func examplesJenkinsApplicationTemplateJson() (*asset, error) {
 
 var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "jenkins-ephemeral",
 		"creationTimestamp": null,
@@ -13609,7 +13649,7 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
 	"message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
 	"objects": [
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"annotations": {
@@ -13640,7 +13680,7 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -13800,7 +13840,7 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "authorization.openshift.io/v1",
 			"groupNames": null,
 			"kind": "RoleBinding",
 			"metadata": {
@@ -13915,6 +13955,24 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
 			"displayName": "Allows use of Jenkins Update Center repository with invalid SSL certificate",
 			"description": "Whether to allow use of a Jenkins Update Center that uses invalid certificate (self-signed, unknown CA). If any value other than 'false', certificate check is bypassed. By default, certificate check is enforced.",
 			"value": "false"
+		},
+		{
+			"name": "AGENT_BASE_IMAGE",
+			"displayName": "Image used for the 'jnlp' container of the sample 'java-sidecar' and 'nodejs-sidecar' PodTemplates",
+			"description": "Setting this value overrides the image used for the 'jnlp' container in the sample kubernetes plug-in PodTemplates provided with this image.  Otherwise, the image from the 'jenkins-agent-base:latest' ImageStreamTag in the 'openshift' namespace is used.",
+			"value": "image-registry.openshift-image-registry.svc:5000/openshift/jenkins-agent-base:latest"
+		},
+		{
+			"name": "JAVA_BUILDER_IMAGE",
+			"displayName": "Image used for the 'java' container of the sample 'java-builder' PodTemplate",
+			"description": "Setting this value overrides the image used for the 'java-builder' container in the sample kubernetes plug-in PodTemplates provided with this image.  Otherwise, the image from the 'java:latest' ImageStreamTag in the 'openshift' namespace is used.",
+			"value": "image-registry.openshift-image-registry.svc:5000/openshift/java:latest"
+		},
+		{
+			"name": "NODEJS_BUILDER_IMAGE",
+			"displayName": "Image used for the 'nodejs' container of the sample 'nodejs-builder' PodTemplate",
+			"description": "Setting this value overrides the image used for the 'nodejs-builder' container in the sample kubernetes plug-in PodTemplates provided with this image.  Otherwise, the image from the 'nodejs:latest' ImageStreamTag in the 'openshift' namespace is used.",
+			"value": "image-registry.openshift-image-registry.svc:5000/openshift/nodejs:latest"
 		}
 	],
 	"labels": {
@@ -13940,7 +13998,7 @@ func examplesJenkinsJenkinsEphemeralTemplateJson() (*asset, error) {
 
 var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "jenkins-persistent",
 		"creationTimestamp": null,
@@ -13958,7 +14016,7 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
 	"message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
 	"objects": [
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"annotations": {
@@ -14006,7 +14064,7 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -14170,7 +14228,7 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "authorization.openshift.io/v1",
 			"groupNames": null,
 			"kind": "RoleBinding",
 			"metadata": {
@@ -14298,6 +14356,24 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
 			"displayName": "Allows use of Jenkins Update Center repository with invalid SSL certificate",
 			"description": "Whether to allow use of a Jenkins Update Center that uses invalid certificate (self-signed, unknown CA). If any value other than 'false', certificate check is bypassed. By default, certificate check is enforced.",
 			"value": "false"
+		},
+		{
+			"name": "AGENT_BASE_IMAGE",
+			"displayName": "Image used for the 'jnlp' container of the sample 'java-sidecar' and 'nodejs-sidecar' PodTemplates",
+			"description": "Setting this value overrides the image used for the 'jnlp' container in the sample kubernetes plug-in PodTemplates provided with this image.  Otherwise, the image from the 'jenkins-agent-base:latest' ImageStreamTag in the 'openshift' namespace is used.",
+			"value": "image-registry.openshift-image-registry.svc:5000/openshift/jenkins-agent-base:latest"
+		},
+		{
+			"name": "JAVA_BUILDER_IMAGE",
+			"displayName": "Image used for the 'java' container of the sample 'java-builder' PodTemplate",
+			"description": "Setting this value overrides the image used for the 'java-builder' container in the sample kubernetes plug-in PodTemplates provided with this image.  Otherwise, the image from the 'java:latest' ImageStreamTag in the 'openshift' namespace is used.",
+			"value": "image-registry.openshift-image-registry.svc:5000/openshift/java:latest"
+		},
+		{
+			"name": "NODEJS_BUILDER_IMAGE",
+			"displayName": "Image used for the 'nodejs' container of the sample 'nodejs-builder' PodTemplate",
+			"description": "Setting this value overrides the image used for the 'nodejs-builder' container in the sample kubernetes plug-in PodTemplates provided with this image.  Otherwise, the image from the 'nodejs:latest' ImageStreamTag in the 'openshift' namespace is used.",
+			"value": "image-registry.openshift-image-registry.svc:5000/openshift/nodejs:latest"
 		}
 	],
 	"labels": {
@@ -15701,7 +15777,7 @@ func examplesJenkinsPipelineSamplepipelineYaml() (*asset, error) {
 
 var _examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "cakephp-mysql-example",
 		"creationTimestamp": null,
@@ -15756,7 +15832,7 @@ var _examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -15770,7 +15846,7 @@ var _examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -15780,7 +15856,7 @@ var _examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -15840,7 +15916,7 @@ var _examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -16009,7 +16085,7 @@ var _examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -16151,8 +16227,8 @@ var _examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson = []byte(`{
 		{
 			"name": "PHP_VERSION",
 			"displayName": "PHP Version",
-			"description": "Version of PHP image to be used (7.3-ubi7, 7.3-ubi8, or latest).",
-			"value": "7.3-ubi8",
+			"description": "Version of PHP image to be used (7.3-ubi7, 7.4-ubi8, or latest).",
+			"value": "7.4-ubi8",
 			"required": true
 		},
 		{
@@ -23518,7 +23594,7 @@ func testExtendedTestdataClusterMasterVertYaml() (*asset, error) {
 
 var _testExtendedTestdataClusterQuickstartsCakephpMysqlJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "cakephp-mysql-example",
 		"creationTimestamp": null,
@@ -23573,7 +23649,7 @@ var _testExtendedTestdataClusterQuickstartsCakephpMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -23587,7 +23663,7 @@ var _testExtendedTestdataClusterQuickstartsCakephpMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -23597,7 +23673,7 @@ var _testExtendedTestdataClusterQuickstartsCakephpMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -23657,7 +23733,7 @@ var _testExtendedTestdataClusterQuickstartsCakephpMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -23826,7 +23902,7 @@ var _testExtendedTestdataClusterQuickstartsCakephpMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -23968,7 +24044,7 @@ var _testExtendedTestdataClusterQuickstartsCakephpMysqlJson = []byte(`{
 		{
 			"name": "PHP_VERSION",
 			"displayName": "PHP Version",
-			"description": "Version of PHP image to be used (7.4-ubi7, 7.4-ubi8, or latest).",
+			"description": "Version of PHP image to be used (7.3-ubi7, 7.4-ubi8, or latest).",
 			"value": "7.4-ubi8",
 			"required": true
 		},
@@ -24089,8 +24165,7 @@ var _testExtendedTestdataClusterQuickstartsCakephpMysqlJson = []byte(`{
 		"app": "cakephp-mysql-example",
 		"template": "cakephp-mysql-example"
 	}
-}
-`)
+}`)
 
 func testExtendedTestdataClusterQuickstartsCakephpMysqlJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataClusterQuickstartsCakephpMysqlJson, nil
@@ -24109,7 +24184,7 @@ func testExtendedTestdataClusterQuickstartsCakephpMysqlJson() (*asset, error) {
 
 var _testExtendedTestdataClusterQuickstartsDancerMysqlJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "dancer-mysql-example",
 		"creationTimestamp": null,
@@ -24163,7 +24238,7 @@ var _testExtendedTestdataClusterQuickstartsDancerMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -24177,7 +24252,7 @@ var _testExtendedTestdataClusterQuickstartsDancerMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -24187,7 +24262,7 @@ var _testExtendedTestdataClusterQuickstartsDancerMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -24247,7 +24322,7 @@ var _testExtendedTestdataClusterQuickstartsDancerMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -24390,7 +24465,7 @@ var _testExtendedTestdataClusterQuickstartsDancerMysqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -24532,8 +24607,8 @@ var _testExtendedTestdataClusterQuickstartsDancerMysqlJson = []byte(`{
 		{
 			"name": "PERL_VERSION",
 			"displayName": "Version of Perl Image",
-			"description": "Version of Perl image to be used (5.26-el7, 5.26-ubi8, or latest).",
-			"value": "5.26-ubi8",
+			"description": "Version of Perl image to be used (5.30-el7, 5.30-ubi8, or latest).",
+			"value": "5.30-ubi8",
 			"required": true
 		},
 		{
@@ -24650,7 +24725,7 @@ func testExtendedTestdataClusterQuickstartsDancerMysqlJson() (*asset, error) {
 
 var _testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "django-psql-example",
 		"creationTimestamp": null,
@@ -24704,7 +24779,7 @@ var _testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -24718,7 +24793,7 @@ var _testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -24728,7 +24803,7 @@ var _testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -24788,7 +24863,7 @@ var _testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -24935,7 +25010,7 @@ var _testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -25073,8 +25148,8 @@ var _testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson = []byte(`{
 		{
 			"name": "PYTHON_VERSION",
 			"displayName": "Version of Python Image",
-			"description": "Version of Python image to be used (3.6-ubi8, 3.8-ubi7, 3.8-ubi8, or latest).",
-			"value": "3.8-ubi8",
+			"description": "Version of Python image to be used (3.6-ubi8, 3.8-ubi8, 3.9-ubi8, or latest).",
+			"value": "3.9-ubi8",
 			"required": true
 		},
 		{
@@ -25621,7 +25696,7 @@ var _testExtendedTestdataClusterQuickstartsNodejsPostgresqlJson = []byte(`{
 		{
 			"name": "NODEJS_VERSION",
 			"displayName": "Version of NodeJS Image",
-			"description": "Version of NodeJS image to be used (14-ubi8, or latest).",
+			"description": "Version of NodeJS image to be used (12-ubi8, 14-ubi8, or latest).",
 			"value": "14-ubi8",
 			"required": true
 		},
@@ -25725,8 +25800,7 @@ var _testExtendedTestdataClusterQuickstartsNodejsPostgresqlJson = []byte(`{
 		"app": "nodejs-postgresql-example",
 		"template": "nodejs-postgresql-example"
 	}
-}
-`)
+}`)
 
 func testExtendedTestdataClusterQuickstartsNodejsPostgresqlJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataClusterQuickstartsNodejsPostgresqlJson, nil
@@ -25745,7 +25819,7 @@ func testExtendedTestdataClusterQuickstartsNodejsPostgresqlJson() (*asset, error
 
 var _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson = []byte(`{
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "rails-postgresql-example",
 		"creationTimestamp": null,
@@ -25801,7 +25875,7 @@ var _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -25815,7 +25889,7 @@ var _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -25825,7 +25899,7 @@ var _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -25885,7 +25959,7 @@ var _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -26069,7 +26143,7 @@ var _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -26327,8 +26401,7 @@ var _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson = []byte(`{
 		"app": "rails-postgresql-example",
 		"template": "rails-postgresql-example"
 	}
-}
-`)
+}`)
 
 func testExtendedTestdataClusterQuickstartsRailsPostgresqlJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson, nil
