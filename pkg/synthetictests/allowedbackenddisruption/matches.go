@@ -7,73 +7,19 @@ import (
 	"time"
 
 	configv1 "github.com/openshift/api/config/v1"
-	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"k8s.io/client-go/rest"
 )
 
 // GetAllowedDisruption uses the backend and information about the cluster to choose the best historical p95 to operate against.
 // We enforce "don't get worse" for disruption by watching the aggregate data in CI over many runs.
 func GetAllowedDisruption(ctx context.Context, backendName string, clientConfig *rest.Config) (*time.Duration, error) {
-	configClient, err := configclient.NewForConfig(clientConfig)
-	if err != nil {
-		return nil, err
-	}
-	infrastructure, err := configClient.Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	clusterVersion, err := configClient.ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	network, err := configClient.Networks().Get(ctx, "cluster", metav1.GetOptions{})
+	jobType, err := platformidentification.GetJobType(ctx, clientConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	release := versionFromHistory(clusterVersion.Status.History[0])
-
-	fromRelease := ""
-	if len(clusterVersion.Status.History) > 1 {
-		fromRelease = versionFromHistory(clusterVersion.Status.History[1])
-	}
-
-	platform := ""
-	switch infrastructure.Status.PlatformStatus.Type {
-	case configv1.AWSPlatformType:
-		platform = "aws"
-	case configv1.GCPPlatformType:
-		platform = "gcp"
-	case configv1.AzurePlatformType:
-		platform = "azure"
-	case configv1.VSpherePlatformType:
-		platform = "vsphere"
-	case configv1.BareMetalPlatformType:
-		platform = "metal"
-	case configv1.OvirtPlatformType:
-		platform = "ovirt"
-	case configv1.OpenStackPlatformType:
-		platform = "openstack"
-	}
-
-	networkType := ""
-	switch network.Status.NetworkType {
-	case "OpenShiftSDN":
-		networkType = "sdn"
-	case "OVNKubernetes":
-		networkType = "ovn"
-	}
-
-	topology := ""
-	switch infrastructure.Status.ControlPlaneTopology {
-	case configv1.HighlyAvailableTopologyMode:
-		topology = "ha"
-	case configv1.SingleReplicaTopologyMode:
-		topology = "single"
-	}
-
-	return GetClosestP95Value(backendName, release, fromRelease, platform, networkType, topology), nil
+	return GetClosestP95Value(backendName, jobType.Release, jobType.FromRelease, jobType.Platform, jobType.Network, jobType.Topology), nil
 }
 
 func versionFromHistory(history configv1.UpdateHistory) string {

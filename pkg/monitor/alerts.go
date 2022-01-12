@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/kube-openapi/pkg/util/sets"
-
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/library-go/test/library/metrics"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -18,7 +16,41 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func CreateEventIntervalsForAlerts(ctx context.Context, restConfig *rest.Config, startTime time.Time) ([]monitorapi.EventInterval, error) {
+func WhenWasAlertFiring(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName string) ([]monitorapi.EventInterval, error) {
+	return whenWasAlertInState(ctx, prometheusClient, startTime, alertName, "firing")
+}
+
+func WhenWasAlertPending(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName string) ([]monitorapi.EventInterval, error) {
+	return whenWasAlertInState(ctx, prometheusClient, startTime, alertName, "pending")
+}
+
+func whenWasAlertInState(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName, alertState string) ([]monitorapi.EventInterval, error) {
+	if alertState != "pending" && alertState != "firing" {
+		return nil, fmt.Errorf("unrecognized alertState: %v", alertState)
+	}
+	timeRange := prometheusv1.Range{
+		Start: startTime,
+		End:   time.Now(),
+		Step:  1 * time.Second,
+	}
+	query := fmt.Sprintf(`ALERTS{alertstate="%s",alertname=%q}`, alertState, alertName)
+	alerts, warningsForQuery, err := prometheusClient.QueryRange(ctx, query, timeRange)
+	if err != nil {
+		return nil, err
+	}
+	if len(warningsForQuery) > 0 {
+		fmt.Printf("#### warnings \n\t%v\n", strings.Join(warningsForQuery, "\n\t"))
+	}
+
+	ret, err := CreateEventIntervalsForAlerts(ctx, alerts, startTime)
+	if err != nil {
+		return nil, err
+	}
+
+	return ret, nil
+}
+
+func FetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Config, startTime time.Time) ([]monitorapi.EventInterval, error) {
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
@@ -45,7 +77,7 @@ func CreateEventIntervalsForAlerts(ctx context.Context, restConfig *rest.Config,
 		fmt.Printf("#### warnings \n\t%v\n", strings.Join(warningsForQuery, "\n\t"))
 	}
 
-	firingAlerts, err := createEventIntervalsForAlerts(ctx, alerts, startTime)
+	firingAlerts, err := CreateEventIntervalsForAlerts(ctx, alerts, startTime)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +89,7 @@ func CreateEventIntervalsForAlerts(ctx context.Context, restConfig *rest.Config,
 	if len(warningsForQuery) > 0 {
 		fmt.Printf("#### warnings \n\t%v\n", strings.Join(warningsForQuery, "\n\t"))
 	}
-	pendingAlerts, err := createEventIntervalsForAlerts(ctx, alerts, startTime)
+	pendingAlerts, err := CreateEventIntervalsForAlerts(ctx, alerts, startTime)
 	if err != nil {
 		return nil, err
 	}
@@ -69,16 +101,7 @@ func CreateEventIntervalsForAlerts(ctx context.Context, restConfig *rest.Config,
 	return ret, nil
 }
 
-// Be careful placing things in this list.  In many cases, knowing a condition has gone bad is noteworthy when looking
-// for related errors in CI runs.
-var pendingAlertsToIgnoreForIntervals = sets.NewString(
-//"KubeContainerWaiting",
-//"AlertmanagerReceiversNotConfigured",
-//"KubeJobCompletion",
-//"KubeDeploymentReplicasMismatch",
-)
-
-func createEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.Value, startTime time.Time) ([]monitorapi.EventInterval, error) {
+func CreateEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.Value, startTime time.Time) ([]monitorapi.EventInterval, error) {
 	ret := []monitorapi.EventInterval{}
 
 	switch {
@@ -86,16 +109,6 @@ func createEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.V
 		matrixAlert := alerts.(prometheustypes.Matrix)
 		for _, alert := range matrixAlert {
 			alertName := alert.Metric[prometheustypes.AlertNameLabel]
-			// don't skip Watchdog because gaps in watchdog are noteworthy, unexpected, and they do happen.
-			//if alertName == "Watchdog" {
-			//	continue
-			//}
-			// many pending alerts we just don't care about
-			if alert.Metric["alertstate"] == "pending" {
-				if pendingAlertsToIgnoreForIntervals.Has(string(alertName)) {
-					continue
-				}
-			}
 
 			locator := "alert/" + alertName
 			if node := alert.Metric["instance"]; len(node) > 0 {

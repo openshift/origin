@@ -31,6 +31,17 @@ func SuiteStartTime() time.Time {
 	return unixTimeFromEnv("TEST_SUITE_START_TIME")
 }
 
+func BestStartTime() time.Time {
+	start := LimitTestsToStartTime()
+	if start.IsZero() {
+		start = SuiteStartTime()
+	}
+	if start.IsZero() {
+		start = time.Now().Add(-time.Hour)
+	}
+	return start
+}
+
 // DurationSinceStartInSeconds returns the current time minus the start
 // limit time or suite time, or one hour by default. It rounds the duration
 // to seconds. It always returns a one minute duration or longer, even if
@@ -44,13 +55,7 @@ func SuiteStartTime() time.Time {
 // to that time, and tests will automatically check that interval as well.
 func DurationSinceStartInSeconds() time.Duration {
 	now := time.Now()
-	start := LimitTestsToStartTime()
-	if start.IsZero() {
-		start = SuiteStartTime()
-	}
-	if start.IsZero() {
-		start = now.Add(-time.Hour)
-	}
+	start := BestStartTime()
 	interval := now.Sub(start).Round(time.Second)
 	switch {
 	case interval < time.Minute:
