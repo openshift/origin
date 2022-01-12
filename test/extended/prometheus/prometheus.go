@@ -28,10 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	clientset "k8s.io/client-go/kubernetes"
-	watchtools "k8s.io/client-go/tools/watch"
 
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/conditions"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
@@ -283,32 +281,14 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules", func(
 var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithoutNamespace("prometheus")
-
-		url, bearerToken string
+		oc               = exutil.NewCLIWithoutNamespace("prometheus")
+		prometheusClient = oc.NewPrometheusClient(context.TODO())
 	)
-	g.BeforeEach(func() {
-		err := exutil.WaitForAnImageStream(
-			oc.AdminImageClient().ImageV1().ImageStreams("openshift"), "tools",
-			exutil.CheckImageStreamLatestTagPopulated, exutil.CheckImageStreamTagNotFound)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		var ok bool
-		url, _, bearerToken, ok = helper.LocatePrometheus(oc)
-		if !ok {
-			e2e.Failf("Prometheus could not be located on this cluster, failing prometheus test")
-		}
-	})
 
 	g.It("shouldn't report any alerts in firing or pending state apart from Watchdog and AlertmanagerReceiversNotConfigured and have no gaps in Watchdog firing", func() {
 		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
 			e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
 		}
-		ns := oc.SetupNamespace()
-		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
-		defer func() {
-			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
-		}()
 
 		firingAlertsWithBugs := helper.MetricConditions{
 			{
@@ -388,7 +368,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		// to the presence of this series (zero if data is preserved over test, one if data is lost over test).
 		// This would not catch the alert stopping firing, but we catch that in other places and tests.
 		watchdogQuery := fmt.Sprintf(`changes((max((ALERTS{alertstate="firing",alertname="Watchdog",severity="none"}) or (absent(ALERTS{alertstate="firing",alertname="Watchdog",severity="none"})*0)))[%s:1s]) > 1`, testDuration)
-		result, err := helper.RunQuery(watchdogQuery, ns, execPod.Name, url, bearerToken)
+		result, err := helper.RunQuery(context.TODO(), prometheusClient, watchdogQuery)
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to check watchdog alert over test window")
 		if len(result.Data.Result) > 0 {
 			unexpectedViolations.Insert("Watchdog alert had missing intervals during the run, which may be a sign of a Prometheus outage in violation of the prometheus query SLO of 100% uptime during normal execution")
@@ -400,7 +380,7 @@ sort_desc(
 count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog|AlertmanagerReceiversNotConfigured"}[%[1]s:1s])
 ) > 0
 `, testDuration)
-		result, err = helper.RunQuery(firingAlertQuery, ns, execPod.Name, url, bearerToken)
+		result, err = helper.RunQuery(context.TODO(), prometheusClient, firingAlertQuery)
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to check firing alerts during test")
 		for _, series := range result.Data.Result {
 			labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
@@ -428,7 +408,7 @@ sort_desc(
   )[%[1]s:1s])
 )
 `, testDuration)
-		result, err = helper.RunQuery(pendingAlertQuery, ns, execPod.Name, url, bearerToken)
+		result, err = helper.RunQuery(context.TODO(), prometheusClient, pendingAlertQuery)
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to retrieve pending alerts after upgrade")
 		for _, series := range result.Data.Result {
 			labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
@@ -462,12 +442,6 @@ sort_desc(
 		if !hasPullSecret(oc.AdminKubeClient(), "cloud.openshift.com") {
 			e2eskipper.Skipf("Telemetry is disabled")
 		}
-		ns := oc.SetupNamespace()
-
-		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
-		defer func() {
-			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
-		}()
 
 		// we only consider series sent since the beginning of the test
 		testDuration := exutil.DurationSinceStartInSeconds().String()
@@ -480,7 +454,7 @@ sort_desc(
 			fmt.Sprintf(`avg_over_time(cluster:telemetry_selected_series:count[%s]) >= 600`, testDuration):  false,
 			fmt.Sprintf(`max_over_time(cluster:telemetry_selected_series:count[%s]) >= 1200`, testDuration): false,
 		}
-		err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+		err := helper.RunQueries(context.TODO(), prometheusClient, tests, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		e2e.Logf("Total number of series sent via telemetry is below the limit")
@@ -490,7 +464,8 @@ sort_desc(
 var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithoutNamespace("prometheus")
+		oc               = exutil.NewCLIWithoutNamespace("prometheus")
+		prometheusClient = oc.NewPrometheusClient(context.TODO())
 
 		url, prometheusURL, bearerToken string
 	)
@@ -513,12 +488,6 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			if !hasPullSecret(oc.AdminKubeClient(), "cloud.openshift.com") {
 				e2eskipper.Skipf("Telemetry is disabled")
 			}
-			ns := oc.SetupNamespace()
-
-			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
-			defer func() {
-				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
-			}()
 
 			tests := map[string]bool{}
 			if hasTelemeterClient(oc.AdminKubeClient()) {
@@ -537,7 +506,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 					`prometheus_remote_storage_succeeded_samples_total{job="prometheus-k8s"} >= 1`: true,
 				}
 			}
-			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			err := helper.RunQueries(context.TODO(), prometheusClient, tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			e2e.Logf("Telemetry is enabled: %s", bearerToken)
@@ -674,16 +643,10 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 		})
 
 		g.It("should have a AlertmanagerReceiversNotConfigured alert in firing state", func() {
-			ns := oc.SetupNamespace()
-			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
-			defer func() {
-				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
-			}()
-
 			tests := map[string]bool{
 				`ALERTS{alertstate=~"firing|pending",alertname="AlertmanagerReceiversNotConfigured"} == 1`: true,
 			}
-			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			err := helper.RunQueries(context.TODO(), prometheusClient, tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			e2e.Logf("AlertmanagerReceiversNotConfigured alert is firing")
@@ -691,12 +654,6 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 
 		g.It("should have important platform topology metrics", func() {
 			exutil.SkipIfExternalControlplaneTopology(oc, "topology metrics are not available for clusters with external controlPlaneTopology")
-			oc.SetupProject()
-			ns := oc.Namespace()
-			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
-			defer func() {
-				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
-			}()
 
 			tests := map[string]bool{
 				// track infrastructure type
@@ -713,55 +670,36 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				`sum(node_role_os_version_machine:cpu_capacity_cores:sum{label_kubernetes_io_arch!="",label_node_role_kubernetes_io_master!=""}) > 0`:                                      true,
 				`sum(node_role_os_version_machine:cpu_capacity_sockets:sum{label_kubernetes_io_arch!="",label_node_hyperthread_enabled!="",label_node_role_kubernetes_io_master!=""}) > 0`: true,
 			}
-			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			err := helper.RunQueries(context.TODO(), prometheusClient, tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
 		g.It("should have non-Pod host cAdvisor metrics", func() {
-			ns := oc.SetupNamespace()
-			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
-			defer func() {
-				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
-			}()
-
 			tests := map[string]bool{
 				`container_cpu_usage_seconds_total{id!~"/kubepods.slice/.*"} >= 1`: true,
 			}
-			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			err := helper.RunQueries(context.TODO(), prometheusClient, tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
 		g.It("shouldn't have failing rules evaluation", func() {
-			oc.SetupProject()
-			ns := oc.Namespace()
-			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
-			defer func() {
-				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
-			}()
-
 			// we only consider samples since the beginning of the test
 			testDuration := exutil.DurationSinceStartInSeconds().String()
 
 			tests := map[string]bool{
 				fmt.Sprintf(`increase(prometheus_rule_evaluation_failures_total[%s]) >= 1`, testDuration): false,
 			}
-			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			err := helper.RunQueries(context.TODO(), prometheusClient, tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
 		networking.InOpenShiftSDNContext(func() {
 			g.It("should be able to get the sdn ovs flows", func() {
-				ns := oc.SetupNamespace()
-				execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
-				defer func() {
-					oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
-				}()
-
 				tests := map[string]bool{
 					//something
 					`openshift_sdn_ovs_flows >= 1`: true,
 				}
-				err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+				err := helper.RunQueries(context.TODO(), prometheusClient, tests, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 		})
@@ -770,11 +708,6 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
 				e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
 			}
-			ns := oc.SetupNamespace()
-			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
-			defer func() {
-				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
-			}()
 
 			// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
 			allowedAlertNames := []string{
@@ -793,7 +726,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			tests := map[string]bool{
 				fmt.Sprintf(`ALERTS{alertname!~"%s",alertstate="firing",severity!="info"} >= 1`, strings.Join(allowedAlertNames, "|")): false,
 			}
-			err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+			err := helper.RunQueries(context.TODO(), prometheusClient, tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -831,7 +764,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				`template_router_reload_seconds_count{job="router-internal-default"} >= 1`: true,
 				`haproxy_server_up{job="router-internal-default"} >= 1`:                    true,
 			}
-			err := helper.RunQueries(queries, oc, ns, execPod.Name, url, bearerToken)
+			err := helper.RunQueries(context.TODO(), prometheusClient, queries, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -863,7 +796,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				fmt.Sprintf(`pod_network_name_info{pod="%s",namespace="%s",interface="eth0"} == 0`, execPod.Name, execPod.Namespace):                true,
 				fmt.Sprintf(`pod_network_name_info{pod="%s",namespace="%s",network_name="%s/secondary"} == 0`, execPod.Name, execPod.Namespace, ns): true,
 			}
-			err = helper.RunQueries(queries, oc, ns, execPod.Name, url, bearerToken)
+			err = helper.RunQueries(context.TODO(), prometheusClient, queries, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
@@ -1004,66 +937,6 @@ func getBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error
 		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
 	}
 	return output, nil
-}
-
-func getAuthenticatedURLViaPod(ns, execPodName, url, user, pass string) (string, error) {
-	cmd := fmt.Sprintf("curl -s -u %s:%s %q", user, pass, url)
-	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
-	if err != nil {
-		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
-	}
-	return output, nil
-}
-
-func getInsecureURLViaPod(ns, execPodName, url string) (string, error) {
-	cmd := fmt.Sprintf("curl -s -k %q", url)
-	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
-	if err != nil {
-		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
-	}
-	return output, nil
-}
-
-func waitForServiceAccountInNamespace(c clientset.Interface, ns, serviceAccountName string, timeout time.Duration) error {
-	w, err := c.CoreV1().ServiceAccounts(ns).Watch(context.Background(), metav1.SingleObject(metav1.ObjectMeta{Name: serviceAccountName}))
-	if err != nil {
-		return err
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	_, err = watchtools.UntilWithoutRetry(ctx, w, conditions.ServiceAccountHasSecrets)
-	return err
-}
-
-func locatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
-	_, err := oc.AdminKubeClient().CoreV1().Services("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
-	if kapierrs.IsNotFound(err) {
-		return "", "", false
-	}
-
-	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "openshift-monitoring", "prometheus-k8s", 2*time.Minute)
-	for i := 0; i < 30; i++ {
-		secrets, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-monitoring").List(context.Background(), metav1.ListOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		for _, secret := range secrets.Items {
-			if secret.Type != v1.SecretTypeServiceAccountToken {
-				continue
-			}
-			if !strings.HasPrefix(secret.Name, "prometheus-") {
-				continue
-			}
-			bearerToken = string(secret.Data[v1.ServiceAccountTokenKey])
-			break
-		}
-		if len(bearerToken) == 0 {
-			e2e.Logf("Waiting for prometheus service account secret to show up")
-			time.Sleep(time.Second)
-			continue
-		}
-	}
-	o.Expect(bearerToken).ToNot(o.BeEmpty())
-
-	return "https://prometheus-k8s.openshift-monitoring.svc:9091", bearerToken, true
 }
 
 func hasPullSecret(client clientset.Interface, name string) bool {

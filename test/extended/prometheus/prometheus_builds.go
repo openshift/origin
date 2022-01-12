@@ -7,7 +7,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	buildv1 "github.com/openshift/api/build/v1"
@@ -19,7 +18,8 @@ import (
 var _ = g.Describe("[sig-instrumentation][sig-builds][Feature:Builds] Prometheus", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithoutNamespace("prometheus")
+		oc               = exutil.NewCLIWithoutNamespace("prometheus")
+		prometheusClient = oc.NewPrometheusClient(context.TODO())
 
 		url, bearerToken string
 	)
@@ -51,27 +51,12 @@ var _ = g.Describe("[sig-instrumentation][sig-builds][Feature:Builds] Prometheus
 			}
 
 			oc.SetupProject()
-			ns := oc.Namespace()
 			appTemplate := exutil.FixturePath("testdata", "builds", "build-pruning", "successful-build-config.yaml")
-
-			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
-			defer func() {
-				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
-			}()
-
-			g.By("verifying the oauth-proxy reports a 403 on the root URL")
-			// allow for some retry, a la prometheus.go and its initial hitting of the metrics endpoint after
-			// instantiating prometheus template
-			helper.ExpectPrometheusEndpoint(ns, execPod.Name, url)
-
-			g.By("verifying a service account token is able to authenticate")
-			err := expectBearerTokenURLStatusCodeExec(ns, execPod.Name, fmt.Sprintf("%s/graph", url), bearerToken, 200)
-			o.Expect(err).NotTo(o.HaveOccurred())
 
 			br := startOpenShiftBuild(oc, appTemplate)
 
 			g.By("verifying build completed successfully")
-			err = exutil.WaitForBuildResult(oc.BuildClient().BuildV1().Builds(oc.Namespace()), br)
+			err := exutil.WaitForBuildResult(oc.BuildClient().BuildV1().Builds(oc.Namespace()), br)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			br.AssertSuccess()
 
@@ -81,7 +66,7 @@ var _ = g.Describe("[sig-instrumentation][sig-builds][Feature:Builds] Prometheus
 			terminalTests := map[string]bool{
 				buildCountMetricName: true,
 			}
-			err = helper.RunQueries(terminalTests, oc, ns, execPod.Name, url, bearerToken)
+			err = helper.RunQueries(context.TODO(), prometheusClient, terminalTests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// NOTE:  in manual testing on a laptop, starting several serial builds in succession was sufficient for catching

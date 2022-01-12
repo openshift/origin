@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
@@ -14,7 +16,6 @@ import (
 	"github.com/openshift/origin/test/extended/util/disruption"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
@@ -23,9 +24,8 @@ import (
 // UpgradeTest runs verifies invariants regarding what alerts are allowed to fire
 // during the upgrade process.
 type UpgradeTest struct {
-	url         string
-	bearerToken string
-	oc          *exutil.CLI
+	oc               *exutil.CLI
+	prometheusClient prometheusv1.API
 }
 
 func (UpgradeTest) Name() string { return "check-for-alerts" }
@@ -38,13 +38,8 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 	g.By("Setting up upgrade alert test")
 
 	oc := exutil.NewCLIWithFramework(f)
-	url, _, bearerToken, ok := helper.LocatePrometheus(oc)
-	if !ok {
-		framework.Failf("Prometheus could not be located on this cluster, failing test %s", t.Name())
-	}
-	t.url = url
-	t.bearerToken = bearerToken
 	t.oc = oc
+	t.prometheusClient = oc.NewPrometheusClient(context.TODO())
 	framework.Logf("Post-upgrade alert test setup complete")
 }
 
@@ -154,12 +149,6 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	g.By("Waiting before checking for alerts")
 	time.Sleep(1 * time.Minute)
 
-	ns := t.oc.SetupNamespace()
-	execPod := exutil.CreateExecPodOrFail(t.oc.AdminKubeClient(), ns, "execpod")
-	defer func() {
-		t.oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
-	}()
-
 	testDuration := time.Now().Sub(start).Round(time.Second)
 
 	// Invariant: The watchdog alert should be firing continuously during the whole upgrade via the thanos
@@ -167,7 +156,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	// to the presence of this series (zero if data is preserved over upgrade, one if data is lost on upgrade).
 	// This would not catch the alert stopping firing, but we catch that in other places and tests.
 	watchdogQuery := fmt.Sprintf(`changes((max((ALERTS{alertstate="firing",alertname="Watchdog",severity="none"}) or (absent(ALERTS{alertstate="firing",alertname="Watchdog",severity="none"})*0)))[%s:1s]) > 1`, testDuration)
-	result, err := helper.RunQuery(watchdogQuery, ns, execPod.Name, t.url, t.bearerToken)
+	result, err := helper.RunQuery(context.TODO(), t.prometheusClient, watchdogQuery)
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to check watchdog alert over upgrade window")
 	if len(result.Data.Result) > 0 {
 		if result.Data.Result[0].Value <= 8 {
@@ -183,7 +172,7 @@ sort_desc(
 count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog|AlertmanagerReceiversNotConfigured"}[%[1]s:1s])
 ) > 0
 `, testDuration)
-	result, err = helper.RunQuery(firingAlertQuery, ns, execPod.Name, t.url, t.bearerToken)
+	result, err = helper.RunQuery(context.TODO(), t.prometheusClient, firingAlertQuery)
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to check firing alerts during upgrade")
 	for _, series := range result.Data.Result {
 		labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
@@ -207,7 +196,7 @@ sort_desc(
   )[%[1]s:1s])
 )
 `, testDuration)
-	result, err = helper.RunQuery(pendingAlertQuery, ns, execPod.Name, t.url, t.bearerToken)
+	result, err = helper.RunQuery(context.TODO(), t.prometheusClient, pendingAlertQuery)
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to retrieve pending alerts after upgrade")
 	for _, series := range result.Data.Result {
 		labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")

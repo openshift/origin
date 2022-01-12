@@ -8,7 +8,6 @@ import (
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -44,11 +43,6 @@ var _ = g.Describe("[sig-storage][Late] Metrics", func() {
 
 func checkOperation(oc *exutil.CLI, url string, bearerToken string, component string, name string, threshold int) {
 	plugins := []string{"kubernetes.io/azure-disk", "kubernetes.io/aws-ebs", "kubernetes.io/gce-pd", "kubernetes.io/cinder", "kubernetes.io/vsphere-volume"}
-	ns := oc.SetupNamespace()
-	execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
-	defer func() {
-		oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
-	}()
 
 	// we only consider series sent since the beginning of the test
 	testDuration := exutil.DurationSinceStartInSeconds().String()
@@ -69,7 +63,7 @@ func checkOperation(oc *exutil.CLI, url string, bearerToken string, component st
 		tests[query] = false
 	}
 
-	err := helper.RunQueries(tests, oc, ns, execPod.Name, url, bearerToken)
+	err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 	if err != nil {
 		result.Flakef("Operation %s of plugin %s took more than %d seconds: %s", name, plugins, threshold, err)
 	}

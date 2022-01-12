@@ -12,17 +12,16 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
-
 	exutil "github.com/openshift/origin/test/extended/util"
+	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-
 	v1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/kubernetes/pkg/client/conditions"
@@ -36,14 +35,11 @@ const (
 
 // PrometheusResponse is used to contain prometheus query results
 type PrometheusResponse struct {
-	Status string                 `json:"status"`
-	Error  string                 `json:"error"`
-	Data   prometheusResponseData `json:"data"`
+	Data prometheusResponseData `json:"data"`
 }
 
 type prometheusResponseData struct {
-	ResultType string       `json:"resultType"`
-	Result     model.Vector `json:"result"`
+	Result model.Vector `json:"result"`
 }
 
 // GetBearerTokenURLViaPod makes http request through given pod
@@ -138,49 +134,34 @@ func StripLabels(m model.Metric, names ...string) model.LabelSet {
 	return labels
 }
 
-func RunQuery(query, ns, execPodName, baseURL, bearerToken string) (*PrometheusResponse, error) {
-	queryUrl := fmt.Sprintf("%s/api/v1/query?%s", baseURL, (url.Values{"query": []string{query}}).Encode())
-	result, err := runQuery(queryUrl, ns, execPodName, bearerToken)
-	if err != nil {
-		return nil, fmt.Errorf("unable to execute query %s: %v", query, err)
-	}
-
-	return result, nil
+func RunQuery(ctx context.Context, prometheusClient prometheusv1.API, query string) (*PrometheusResponse, error) {
+	return RunQueryAtTime(ctx, prometheusClient, query, time.Now())
 }
 
-func RunQueryAtTime(query, ns, execPodName, baseURL, bearerToken string, evaluationTime model.Time) (*PrometheusResponse, error) {
-	queryParams := url.Values{"query": []string{query}, "time": []string{evaluationTime.String()}}
-	queryUrl := fmt.Sprintf("%s/api/v1/query?%s", baseURL, queryParams.Encode())
-	result, err := runQuery(queryUrl, ns, execPodName, bearerToken)
+func RunQueryAtTime(ctx context.Context, prometheusClient prometheusv1.API, query string, evaluationTime time.Time) (*PrometheusResponse, error) {
+	result, warnings, err := prometheusClient.Query(ctx, query, evaluationTime)
 	if err != nil {
-		return nil, fmt.Errorf("unable to execute query %s: %v", query, err)
+		return nil, err
 	}
-
-	return result, nil
-}
-
-func runQuery(queryUrl, ns, execPodName, bearerToken string) (*PrometheusResponse, error) {
-	contents, err := GetBearerTokenURLViaPod(ns, execPodName, queryUrl, bearerToken)
-	if err != nil {
-		return nil, fmt.Errorf("unable to execute query %v", err)
+	if len(warnings) > 0 {
+		errs := []error{}
+		for _, warning := range warnings {
+			errs = append(errs, fmt.Errorf("%s", warning))
+		}
+		return nil, errors.NewAggregate(errs)
 	}
-
-	// check query result, if this is a new error log it, otherwise remain silent
-	var result PrometheusResponse
-	if err := json.Unmarshal([]byte(contents), &result); err != nil {
-		return nil, fmt.Errorf("unable to parse query response: %v", err)
+	if result.Type() != model.ValVector {
+		return nil, fmt.Errorf("result type is not the vector: %v", result.Type())
 	}
-	metrics := result.Data.Result
-	if result.Status != "success" {
-		data, _ := json.MarshalIndent(metrics, "", "  ")
-		return nil, fmt.Errorf("incorrect response status: %s with error %s", data, result.Error)
-	}
-
-	return &result, nil
+	return &PrometheusResponse{
+		Data: prometheusResponseData{
+			Result: result.(model.Vector),
+		},
+	}, nil
 }
 
 // RunQueries executes Prometheus queries and checks provided expected result.
-func RunQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, baseURL, bearerToken string) error {
+func RunQueries(ctx context.Context, prometheusClient prometheusv1.API, promQueries map[string]bool, oc *exutil.CLI) error {
 	// expect all correct metrics within a reasonable time period
 	queryErrors := make(map[string]error)
 	passed := make(map[string]struct{})
@@ -193,7 +174,7 @@ func RunQueries(promQueries map[string]bool, oc *exutil.CLI, ns, execPodName, ba
 			// and introduced at https://github.com/prometheus/client_golang/blob/master/api/prometheus/v1/api.go are vendored into
 			// openshift/origin, look to replace this homegrown http request / query param with that API
 			g.By("perform prometheus metric query " + query)
-			result, err := RunQuery(query, ns, execPodName, baseURL, bearerToken)
+			result, err := RunQuery(ctx, prometheusClient, query)
 			if err != nil {
 				msg := err.Error()
 				if prev, ok := queryErrors[query]; ok && prev.Error() != msg {
