@@ -3,8 +3,9 @@ package synthetictests
 import (
 	"time"
 
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/test/ginkgo"
 	"k8s.io/client-go/rest"
 )
 
@@ -12,7 +13,7 @@ import (
 // steady state (not being changed externally). Use these with suites that assume the
 // cluster is under no adversarial change (config changes, induced disruption to nodes,
 // etcd, or apis).
-func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config, testSuite string) (tests []*ginkgo.JUnitTestCase) {
+func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config, testSuite string) (tests []*junitapi.JUnitTestCase) {
 	tests = SystemEventInvariants(events, duration, kubeClientConfig, testSuite)
 	tests = append(tests, testContainerFailures(events)...)
 	tests = append(tests, testDeleteGracePeriodZero(events)...)
@@ -36,7 +37,7 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 
 // SystemUpgradeEventInvariants are invariants tested against events that should hold true in a cluster
 // that is being upgraded without induced disruption
-func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config, testSuite string) (tests []*ginkgo.JUnitTestCase) {
+func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config, testSuite string) (tests []*junitapi.JUnitTestCase) {
 	tests = SystemEventInvariants(events, duration, kubeClientConfig, testSuite)
 	tests = append(tests, testContainerFailures(events)...)
 	tests = append(tests, testDeleteGracePeriodZero(events)...)
@@ -59,7 +60,7 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 // SystemEventInvariants are invariants tested against events that should hold true in any cluster,
 // even one undergoing disruption. These are usually focused on things that must be true on a single
 // machine, even if the machine crashes.
-func SystemEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config, testSuite string) (tests []*ginkgo.JUnitTestCase) {
+func SystemEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config, testSuite string) (tests []*junitapi.JUnitTestCase) {
 	tests = append(tests, testSystemDTimeout(events)...)
 	return tests
 }

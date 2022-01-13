@@ -15,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 
 	"github.com/onsi/ginkgo/config"
@@ -365,7 +367,7 @@ func (opt *Options) Run(suite *TestSuite) error {
 	pass, fail, skip, failing := summarizeTests(tests)
 
 	// monitor the cluster while the tests are running and report any detected anomalies
-	var syntheticTestResults []*JUnitTestCase
+	var syntheticTestResults []*junitapi.JUnitTestCase
 	var syntheticFailure bool
 	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 	events := m.Intervals(time.Time{}, time.Time{})

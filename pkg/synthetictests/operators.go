@@ -5,23 +5,24 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/monitor"
-	"github.com/openshift/origin/pkg/test/ginkgo"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded})
 }
 
-func testUpgradeOperatorStateTransitions(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func testUpgradeOperatorStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded})
 }
-func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType) []*ginkgo.JUnitTestCase {
-	ret := []*ginkgo.JUnitTestCase{}
+func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType) []*junitapi.JUnitTestCase {
+	ret := []*junitapi.JUnitTestCase{}
 
 	var start, stop time.Time
 	for _, event := range events {
@@ -46,7 +47,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 			testName := fmt.Sprintf("[bz-%v] clusteroperator/%v should not change condition/%v", bzComponent, operatorName, condition)
 			operatorEvents := eventsByOperator[operatorName]
 			if len(operatorEvents) == 0 {
-				ret = append(ret, &ginkgo.JUnitTestCase{
+				ret = append(ret, &junitapi.JUnitTestCase{
 					Name:     testName,
 					Duration: duration,
 				})
@@ -55,17 +56,17 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 
 			failures := testOperatorState(condition, operatorEvents, e2eEventIntervals)
 			if len(failures) > 0 {
-				ret = append(ret, &ginkgo.JUnitTestCase{
+				ret = append(ret, &junitapi.JUnitTestCase{
 					Name:      testName,
 					Duration:  duration,
 					SystemOut: strings.Join(failures, "\n"),
-					FailureOutput: &ginkgo.FailureOutput{
+					FailureOutput: &junitapi.FailureOutput{
 						Output: fmt.Sprintf("%d unexpected clusteroperator state transitions during e2e test run \n\n%v", len(failures), strings.Join(failures, "\n")),
 					},
 				})
 			}
 			// always add a success so we flake and not fail
-			ret = append(ret, &ginkgo.JUnitTestCase{Name: testName})
+			ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
 		}
 	}
 

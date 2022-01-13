@@ -8,13 +8,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
-	"github.com/openshift/origin/pkg/test/ginkgo"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-func testKubeletToAPIServerGracefulTermination(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func testKubeletToAPIServerGracefulTermination(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] kubelet terminates kube-apiserver gracefully"
 
 	var failures []string
@@ -25,28 +26,28 @@ func testKubeletToAPIServerGracefulTermination(events monitorapi.Intervals) []*g
 	}
 
 	// failures during a run always fail the test suite
-	var tests []*ginkgo.JUnitTestCase
+	var tests []*junitapi.JUnitTestCase
 	if len(failures) > 0 {
-		tests = append(tests, &ginkgo.JUnitTestCase{
+		tests = append(tests, &junitapi.JUnitTestCase{
 			Name:      testName,
 			SystemOut: strings.Join(failures, "\n"),
-			FailureOutput: &ginkgo.FailureOutput{
+			FailureOutput: &junitapi.FailureOutput{
 				Output: fmt.Sprintf("%d kube-apiserver reports a non-graceful termination.  Probably kubelet or CRI-O is not giving the time to cleanly shut down. This can lead to connection refused and network I/O timeout errors in other components.\n\n%v", len(failures), strings.Join(failures, "\n")),
 			},
 		})
 
 		// while waiting for https://bugzilla.redhat.com/show_bug.cgi?id=1928946 mark as flake
 		tests[0].FailureOutput.Output = "Marked flake while fix for https://bugzilla.redhat.com/show_bug.cgi?id=1928946 is identified:\n\n" + tests[0].FailureOutput.Output
-		tests = append(tests, &ginkgo.JUnitTestCase{Name: testName})
+		tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
 	}
 
 	if len(tests) == 0 {
-		tests = append(tests, &ginkgo.JUnitTestCase{Name: testName})
+		tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
 	}
 	return tests
 }
 
-func testKubeAPIServerGracefulTermination(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func testKubeAPIServerGracefulTermination(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-api-machinery] kube-apiserver terminates within graceful termination period"
 
 	var failures []string
@@ -57,24 +58,24 @@ func testKubeAPIServerGracefulTermination(events monitorapi.Intervals) []*ginkgo
 	}
 
 	// failures during a run always fail the test suite
-	var tests []*ginkgo.JUnitTestCase
+	var tests []*junitapi.JUnitTestCase
 	if len(failures) > 0 {
-		tests = append(tests, &ginkgo.JUnitTestCase{
+		tests = append(tests, &junitapi.JUnitTestCase{
 			Name:      testName,
 			SystemOut: strings.Join(failures, "\n"),
-			FailureOutput: &ginkgo.FailureOutput{
+			FailureOutput: &junitapi.FailureOutput{
 				Output: fmt.Sprintf("%d kube-apiserver reports a non-graceful termination. This is a bug in kube-apiserver. It probably means that network connections are not closed cleanly, and this leads to network I/O timeout errors in other components.\n\n%v", len(failures), strings.Join(failures, "\n")),
 			},
 		})
 	}
 
 	if len(tests) == 0 {
-		tests = append(tests, &ginkgo.JUnitTestCase{Name: testName})
+		tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
 	}
 	return tests
 }
 
-func testContainerFailures(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func testContainerFailures(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	containerExits := make(map[string][]string)
 	failures := []string{}
 	for _, event := range events {
@@ -105,40 +106,40 @@ func testContainerFailures(events monitorapi.Intervals) []*ginkgo.JUnitTestCase 
 	}
 	sort.Strings(excessiveExits)
 
-	var testCases []*ginkgo.JUnitTestCase
+	var testCases []*junitapi.JUnitTestCase
 
 	const failToStartTestName = "[sig-architecture] platform pods should not fail to start"
 	if len(failures) > 0 {
-		testCases = append(testCases, &ginkgo.JUnitTestCase{
+		testCases = append(testCases, &junitapi.JUnitTestCase{
 			Name:      failToStartTestName,
 			SystemOut: strings.Join(failures, "\n"),
-			FailureOutput: &ginkgo.FailureOutput{
+			FailureOutput: &junitapi.FailureOutput{
 				Output: fmt.Sprintf("%d container starts had issues\n\n%s", len(failures), strings.Join(failures, "\n")),
 			},
 		})
 	}
 	// mark flaky for now while we debug
-	testCases = append(testCases, &ginkgo.JUnitTestCase{Name: failToStartTestName})
+	testCases = append(testCases, &junitapi.JUnitTestCase{Name: failToStartTestName})
 
 	const excessiveRestartTestName = "[sig-architecture] platform pods should not exit more than once with a non-zero exit code"
 	if len(excessiveExits) > 0 {
-		testCases = append(testCases, &ginkgo.JUnitTestCase{
+		testCases = append(testCases, &junitapi.JUnitTestCase{
 			Name:      excessiveRestartTestName,
 			SystemOut: strings.Join(excessiveExits, "\n"),
-			FailureOutput: &ginkgo.FailureOutput{
+			FailureOutput: &junitapi.FailureOutput{
 				Output: fmt.Sprintf("%d containers with multiple restarts\n\n%s", len(excessiveExits), strings.Join(excessiveExits, "\n\n")),
 			},
 		})
 	}
 	// mark flaky for now while we debug
-	testCases = append(testCases, &ginkgo.JUnitTestCase{Name: excessiveRestartTestName})
+	testCases = append(testCases, &junitapi.JUnitTestCase{Name: excessiveRestartTestName})
 
 	return testCases
 }
 
-func testKubeApiserverProcessOverlap(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func testKubeApiserverProcessOverlap(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] overlapping apiserver process detected during kube-apiserver rollout"
-	success := &ginkgo.JUnitTestCase{Name: testName}
+	success := &junitapi.JUnitTestCase{Name: testName}
 	failures := []string{}
 	for _, event := range events {
 		if strings.Contains(event.Message, "reason/TerminationProcessOverlapDetected") {
@@ -147,22 +148,22 @@ func testKubeApiserverProcessOverlap(events monitorapi.Intervals) []*ginkgo.JUni
 	}
 
 	if len(failures) == 0 {
-		return []*ginkgo.JUnitTestCase{success}
+		return []*junitapi.JUnitTestCase{success}
 	}
 
-	failure := &ginkgo.JUnitTestCase{
+	failure := &junitapi.JUnitTestCase{
 		Name:      testName,
 		SystemOut: strings.Join(failures, "\n"),
-		FailureOutput: &ginkgo.FailureOutput{
+		FailureOutput: &junitapi.FailureOutput{
 			Output: fmt.Sprintf("The following events detected:\n\n%s", strings.Join(failures, "\n")),
 		},
 	}
-	return []*ginkgo.JUnitTestCase{failure}
+	return []*junitapi.JUnitTestCase{failure}
 }
 
-func testDeleteGracePeriodZero(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func testDeleteGracePeriodZero(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-architecture] platform pods should not be force deleted with gracePeriod 0"
-	success := &ginkgo.JUnitTestCase{Name: testName}
+	success := &junitapi.JUnitTestCase{Name: testName}
 
 	failures := []string{}
 	for _, event := range events {
@@ -181,23 +182,23 @@ func testDeleteGracePeriodZero(events monitorapi.Intervals) []*ginkgo.JUnitTestC
 		failures = append(failures, event.Locator)
 	}
 	if len(failures) == 0 {
-		return []*ginkgo.JUnitTestCase{success}
+		return []*junitapi.JUnitTestCase{success}
 	}
 
-	failure := &ginkgo.JUnitTestCase{
+	failure := &junitapi.JUnitTestCase{
 		Name:      testName,
 		SystemOut: strings.Join(failures, "\n"),
-		FailureOutput: &ginkgo.FailureOutput{
+		FailureOutput: &junitapi.FailureOutput{
 			Output: fmt.Sprintf("The following pods were force deleted and should not be:\n\n%s", strings.Join(failures, "\n")),
 		},
 	}
 	// TODO: marked flaky until has been thoroughly debugged
-	return []*ginkgo.JUnitTestCase{failure, success}
+	return []*junitapi.JUnitTestCase{failure, success}
 }
 
-func testPodTransitions(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func testPodTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] pods should never transition back to pending"
-	success := &ginkgo.JUnitTestCase{Name: testName}
+	success := &junitapi.JUnitTestCase{Name: testName}
 
 	failures := []string{}
 	for _, event := range events {
@@ -206,18 +207,18 @@ func testPodTransitions(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
 		}
 	}
 	if len(failures) == 0 {
-		return []*ginkgo.JUnitTestCase{success}
+		return []*junitapi.JUnitTestCase{success}
 	}
 
-	failure := &ginkgo.JUnitTestCase{
+	failure := &junitapi.JUnitTestCase{
 		Name:      testName,
 		SystemOut: strings.Join(failures, "\n"),
-		FailureOutput: &ginkgo.FailureOutput{
+		FailureOutput: &junitapi.FailureOutput{
 			Output: fmt.Sprintf("Marked as flake until https://bugzilla.redhat.com/show_bug.cgi?id=1933760 is fixed\n\n%d pods illegally transitioned to Pending\n\n%v", len(failures), strings.Join(failures, "\n")),
 		},
 	}
 	// TODO: temporarily marked flaky since it is continously failing
-	return []*ginkgo.JUnitTestCase{failure, success}
+	return []*junitapi.JUnitTestCase{failure, success}
 }
 
 func formatTimes(times []time.Time) []string {
@@ -228,11 +229,11 @@ func formatTimes(times []time.Time) []string {
 	return s
 }
 
-func testNodeUpgradeTransitions(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func testNodeUpgradeTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] nodes should not go unready after being upgraded and go unready only once"
 
 	var buf bytes.Buffer
-	var testCases []*ginkgo.JUnitTestCase
+	var testCases []*junitapi.JUnitTestCase
 	for len(events) > 0 {
 		nodesWentReady, nodesWentUnready := make(map[string][]time.Time), make(map[string][]time.Time)
 		currentNodeReady := make(map[string]bool)
@@ -325,23 +326,23 @@ func testNodeUpgradeTransitions(events monitorapi.Intervals) []*ginkgo.JUnitTest
 			continue
 		}
 
-		testCases = append(testCases, &ginkgo.JUnitTestCase{
+		testCases = append(testCases, &junitapi.JUnitTestCase{
 			Name:      testName,
 			SystemOut: fmt.Sprintf("%s\n\n%s", strings.Join(failures, "\n"), buf.String()),
-			FailureOutput: &ginkgo.FailureOutput{
+			FailureOutput: &junitapi.FailureOutput{
 				Output: fmt.Sprintf("%d nodes violated upgrade expectations:\n\n%s\n\n%s", abnormalNodes.Len(), strings.Join(failures, "\n"), text),
 			},
 		})
 	}
 	if len(testCases) == 0 {
-		testCases = append(testCases, &ginkgo.JUnitTestCase{Name: testName})
+		testCases = append(testCases, &junitapi.JUnitTestCase{Name: testName})
 	}
 	return testCases
 }
 
-func testSystemDTimeout(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func testSystemDTimeout(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] pods should not fail on systemd timeouts"
-	success := &ginkgo.JUnitTestCase{Name: testName}
+	success := &junitapi.JUnitTestCase{Name: testName}
 
 	failures := []string{}
 	for _, event := range events {
@@ -350,19 +351,19 @@ func testSystemDTimeout(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
 		}
 	}
 	if len(failures) == 0 {
-		return []*ginkgo.JUnitTestCase{success}
+		return []*junitapi.JUnitTestCase{success}
 	}
 
-	failure := &ginkgo.JUnitTestCase{
+	failure := &junitapi.JUnitTestCase{
 		Name:      testName,
 		SystemOut: strings.Join(failures, "\n"),
-		FailureOutput: &ginkgo.FailureOutput{
+		FailureOutput: &junitapi.FailureOutput{
 			Output: fmt.Sprintf("%d systemd timed out for pod occurrences\n\n%v", len(failures), strings.Join(failures, "\n")),
 		},
 	}
 
 	// write a passing test to trigger detection of this issue as a flake. Doing this first to try to see how frequent the issue actually is
-	return []*ginkgo.JUnitTestCase{failure, success}
+	return []*junitapi.JUnitTestCase{failure, success}
 }
 
 var errImagePullTimeoutRE = regexp.MustCompile("ErrImagePull.*read: connection timed out")
@@ -377,28 +378,28 @@ const (
 	NotInOpenshiftNS namespaceRestriction = 1
 )
 
-func testErrImagePullConnTimeoutOpenShiftNamespaces(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func testErrImagePullConnTimeoutOpenShiftNamespaces(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] should not encounter ErrImagePull read connection timeout in openshift namespace pods"
 	return buildTestsFailIfRegexMatch(testName, errImagePullTimeoutRE, nil, InOpenShiftNS, events)
 }
 
-func testErrImagePullConnTimeout(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func testErrImagePullConnTimeout(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] should not encounter ErrImagePull read connection timeout in non-openshift namespace pods"
 	return buildTestsFailIfRegexMatch(testName, errImagePullTimeoutRE, nil, NotInOpenshiftNS, events)
 }
 
-func testErrImagePullGenericOpenShiftNamespaces(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func testErrImagePullGenericOpenShiftNamespaces(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] should not encounter ErrImagePull in openshift namespace pods"
 	return buildTestsFailIfRegexMatch(testName, errImagePullGenericRE, errImagePullTimeoutRE, InOpenShiftNS, events)
 }
 
-func testErrImagePullGeneric(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func testErrImagePullGeneric(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] should not encounter ErrImagePull in non-openshift namespace pods"
 	return buildTestsFailIfRegexMatch(testName, errImagePullGenericRE, errImagePullTimeoutRE, NotInOpenshiftNS, events)
 }
 
 func buildTestsFailIfRegexMatch(testName string, matchRE, dontMatchRE *regexp.Regexp,
-	nsRestriction namespaceRestriction, events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+	nsRestriction namespaceRestriction, events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 
 	var matchedIntervals monitorapi.Intervals
 	for _, event := range events {
@@ -423,9 +424,9 @@ func buildTestsFailIfRegexMatch(testName string, matchRE, dontMatchRE *regexp.Re
 		matchedIntervals = append(matchedIntervals, event)
 	}
 
-	success := &ginkgo.JUnitTestCase{Name: testName}
+	success := &junitapi.JUnitTestCase{Name: testName}
 	if len(matchedIntervals) == 0 {
-		return []*ginkgo.JUnitTestCase{success}
+		return []*junitapi.JUnitTestCase{success}
 	}
 
 	locators := make([]string, 0, len(matchedIntervals))
@@ -434,10 +435,10 @@ func buildTestsFailIfRegexMatch(testName string, matchRE, dontMatchRE *regexp.Re
 	}
 	sort.Strings(locators)
 
-	failure := &ginkgo.JUnitTestCase{
+	failure := &junitapi.JUnitTestCase{
 		Name:      testName,
 		SystemOut: strings.Join(matchedIntervals.Strings(), "\n"),
-		FailureOutput: &ginkgo.FailureOutput{
+		FailureOutput: &junitapi.FailureOutput{
 			Output: fmt.Sprintf("Found %d ErrImagePull intervals for: \n\n%s",
 				len(locators), strings.Join(locators, "\n")),
 		},
@@ -445,5 +446,5 @@ func buildTestsFailIfRegexMatch(testName string, matchRE, dontMatchRE *regexp.Re
 
 	// Always including a flake for now because we're unsure what the results of this test will be. In future
 	// we hope to drop this.
-	return []*ginkgo.JUnitTestCase{failure, success}
+	return []*junitapi.JUnitTestCase{failure, success}
 }
