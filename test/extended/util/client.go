@@ -17,37 +17,8 @@ import (
 	"strings"
 	"time"
 
-	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-
-	yaml "gopkg.in/yaml.v2"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	"github.com/pborman/uuid"
-
-	kubeauthorizationv1 "k8s.io/api/authorization/v1"
-	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/apiserver/pkg/storage/names"
-	memory "k8s.io/client-go/discovery/cached"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/restmapper"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/clientcmd"
-	watchtools "k8s.io/client-go/tools/watch"
-	"k8s.io/client-go/util/flowcontrol"
-	"k8s.io/kubernetes/test/e2e/framework"
-
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	projectv1 "github.com/openshift/api/project/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -64,6 +35,33 @@ import (
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
 	templatev1client "github.com/openshift/client-go/template/clientset/versioned"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
+	"github.com/openshift/library-go/test/library/metrics"
+	"github.com/pborman/uuid"
+	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	yaml "gopkg.in/yaml.v2"
+	kubeauthorizationv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apiserver/pkg/storage/names"
+	memory "k8s.io/client-go/discovery/cached"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/clientcmd"
+	watchtools "k8s.io/client-go/tools/watch"
+	"k8s.io/client-go/util/flowcontrol"
+	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
@@ -534,6 +532,23 @@ func (c *CLI) AdminKubeClient() kubernetes.Interface {
 
 func (c *CLI) AdminDynamicClient() dynamic.Interface {
 	return dynamic.NewForConfigOrDie(c.AdminConfig())
+}
+
+func (c *CLI) NewPrometheusClient(ctx context.Context) prometheusv1.API {
+	// TODO update library-go and use the client helpers
+	kubeClient, err := kubernetes.NewForConfig(c.AdminConfig())
+	if err != nil {
+		panic(err)
+	}
+	routeClient, err := routev1client.NewForConfig(c.AdminConfig())
+	if err != nil {
+		panic(err)
+	}
+	prometheusClient, err := metrics.NewPrometheusClient(ctx, kubeClient, routeClient)
+	if err != nil {
+		panic(err)
+	}
+	return prometheusClient
 }
 
 func (c *CLI) UserConfig() *rest.Config {
