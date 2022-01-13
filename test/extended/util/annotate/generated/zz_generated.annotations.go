@@ -619,6 +619,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch][Late] operators should not create watch channels very often": "operators should not create watch channels very often [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/KubeAPIErrorBudgetBurn should not at or above info": "alert/KubeAPIErrorBudgetBurn should not at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/KubeAPIErrorBudgetBurn should not at or above pending": "alert/KubeAPIErrorBudgetBurn should not at or above pending [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-auth] Certificates API [Privileged:ClusterAdmin] should support CSR API operations [Conformance]": "should support CSR API operations [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-auth] Certificates API [Privileged:ClusterAdmin] should support building a client with a CSR": "should support building a client with a CSR [Suite:openshift/conformance/parallel] [Suite:k8s]",

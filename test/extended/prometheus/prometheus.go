@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -356,6 +358,34 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 				Selector: map[string]string{"alertname": "ExtremelyHighIndividualControlPlaneCPU"},
 				Text:     "high CPU utilization during e2e runs is normal",
 			},
+		}
+
+		// we exclude alerts that have their own separate tests.
+		for _, alertTest := range allowedalerts.AllAlertTests() {
+			switch alertTest.AlertState() {
+			case allowedalerts.AlertPending:
+				// a pending test covers pending and everything above (firing)
+				allowedPendingAlerts = append(allowedPendingAlerts,
+					helper.MetricCondition{
+						Selector: map[string]string{"alertname": alertTest.AlertName()},
+						Text:     "has a separate e2e test",
+					},
+				)
+				allowedFiringAlerts = append(allowedFiringAlerts,
+					helper.MetricCondition{
+						Selector: map[string]string{"alertname": alertTest.AlertName()},
+						Text:     "has a separate e2e test",
+					},
+				)
+			case allowedalerts.AlertInfo:
+				// an info test covers all firing
+				allowedFiringAlerts = append(allowedFiringAlerts,
+					helper.MetricCondition{
+						Selector: map[string]string{"alertname": alertTest.AlertName()},
+						Text:     "has a separate e2e test",
+					},
+				)
+			}
 		}
 
 		knownViolations := sets.NewString()

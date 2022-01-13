@@ -175,6 +175,22 @@ func IsErrorEvent(eventInterval EventInterval) bool {
 	return false
 }
 
+// IsWarningEvent returns true if the eventInterval is an Warning
+func IsWarningEvent(eventInterval EventInterval) bool {
+	if eventInterval.Level == Warning {
+		return true
+	}
+	return false
+}
+
+// IsInfoEvent returns true if the eventInterval is an Info
+func IsInfoEvent(eventInterval EventInterval) bool {
+	if eventInterval.Level == Info {
+		return true
+	}
+	return false
+}
+
 func And(filters ...EventIntervalMatchesFunc) EventIntervalMatchesFunc {
 	return func(eventInterval EventInterval) bool {
 		for _, filter := range filters {
@@ -183,6 +199,17 @@ func And(filters ...EventIntervalMatchesFunc) EventIntervalMatchesFunc {
 			}
 		}
 		return true
+	}
+}
+
+func Or(filters ...EventIntervalMatchesFunc) EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		for _, filter := range filters {
+			if filter(eventInterval) {
+				return true
+			}
+		}
+		return false
 	}
 }
 

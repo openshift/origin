@@ -374,7 +374,7 @@ func (opt *Options) Run(suite *TestSuite) error {
 	}
 
 	// add events from alerts so we can create the intervals
-	alertEventIntervals, err := monitor.CreateEventIntervalsForAlerts(ctx, restConfig, start)
+	alertEventIntervals, err := monitor.FetchEventIntervalsForAllAlerts(ctx, restConfig, start)
 	if err != nil {
 		fmt.Printf("\n\n\n#### alertErr=%v\n", err)
 	}
