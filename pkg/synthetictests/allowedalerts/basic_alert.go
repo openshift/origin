@@ -111,11 +111,11 @@ func (a *basicAlertTest) TestNamePrefix() string {
 }
 
 func (a *basicAlertTest) LateTestNameSuffix() string {
-	return fmt.Sprintf("alert/%s should not at or above %s", a.alertName, a.alertState)
+	return fmt.Sprintf("alert/%s should not be at or above %s", a.alertName, a.alertState)
 }
 
 func (a *basicAlertTest) InvariantTestName() string {
-	return fmt.Sprintf("[bz-%v][invariant] alert/%s should not at or above %s", a.bugzillaComponent, a.alertName, a.alertState)
+	return fmt.Sprintf("[bz-%v][invariant] alert/%s should not be at or above %s", a.bugzillaComponent, a.alertName, a.alertState)
 }
 
 func (a *basicAlertTest) AlertName() string {

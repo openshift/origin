@@ -619,9 +619,57 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch][Late] operators should not create watch channels very often": "operators should not create watch channels very often [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/KubeAPIErrorBudgetBurn should not at or above info": "alert/KubeAPIErrorBudgetBurn should not at or above info [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdGRPCRequestsSlow should not be at or above info": "alert/etcdGRPCRequestsSlow should not be at or above info [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/KubeAPIErrorBudgetBurn should not at or above pending": "alert/KubeAPIErrorBudgetBurn should not at or above pending [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdGRPCRequestsSlow should not be at or above pending": "alert/etcdGRPCRequestsSlow should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdHighCommitDurations should not be at or above info": "alert/etcdHighCommitDurations should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdHighCommitDurations should not be at or above pending": "alert/etcdHighCommitDurations should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdHighFsyncDurations should not be at or above info": "alert/etcdHighFsyncDurations should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdHighFsyncDurations should not be at or above pending": "alert/etcdHighFsyncDurations should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdHighNumberOfFailedGRPCRequests should not be at or above info": "alert/etcdHighNumberOfFailedGRPCRequests should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdHighNumberOfFailedGRPCRequests should not be at or above pending": "alert/etcdHighNumberOfFailedGRPCRequests should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdHighNumberOfLeaderChanges should not be at or above info": "alert/etcdHighNumberOfLeaderChanges should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdHighNumberOfLeaderChanges should not be at or above pending": "alert/etcdHighNumberOfLeaderChanges should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdInsufficientMembers should not be at or above info": "alert/etcdInsufficientMembers should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdInsufficientMembers should not be at or above pending": "alert/etcdInsufficientMembers should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdMemberCommunicationSlow should not be at or above info": "alert/etcdMemberCommunicationSlow should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdMemberCommunicationSlow should not be at or above pending": "alert/etcdMemberCommunicationSlow should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdMembersDown should not be at or above info": "alert/etcdMembersDown should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdMembersDown should not be at or above pending": "alert/etcdMembersDown should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdNoLeader should not be at or above info": "alert/etcdNoLeader should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdNoLeader should not be at or above pending": "alert/etcdNoLeader should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/KubeAPIErrorBudgetBurn should not be at or above info": "alert/KubeAPIErrorBudgetBurn should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/KubeAPIErrorBudgetBurn should not be at or above pending": "alert/KubeAPIErrorBudgetBurn should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/KubeClientErrors should not be at or above info": "alert/KubeClientErrors should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/KubeClientErrors should not be at or above pending": "alert/KubeClientErrors should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-machine config operator][Late] Alerts alert/MCDDrainError should not be at or above info": "alert/MCDDrainError should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-machine config operator][Late] Alerts alert/MCDDrainError should not be at or above pending": "alert/MCDDrainError should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-storage][Late] Alerts alert/KubePersistentVolumeErrors should not be at or above info": "alert/KubePersistentVolumeErrors should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-storage][Late] Alerts alert/KubePersistentVolumeErrors should not be at or above pending": "alert/KubePersistentVolumeErrors should not be at or above pending [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-auth] Certificates API [Privileged:ClusterAdmin] should support CSR API operations [Conformance]": "should support CSR API operations [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 

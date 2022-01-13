@@ -169,26 +169,17 @@ type EventIntervalMatchesFunc func(eventInterval EventInterval) bool
 
 // IsErrorEvent returns true if the eventInterval is an Error
 func IsErrorEvent(eventInterval EventInterval) bool {
-	if eventInterval.Level == Error {
-		return true
-	}
-	return false
+	return eventInterval.Level == Error
 }
 
 // IsWarningEvent returns true if the eventInterval is an Warning
 func IsWarningEvent(eventInterval EventInterval) bool {
-	if eventInterval.Level == Warning {
-		return true
-	}
-	return false
+	return eventInterval.Level == Warning
 }
 
 // IsInfoEvent returns true if the eventInterval is an Info
 func IsInfoEvent(eventInterval EventInterval) bool {
-	if eventInterval.Level == Info {
-		return true
-	}
-	return false
+	return eventInterval.Level == Info
 }
 
 func And(filters ...EventIntervalMatchesFunc) EventIntervalMatchesFunc {
