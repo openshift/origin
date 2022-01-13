@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/origin/pkg/synthetictests/allowedbackenddisruption"
-
 	"github.com/onsi/ginkgo"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
+	"github.com/openshift/origin/pkg/synthetictests/allowedbackenddisruption"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/events"
 	"k8s.io/kubernetes/test/e2e/framework"
