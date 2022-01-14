@@ -324,11 +324,6 @@ func ExpectNoDisruptionForDuration(f *framework.Framework, allowedDisruption tim
 	roundedDisruptionDuration := disruptionDuration.Round(time.Second)
 	if roundedDisruptionDuration > roundedAllowedDisruption {
 		framework.Failf("%s for at least %s of %s (maxAllowed=%s):\n\n%s", reason, roundedDisruptionDuration, total.Round(time.Second), roundedAllowedDisruption, strings.Join(describe, "\n"))
-	} else if roundedDisruptionDuration > 0 {
-		FrameworkFlakef(f, "%s for at least %s of %s (maxAllowed=%s), this is currently sufficient to pass the"+
-			" test/job but not considered completely correct.\nTolerating up to %s disruption:\n\n%s",
-			reason, roundedDisruptionDuration, total.Round(time.Second), roundedAllowedDisruption, roundedAllowedDisruption,
-			strings.Join(describe, "\n"))
 	}
 }
 
