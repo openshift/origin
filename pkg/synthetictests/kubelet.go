@@ -429,18 +429,18 @@ func buildTestsFailIfRegexMatch(testName string, matchRE, dontMatchRE *regexp.Re
 		return []*junitapi.JUnitTestCase{success}
 	}
 
-	locators := make([]string, 0, len(matchedIntervals))
+	matchedIntervalMsgs := make([]string, 0, len(matchedIntervals))
 	for _, ei := range matchedIntervals {
-		locators = append(locators, ei.Locator)
+		matchedIntervalMsgs = append(matchedIntervalMsgs, fmt.Sprintf("%s: %s", ei.Locator, ei.Message))
 	}
-	sort.Strings(locators)
+	sort.Strings(matchedIntervalMsgs)
 
 	failure := &junitapi.JUnitTestCase{
 		Name:      testName,
 		SystemOut: strings.Join(matchedIntervals.Strings(), "\n"),
 		FailureOutput: &junitapi.FailureOutput{
 			Output: fmt.Sprintf("Found %d ErrImagePull intervals for: \n\n%s",
-				len(locators), strings.Join(locators, "\n")),
+				len(matchedIntervalMsgs), strings.Join(matchedIntervalMsgs, "\n")),
 		},
 	}
 
