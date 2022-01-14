@@ -5,6 +5,7 @@ docker.io/openshift/test-multicast:latest quay.io/openshift/community-e2e-images
 k8s.gcr.io/build-image/debian-iptables:bullseye-v1.1.0 quay.io/openshift/community-e2e-images:e2e-11-k8s-gcr-io-build-image-debian-iptables-bullseye-v1-1-0-XCAkJ66Vv79WOXip
 k8s.gcr.io/e2e-test-images/agnhost:2.33 quay.io/openshift/community-e2e-images:e2e-1-k8s-gcr-io-e2e-test-images-agnhost-2-33-aTEDgmxB07L0gTQB
 k8s.gcr.io/e2e-test-images/apparmor-loader:1.4 quay.io/openshift/community-e2e-images:e2e-4-k8s-gcr-io-e2e-test-images-apparmor-loader-1-4-8n3MBYqtd4M2JI4n
+k8s.gcr.io/e2e-test-images/busybox:1.29-1 quay.io/openshift/community-e2e-images:e2e-k8s-gcr-io-e2e-test-images-busybox-1-29-1-4vRlLJlMSKkJ4csR
 k8s.gcr.io/e2e-test-images/busybox:1.29-2 quay.io/openshift/community-e2e-images:e2e-7-k8s-gcr-io-e2e-test-images-busybox-1-29-2-cqcP1Tnbm-JjJyUA
 k8s.gcr.io/e2e-test-images/cuda-vector-add:1.0 quay.io/openshift/community-e2e-images:e2e-9-k8s-gcr-io-e2e-test-images-cuda-vector-add-1-0-93qjw6QqvJ6P6s_h
 k8s.gcr.io/e2e-test-images/cuda-vector-add:2.2 quay.io/openshift/community-e2e-images:e2e-10-k8s-gcr-io-e2e-test-images-cuda-vector-add-2-2-jfn9MO1ZuFYZo9B7
