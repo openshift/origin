@@ -373,13 +373,13 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 				allowedPendingAlerts = append(allowedPendingAlerts,
 					helper.MetricCondition{
 						Selector: map[string]string{"alertname": alertTest.AlertName()},
-						Text:     "has a separate e2e test",
+						Text:     fmt.Sprintf("is covered independently in: %v %v", alertTest.TestNamePrefix(), alertTest.LateTestNameSuffix()),
 					},
 				)
 				allowedFiringAlerts = append(allowedFiringAlerts,
 					helper.MetricCondition{
 						Selector: map[string]string{"alertname": alertTest.AlertName()},
-						Text:     "has a separate e2e test",
+						Text:     fmt.Sprintf("is covered independently in: %v %v", alertTest.TestNamePrefix(), alertTest.LateTestNameSuffix()),
 					},
 				)
 			case allowedalerts.AlertInfo:
@@ -387,7 +387,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 				allowedFiringAlerts = append(allowedFiringAlerts,
 					helper.MetricCondition{
 						Selector: map[string]string{"alertname": alertTest.AlertName()},
-						Text:     "has a separate e2e test",
+						Text:     fmt.Sprintf("is covered independently in: %v %v", alertTest.TestNamePrefix(), alertTest.LateTestNameSuffix()),
 					},
 				)
 			}

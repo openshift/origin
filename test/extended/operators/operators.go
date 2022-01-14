@@ -239,10 +239,10 @@ func surprisingConditions(co objx.Map) ([]configv1.ClusterOperatorStatusConditio
 			if conditionType == configv1.OperatorAvailable || conditionType == configv1.OperatorUpgradeable {
 				expected = configv1.ConditionTrue
 			}
-			if cond.Get("status").String() != string(expected) {
+			status := configv1.ConditionStatus(cond.Get("status").String())
+			if status != expected {
 				reason := cond.Get("reason").String()
 				message := cond.Get("message").String()
-				status := cond.Get("status").String()
 				if conditionType == configv1.OperatorUpgradeable && (name == "kube-storage-version-migrator" || // https://bugzilla.redhat.com/show_bug.cgi?id=1928141 , currently fixed for 4.10, but no backports at the moment.  We currently have ...-upgrade-4.y-to-4.(y+1)-to-4.(y+2)-to-4.(y+3)-ci jobs, so as long as we don't extend that +3 skew for those jobs, we should be able to drop this code once 4.13 forks off of the development branch.
 					name == "openshift-controller-manager" || // https://bugzilla.redhat.com/show_bug.cgi?id=1948011 , currently fixed for 4.8, but no backports at the moment.  We currently have ...-upgrade-4.y-to-4.(y+1)-to-4.(y+2)-to-4.(y+3)-ci jobs, so as long as we don't extend that +3 skew for those jobs, we should be able to drop this code once 4.10 forks off the development branch.
 					name == "service-ca" || // https://bugzilla.redhat.com/show_bug.cgi?id=1948012 , currently fixed for 4.8, but no backports at the moment.  We currently have ...-upgrade-4.y-to-4.(y+1)-to-4.(y+2)-to-4.(y+3)-ci jobs, so as long as we don't extend that +3 skew for those jobs, we should be able to drop this code once 4.10 forks off the development branch.
@@ -267,14 +267,14 @@ func surprisingConditions(co objx.Map) ([]configv1.ClusterOperatorStatusConditio
 					(name == "storage" && vmxPattern.MatchString(message)) ||
 					// storage attempts to contact vsphere to determine if it can be ugpraded.  If the storage operator cannot reach vsphere to determine
 					// whether the upgrade is safe or not, it is appropriate to be upgradeable=Unknown
-					(name == "storage" && status == "Unknown" && strings.Contains(message, "Failed to connect to vSphere"))) {
+					(name == "storage" && status == configv1.ConditionUnknown && strings.Contains(message, "Failed to connect to vSphere"))) {
 					continue
 				}
 				badConditions = append(badConditions, configv1.ClusterOperatorStatusCondition{
 					Type:    conditionType,
-					Status:  configv1.ConditionStatus(cond.Get("status").String()),
+					Status:  status,
 					Reason:  reason,
-					Message: cond.Get("message").String(),
+					Message: message,
 				})
 			}
 		}

@@ -6,11 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -68,7 +67,7 @@ func (a *basicAlertTest) pending() *basicAlertTest {
 	return a
 }
 
-func (a *basicAlertTest) firing() *basicAlertTest {
+func (a *basicAlertTest) info() *basicAlertTest {
 	a.alertState = AlertInfo
 	return a
 }

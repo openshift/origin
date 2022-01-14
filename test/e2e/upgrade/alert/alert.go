@@ -144,13 +144,13 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 			allowedPendingAlerts = append(allowedPendingAlerts,
 				helper.MetricCondition{
 					Selector: map[string]string{"alertname": alertTest.AlertName()},
-					Text:     "has a separate e2e test",
+					Text:     fmt.Sprintf("is covered independently in: %v", alertTest.InvariantTestName()),
 				},
 			)
 			allowedFiringAlerts = append(allowedFiringAlerts,
 				helper.MetricCondition{
 					Selector: map[string]string{"alertname": alertTest.AlertName()},
-					Text:     "has a separate e2e test",
+					Text:     fmt.Sprintf("is covered independently in: %v", alertTest.InvariantTestName()),
 				},
 			)
 		case allowedalerts.AlertInfo:
@@ -158,7 +158,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 			allowedFiringAlerts = append(allowedFiringAlerts,
 				helper.MetricCondition{
 					Selector: map[string]string{"alertname": alertTest.AlertName()},
-					Text:     "has a separate e2e test",
+					Text:     fmt.Sprintf("is covered independently in: %v", alertTest.InvariantTestName()),
 				},
 			)
 		}
