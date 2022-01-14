@@ -6,16 +6,14 @@ import (
 	"strings"
 	"time"
 
-	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	"github.com/prometheus/common/model"
-
+	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
-
+	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
@@ -110,6 +108,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 			},
 		},
 	}
+	allowedFiringAlerts := helper.MetricConditions{}
 
 	pendingAlertsWithBugs := helper.MetricConditions{
 		{
@@ -130,6 +129,34 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 			Selector: map[string]string{"alertname": "etcdMemberCommunicationSlow"},
 			Text:     "Excluded because it triggers during upgrade (detects ~5m of high latency immediately preceeding the end of the test), and we don't want to change the alert because it is correct",
 		},
+	}
+
+	// we exclude alerts that have their own separate tests.
+	for _, alertTest := range allowedalerts.AllAlertTests() {
+		switch alertTest.AlertState() {
+		case allowedalerts.AlertPending:
+			// a pending test covers pending and everything above (firing)
+			allowedPendingAlerts = append(allowedPendingAlerts,
+				helper.MetricCondition{
+					Selector: map[string]string{"alertname": alertTest.AlertName()},
+					Text:     "has a separate e2e test",
+				},
+			)
+			allowedFiringAlerts = append(allowedFiringAlerts,
+				helper.MetricCondition{
+					Selector: map[string]string{"alertname": alertTest.AlertName()},
+					Text:     "has a separate e2e test",
+				},
+			)
+		case allowedalerts.AlertInfo:
+			// an info test covers all firing
+			allowedFiringAlerts = append(allowedFiringAlerts,
+				helper.MetricCondition{
+					Selector: map[string]string{"alertname": alertTest.AlertName()},
+					Text:     "has a separate e2e test",
+				},
+			)
+		}
 	}
 
 	knownViolations := sets.NewString()
@@ -177,6 +204,10 @@ count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog
 	for _, series := range result.Data.Result {
 		labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
 		violation := fmt.Sprintf("alert %s fired for %s seconds with labels: %s", series.Metric["alertname"], series.Value, helper.LabelsAsSelector(labels))
+		if cause := allowedFiringAlerts.Matches(series); cause != nil {
+			debug.Insert(fmt.Sprintf("%s (allowed: %s)", violation, cause.Text))
+			continue
+		}
 		if cause := firingAlertsWithBugs.Matches(series); cause != nil {
 			knownViolations.Insert(fmt.Sprintf("%s (open bug: %s)", violation, cause.Text))
 		} else {
