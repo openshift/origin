@@ -6,10 +6,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
-	"github.com/openshift/origin/pkg/test/ginkgo"
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -31,7 +32,7 @@ type AlertTest interface {
 	AlertState() AlertState
 
 	TestAlert(ctx context.Context, prometheusClient prometheusv1.API, restConfig *rest.Config) error
-	InvariantCheck(ctx context.Context, restConfig *rest.Config, intervals monitorapi.Intervals) ([]*ginkgo.JUnitTestCase, error)
+	InvariantCheck(ctx context.Context, restConfig *rest.Config, intervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error)
 
 	// FailAfter is the amount of time that an alert can be at or above the current state before failing a test
 	FailAfter(jobType platformidentification.JobType) time.Duration
@@ -217,7 +218,7 @@ func (a *basicAlertTest) failOrFlake(ctx context.Context, restConfig *rest.Confi
 	return pass, ""
 }
 
-func (a *basicAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Config, alertIntervals monitorapi.Intervals) ([]*ginkgo.JUnitTestCase, error) {
+func (a *basicAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Config, alertIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	pendingIntervals := alertIntervals.Filter(
 		func(eventInterval monitorapi.EventInterval) bool {
 			locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
@@ -248,20 +249,20 @@ func (a *basicAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Co
 	state, message := a.failOrFlake(ctx, restConfig, firingIntervals, pendingIntervals)
 	switch state {
 	case pass:
-		return []*ginkgo.JUnitTestCase{
+		return []*junitapi.JUnitTestCase{
 			{
 				Name: a.InvariantTestName(),
 			},
 		}, nil
 
 	case flake:
-		return []*ginkgo.JUnitTestCase{
+		return []*junitapi.JUnitTestCase{
 			{
 				Name: a.InvariantTestName(),
 			},
 			{
 				Name: a.InvariantTestName(),
-				FailureOutput: &ginkgo.FailureOutput{
+				FailureOutput: &junitapi.FailureOutput{
 					Output: message,
 				},
 				SystemOut: message,
@@ -269,10 +270,10 @@ func (a *basicAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Co
 		}, nil
 
 	case fail:
-		return []*ginkgo.JUnitTestCase{
+		return []*junitapi.JUnitTestCase{
 			{
 				Name: a.InvariantTestName(),
-				FailureOutput: &ginkgo.FailureOutput{
+				FailureOutput: &junitapi.FailureOutput{
 					Output: message,
 				},
 				SystemOut: message,

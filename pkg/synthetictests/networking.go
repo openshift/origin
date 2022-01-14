@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+
 	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
-	"github.com/openshift/origin/pkg/test/ginkgo"
 )
 
 type testCategorizer struct {
@@ -16,7 +16,7 @@ type testCategorizer struct {
 	substring string
 }
 
-func testPodSandboxCreation(events monitorapi.Intervals) []*ginkgo.JUnitTestCase {
+func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-network] pods should successfully create sandboxes"
 	// we can further refine this signal by subdividing different failure modes if it is pertinent.  Right now I'm seeing
 	// 1. error reading container (probably exited) json message: EOF
@@ -86,7 +86,7 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*ginkgo.JUnitTestCase
 		}
 	}
 	failuresBySubtest, flakesBySubtest := categorizeBySubset(bySubStrings, failures, flakes)
-	successes := []*ginkgo.JUnitTestCase{}
+	successes := []*junitapi.JUnitTestCase{}
 	for _, by := range bySubStrings {
 		if _, ok := failuresBySubtest[by.by]; ok {
 			continue
@@ -95,36 +95,36 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*ginkgo.JUnitTestCase
 			continue
 		}
 
-		successes = append(successes, &ginkgo.JUnitTestCase{Name: testName + by.by})
+		successes = append(successes, &junitapi.JUnitTestCase{Name: testName + by.by})
 	}
 
 	if len(failures) == 0 && len(flakes) == 0 {
 		return successes
 	}
 
-	ret := []*ginkgo.JUnitTestCase{}
+	ret := []*junitapi.JUnitTestCase{}
 	// now iterate the individual failures to create failure entries
 	for by, subFailures := range failuresBySubtest {
-		failure := &ginkgo.JUnitTestCase{
+		failure := &junitapi.JUnitTestCase{
 			Name:      testName + by,
 			SystemOut: strings.Join(subFailures, "\n"),
-			FailureOutput: &ginkgo.FailureOutput{
+			FailureOutput: &junitapi.FailureOutput{
 				Output: fmt.Sprintf("%d failures to create the sandbox\n\n%v", len(subFailures), strings.Join(subFailures, "\n")),
 			},
 		}
 		ret = append(ret, failure)
 	}
 	for by, subFlakes := range flakesBySubtest {
-		flake := &ginkgo.JUnitTestCase{
+		flake := &junitapi.JUnitTestCase{
 			Name:      testName + by,
 			SystemOut: strings.Join(subFlakes, "\n"),
-			FailureOutput: &ginkgo.FailureOutput{
+			FailureOutput: &junitapi.FailureOutput{
 				Output: fmt.Sprintf("%d failures to create the sandbox\n\n%v", len(subFlakes), strings.Join(subFlakes, "\n")),
 			},
 		}
 		ret = append(ret, flake)
 		// write a passing test to trigger detection of this issue as a flake. Doing this first to try to see how frequent the issue actually is
-		success := &ginkgo.JUnitTestCase{
+		success := &junitapi.JUnitTestCase{
 			Name: testName + by,
 		}
 		ret = append(ret, success)

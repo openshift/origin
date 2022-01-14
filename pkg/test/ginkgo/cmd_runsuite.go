@@ -15,6 +15,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+
+	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
+
 	"github.com/onsi/ginkgo/config"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -53,6 +57,8 @@ type Options struct {
 	// context into a failure.
 	SyntheticEventTests JUnitsForEvents
 
+	RunDataWriters []RunDataWriter
+
 	IncludeSuccessOutput bool
 
 	CommandEnv []string
@@ -62,6 +68,21 @@ type Options struct {
 	Out, ErrOut   io.Writer
 
 	StartTime time.Time
+}
+
+func NewOptions() *Options {
+	return &Options{
+		RunDataWriters: []RunDataWriter{
+			RunDataWriterFunc(monitor.WriteEventsForJobRun),
+			RunDataWriterFunc(monitor.WriteEventsIntervalsForJobRun),
+			RunDataWriterFunc(monitor.WriteEventsIntervalsHTMLForJobRun),
+			RunDataWriterFunc(monitor.WriteTrackedResourcesForJobRun),
+			RunDataWriterFunc(monitor.WriteBackendDisruptionForJobRun),
+			RunDataWriterFunc(allowedalerts.WriteAlertDataForJobRun),
+		},
+		Out:    os.Stdout,
+		ErrOut: os.Stderr,
+	}
 }
 
 func (opt *Options) AsEnv() []string {
@@ -346,7 +367,7 @@ func (opt *Options) Run(suite *TestSuite) error {
 	pass, fail, skip, failing := summarizeTests(tests)
 
 	// monitor the cluster while the tests are running and report any detected anomalies
-	var syntheticTestResults []*JUnitTestCase
+	var syntheticTestResults []*junitapi.JUnitTestCase
 	var syntheticFailure bool
 	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 	events := m.Intervals(time.Time{}, time.Time{})
@@ -384,7 +405,7 @@ func (opt *Options) Run(suite *TestSuite) error {
 	events.Clamp(start, end)
 
 	if len(opt.JUnitDir) > 0 {
-		if err := monitor.WriteRunDataToArtifactsDir(opt.JUnitDir, m, events, timeSuffix); err != nil {
+		if err := opt.WriteRunDataToArtifactsDir(opt.JUnitDir, m, events, timeSuffix); err != nil {
 			fmt.Fprintf(opt.ErrOut, "error: Failed to write run-data: %v\n", err)
 		}
 	}

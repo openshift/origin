@@ -211,6 +211,14 @@ type runOptions struct {
 	config *cluster.ClusterConfiguration
 }
 
+func NewRunOptions(fromRepository string) *runOptions {
+	return &runOptions{
+		Options: *testginkgo.NewOptions(),
+
+		FromRepository: fromRepository,
+	}
+}
+
 func (opt *runOptions) AsEnv() []string {
 	var args []string
 	args = append(args, "KUBE_TEST_REPO_LIST=") // explicitly prevent selective override
@@ -258,9 +266,7 @@ func (opt *runOptions) SelectSuite(suites testSuites, args []string) (*testSuite
 }
 
 func newRunCommand() *cobra.Command {
-	opt := &runOptions{
-		FromRepository: defaultTestImageMirrorLocation,
-	}
+	opt := NewRunOptions(defaultTestImageMirrorLocation)
 
 	cmd := &cobra.Command{
 		Use:   "run SUITE",
@@ -313,9 +319,7 @@ func newRunCommand() *cobra.Command {
 }
 
 func newRunUpgradeCommand() *cobra.Command {
-	opt := &runOptions{
-		FromRepository: defaultTestImageMirrorLocation,
-	}
+	opt := NewRunOptions(defaultTestImageMirrorLocation)
 
 	cmd := &cobra.Command{
 		Use:   "run-upgrade SUITE",
@@ -439,12 +443,6 @@ func newRunTestCommand() *cobra.Command {
 // any error returned from fn. The function returns fn() or any error encountered while
 // attempting to open the file.
 func mirrorToFile(opt *testginkgo.Options, fn func() error) error {
-	if opt.Out == nil {
-		opt.Out = os.Stdout
-	}
-	if opt.ErrOut == nil {
-		opt.ErrOut = os.Stderr
-	}
 	if len(opt.OutFile) == 0 {
 		return fn()
 	}

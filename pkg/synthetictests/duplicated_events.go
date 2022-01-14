@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+
 	v1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 
@@ -16,7 +18,6 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/test/ginkgo"
 )
 
 func combinedRegexp(arr ...*regexp.Regexp) *regexp.Regexp {
@@ -179,7 +180,7 @@ type knownProblem struct {
 	TestSuite *string
 }
 
-func testDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig *rest.Config, testSuite string) []*ginkgo.JUnitTestCase {
+func testDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig *rest.Config, testSuite string) []*junitapi.JUnitTestCase {
 	allowedPatterns := []*regexp.Regexp{}
 	allowedPatterns = append(allowedPatterns, allowedRepeatedEventPatterns...)
 	allowedPatterns = append(allowedPatterns, allowedUpgradeRepeatedEventPatterns...)
@@ -195,13 +196,13 @@ func testDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 		e2e.Logf("could not fetch cluster info: %w", err)
 	}
 
-	tests := []*ginkgo.JUnitTestCase{}
+	tests := []*junitapi.JUnitTestCase{}
 	tests = append(tests, evaluator.testDuplicatedCoreNamespaceEvents(events, kubeClientConfig)...)
 	tests = append(tests, evaluator.testDuplicatedE2ENamespaceEvents(events, kubeClientConfig)...)
 	return tests
 }
 
-func testDuplicatedEventForStableSystem(events monitorapi.Intervals, kubeClientConfig *rest.Config, testSuite string) []*ginkgo.JUnitTestCase {
+func testDuplicatedEventForStableSystem(events monitorapi.Intervals, kubeClientConfig *rest.Config, testSuite string) []*junitapi.JUnitTestCase {
 	evaluator := duplicateEventsEvaluator{
 		allowedRepeatedEventPatterns: allowedRepeatedEventPatterns,
 		allowedRepeatedEventFns:      allowedRepeatedEventFns,
@@ -213,7 +214,7 @@ func testDuplicatedEventForStableSystem(events monitorapi.Intervals, kubeClientC
 		e2e.Logf("could not fetch cluster info: %w", err)
 	}
 
-	tests := []*ginkgo.JUnitTestCase{}
+	tests := []*junitapi.JUnitTestCase{}
 	tests = append(tests, evaluator.testDuplicatedCoreNamespaceEvents(events, kubeClientConfig)...)
 	tests = append(tests, evaluator.testDuplicatedE2ENamespaceEvents(events, kubeClientConfig)...)
 	return tests
@@ -228,7 +229,7 @@ type isRepeatedEventOKFunc func(monitorEvent monitorapi.EventInterval, kubeClien
 // for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] test
 // is easier to author, but less complete in its view.
 // I hate regexes, so I only do this because I really have to.
-func (d duplicateEventsEvaluator) testDuplicatedCoreNamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*ginkgo.JUnitTestCase {
+func (d duplicateEventsEvaluator) testDuplicatedCoreNamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[sig-arch] events should not repeat pathologically"
 
 	interestingEvents := monitorapi.Intervals{}
@@ -246,7 +247,7 @@ func (d duplicateEventsEvaluator) testDuplicatedCoreNamespaceEvents(events monit
 // for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] test
 // is easier to author, but less complete in its view.
 // I hate regexes, so I only do this because I really have to.
-func (d duplicateEventsEvaluator) testDuplicatedE2ENamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*ginkgo.JUnitTestCase {
+func (d duplicateEventsEvaluator) testDuplicatedE2ENamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[sig-arch] events should not repeat pathologically in e2e namespaces"
 
 	interestingEvents := monitorapi.Intervals{}
@@ -264,7 +265,7 @@ func (d duplicateEventsEvaluator) testDuplicatedE2ENamespaceEvents(events monito
 // for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] test
 // is easier to author, but less complete in its view.
 // I hate regexes, so I only do this because I really have to.
-func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnly bool, events monitorapi.Intervals, kubeClientConfig *rest.Config) []*ginkgo.JUnitTestCase {
+func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnly bool, events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	allowedRepeatedEventsRegex := combinedRegexp(d.allowedRepeatedEventPatterns...)
 
 	displayToCount := map[string]int{}
@@ -323,7 +324,7 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 	}
 
 	// failures during a run always fail the test suite
-	var tests []*ginkgo.JUnitTestCase
+	var tests []*junitapi.JUnitTestCase
 	if len(failures) > 0 || len(flakes) > 0 {
 		var output string
 		if len(failures) > 0 {
@@ -335,9 +336,9 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 			}
 			output += fmt.Sprintf("%d events with known BZs\n\n%v", len(flakes), strings.Join(flakes, "\n"))
 		}
-		tests = append(tests, &ginkgo.JUnitTestCase{
+		tests = append(tests, &junitapi.JUnitTestCase{
 			Name: testName,
-			FailureOutput: &ginkgo.FailureOutput{
+			FailureOutput: &junitapi.FailureOutput{
 				Output: output,
 			},
 		})
@@ -346,7 +347,7 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 	if len(tests) == 0 || len(failures) == 0 {
 		// Add a successful result to mark the test as flaky if there are no
 		// unknown problems.
-		tests = append(tests, &ginkgo.JUnitTestCase{Name: testName})
+		tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
 	}
 	return tests
 }

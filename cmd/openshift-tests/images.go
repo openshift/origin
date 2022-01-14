@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+
 	configv1client "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
@@ -211,7 +213,7 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 
 	// any image not in the allowed prefixes is considered a failure, as the user
 	// may have added a new test image without calling the appropriate helpers
-	return func(events monitorapi.Intervals, _ time.Duration, cfg *rest.Config, testSuite string) []*ginkgo.JUnitTestCase {
+	return func(events monitorapi.Intervals, _ time.Duration, cfg *rest.Config, testSuite string) []*junitapi.JUnitTestCase {
 		imageStreamPrefixes, err := imagePrefixesFromNamespaceImageStreams("openshift")
 		if err != nil {
 			klog.Errorf("Unable to identify image prefixes from the openshift namespace: %v", err)
@@ -227,7 +229,7 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 
 		allowedPrefixes := allowedPrefixes.List()
 
-		var tests []*ginkgo.JUnitTestCase
+		var tests []*junitapi.JUnitTestCase
 
 		pulls := make(map[string]sets.String)
 		for _, event := range events {
@@ -269,17 +271,17 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 					fmt.Fprintf(buf, "  %s\n", locator)
 				}
 			}
-			tests = append(tests, &ginkgo.JUnitTestCase{
+			tests = append(tests, &junitapi.JUnitTestCase{
 				Name:      "[sig-arch] Only known images used by tests",
 				SystemOut: buf.String(),
-				FailureOutput: &ginkgo.FailureOutput{
+				FailureOutput: &junitapi.FailureOutput{
 					Output: fmt.Sprintf("Cluster accessed images that were not mirrored to the testing repository or already part of the cluster, see test/extended/util/image/README.md in the openshift/origin repo:\n\n%s", buf.String()),
 				},
 			})
 
 		} else {
 			// if the test passed, indicate that too.
-			tests = append(tests, &ginkgo.JUnitTestCase{
+			tests = append(tests, &junitapi.JUnitTestCase{
 				Name: "[sig-arch] Only known images used by tests",
 			})
 		}
