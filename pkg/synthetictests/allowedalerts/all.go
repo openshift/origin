@@ -22,7 +22,7 @@ func AllAlertTests() []AlertTest {
 		newAlert("etcd", "etcdHighNumberOfLeaderChanges").firing(),
 
 		newAlert("kube-apiserver", "KubeAPIErrorBudgetBurn").pending().neverFail(),
-		newAlert("kube-apiserver", "KubeAPIErrorBudgetBurn").firing(),
+		newAlert("kube-apiserver", "KubeAPIErrorBudgetBurn").firing().neverFail(), // https://bugzilla.redhat.com/show_bug.cgi?id=2039539
 		newAlert("kube-apiserver", "KubeClientErrors").pending().neverFail(),
 		newAlert("kube-apiserver", "KubeClientErrors").firing(),
 
