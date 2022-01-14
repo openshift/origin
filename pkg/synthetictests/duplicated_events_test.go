@@ -84,10 +84,6 @@ func TestEventRegexExcluder(t *testing.T) {
 			name:    "local-volume-failed-scheduling",
 			message: `ns/e2e-persistent-local-volumes-test-7012 pod/pod-940713ce-7645-4d8c-bba0-5705350a5655 reason/FailedScheduling 0/6 nodes are available: 1 node(s) had volume node affinity conflict, 2 node(s) didn't match Pod's node affinity/selector, 3 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate. (2 times)`,
 		},
-		{
-			name:    "vsphere-hw-13-default-upi-install",
-			message: `ns/openshift-cluster-csi-drivers deployment/vmware-vsphere-csi-driver-operator - reason/check_deprecated_hw_version Marking cluster un-upgradeable because node control-plane-1 has hardware version vmx-13, which is below the minimum required version 15`,
-		},
 	}
 
 	for _, test := range tests {
