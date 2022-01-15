@@ -76,10 +76,6 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 	// If image pulls in e2e namespaces fail catastrophically we'd expect them to lead to test failures
 	// We are deliberately not ignoring image pull failures for core component namespaces
 	regexp.MustCompile(`ns/e2e-.* reason/BackOff Back-off pulling image`),
-	// currently UPI install defaults to HW 13 which causes events in 4.10 CI
-	// since 4.10 still supports vSphere 6.5, we can't default to HW 15 in RHCOS image but such clusters are unupgradable to 4.11 and hence
-	// events are still valid.
-	regexp.MustCompile(`ns/openshift-cluster-storage-operator\s+deployment/vsphere-problem-detector-operator - reason/VSphereOlderVersionDetected.+vmx-13`),
 }
 
 var allowedRepeatedEventFns = []isRepeatedEventOKFunc{

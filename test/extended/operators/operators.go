@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	vmxPattern = regexp.MustCompile(`VSphereProblemDetectorControllerUpgradeable.+vmx-13`)
+	vmxPattern = regexp.MustCompile(`VMwareVSphereControllerUpgradeable.+vmx-13`)
 )
 
 var _ = g.Describe("[sig-arch][Early] Managed cluster should", func() {
