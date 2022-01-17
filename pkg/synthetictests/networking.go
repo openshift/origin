@@ -70,12 +70,16 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*ginkgo.JUnitTestCase
 			}
 		} else {
 			timeBetweenDeleteAndFailure := event.From.Sub(*deletionTime)
+			nodeRebootTime := getNodeRebootTime(events, monitorapi.LocatorParts(event.Locator)["node"])
 			switch {
 			case timeBetweenDeleteAndFailure < 1*time.Second:
 				// nothing here, one second is close enough to be ok, the kubelet and CNI just didn't know
 			case timeBetweenDeleteAndFailure < 5*time.Second:
 				// withing five seconds, it ought to be long enough to know, but it's close enough to flake and not fail
 				flakes = append(flakes, fmt.Sprintf("%v - %0.2f seconds after deletion - %v", event.Locator, timeBetweenDeleteAndFailure.Seconds(), event.Message))
+			case nodeRebootTime != nil && nodeRebootTime.After(*deletionTime) && strings.Contains(event.Locator, "guard"):
+				flakes = append(flakes, fmt.Sprintf("the deletion time %v came before a reboot at %v and error is coming " +
+					"from a guard pod. see https://bugzilla.redhat.com/show_bug.cgi?id=2038481", deletionTime, nodeRebootTime))
 			case deletionTime.Before(event.From):
 				// something went wrong.  More than five seconds after the pod ws deleted, the CNI is trying to set up pod sandboxes and can't
 				failures = append(failures, fmt.Sprintf("%v - %0.2f seconds after deletion - %v", event.Locator, timeBetweenDeleteAndFailure.Seconds(), event.Message))
@@ -179,6 +183,17 @@ func getEventsByPod(events monitorapi.Intervals) map[string]monitorapi.Intervals
 func getPodDeletionTime(events monitorapi.Intervals, podLocator string) *time.Time {
 	for _, event := range events {
 		if event.Locator == podLocator && event.Message == "reason/Deleted" {
+			return &event.From
+		}
+	}
+	return nil
+}
+
+func getNodeRebootTime(events monitorapi.Intervals, node string) *time.Time {
+
+	for _, event := range events {
+		eventNodeName, _ := monitorapi.NodeFromLocator(event.Locator)
+		if eventNodeName == node && strings.Contains(event.Message, "reason/Rebooted") {
 			return &event.From
 		}
 	}
