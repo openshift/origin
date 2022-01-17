@@ -33,5 +33,8 @@ func AllAlertTests() []AlertTest {
 
 		newAlert("machine config operator", "MCDDrainError").pending().neverFail(),
 		newAlert("machine config operator", "MCDDrainError").firing(),
+
+		newAlert("monitoring", "PrometheusOperatorWatchErrors").pending().neverFail(),
+		newAlert("monitoring", "PrometheusOperatorWatchErrors").firing(),
 	}
 }

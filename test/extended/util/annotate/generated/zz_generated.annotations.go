@@ -667,6 +667,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch][bz-machine config operator][Late] Alerts alert/MCDDrainError should not be at or above pending": "alert/MCDDrainError should not be at or above pending [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-arch][bz-monitoring][Late] Alerts alert/PrometheusOperatorWatchErrors should not be at or above info": "alert/PrometheusOperatorWatchErrors should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-monitoring][Late] Alerts alert/PrometheusOperatorWatchErrors should not be at or above pending": "alert/PrometheusOperatorWatchErrors should not be at or above pending [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-arch][bz-monitoring][Late] Alerts alert/Watchdog must have no gaps or changes": "alert/Watchdog must have no gaps or changes [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][bz-storage][Late] Alerts alert/KubePersistentVolumeErrors should not be at or above info": "alert/KubePersistentVolumeErrors should not be at or above info [Suite:openshift/conformance/parallel]",
