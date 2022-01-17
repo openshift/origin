@@ -44,11 +44,11 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 			continue
 		}
 		if strings.Contains(event.Message, "Multus") && strings.Contains(event.Message, "error getting pod") && (strings.Contains(event.Message, "connection refused") || strings.Contains(event.Message, "i/o timeout")) {
-			flakes = append(flakes, fmt.Sprintf("%v - multus is unable to get pods due to LB disruption https://bugzilla.redhat.com/show_bug.cgi?id=1927264 - %v", event.Locator, event.Message))
+			flakes = append(flakes, fmt.Sprintf("%v -- %v - multus is unable to get pods due to LB disruption https://bugzilla.redhat.com/show_bug.cgi?id=1927264 - %v", event.From.Format(time.RFC3339), event.Locator, event.Message))
 			continue
 		}
 		if strings.Contains(event.Message, "Multus") && strings.Contains(event.Message, "error getting pod: Unauthorized") {
-			flakes = append(flakes, fmt.Sprintf("%v - multus is unable to get pods due to authorization https://bugzilla.redhat.com/show_bug.cgi?id=1972490 - %v", event.Locator, event.Message))
+			flakes = append(flakes, fmt.Sprintf("%v -- %v - multus is unable to get pods due to authorization https://bugzilla.redhat.com/show_bug.cgi?id=1972490 - %v", event.From.Format(time.RFC3339), event.Locator, event.Message))
 			continue
 		}
 		deletionTime := getPodDeletionTime(eventsForPods[event.Locator], event.Locator)
@@ -64,9 +64,9 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 				}
 			}
 			if match != -1 {
-				flakes = append(flakes, fmt.Sprintf("%v - never deleted - network rollout - %v", event.Locator, event.Message))
+				flakes = append(flakes, fmt.Sprintf("%v -- %v - never deleted - network rollout - %v", event.From.Format(time.RFC3339), event.Locator, event.Message))
 			} else {
-				failures = append(failures, fmt.Sprintf("%v - never deleted - %v", event.Locator, event.Message))
+				failures = append(failures, fmt.Sprintf("%v -- %v - never deleted - %v", event.From.Format(time.RFC3339), event.Locator, event.Message))
 			}
 		} else {
 			timeBetweenDeleteAndFailure := event.From.Sub(*deletionTime)
@@ -75,13 +75,13 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 				// nothing here, one second is close enough to be ok, the kubelet and CNI just didn't know
 			case timeBetweenDeleteAndFailure < 5*time.Second:
 				// withing five seconds, it ought to be long enough to know, but it's close enough to flake and not fail
-				flakes = append(flakes, fmt.Sprintf("%v - %0.2f seconds after deletion - %v", event.Locator, timeBetweenDeleteAndFailure.Seconds(), event.Message))
+				flakes = append(flakes, fmt.Sprintf("%v -- %v - %0.2f seconds after deletion - %v", event.From.Format(time.RFC3339), event.Locator, timeBetweenDeleteAndFailure.Seconds(), event.Message))
 			case deletionTime.Before(event.From):
 				// something went wrong.  More than five seconds after the pod ws deleted, the CNI is trying to set up pod sandboxes and can't
-				failures = append(failures, fmt.Sprintf("%v - %0.2f seconds after deletion - %v", event.Locator, timeBetweenDeleteAndFailure.Seconds(), event.Message))
+				failures = append(failures, fmt.Sprintf("%v -- %v - %0.2f seconds after deletion - %v", event.From.Format(time.RFC3339), event.Locator, timeBetweenDeleteAndFailure.Seconds(), event.Message))
 			default:
-				// something went wrong.  deletion happend after we had a failure to create the pod sandbox
-				failures = append(failures, fmt.Sprintf("%v - deletion came AFTER sandbox failure - %v", event.Locator, event.Message))
+				// something went wrong.  deletion happened after we had a failure to create the pod sandbox
+				failures = append(failures, fmt.Sprintf("%v -- %v - deletion came AFTER sandbox failure - %v", event.From.Format(time.RFC3339), event.Locator, event.Message))
 			}
 		}
 	}
