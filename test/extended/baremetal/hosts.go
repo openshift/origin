@@ -30,6 +30,55 @@ func skipIfNotBaremetal(oc *exutil.CLI) {
 	}
 }
 
+// Starting from 4.10, metal3 resources could be created in the vSphere, OpenStack and None
+// Platforms in addition to the Baremetal Platform. This method can be used to check for
+// the presence of supported Platforms and also the specific ProvisioningNetwork config
+// supported in non-Baremetal platforms.
+func skipIfUnsupportedPlatformOrConfig(oc *exutil.CLI, dc dynamic.Interface) {
+	g.By("checking supported platforms")
+
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	switch infra.Status.PlatformStatus.Type {
+	case configv1.BareMetalPlatformType:
+		return
+	case configv1.OpenStackPlatformType:
+		fallthrough
+	case configv1.VSpherePlatformType:
+		fallthrough
+	case configv1.NonePlatformType:
+		provisioningNetwork := getProvisioningNetwork(dc)
+		if provisioningNetwork != "Disabled" {
+			e2eskipper.Skipf("Unsupported config in supported platform detected")
+		} else if provisioningNetwork == "" {
+			e2eskipper.Skipf("Unable to read ProvisioningNetwork from Provisioning CR")
+		} else {
+			return
+		}
+	default:
+		e2eskipper.Skipf("No supported platform detected")
+	}
+}
+
+func getProvisioningNetwork(dc dynamic.Interface) string {
+	provisioningGVR := schema.GroupVersionResource{Group: "metal3.io", Resource: "provisionings", Version: "v1alpha1"}
+	provisioningClient := dc.Resource(provisioningGVR)
+	provisioningConfig, err := provisioningClient.Get(context.Background(), "provisioning-configuration", metav1.GetOptions{})
+	if err != nil {
+		return ""
+	}
+	provisioningSpec, found, err := unstructured.NestedMap(provisioningConfig.UnstructuredContent(), "spec")
+	if !found || err != nil {
+		return ""
+	}
+	provisioningNetwork, found, err := unstructured.NestedString(provisioningSpec, "provisioningNetwork")
+	if !found || err != nil {
+		return ""
+	}
+	return provisioningNetwork
+}
+
 func baremetalClient(dc dynamic.Interface) dynamic.ResourceInterface {
 	baremetalClient := dc.Resource(schema.GroupVersionResource{Group: "metal3.io", Resource: "baremetalhosts", Version: "v1alpha1"})
 	return baremetalClient.Namespace("openshift-machine-api")
@@ -111,13 +160,14 @@ func getStringField(host unstructured.Unstructured, resource string, nestedField
 	})
 }
 
-var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should", func() {
+var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphere/None platforms ", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("baremetal")
 
 	g.It("have a metal3 deployment", func() {
-		skipIfNotBaremetal(oc)
+		dc := oc.AdminDynamicClient()
+		skipIfUnsupportedPlatformOrConfig(oc, dc)
 
 		c, err := e2e.LoadClientset()
 		o.Expect(err).ToNot(o.HaveOccurred())
@@ -129,6 +179,12 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 		o.Expect(metal3.Annotations).Should(o.HaveKey("baremetal.openshift.io/owned"))
 		o.Expect(metal3.Labels).Should(o.HaveKeyWithValue("baremetal.openshift.io/cluster-baremetal-operator", "metal3-state"))
 	})
+})
+
+var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should", func() {
+	defer g.GinkgoRecover()
+
+	oc := exutil.NewCLI("baremetal")
 
 	g.It("have baremetalhost resources", func() {
 		skipIfNotBaremetal(oc)
