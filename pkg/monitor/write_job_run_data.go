@@ -1,7 +1,6 @@
 package monitor
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
-	"github.com/openshift/origin/test/extended/testdata"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/kustomize/kyaml/sets"
@@ -18,22 +16,6 @@ import (
 
 func WriteEventsForJobRun(artifactDir string, monitor *Monitor, events monitorapi.Intervals, timeSuffix string) error {
 	return monitorserialization.EventsToFile(filepath.Join(artifactDir, fmt.Sprintf("e2e-events%s.json", timeSuffix)), events)
-}
-
-func WriteEventsIntervalsForJobRun(artifactDir string, monitor *Monitor, events monitorapi.Intervals, timeSuffix string) error {
-	return monitorserialization.EventsIntervalsToFile(filepath.Join(artifactDir, fmt.Sprintf("e2e-intervals%s.json", timeSuffix)), events)
-}
-
-func WriteEventsIntervalsHTMLForJobRun(artifactDir string, monitor *Monitor, events monitorapi.Intervals, timeSuffix string) error {
-	eventIntervalsJSON, err := monitorserialization.EventsIntervalsToJSON(events)
-	if err != nil {
-		return err
-	}
-	e2eChartTemplate := testdata.MustAsset("e2echart/e2e-chart-template.html")
-	e2eChartHTML := bytes.ReplaceAll(e2eChartTemplate, []byte("EVENT_INTERVAL_JSON_GOES_HERE"), eventIntervalsJSON)
-	e2eChartHTMLPath := filepath.Join(artifactDir, fmt.Sprintf("e2e-intervals%s.html", timeSuffix))
-
-	return ioutil.WriteFile(e2eChartHTMLPath, e2eChartHTML, 0644)
 }
 
 func WriteTrackedResourcesForJobRun(artifactDir string, monitor *Monitor, events monitorapi.Intervals, timeSuffix string) error {
