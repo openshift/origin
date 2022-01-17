@@ -76,6 +76,9 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 	// If image pulls in e2e namespaces fail catastrophically we'd expect them to lead to test failures
 	// We are deliberately not ignoring image pull failures for core component namespaces
 	regexp.MustCompile(`ns/e2e-.* reason/BackOff Back-off pulling image`),
+
+	// promtail crashlooping as its being started by sideloading manifests.  per @vrutkovs
+	regexp.MustCompile("ns/loki pod/loki-promtail.*Readiness probe failed"),
 }
 
 var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
