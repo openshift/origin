@@ -178,28 +178,13 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 
 	testDuration := time.Now().Sub(start).Round(time.Second)
 
-	// Invariant: The watchdog alert should be firing continuously during the whole upgrade via the thanos
-	// querier (which should have no gaps when it queries the individual stores). Allow zero or one changes
-	// to the presence of this series (zero if data is preserved over upgrade, one if data is lost on upgrade).
-	// This would not catch the alert stopping firing, but we catch that in other places and tests.
-	watchdogQuery := fmt.Sprintf(`changes((max((ALERTS{alertstate="firing",alertname="Watchdog",severity="none"}) or (absent(ALERTS{alertstate="firing",alertname="Watchdog",severity="none"})*0)))[%s:1s]) > 1`, testDuration)
-	result, err := helper.RunQuery(context.TODO(), t.prometheusClient, watchdogQuery)
-	o.Expect(err).NotTo(o.HaveOccurred(), "unable to check watchdog alert over upgrade window")
-	if len(result.Data.Result) > 0 {
-		if result.Data.Result[0].Value <= 8 {
-			unexpectedViolations.Insert(fmt.Sprintf("Watchdog alert had %s changes during the run, which may be a sign of a Prometheus outage in violation of the prometheus query SLO of 100%% uptime during upgrade", result.Data.Result[0].Value))
-		} else {
-			knownViolations.Insert(fmt.Sprintf("Watchdog alert had %s changes during the run, which may be a sign of a Prometheus outage in violation of the prometheus query SLO of 100%% uptime during upgrade, but is being tracked in https://bugzilla.redhat.com/show_bug.cgi?id=1949262 and is acceptable while that is open", result.Data.Result[0].Value))
-		}
-	}
-
 	// Invariant: No non-info level alerts should have fired during the upgrade
 	firingAlertQuery := fmt.Sprintf(`
 sort_desc(
 count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog|AlertmanagerReceiversNotConfigured"}[%[1]s:1s])
 ) > 0
 `, testDuration)
-	result, err = helper.RunQuery(context.TODO(), t.prometheusClient, firingAlertQuery)
+	result, err := helper.RunQuery(context.TODO(), t.prometheusClient, firingAlertQuery)
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to check firing alerts during upgrade")
 	for _, series := range result.Data.Result {
 		labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")

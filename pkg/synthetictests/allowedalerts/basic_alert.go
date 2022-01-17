@@ -33,11 +33,6 @@ type AlertTest interface {
 
 	TestAlert(ctx context.Context, prometheusClient prometheusv1.API, restConfig *rest.Config) error
 	InvariantCheck(ctx context.Context, restConfig *rest.Config, intervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error)
-
-	// FailAfter is the amount of time that an alert can be at or above the current state before failing a test
-	FailAfter(jobType platformidentification.JobType) time.Duration
-	// FlakeAfter is the amount of time that an alert can be at or above the current state before flaking a test
-	FlakeAfter(jobType platformidentification.JobType) time.Duration
 }
 
 // AlertState is the state of the alert. They are logically ordered, so if a test says it limits on "pending", then
