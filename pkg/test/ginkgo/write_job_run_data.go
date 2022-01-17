@@ -10,10 +10,20 @@ type RunDataWriter interface {
 	WriteRunData(artifactDir string, monitor *monitor.Monitor, events monitorapi.Intervals, timeSuffix string) error
 }
 
+type EventDataWriter interface {
+	WriteEventData(artifactDir string, events monitorapi.Intervals, timeSuffix string) error
+}
+
 type RunDataWriterFunc func(artifactDir string, monitor *monitor.Monitor, events monitorapi.Intervals, timeSuffix string) error
 
 func (fn RunDataWriterFunc) WriteRunData(artifactDir string, monitor *monitor.Monitor, events monitorapi.Intervals, timeSuffix string) error {
 	return fn(artifactDir, monitor, events, timeSuffix)
+}
+
+func AdaptEventDataWriter(w EventDataWriter) RunDataWriterFunc {
+	return func(artifactDir string, monitor *monitor.Monitor, events monitorapi.Intervals, timeSuffix string) error {
+		return w.WriteEventData(artifactDir, events, timeSuffix)
+	}
 }
 
 // WriteRunDataToArtifactsDir attempts to write useful run data to the specified directory.

@@ -15,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/intervalcreation"
+
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
@@ -73,9 +75,14 @@ type Options struct {
 func NewOptions() *Options {
 	return &Options{
 		RunDataWriters: []RunDataWriter{
+			// these produce the various intervals.  Different intervals focused on inspecting different problem spaces.
+			AdaptEventDataWriter(intervalcreation.NewEventIntervalRenderer("everything", intervalcreation.BelongsInEverything)),
+			AdaptEventDataWriter(intervalcreation.NewEventIntervalRenderer("spyglass", intervalcreation.BelongsInSpyglass)),
+			// TODO add visualization of individual apiserver containers and their readiness on this page
+			AdaptEventDataWriter(intervalcreation.NewEventIntervalRenderer("kube-apiserver", intervalcreation.BelongsInKubeAPIServer)),
+			AdaptEventDataWriter(intervalcreation.NewEventIntervalRenderer("operators", intervalcreation.BelongsInOperatorRollout)),
+
 			RunDataWriterFunc(monitor.WriteEventsForJobRun),
-			RunDataWriterFunc(monitor.WriteEventsIntervalsForJobRun),
-			RunDataWriterFunc(monitor.WriteEventsIntervalsHTMLForJobRun),
 			RunDataWriterFunc(monitor.WriteTrackedResourcesForJobRun),
 			RunDataWriterFunc(monitor.WriteBackendDisruptionForJobRun),
 			RunDataWriterFunc(allowedalerts.WriteAlertDataForJobRun),
