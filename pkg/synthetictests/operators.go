@@ -73,6 +73,89 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 	return ret
 }
 
+func testOperatorOSUpdateStaged(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	testName := "[bz-Machine Config Operator] Nodes should reach OSUpdateStaged in a timely fashion"
+	success := &junitapi.JUnitTestCase{Name: testName}
+	flakeThreshold := 5 * time.Minute
+	failThreshold := 10 * time.Minute
+
+	type startedStaged struct {
+		// OSUpdateStarted is the event Reason emitted by the machine config operator when a node begins extracting
+		// it's OS content.
+		OSUpdateStarted time.Time
+		// OSUpdateStaged is the event Reason emitted by the machine config operator when a node has extracted it's
+		// OS content and is ready to begin the update. For the purposes of this test, we're looking for how long it
+		// took from Started -> Staged to try to identify disk i/o problems that may be occurring.
+		OSUpdateStaged time.Time
+	}
+
+	// Scan all OSUpdateStarted and OSUpdateStaged events, sort by node.
+	nodeOSUpdateTimes := map[string]*startedStaged{}
+	for _, e := range events {
+		if strings.Contains(e.Message, "reason/OSUpdateStarted") {
+			// locator will be of the form: node/ci-op-j34hmfqt-253f3-cq852-master-1
+			_, ok := nodeOSUpdateTimes[e.Locator]
+			if !ok {
+				nodeOSUpdateTimes[e.Locator] = &startedStaged{}
+			}
+			// for this type of event, the from/to time are identical as this is a point in time event.
+			ss := nodeOSUpdateTimes[e.Locator]
+			ss.OSUpdateStarted = e.To
+		} else if strings.Contains(e.Message, "reason/OSUpdateStaged") {
+			// locator will be of the form: node/ci-op-j34hmfqt-253f3-cq852-master-1
+			_, ok := nodeOSUpdateTimes[e.Locator]
+			if !ok {
+				nodeOSUpdateTimes[e.Locator] = &startedStaged{}
+			}
+			// for this type of event, the from/to time are identical as this is a point in time event.
+			ss := nodeOSUpdateTimes[e.Locator]
+			ss.OSUpdateStaged = e.To
+		}
+	}
+
+	// Iterate the data we assembled looking for any nodes with an excessive time between Started/Staged, or those
+	// missing a Staged
+	slowStageMessages := []string{}
+	var failTest bool // set true if we see anything over 10 minutes, our failure threshold
+	for node, ss := range nodeOSUpdateTimes {
+		if ss.OSUpdateStarted.IsZero() {
+			// Watch for an edge case we're not sure can/will occur:
+			slowStageMessages = append(slowStageMessages, fmt.Sprintf("%s OSUpdateStarted at %s, did not make it to OSUpdateStaged", node, ss.OSUpdateStarted.Format(time.RFC3339)))
+			failTest = true // considering this a failure for now
+		} else if ss.OSUpdateStaged.IsZero() || ss.OSUpdateStarted.After(ss.OSUpdateStaged) {
+			// Watch that we don't do multiple started->staged transitions, if we see started > staged, we must have
+			// failed to make it to staged on a later update:
+			slowStageMessages = append(slowStageMessages, fmt.Sprintf("%s OSUpdateStarted at %s, did not make it to OSUpdateStaged", node, ss.OSUpdateStarted.Format(time.RFC3339)))
+			failTest = true
+		} else if ss.OSUpdateStaged.Sub(ss.OSUpdateStarted) > flakeThreshold {
+			slowStageMessages = append(slowStageMessages, fmt.Sprintf("%s OSUpdateStarted at %s, OSUpdateStaged at %s: %s", node,
+				ss.OSUpdateStarted.Format(time.RFC3339), ss.OSUpdateStaged.Format(time.RFC3339), ss.OSUpdateStaged.Sub(ss.OSUpdateStarted)))
+
+			if ss.OSUpdateStaged.Sub(ss.OSUpdateStarted) > failThreshold {
+				failTest = true
+			}
+		}
+
+	}
+	if len(slowStageMessages) > 0 {
+		output := fmt.Sprintf("%d nodes took over %s to stage OSUpdate:\n\n%s",
+			len(slowStageMessages), flakeThreshold, strings.Join(slowStageMessages, "\n"))
+		failure := &junitapi.JUnitTestCase{
+			Name:      testName,
+			SystemOut: output,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: output,
+			},
+		}
+		if failTest {
+			return []*junitapi.JUnitTestCase{failure}
+		}
+		return []*junitapi.JUnitTestCase{failure, success}
+	}
+
+	return []*junitapi.JUnitTestCase{success}
+}
+
 func allOperators(events monitorapi.Intervals) sets.String {
 	// start with a list of known values
 	knownOperators := sets.NewString(KnownOperators.List()...)
