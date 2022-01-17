@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -229,9 +230,22 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 
 		allowedPrefixes := allowedPrefixes.List()
 
+		// these are the possible format we need to work with:
+		// 1. reason/Pulled Container image "quay.io/openshift/community-e2e-images:e2e-7-k8s-gcr-io-e2e-test-images-busybox-1-29-2-cqcP1Tnbm-JjJyUA" already present on machine
+		// 2. reason/Pulled image/quay.io/openshift/community-e2e-images:e2e-7-k8s-gcr-io-e2e-test-images-busybox-1-29-2-cqcP1Tnbm-JjJyUA
+		// the regexp tries to match either image/(group) or image "(group)",
+		// where (group) is constructed from three subgroups divided with /
+		// where each has one or more characters from these:
+		// \w (word characters - [0-9A-Za-z_]), -, :, . (needs escaping)
+		imageRe, err := regexp.Compile(`image/([\w-:\.]+/[\w-:\.]+/[\w-:\.]+)$|image "([\w-:\.]+/[\w-:\.]+/[\w-:\.]+)"`)
+		if err != nil {
+			klog.Errorf("failed to compile regexp for image parsing")
+		}
+
 		var tests []*junitapi.JUnitTestCase
 
 		pulls := make(map[string]sets.String)
+
 		for _, event := range events {
 			// only messages that include a Pulled reason
 			if !strings.Contains(" "+event.Message, " reason/Pulled ") {
@@ -242,11 +256,20 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 				continue
 			}
 
-			parts := strings.Split(event.Message, " ")
-			if len(parts) == 0 {
+			images := imageRe.FindStringSubmatch(event.Message)
+			// the images will contain full match and two group matches, see above
+			// for the regexp definition, so we skip the first in the below for-loop
+			if len(images) < 3 {
 				continue
 			}
-			image := strings.TrimPrefix(parts[len(parts)-1], "image/")
+			image := ""
+			for i := 1; i < len(images); i++ {
+				image = images[i]
+				// the match will be either 2nd or 3rd element in the list
+				if image != "" {
+					break
+				}
+			}
 			if hasAnyStringPrefix(image, allowedPrefixes) || allowedImages.Has(image) {
 				continue
 			}
@@ -254,7 +277,7 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 			if !ok {
 				byImage = sets.NewString()
 				pulls[image] = byImage
-				fmt.Printf("[sig-arch] unknown image: %s\n", image)
+				fmt.Printf("[sig-arch] unknown image: %s (%v)\n", image, event.Message)
 			}
 			byImage.Insert(event.Locator)
 		}
