@@ -667,6 +667,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch][bz-machine config operator][Late] Alerts alert/MCDDrainError should not be at or above pending": "alert/MCDDrainError should not be at or above pending [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-arch][bz-monitoring][Late] Alerts alert/Watchdog must have no gaps or changes": "alert/Watchdog must have no gaps or changes [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-arch][bz-storage][Late] Alerts alert/KubePersistentVolumeErrors should not be at or above info": "alert/KubePersistentVolumeErrors should not be at or above info [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][bz-storage][Late] Alerts alert/KubePersistentVolumeErrors should not be at or above pending": "alert/KubePersistentVolumeErrors should not be at or above pending [Suite:openshift/conformance/parallel]",
@@ -1847,7 +1849,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster": "shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't report any alerts in firing or pending state apart from Watchdog and AlertmanagerReceiversNotConfigured and have no gaps in Watchdog firing": "shouldn't report any alerts in firing or pending state apart from Watchdog and AlertmanagerReceiversNotConfigured and have no gaps in Watchdog firing [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't report any unexpected alerts in firing or pending state": "shouldn't report any unexpected alerts in firing or pending state [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-instrumentation][Late] OpenShift alerting rules should have a runbook_url annotation if the alert is critical": "should have a runbook_url annotation if the alert is critical [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 

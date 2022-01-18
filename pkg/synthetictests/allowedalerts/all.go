@@ -2,6 +2,8 @@ package allowedalerts
 
 func AllAlertTests() []AlertTest {
 	return []AlertTest{
+		newWatchdogAlert(),
+
 		newAlert("etcd", "etcdMembersDown").pending().neverFail(),
 		newAlert("etcd", "etcdMembersDown").firing(),
 		newAlert("etcd", "etcdGRPCRequestsSlow").pending().neverFail(),

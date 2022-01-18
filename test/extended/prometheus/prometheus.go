@@ -286,7 +286,8 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		oc = exutil.NewCLIWithoutNamespace("prometheus")
 	)
 
-	g.It("shouldn't report any alerts in firing or pending state apart from Watchdog and AlertmanagerReceiversNotConfigured and have no gaps in Watchdog firing", func() {
+	g.It("shouldn't report any unexpected alerts in firing or pending state", func() {
+		// Watchdog and AlertmanagerReceiversNotConfigured are expected.
 		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
 			e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
 		}
@@ -396,24 +397,13 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		// we only consider samples since the beginning of the test
 		testDuration := exutil.DurationSinceStartInSeconds().String()
 
-		// Invariant: The watchdog alert should be firing continuously during the whole test via the thanos
-		// querier (which should have no gaps when it queries the individual stores). Allow zero or one changes
-		// to the presence of this series (zero if data is preserved over test, one if data is lost over test).
-		// This would not catch the alert stopping firing, but we catch that in other places and tests.
-		watchdogQuery := fmt.Sprintf(`changes((max((ALERTS{alertstate="firing",alertname="Watchdog",severity="none"}) or (absent(ALERTS{alertstate="firing",alertname="Watchdog",severity="none"})*0)))[%s:1s]) > 1`, testDuration)
-		result, err := helper.RunQuery(context.TODO(), oc.NewPrometheusClient(context.TODO()), watchdogQuery)
-		o.Expect(err).NotTo(o.HaveOccurred(), "unable to check watchdog alert over test window")
-		if len(result.Data.Result) > 0 {
-			unexpectedViolations.Insert("Watchdog alert had missing intervals during the run, which may be a sign of a Prometheus outage in violation of the prometheus query SLO of 100% uptime during normal execution")
-		}
-
 		// Invariant: No non-info level alerts should have fired during the test run
 		firingAlertQuery := fmt.Sprintf(`
 sort_desc(
 count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog|AlertmanagerReceiversNotConfigured"}[%[1]s:1s])
 ) > 0
 `, testDuration)
-		result, err = helper.RunQuery(context.TODO(), oc.NewPrometheusClient(context.TODO()), firingAlertQuery)
+		result, err := helper.RunQuery(context.TODO(), oc.NewPrometheusClient(context.TODO()), firingAlertQuery)
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to check firing alerts during test")
 		for _, series := range result.Data.Result {
 			labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
