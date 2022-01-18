@@ -352,6 +352,10 @@ func (test localResourceAccessReviewTest) run() {
 				if strings.HasPrefix(curr, "system:serviceaccount:openshift-") {
 					continue
 				}
+				// Allow event-explorer from loki namespace
+				if strings.HasPrefix(curr, "system:serviceaccount:loki:") {
+					continue
+				}
 				// Managed ibmcloud openshift has an IAM user that needs to be ignored
 				if strings.HasPrefix(curr, "IAM#") {
 					if *controlPlaneTopology == configv1.ExternalTopologyMode && e2e.TestContext.Provider == ibmcloud.ProviderName {
