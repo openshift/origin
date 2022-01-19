@@ -79,6 +79,11 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 
 	// promtail crashlooping as its being started by sideloading manifests.  per @vrutkovs
 	regexp.MustCompile("ns/loki pod/loki-promtail.*Readiness probe failed"),
+
+	// kube-apiserver guard probe failing due to kube-apiserver operands getting rolled out
+	// multiple times during the bootstrapping phase of a cluster installation
+	regexp.MustCompile("ns/openshift-kube-apiserver pod/kube-apiserver-guard.*ProbeError Readiness probe error"),
+	regexp.MustCompile("ns/openshift-kube-apiserver pod/kube-apiserver-guard.*Unhealthy Readiness probe failed"),
 }
 
 var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
