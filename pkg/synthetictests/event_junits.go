@@ -31,6 +31,7 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testErrImagePullGenericOpenShiftNamespaces(events)...)
 	tests = append(tests, testErrImagePullGeneric(events)...)
 	tests = append(tests, testAlerts(events, kubeClientConfig)...)
+	tests = append(tests, testOperatorOSUpdateStaged(events)...)
 
 	return tests
 }
@@ -54,6 +55,7 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testErrImagePullGenericOpenShiftNamespaces(events)...)
 	tests = append(tests, testErrImagePullGeneric(events)...)
 	tests = append(tests, testAlerts(events, kubeClientConfig)...)
+	tests = append(tests, testOperatorOSUpdateStaged(events)...)
 	return tests
 }
 
