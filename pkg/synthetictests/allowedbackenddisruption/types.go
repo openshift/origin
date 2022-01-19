@@ -18,6 +18,7 @@ SELECT
 	Network,
 	Topology,
 	ANY_VALUE(P95) AS P95,
+	ANY_VALUE(P99) AS P99,
 	FROM (
 		SELECT
 			Jobs.Release,
@@ -27,6 +28,7 @@ SELECT
 			Jobs.Topology,
 			BackendName,
 			PERCENTILE_CONT(BackendDisruption.DisruptionSeconds, 0.95) OVER(PARTITION BY BackendDisruption.BackendName, Jobs.Network, Jobs.Platform, Jobs.Release, Jobs.FromRelease, Jobs.Topology) AS P95,
+			PERCENTILE_CONT(BackendDisruption.DisruptionSeconds, 0.99) OVER(PARTITION BY BackendDisruption.BackendName, Jobs.Network, Jobs.Platform, Jobs.Release, Jobs.FromRelease, Jobs.Topology) AS P99,
 		FROM
 			openshift-ci-data-analysis.ci_data.BackendDisruption as BackendDisruption
 		INNER JOIN
@@ -51,17 +53,18 @@ order by
 var queryResults []byte
 
 var (
-	readResults sync.Once
-	p95AsList   []LastWeekP95
-	p95AsMap    = map[LastWeekP95Key]LastWeekP95{}
+	readResults       sync.Once
+	percentilesAsList []LastWeekPercentiles
+	percentilesAsMap  = map[LastWeekPercentileKey]LastWeekPercentiles{}
 )
 
-type LastWeekP95 struct {
-	LastWeekP95Key `json:",inline"`
-	P95            float64
+type LastWeekPercentiles struct {
+	LastWeekPercentileKey `json:",inline"`
+	P95                   float64
+	P99                   float64
 }
 
-type LastWeekP95Key struct {
+type LastWeekPercentileKey struct {
 	BackendName string
 	Release     string
 	FromRelease string
@@ -70,35 +73,41 @@ type LastWeekP95Key struct {
 	Topology    string
 }
 
-func getCurrentResults() ([]LastWeekP95, map[LastWeekP95Key]LastWeekP95) {
+func getCurrentResults() ([]LastWeekPercentiles, map[LastWeekPercentileKey]LastWeekPercentiles) {
 	readResults.Do(
 		func() {
 			inFile := bytes.NewBuffer(queryResults)
 			jsonDecoder := json.NewDecoder(inFile)
 
-			type DecodingLastWeekP95 struct {
-				LastWeekP95Key `json:",inline"`
-				P95            string
+			type DecodingLastWeekPercentile struct {
+				LastWeekPercentileKey `json:",inline"`
+				P95                   string
+				P99                   string
 			}
-			decodingP95AsList := []DecodingLastWeekP95{}
+			decodingPercentilesList := []DecodingLastWeekPercentile{}
 
-			if err := jsonDecoder.Decode(&decodingP95AsList); err != nil {
+			if err := jsonDecoder.Decode(&decodingPercentilesList); err != nil {
 				panic(err)
 			}
 
-			for _, currDecoded := range decodingP95AsList {
+			for _, currDecoded := range decodingPercentilesList {
 				p95, err := strconv.ParseFloat(currDecoded.P95, 64)
 				if err != nil {
 					panic(err)
 				}
-				curr := LastWeekP95{
-					LastWeekP95Key: currDecoded.LastWeekP95Key,
-					P95:            p95,
+				p99, err := strconv.ParseFloat(currDecoded.P99, 64)
+				if err != nil {
+					panic(err)
 				}
-				p95AsList = append(p95AsList, curr)
-				p95AsMap[curr.LastWeekP95Key] = curr
+				curr := LastWeekPercentiles{
+					LastWeekPercentileKey: currDecoded.LastWeekPercentileKey,
+					P95:                   p95,
+					P99:                   p99,
+				}
+				percentilesAsList = append(percentilesAsList, curr)
+				percentilesAsMap[curr.LastWeekPercentileKey] = curr
 			}
 		})
 
-	return p95AsList, p95AsMap
+	return percentilesAsList, percentilesAsMap
 }
