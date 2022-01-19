@@ -84,6 +84,11 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 	// multiple times during the bootstrapping phase of a cluster installation
 	regexp.MustCompile("ns/openshift-kube-apiserver pod/kube-apiserver-guard.*ProbeError Readiness probe error"),
 	regexp.MustCompile("ns/openshift-kube-apiserver pod/kube-apiserver-guard.*Unhealthy Readiness probe failed"),
+	// the same thing happens for kube-controller-manager and kube-scheduler
+	regexp.MustCompile("ns/openshift-kube-controller-manager pod/kube-controller-manager-guard.*ProbeError Readiness probe error"),
+	regexp.MustCompile("ns/openshift-kube-controller-manager pod/kube-controller-manager-guard.*Unhealthy Readiness probe failed"),
+	regexp.MustCompile("ns/openshift-kube-scheduler pod/kube-scheduler-guard.*ProbeError Readiness probe error"),
+	regexp.MustCompile("ns/openshift-kube-scheduler pod/kube-scheduler-guard.*Unhealthy Readiness probe failed"),
 }
 
 var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
