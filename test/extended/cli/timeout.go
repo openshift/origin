@@ -35,6 +35,9 @@ var _ = g.Describe("[sig-cli] oc --request-timeout", func() {
 
 		out, err = oc.Run("get", "pods").Args("--watch", "-v=5", "--request-timeout=1s").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).Should(o.SatisfyAny(o.ContainSubstring("request canceled"), o.ContainSubstring("context deadline exceeded")))
+		o.Expect(out).Should(o.SatisfyAny(
+			o.ContainSubstring("request canceled"),
+			o.ContainSubstring("context deadline exceeded"),
+			o.ContainSubstring("Client.Timeout exceeded while awaiting headers")))
 	})
 })
