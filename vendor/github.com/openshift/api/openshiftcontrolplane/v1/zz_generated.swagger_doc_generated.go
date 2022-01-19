@@ -162,6 +162,7 @@ var map_OpenShiftControllerManagerConfig = map[string]string{
 	"servingInfo":    "servingInfo describes how to start serving",
 	"leaderElection": "leaderElection defines the configuration for electing a controller instance to make changes to the cluster. If unspecified, the ControllerTTL value is checked to determine whether the legacy direct etcd election code will be used.",
 	"controllers":    "controllers is a list of controllers to enable.  '*' enables all on-by-default controllers, 'foo' enables the controller \"+ named 'foo', '-foo' disables the controller named 'foo'. Defaults to \"*\".",
+	"featureGates":   "featureGates are the set of extra OpenShift feature gates for openshift-controller-manager. These feature gates can be used to enable features that are tech preview or otherwise not available on OpenShift by default.",
 }
 
 func (OpenShiftControllerManagerConfig) SwaggerDoc() map[string]string {

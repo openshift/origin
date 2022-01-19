@@ -1,6 +1,7 @@
 package events
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -11,6 +12,7 @@ import (
 type inMemoryEventRecorder struct {
 	events []*corev1.Event
 	source string
+	ctx    context.Context
 	sync.Mutex
 }
 
@@ -43,6 +45,11 @@ func (r *inMemoryEventRecorder) ForComponent(component string) Recorder {
 	r.Lock()
 	defer r.Unlock()
 	r.source = component
+	return r
+}
+
+func (r *inMemoryEventRecorder) WithContext(ctx context.Context) Recorder {
+	r.ctx = ctx
 	return r
 }
 

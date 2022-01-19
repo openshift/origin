@@ -189,6 +189,11 @@ type OpenShiftControllerManagerConfig struct {
 	Ingress            IngressControllerConfig          `json:"ingress"`
 	ImageImport        ImageImportControllerConfig      `json:"imageImport"`
 	SecurityAllocator  SecurityAllocator                `json:"securityAllocator"`
+
+	// featureGates are the set of extra OpenShift feature gates for openshift-controller-manager.
+	// These feature gates can be used to enable features that are tech preview or otherwise not available on
+	// OpenShift by default.
+	FeatureGates []string `json:"featureGates"`
 }
 
 type DeployerControllerConfig struct {

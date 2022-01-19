@@ -290,7 +290,7 @@ type MasterConfig struct {
 // MasterAuthConfig configures authentication options in addition to the standard
 // oauth token and client certificate authenticators
 type MasterAuthConfig struct {
-	// RequestHeader holds options for setting up a front proxy against the the API.  It is optional.
+	// RequestHeader holds options for setting up a front proxy against the API.  It is optional.
 	RequestHeader *RequestHeaderAuthenticationOptions `json:"requestHeader"`
 	// WebhookTokenAuthnConfig, if present configures remote token reviewers
 	WebhookTokenAuthenticators []WebhookTokenAuthenticator `json:"webhookTokenAuthenticators"`

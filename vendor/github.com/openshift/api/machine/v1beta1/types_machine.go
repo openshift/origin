@@ -153,10 +153,10 @@ const (
 // +openshift:compatibility-gen:level=2
 type Machine struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MachineSpec   `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
-	Status MachineStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
+	Spec   MachineSpec   `json:"spec,omitempty"`
+	Status MachineStatus `json:"status,omitempty"`
 }
 
 // MachineSpec defines the desired state of Machine
@@ -165,7 +165,12 @@ type MachineSpec struct {
 	// indicate what labels, annotations, name prefix, etc., should be used
 	// when creating the Node.
 	// +optional
-	ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	ObjectMeta `json:"metadata,omitempty"`
+
+	// LifecycleHooks allow users to pause operations on the machine at
+	// certain predefined points within the machine lifecycle.
+	// +optional
+	LifecycleHooks LifecycleHooks `json:"lifecycleHooks,omitempty"`
 
 	// The list of the taints to be applied to the corresponding Node in additive
 	// manner. This list will not overwrite any other taints added to the Node on
@@ -174,11 +179,11 @@ type MachineSpec struct {
 	// the taint the machine controller will put it back) but not have the machine controller
 	// remove any taints
 	// +optional
-	Taints []corev1.Taint `json:"taints,omitempty" protobuf:"bytes,2,rep,name=taints"`
+	Taints []corev1.Taint `json:"taints,omitempty"`
 
 	// ProviderSpec details Provider-specific configuration to use during node creation.
 	// +optional
-	ProviderSpec ProviderSpec `json:"providerSpec" protobuf:"bytes,3,opt,name=providerSpec"`
+	ProviderSpec ProviderSpec `json:"providerSpec"`
 
 	// ProviderID is the identification ID of the machine provided by the provider.
 	// This field must match the provider ID as seen on the node object corresponding to this machine.
@@ -191,18 +196,55 @@ type MachineSpec struct {
 	// This field will be set by the actuators and consumed by higher level entities like autoscaler that will
 	// be interfacing with cluster-api as generic provider.
 	// +optional
-	ProviderID *string `json:"providerID,omitempty" protobuf:"bytes,4,opt,name=providerID"`
+	ProviderID *string `json:"providerID,omitempty"`
+}
+
+// LifecycleHooks allow users to pause operations on the machine at
+// certain prefedined points within the machine lifecycle.
+type LifecycleHooks struct {
+	// PreDrain hooks prevent the machine from being drained.
+	// This also blocks further lifecycle events, such as termination.
+	// +optional
+	PreDrain []LifecycleHook `json:"preDrain,omitempty"`
+
+	// PreTerminate hooks prevent the machine from being terminated.
+	// PreTerminate hooks be actioned after the Machine has been drained.
+	// +optional
+	PreTerminate []LifecycleHook `json:"preTerminate,omitempty"`
+}
+
+// LifecycleHook represents a single instance of a lifecycle hook
+type LifecycleHook struct {
+	// Name defines a unique name for the lifcycle hook.
+	// The name should be unique and descriptive, ideally 1-3 words, in CamelCase or
+	// it may be namespaced, eg. foo.example.com/CamelCase.
+	// Names must be unique and should only be managed by a single entity.
+	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
+	// +kubebuilder:validation:MinLength:=3
+	// +kubebuilder:validation:MaxLength:=256
+	// +kubebuilder:validation:Required
+	Name string `json:"name"`
+
+	// Owner defines the owner of the lifecycle hook.
+	// This should be descriptive enough so that users can identify
+	// who/what is responsible for blocking the lifecycle.
+	// This could be the name of a controller (e.g. clusteroperator/etcd)
+	// or an administrator managing the hook.
+	// +kubebuilder:validation:MinLength:=3
+	// +kubebuilder:validation:MaxLength:=512
+	// +kubebuilder:validation:Required
+	Owner string `json:"owner"`
 }
 
 // MachineStatus defines the observed state of Machine
 type MachineStatus struct {
 	// NodeRef will point to the corresponding Node if it exists.
 	// +optional
-	NodeRef *corev1.ObjectReference `json:"nodeRef,omitempty" protobuf:"bytes,1,opt,name=nodeRef"`
+	NodeRef *corev1.ObjectReference `json:"nodeRef,omitempty"`
 
 	// LastUpdated identifies when this status was last observed.
 	// +optional
-	LastUpdated *metav1.Time `json:"lastUpdated,omitempty" protobuf:"bytes,2,opt,name=lastUpdated"`
+	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
 	// ErrorReason will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a succinct value suitable
@@ -221,7 +263,7 @@ type MachineStatus struct {
 	// can be added as events to the Machine object and/or logged in the
 	// controller's output.
 	// +optional
-	ErrorReason *MachineStatusError `json:"errorReason,omitempty" protobuf:"bytes,3,opt,name=errorReason,casttype=MachineStatusError"`
+	ErrorReason *MachineStatusError `json:"errorReason,omitempty"`
 
 	// ErrorMessage will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a more verbose string suitable
@@ -240,7 +282,7 @@ type MachineStatus struct {
 	// can be added as events to the Machine object and/or logged in the
 	// controller's output.
 	// +optional
-	ErrorMessage *string `json:"errorMessage,omitempty" protobuf:"bytes,4,opt,name=errorMessage"`
+	ErrorMessage *string `json:"errorMessage,omitempty"`
 
 	// ProviderStatus details a Provider-specific status.
 	// It is recommended that providers maintain their
@@ -248,43 +290,43 @@ type MachineStatus struct {
 	// serialized/deserialized from this field.
 	// +optional
 	// +kubebuilder:validation:XPreserveUnknownFields
-	ProviderStatus *runtime.RawExtension `json:"providerStatus,omitempty" protobuf:"bytes,5,opt,name=providerStatus"`
+	ProviderStatus *runtime.RawExtension `json:"providerStatus,omitempty"`
 
 	// Addresses is a list of addresses assigned to the machine. Queried from cloud provider, if available.
 	// +optional
-	Addresses []corev1.NodeAddress `json:"addresses,omitempty" protobuf:"bytes,6,rep,name=addresses"`
+	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
 
 	// LastOperation describes the last-operation performed by the machine-controller.
 	// This API should be useful as a history in terms of the latest operation performed on the
 	// specific machine. It should also convey the state of the latest-operation for example if
 	// it is still on-going, failed or completed successfully.
 	// +optional
-	LastOperation *LastOperation `json:"lastOperation,omitempty" protobuf:"bytes,7,opt,name=lastOperation"`
+	LastOperation *LastOperation `json:"lastOperation,omitempty"`
 
 	// Phase represents the current phase of machine actuation.
 	// One of: Failed, Provisioning, Provisioned, Running, Deleting
 	// +optional
-	Phase *string `json:"phase,omitempty" protobuf:"bytes,8,opt,name=phase"`
+	Phase *string `json:"phase,omitempty"`
 
 	// Conditions defines the current state of the Machine
-	Conditions Conditions `json:"conditions,omitempty" protobuf:"bytes,9,rep,name=conditions"`
+	Conditions Conditions `json:"conditions,omitempty"`
 }
 
 // LastOperation represents the detail of the last performed operation on the MachineObject.
 type LastOperation struct {
 	// Description is the human-readable description of the last operation.
-	Description *string `json:"description,omitempty" protobuf:"bytes,1,opt,name=description"`
+	Description *string `json:"description,omitempty"`
 
 	// LastUpdated is the timestamp at which LastOperation API was last-updated.
-	LastUpdated *metav1.Time `json:"lastUpdated,omitempty" protobuf:"bytes,2,opt,name=lastUpdated"`
+	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
 	// State is the current status of the last performed operation.
 	// E.g. Processing, Failed, Successful etc
-	State *string `json:"state,omitempty" protobuf:"bytes,3,opt,name=state"`
+	State *string `json:"state,omitempty"`
 
 	// Type is the type of operation which was last performed.
 	// E.g. Create, Delete, Update etc
-	Type *string `json:"type,omitempty" protobuf:"bytes,4,opt,name=type"`
+	Type *string `json:"type,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -294,6 +336,6 @@ type LastOperation struct {
 // +openshift:compatibility-gen:level=2
 type MachineList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-	Items           []Machine `json:"items" protobuf:"bytes,2,rep,name=items"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Machine `json:"items"`
 }

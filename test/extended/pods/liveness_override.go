@@ -31,7 +31,7 @@ var _ = g.Describe("[sig-node]", func() {
 
 		// liveness probe will fail since pod has no http endpoints
 		pod.Spec.Containers[0].LivenessProbe = &v1.Probe{
-			Handler: v1.Handler{
+			ProbeHandler: v1.ProbeHandler{
 				HTTPGet: &v1.HTTPGetAction{
 					Path: "/healthz",
 					Port: intstr.FromInt(8080),
