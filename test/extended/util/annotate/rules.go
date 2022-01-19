@@ -66,8 +66,6 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=2004074
 			`\[sig-network-edge\]\[Feature:Idling\] Unidling should work with TCP \(while idling\)`,
-
-			`\[sig-api-machinery\] API data in etcd`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
