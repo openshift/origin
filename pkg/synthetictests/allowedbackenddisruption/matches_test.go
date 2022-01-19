@@ -38,7 +38,7 @@ func TestGetClosestP95Value(t *testing.T) {
 				networkType: "sdn",
 				topology:    "ha",
 			},
-			want: mustDuration("2s"),
+			want: mustDuration("4s"),
 		},
 		{
 			name: "missing",
@@ -54,8 +54,8 @@ func TestGetClosestP95Value(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := GetClosestP95Value(tt.args.backendName, tt.args.release, tt.args.fromRelease, tt.args.platform, tt.args.networkType, tt.args.topology); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetClosestP95Value() = %v, want %v", got, tt.want)
+			if got := GetClosestP99Value(tt.args.backendName, tt.args.release, tt.args.fromRelease, tt.args.platform, tt.args.networkType, tt.args.topology); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetClosestP99Value() = %v, want %v", got, tt.want)
 			}
 		})
 	}
