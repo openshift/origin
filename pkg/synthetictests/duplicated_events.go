@@ -78,7 +78,7 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`ns/e2e-.* reason/BackOff Back-off pulling image`),
 
 	// promtail crashlooping as its being started by sideloading manifests.  per @vrutkovs
-	regexp.MustCompile("ns/loki pod/loki-promtail.*Readiness probe failed"),
+	regexp.MustCompile("ns/openshift-e2e-loki pod/loki-promtail.*Readiness probe"),
 
 	// kube-apiserver guard probe failing due to kube-apiserver operands getting rolled out
 	// multiple times during the bootstrapping phase of a cluster installation
