@@ -1,6 +1,6 @@
 {
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "django-psql-persistent",
 		"creationTimestamp": null,
@@ -54,7 +54,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -68,7 +68,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -78,7 +78,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -138,7 +138,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -302,7 +302,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -442,8 +442,8 @@
 		{
 			"name": "PYTHON_VERSION",
 			"displayName": "Version of Python Image",
-			"description": "Version of Python image to be used (3.6-ubi8, 3.8-ubi7, 3.8-ubi8, or latest).",
-			"value": "3.8-ubi8",
+			"description": "Version of Python image to be used (3.6-ubi8, 3.8-ubi8, 3.9-ubi8, or latest).",
+			"value": "3.9-ubi8",
 			"required": true
 		},
 		{

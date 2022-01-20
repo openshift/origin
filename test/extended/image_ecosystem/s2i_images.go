@@ -28,6 +28,20 @@ type tc struct {
 var s2iImages = map[string][]tc{
 	"ruby": {
 		{
+			Version:  "30",
+			Cmd:      "ruby --version",
+			Expected: "ruby 3.0",
+			Tag:      "3.0-ubi8",
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
+		{
+			Version:  "30",
+			Cmd:      "ruby --version",
+			Expected: "ruby 3.0",
+			Tag:      "3.0-ubi7",
+			Arches:   []string{"amd64", "ppc64le", "s390x"},
+		},
+		{
 			Version:  "27",
 			Cmd:      "ruby --version",
 			Expected: "ruby 2.7",
@@ -54,6 +68,13 @@ var s2iImages = map[string][]tc{
 			Expected: "ruby 2.6",
 			Tag:      "2.6-ubi7",
 			Arches:   []string{"amd64", "ppc64le", "s390x"},
+		},
+		{
+			Version:  "25",
+			Cmd:      "ruby --version",
+			Expected: "ruby 2.5",
+			Tag:      "2.5-ubi8",
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 	},
 	"python": {
@@ -102,6 +123,13 @@ var s2iImages = map[string][]tc{
 	},
 	"nodejs": {
 		{
+			Version:  "16",
+			Cmd:      "node --version",
+			Expected: "v16",
+			Tag:      "16-ubi8",
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
+		{
 			Version:  "14",
 			Cmd:      "node --version",
 			Expected: "v14",
@@ -131,6 +159,13 @@ var s2iImages = map[string][]tc{
 			Tag:      "5.30-el7",
 			Arches:   []string{"amd64", "ppc64le", "s390x"},
 		},
+		{
+			Version:  "526",
+			Cmd:      "perl --version",
+			Expected: "v5.26",
+			Tag:      "5.26-ubi8",
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
 	},
 	"php": {
 		{
@@ -150,6 +185,20 @@ var s2iImages = map[string][]tc{
 	},
 	"nginx": {
 		{
+			Version:  "120",
+			Cmd:      "nginx -V",
+			Expected: "nginx/1.20",
+			Tag:      "1.20-ubi8",
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
+		{
+			Version:  "120",
+			Cmd:      "nginx -V",
+			Expected: "nginx/1.20",
+			Tag:      "1.20-ubi7",
+			Arches:   []string{"amd64", "ppc64le", "s390x"},
+		},
+		{
 			Version:  "118",
 			Cmd:      "nginx -V",
 			Expected: "nginx/1.18",
@@ -165,6 +214,13 @@ var s2iImages = map[string][]tc{
 		},
 	},
 	"dotnet": {
+		{
+			Version:  "60",
+			Cmd:      "dotnet --version",
+			Expected: "6.0",
+			Tag:      "6.0-ubi8",
+			Arches:   []string{"amd64", "arm64", "s390x"},
+		},
 		{
 			Version:  "50",
 			Cmd:      "dotnet --version",

@@ -45,12 +45,12 @@ func skipArch(oc *exutil.CLI, arches []string) bool {
 func defineTest(name string, t tc, oc *exutil.CLI) {
 	g.Describe("returning s2i usage when running the image", func() {
 		g.It(fmt.Sprintf("%q should print the usage", t.DockerImageReference), func() {
-			e2e.Logf("checking %s/%s for architecture compatibility", name, t.Version)
+			e2e.Logf("checking %s:%s for architecture compatibility", name, t.Tag)
 			if skipArch(oc, t.Arches) {
-				e2eskipper.Skipf("skipping %s/%s because not available on cluster architecture", name, t.Version)
+				e2eskipper.Skipf("skipping %s:%s because not available on cluster architecture", name, t.Tag)
 				return
 			}
-			e2e.Logf("%s/%s passed architecture compatibility", name, t.Version)
+			e2e.Logf("%s:%s passed architecture compatibility", name, t.Tag)
 			g.By(fmt.Sprintf("creating a sample pod for %q", t.DockerImageReference))
 			pod := exutil.GetPodForContainer(kapiv1.Container{
 				Name:  "test",
@@ -97,12 +97,12 @@ func defineTest(name string, t tc, oc *exutil.CLI) {
 	})
 	g.Describe("using the SCL in s2i images", func() {
 		g.It(fmt.Sprintf("%q should be SCL enabled", t.DockerImageReference), func() {
-			e2e.Logf("checking %s/%s for architecture compatibility", name, t.Version)
+			e2e.Logf("checking %s:%s for architecture compatibility", name, t.Tag)
 			if skipArch(oc, t.Arches) {
-				e2eskipper.Skipf("skipping %s/%s because not available on cluster architecture", name, t.Version)
+				e2eskipper.Skipf("skipping %s:%s because not available on cluster architecture", name, t.Tag)
 				return
 			}
-			e2e.Logf("%s/%s passed architecture compatibility", name, t.Version)
+			e2e.Logf("%s:%s passed architecture compatibility", name, t.Tag)
 			g.By(fmt.Sprintf("creating a sample pod for %q with /bin/bash -c command", t.DockerImageReference))
 			pod := exutil.GetPodForContainer(kapiv1.Container{
 				Image:   t.DockerImageReference,

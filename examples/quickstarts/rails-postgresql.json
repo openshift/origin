@@ -1,6 +1,6 @@
 {
 	"kind": "Template",
-	"apiVersion": "v1",
+	"apiVersion": "template.openshift.io/v1",
 	"metadata": {
 		"name": "rails-postgresql-example",
 		"creationTimestamp": null,
@@ -56,7 +56,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "route.openshift.io/v1",
 			"kind": "Route",
 			"metadata": {
 				"name": "${NAME}"
@@ -70,7 +70,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "image.openshift.io/v1",
 			"kind": "ImageStream",
 			"metadata": {
 				"annotations": {
@@ -80,7 +80,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"kind": "BuildConfig",
 			"metadata": {
 				"annotations": {
@@ -117,7 +117,7 @@
 						],
 						"from": {
 							"kind": "ImageStreamTag",
-							"name": "ruby:2.6-ubi8",
+							"name": "ruby:2.7-ubi8",
 							"namespace": "${NAMESPACE}"
 						}
 					},
@@ -140,7 +140,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -324,7 +324,7 @@
 			}
 		},
 		{
-			"apiVersion": "v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
