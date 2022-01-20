@@ -298,33 +298,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "prioritylevelconfigurations"),
 		gvr("internal.apiserver.k8s.io", "v1alpha1", "storageversions"),
 		gvr("node.k8s.io", "v1alpha1", "runtimeclasses"),
-		gvr("rbac.authorization.k8s.io", "v1alpha1", "clusterrolebindings"),
-		gvr("rbac.authorization.k8s.io", "v1alpha1", "clusterroles"),
-		gvr("rbac.authorization.k8s.io", "v1alpha1", "rolebindings"),
-		gvr("rbac.authorization.k8s.io", "v1alpha1", "roles"),
-		gvr("scheduling.k8s.io", "v1alpha1", "priorityclasses"),
 		gvr("storage.k8s.io", "v1alpha1", "csistoragecapacities"),
-		gvr("storage.k8s.io", "v1alpha1", "volumeattachments"),
-
-		// disabled beta versions
-		gvr("apiextensions.k8s.io", "v1beta1", "customresourcedefinitions"),
-		gvr("apiregistration.k8s.io", "v1beta1", "apiservices"),
-		gvr("admissionregistration.k8s.io", "v1beta1", "validatingwebhookconfigurations"),
-		gvr("admissionregistration.k8s.io", "v1beta1", "mutatingwebhookconfigurations"),
-		gvr("certificates.k8s.io", "v1beta1", "certificatesigningrequests"),
-		gvr("coordination.k8s.io", "v1beta1", "leases"),
-		gvr("extensions", "v1beta1", "ingresses"),
-		gvr("networking.k8s.io", "v1beta1", "ingressclasses"),
-		gvr("networking.k8s.io", "v1beta1", "ingresses"),
-		gvr("rbac.authorization.k8s.io", "v1beta1", "clusterrolebindings"),
-		gvr("rbac.authorization.k8s.io", "v1beta1", "clusterroles"),
-		gvr("rbac.authorization.k8s.io", "v1beta1", "rolebindings"),
-		gvr("rbac.authorization.k8s.io", "v1beta1", "roles"),
-		gvr("scheduling.k8s.io", "v1beta1", "priorityclasses"),
-		gvr("storage.k8s.io", "v1beta1", "csidrivers"),
-		gvr("storage.k8s.io", "v1beta1", "csinodes"),
-		gvr("storage.k8s.io", "v1beta1", "storageclasses"),
-		gvr("storage.k8s.io", "v1beta1", "volumeattachments"),
 	)
 
 	// Apply output of git diff origin/release-1.22 origin/release-1.23 test/integration/etcd/data.go. This is needed
