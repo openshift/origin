@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package node
@@ -7,9 +8,11 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/golang/glog"
@@ -388,6 +391,13 @@ func (node *OsdnNode) Start() error {
 	if len(podName) > 0 {
 		cniType = cniType + "-" + podName
 	}
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		os.Remove("/host/opt/cni/bin/openshift-sdn-" + podName)
+		<-sig
+
+	}()
 	// Write our CNI config file out to disk to signal to kubelet that
 	// our network plugin is ready
 	err = ioutil.WriteFile(filepath.Join(node.cniDirPath, openshiftCNIFile), []byte(`
