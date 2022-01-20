@@ -32,6 +32,7 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testErrImagePullGeneric(events)...)
 	tests = append(tests, testAlerts(events, kubeClientConfig)...)
 	tests = append(tests, testOperatorOSUpdateStaged(events)...)
+	tests = append(tests, testPodNodeNameIsImmutable(events)...)
 
 	return tests
 }
@@ -56,6 +57,8 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testErrImagePullGeneric(events)...)
 	tests = append(tests, testAlerts(events, kubeClientConfig)...)
 	tests = append(tests, testOperatorOSUpdateStaged(events)...)
+	tests = append(tests, testPodNodeNameIsImmutable(events)...)
+
 	return tests
 }
 
