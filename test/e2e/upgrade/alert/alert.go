@@ -108,7 +108,12 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 			},
 		},
 	}
-	allowedFiringAlerts := helper.MetricConditions{}
+	allowedFiringAlerts := helper.MetricConditions{
+		{
+			Selector: map[string]string{"alertname": "TargetDown", "namespace": "openshift-e2e-loki"},
+			Text:     "Loki is nice to have, but we can allow it to be down",
+		},
+	}
 
 	pendingAlertsWithBugs := helper.MetricConditions{
 		{
