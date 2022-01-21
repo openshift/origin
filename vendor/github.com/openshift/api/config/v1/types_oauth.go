@@ -31,6 +31,7 @@ type OAuthSpec struct {
 	// identityProviders is an ordered list of ways for a user to identify themselves.
 	// When this list is empty, no identities are provisioned for users.
 	// +optional
+	// +listType=atomic
 	IdentityProviders []IdentityProvider `json:"identityProviders,omitempty"`
 
 	// tokenConfig contains options for authorization and access tokens
