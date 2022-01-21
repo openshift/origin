@@ -1865,6 +1865,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphere/None platforms  have a metal3 deployment": "have a metal3 deployment [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-installer][Feature:baremetal][Serial] Baremetal platform should skip inspection when disabled by annotation": "skip inspection when disabled by annotation [Suite:openshift/conformance/serial]",
+
 	"[Top Level] [sig-instrumentation] Events API should delete a collection of events [Conformance]": "should delete a collection of events [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-instrumentation] Events API should ensure that an event can be fetched, patched, deleted, and listed [Conformance]": "should ensure that an event can be fetched, patched, deleted, and listed [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
