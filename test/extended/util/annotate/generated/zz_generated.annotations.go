@@ -1231,6 +1231,18 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-builds][Feature:Builds][volumes] build volumes  should mount given secrets and configmaps into the build pod for source strategy builds": "should mount given secrets and configmaps into the build pod for source strategy builds [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview disabled clusters  should fail mounting given csi shared resource secret into the build pod for docker strategy builds": "should fail mounting given csi shared resource secret into the build pod for docker strategy builds [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview disabled clusters  should fail mounting given csi shared resource secret into the build pod for source strategy builds": "should fail mounting given csi shared resource secret into the build pod for source strategy builds [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster  should mount given csi shared resource secret into the build pod for docker strategy builds": "should mount given csi shared resource secret into the build pod for docker strategy builds [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster  should mount given csi shared resource secret into the build pod for source strategy builds": "should mount given csi shared resource secret into the build pod for source strategy builds [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster  should mount given csi shared resource secret without resource refresh into the build pod for docker strategy builds": "should mount given csi shared resource secret without resource refresh into the build pod for docker strategy builds [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster  should mount given csi shared resource secret without resource refresh into the build pod for source strategy builds": "should mount given csi shared resource secret without resource refresh into the build pod for source strategy builds [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-builds][Feature:Builds][webhook] TestWebhook": "TestWebhook [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-builds][Feature:Builds][webhook] TestWebhookGitHubPing": "TestWebhookGitHubPing [Suite:openshift/conformance/parallel]",

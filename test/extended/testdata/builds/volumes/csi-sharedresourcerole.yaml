@@ -1,0 +1,15 @@
+apiVersion: authorization.openshift.io/v1
+kind: Role
+metadata:
+  name: shared-resource-my-share
+  namespace: build-volumes-1
+rules:
+- apiGroups:
+    - sharedresource.openshift.io
+  resources:
+    - sharedsecrets
+  resourceNames:
+    - my-share
+  verbs:
+    - use
+  
