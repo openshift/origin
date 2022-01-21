@@ -138,8 +138,6 @@ func (b *BaremetalTestHelper) DeleteAllExtraWorkers() {
 	for _, worker := range b.extraWorkers {
 		err := b.bmcClient.Delete(context.Background(), worker.GetName(), metav1.DeleteOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
-
-		b.waitForDeletion(worker)
 	}
 }
 
@@ -195,9 +193,6 @@ func (b *BaremetalTestHelper) Setup() {
 
 	//This code will ensure that any previous extra worker will be cleaned up
 	//(and waits also for the related secret to be deleted)
-	//This should make easier the migration of the serial metal ipi jobs
-	//for the adoption of the new way of deployng extra worker
-	//Once the migration will be completed, this block could be safely removed
 	hosts, err := b.bmcClient.List(context.TODO(), metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -205,8 +200,10 @@ func (b *BaremetalTestHelper) Setup() {
 		if strings.Contains(host.GetName(), "extraworker") {
 			g.By(fmt.Sprintf("Deleting host %s", host.GetName()))
 
-			err = b.bmcClient.Delete(context.TODO(), host.GetName(), metav1.DeleteOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if err = b.bmcClient.Delete(context.TODO(), host.GetName(), metav1.DeleteOptions{}); err != nil {
+				o.Expect(errors.IsNotFound(err)).To(o.BeTrue())
+				continue
+			}
 
 			b.waitForDeletion(&host)
 		}
