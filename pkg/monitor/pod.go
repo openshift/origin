@@ -313,6 +313,18 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 			}
 			return conditions
 		},
+		// inform when a pod gets reassigned to a new node
+		func(pod, oldPod *corev1.Pod) []monitorapi.Condition {
+			var conditions []monitorapi.Condition
+			if len(oldPod.Spec.NodeName) > 0 && pod.Spec.NodeName != oldPod.Spec.NodeName {
+				conditions = append(conditions, monitorapi.Condition{
+					Level:   monitorapi.Error,
+					Locator: locatePod(pod),
+					Message: fmt.Sprintf("invariant violation, pod once assigned to a node must stay on it. The pod previously scheduled to %s, has just been assigned to a new node %s", oldPod.Spec.NodeName, pod.Spec.NodeName),
+				})
+			}
+			return conditions
+		},
 	}
 	podDeleteFns := []func(pod *corev1.Pod) []monitorapi.Condition{
 		// check for transitions to being deleted
