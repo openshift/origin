@@ -86,6 +86,11 @@ func hostfirmwaresettingsClient(dc dynamic.Interface) dynamic.ResourceInterface 
 	return hfsClient.Namespace("openshift-machine-api")
 }
 
+func preprovisioningImagesClient(dc dynamic.Interface) dynamic.ResourceInterface {
+	ppiClient := dc.Resource(schema.GroupVersionResource{Group: "metal3.io", Resource: "preprovisioningimages", Version: "v1alpha1"})
+	return ppiClient.Namespace("openshift-machine-api")
+}
+
 type FieldGetterFunc func(obj map[string]interface{}, fields ...string) (interface{}, bool, error)
 
 func expectField(object unstructured.Unstructured, resource string, nestedField string, fieldGetter FieldGetterFunc) o.Assertion {
