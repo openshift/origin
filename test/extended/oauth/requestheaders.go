@@ -379,6 +379,9 @@ func oauthHTTPRequest(caCerts *x509.CertPool, oauthBaseURL, endpoint, token stri
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	}
 
+	// Adding the token prevents the server from logging a misleading warning (which is oftentimes interpreted as
+	// a root cause of a failure). It doesn't need to be anything specific for this test.
+	req.Header.Set("X-CSRF-Token", "1")
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			RootCAs: caCerts,
