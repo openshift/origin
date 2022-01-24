@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
+	corev1apply "k8s.io/client-go/applyconfigurations/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
@@ -317,10 +318,39 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 		func(pod, oldPod *corev1.Pod) []monitorapi.Condition {
 			var conditions []monitorapi.Condition
 			if len(oldPod.Spec.NodeName) > 0 && pod.Spec.NodeName != oldPod.Spec.NodeName {
+
+				findOwnerOfNodeNameField := func(pod *corev1.Pod) (string, error) {
+					for _, managedField := range pod.ManagedFields {
+						applyConfiguration, err := corev1apply.ExtractPod(pod, managedField.Manager)
+						if err != nil {
+							return "", err
+						}
+						if applyConfiguration == nil {
+							continue
+						}
+						if applyConfiguration.Spec != nil && applyConfiguration.Spec.NodeName != nil {
+							return managedField.Manager, nil
+						}
+					}
+					return "", nil
+				}
+
+				newOwnerLocator := "no new owner of the pod.spec.nodeName field has been found"
+				if oldOwner, oldOwnerError := findOwnerOfNodeNameField(oldPod); len(oldOwner) > 0 {
+					if newOwner, newOwnerError := findOwnerOfNodeNameField(pod); len(newOwner) > 0 && newOwner != oldOwner {
+						newOwnerLocator = fmt.Sprintf("a new owner of the pod.spec.nodeName is %v", newOwner)
+					} else if newOwnerError != nil {
+						newOwnerLocator = fmt.Sprintf("unable to determine a new owner of the pod.spec.nodeName field due to an err %v", newOwnerError)
+					}
+				} else if oldOwnerError != nil {
+					newOwnerLocator = fmt.Sprintf("unable to determine a new owner of the pod.spec.nodeName field due to an err %v", oldOwnerError)
+				}
+
 				conditions = append(conditions, monitorapi.Condition{
 					Level:   monitorapi.Error,
 					Locator: locatePod(pod),
-					Message: fmt.Sprintf("invariant violation, pod once assigned to a node must stay on it. The pod previously scheduled to %s, has just been assigned to a new node %s", oldPod.Spec.NodeName, pod.Spec.NodeName),
+					Message: fmt.Sprintf("invariant violation, pod once assigned to a node must stay on it. The pod previously scheduled to %q, has just been assigned to a new node %q, oldPod.ResourceVersion %v, newPod.ResourceVersion %v, %v",
+						oldPod.Spec.NodeName, pod.Spec.NodeName, oldPod.ResourceVersion, pod.ResourceVersion, newOwnerLocator),
 				})
 			}
 			return conditions
