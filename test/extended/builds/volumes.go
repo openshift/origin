@@ -218,7 +218,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 		dockerDeploymentConfig = filepath.Join(baseDir, "docker-deploymentconfig.yaml")
 		dockerImageStream      = filepath.Join(baseDir, "docker-imagestream.yaml")
 		// csi enabled volume specifics
-		csiSharedSecret                            = filepath.Join(baseDir, "csi-shared-secret.yaml")
+		csiSharedSecret                            = filepath.Join(baseDir, "csi-sharedsecret.yaml")
 		csiSharedRole                              = filepath.Join(baseDir, "csi-sharedresourcerole.yaml")
 		csiSharedRoleBinding                       = filepath.Join(baseDir, "csi-sharedresourcerolebinding.yaml")
 		csiS2iBuildConfig                          = filepath.Join(baseDir, "csi-s2i-buildconfig.yaml")
