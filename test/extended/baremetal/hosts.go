@@ -3,12 +3,12 @@ package baremetal
 import (
 	"context"
 	"fmt"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,7 +28,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphe
 		c, err := e2e.LoadClientset()
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-		metal3, err := c.AppsV1().Deployments("openshift-machine-api").Get(context.Background(), "metal3", metav1.GetOptions{})
+		metal3, err := c.AppsV1().Deployments(machineAPINamespace).Get(context.Background(), "metal3", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(metal3.Status.AvailableReplicas).To(o.BeEquivalentTo(1))
 
@@ -185,5 +185,65 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 		_, found, err := unstructured.NestedString(host.Object, "status", "hardware")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(found).To(o.BeFalse())
+	})
+
+	g.It("successfully provision resources when virtualMediaViaExternalNetwork is used", func() {
+		skipIfNotBaremetal(oc)
+
+		if !helper.CanDeployExtraWorkers() {
+			e2eskipper.Skipf("No extra worker is detected for provisioning")
+		}
+
+		dc := oc.AdminDynamicClient()
+		prvClient := provisioningClient(dc)
+
+		provisionings, err := prvClient.List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(provisionings.Items).NotTo(o.BeEmpty())
+
+		// expect only one provision config
+		provision := provisionings.Items[0]
+
+		realVal, found, err := unstructured.NestedBool(provision.Object, "spec", "virtualMediaViaExternalNetwork")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = unstructured.SetNestedField(provision.Object, true, "spec", "virtualMediaViaExternalNetwork")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		_, err = prvClient.Update(context.Background(), &provision, metav1.UpdateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("after provisioning config is updated, metal3 deployment is restarted")
+		helper.WaitMetal3DeploymentHealthy()
+		defer func() {
+			g.By("set provisioning to original virtualMediaViaExternalNetwork")
+			prv, err := prvClient.Get(context.Background(), provision.GetName(), metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if !found {
+				g.By("remove virtualMediaViaExternalNetwork because original does not include it")
+				unstructured.RemoveNestedField(prv.Object, "spec", "virtualMediaViaExternalNetwork")
+			} else {
+				g.By("set original virtualMediaViaExternalNetwork value")
+				err = unstructured.SetNestedField(prv.Object, realVal, "spec", "virtualMediaViaExternalNetwork")
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+
+			_, err = prvClient.Update(context.Background(), prv, metav1.UpdateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("after provisioning config is updated, metal3 deployment is restarted")
+			helper.WaitMetal3DeploymentHealthy()
+		}()
+
+		g.By("deploy extra worker")
+		extraHost, _ := helper.DeployExtraWorker(0)
+
+		g.By("provision the extra worker when virtualMediaViaExternalNetwork is true")
+		machineSetName := ScaleUpToExtraWorkers(oc.AdminDynamicClient(), 1)
+		helper.WaitForProvisioningState(extraHost, "provisioned")
+
+		g.By("deprovision the extra worker is created to clean up")
+		ScaleDownFromExtraWorkers(oc.AdminDynamicClient(), machineSetName, 1)
+		helper.WaitForProvisioningState(extraHost, "available")
 	})
 })

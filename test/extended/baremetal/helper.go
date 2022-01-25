@@ -47,7 +47,7 @@ func NewBaremetalTestHelper(dc dynamic.Interface) *BaremetalTestHelper {
 // created via dev-scripts. The secret contains baremetal host and secret definition for every
 // extra worker allocated by dev-scripts
 func (b *BaremetalTestHelper) extraWorkersRetrieveData() (*v1.Secret, error) {
-	ew, err := b.clientSet.CoreV1().Secrets("openshift-machine-api").Get(context.TODO(), "extraworkers-secret", metav1.GetOptions{})
+	ew, err := b.clientSet.CoreV1().Secrets(machineAPINamespace).Get(context.TODO(), "extraworkers-secret", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (b *BaremetalTestHelper) DeployExtraWorker(index int) (*unstructured.Unstru
 // If successfull, returns the newly created host and secret resources
 func (b *BaremetalTestHelper) CreateExtraWorker(host *unstructured.Unstructured, secret *v1.Secret) (*unstructured.Unstructured, *v1.Secret) {
 
-	secret, err := b.clientSet.CoreV1().Secrets("openshift-machine-api").Create(context.Background(), secret, metav1.CreateOptions{})
+	secret, err := b.clientSet.CoreV1().Secrets(machineAPINamespace).Create(context.Background(), secret, metav1.CreateOptions{})
 	o.Expect(err).ToNot(o.HaveOccurred())
 
 	host, err = b.bmcClient.Create(context.Background(), host, metav1.CreateOptions{})
@@ -193,6 +193,28 @@ func (b *BaremetalTestHelper) WaitForProvisioningState(host *unstructured.Unstru
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	return newHost
+}
+
+func (b *BaremetalTestHelper) WaitMetal3DeploymentHealthy() {
+	g.By("wait until metal3 deployment returns back healthy")
+	err := wait.Poll(restartInterval, restartWaitTimeout, func() (bool, error) {
+		dc, err := b.clientSet.AppsV1().Deployments(machineAPINamespace).Get(context.Background(), metal3Deployment, metav1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return false, nil
+			}
+
+			e2e.Logf("Error getting metal3 deployment: %v", err)
+			return false, nil
+		}
+
+		if dc.Status.AvailableReplicas != 1 {
+			return false, nil
+		}
+
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 func (b *BaremetalTestHelper) Setup() {

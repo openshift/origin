@@ -24,7 +24,6 @@ const (
 	deleteWaitTimeout        = 3 * time.Minute
 	restartInterval          = 10 * time.Second
 	restartWaitTimeout       = 10 * time.Minute
-	baremetalNamespace       = "openshift-machine-api"
 	clusterBaremetalOperator = "cluster-baremetal-operator"
 	metal3Deployment         = "metal3"
 )
@@ -53,12 +52,12 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.By("delete cluster baremetal operator")
-		err = c.AppsV1().Deployments(baremetalNamespace).Delete(context.Background(), clusterBaremetalOperator, v1.DeleteOptions{})
+		err = c.AppsV1().Deployments(machineAPINamespace).Delete(context.Background(), clusterBaremetalOperator, v1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("wait until cluster baremetal operator is deleted")
 		err = wait.PollImmediate(deleteInterval, deleteWaitTimeout, func() (bool, error) {
-			_, err := c.AppsV1().Deployments(baremetalNamespace).Get(context.Background(), clusterBaremetalOperator, v1.GetOptions{})
+			_, err := c.AppsV1().Deployments(machineAPINamespace).Get(context.Background(), clusterBaremetalOperator, v1.GetOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) {
 					return true, nil
@@ -74,7 +73,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 
 		g.By("wait until cluster baremetal operator returns back healthy")
 		err = wait.Poll(restartInterval, restartWaitTimeout, func() (bool, error) {
-			dc, err := c.AppsV1().Deployments(baremetalNamespace).Get(context.Background(), clusterBaremetalOperator, v1.GetOptions{})
+			dc, err := c.AppsV1().Deployments(machineAPINamespace).Get(context.Background(), clusterBaremetalOperator, v1.GetOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) {
 					return false, nil
@@ -103,12 +102,12 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("delete metal3 deployment")
-		err = c.AppsV1().Deployments(baremetalNamespace).Delete(context.Background(), metal3Deployment, v1.DeleteOptions{})
+		err = c.AppsV1().Deployments(machineAPINamespace).Delete(context.Background(), metal3Deployment, v1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("wait until metal3 deployment is deleted")
 		err = wait.PollImmediate(deleteInterval, deleteWaitTimeout, func() (bool, error) {
-			_, err := c.AppsV1().Deployments(baremetalNamespace).Get(context.Background(), metal3Deployment, v1.GetOptions{})
+			_, err := c.AppsV1().Deployments(machineAPINamespace).Get(context.Background(), metal3Deployment, v1.GetOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) {
 					return true, nil
@@ -122,25 +121,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("wait until metal3 deployment returns back healthy")
-		err = wait.Poll(restartInterval, restartWaitTimeout, func() (bool, error) {
-			dc, err := c.AppsV1().Deployments(baremetalNamespace).Get(context.Background(), metal3Deployment, v1.GetOptions{})
-			if err != nil {
-				if errors.IsNotFound(err) {
-					return false, nil
-				}
-
-				e2e.Logf("Error getting metal3 deployment: %v", err)
-				return false, nil
-			}
-
-			if dc.Status.AvailableReplicas != 1 {
-				return false, nil
-			}
-
-			return true, nil
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		helper.WaitMetal3DeploymentHealthy()
 
 		g.By("verify that baremetal hosts are healthy and correct state")
 		checkMetal3DeploymentHealthy(oc)

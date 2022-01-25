@@ -16,6 +16,8 @@ import (
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
+const machineAPINamespace = "openshift-machine-api"
+
 func skipIfNotBaremetal(oc *exutil.CLI) {
 	g.By("checking platform type")
 
@@ -78,17 +80,21 @@ func getProvisioningNetwork(dc dynamic.Interface) string {
 
 func baremetalClient(dc dynamic.Interface) dynamic.ResourceInterface {
 	baremetalClient := dc.Resource(schema.GroupVersionResource{Group: "metal3.io", Resource: "baremetalhosts", Version: "v1alpha1"})
-	return baremetalClient.Namespace("openshift-machine-api")
+	return baremetalClient.Namespace(machineAPINamespace)
 }
 
 func hostfirmwaresettingsClient(dc dynamic.Interface) dynamic.ResourceInterface {
 	hfsClient := dc.Resource(schema.GroupVersionResource{Group: "metal3.io", Resource: "hostfirmwaresettings", Version: "v1alpha1"})
-	return hfsClient.Namespace("openshift-machine-api")
+	return hfsClient.Namespace(machineAPINamespace)
 }
 
 func preprovisioningImagesClient(dc dynamic.Interface) dynamic.ResourceInterface {
 	ppiClient := dc.Resource(schema.GroupVersionResource{Group: "metal3.io", Resource: "preprovisioningimages", Version: "v1alpha1"})
-	return ppiClient.Namespace("openshift-machine-api")
+	return ppiClient.Namespace(machineAPINamespace)
+}
+
+func provisioningClient(dc dynamic.Interface) dynamic.ResourceInterface {
+	return dc.Resource(schema.GroupVersionResource{Group: "metal3.io", Resource: "provisionings", Version: "v1alpha1"})
 }
 
 type FieldGetterFunc func(obj map[string]interface{}, fields ...string) (interface{}, bool, error)
