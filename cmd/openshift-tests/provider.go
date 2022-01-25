@@ -84,7 +84,7 @@ func decodeProvider(provider string, dryRun, discover bool, clusterState *exutil
 		}
 		fallthrough
 
-	case "azure", "aws", "baremetal", "gce", "vsphere":
+	case "azure", "aws", "baremetal", "gce", "vsphere", "alibabacloud":
 		if clusterState == nil {
 			clientConfig, err := e2e.LoadConfig(true)
 			if err != nil {

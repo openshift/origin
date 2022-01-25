@@ -32,6 +32,13 @@ var vspherePlatform = &configv1.PlatformStatus{
 	Type: configv1.VSpherePlatformType,
 }
 
+var alibabaPlatform = &configv1.PlatformStatus{
+	Type: configv1.AlibabaCloudPlatformType,
+	AlibabaCloud: &configv1.AlibabaCloudPlatformStatus{
+		Region: "us-east-1",
+	},
+}
+
 var noPlatform = &configv1.PlatformStatus{
 	Type: configv1.NonePlatformType,
 }
@@ -194,6 +201,15 @@ func TestDecodeProvider(t *testing.T) {
 			// NB: It does not actually use the passed-in Provider value
 			expectedConfig: `{"type":"skeleton","ProjectID":"","Region":"","Zone":"","NumNodes":3,"MultiMaster":true,"MultiZone":false,"Zones":[],"ConfigFile":"","Disconnected":false,"NetworkPlugin":"OpenShiftSDN","HasIPv4":true,"HasIPv6":false,"HasSCTP":false}`,
 			runTests:       sets.NewString("everyone", "not-gce", "not-aws", "not-multitenant", "online", "ipv4"),
+		},
+		{
+			name:               "simple AlibabaCloud",
+			provider:           "alibabacloud",
+			discoveredPlatform: alibabaPlatform,
+			discoveredMasters:  simpleMasters,
+			discoveredNetwork:  sdnConfig,
+			expectedConfig:     `{"type":"skeleton","ProjectID":"","Region":"us-east-1","Zone":"us-east-1a","NumNodes":3,"MultiMaster":true,"MultiZone":true,"Zones":["us-east-1a", "us-east-1b"],"ConfigFile":"","Disconnected":false,"NetworkPlugin":"OpenShiftSDN","HasIPv4":true,"HasIPv6":false,"HasSCTP":false}`,
+			runTests:           sets.NewString("everyone", "not-gce", "not-aws", "not-multitenant", "online", "ipv4"),
 		},
 		{
 			name:               "json simple override",
