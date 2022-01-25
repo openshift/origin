@@ -62,6 +62,13 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 	var oc = exutil.NewCLI("request-headers")
 
 	g.It("test RequestHeaders IdP", func() {
+
+		// In some rare cases, CAO might be damaged when entering this test. If it is - the results
+		// of this test might flaky. This check ensures that we capture such situation early and
+		// investigate why it wasn't ready before this test.
+		e2e.Logf("Ensuring CAO is available==True, progressing==False, degraded==False")
+		waitForAuthenticationProgressing(oc, configv1.ConditionFalse)
+
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -461,7 +468,7 @@ func waitForAuthenticationProgressing(oc *exutil.CLI, expectedProgressing config
 		}
 
 		if expectedProgressing == configv1.ConditionFalse {
-			// make additional checkes on availability and degraded status
+			// make additional checks on availability and degraded status
 			if clusteroperatorhelpers.IsStatusConditionFalse(authn.Status.Conditions, configv1.OperatorAvailable) ||
 				clusteroperatorhelpers.IsStatusConditionTrue(authn.Status.Conditions, configv1.OperatorDegraded) {
 				e2e.Logf("Waiting for available==True, progressing==False, degraded==False: %s", spew.Sdump(authn.Status.Conditions))
