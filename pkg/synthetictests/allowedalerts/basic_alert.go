@@ -48,18 +48,19 @@ const (
 )
 
 type basicAlertTest struct {
-	bugzillaComponent  string
-	alertName          string
-	alertState         AlertState
-	flakeAfterDuration time.Duration
-	failAfterDuration  time.Duration
+	bugzillaComponent string
+	alertName         string
+	alertState        AlertState
+
+	allowanceCalculator AlertTestAllowanceCalculator
 }
 
 func newAlert(bugzillaComponent, alertName string) *basicAlertTest {
 	return &basicAlertTest{
-		bugzillaComponent: bugzillaComponent,
-		alertName:         alertName,
-		alertState:        AlertPending,
+		bugzillaComponent:   bugzillaComponent,
+		alertName:           alertName,
+		alertState:          AlertPending,
+		allowanceCalculator: defaultAllowances,
 	}
 }
 
@@ -83,18 +84,8 @@ func (a *basicAlertTest) critical() *basicAlertTest {
 	return a
 }
 
-func (a *basicAlertTest) flakeAfter(duration time.Duration) *basicAlertTest {
-	a.flakeAfterDuration = duration
-	return a
-}
-
-func (a *basicAlertTest) failAfter(duration time.Duration) *basicAlertTest {
-	a.failAfterDuration = duration
-	return a
-}
-
 func (a *basicAlertTest) neverFail() *basicAlertTest {
-	a.failAfterDuration = 24 * time.Hour
+	a.allowanceCalculator = neverFail(a.allowanceCalculator)
 	return a
 }
 
@@ -120,14 +111,6 @@ func (a *basicAlertTest) AlertName() string {
 
 func (a *basicAlertTest) AlertState() AlertState {
 	return a.alertState
-}
-
-func (a *basicAlertTest) FailAfter(jobType platformidentification.JobType) time.Duration {
-	return a.failAfterDuration
-}
-
-func (a *basicAlertTest) FlakeAfter(jobType platformidentification.JobType) time.Duration {
-	return a.flakeAfterDuration
 }
 
 func (a *basicAlertTest) TestAlert(ctx context.Context, prometheusClient prometheusv1.API, restConfig *rest.Config) error {
@@ -200,14 +183,16 @@ func (a *basicAlertTest) failOrFlake(ctx context.Context, restConfig *rest.Confi
 		return fail, err.Error()
 	}
 
+	failAfter := a.allowanceCalculator.FailAfter(a.alertName, *jobType)
+	flakeAfter := a.allowanceCalculator.FlakeAfter(a.alertName, *jobType)
 	switch {
-	case durationAtOrAboveLevel > a.FailAfter(*jobType):
+	case durationAtOrAboveLevel > failAfter:
 		return fail, fmt.Sprintf("%s was at or above %s for at least %s (maxAllowed=%s): pending for %s, firing for %s:\n\n%s",
-			a.AlertName(), a.AlertState(), durationAtOrAboveLevel, a.FailAfter(*jobType), pendingDuration, firingDuration, strings.Join(describe, "\n"))
+			a.AlertName(), a.AlertState(), durationAtOrAboveLevel, failAfter, pendingDuration, firingDuration, strings.Join(describe, "\n"))
 
-	case durationAtOrAboveLevel > a.FlakeAfter(*jobType):
+	case durationAtOrAboveLevel > flakeAfter:
 		return flake, fmt.Sprintf("%s was at or above %s for at least %s (maxAllowed=%s): pending for %s, firing for %s:\n\n%s",
-			a.AlertName(), a.AlertState(), durationAtOrAboveLevel, a.FailAfter(*jobType), pendingDuration, firingDuration, strings.Join(describe, "\n"))
+			a.AlertName(), a.AlertState(), durationAtOrAboveLevel, flakeAfter, pendingDuration, firingDuration, strings.Join(describe, "\n"))
 	}
 
 	return pass, ""
