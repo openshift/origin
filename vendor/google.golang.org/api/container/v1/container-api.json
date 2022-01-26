@@ -2459,7 +2459,7 @@
       }
     }
   },
-  "revision": "20210419",
+  "revision": "20210521",
   "rootUrl": "https://container.googleapis.com/",
   "schemas": {
     "AcceleratorConfig": {
@@ -2573,6 +2573,10 @@
         },
         "diskType": {
           "description": "Type of the disk attached to each node (e.g. 'pd-standard', 'pd-ssd' or 'pd-balanced') If unspecified, the default disk type is 'pd-standard'",
+          "type": "string"
+        },
+        "imageType": {
+          "description": "The image type to use for NAP created node.",
           "type": "string"
         },
         "management": {
@@ -3017,6 +3021,20 @@
         "desiredDatabaseEncryption": {
           "$ref": "DatabaseEncryption",
           "description": "Configuration of etcd encryption."
+        },
+        "desiredDatapathProvider": {
+          "description": "The desired datapath provider for the cluster.",
+          "enum": [
+            "DATAPATH_PROVIDER_UNSPECIFIED",
+            "LEGACY_DATAPATH",
+            "ADVANCED_DATAPATH"
+          ],
+          "enumDescriptions": [
+            "Default value.",
+            "Use the IPTables implementation based on kube-proxy.",
+            "Use the eBPF based GKE Dataplane V2 with additional features. See the [GKE Dataplane V2 documentation](https://cloud.google.com/kubernetes-engine/docs/how-to/dataplane-v2) for more."
+          ],
+          "type": "string"
         },
         "desiredDefaultSnatStatus": {
           "$ref": "DefaultSnatStatus",
@@ -3761,6 +3779,20 @@
       "description": "NetworkConfig reports the relative names of network \u0026 subnetwork.",
       "id": "NetworkConfig",
       "properties": {
+        "datapathProvider": {
+          "description": "The desired datapath provider for this cluster. By default, uses the IPTables-based kube-proxy implementation.",
+          "enum": [
+            "DATAPATH_PROVIDER_UNSPECIFIED",
+            "LEGACY_DATAPATH",
+            "ADVANCED_DATAPATH"
+          ],
+          "enumDescriptions": [
+            "Default value.",
+            "Use the IPTables implementation based on kube-proxy.",
+            "Use the eBPF based GKE Dataplane V2 with additional features. See the [GKE Dataplane V2 documentation](https://cloud.google.com/kubernetes-engine/docs/how-to/dataplane-v2) for more."
+          ],
+          "type": "string"
+        },
         "defaultSnatStatus": {
           "$ref": "DefaultSnatStatus",
           "description": "Whether the cluster disables default in-node sNAT rules. In-node sNAT rules will be disabled when default_snat_status is disabled. When disabled is set to false, default IP masquerade rules will be applied to the nodes to prevent sNAT on cluster internal traffic."
@@ -5109,7 +5141,8 @@
             "GKE_SERVICE_ACCOUNT_DELETED",
             "GCE_QUOTA_EXCEEDED",
             "SET_BY_OPERATOR",
-            "CLOUD_KMS_KEY_ERROR"
+            "CLOUD_KMS_KEY_ERROR",
+            "CA_EXPIRING"
           ],
           "enumDescriptions": [
             "UNKNOWN indicates a generic condition.",
@@ -5117,7 +5150,8 @@
             "GKE_SERVICE_ACCOUNT_DELETED indicates that the user deleted their robot service account.",
             "Google Compute Engine quota was exceeded.",
             "Cluster state was manually changed by an SRE due to a system logic error.",
-            "Unable to perform an encrypt operation against the CloudKMS key used for etcd level encryption. More codes TBA"
+            "Unable to perform an encrypt operation against the CloudKMS key used for etcd level encryption.",
+            "Cluster CA is expiring soon."
           ],
           "type": "string"
         },
@@ -5252,6 +5286,39 @@
         },
         "zone": {
           "description": "Deprecated. The name of the Google Compute Engine [zone](https://cloud.google.com/compute/docs/zones#available) in which the cluster resides. This field has been deprecated and replaced by the name field.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "UpgradeAvailableEvent": {
+      "description": "UpgradeAvailableEvent is a notification sent to customers when a new available version is released.",
+      "id": "UpgradeAvailableEvent",
+      "properties": {
+        "releaseChannel": {
+          "$ref": "ReleaseChannel",
+          "description": "The release channel of the version. If empty, it means a non-channel release."
+        },
+        "resource": {
+          "description": "Optional relative path to the resource. For example, the relative path of the node pool.",
+          "type": "string"
+        },
+        "resourceType": {
+          "description": "The resource type of the release version.",
+          "enum": [
+            "UPGRADE_RESOURCE_TYPE_UNSPECIFIED",
+            "MASTER",
+            "NODE_POOL"
+          ],
+          "enumDescriptions": [
+            "Default value. This shouldn't be used.",
+            "Master / control plane",
+            "Node pool"
+          ],
+          "type": "string"
+        },
+        "version": {
+          "description": "The release version available for upgrade.",
           "type": "string"
         }
       },
