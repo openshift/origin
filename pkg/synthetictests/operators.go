@@ -1,17 +1,21 @@
 package synthetictests
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/monitor"
+
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/rest"
 )
 
 func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
@@ -73,7 +77,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 	return ret
 }
 
-func testOperatorOSUpdateStaged(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func testOperatorOSUpdateStaged(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	testName := "[bz-Machine Config Operator] Nodes should reach OSUpdateStaged in a timely fashion"
 	success := &junitapi.JUnitTestCase{Name: testName}
 	flakeThreshold := 5 * time.Minute
@@ -135,8 +139,17 @@ func testOperatorOSUpdateStaged(events monitorapi.Intervals) []*junitapi.JUnitTe
 				failTest = true
 			}
 		}
-
 	}
+
+	// Make sure we flake instead of fail the test on platforms that struggle to meet these thresholds.
+	if failTest {
+		// If an error occurs getting the platform, we're just going to let the test result stand.
+		jobType, err := platformidentification.GetJobType(context.TODO(), clientConfig)
+		if err == nil && (jobType.Platform == "ovirt" || jobType.Platform == "metal") {
+			failTest = false
+		}
+	}
+
 	if len(slowStageMessages) > 0 {
 		output := fmt.Sprintf("%d nodes took over %s to stage OSUpdate:\n\n%s",
 			len(slowStageMessages), flakeThreshold, strings.Join(slowStageMessages, "\n"))
