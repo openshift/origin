@@ -331,6 +331,14 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 				Text:     "Loki is nice to have, but we can allow it to be down",
 			},
 			{
+				Selector: map[string]string{"alertname": "KubePodNotReady", "namespace": "openshift-e2e-loki"},
+				Text:     "Loki is nice to have, but we can allow it to be down",
+			},
+			{
+				Selector: map[string]string{"alertname": "KubeDeploymentReplicasMismatch", "namespace": "openshift-e2e-loki"},
+				Text:     "Loki is nice to have, but we can allow it to be down",
+			},
+			{
 				Selector: map[string]string{"alertname": "HighOverallControlPlaneCPU"},
 				Text:     "high CPU utilization during e2e runs is normal",
 			},
