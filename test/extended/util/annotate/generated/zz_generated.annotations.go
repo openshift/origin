@@ -1935,6 +1935,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation][Late] OpenShift alerting rules should have description and summary annotations": "should have description and summary annotations [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-instrumentation][Late] OpenShift alerting rules should have underlying expressions returning values": "should have underlying expressions returning values [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-instrumentation][sig-builds][Feature:Builds] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics": "should start and expose a secured proxy and verify build metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network-edge] DNS should answer A and AAAA queries for a dual-stack service": "should answer A and AAAA queries for a dual-stack service [Suite:openshift/conformance/parallel]",
