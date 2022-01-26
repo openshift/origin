@@ -59,10 +59,12 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 			ns     string
 			name   string
 			scheme string
+			path   string
 			expect int
 		}{
-			{ns: "openshift-console", name: "console", scheme: "https", expect: 200},
-			{ns: "openshift-monitoring", name: "prometheus-k8s", scheme: "https", expect: 403},
+			{ns: "openshift-console", name: "console", scheme: "https", path: "", expect: 200},
+			{ns: "openshift-monitoring", name: "prometheus-k8s", scheme: "https", path: "", expect: 503},
+			{ns: "openshift-monitoring", name: "prometheus-k8s", scheme: "https", path: "api/v1/targets", expect: 403},
 		}
 		for _, r := range routes {
 			g.By(fmt.Sprintf("verifying the %s/%s route has an ingress host", r.ns, r.name))
@@ -79,7 +81,12 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 				return true, nil
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			url := fmt.Sprintf("%s://%s", r.scheme, hostname)
+			var url string
+			if r.path == "" {
+				url = fmt.Sprintf("%s://%s", r.scheme, hostname)
+			} else {
+				url = fmt.Sprintf("%s://%s/%s", r.scheme, hostname, r.path)
+			}
 			tests = append(tests, exurl.Expect("GET", url).SkipTLSVerification().HasStatusCode(r.expect))
 			g.By(fmt.Sprintf("verifying the %s/%s route serves %d from %s", r.ns, r.name, r.expect, url))
 		}
