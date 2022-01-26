@@ -18,6 +18,8 @@ import (
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
+	"github.com/prometheus/prometheus/promql/parser"
+
 	v1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -254,6 +256,147 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		if err != nil {
 			// We can't fail the test because the runbook URLs might be temporarily unavailable.
 			// At least we can manually check the CI logs to identify buggy URLs.
+			testresult.Flakef(err.Error())
+		}
+	})
+
+	g.It("should have underlying expressions returning values", func() {
+		// These alerts are known to have metrics that may be absent or metric
+		// selectors returning empty results. In most cases, these are errors or
+		// conditions metrics which are only present if an error or a certain
+		// condition occur. In these cases, we can skip the validation of the alert
+		// since we won't be able to easily tell the difference between what is
+		// expected from what isn't.
+		exceptions := sets.NewString(
+			// apiserver_requested_deprecated_apis selector may return empty results.
+			"APIRemovedInNextEUSReleaseInUse",
+			"APIRemovedInNextReleaseInUse",
+
+			// apiserver_audit_error_total may be absent.
+			"AuditLogError",
+
+			// cluster_operator_conditions selector may return empty results.
+			"CannotRetrieveUpdates",
+
+			// cluster_monitoring_operator_last_reconciliation_successful may be absent.
+			"ClusterMonitoringOperatorReconciliationErrors",
+
+			// cluster_operator_conditions selector may return empty results.
+			"ClusterNotUpgradeable",
+
+			// reloader_last_reload_successful may be absent.
+			"ConfigReloaderSidecarErrors",
+
+			// coredns_dns_responses_total selector may return empty results.
+			"CoreDNSErrorsHigh",
+
+			// cvs_abnormal may be absent.
+			"CsvAbnormalFailedOver2Min",
+			"CsvAbnormalOver30Min",
+
+			// aggregator_unavailable_apiservice_total may be absent.
+			"KubeAggregatedAPIErrors",
+
+			// kube_resourcequota selector may return empty results.
+			"KubeCPUQuotaOvercommit",
+			"KubeMemoryQuotaOvercommit",
+
+			// kube_pod_container_status_waiting_reason may be absent.
+			"KubeContainerWaiting",
+
+			// some metrics may be absent.
+			"KubeDaemonSetRolloutStuck",
+
+			// metrics may be absent when there are no HPA.
+			"KubeHpaMaxedOut",
+			"KubeHpaReplicasMismatch",
+
+			// kube_job_failed may be absent.
+			"KubeJobFailed",
+
+			// kube_node_spec_taint selector may return empty results.
+			"KubeNodeUnreachable",
+
+			// kube_persistentvolumeclaim_access_mode selector may return empty results.
+			"KubePersistentVolumeFillingUp",
+
+			// kube_pod_container_status_waiting_reason selector may return empty results.
+			"KubePodCrashLooping",
+
+			// kube_state_metrics_list_total selector may return empty results.
+			"KubeStateMetricsListErrors",
+			"KubeStateMetricsWatchErrors",
+
+			// mapi_machine_created_timestamp_seconds selector may return empty results.
+			"MachineNotYetDeleted",
+			"MachineWithNoRunningPhase",
+
+			// kube_pod_container_status_last_terminated_reason selector may return empty results.
+			"MultipleContainersOOMKilled",
+
+			// metrics may be absent if RAID is disabled.
+			"NodeRAIDDegraded",
+			"NodeRAIDDiskFailure",
+
+			// metrics may be absent if remote write isn't used.
+			"PrometheusRemoteStorageFailures",
+			"PrometheusRemoteWriteBehind",
+			"PrometheusRemoteWriteDesiredShards",
+
+			// openshift_samples_failed_imagestream_import_info may be absent.
+			"SamplesImagestreamImportFailing",
+			"SamplesRetriesMissingOnImagestreamImportFailing",
+
+			// cluster_operator_conditions selector may return empty results.
+			"SimpleContentAccessNotAvailable",
+
+			// metrics may be absent is there are no tech preview features enabled.
+			"TechPreviewNoUpgrade",
+
+			// thanos query error metrics may be absent.
+			"ThanosQueryGrpcClientErrorRate",
+			"ThanosQueryHttpRequestQueryErrorRateHigh",
+			"ThanosQueryHttpRequestQueryRangeErrorRateHigh",
+			"ThanosSidecarBucketOperationsFailed",
+
+			// cluster_version_available_updates may be empty.
+			"UpdateAvailable",
+		)
+
+		promClient := oc.NewPrometheusClient(context.TODO())
+
+		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
+			if exceptions.Has(alert.Name) {
+				return nil
+			}
+
+			expr, err := parser.ParseExpr(alert.Query)
+			if err != nil {
+				return sets.NewString(fmt.Sprintf("couldn't parse promQL query: %q", alert.Query))
+			}
+
+			var exprs []string
+			parser.Inspect(expr, func(node parser.Node, path []parser.Node) error {
+				switch n := node.(type) {
+				case *parser.VectorSelector:
+					exprs = append(exprs, fmt.Sprintf("absent(%s)", n))
+				}
+				return nil
+			})
+			q := strings.Join(exprs, " or ")
+
+			resp, err := helper.RunQuery(context.TODO(), promClient, q)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if len(resp.Data.Result) > 0 {
+				return sets.NewString("one of the metrics used in the query is absent")
+			}
+
+			return nil
+		})
+		if err != nil {
+			// We are still gathering data on how many alerts need to
+			// be fixed, so this is marked as a flake for now.
 			testresult.Flakef(err.Error())
 		}
 	})

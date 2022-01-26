@@ -410,6 +410,10 @@ func ForEachAlertingRule(rules map[string][]promv1.AlertingRule, f func(a promv1
 				continue
 			}
 
+			// Remove backslashs added by the HTTP API since they can't be parsed by
+			// the promQL parser.
+			alert.Query := strings.Replace(alert.Query, "\\", "", -1)
+
 			if violations := f(alert); violations != nil {
 				for _, v := range violations.List() {
 					allViolations.Insert(
