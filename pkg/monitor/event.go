@@ -66,6 +66,16 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 							}
 							m.RecordResource("events", obj)
 
+							// Temporary hack by dgoodwin, we're missing events here that show up later in
+							// gather-extra/events.json. Adding some output to see if we can isolate what we saw
+							// and where it might have been filtered out.
+							osEvent := false
+							if obj.Reason == "OSUpdateStaged" || obj.Reason == "OSUpdateStarted" {
+								osEvent = true
+								fmt.Printf("Watch received OS update event: %s - %s - %s\n",
+									obj.Reason, obj.InvolvedObject.Name, obj.LastTimestamp.Format(time.RFC3339))
+
+							}
 							t := obj.LastTimestamp.Time
 							if t.IsZero() {
 								t = obj.EventTime.Time
@@ -74,6 +84,11 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 								t = obj.CreationTimestamp.Time
 							}
 							if t.Before(significantlyBeforeNow) {
+								if osEvent {
+									fmt.Printf("OS update event filtered for being too old: %s - %s - %s (now: %s)\n",
+										obj.Reason, obj.InvolvedObject.Name, obj.LastTimestamp.Format(time.RFC3339),
+										time.Now().Format(time.RFC3339))
+								}
 								break
 							}
 
