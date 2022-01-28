@@ -37,6 +37,12 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve a route that points to two services and respect weights", func() {
+			isFIPS, err := exutil.IsFIPS(oc.AdminKubeClient().CoreV1())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if isFIPS {
+				g.Skip("The router image's built-in default certificate is incompatible with FIPS: https://bugzilla.redhat.com/show_bug.cgi?id=2047790")
+			}
+
 			defer func() {
 				if g.CurrentGinkgoTestDescription().Failed {
 					dumpWeightedRouterLogs(oc, g.CurrentGinkgoTestDescription().FullTestText)
@@ -52,7 +58,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			g.By(fmt.Sprintf("creating a weighted router from a config file %q", configPath))
 
 			var routerIP string
-			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
+			err = wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
 				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get(context.Background(), "weighted-router", metav1.GetOptions{})
 				if err != nil {
 					return false, err
