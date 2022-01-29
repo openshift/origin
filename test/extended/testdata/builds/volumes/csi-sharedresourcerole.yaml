@@ -1,0 +1,14 @@
+apiVersion: authorization.openshift.io/v1
+kind: Role
+metadata:
+  name: shared-resource-my-share
+rules:
+- apiGroups:
+    - sharedresource.openshift.io
+  resources:
+    - sharedsecrets
+  resourceNames:
+    - my-share
+  verbs:
+    - use
+  

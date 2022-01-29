@@ -1,0 +1,39 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: mydockertest
+  labels:
+    name: test
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: mydockerstream:latest
+  postCommit:
+    script: cat /var/run/secrets/some-secret/key
+  triggers: []
+  runPolicy: Serial
+  source:
+    dockerfile:
+      'FROM quay.io/redhat-developer/test-build-simples2i:1.2'
+  strategy:
+    type: Docker
+    dockerStrategy:
+      env:
+        - name: BUILD_LOGLEVEL
+          value: "5"
+      volumes:
+      - mounts:
+        - destinationPath: "/var/run/secrets/some-secret"
+        name: my-csi-shared-secret
+        source:
+          csi:
+            driver: csi.sharedresource.openshift.io
+            readOnly: true
+            volumeAttributes:
+              sharedSecret: my-share
+              refreshResource: "false"
+          type: CSI
+  resources: {}
+  nodeSelector: null
+status: {}
