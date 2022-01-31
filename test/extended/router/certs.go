@@ -10,6 +10,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
@@ -69,6 +70,11 @@ u3YLAbyW/lHhOCiZu2iAI8AbmXem9lW6Tr7p/97s0w==
 			if routes, _ := client.List(context.Background(), metav1.ListOptions{}); routes != nil {
 				outputIngress(routes.Items...)
 			}
+			selector, err := labels.Parse("test=router-scoped")
+			if err != nil {
+				panic(err)
+			}
+			exutil.DumpPodsCommand(oc.AdminKubeClient(), ns, selector, "cat /etc/crypto-policies/back-ends/opensslcnf.config")
 			exutil.DumpPodLogsStartingWith("router-", oc)
 		}
 	})
