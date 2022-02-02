@@ -2,6 +2,7 @@ package generated
 
 import (
 	"fmt"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/types"
 )
@@ -1577,11 +1578,19 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods using a watch should watch for changes and rsync them": "should watch for changes and rsync them",
 
+	"[Top Level] [sig-cloud-credentials][Feature:AWSTags] Managed cluster should be able to handle updates of user specified resource tags on all the users created using cloud credential requests": "be able to handle updates of user specified resource tags on all the users created using cloud credential requests [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cloud-credentials][Feature:AWSTags] Managed cluster should have user specified resource tags on all the users created using cloud credential requests": "have user specified resource tags on all the users created using cloud credential requests [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cluster-lifecycle] CSRs from machines that are not recognized by the cloud provider are not approved": "CSRs from machines that are not recognized by the cloud provider are not approved [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cluster-lifecycle] Pods cannot access the /config/master API endpoint": "Pods cannot access the /config/master API endpoint [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cluster-lifecycle] TestAdminAck should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cluster-lifecycle][Feature:AWSTags] Managed cluster should have user specified resource tags on machines": "have user specified resource tags on machines [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cluster-lifecycle][Feature:AWSTags] Managed cluster should update the machine tags when infrastructure is updated": "update the machine tags when infrastructure is updated [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive] [Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks": "[Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks [Serial]",
 
@@ -1772,6 +1781,10 @@ var annotations = map[string]string{
 	"[Top Level] [sig-etcd][Feature:DisasterRecovery][Disruptive] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss": "[Feature:EtcdRecovery] Cluster should restore itself after quorum loss [Serial]",
 
 	"[Top Level] [sig-imageregistry] Image registry should redirect on blob pull": "should redirect on blob pull [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-imageregistry][Feature:AWSTags] Managed cluster should be able to handle updates of user specified resource tags on the image registry's storage backend (s3 bucket)": "be able to handle updates of user specified resource tags on the image registry's storage backend (s3 bucket) [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-imageregistry][Feature:AWSTags] Managed cluster should have user specified resource tags on the image registry's storage backend (s3 bucket)": "have user specified resource tags on the image registry's storage backend (s3 bucket) [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-imageregistry][Feature:ImageAppend] Image append should create images by appending them": "should create images by appending them [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
@@ -15362,6 +15375,10 @@ var annotations = map[string]string{
 	"[Top Level] [sig-storage] vsphere cloud provider stress [Feature:vsphere] vsphere stress tests": "vsphere stress tests [Disabled:Unsupported] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] vsphere statefulset [Feature:vsphere] vsphere statefulset testing": "vsphere statefulset testing [Disabled:Unsupported] [Suite:k8s]",
+
+	"[Top Level] [sig-storage][Feature:AWSTags][Serial] Managed cluster should be able to handle updates of user specified resource tags on all the EBS volumes created using EBS Provisioner": "be able to handle updates of user specified resource tags on all the EBS volumes created using EBS Provisioner [Suite:openshift/conformance/serial]",
+
+	"[Top Level] [sig-storage][Feature:AWSTags][Serial] Managed cluster should have user specified resource tags on all the EBS volumes created using EBS Provisioner": "have user specified resource tags on all the EBS volumes created using EBS Provisioner [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-storage][Late] Metrics should report short attach times": "should report short attach times [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 

@@ -61,7 +61,6 @@ import (
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	testutil "k8s.io/kubernetes/test/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
-	admissionapi "k8s.io/pod-security-admission/api"
 	utilpointer "k8s.io/utils/pointer"
 )
 
@@ -86,7 +85,6 @@ var _ = SIGDescribe("Deployment", func() {
 	})
 
 	f := framework.NewDefaultFramework("deployment")
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelBaseline
 
 	ginkgo.BeforeEach(func() {
 		c = f.ClientSet

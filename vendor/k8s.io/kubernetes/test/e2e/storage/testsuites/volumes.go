@@ -37,7 +37,6 @@ import (
 	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
 	storageutils "k8s.io/kubernetes/test/e2e/storage/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
-	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 type volumesTestSuite struct {
@@ -130,7 +129,6 @@ func (t *volumesTestSuite) DefineTests(driver storageframework.TestDriver, patte
 	// Beware that it also registers an AfterEach which renders f unusable. Any code using
 	// f must run inside an It or Context callback.
 	f := framework.NewFrameworkWithCustomTimeouts("volume", storageframework.GetDriverTimeouts(driver))
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 	init := func() {
 		l = local{}

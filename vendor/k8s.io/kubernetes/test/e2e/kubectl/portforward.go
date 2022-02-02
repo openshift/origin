@@ -42,7 +42,6 @@ import (
 	e2ewebsocket "k8s.io/kubernetes/test/e2e/framework/websocket"
 	testutils "k8s.io/kubernetes/test/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
-	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -449,7 +448,6 @@ func doTestOverWebSockets(bindAddress string, f *framework.Framework) {
 
 var _ = SIGDescribe("Kubectl Port forwarding", func() {
 	f := framework.NewDefaultFramework("port-forwarding")
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelBaseline
 
 	ginkgo.Describe("With a server listening on 0.0.0.0", func() {
 		ginkgo.Describe("that expects a client request", func() {

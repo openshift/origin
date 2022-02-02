@@ -69,7 +69,7 @@ spec:
                   maxLength: 2048
                   minLength: 1
                 disabled:
-                  description: If set to true, disable the repo usage in the cluster
+                  description: If set to true, disable the repo usage in the cluster/namespace
                   type: boolean
                 name:
                   description: Optional associated human readable repository name, it can be used by UI for displaying purposes

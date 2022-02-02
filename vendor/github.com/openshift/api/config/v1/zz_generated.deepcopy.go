@@ -187,6 +187,11 @@ func (in *AWSPlatformSpec) DeepCopyInto(out *AWSPlatformSpec) {
 		*out = make([]AWSServiceEndpoint, len(*in))
 		copy(*out, *in)
 	}
+	if in.ResourceTags != nil {
+		in, out := &in.ResourceTags, &out.ResourceTags
+		*out = make([]AWSResourceTag, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

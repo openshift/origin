@@ -343,6 +343,15 @@ type AWSPlatformSpec struct {
 	// There must be only one ServiceEndpoint for a service.
 	// +optional
 	ServiceEndpoints []AWSServiceEndpoint `json:"serviceEndpoints,omitempty"`
+
+	// ResourceTags is a list of additional tags to apply to AWS resources created for the cluster.
+	// See https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html for information on tagging AWS resources.
+	// AWS supports a maximum of 50 tags per resource. OpenShift reserves 25 tags for its use, leaving 25 tags
+	// available for the user.
+	// While ResourceTags field is mutable, items can not be removed.
+	// +kubebuilder:validation:MaxItems=25
+	// +optional
+	ResourceTags []AWSResourceTag `json:"resourceTags,omitempty"`
 }
 
 // AWSPlatformStatus holds the current status of the Amazon Web Services infrastructure provider.

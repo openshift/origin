@@ -52,7 +52,6 @@ import (
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
-	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 const (
@@ -136,7 +135,6 @@ func checkGCEPD(volume *v1.PersistentVolume, volumeType string) error {
 
 var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 	f := framework.NewDefaultFramework("volume-provisioning")
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 	// filled in BeforeEach
 	var c clientset.Interface

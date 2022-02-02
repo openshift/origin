@@ -35,7 +35,6 @@ import (
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/kubernetes/test/e2e/network/common"
 	imageutils "k8s.io/kubernetes/test/utils/image"
-	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 const (
@@ -68,7 +67,6 @@ const (
 var _ = common.SIGDescribe("Conntrack", func() {
 
 	fr := framework.NewDefaultFramework("conntrack")
-	fr.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 	type nodeInfo struct {
 		name   string

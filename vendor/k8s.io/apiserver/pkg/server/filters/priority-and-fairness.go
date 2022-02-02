@@ -101,7 +101,7 @@ func WithPriorityAndFairness(
 		}
 
 		var classification *PriorityAndFairnessClassification
-		noteFn := func(fs *flowcontrol.FlowSchema, pl *flowcontrol.PriorityLevelConfiguration, flowDistinguisher string) {
+		estimateWork := func(fs *flowcontrol.FlowSchema, pl *flowcontrol.PriorityLevelConfiguration, flowDistinguisher string) flowcontrolrequest.WorkEstimate {
 			classification = &PriorityAndFairnessClassification{
 				FlowSchemaName:    fs.Name,
 				FlowSchemaUID:     fs.UID,
@@ -111,19 +111,7 @@ func WithPriorityAndFairness(
 			httplog.AddKeyValue(ctx, "apf_pl", truncateLogField(pl.Name))
 			httplog.AddKeyValue(ctx, "apf_fs", truncateLogField(fs.Name))
 			httplog.AddKeyValue(ctx, "apf_fd", truncateLogField(flowDistinguisher))
-		}
-		// estimateWork is called, if at all, after noteFn
-		estimateWork := func() flowcontrolrequest.WorkEstimate {
-			if classification == nil {
-				// workEstimator is being invoked before classification of
-				// the request has completed, we should never be here though.
-				klog.ErrorS(fmt.Errorf("workEstimator is being invoked before classification of the request has completed"),
-					"Using empty FlowSchema and PriorityLevelConfiguration name", "verb", r.Method, "URI", r.RequestURI)
-
-				return workEstimator(r, "", "")
-			}
-
-			return workEstimator(r, classification.FlowSchemaName, classification.PriorityLevelName)
+			return workEstimator(r, fs.Name, pl.Name)
 		}
 
 		var served bool
@@ -247,7 +235,7 @@ func WithPriorityAndFairness(
 				// Note that Handle will return irrespective of whether the request
 				// executes or is rejected. In the latter case, the function will return
 				// without calling the passed `execute` function.
-				fcIfc.Handle(handleCtx, digest, noteFn, estimateWork, queueNote, execute)
+				fcIfc.Handle(handleCtx, digest, estimateWork, queueNote, execute)
 			}()
 
 			select {
@@ -278,7 +266,7 @@ func WithPriorityAndFairness(
 				handler.ServeHTTP(w, r)
 			}
 
-			fcIfc.Handle(ctx, digest, noteFn, estimateWork, queueNote, execute)
+			fcIfc.Handle(ctx, digest, estimateWork, queueNote, execute)
 		}
 
 		if !served {

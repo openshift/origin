@@ -31,7 +31,6 @@ import (
 	e2erc "k8s.io/kubernetes/test/e2e/framework/rc"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
-	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/onsi/ginkgo"
 )
@@ -57,7 +56,6 @@ const (
 
 var _ = utils.SIGDescribe("EmptyDir wrapper volumes", func() {
 	f := framework.NewDefaultFramework("emptydir-wrapper")
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelBaseline
 
 	/*
 		Release: v1.13

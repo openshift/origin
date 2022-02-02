@@ -885,6 +885,7 @@ func (RepositoryDigestMirrors) SwaggerDoc() map[string]string {
 var map_AWSPlatformSpec = map[string]string{
 	"":                 "AWSPlatformSpec holds the desired state of the Amazon Web Services infrastructure provider. This only includes fields that can be modified in the cluster.",
 	"serviceEndpoints": "serviceEndpoints list contains custom endpoints which will override default service endpoint of AWS Services. There must be only one ServiceEndpoint for a service.",
+	"resourceTags":     "ResourceTags is a list of additional tags to apply to AWS resources created for the cluster. See https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html for information on tagging AWS resources. AWS supports a maximum of 50 tags per resource. OpenShift reserves 25 tags for its use, leaving 25 tags available for the user. While ResourceTags field is mutable, items can not be removed.",
 }
 
 func (AWSPlatformSpec) SwaggerDoc() map[string]string {

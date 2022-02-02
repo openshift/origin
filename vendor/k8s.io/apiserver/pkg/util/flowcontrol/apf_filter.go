@@ -42,14 +42,10 @@ const ConfigConsumerAsFieldManager = "api-priority-and-fairness-config-consumer-
 // Interface defines how the API Priority and Fairness filter interacts with the underlying system.
 type Interface interface {
 	// Handle takes care of queuing and dispatching a request
-	// characterized by the given digest.  The given `noteFn` will be
-	// invoked with the results of request classification.
-	// The given `workEstimator` is called, if at all, after noteFn.
-	// `workEstimator` will be invoked only when the request
-	//  is classified as non 'exempt'.
-	// 'workEstimator', when invoked, must return the
-	// work parameters for the request.
-	// If the request is queued then `queueNoteFn` will be called twice,
+	// characterized by the given digest.  The given `workEstimator` will be
+	// invoked with the results of request classification and must return the
+	// work parameters for the request.  If the
+	// request is queued then `queueNoteFn` will be called twice,
 	// first with `true` and then with `false`; otherwise
 	// `queueNoteFn` will not be called at all.  If Handle decides
 	// that the request should be executed then `execute()` will be
@@ -59,8 +55,7 @@ type Interface interface {
 	// ctx is cancelled or times out.
 	Handle(ctx context.Context,
 		requestDigest RequestDigest,
-		noteFn func(fs *flowcontrol.FlowSchema, pl *flowcontrol.PriorityLevelConfiguration, flowDistinguisher string),
-		workEstimator func() fcrequest.WorkEstimate,
+		workEstimator func(fs *flowcontrol.FlowSchema, pl *flowcontrol.PriorityLevelConfiguration, flowDistinguisher string) fcrequest.WorkEstimate,
 		queueNoteFn fq.QueueNoteFn,
 		execFn func(),
 	)
@@ -155,11 +150,10 @@ func NewTestable(config TestableConfig) Interface {
 }
 
 func (cfgCtlr *configController) Handle(ctx context.Context, requestDigest RequestDigest,
-	noteFn func(fs *flowcontrol.FlowSchema, pl *flowcontrol.PriorityLevelConfiguration, flowDistinguisher string),
-	workEstimator func() fcrequest.WorkEstimate,
+	workEstimator func(fs *flowcontrol.FlowSchema, pl *flowcontrol.PriorityLevelConfiguration, flowDistinguisher string) fcrequest.WorkEstimate,
 	queueNoteFn fq.QueueNoteFn,
 	execFn func()) {
-	fs, pl, isExempt, req, startWaitingTime := cfgCtlr.startRequest(ctx, requestDigest, noteFn, workEstimator, queueNoteFn)
+	fs, pl, isExempt, req, startWaitingTime := cfgCtlr.startRequest(ctx, requestDigest, workEstimator, queueNoteFn)
 	queued := startWaitingTime != time.Time{}
 	if req == nil {
 		if queued {

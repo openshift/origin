@@ -6,20 +6,15 @@ import (
 
 	authenticationv1 "k8s.io/api/authentication/v1"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	coreinformers "k8s.io/client-go/informers/core/v1"
 	patchfilters "k8s.io/kubernetes/openshift-kube-apiserver/filters"
 	"k8s.io/kubernetes/openshift-kube-apiserver/filters/deprecatedapirequest"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
-)
-
-const (
-	openShiftConfigManagedNamespaceName = "openshift-config-managed"
-	consolePublicConfigMapName          = "console-public"
+	"github.com/openshift/library-go/pkg/apiserver/httprequest"
 )
 
 // TODO switch back to taking a kubeapiserver config.  For now make it obviously safe for 3.11
-func BuildHandlerChain(oauthMetadataFile string, cmInformer coreinformers.ConfigMapInformer, deprecatedAPIRequestController deprecatedapirequest.APIRequestLogger) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, error) {
+func BuildHandlerChain(consolePublicURL string, oauthMetadataFile string, deprecatedAPIRequestController deprecatedapirequest.APIRequestLogger) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, error) {
 	// load the oauthmetadata when we can return an error
 	oAuthMetadata := []byte{}
 	if len(oauthMetadataFile) > 0 {
@@ -44,7 +39,7 @@ func BuildHandlerChain(oauthMetadataFile string, cmInformer coreinformers.Config
 			handler = translateLegacyScopeImpersonation(handler)
 
 			// redirects from / and /console to consolePublicURL if you're using a browser
-			handler = withConsoleRedirect(handler, cmInformer)
+			handler = withConsoleRedirect(handler, consolePublicURL)
 
 			return handler
 		},
@@ -74,28 +69,19 @@ func withOAuthInfo(handler http.Handler, oAuthMetadata []byte) http.Handler {
 
 // If we know the location of the asset server, redirect to it when / is requested
 // and the Accept header supports text/html
-func withConsoleRedirect(handler http.Handler, cmInformer coreinformers.ConfigMapInformer) http.Handler {
-	cmLister := cmInformer.Lister()
-	informer := cmInformer.Informer()
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if !strings.HasPrefix(req.URL.Path, "/console") {
-			// Dispatch to the next handler
-			handler.ServeHTTP(w, req)
-			return
-		}
+func withConsoleRedirect(handler http.Handler, consolePublicURL string) http.Handler {
+	if len(consolePublicURL) == 0 {
+		return handler
+	}
 
-		consoleUrl := ""
-		if informer.HasSynced() {
-			consolePublicConfig, err := cmLister.ConfigMaps(openShiftConfigManagedNamespaceName).Get(consolePublicConfigMapName)
-			if err == nil {
-				consoleUrl = consolePublicConfig.Data["consoleURL"]
-			}
-		}
-		if len(consoleUrl) > 0 {
-			http.Redirect(w, req, consoleUrl, http.StatusFound)
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if strings.HasPrefix(req.URL.Path, "/console") ||
+			(req.URL.Path == "/" && httprequest.PrefersHTML(req)) {
+			http.Redirect(w, req, consolePublicURL, http.StatusFound)
 			return
 		}
-		http.Error(w, "redirection failed: console URL not found", http.StatusInternalServerError)
+		// Dispatch to the next handler
+		handler.ServeHTTP(w, req)
 	})
 }
 

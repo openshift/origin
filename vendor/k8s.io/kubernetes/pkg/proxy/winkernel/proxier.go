@@ -972,18 +972,16 @@ func (proxier *Proxier) syncProxyRules() {
 	proxier.mu.Lock()
 	defer proxier.mu.Unlock()
 
+	start := time.Now()
+	defer func() {
+		SyncProxyRulesLatency.Observe(metrics.SinceInSeconds(start))
+		klog.V(4).InfoS("Syncing proxy rules complete", "elapsed", time.Since(start))
+	}()
 	// don't sync rules till we've received services and endpoints
 	if !proxier.isInitialized() {
 		klog.V(2).InfoS("Not syncing hns until Services and Endpoints have been received from master")
 		return
 	}
-
-	// Keep track of how long syncs take.
-	start := time.Now()
-	defer func() {
-		metrics.SyncProxyRulesLatency.Observe(metrics.SinceInSeconds(start))
-		klog.V(4).InfoS("Syncing proxy rules complete", "elapsed", time.Since(start))
-	}()
 
 	hnsNetworkName := proxier.network.name
 	hns := proxier.hns
@@ -1240,27 +1238,22 @@ func (proxier *Proxier) syncProxyRules() {
 			if svcInfo.preserveDIP || svcInfo.localTrafficDSR {
 				nodePortEndpoints = hnsLocalEndpoints
 			}
-
-			if len(nodePortEndpoints) > 0 {
-				hnsLoadBalancer, err := hns.getLoadBalancer(
-					nodePortEndpoints,
-					loadBalancerFlags{isDSR: svcInfo.localTrafficDSR, localRoutedVIP: true, sessionAffinity: sessionAffinityClientIP, isIPv6: proxier.isIPv6Mode},
-					sourceVip,
-					"",
-					Enum(svcInfo.Protocol()),
-					uint16(svcInfo.targetPort),
-					uint16(svcInfo.NodePort()),
-				)
-				if err != nil {
-					klog.ErrorS(err, "Policy creation failed")
-					continue
-				}
-
-				svcInfo.nodePorthnsID = hnsLoadBalancer.hnsID
-				klog.V(3).InfoS("Hns LoadBalancer resource created for nodePort resources", "clusterIP", svcInfo.ClusterIP(), "nodeport", svcInfo.NodePort(), "hnsID", hnsLoadBalancer.hnsID)
-			} else {
-				klog.V(3).InfoS("Skipped creating Hns LoadBalancer for nodePort resources", "clusterIP", svcInfo.ClusterIP(), "nodeport", svcInfo.NodePort(), "hnsID", hnsLoadBalancer.hnsID)
+			hnsLoadBalancer, err := hns.getLoadBalancer(
+				nodePortEndpoints,
+				loadBalancerFlags{isDSR: svcInfo.localTrafficDSR, localRoutedVIP: true, sessionAffinity: sessionAffinityClientIP, isIPv6: proxier.isIPv6Mode},
+				sourceVip,
+				"",
+				Enum(svcInfo.Protocol()),
+				uint16(svcInfo.targetPort),
+				uint16(svcInfo.NodePort()),
+			)
+			if err != nil {
+				klog.ErrorS(err, "Policy creation failed")
+				continue
 			}
+
+			svcInfo.nodePorthnsID = hnsLoadBalancer.hnsID
+			klog.V(3).InfoS("Hns LoadBalancer resource created for nodePort resources", "clusterIP", svcInfo.ClusterIP(), "hnsID", hnsLoadBalancer.hnsID)
 		}
 
 		// Create a Load Balancer Policy for each external IP
@@ -1270,27 +1263,22 @@ func (proxier *Proxier) syncProxyRules() {
 			if svcInfo.localTrafficDSR {
 				externalIPEndpoints = hnsLocalEndpoints
 			}
-
-			if len(externalIPEndpoints) > 0 {
-				// Try loading existing policies, if already available
-				hnsLoadBalancer, err = hns.getLoadBalancer(
-					externalIPEndpoints,
-					loadBalancerFlags{isDSR: svcInfo.localTrafficDSR, sessionAffinity: sessionAffinityClientIP, isIPv6: proxier.isIPv6Mode},
-					sourceVip,
-					externalIP.ip,
-					Enum(svcInfo.Protocol()),
-					uint16(svcInfo.targetPort),
-					uint16(svcInfo.Port()),
-				)
-				if err != nil {
-					klog.ErrorS(err, "Policy creation failed")
-					continue
-				}
-				externalIP.hnsID = hnsLoadBalancer.hnsID
-				klog.V(3).InfoS("Hns LoadBalancer resource created for externalIP resources", "externalIP", externalIP, "hnsID", hnsLoadBalancer.hnsID)
-			} else {
-				klog.V(3).InfoS("Skipped creating Hns LoadBalancer for externalIP resources", "externalIP", externalIP, "hnsID", hnsLoadBalancer.hnsID)
+			// Try loading existing policies, if already available
+			hnsLoadBalancer, err = hns.getLoadBalancer(
+				externalIPEndpoints,
+				loadBalancerFlags{isDSR: svcInfo.localTrafficDSR, sessionAffinity: sessionAffinityClientIP, isIPv6: proxier.isIPv6Mode},
+				sourceVip,
+				externalIP.ip,
+				Enum(svcInfo.Protocol()),
+				uint16(svcInfo.targetPort),
+				uint16(svcInfo.Port()),
+			)
+			if err != nil {
+				klog.ErrorS(err, "Policy creation failed")
+				continue
 			}
+			externalIP.hnsID = hnsLoadBalancer.hnsID
+			klog.V(3).InfoS("Hns LoadBalancer resource created for externalIP resources", "externalIP", externalIP, "hnsID", hnsLoadBalancer.hnsID)
 		}
 		// Create a Load Balancer Policy for each loadbalancer ingress
 		for _, lbIngressIP := range svcInfo.loadBalancerIngressIPs {
@@ -1299,27 +1287,21 @@ func (proxier *Proxier) syncProxyRules() {
 			if svcInfo.preserveDIP || svcInfo.localTrafficDSR {
 				lbIngressEndpoints = hnsLocalEndpoints
 			}
-
-			if len(lbIngressEndpoints) > 0 {
-				hnsLoadBalancer, err := hns.getLoadBalancer(
-					lbIngressEndpoints,
-					loadBalancerFlags{isDSR: svcInfo.preserveDIP || svcInfo.localTrafficDSR, useMUX: svcInfo.preserveDIP, preserveDIP: svcInfo.preserveDIP, sessionAffinity: sessionAffinityClientIP, isIPv6: proxier.isIPv6Mode},
-					sourceVip,
-					lbIngressIP.ip,
-					Enum(svcInfo.Protocol()),
-					uint16(svcInfo.targetPort),
-					uint16(svcInfo.Port()),
-				)
-				if err != nil {
-					klog.ErrorS(err, "Policy creation failed")
-					continue
-				}
-				lbIngressIP.hnsID = hnsLoadBalancer.hnsID
-				klog.V(3).InfoS("Hns LoadBalancer resource created for loadBalancer Ingress resources", "lbIngressIP", lbIngressIP)
-			} else {
-				klog.V(3).InfoS("Skipped creating Hns LoadBalancer for loadBalancer Ingress resources", "lbIngressIP", lbIngressIP)
+			hnsLoadBalancer, err := hns.getLoadBalancer(
+				lbIngressEndpoints,
+				loadBalancerFlags{isDSR: svcInfo.preserveDIP || svcInfo.localTrafficDSR, useMUX: svcInfo.preserveDIP, preserveDIP: svcInfo.preserveDIP, sessionAffinity: sessionAffinityClientIP, isIPv6: proxier.isIPv6Mode},
+				sourceVip,
+				lbIngressIP.ip,
+				Enum(svcInfo.Protocol()),
+				uint16(svcInfo.targetPort),
+				uint16(svcInfo.Port()),
+			)
+			if err != nil {
+				klog.ErrorS(err, "Policy creation failed")
+				continue
 			}
-
+			lbIngressIP.hnsID = hnsLoadBalancer.hnsID
+			klog.V(3).InfoS("Hns LoadBalancer resource created for loadBalancer Ingress resources", "lbIngressIP", lbIngressIP)
 		}
 		svcInfo.policyApplied = true
 		klog.V(2).InfoS("Policy successfully applied for service", "serviceInfo", svcInfo)
@@ -1328,7 +1310,7 @@ func (proxier *Proxier) syncProxyRules() {
 	if proxier.healthzServer != nil {
 		proxier.healthzServer.Updated()
 	}
-	metrics.SyncProxyRulesLastTimestamp.SetToCurrentTime()
+	SyncProxyRulesLastTimestamp.SetToCurrentTime()
 
 	// Update service healthchecks.  The endpoints list might include services that are
 	// not "OnlyLocal", but the services list will not, and the serviceHealthServer

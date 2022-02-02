@@ -55,7 +55,6 @@ import (
 	e2edaemonset "k8s.io/kubernetes/test/e2e/framework/daemonset"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2eresource "k8s.io/kubernetes/test/e2e/framework/resource"
-	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 const (
@@ -134,7 +133,6 @@ var _ = SIGDescribe("Daemon set [Serial]", func() {
 	})
 
 	f = framework.NewDefaultFramework("daemonsets")
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelBaseline
 
 	image := WebserverImage
 	dsName := "daemon-set"

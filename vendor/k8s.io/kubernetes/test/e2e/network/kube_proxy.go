@@ -34,7 +34,6 @@ import (
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/kubernetes/test/e2e/network/common"
 	imageutils "k8s.io/kubernetes/test/utils/image"
-	admissionapi "k8s.io/pod-security-admission/api"
 	netutils "k8s.io/utils/net"
 
 	"github.com/onsi/ginkgo"
@@ -49,7 +48,6 @@ var _ = common.SIGDescribe("KubeProxy", func() {
 	)
 
 	fr := framework.NewDefaultFramework("kube-proxy")
-	fr.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 	ginkgo.It("should set TCP CLOSE_WAIT timeout [Privileged]", func() {
 		nodes, err := e2enode.GetBoundedReadySchedulableNodes(fr.ClientSet, 2)

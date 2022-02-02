@@ -608,44 +608,16 @@ type Handle interface {
 	Parallelizer() parallelize.Parallelizer
 }
 
-type NominatingMode int
-
-const (
-	ModeNoop NominatingMode = iota
-	ModeOverride
-)
-
-type NominatingInfo struct {
-	NominatedNodeName string
-	NominatingMode    NominatingMode
-}
-
 // PostFilterResult wraps needed info for scheduler framework to act upon PostFilter phase.
 type PostFilterResult struct {
-	*NominatingInfo
-}
-
-func NewPostFilterResultWithNominatedNode(name string) *PostFilterResult {
-	return &PostFilterResult{
-		NominatingInfo: &NominatingInfo{
-			NominatedNodeName: name,
-			NominatingMode:    ModeOverride,
-		},
-	}
-}
-
-func (ni *NominatingInfo) Mode() NominatingMode {
-	if ni == nil {
-		return ModeNoop
-	}
-	return ni.NominatingMode
+	NominatedNodeName string
 }
 
 // PodNominator abstracts operations to maintain nominated Pods.
 type PodNominator interface {
 	// AddNominatedPod adds the given pod to the nominator or
 	// updates it if it already exists.
-	AddNominatedPod(pod *PodInfo, nominatingInfo *NominatingInfo)
+	AddNominatedPod(pod *PodInfo, nodeName string)
 	// DeleteNominatedPodIfExists deletes nominatedPod from internal cache. It's a no-op if it doesn't exist.
 	DeleteNominatedPodIfExists(pod *v1.Pod)
 	// UpdateNominatedPod updates the <oldPod> with <newPod>.

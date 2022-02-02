@@ -23,7 +23,6 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	imageutils "k8s.io/kubernetes/test/utils/image"
-	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/onsi/ginkgo"
 )
@@ -33,7 +32,6 @@ import (
 // https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node/expansion.md
 var _ = SIGDescribe("Variable Expansion", func() {
 	f := framework.NewDefaultFramework("var-expansion")
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelBaseline
 
 	/*
 		Release: v1.9

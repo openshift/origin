@@ -72,7 +72,6 @@ type Plugin struct {
 	nodesGetter    corev1lister.NodeLister
 
 	expandPersistentVolumesEnabled bool
-	expansionRecoveryEnabled       bool
 }
 
 var (
@@ -84,7 +83,6 @@ var (
 // InspectFeatureGates allows setting bools without taking a dep on a global variable
 func (p *Plugin) InspectFeatureGates(featureGates featuregate.FeatureGate) {
 	p.expandPersistentVolumesEnabled = featureGates.Enabled(features.ExpandPersistentVolumes)
-	p.expansionRecoveryEnabled = featureGates.Enabled(features.RecoverVolumeExpansionFailure)
 }
 
 // SetExternalKubeInformerFactory registers an informer factory into Plugin
@@ -364,14 +362,6 @@ func (p *Plugin) admitPVCStatus(nodeName string, a admission.Attributes) error {
 
 		oldPVC.Status.Conditions = nil
 		newPVC.Status.Conditions = nil
-
-		if p.expansionRecoveryEnabled {
-			oldPVC.Status.ResizeStatus = nil
-			newPVC.Status.ResizeStatus = nil
-
-			oldPVC.Status.AllocatedResources = nil
-			newPVC.Status.AllocatedResources = nil
-		}
 
 		// TODO(apelisse): We don't have a good mechanism to
 		// verify that only the things that should have changed

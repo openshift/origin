@@ -46,28 +46,37 @@ spec:
                   type: string
                   minLength: 1
                 proxy:
-                  description: proxy is a list of Services that the plugin needs to connect to.
-                  type: object
-                  properties:
-                    services:
-                      description: "services is a list of in-cluster Services that the plugin will connect to. The Service must use HTTPS. Console backend exposes the following endpoint in order to proxy communication between the plugin and the Service: \n /api/proxy/namespace/<service-namespace>/service/<service-name>:<port-number>/<request-path>?<optional-query-parameters> \n Request example path: \n /api/proxy/namespace/helm/service/helm-charts:8443/releases?limit=10"
-                      type: array
-                      items:
-                        description: ConsolePluginProxyService holds information on Service to which console's backend will proxy the plugin's requests.
+                  description: proxy is a list of proxies that describe various service type to which the plugin needs to connect to.
+                  type: array
+                  items:
+                    description: ConsolePluginProxy holds information on various service types to which console's backend will proxy the plugin's requests.
+                    type: object
+                    required:
+                      - alias
+                      - type
+                    properties:
+                      alias:
+                        description: "alias is a proxy name that identifies the plugin's proxy. An alias name should be unique per plugin. The console backend exposes following proxy endpoint: \n /api/proxy/plugin/<plugin-name>/<proxy-alias>/<request-path>?<optional-query-parameters> \n Request example path: \n /api/proxy/plugin/acm/search/pods?namespace=openshift-apiserver"
+                        type: string
+                        maxLength: 128
+                        minLength: 1
+                        pattern: ^[A-Za-z0-9-_]+$
+                      authorize:
+                        description: "authorize indicates if the proxied request should contain the logged-in user's OpenShift access token in the \"Authorization\" request header. For example: \n Authorization: Bearer sha256~kV46hPnEYhCWFnB85r5NrprAxggzgb6GOeLbgcKNsH0 \n By default the access token is not part of the proxied request."
+                        type: boolean
+                        default: false
+                      caCertificate:
+                        description: caCertificate provides the cert authority certificate contents, in case the proxied Service is using custom service CA. By default, the service CA bundle provided by the service-ca operator is used.
+                        type: string
+                        pattern: ^-----BEGIN CERTIFICATE-----([\s\S]*)-----END CERTIFICATE-----\s?$
+                      service:
+                        description: 'service is an in-cluster Service that the plugin will connect to. The Service must use HTTPS. The console backend exposes an endpoint in order to proxy communication between the plugin and the Service. Note: service field is required for now, since currently only "Service" type is supported.'
                         type: object
                         required:
                           - name
                           - namespace
                           - port
                         properties:
-                          authorize:
-                            description: "authorize indicates if the proxied request will logged-in user's OpenShift access token in the \"Authorization\" request header: \n Authorization: Bearer sha256~kV46hPnEYhCWFnB85r5NrprAxggzgb6GOeLbgcKNsH0 \n By default the access token is not part of the proxied request."
-                            type: boolean
-                            default: false
-                          caCertificate:
-                            description: caCertificate provides the cert authority certificate contents, in case the proxied Service is using custom service CA. By default service CA bundle is used.
-                            type: string
-                            pattern: ^-----BEGIN CERTIFICATE-----([\s\S]*)-----END CERTIFICATE-----\s?$
                           name:
                             description: name of Service that the plugin needs to connect to.
                             type: string
@@ -84,6 +93,10 @@ spec:
                             format: int32
                             maximum: 65535
                             minimum: 1
+                      type:
+                        description: type is the type of the console plugin's proxy. Currently only "Service" is supported.
+                        type: string
+                        pattern: ^(Service)$
                 service:
                   description: service is a Kubernetes Service that exposes the plugin using a deployment with an HTTP server. The Service must use HTTPS and Service serving certificate. The console backend will proxy the plugins assets from the Service using the service CA bundle.
                   type: object

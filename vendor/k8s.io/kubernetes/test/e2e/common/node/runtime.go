@@ -29,7 +29,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/images"
 	"k8s.io/kubernetes/test/e2e/framework"
 	imageutils "k8s.io/kubernetes/test/utils/image"
-	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -38,7 +37,6 @@ import (
 
 var _ = SIGDescribe("Container Runtime", func() {
 	f := framework.NewDefaultFramework("container-runtime")
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelBaseline
 
 	ginkgo.Describe("blackbox test", func() {
 		ginkgo.Context("when starting a container that exits", func() {
