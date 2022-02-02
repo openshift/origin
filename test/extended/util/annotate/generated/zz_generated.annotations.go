@@ -609,6 +609,16 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch] [Conformance] FIPS TestFIPS": "TestFIPS [Suite:openshift/conformance/parallel/minimal]",
 
+	"[Top Level] [sig-arch] [Conformance] sysctl pod should start for each sysctl on whitelist kernel.shm_rmid_forced": "kernel.shm_rmid_forced [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Top Level] [sig-arch] [Conformance] sysctl pod should start for each sysctl on whitelist net.ipv4.ip_local_port_range": "net.ipv4.ip_local_port_range [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Top Level] [sig-arch] [Conformance] sysctl pod should start for each sysctl on whitelist net.ipv4.ip_unprivileged_port_start": "net.ipv4.ip_unprivileged_port_start [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Top Level] [sig-arch] [Conformance] sysctl pod should start for each sysctl on whitelist net.ipv4.ping_group_range": "net.ipv4.ping_group_range [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Top Level] [sig-arch] [Conformance] sysctl pod should start for each sysctl on whitelist net.ipv4.tcp_syncookies": "net.ipv4.tcp_syncookies [Suite:openshift/conformance/parallel/minimal]",
+
 	"[Top Level] [sig-arch] ocp payload should be based on existing source OLM version should contain the source commit id": "OLM version should contain the source commit id [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][Early] Managed cluster should start all core operators": "start all core operators [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
