@@ -62,7 +62,7 @@ func createConsoleRouteAvailableWithNewConnections() *backenddisruption.BackendS
 		"ingress-to-console",
 		"/healthz",
 		backenddisruption.NewConnectionType).
-		WithExpectedBodyRegex(`(Red Hat OpenShift Container Platform|OKD)`)
+		WithExpectedBodyRegex(`(Red Hat OpenShift|OKD)`)
 }
 
 func createConsoleRouteAvailableWithConnectionReuse() *backenddisruption.BackendSampler {
@@ -75,5 +75,5 @@ func createConsoleRouteAvailableWithConnectionReuse() *backenddisruption.Backend
 		"ingress-to-console",
 		"/healthz",
 		backenddisruption.ReusedConnectionType).
-		WithExpectedBodyRegex(`(Red Hat OpenShift Container Platform|OKD)`)
+		WithExpectedBodyRegex(`(Red Hat OpenShift|OKD)`)
 }
