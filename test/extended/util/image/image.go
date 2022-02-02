@@ -23,7 +23,7 @@ func init() {
 		"docker.io/openshift/test-multicast:latest": -1,
 
 		// used by oc mirror test, should be moved to publish to quay
-		"docker.io/library/registry:2.7.1": -1,
+		"docker.io/library/registry:2.8.0-beta.1": -1,
 
 		// used by build s2i e2e's to verify that builder with USER root are not allowed
 		// the github.com/openshift/build-test-images repo is built out of github.com/openshift/release

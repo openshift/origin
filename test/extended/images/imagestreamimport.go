@@ -219,7 +219,7 @@ func deployEphemeralImageRegistry(oc *exutil.CLI) error {
 	containers := []corev1.Container{
 		{
 			Name:  "registry",
-			Image: image.LocationFor("docker.io/library/registry:2.7.1"),
+			Image: image.LocationFor("docker.io/library/registry:2.8.0-beta.1"),
 			Ports: []corev1.ContainerPort{
 				{
 					ContainerPort: 5000,
