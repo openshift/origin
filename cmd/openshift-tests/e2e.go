@@ -361,7 +361,7 @@ var staticSuites = testSuites{
 				if !exists {
 					return false
 				}
-				return !isDisabled(name) && strings.Contains(name, "[Suite:openshift/conformance")
+				return !isDisabled(name) && strings.Contains(name, "[Suite:openshift/conformance/parallel")
 			},
 			Parallelism:          20,
 			MaximumAllowedFlakes: 15,
