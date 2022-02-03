@@ -64,7 +64,7 @@ func getClosestPercentilesValues(alertName string, jobType platformidentificatio
 	_, percentileAsMap := getCurrentResults()
 
 	// chose so we can find them easily in the log
-	defaultSeconds, err := time.ParseDuration("2.718s")
+	defaultSeconds, err := time.ParseDuration("3.141s")
 	if err != nil {
 		panic(err)
 	}
