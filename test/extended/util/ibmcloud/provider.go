@@ -2,6 +2,7 @@ package ibmcloud
 
 import (
 	"context"
+	"sync"
 
 	o "github.com/onsi/gomega"
 
@@ -12,6 +13,8 @@ import (
 )
 
 const ProviderName = "ibmcloud"
+
+var clusterRoleBindingMutex sync.Mutex
 
 func init() {
 	framework.RegisterProvider(ProviderName, newProvider)
@@ -30,6 +33,9 @@ type Provider struct {
 // --enable-controller-attach-detach=false
 // e2e: https://bugzilla.redhat.com/show_bug.cgi?id=1825034 - Mock CSI tests fail on IBM ROKS clusters
 func (p *Provider) FrameworkBeforeEach(f *framework.Framework) {
+	clusterRoleBindingMutex.Lock()
+	defer clusterRoleBindingMutex.Unlock()
+
 	_, err := f.ClientSet.RbacV1().ClusterRoleBindings().Get(context.Background(), "e2e-node-attacher", metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		rb := &rbacv1.ClusterRoleBinding{
