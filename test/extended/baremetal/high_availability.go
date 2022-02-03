@@ -32,7 +32,19 @@ const (
 var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platform should ensure", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("baremetal")
+	var (
+		oc     = exutil.NewCLI("baremetal")
+		helper *BaremetalTestHelper
+	)
+
+	g.BeforeEach(func() {
+		helper = NewBaremetalTestHelper(oc.AdminDynamicClient())
+		helper.Setup()
+	})
+
+	g.AfterEach(func() {
+		helper.DeleteAllExtraWorkers()
+	})
 
 	g.It("cluster baremetal operator and metal3 deployment return back healthy after they are deleted", func() {
 		skipIfNotBaremetal(oc)
