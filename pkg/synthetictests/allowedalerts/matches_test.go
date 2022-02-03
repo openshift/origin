@@ -34,7 +34,7 @@ func TestGetClosestP95Value(t *testing.T) {
 				Topology:    "ha",
 			},
 			want: &percentileDuration{
-				P95: mustDuration("3s"),
+				P95: mustDuration("2s"),
 				P99: mustDuration("3s"),
 			},
 		},
@@ -48,8 +48,8 @@ func TestGetClosestP95Value(t *testing.T) {
 				Topology:    "missing",
 			},
 			want: &percentileDuration{
-				P95: mustDuration("2.718s"),
-				P99: mustDuration("2.718s"),
+				P95: mustDuration("3.141s"),
+				P99: mustDuration("3.141s"),
 			},
 		},
 	}
