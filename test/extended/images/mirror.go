@@ -53,7 +53,7 @@ spec:
     - /bin/sleep
     - infinity
 `,
-	image.LocationFor("docker.io/library/registry:2.7.1"),
+	image.LocationFor("docker.io/library/registry:2.8.0-beta.1"),
 	image.ShellImage(),
 )
 
@@ -95,7 +95,7 @@ spec:
     - /bin/sleep
     - infinity
 `,
-	image.LocationFor("docker.io/library/registry:2.7.1"),
+	image.LocationFor("docker.io/library/registry:2.8.0-beta.1"),
 	image.ShellImage(),
 )
 
