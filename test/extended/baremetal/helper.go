@@ -135,6 +135,10 @@ func (b *BaremetalTestHelper) CreateExtraWorker(host *unstructured.Unstructured,
 
 // DeleteAllExtraWorkers deletes all the extra workers created in the current session
 func (b *BaremetalTestHelper) DeleteAllExtraWorkers() {
+	if b.extraWorkers == nil {
+		return
+	}
+
 	for _, worker := range b.extraWorkers {
 		err := b.bmcClient.Delete(context.Background(), worker.GetName(), metav1.DeleteOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
