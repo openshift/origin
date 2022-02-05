@@ -123,8 +123,9 @@ func testOperatorOSUpdateStaged(events monitorapi.Intervals, clientConfig *rest.
 	var failTest bool // set true if we see anything over 10 minutes, our failure threshold
 	for node, ss := range nodeOSUpdateTimes {
 		if ss.OSUpdateStarted.IsZero() {
-			// Watch for an edge case we're not sure can/will occur:
-			slowStageMessages = append(slowStageMessages, fmt.Sprintf("%s OSUpdateStarted at %s, did not make it to OSUpdateStaged", node, ss.OSUpdateStarted.Format(time.RFC3339)))
+			// We've seen this on metal where we've got no start time, the event is in the gather-extra/events.json but
+			// not in the junit/e2e-events.json the test framework writes afterwards, unclear how it's getting missed.
+			slowStageMessages = append(slowStageMessages, fmt.Sprintf("%s OSUpdateStaged at %s, but no OSUpdateStarted event was recorded", node, ss.OSUpdateStaged.Format(time.RFC3339)))
 			failTest = true // considering this a failure for now
 		} else if ss.OSUpdateStaged.IsZero() || ss.OSUpdateStarted.After(ss.OSUpdateStaged) {
 			// Watch that we don't do multiple started->staged transitions, if we see started > staged, we must have
