@@ -56,6 +56,27 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 			expectStringField(h, "baremetalhost", "status.operationalStatus").To(o.BeEquivalentTo("OK"))
 			expectStringField(h, "baremetalhost", "status.provisioning.state").To(o.Or(o.BeEquivalentTo("provisioned"), o.BeEquivalentTo("externally provisioned")))
 			expectBoolField(h, "baremetalhost", "spec.online").To(o.BeTrue())
+
+		}
+	})
+
+	g.It("have preprovisioning images for workers", func() {
+		skipIfNotBaremetal(oc)
+
+		dc := oc.AdminDynamicClient()
+		bmc := baremetalClient(dc)
+		ppiClient := preprovisioningImagesClient(dc)
+
+		hosts, err := bmc.List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		for _, h := range hosts.Items {
+			state := getStringField(h, "baremetalhost", "status.provisioning.state")
+			if state != "externally provisioned" {
+				hostName := getStringField(h, "baremetalhost", "metadata.name")
+				_, err := ppiClient.Get(context.Background(), hostName, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
 		}
 	})
 

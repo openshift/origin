@@ -1861,6 +1861,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should have hostfirmwaresetting resources": "have hostfirmwaresetting resources [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should have preprovisioning images for workers": "have preprovisioning images for workers [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should not allow updating BootMacAddress": "not allow updating BootMacAddress [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphere/None platforms  have a metal3 deployment": "have a metal3 deployment [Suite:openshift/conformance/parallel]",
