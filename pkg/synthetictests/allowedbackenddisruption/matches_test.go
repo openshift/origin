@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 )
 
 func TestGetClosestP95Value(t *testing.T) {
@@ -17,11 +19,7 @@ func TestGetClosestP95Value(t *testing.T) {
 	}
 	type args struct {
 		backendName string
-		release     string
-		fromRelease string
-		platform    string
-		networkType string
-		topology    string
+		jobType     platformidentification.JobType
 	}
 	tests := []struct {
 		name string
@@ -32,11 +30,13 @@ func TestGetClosestP95Value(t *testing.T) {
 			name: "test-that-failed-in-ci",
 			args: args{
 				backendName: "ingress-to-oauth-server-reused-connections",
-				release:     "4.10",
-				fromRelease: "4.10",
-				platform:    "gcp",
-				networkType: "sdn",
-				topology:    "ha",
+				jobType: platformidentification.JobType{
+					Release:     "4.10",
+					FromRelease: "4.10",
+					Platform:    "gcp",
+					Network:     "sdn",
+					Topology:    "ha",
+				},
 			},
 			want: mustDuration("4s"),
 		},
@@ -44,17 +44,19 @@ func TestGetClosestP95Value(t *testing.T) {
 			name: "missing",
 			args: args{
 				backendName: "kube-api-reused-connections",
-				release:     "4.10",
-				fromRelease: "4.10",
-				platform:    "azure",
-				topology:    "missing",
+				jobType: platformidentification.JobType{
+					Release:     "4.10",
+					FromRelease: "4.10",
+					Platform:    "azure",
+					Topology:    "missing",
+				},
 			},
 			want: mustDuration("2.718s"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := GetClosestP99Value(tt.args.backendName, tt.args.release, tt.args.fromRelease, tt.args.platform, tt.args.networkType, tt.args.topology); !reflect.DeepEqual(got, tt.want) {
+			if got := GetClosestP99Value(tt.args.backendName, tt.args.jobType); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetClosestP99Value() = %v, want %v", got, tt.want)
 			}
 		})

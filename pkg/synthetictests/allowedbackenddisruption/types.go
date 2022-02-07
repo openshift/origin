@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"strconv"
 	"sync"
+
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 )
 
 const (
@@ -65,12 +67,8 @@ type LastWeekPercentiles struct {
 }
 
 type LastWeekPercentileKey struct {
-	BackendName string
-	Release     string
-	FromRelease string
-	Platform    string
-	Network     string
-	Topology    string
+	BackendName                    string
+	platformidentification.JobType `json:",inline"`
 }
 
 func getCurrentResults() ([]LastWeekPercentiles, map[LastWeekPercentileKey]LastWeekPercentiles) {
