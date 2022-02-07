@@ -77,21 +77,21 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 	return ret
 }
 
+type startedStaged struct {
+	// OSUpdateStarted is the event Reason emitted by the machine config operator when a node begins extracting
+	// it's OS content.
+	OSUpdateStarted time.Time
+	// OSUpdateStaged is the event Reason emitted by the machine config operator when a node has extracted it's
+	// OS content and is ready to begin the update. For the purposes of this test, we're looking for how long it
+	// took from Started -> Staged to try to identify disk i/o problems that may be occurring.
+	OSUpdateStaged time.Time
+}
+
 func testOperatorOSUpdateStaged(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	testName := "[bz-Machine Config Operator] Nodes should reach OSUpdateStaged in a timely fashion"
 	success := &junitapi.JUnitTestCase{Name: testName}
 	flakeThreshold := 5 * time.Minute
 	failThreshold := 10 * time.Minute
-
-	type startedStaged struct {
-		// OSUpdateStarted is the event Reason emitted by the machine config operator when a node begins extracting
-		// it's OS content.
-		OSUpdateStarted time.Time
-		// OSUpdateStaged is the event Reason emitted by the machine config operator when a node has extracted it's
-		// OS content and is ready to begin the update. For the purposes of this test, we're looking for how long it
-		// took from Started -> Staged to try to identify disk i/o problems that may be occurring.
-		OSUpdateStaged time.Time
-	}
 
 	// Scan all OSUpdateStarted and OSUpdateStaged events, sort by node.
 	nodeOSUpdateTimes := map[string]*startedStaged{}
@@ -123,10 +123,8 @@ func testOperatorOSUpdateStaged(events monitorapi.Intervals, clientConfig *rest.
 	var failTest bool // set true if we see anything over 10 minutes, our failure threshold
 	for node, ss := range nodeOSUpdateTimes {
 		if ss.OSUpdateStarted.IsZero() {
-			// We've seen this on metal where we've got no start time, the event is in the gather-extra/events.json but
-			// not in the junit/e2e-events.json the test framework writes afterwards, unclear how it's getting missed.
-			slowStageMessages = append(slowStageMessages, fmt.Sprintf("%s OSUpdateStaged at %s, but no OSUpdateStarted event was recorded", node, ss.OSUpdateStaged.Format(time.RFC3339)))
-			failTest = true // considering this a failure for now
+			// This case is handled by a separate test below.
+			continue
 		} else if ss.OSUpdateStaged.IsZero() || ss.OSUpdateStarted.After(ss.OSUpdateStaged) {
 			// Watch that we don't do multiple started->staged transitions, if we see started > staged, we must have
 			// failed to make it to staged on a later update:
@@ -164,6 +162,67 @@ func testOperatorOSUpdateStaged(events monitorapi.Intervals, clientConfig *rest.
 		if failTest {
 			return []*junitapi.JUnitTestCase{failure}
 		}
+		return []*junitapi.JUnitTestCase{failure, success}
+	}
+
+	return []*junitapi.JUnitTestCase{success}
+}
+
+// testOperatorOSUpdateStartedEventRecorded provides data on a situation we've observed where the test framework is missing
+// a started event, when we have a staged (completed) event. For now this test will flake to let us track how often this is occurring
+// and verify once we have it fixed.
+func testOperatorOSUpdateStartedEventRecorded(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
+	testName := "OSUpdateStarted event should be recorded for nodes that reach OSUpdateStaged"
+	success := &junitapi.JUnitTestCase{Name: testName}
+
+	// Scan all OSUpdateStarted and OSUpdateStaged events, sort by node.
+	nodeOSUpdateTimes := map[string]*startedStaged{}
+	for _, e := range events {
+		if strings.Contains(e.Message, "reason/OSUpdateStarted") {
+			// locator will be of the form: node/ci-op-j34hmfqt-253f3-cq852-master-1
+			_, ok := nodeOSUpdateTimes[e.Locator]
+			if !ok {
+				nodeOSUpdateTimes[e.Locator] = &startedStaged{}
+			}
+			// for this type of event, the from/to time are identical as this is a point in time event.
+			ss := nodeOSUpdateTimes[e.Locator]
+			ss.OSUpdateStarted = e.To
+		} else if strings.Contains(e.Message, "reason/OSUpdateStaged") {
+			// locator will be of the form: node/ci-op-j34hmfqt-253f3-cq852-master-1
+			_, ok := nodeOSUpdateTimes[e.Locator]
+			if !ok {
+				nodeOSUpdateTimes[e.Locator] = &startedStaged{}
+			}
+			// for this type of event, the from/to time are identical as this is a point in time event.
+			ss := nodeOSUpdateTimes[e.Locator]
+			ss.OSUpdateStaged = e.To
+		}
+	}
+
+	// Iterate the data we assembled looking for any nodes missing their start event
+	missingStartedMessages := []string{}
+	for node, ss := range nodeOSUpdateTimes {
+		if ss.OSUpdateStarted.IsZero() {
+			// We've seen this occur where we've got no start time, the event is in the gather-extra/events.json but
+			// not in the junit/e2e-events.json the test framework writes afterwards.
+			missingStartedMessages = append(missingStartedMessages, fmt.Sprintf(
+				"%s OSUpdateStaged at %s, but no OSUpdateStarted event was recorded",
+				node,
+				ss.OSUpdateStaged.Format(time.RFC3339)))
+		}
+	}
+
+	if len(missingStartedMessages) > 0 {
+		output := fmt.Sprintf("%d nodes made it to OSUpdateStaged but we did not record OSUpdateStarted:\n\n%s",
+			len(missingStartedMessages), strings.Join(missingStartedMessages, "\n"))
+		failure := &junitapi.JUnitTestCase{
+			Name:      testName,
+			SystemOut: output,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: output,
+			},
+		}
+		// Include a fake success so this will always be a "flake" for now.
 		return []*junitapi.JUnitTestCase{failure, success}
 	}
 
