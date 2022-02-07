@@ -54,12 +54,8 @@ func (d *percentileAllowances) FlakeAfter(alertName string, jobType platformiden
 // We enforce "don't get worse" for disruption by watching the aggregate data in CI over many runs.
 func getClosestPercentilesValues(alertName string, jobType platformidentification.JobType) *percentileDuration {
 	exactMatchKey := LastWeekPercentileKey{
-		AlertName:   alertName,
-		Release:     jobType.Release,
-		FromRelease: jobType.FromRelease,
-		Platform:    jobType.Platform,
-		Network:     jobType.Network,
-		Topology:    jobType.Topology,
+		AlertName: alertName,
+		JobType:   jobType,
 	}
 	_, percentileAsMap := getCurrentResults()
 
