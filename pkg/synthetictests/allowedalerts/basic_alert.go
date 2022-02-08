@@ -187,12 +187,12 @@ func (a *basicAlertTest) failOrFlake(ctx context.Context, restConfig *rest.Confi
 	flakeAfter := a.allowanceCalculator.FlakeAfter(a.alertName, *jobType)
 	switch {
 	case durationAtOrAboveLevel > failAfter:
-		return fail, fmt.Sprintf("%s was at or above %s for at least %s (maxAllowed=%s): pending for %s, firing for %s:\n\n%s",
-			a.AlertName(), a.AlertState(), durationAtOrAboveLevel, failAfter, pendingDuration, firingDuration, strings.Join(describe, "\n"))
+		return fail, fmt.Sprintf("%s was at or above %s for at least %s on %#v (maxAllowed=%s): pending for %s, firing for %s:\n\n%s",
+			a.AlertName(), a.AlertState(), durationAtOrAboveLevel, *jobType, failAfter, pendingDuration, firingDuration, strings.Join(describe, "\n"))
 
 	case durationAtOrAboveLevel > flakeAfter:
-		return flake, fmt.Sprintf("%s was at or above %s for at least %s (maxAllowed=%s): pending for %s, firing for %s:\n\n%s",
-			a.AlertName(), a.AlertState(), durationAtOrAboveLevel, flakeAfter, pendingDuration, firingDuration, strings.Join(describe, "\n"))
+		return flake, fmt.Sprintf("%s was at or above %s for at least %s on %#v (maxAllowed=%s): pending for %s, firing for %s:\n\n%s",
+			a.AlertName(), a.AlertState(), durationAtOrAboveLevel, *jobType, flakeAfter, pendingDuration, firingDuration, strings.Join(describe, "\n"))
 	}
 
 	return pass, ""
