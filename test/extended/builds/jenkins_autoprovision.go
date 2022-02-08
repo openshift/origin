@@ -38,7 +38,7 @@ var _ = g.Describe("[Feature:Builds][Feature:JenkinsAuto][Conformance] jenkins a
 			}
 		})
 
-		g.It("should autoprovision jenkins", func() {
+		g.It("should autoprovision the jenkins", func() {
 
 			// instantiate the bc
 			g.By(fmt.Sprintf("calling oc new-app -f %q", envVarsPipelinePath))
