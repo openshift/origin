@@ -57,12 +57,13 @@ func (t *backendDisruptionTest) WithPostTeardown(postTearDown TearDownFunc) *bac
 	return t
 }
 
-func (t *backendDisruptionTest) historicalP95Disruption(f *framework.Framework, totalDuration time.Duration) (*time.Duration, error) {
+func (t *backendDisruptionTest) historicalP95Disruption(f *framework.Framework, totalDuration time.Duration) (*time.Duration, string, error) {
 	backendName := t.backend.GetDisruptionBackendName() + "-" + string(t.backend.GetConnectionType()) + "-connections"
 	return allowedbackenddisruption.GetAllowedDisruption(context.Background(), backendName, f.ClientConfig())
 }
 
-type AllowedDisruptionFunc func(f *framework.Framework, totalDuration time.Duration) (*time.Duration, error)
+// returns allowedDuration, detailsString(for display), error
+type AllowedDisruptionFunc func(f *framework.Framework, totalDuration time.Duration) (*time.Duration, string, error)
 
 // availableTest tests that route frontends are available before, during, and
 // after a cluster upgrade.
@@ -138,7 +139,7 @@ func (t *backendDisruptionTest) Test(f *framework.Framework, done <-chan struct{
 
 	end := time.Now()
 
-	allowedDisruption, err := t.getAllowedDisruption(f, end.Sub(start))
+	allowedDisruption, disruptionDetails, err := t.getAllowedDisruption(f, end.Sub(start))
 	framework.ExpectNoError(err)
 
 	ginkgo.By(fmt.Sprintf("writing results: %s", t.backend.GetLocator()))
@@ -147,7 +148,7 @@ func (t *backendDisruptionTest) Test(f *framework.Framework, done <-chan struct{
 		*allowedDisruption,
 		end.Sub(start),
 		m.Intervals(time.Time{}, time.Time{}),
-		fmt.Sprintf("%s was unreachable during disruption", t.backend.GetLocator()),
+		fmt.Sprintf("%s was unreachable during disruption: %v", t.backend.GetLocator(), disruptionDetails),
 	)
 
 	ginkgo.By(fmt.Sprintf("results tallied: %s", t.backend.GetLocator()))
