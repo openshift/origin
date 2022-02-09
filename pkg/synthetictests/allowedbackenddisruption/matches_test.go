@@ -22,9 +22,11 @@ func TestGetClosestP95Value(t *testing.T) {
 		jobType     platformidentification.JobType
 	}
 	tests := []struct {
-		name string
-		args args
-		want *time.Duration
+		name             string
+		args             args
+		expectedDuration *time.Duration
+		expectedDetails  string
+		expectedErr      error
 	}{
 		{
 			name: "test-that-failed-in-ci",
@@ -38,7 +40,7 @@ func TestGetClosestP95Value(t *testing.T) {
 					Topology:    "ha",
 				},
 			},
-			want: mustDuration("4s"),
+			expectedDuration: mustDuration("4s"),
 		},
 		{
 			name: "missing",
@@ -51,13 +53,21 @@ func TestGetClosestP95Value(t *testing.T) {
 					Topology:    "missing",
 				},
 			},
-			want: mustDuration("2.718s"),
+			expectedDuration: mustDuration("2.718s"),
+			expectedDetails:  `jobType=platformidentification.JobType{Release:"4.10", FromRelease:"4.10", Platform:"azure", Network:"", Topology:"missing"}`,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := GetClosestP99Value(tt.args.backendName, tt.args.jobType); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetClosestP99Value() = %v, want %v", got, tt.want)
+			actualDuration, actualDetails, actualErr := GetAllowedDisruption(tt.args.backendName, tt.args.jobType)
+			if got, want := actualDuration, tt.expectedDuration; !reflect.DeepEqual(got, want) {
+				t.Errorf("GetClosestP99Value() = %v, want %v", got, want)
+			}
+			if got, want := actualDetails, tt.expectedDetails; !reflect.DeepEqual(got, want) {
+				t.Errorf("GetClosestP99Value() = %v, want %v", got, want)
+			}
+			if got, want := actualErr, tt.expectedErr; !reflect.DeepEqual(got, want) {
+				t.Errorf("GetClosestP99Value() = %v, want %v", got, want)
 			}
 		})
 	}
