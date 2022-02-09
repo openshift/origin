@@ -18,6 +18,16 @@ type JobType struct {
 	Topology    string
 }
 
+func CloneJobType(in JobType) JobType {
+	return JobType{
+		Release:     in.Release,
+		FromRelease: in.FromRelease,
+		Platform:    in.Platform,
+		Network:     in.Network,
+		Topology:    in.Topology,
+	}
+}
+
 // GetJobType returns information that can be used to identify a job
 func GetJobType(ctx context.Context, clientConfig *rest.Config) (*JobType, error) {
 	configClient, err := configclient.NewForConfig(clientConfig)
