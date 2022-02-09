@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/origin/pkg/synthetictests/historicaldata"
+
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 )
 
@@ -21,7 +23,7 @@ func TestGetClosestP95Value(t *testing.T) {
 		name      string
 		alertName string
 		jobType   platformidentification.JobType
-		want      *percentileDuration
+		want      historicaldata.StatisticalDuration
 	}{
 		{
 			name:      "test-that-failed-in-ci",
@@ -33,7 +35,18 @@ func TestGetClosestP95Value(t *testing.T) {
 				Network:     "sdn",
 				Topology:    "ha",
 			},
-			want: &percentileDuration{
+			want: historicaldata.StatisticalDuration{
+				DataKey: historicaldata.DataKey{
+					Name: "etcdGRPCRequestsSlow",
+					JobType: platformidentification.JobType{
+						Release:     "4.10",
+						FromRelease: "4.10",
+						Platform:    "gcp",
+						Network:     "sdn",
+						Topology:    "ha",
+					},
+				},
+
 				P95: mustDuration("2s"),
 				P99: mustDuration("3s"),
 			},
@@ -47,7 +60,17 @@ func TestGetClosestP95Value(t *testing.T) {
 				Platform:    "azure",
 				Topology:    "missing",
 			},
-			want: &percentileDuration{
+			want: historicaldata.StatisticalDuration{
+				DataKey: historicaldata.DataKey{
+					Name: "ingress-to-oauth-server-reused-connections",
+					JobType: platformidentification.JobType{
+						Release:     "4.10",
+						FromRelease: "4.10",
+						Platform:    "azure",
+						Topology:    "missing",
+					},
+				},
+
 				P95: mustDuration("3.141s"),
 				P99: mustDuration("3.141s"),
 			},
@@ -55,7 +78,7 @@ func TestGetClosestP95Value(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := getClosestPercentilesValues(tt.alertName, tt.jobType); !reflect.DeepEqual(got, tt.want) {
+			if got, _, _ := getClosestPercentilesValues(tt.alertName, tt.jobType); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetClosestP99Value() = %v, want %v", got, tt.want)
 			}
 		})
