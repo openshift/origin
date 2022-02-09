@@ -49,12 +49,16 @@ var (
 	historicalData historicaldata.BestMatcher
 )
 
+// if data is missing for a particular jobtype combination, this is the value returned.  Choose a unique value that will
+// be easily searchable across large numbers of job runs.  I like pi.
+const defaultReturn = 3.141
+
 func getCurrentResults() historicaldata.BestMatcher {
 	readResults.Do(
 		func() {
 			var err error
 			genericBytes := bytes.ReplaceAll(queryResults, []byte(`    "AlertName": "`), []byte(`    "Name": "`))
-			historicalData, err = historicaldata.NewMatcher(genericBytes, 3.141)
+			historicalData, err = historicaldata.NewMatcher(genericBytes, defaultReturn)
 			if err != nil {
 				panic(err)
 			}

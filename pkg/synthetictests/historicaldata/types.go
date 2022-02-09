@@ -95,13 +95,28 @@ func (b *bestMatcher) BestMatch(name string, jobType platformidentification.JobT
 		return percentiles, "", nil
 	}
 
+	// tested in TestGetClosestP95Value in allowedbackendisruption.  Should get a local test at some point.
+	for _, nextBestGuesser := range nextBestGuessers {
+		nextBestJobType, ok := nextBestGuesser(jobType)
+		if !ok {
+			continue
+		}
+		nextBestMatchKey := DataKey{
+			Name:    name,
+			JobType: nextBestJobType,
+		}
+		if percentiles, ok := b.historicalData[nextBestMatchKey]; ok {
+			return percentiles, fmt.Sprintf("(no exact match for %#v, fell back to %#v)", exactMatchKey, nextBestMatchKey), nil
+		}
+	}
+
 	defaultReturn := StatisticalData{
 		DataKey: exactMatchKey,
 		P95:     b.defaultReturn,
 		P99:     b.defaultReturn,
 	}
 	return defaultReturn,
-		fmt.Sprintf("jobType=%#v", jobType),
+		fmt.Sprintf("(no exact or fuzzy match for jobType=%#v)", jobType),
 		nil
 }
 

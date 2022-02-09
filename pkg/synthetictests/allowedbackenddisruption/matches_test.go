@@ -43,6 +43,21 @@ func TestGetClosestP95Value(t *testing.T) {
 			expectedDuration: mustDuration("4s"),
 		},
 		{
+			name: "fuzzy-match",
+			args: args{
+				backendName: "ingress-to-oauth-server-reused-connections",
+				jobType: platformidentification.JobType{
+					Release:     "4.11",
+					FromRelease: "4.11",
+					Platform:    "azure",
+					Network:     "sdn",
+					Topology:    "ha",
+				},
+			},
+			expectedDuration: mustDuration("12.87s"),
+			expectedDetails:  `(no exact match for historicaldata.DataKey{Name:"ingress-to-oauth-server-reused-connections", JobType:platformidentification.JobType{Release:"4.11", FromRelease:"4.11", Platform:"azure", Network:"sdn", Topology:"ha"}}, fell back to historicaldata.DataKey{Name:"ingress-to-oauth-server-reused-connections", JobType:platformidentification.JobType{Release:"4.11", FromRelease:"4.10", Platform:"azure", Network:"sdn", Topology:"ha"}})`,
+		},
+		{
 			name: "missing",
 			args: args{
 				backendName: "kube-api-reused-connections",
@@ -54,7 +69,7 @@ func TestGetClosestP95Value(t *testing.T) {
 				},
 			},
 			expectedDuration: mustDuration("2.718s"),
-			expectedDetails:  `jobType=platformidentification.JobType{Release:"4.10", FromRelease:"4.10", Platform:"azure", Network:"", Topology:"missing"}`,
+			expectedDetails:  `(no exact or fuzzy match for jobType=platformidentification.JobType{Release:"4.10", FromRelease:"4.10", Platform:"azure", Network:"", Topology:"missing"})`,
 		},
 	}
 	for _, tt := range tests {
