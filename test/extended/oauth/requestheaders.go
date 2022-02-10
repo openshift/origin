@@ -79,7 +79,6 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 		caCert, caKey := createClientCA(oc.AdminKubeClient().CoreV1())
 		defer oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Delete(context.Background(), clientCAName, metav1.DeleteOptions{})
 
-		changeTime := time.Now()
 		oauthClusterOrig, err := oc.AdminConfigClient().ConfigV1().OAuths().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -121,6 +120,8 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 			if err != nil {
 				g.Fail(fmt.Sprintf("Failed to update oauth/cluster, unable to turn it into its original state: %v", err))
 			}
+
+			waitForNewOAuthConfig(oc)
 		}()
 
 		oauthURL := getOAuthWellKnownData(oc).Issuer
@@ -202,7 +203,7 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 			o.Expect(ok).To(o.Equal(true), "adding router certs to the system CA bundle")
 		}
 
-		waitForNewOAuthConfig(oc, caCerts, oauthURL, changeTime)
+		waitForNewOAuthConfig(oc)
 
 		for _, tc := range testCases {
 			g.By(tc.name, func() {
@@ -356,7 +357,7 @@ func generateCert(caCert *x509.Certificate, caKey *rsa.PrivateKey, cn string, ek
 	return cert, priv
 }
 
-func waitForNewOAuthConfig(oc *exutil.CLI, caCerts *x509.CertPool, oauthURL string, configChanged time.Time) {
+func waitForNewOAuthConfig(oc *exutil.CLI) {
 	waitForAuthenticationProgressing(oc, configv1.ConditionTrue)
 	waitForAuthenticationProgressing(oc, configv1.ConditionFalse)
 }
