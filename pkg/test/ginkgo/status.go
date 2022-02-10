@@ -151,7 +151,13 @@ func (s *testStatus) Run(ctx context.Context, test *testCase) {
 	c := exec.Command(os.Args[0], "run-test", test.name)
 	c.Env = append(os.Environ(), s.env...)
 	s.fprintf(fmt.Sprintf("started: (%s) %q\n\n", "%d/%d/%d", test.name))
-	out, err := runWithTimeout(ctx, c, s.timeout)
+
+	timeout := s.timeout
+	if test.testTimeout != 0 {
+		timeout = test.testTimeout
+	}
+
+	out, err := runWithTimeout(ctx, c, timeout)
 	test.end = time.Now()
 
 	duration := test.end.Sub(test.start).Round(time.Second / 10)
