@@ -21,7 +21,11 @@ func testsForSuite(cfg config.GinkgoConfigType) ([]*testCase, error) {
 			}
 			return nil, err
 		}
-		tests = append(tests, newTestCase(spec))
+		tc, err := newTestCase(spec)
+		if err != nil {
+			return nil, err
+		}
+		tests = append(tests, tc)
 	}
 	return tests, nil
 }

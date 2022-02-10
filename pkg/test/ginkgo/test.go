@@ -21,6 +21,9 @@ type testCase struct {
 
 	// identifies which tests can be run in parallel (ginkgo runs suites linearly)
 	testExclusion string
+	// specific timeout for the current test. When set, it overrides the current
+	// suite timeout
+	testTimeout time.Duration
 
 	start    time.Time
 	end      time.Time
@@ -35,15 +38,27 @@ type testCase struct {
 	previous *testCase
 }
 
-func newTestCase(spec ginkgoSpec) *testCase {
+func newTestCase(spec ginkgoSpec) (*testCase, error) {
 	name := spec.ConcatenatedString()
 	name = strings.TrimPrefix(name, "[Top Level] ")
+
 	summary := spec.Summary("")
-	return &testCase{
+	tc := &testCase{
 		name:     name,
 		spec:     spec,
 		location: summary.ComponentCodeLocations[len(summary.ComponentCodeLocations)-1],
 	}
+
+	re := regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
+	if match := re.FindStringSubmatch(name); match != nil {
+		testTimeOut, err := time.ParseDuration(match[1])
+		if err != nil {
+			return nil, err
+		}
+		tc.testTimeout = testTimeOut
+	}
+
+	return tc, nil
 }
 
 func (t *testCase) Retry() *testCase {
