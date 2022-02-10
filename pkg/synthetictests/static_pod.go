@@ -45,7 +45,7 @@ func testStaticPodLifecycleFailure(events monitorapi.Intervals, kubeClientConfig
 		}
 
 		for _, event := range events.Items {
-			if !strings.Contains(event.Note, "static pod lifecycle failure") {
+			if !strings.Contains(event.Note, "new revision") {
 				continue
 			}
 			failures = append(failures, fmt.Sprintf("%#v", event))
