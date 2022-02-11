@@ -3,11 +3,9 @@ package allowedbackenddisruption
 import (
 	"bytes"
 	_ "embed"
-	"encoding/json"
-	"strconv"
 	"sync"
 
-	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
+	"github.com/openshift/origin/pkg/synthetictests/historicaldata"
 )
 
 const (
@@ -55,57 +53,24 @@ order by
 var queryResults []byte
 
 var (
-	readResults       sync.Once
-	percentilesAsList []LastWeekPercentiles
-	percentilesAsMap  = map[LastWeekPercentileKey]LastWeekPercentiles{}
+	readResults    sync.Once
+	historicalData historicaldata.BestMatcher
 )
 
-type LastWeekPercentiles struct {
-	LastWeekPercentileKey `json:",inline"`
-	P95                   float64
-	P99                   float64
-}
+// if data is missing for a particular jobtype combination, this is the value returned.  Choose a unique value that will
+// be easily searchable across large numbers of job runs.  I like e.
+const defaultReturn = 2.718
 
-type LastWeekPercentileKey struct {
-	BackendName                    string
-	platformidentification.JobType `json:",inline"`
-}
-
-func getCurrentResults() ([]LastWeekPercentiles, map[LastWeekPercentileKey]LastWeekPercentiles) {
+func getCurrentResults() historicaldata.BestMatcher {
 	readResults.Do(
 		func() {
-			inFile := bytes.NewBuffer(queryResults)
-			jsonDecoder := json.NewDecoder(inFile)
-
-			type DecodingLastWeekPercentile struct {
-				LastWeekPercentileKey `json:",inline"`
-				P95                   string
-				P99                   string
-			}
-			decodingPercentilesList := []DecodingLastWeekPercentile{}
-
-			if err := jsonDecoder.Decode(&decodingPercentilesList); err != nil {
+			var err error
+			genericBytes := bytes.ReplaceAll(queryResults, []byte(`    "BackendName": "`), []byte(`    "Name": "`))
+			historicalData, err = historicaldata.NewMatcher(genericBytes, defaultReturn)
+			if err != nil {
 				panic(err)
-			}
-
-			for _, currDecoded := range decodingPercentilesList {
-				p95, err := strconv.ParseFloat(currDecoded.P95, 64)
-				if err != nil {
-					panic(err)
-				}
-				p99, err := strconv.ParseFloat(currDecoded.P99, 64)
-				if err != nil {
-					panic(err)
-				}
-				curr := LastWeekPercentiles{
-					LastWeekPercentileKey: currDecoded.LastWeekPercentileKey,
-					P95:                   p95,
-					P99:                   p99,
-				}
-				percentilesAsList = append(percentilesAsList, curr)
-				percentilesAsMap[curr.LastWeekPercentileKey] = curr
 			}
 		})
 
-	return percentilesAsList, percentilesAsMap
+	return historicalData
 }

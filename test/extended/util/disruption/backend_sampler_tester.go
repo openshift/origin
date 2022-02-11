@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
+
 	"github.com/onsi/ginkgo"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
@@ -59,7 +61,12 @@ func (t *backendDisruptionTest) WithPostTeardown(postTearDown TearDownFunc) *bac
 
 func (t *backendDisruptionTest) historicalP95Disruption(f *framework.Framework, totalDuration time.Duration) (*time.Duration, string, error) {
 	backendName := t.backend.GetDisruptionBackendName() + "-" + string(t.backend.GetConnectionType()) + "-connections"
-	return allowedbackenddisruption.GetAllowedDisruption(context.Background(), backendName, f.ClientConfig())
+	jobType, err := platformidentification.GetJobType(context.TODO(), f.ClientConfig())
+	if err != nil {
+		return nil, "", err
+	}
+
+	return allowedbackenddisruption.GetAllowedDisruption(backendName, *jobType)
 }
 
 // returns allowedDuration, detailsString(for display), error
