@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,6 +19,9 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 	reMatchFirstQuote := regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)
 
 	go func() {
+		// Track our last observed resource version from each event, used to re-establish the watch
+		// when it's requested rv gets too old for the server. (which may happen when apiservers cycle)
+		var rv string
 		for {
 			select {
 			case <-ctx.Done():
@@ -31,14 +33,22 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 			// created in test jobs are the most common)
 			significantlyBeforeNow := time.Now().UTC().Add(-15 * time.Minute)
 
-			events, err := client.CoreV1().Events("").List(ctx, metav1.ListOptions{Limit: 1})
-			if err != nil {
-				continue
-			}
-			rv := events.ResourceVersion
+			// Doing our own List + Watch here, cannot use an Informer as it will group similar events, when we need
+			// each individual.
 
-			for i := range events.Items {
-				m.RecordResource("events", &events.Items[i])
+			if rv == "" {
+				events, err := client.CoreV1().Events("").List(ctx, metav1.ListOptions{Limit: 1})
+				if err != nil {
+					continue
+				}
+				rv = events.ResourceVersion
+				fmt.Printf("Using initial resource version from event list: %s\n", rv)
+				for i := range events.Items {
+					m.RecordResource("events", &events.Items[i])
+				}
+			} else {
+				// Re-use the last resource version we observed.
+				fmt.Printf("Using last observed resource version: %s\n", rv)
 			}
 
 			for expired := false; !expired; {
@@ -64,11 +74,16 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 							if !ok {
 								continue
 							}
+							// Record the observed rv version, re-used if we lose our watch connection and re-establish
+							// to prevent missed events.
+							rv = obj.ResourceVersion
 							m.RecordResource("events", obj)
 
 							// Temporary hack by dgoodwin, we're missing events here that show up later in
 							// gather-extra/events.json. Adding some output to see if we can isolate what we saw
 							// and where it might have been filtered out.
+							// TODO: monitor for occurrences of this string, may no longer be needed given the
+							// new rv handling logic added above.
 							osEvent := false
 							if obj.Reason == "OSUpdateStaged" || obj.Reason == "OSUpdateStarted" {
 								osEvent = true
