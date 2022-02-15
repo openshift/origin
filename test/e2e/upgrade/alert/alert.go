@@ -107,6 +107,10 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 				return framework.ProviderIs("gce")
 			},
 		},
+		{
+			Selector: map[string]string{"alertname": "KubeJobFailed", "namespace": "openshift-multus"}, // not sure how to do a job_name prefix
+			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=2054426",
+		},
 	}
 	allowedFiringAlerts := helper.MetricConditions{
 		{
