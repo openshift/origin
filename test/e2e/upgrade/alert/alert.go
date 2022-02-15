@@ -108,8 +108,15 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 			},
 		},
 		{
-			Selector: map[string]string{"alertname": "KubeJobFailed", "namespace": "openshift-multus"}, // not sure how to do a job_name prefix
+			Selector: map[string]string{"alertname": "KubeJobFailed", "namespace": "openshift-multus"},
 			Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=2054426",
+			Matches: func(sample *model.Sample) bool {
+				// Only match if the job_name label starts with ip-reconciler:
+				if strings.HasPrefix(string(sample.Metric[model.LabelName("job_name")]), "ip-reconciler-") {
+					return true
+				}
+				return false
+			},
 		},
 	}
 	allowedFiringAlerts := helper.MetricConditions{
