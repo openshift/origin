@@ -324,6 +324,10 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 				Selector: map[string]string{"alertname": "HighlyAvailableWorkloadIncorrectlySpread", "namespace": "openshift-monitoring", "workload": "alertmanager-main"},
 				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1955489",
 			},
+			{
+				Selector: map[string]string{"alertname": "KubeJobFailed", "namespace": "openshift-multus"}, // not sure how to do a job_name prefix
+				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=2054426",
+			},
 		}
 		allowedFiringAlerts := helper.MetricConditions{
 			{
@@ -748,6 +752,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				"Watchdog",
 				"AlertmanagerReceiversNotConfigured",
 				"PrometheusRemoteWriteDesiredShards",
+				"KubeJobFailed", // this is a result of bug https://bugzilla.redhat.com/show_bug.cgi?id=2054426 .  We should catch these in the late test above.
 			}
 
 			// we exclude alerts that have their own separate tests.
