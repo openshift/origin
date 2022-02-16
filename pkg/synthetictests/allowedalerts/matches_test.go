@@ -29,21 +29,23 @@ func TestGetClosestP95Value(t *testing.T) {
 			name:      "test-that-failed-in-ci",
 			alertName: "etcdGRPCRequestsSlow",
 			jobType: platformidentification.JobType{
-				Release:     "4.10",
-				FromRelease: "4.10",
-				Platform:    "gcp",
-				Network:     "sdn",
-				Topology:    "ha",
+				Release:      "4.10",
+				FromRelease:  "4.10",
+				Platform:     "gcp",
+				Architecture: "amd64",
+				Network:      "sdn",
+				Topology:     "ha",
 			},
 			want: historicaldata.StatisticalDuration{
 				DataKey: historicaldata.DataKey{
 					Name: "etcdGRPCRequestsSlow",
 					JobType: platformidentification.JobType{
-						Release:     "4.10",
-						FromRelease: "4.10",
-						Platform:    "gcp",
-						Network:     "sdn",
-						Topology:    "ha",
+						Release:      "4.10",
+						FromRelease:  "4.10",
+						Platform:     "gcp",
+						Architecture: "amd64",
+						Network:      "sdn",
+						Topology:     "ha",
 					},
 				},
 
@@ -55,19 +57,21 @@ func TestGetClosestP95Value(t *testing.T) {
 			name:      "missing",
 			alertName: "ingress-to-oauth-server-reused-connections",
 			jobType: platformidentification.JobType{
-				Release:     "4.10",
-				FromRelease: "4.10",
-				Platform:    "azure",
-				Topology:    "missing",
+				Release:      "4.10",
+				FromRelease:  "4.10",
+				Platform:     "azure",
+				Architecture: "amd64",
+				Topology:     "missing",
 			},
 			want: historicaldata.StatisticalDuration{
 				DataKey: historicaldata.DataKey{
 					Name: "ingress-to-oauth-server-reused-connections",
 					JobType: platformidentification.JobType{
-						Release:     "4.10",
-						FromRelease: "4.10",
-						Platform:    "azure",
-						Topology:    "missing",
+						Release:      "4.10",
+						FromRelease:  "4.10",
+						Platform:     "azure",
+						Architecture: "amd64",
+						Topology:     "missing",
 					},
 				},
 
