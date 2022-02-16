@@ -15,6 +15,7 @@ SELECT
 	Release,
 	FromRelease,
 	Platform,
+	Architecture,
 	Network,
 	Topology,
 	ANY_VALUE(P95) AS P95,
