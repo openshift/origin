@@ -134,25 +134,20 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 
 		testCases := []certAuthTest{
 			{
-				name:        "/authorize - challenging-client - valid cert: we should eventually get access token in Location header",
-				cert:        goodCert,
-				key:         goodKey,
-				endpoint:    "/oauth/authorize?client_id=openshift-challenging-client&response_type=token",
-				expectToken: true,
+				name:     "/healtz - anonymous: anyone should be able to access it",
+				endpoint: "/healthz",
 			},
 			{
-				name:          "/authorize - challenging-client - unknown CA cert: expect 302 because we never get authenticated",
-				cert:          unknownCACert,
-				key:           unknownCAKey,
-				endpoint:      "/oauth/authorize?client_id=openshift-challenging-client&response_type=token",
-				expectedError: "302 Found",
+				name:     "/healthz - valid cert",
+				cert:     goodCert,
+				key:      goodKey,
+				endpoint: "/healthz",
 			},
 			{
-				name:          "/authorize - challenging-client - wrong CN cert: expect 500 because the verifier can generally return TLS errors :(",
-				cert:          badNameCert,
-				key:           badNameKey,
-				endpoint:      "/oauth/authorize?client_id=openshift-challenging-client&response_type=token",
-				expectedError: "500 Internal Server Error",
+				name:     "/healthz - unknown CA cert",
+				cert:     unknownCACert,
+				key:      unknownCAKey,
+				endpoint: "/healthz",
 			},
 			{
 				name:          "/metrics - anonymous: should not be publicly visible",
@@ -174,20 +169,25 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 				expectedError: "403 Forbidden",
 			},
 			{
-				name:     "/healtz - anonymous: anyone should be able to access it",
-				endpoint: "/healthz",
+				name:        "/authorize - challenging-client - valid cert: we should eventually get access token in Location header",
+				cert:        goodCert,
+				key:         goodKey,
+				endpoint:    "/oauth/authorize?client_id=openshift-challenging-client&response_type=token",
+				expectToken: true,
 			},
 			{
-				name:     "/healthz - valid cert",
-				cert:     goodCert,
-				key:      goodKey,
-				endpoint: "/healthz",
+				name:          "/authorize - challenging-client - unknown CA cert: expect 302 because we never get authenticated",
+				cert:          unknownCACert,
+				key:           unknownCAKey,
+				endpoint:      "/oauth/authorize?client_id=openshift-challenging-client&response_type=token",
+				expectedError: "302 Found",
 			},
 			{
-				name:     "/healthz - unknown CA cert",
-				cert:     unknownCACert,
-				key:      unknownCAKey,
-				endpoint: "/healthz",
+				name:          "/authorize - challenging-client - wrong CN cert: expect 500 because the verifier can generally return TLS errors :(",
+				cert:          badNameCert,
+				key:           badNameKey,
+				endpoint:      "/oauth/authorize?client_id=openshift-challenging-client&response_type=token",
+				expectedError: "500 Internal Server Error",
 			},
 		}
 
@@ -211,16 +211,20 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 				respDump, err := httputil.DumpResponse(resp, true)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				if len(tc.expectedError) == 0 && resp.StatusCode != 200 && resp.StatusCode != 302 {
+					gatherPostMortem(oc)
 					g.Fail(fmt.Sprintf("unexpected error response status (%d) while trying to reach '%s' endpoint: %s", resp.StatusCode, tc.endpoint, respDump))
 				} else if len(tc.expectedError) > 0 {
+					gatherPostMortem(oc)
 					o.Expect(resp.Status).To(o.ContainSubstring(tc.expectedError), fmt.Sprintf("full response header: %s\n", respDump))
 				}
 
 				token := getTokenFromResponse(resp)
 				if len(token) > 0 && !tc.expectToken {
+					gatherPostMortem(oc)
 					g.Fail("did not expect to get a token")
 				}
 				if len(token) == 0 && tc.expectToken {
+					gatherPostMortem(oc)
 					g.Fail(fmt.Sprintf("Location header does not contain the access token: '%s'", resp.Header.Get("Location")))
 				}
 
@@ -233,6 +237,19 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 		testBrowserClientRedirectsProperly(caCerts, oauthURL)
 	})
 })
+
+func gatherPostMortem(oc *exutil.CLI) {
+	authn, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(context.Background(), "authentication", metav1.GetOptions{})
+	if err != nil {
+		e2e.Logf("Error getting authentication operator: %v\n", err)
+	}
+	e2e.Logf("Authentication %v\n", authn)
+	routerCA, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(context.Background(), "default-ingress-cert", metav1.GetOptions{})
+	if err != nil {
+		e2e.Logf("Error getting authentication operator: %v\n", err)
+	}
+	e2e.Logf("Router CA %v\n", routerCA)
+}
 
 func testEndpointsWithValidToken(caCerts *x509.CertPool, oauthServerURL, token string) {
 	g.By("/metrics - token: requires user authorized to access the endpoint", func() {
