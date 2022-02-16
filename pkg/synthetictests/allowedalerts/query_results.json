@@ -36,8 +36,8 @@
     "Platform": "azure",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.74999999999999534",
-    "P99": "3.0"
+    "P95": "0.0",
+    "P99": "0.0"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -47,7 +47,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "1.749999999999998"
+    "P99": "1.3099999999999994"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -56,7 +56,7 @@
     "Platform": "gcp",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.0",
+    "P95": "3.0",
     "P99": "3.0"
   },
   {
@@ -66,8 +66,8 @@
     "Platform": "gcp",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "2.0499999999999829",
-    "P99": "3.2099999999999964"
+    "P95": "2.0",
+    "P99": "3.0"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -107,7 +107,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "0.5399999999999987"
+    "P99": "0.0"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -127,7 +127,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "2.0"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -137,17 +137,7 @@
     "Network": "sdn",
     "Topology": "single",
     "P95": "0.0",
-    "P99": "1.8499999999999972"
-  },
-  {
-    "AlertName": "KubeAPIErrorBudgetBurn",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P99": "2.5199999999999987"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -157,7 +147,7 @@
     "Network": "ovn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "0.269999999999994"
+    "P99": "0.0"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -256,8 +246,8 @@
     "Platform": "aws",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "3.0"
+    "P95": "3.0",
+    "P99": "3.549999999999998"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -267,7 +257,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "3.0",
-    "P99": "4.0"
+    "P99": "3.4299999999999997"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -276,8 +266,8 @@
     "Platform": "azure",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "3.4499999999999993",
-    "P99": "3.8899999999999997"
+    "P95": "2.75",
+    "P99": "2.95"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -287,7 +277,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "3.0",
-    "P99": "3.3699999999999948"
+    "P99": "3.7099999999999982"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -296,8 +286,8 @@
     "Platform": "gcp",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
+    "P95": "3.0",
+    "P99": "4.6199999999999992"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -356,8 +346,8 @@
     "Platform": "aws",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "2.0",
-    "P99": "2.0"
+    "P95": "2.3499999999999979",
+    "P99": "3.0"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -367,7 +357,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "2.0",
-    "P99": "3.0"
+    "P99": "3.7499999999999973"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -376,8 +366,8 @@
     "Platform": "azure",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "1.9499999999999991"
+    "P95": "0.14999999999999747",
+    "P99": "2.4299999999999997"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -387,7 +377,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "2.3899999999999988"
+    "P99": "0.0"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -396,8 +386,8 @@
     "Platform": "gcp",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.5699999999999994"
+    "P95": "0.29999999999999849",
+    "P99": "1.6599999999999997"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -457,7 +447,7 @@
     "Network": "sdn",
     "Topology": "single",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "1.4099999999999995"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -476,8 +466,8 @@
     "Platform": "aws",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
+    "P95": "0.0",
+    "P99": "0.0"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -486,8 +476,8 @@
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.629999999999999"
+    "P95": "0.0",
+    "P99": "0.0"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -496,8 +486,8 @@
     "Platform": "azure",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "1.6999999999999997",
-    "P99": "1.94"
+    "P95": "0.0",
+    "P99": "0.0"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -506,8 +496,8 @@
     "Platform": "azure",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "1.0999999999999512",
-    "P99": "3.0"
+    "P95": "0.0",
+    "P99": "0.0"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -517,7 +507,7 @@
     "Network": "ovn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "2.0"
+    "P99": "0.0"
   },
   {
     "AlertName": "KubeAPIErrorBudgetBurn",
@@ -656,6 +646,46 @@
     "Platform": "",
     "Network": "sdn",
     "Topology": "ha",
+    "P95": "0.74999999999999978",
+    "P99": "0.95"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "1.5499999999999996",
+    "P99": "1.91"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
     "P95": "2.0",
     "P99": "2.0"
   },
@@ -663,51 +693,11 @@
     "AlertName": "KubeClientErrors",
     "Release": "4.10",
     "FromRelease": "",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.2499999999999982",
-    "P99": "4.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "",
     "Platform": "gcp",
     "Network": "ovn",
     "Topology": "ha",
     "P95": "3.0",
-    "P99": "3.5299999999999994"
+    "P99": "3.0"
   },
   {
     "AlertName": "KubeClientErrors",
@@ -717,7 +707,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "2.0",
-    "P99": "3.0"
+    "P99": "2.3299999999999992"
   },
   {
     "AlertName": "KubeClientErrors",
@@ -746,8 +736,8 @@
     "Platform": "ovirt",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "1.3499999999999985",
-    "P99": "2.67"
+    "P95": "2.3499999999999996",
+    "P99": "2.87"
   },
   {
     "AlertName": "KubeClientErrors",
@@ -756,14 +746,94 @@
     "Platform": "ovirt",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "2.349999999999997",
-    "P99": "4.5399999999999991"
+    "P95": "2.0",
+    "P99": "3.0"
   },
   {
     "AlertName": "KubeClientErrors",
     "Release": "4.10",
     "FromRelease": "",
     "Platform": "vsphere",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "1.6999999999999997",
+    "P99": "1.94"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.0",
+    "P99": "2.0"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "2.0",
+    "P99": "2.63"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "1.4199999999999959"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
     "Network": "ovn",
     "Topology": "ha",
     "P95": "3.0",
@@ -772,58 +842,108 @@
   {
     "AlertName": "KubeClientErrors",
     "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "vsphere",
+    "FromRelease": "4.10",
+    "Platform": "metal",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "2.4499999999999771",
+    "P95": "3.0",
     "P99": "3.0"
   },
   {
     "AlertName": "KubeClientErrors",
     "Release": "4.10",
-    "FromRelease": "",
+    "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "single",
-    "P95": "2.849999999999997",
-    "P99": "3.7399999999999989"
+    "P95": "1.4999999999999996",
+    "P99": "1.9"
   },
   {
     "AlertName": "KubeClientErrors",
     "Release": "4.10",
-    "FromRelease": "",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "1.0999999999999992",
+    "P99": "1.8199999999999998"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.10",
+    "FromRelease": "4.9",
     "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "2.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "2.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
     "Network": "ovn",
     "Topology": "ha",
     "P95": "0.0",
@@ -832,8 +952,8 @@
   {
     "AlertName": "KubeClientErrors",
     "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
+    "FromRelease": "4.9",
+    "Platform": "metal",
     "Network": "sdn",
     "Topology": "ha",
     "P95": "1.4999999999999996",
@@ -842,146 +962,6 @@
   {
     "AlertName": "KubeClientErrors",
     "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "2.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "2.3099999999999996"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.6899999999999995"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "1.0999999999999992",
-    "P99": "1.8199999999999998"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "2.0",
-    "P99": "2.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "4.8",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.73999999999999"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.6499999999999995"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "ovirt",
     "Network": "sdn",
@@ -1005,36 +985,6 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "2.2499999999999813",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "KubeClientErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
     "Topology": "ha",
     "P95": "3.0",
     "P99": "4.0"
@@ -1043,11 +993,41 @@
     "AlertName": "KubeClientErrors",
     "Release": "4.11",
     "FromRelease": "",
-    "Platform": "gcp",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "azure",
     "Network": "ovn",
     "Topology": "ha",
     "P95": "3.0",
-    "P99": "3.5699999999999994"
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.0",
+    "P99": "2.3499999999999996"
+  },
+  {
+    "AlertName": "KubeClientErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.1499999999999995",
+    "P99": "3.83"
   },
   {
     "AlertName": "KubeClientErrors",
@@ -1056,7 +1036,7 @@
     "Platform": "gcp",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "3.0",
+    "P95": "2.0",
     "P99": "3.0"
   },
   {
@@ -1086,7 +1066,7 @@
     "Platform": "ovirt",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "2.0",
+    "P95": "1.8999999999999946",
     "P99": "3.0"
   },
   {
@@ -1096,7 +1076,7 @@
     "Platform": "vsphere",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "3.0",
+    "P95": "2.0",
     "P99": "3.0"
   },
   {
@@ -1106,7 +1086,7 @@
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "single",
-    "P95": "2.2499999999999973",
+    "P95": "2.0499999999999972",
     "P99": "3.0"
   },
   {
@@ -1137,7 +1117,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "3.0"
+    "P99": "2.169999999999999"
   },
   {
     "AlertName": "KubeClientErrors",
@@ -1167,7 +1147,7 @@
     "Network": "ovn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "2.0"
+    "P99": "0.0"
   },
   {
     "AlertName": "KubeClientErrors",
@@ -1186,8 +1166,8 @@
     "Platform": "metal",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P95": "3.0",
+    "P99": "3.0"
   },
   {
     "AlertName": "KubeClientErrors",
@@ -1196,8 +1176,8 @@
     "Platform": "metal",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P95": "3.0",
+    "P99": "3.0"
   },
   {
     "AlertName": "KubeClientErrors",
@@ -1227,7 +1207,7 @@
     "Network": "ovn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "2.0"
+    "P99": "3.0"
   },
   {
     "AlertName": "KubeClientErrors",
@@ -1237,7 +1217,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "3.0"
+    "P99": "2.2499999999999982"
   },
   {
     "AlertName": "KubeClientErrors",
@@ -1257,7 +1237,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "2.0",
-    "P99": "2.0"
+    "P99": "3.0"
   },
   {
     "AlertName": "KubeClientErrors",
@@ -1286,8 +1266,8 @@
     "Platform": "azure",
     "Network": "sdn",
     "Topology": "single",
-    "P95": "2.0",
-    "P99": "2.0"
+    "P95": "1.2499999999999993",
+    "P99": "1.8499999999999999"
   },
   {
     "AlertName": "KubeClientErrors",
@@ -1306,8 +1286,8 @@
     "Platform": "",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "1.0999999999999992",
-    "P99": "1.8199999999999998"
+    "P95": "0.0",
+    "P99": "0.0"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1315,6 +1295,16 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
     "Topology": "ha",
     "P95": "2.0",
     "P99": "3.0"
@@ -1323,51 +1313,41 @@
     "AlertName": "KubePersistentVolumeErrors",
     "Release": "4.10",
     "FromRelease": "",
-    "Platform": "aws",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "1594.4999999999986",
+    "P99": "2867.7"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "0.34999999999995146",
+    "P95": "3.0",
+    "P99": "374.69999999999925"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "4.0",
+    "P99": "4.0"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.0",
     "P99": "3.0"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.2999999999999989"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.7299999999999978"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "1664.3999999999987"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.1799999999999962"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1376,8 +1356,8 @@
     "Platform": "metal",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "3.0"
+    "P95": "1.6499999999999961",
+    "P99": "22.879999999999992"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1396,8 +1376,8 @@
     "Platform": "ovirt",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "1.3499999999999985",
-    "P99": "2.67"
+    "P95": "0.0",
+    "P99": "0.0"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1407,7 +1387,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "0.809999999999998"
+    "P99": "1.1399999999999992"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1416,8 +1396,8 @@
     "Platform": "vsphere",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "1.3499999999999985",
-    "P99": "2.67"
+    "P95": "0.84999999999999987",
+    "P99": "0.97"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1426,8 +1406,8 @@
     "Platform": "vsphere",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
+    "P95": "0.44999999999999329",
+    "P99": "2.0"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1437,15 +1417,25 @@
     "Network": "sdn",
     "Topology": "single",
     "P95": "0.0",
-    "P99": "3.1099999999999985"
+    "P99": "1.2599999999999993"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
     "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "4.0"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
     "Network": "sdn",
-    "Topology": "single",
+    "Topology": "ha",
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -1453,31 +1443,11 @@
     "AlertName": "KubePersistentVolumeErrors",
     "Release": "4.10",
     "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.10",
-    "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "670.19999999999811",
-    "P99": "2247.68"
+    "P95": "798.19999999999857",
+    "P99": "2207.2799999999993"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1486,8 +1456,8 @@
     "Platform": "azure",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "4.2499999999999991",
-    "P99": "4.85"
+    "P95": "2.75",
+    "P99": "2.95"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1497,7 +1467,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "3.0",
-    "P99": "866.49999999999966"
+    "P99": "3.0"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1507,7 +1477,7 @@
     "Network": "ovn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "2.3099999999999996"
+    "P99": "0.0"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1536,8 +1506,8 @@
     "Platform": "azure",
     "Network": "sdn",
     "Topology": "single",
-    "P95": "84.599999999999653",
-    "P99": "676.17999999999984"
+    "P95": "30.499999999999975",
+    "P99": "53.3"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1557,236 +1527,236 @@
     "Network": "ovn",
     "Topology": "ha",
     "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "826.99999999999864",
+    "P99": "3208.4199999999992"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.6199999999999988"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.2499999999999991",
+    "P99": "2.8499999999999996"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "2.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "1.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.9999999999999991",
+    "P99": "2491.1999999999994"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "2002.2999999999965"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "2.1499999999999995",
+    "P99": "2.83"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "1.0499999999999956",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "2.0"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.54999999999999161",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0",
+    "P99": "1.819999999999999"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "KubePersistentVolumeErrors",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "2.0",
     "P99": "4.0"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "2.4499999999999993",
-    "P99": "2.8899999999999997"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "659.0",
-    "P99": "1498.0"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "2.1899999999999995"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "1.9499999999999991"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "ovirt",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "vsphere",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.49999999999999689",
-    "P99": "2.6499999999999995"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.1999999999999984",
-    "P99": "209.43999999999988"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "26.659999999999918"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.799999999999998",
-    "P99": "1541.1999999999989"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "3.4299999999999988"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "vsphere",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "2.4499999999999682",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "KubePersistentVolumeErrors",
     "Release": "4.11",
     "FromRelease": "4.10",
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "0.29999999999998783",
+    "P95": "0.0",
     "P99": "3.0"
   },
   {
@@ -1806,8 +1776,8 @@
     "Platform": "azure",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "4.0",
-    "P99": "719.0"
+    "P95": "106.59999999999751",
+    "P99": "2289.12"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1816,8 +1786,8 @@
     "Platform": "gcp",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
+    "P95": "3.0",
+    "P99": "4.0"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1876,8 +1846,8 @@
     "Platform": "aws",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
+    "P95": "3.0",
+    "P99": "4.0"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1887,7 +1857,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "2.0",
-    "P99": "3.0"
+    "P99": "3.2499999999999982"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1896,8 +1866,8 @@
     "Platform": "azure",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "3.0",
-    "P99": "389.98999999999893"
+    "P95": "290.949999999999",
+    "P99": "3994.2399999999989"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1907,7 +1877,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "3.0",
-    "P99": "1772.3999999999999"
+    "P99": "4.0"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1936,8 +1906,8 @@
     "Platform": "azure",
     "Network": "sdn",
     "Topology": "single",
-    "P95": "2.0",
-    "P99": "115.27999999999994"
+    "P95": "121.59999999999958",
+    "P99": "501.11999999999989"
   },
   {
     "AlertName": "KubePersistentVolumeErrors",
@@ -1946,8 +1916,8 @@
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "2.0",
-    "P99": "2.0"
+    "P95": "0.0",
+    "P99": "0.0"
   },
   {
     "AlertName": "MCDDrainError",
@@ -2027,7 +1997,7 @@
     "Network": "ovn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "22.009999999999991"
   },
   {
     "AlertName": "MCDDrainError",
@@ -2087,17 +2057,7 @@
     "Network": "sdn",
     "Topology": "single",
     "P95": "0.0",
-    "P99": "1.8499999999999972"
-  },
-  {
-    "AlertName": "MCDDrainError",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P99": "1.2599999999999993"
   },
   {
     "AlertName": "MCDDrainError",
@@ -2237,7 +2197,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "44.019999999999875"
   },
   {
     "AlertName": "MCDDrainError",
@@ -2247,7 +2207,7 @@
     "Network": "ovn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "604.1899999999988"
   },
   {
     "AlertName": "MCDDrainError",
@@ -2407,7 +2367,7 @@
     "Network": "sdn",
     "Topology": "single",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "2.0"
   },
   {
     "AlertName": "MCDDrainError",
@@ -2626,8 +2586,8 @@
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
+    "P95": "3.0",
+    "P99": "23.749999999999883"
   },
   {
     "AlertName": "PrometheusOperatorWatchErrors",
@@ -2636,8 +2596,8 @@
     "Platform": "azure",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "1.9499999999999991"
+    "P95": "1.6499999999999988",
+    "P99": "2.7299999999999995"
   },
   {
     "AlertName": "PrometheusOperatorWatchErrors",
@@ -2655,25 +2615,65 @@
     "FromRelease": "",
     "Platform": "gcp",
     "Network": "ovn",
+    "Topology": "ha",
+    "P95": "2.4499999999999993",
+    "P99": "2.8899999999999997"
+  },
+  {
+    "AlertName": "PrometheusOperatorWatchErrors",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
     "Topology": "ha",
     "P95": "3.0",
-    "P99": "3.5299999999999994"
+    "P99": "102.8399999999998"
   },
   {
     "AlertName": "PrometheusOperatorWatchErrors",
     "Release": "4.10",
     "FromRelease": "",
-    "Platform": "gcp",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "PrometheusOperatorWatchErrors",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "2.0",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "PrometheusOperatorWatchErrors",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "1.0499999999999983",
+    "P99": "2.6099999999999994"
+  },
+  {
+    "AlertName": "PrometheusOperatorWatchErrors",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "1.6999999999999962",
     "P99": "3.0"
   },
   {
     "AlertName": "PrometheusOperatorWatchErrors",
     "Release": "4.10",
     "FromRelease": "",
-    "Platform": "metal",
+    "Platform": "vsphere",
     "Network": "ovn",
     "Topology": "ha",
     "P95": "0.0",
@@ -2683,27 +2683,7 @@
     "AlertName": "PrometheusOperatorWatchErrors",
     "Release": "4.10",
     "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "PrometheusOperatorWatchErrors",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.899999999999999",
-    "P99": "1.7799999999999998"
-  },
-  {
-    "AlertName": "PrometheusOperatorWatchErrors",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "ovirt",
+    "Platform": "vsphere",
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
@@ -2713,41 +2693,11 @@
     "AlertName": "PrometheusOperatorWatchErrors",
     "Release": "4.10",
     "FromRelease": "",
-    "Platform": "vsphere",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "PrometheusOperatorWatchErrors",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "vsphere",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "PrometheusOperatorWatchErrors",
-    "Release": "4.10",
-    "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "single",
     "P95": "3.0",
-    "P99": "328.27999999999952"
-  },
-  {
-    "AlertName": "PrometheusOperatorWatchErrors",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P99": "3.0"
   },
   {
     "AlertName": "PrometheusOperatorWatchErrors",
@@ -2807,7 +2757,7 @@
     "Network": "ovn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "2.3099999999999996"
+    "P99": "0.0"
   },
   {
     "AlertName": "PrometheusOperatorWatchErrors",
@@ -2826,8 +2776,8 @@
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P95": "186.89999999999992",
+    "P99": "250.98"
   },
   {
     "AlertName": "PrometheusOperatorWatchErrors",
@@ -2836,8 +2786,8 @@
     "Platform": "azure",
     "Network": "sdn",
     "Topology": "single",
-    "P95": "0.0",
-    "P99": "1585.0799999999992"
+    "P95": "1258.4999999999989",
+    "P99": "2265.2999999999997"
   },
   {
     "AlertName": "PrometheusOperatorWatchErrors",
@@ -2956,63 +2906,63 @@
     "Platform": "aws",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "4.0",
+    "P95": "2.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "PrometheusOperatorWatchErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "PrometheusOperatorWatchErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "PrometheusOperatorWatchErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "1.4999999999999942",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "PrometheusOperatorWatchErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "2.0",
+    "P99": "2.0"
+  },
+  {
+    "AlertName": "PrometheusOperatorWatchErrors",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
     "P99": "4.0"
   },
   {
     "AlertName": "PrometheusOperatorWatchErrors",
     "Release": "4.11",
     "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "PrometheusOperatorWatchErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "PrometheusOperatorWatchErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "1.0",
-    "P99": "2.3899999999999988"
-  },
-  {
-    "AlertName": "PrometheusOperatorWatchErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.5699999999999994"
-  },
-  {
-    "AlertName": "PrometheusOperatorWatchErrors",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "PrometheusOperatorWatchErrors",
-    "Release": "4.11",
-    "FromRelease": "",
     "Platform": "metal",
     "Network": "ovn",
     "Topology": "ha",
@@ -3036,8 +2986,8 @@
     "Platform": "ovirt",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "2.2299999999999995"
+    "P95": "2.0",
+    "P99": "2.3899999999999997"
   },
   {
     "AlertName": "PrometheusOperatorWatchErrors",
@@ -3056,8 +3006,8 @@
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "single",
-    "P95": "2.0",
-    "P99": "3.0"
+    "P95": "2.9999999999999973",
+    "P99": "48.999999999999936"
   },
   {
     "AlertName": "PrometheusOperatorWatchErrors",
@@ -3077,7 +3027,7 @@
     "Network": "ovn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "115.04999999999916"
   },
   {
     "AlertName": "PrometheusOperatorWatchErrors",
@@ -3236,8 +3186,8 @@
     "Platform": "azure",
     "Network": "sdn",
     "Topology": "single",
-    "P95": "0.0",
-    "P99": "37.759999999999984"
+    "P95": "1010.9999999999993",
+    "P99": "1615.8"
   },
   {
     "AlertName": "PrometheusOperatorWatchErrors",
@@ -3256,108 +3206,108 @@
     "Platform": "",
     "Network": "sdn",
     "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "4.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "2.55",
+    "P99": "2.91"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.3299999999999992"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.69999999999999885",
+    "P99": "1.7399999999999998"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "Topology": "ha",
     "P95": "2.0",
-    "P99": "2.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.6499999999999995"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.7499999999999982"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.5299999999999994"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "2.7899999999999947"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "2.349999999999997",
-    "P99": "3.0"
+    "P99": "2.5699999999999994"
   },
   {
     "AlertName": "etcdGRPCRequestsSlow",
@@ -3366,8 +3316,8 @@
     "Platform": "vsphere",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "720.94999999999891",
-    "P99": "1748.9899999999998"
+    "P95": "1.6999999999999997",
+    "P99": "1.94"
   },
   {
     "AlertName": "etcdGRPCRequestsSlow",
@@ -3376,8 +3326,8 @@
     "Platform": "vsphere",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "2576.1499999999983",
-    "P99": "9223.6299999999974"
+    "P95": "3.0",
+    "P99": "175.39999999999992"
   },
   {
     "AlertName": "etcdGRPCRequestsSlow",
@@ -3386,16 +3336,76 @@
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "single",
-    "P95": "4.3999999999999941",
-    "P99": "72.139999999999958"
+    "P95": "294.49999999999994",
+    "P99": "429.09999999999991"
   },
   {
     "AlertName": "etcdGRPCRequestsSlow",
     "Release": "4.10",
-    "FromRelease": "",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.7099999999999982"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.899999999999999",
+    "P99": "3.78"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "95.269999999999925"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "4.10",
     "Platform": "metal",
     "Network": "sdn",
-    "Topology": "single",
+    "Topology": "ha",
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -3404,6 +3414,36 @@
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "2.0",
+    "P99": "2.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "453.99999999999972",
+    "P99": "729.99999999999989"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
     "Network": "ovn",
     "Topology": "ha",
     "P95": "3.0",
@@ -3412,29 +3452,19 @@
   {
     "AlertName": "etcdGRPCRequestsSlow",
     "Release": "4.10",
-    "FromRelease": "4.10",
+    "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "ha",
     "P95": "3.0",
-    "P99": "4.0"
+    "P99": "3.4299999999999997"
   },
   {
     "AlertName": "etcdGRPCRequestsSlow",
     "Release": "4.10",
-    "FromRelease": "4.10",
+    "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "5.6399999999999944"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "sdn",
     "Topology": "ha",
     "P95": "2.75",
     "P99": "2.95"
@@ -3442,112 +3472,22 @@
   {
     "AlertName": "etcdGRPCRequestsSlow",
     "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "2.3099999999999996"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "2.0",
-    "P99": "2.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "4.10",
+    "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "sdn",
-    "Topology": "single",
-    "P95": "426.19999999999953",
-    "P99": "763.61999999999989"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "4.8",
-    "Platform": "aws",
-    "Network": "sdn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P95": "81.199999999999719",
+    "P99": "194.65999999999994"
   },
   {
     "AlertName": "etcdGRPCRequestsSlow",
     "Release": "4.10",
     "FromRelease": "4.9",
-    "Platform": "aws",
+    "Platform": "gcp",
     "Network": "ovn",
     "Topology": "ha",
     "P95": "3.0",
-    "P99": "4.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.3299999999999983"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "39.499999999999986",
-    "P99": "55.099999999999994"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "179.0",
-    "P99": "606.19999999999948"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "2.0",
-    "P99": "91.999999999999758"
+    "P99": "55.099999999999945"
   },
   {
     "AlertName": "etcdGRPCRequestsSlow",
@@ -3556,8 +3496,8 @@
     "Platform": "gcp",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P95": "21.749999999999993",
+    "P99": "27.549999999999997"
   },
   {
     "AlertName": "etcdGRPCRequestsSlow",
@@ -3576,8 +3516,8 @@
     "Platform": "metal",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "0.74999999999999534",
-    "P99": "3.0"
+    "P95": "1.4999999999999996",
+    "P99": "1.9"
   },
   {
     "AlertName": "etcdGRPCRequestsSlow",
@@ -3587,7 +3527,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "32.449999999999974"
+    "P99": "0.0"
   },
   {
     "AlertName": "etcdGRPCRequestsSlow",
@@ -3596,8 +3536,8 @@
     "Platform": "vsphere",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "1397.8",
-    "P99": "1410.76"
+    "P95": "0.0",
+    "P99": "0.0"
   },
   {
     "AlertName": "etcdGRPCRequestsSlow",
@@ -3606,8 +3546,8 @@
     "Platform": "aws",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "3.2499999999999982",
-    "P99": "4.0"
+    "P95": "3.0",
+    "P99": "3.4699999999999998"
   },
   {
     "AlertName": "etcdGRPCRequestsSlow",
@@ -3615,6 +3555,16 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "4.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
     "Topology": "ha",
     "P95": "3.0",
     "P99": "3.0"
@@ -3624,2090 +3574,2050 @@
     "Release": "4.11",
     "FromRelease": "",
     "Platform": "azure",
-    "Network": "ovn",
+    "Network": "sdn",
     "Topology": "ha",
     "P95": "3.0",
-    "P99": "3866.679999999998"
+    "P99": "3.0"
   },
   {
     "AlertName": "etcdGRPCRequestsSlow",
     "Release": "4.11",
     "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.2999999999999985",
+    "P99": "4.66"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.4899999999999984"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "1.0499999999999956",
+    "P99": "3.67"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "4.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "155.11999999999983"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "316.49999999999994",
+    "P99": "484.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "4.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.169999999999999"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "4.10",
     "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "4.0",
+    "P99": "118.33"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "4.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "126.37999999999995"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "4.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "4.0",
+    "P99": "4.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "4.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "4.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "1254.9999999999995",
+    "P99": "1336.6"
+  },
+  {
+    "AlertName": "etcdGRPCRequestsSlow",
+    "Release": "unknown",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "22.009999999999991"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.14999999999999836",
+    "P99": "1.6299999999999997"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "80.599999999999952",
+    "P99": "128.11999999999998"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "1.0999999999999956"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "2.2499999999999991",
+    "P99": "2.8499999999999996"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "1.0",
+    "P99": "2.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "268.99999999999989",
+    "P99": "307.4"
+  },
+  {
+    "AlertName": "etcdHighCommitDurations",
+    "Release": "unknown",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0",
+    "P99": "1.2599999999999993"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0",
+    "P99": "2.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "4.11",
+    "FromRelease": "4.11",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.49999999999999867",
+    "P99": "1.6999999999999997"
+  },
+  {
+    "AlertName": "etcdHighFsyncDurations",
+    "Release": "unknown",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "1.4999999999999996",
+    "P99": "1.9"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "2.0",
+    "P99": "2.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "221.19999999999987"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.4499999999999993",
+    "P99": "3.8899999999999997"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.6499999999999968",
+    "P99": "3.3299999999999992"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "22.009999999999991"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "19.799999999999965",
+    "P99": "51.16"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "42.499999999999886",
+    "P99": "181.39999999999998"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "1.8499999999999999",
+    "P99": "1.97"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.0",
+    "P99": "2.4899999999999984"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "1.1499999999999984",
+    "P99": "2.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "29.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "4.8999999999999986",
+    "P99": "5.7799999999999994"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "88.0",
+    "P99": "239.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "77.199999999999974",
+    "P99": "102.64"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "1.4999999999999996",
+    "P99": "1.9"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "2.0",
+    "P99": "2.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "5.7999999999994056",
+    "P99": "239.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "2.0",
+    "P99": "3.9299999999999979"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "2.3499999999999979",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.7499999999999973"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "27.699999999999974",
+    "P99": "29.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "11.839999999999986"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "13.499999999999986"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "29.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "aws",
     "Network": "sdn",
     "Topology": "ha",
     "P95": "3.0",
     "P99": "5.0"
   },
   {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.44999999999997908",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "vsphere",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "2214.7999999999997",
-    "P99": "7534.4999999999964"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "3.0",
-    "P99": "132.19999999999987"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
+    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
     "Release": "4.11",
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "ovn",
-    "Topology": "ha",
-    "P95": "47.79999999999999",
-    "P99": "56.76"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "sdn",
     "Topology": "ha",
     "P95": "59.0",
-    "P99": "245.53999999999971"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "2.0",
-    "P99": "59.899999999999892"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "ovirt",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "40.299999999999983"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "vsphere",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "411.9499999999997",
-    "P99": "681.58999999999992"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "46.999999999999908"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "1118.5",
-    "P99": "1241.4499999999998"
-  },
-  {
-    "AlertName": "etcdGRPCRequestsSlow",
-    "Release": "unknown",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.5499999999999996",
-    "P99": "0.90999999999999992"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.899999999999999"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "vsphere",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "vsphere",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "2.8899999999999952"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "1.8499999999999972"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "2.5499999999999918"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "103.99999999999997",
-    "P99": "207.04999999999998"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.8",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "ovirt",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "vsphere",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.77999999999999714"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "vsphere",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "2.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "ovirt",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "vsphere",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "269.0",
-    "P99": "359.0"
-  },
-  {
-    "AlertName": "etcdHighCommitDurations",
-    "Release": "unknown",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "vsphere",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "vsphere",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "1.4799999999999978"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.8",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "ovirt",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "vsphere",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "vsphere",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "ovirt",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "vsphere",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "4.11",
-    "FromRelease": "4.11",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "2.0",
-    "P99": "2.0"
-  },
-  {
-    "AlertName": "etcdHighFsyncDurations",
-    "Release": "unknown",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "2.0",
-    "P99": "2.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0699999999999905"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "142.99999999999977",
-    "P99": "308.2999999999999"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "5.0",
-    "P99": "250.99999999999937"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "89.0",
-    "P99": "89.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.1999999999999966",
-    "P99": "319.83999999999992"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "vsphere",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "2.4499999999999993",
-    "P99": "2.8899999999999997"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "vsphere",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.8599999999999959"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "2.0",
-    "P99": "3.7399999999999989"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "29.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "133.99999999999955",
-    "P99": "552.99999999999989"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "2.75",
-    "P99": "2.95"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "2.0",
-    "P99": "2.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "2.0",
-    "P99": "2.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "2.0",
-    "P99": "2.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.8",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "7.3299999999999947"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "ovirt",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "vsphere",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "60.319999999999993"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.5699999999999994"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "41.719999999999878"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "vsphere",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "2.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
     "P99": "59.0"
   },
   {
     "AlertName": "etcdHighNumberOfFailedGRPCRequests",
     "Release": "4.11",
     "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "2.8499999999999996",
-    "P99": "2.9699999999999998"
-  },
-  {
-    "AlertName": "etcdHighNumberOfFailedGRPCRequests",
-    "Release": "4.11",
-    "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "59.0",
-    "P99": "151.09999999999985"
+    "P95": "90.499999999999275",
+    "P99": "299.0"
   },
   {
     "AlertName": "etcdHighNumberOfFailedGRPCRequests",
@@ -5716,8 +5626,8 @@
     "Platform": "gcp",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "2.0",
-    "P99": "29.0"
+    "P95": "3.0",
+    "P99": "3.0"
   },
   {
     "AlertName": "etcdHighNumberOfFailedGRPCRequests",
@@ -5756,8 +5666,8 @@
     "Platform": "ovirt",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "7.2499999999999547",
-    "P99": "67.999999999999986"
+    "P95": "59.0",
+    "P99": "208.09999999999994"
   },
   {
     "AlertName": "etcdHighNumberOfFailedGRPCRequests",
@@ -5777,7 +5687,7 @@
     "Network": "ovn",
     "Topology": "ha",
     "P95": "3.0",
-    "P99": "89.0"
+    "P99": "29.0"
   },
   {
     "AlertName": "etcdHighNumberOfFailedGRPCRequests",
@@ -5786,7 +5696,7 @@
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "3.0",
+    "P95": "3.249999999999992",
     "P99": "4.0"
   },
   {
@@ -5797,7 +5707,7 @@
     "Network": "ovn",
     "Topology": "ha",
     "P95": "59.0",
-    "P99": "208.0"
+    "P99": "157.69999999999996"
   },
   {
     "AlertName": "etcdHighNumberOfFailedGRPCRequests",
@@ -5806,8 +5716,8 @@
     "Platform": "gcp",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "2.0",
-    "P99": "2.1299999999999937"
+    "P95": "3.0",
+    "P99": "4.0"
   },
   {
     "AlertName": "etcdHighNumberOfFailedGRPCRequests",
@@ -5836,8 +5746,8 @@
     "Platform": "azure",
     "Network": "sdn",
     "Topology": "single",
-    "P95": "2.0",
-    "P99": "2.0"
+    "P95": "2.2499999999999991",
+    "P99": "2.8499999999999996"
   },
   {
     "AlertName": "etcdHighNumberOfFailedGRPCRequests",
@@ -5866,8 +5776,8 @@
     "Platform": "aws",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.399999999999995",
-    "P99": "185.1599999999998"
+    "P95": "210.99999999999986",
+    "P99": "539.39999999999986"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -5876,8 +5786,8 @@
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "2.0",
-    "P99": "524.19999999999982"
+    "P95": "297.0",
+    "P99": "477.0"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -5886,8 +5796,8 @@
     "Platform": "azure",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "3.0",
-    "P99": "421.55999999999977"
+    "P95": "0.0",
+    "P99": "0.0"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -5896,73 +5806,73 @@
     "Platform": "azure",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "1.5499999999999898",
+    "P95": "118.3",
+    "P99": "254.33999999999997"
+  },
+  {
+    "AlertName": "etcdHighNumberOfLeaderChanges",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "79.999999999999972",
+    "P99": "111.19999999999999"
+  },
+  {
+    "AlertName": "etcdHighNumberOfLeaderChanges",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "174.0999999999998",
+    "P99": "189.20999999999995"
+  },
+  {
+    "AlertName": "etcdHighNumberOfLeaderChanges",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfLeaderChanges",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfLeaderChanges",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "19.099999999999966",
+    "P99": "51.019999999999996"
+  },
+  {
+    "AlertName": "etcdHighNumberOfLeaderChanges",
+    "Release": "4.10",
+    "FromRelease": "",
+    "Platform": "ovirt",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "118.55",
     "P99": "119.0"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
     "Release": "4.10",
     "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfLeaderChanges",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "2.0",
-    "P99": "353.09999999999974"
-  },
-  {
-    "AlertName": "etcdHighNumberOfLeaderChanges",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfLeaderChanges",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfLeaderChanges",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfLeaderChanges",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "2.2499999999999964",
-    "P99": "404.49999999999989"
-  },
-  {
-    "AlertName": "etcdHighNumberOfLeaderChanges",
-    "Release": "4.10",
-    "FromRelease": "",
     "Platform": "vsphere",
     "Network": "ovn",
     "Topology": "ha",
@@ -5976,8 +5886,8 @@
     "Platform": "vsphere",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "2.8499999999999952"
+    "P95": "58.999999999999815",
+    "P99": "224.99999999999983"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -5987,17 +5897,7 @@
     "Network": "sdn",
     "Topology": "single",
     "P95": "0.0",
-    "P99": "1.8499999999999972"
-  },
-  {
-    "AlertName": "etcdHighNumberOfLeaderChanges",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P99": "1.889999999999999"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6006,8 +5906,8 @@
     "Platform": "aws",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "73.749999999998124",
-    "P99": "701.34999999999934"
+    "P95": "1137.0",
+    "P99": "1377.0"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6016,8 +5916,8 @@
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "308.39999999999975"
+    "P95": "1211.9999999999984",
+    "P99": "2543.9999999999995"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6026,8 +5926,8 @@
     "Platform": "azure",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "390.59999999999968"
+    "P95": "82.59999999999981",
+    "P99": "262.43999999999983"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6046,8 +5946,8 @@
     "Platform": "gcp",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "130.59999999999795",
-    "P99": "597.04"
+    "P95": "869.19999999999959",
+    "P99": "1198.1999999999998"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6206,8 +6106,8 @@
     "Platform": "aws",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "2.5999999999999988"
+    "P95": "222.24999999999983",
+    "P99": "297.35"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6216,8 +6116,8 @@
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "3.0",
-    "P99": "529.59999999999991"
+    "P95": "178.0",
+    "P99": "372.5999999999998"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6226,8 +6126,8 @@
     "Platform": "azure",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "1.9499999999999991"
+    "P95": "2.0",
+    "P99": "47.599999999999987"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6236,8 +6136,8 @@
     "Platform": "azure",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.77999999999999714"
+    "P95": "178.5",
+    "P99": "509.29999999999984"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6246,8 +6146,8 @@
     "Platform": "gcp",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "3.0",
-    "P99": "392.49999999999983"
+    "P95": "118.05",
+    "P99": "118.81"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6256,8 +6156,8 @@
     "Platform": "gcp",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "3.0",
-    "P99": "387.68999999999994"
+    "P95": "59.0",
+    "P99": "178.0"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6286,8 +6186,8 @@
     "Platform": "ovirt",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "2.2299999999999995"
+    "P95": "141.99999999999972",
+    "P99": "451.87999999999971"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6297,7 +6197,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "33.549999999999741"
+    "P99": "0.0"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6307,7 +6207,7 @@
     "Network": "sdn",
     "Topology": "single",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "1.819999999999999"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6326,8 +6226,8 @@
     "Platform": "aws",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "119.0",
-    "P99": "1025.4099999999999"
+    "P95": "876.89999999999748",
+    "P99": "1377.0"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6336,8 +6236,8 @@
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "118.6",
-    "P99": "420.43999999999983"
+    "P95": "247.89999999999986",
+    "P99": "689.39999999999952"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6346,8 +6246,8 @@
     "Platform": "azure",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P95": "95.199999999999974",
+    "P99": "114.24"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6355,19 +6255,19 @@
     "FromRelease": "4.10",
     "Platform": "azure",
     "Network": "sdn",
+    "Topology": "ha",
+    "P95": "656.54999999999973",
+    "P99": "1197.0"
+  },
+  {
+    "AlertName": "etcdHighNumberOfLeaderChanges",
+    "Release": "4.11",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "ovn",
     "Topology": "ha",
     "P95": "119.0",
-    "P99": "477.0"
-  },
-  {
-    "AlertName": "etcdHighNumberOfLeaderChanges",
-    "Release": "4.11",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "238.0",
-    "P99": "477.0"
+    "P99": "935.22999999999968"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6376,8 +6276,8 @@
     "Platform": "gcp",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "258.5499999999999",
-    "P99": "337.31"
+    "P95": "942.74999999999977",
+    "P99": "1194.1499999999999"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6406,8 +6306,8 @@
     "Platform": "ovirt",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "207.7499999999998",
-    "P99": "608.99999999999989"
+    "P95": "362.99999999999983",
+    "P99": "460.31"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6426,8 +6326,8 @@
     "Platform": "aws",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "118.0",
-    "P99": "533.99999999999943"
+    "P95": "957.0",
+    "P99": "1377.0"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6436,8 +6336,8 @@
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "118.0",
-    "P99": "729.89999999999964"
+    "P95": "665.89999999999918",
+    "P99": "1205.2199999999998"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6446,8 +6346,8 @@
     "Platform": "azure",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "118.0",
-    "P99": "477.39"
+    "P95": "597.0",
+    "P99": "1123.3999999999999"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6456,8 +6356,8 @@
     "Platform": "gcp",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "148.49999999999804",
-    "P99": "686.99999999999955"
+    "P95": "597.0",
+    "P99": "1197.0"
   },
   {
     "AlertName": "etcdHighNumberOfLeaderChanges",
@@ -6577,7 +6477,7 @@
     "Network": "ovn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "22.009999999999991"
   },
   {
     "AlertName": "etcdInsufficientMembers",
@@ -6637,17 +6537,7 @@
     "Network": "sdn",
     "Topology": "single",
     "P95": "0.0",
-    "P99": "1.8499999999999972"
-  },
-  {
-    "AlertName": "etcdInsufficientMembers",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P99": "1.889999999999999"
   },
   {
     "AlertName": "etcdInsufficientMembers",
@@ -6837,7 +6727,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "20.589999999999993"
   },
   {
     "AlertName": "etcdInsufficientMembers",
@@ -6957,7 +6847,7 @@
     "Network": "sdn",
     "Topology": "single",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "1.819999999999999"
   },
   {
     "AlertName": "etcdInsufficientMembers",
@@ -7156,8 +7046,8 @@
     "Platform": "",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "2.0",
-    "P99": "2.0"
+    "P95": "0.74999999999999978",
+    "P99": "0.95"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7166,8 +7056,8 @@
     "Platform": "aws",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P95": "1.0499999999999983",
+    "P99": "2.0"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7217,7 +7107,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "2.0"
+    "P99": "0.0"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7227,7 +7117,7 @@
     "Network": "ovn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "44.019999999999982"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7257,7 +7147,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "2.0"
+    "P99": "0.0"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7287,23 +7177,33 @@
     "Network": "sdn",
     "Topology": "single",
     "P95": "0.0",
-    "P99": "1.8499999999999972"
-  },
-  {
-    "AlertName": "etcdMemberCommunicationSlow",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P99": "1.889999999999999"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
     "Release": "4.10",
     "FromRelease": "4.10",
     "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "4.0"
+  },
+  {
+    "AlertName": "etcdMemberCommunicationSlow",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.4499999999999993",
+    "P99": "2.8899999999999997"
+  },
+  {
+    "AlertName": "etcdMemberCommunicationSlow",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
     "Network": "ovn",
     "Topology": "ha",
     "P95": "3.0",
@@ -7313,27 +7213,147 @@
     "AlertName": "etcdMemberCommunicationSlow",
     "Release": "4.10",
     "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "2.0",
+    "P99": "2.0"
+  },
+  {
+    "AlertName": "etcdMemberCommunicationSlow",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdMemberCommunicationSlow",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "1.9499999999999991",
+    "P99": "2.79"
+  },
+  {
+    "AlertName": "etcdMemberCommunicationSlow",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "metal",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "1.9499999999999991",
+    "P99": "2.79"
+  },
+  {
+    "AlertName": "etcdMemberCommunicationSlow",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdMemberCommunicationSlow",
+    "Release": "4.10",
+    "FromRelease": "4.10",
+    "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "single",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdMemberCommunicationSlow",
+    "Release": "4.10",
+    "FromRelease": "4.8",
+    "Platform": "aws",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdMemberCommunicationSlow",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "aws",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdMemberCommunicationSlow",
+    "Release": "4.10",
+    "FromRelease": "4.9",
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "ha",
     "P95": "3.0",
-    "P99": "4.0"
+    "P99": "3.0"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
     "Release": "4.10",
-    "FromRelease": "4.10",
+    "FromRelease": "4.9",
     "Platform": "azure",
     "Network": "ovn",
     "Topology": "ha",
     "P95": "3.0",
-    "P99": "3.849999999999997"
+    "P99": "3.0"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
     "Release": "4.10",
-    "FromRelease": "4.10",
+    "FromRelease": "4.9",
     "Platform": "azure",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.7099999999999982"
+  },
+  {
+    "AlertName": "etcdMemberCommunicationSlow",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.3099999999999996"
+  },
+  {
+    "AlertName": "etcdMemberCommunicationSlow",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "gcp",
+    "Network": "sdn",
+    "Topology": "ha",
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "AlertName": "etcdMemberCommunicationSlow",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "2.75",
+    "P99": "2.95"
+  },
+  {
+    "AlertName": "etcdMemberCommunicationSlow",
+    "Release": "4.10",
+    "FromRelease": "4.9",
+    "Platform": "metal",
     "Network": "sdn",
     "Topology": "ha",
     "P95": "2.2499999999999991",
@@ -7342,146 +7362,6 @@
   {
     "AlertName": "etcdMemberCommunicationSlow",
     "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdMemberCommunicationSlow",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "2.5499999999999972",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdMemberCommunicationSlow",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "2.0699999999999994"
-  },
-  {
-    "AlertName": "etcdMemberCommunicationSlow",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdMemberCommunicationSlow",
-    "Release": "4.10",
-    "FromRelease": "4.10",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdMemberCommunicationSlow",
-    "Release": "4.10",
-    "FromRelease": "4.8",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdMemberCommunicationSlow",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.0"
-  },
-  {
-    "AlertName": "etcdMemberCommunicationSlow",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "aws",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.0"
-  },
-  {
-    "AlertName": "etcdMemberCommunicationSlow",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdMemberCommunicationSlow",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "azure",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.0"
-  },
-  {
-    "AlertName": "etcdMemberCommunicationSlow",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdMemberCommunicationSlow",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "gcp",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "AlertName": "etcdMemberCommunicationSlow",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "ovn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdMemberCommunicationSlow",
-    "Release": "4.10",
-    "FromRelease": "4.9",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
-  },
-  {
-    "AlertName": "etcdMemberCommunicationSlow",
-    "Release": "4.10",
     "FromRelease": "4.9",
     "Platform": "ovirt",
     "Network": "sdn",
@@ -7507,7 +7387,7 @@
     "Network": "ovn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "0.93999999999999906"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7537,7 +7417,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "2.3899999999999988"
+    "P99": "0.69999999999999885"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7546,8 +7426,8 @@
     "Platform": "gcp",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "1.7099999999999989"
+    "P95": "0.29999999999999849",
+    "P99": "1.6599999999999997"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7557,7 +7437,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "3.0"
+    "P99": "1.4899999999999987"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7587,7 +7467,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "2.0"
+    "P99": "0.77999999999999892"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7607,7 +7487,7 @@
     "Network": "sdn",
     "Topology": "single",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "1.819999999999999"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7626,8 +7506,8 @@
     "Platform": "aws",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "3.0",
-    "P99": "4.0"
+    "P95": "4.0",
+    "P99": "4.7099999999999955"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7636,8 +7516,8 @@
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
+    "P95": "3.8499999999999961",
+    "P99": "4.169999999999999"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7646,8 +7526,8 @@
     "Platform": "azure",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
+    "P95": "2.8499999999999996",
+    "P99": "2.9699999999999998"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7666,8 +7546,8 @@
     "Platform": "gcp",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
+    "P95": "3.0",
+    "P99": "4.0"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7686,8 +7566,8 @@
     "Platform": "metal",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P95": "3.0",
+    "P99": "3.0"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7696,8 +7576,8 @@
     "Platform": "metal",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P95": "3.0",
+    "P99": "3.0"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7726,8 +7606,8 @@
     "Platform": "aws",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "3.0",
-    "P99": "3.0"
+    "P95": "4.0",
+    "P99": "4.0"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7747,7 +7627,7 @@
     "Network": "ovn",
     "Topology": "ha",
     "P95": "3.0",
-    "P99": "5.6499999999999968"
+    "P99": "3.0"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7756,8 +7636,8 @@
     "Platform": "gcp",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "2.0",
-    "P99": "3.0"
+    "P95": "3.0",
+    "P99": "4.0"
   },
   {
     "AlertName": "etcdMemberCommunicationSlow",
@@ -7816,8 +7696,8 @@
     "Platform": "aws",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P95": "3.0",
+    "P99": "3.0"
   },
   {
     "AlertName": "etcdMembersDown",
@@ -7826,8 +7706,8 @@
     "Platform": "aws",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "2.0"
+    "P95": "2.0",
+    "P99": "3.0"
   },
   {
     "AlertName": "etcdMembersDown",
@@ -7836,8 +7716,8 @@
     "Platform": "azure",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P95": "2.55",
+    "P99": "2.91"
   },
   {
     "AlertName": "etcdMembersDown",
@@ -7846,7 +7726,7 @@
     "Platform": "azure",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "1.0",
+    "P95": "2.0",
     "P99": "3.0"
   },
   {
@@ -7856,8 +7736,8 @@
     "Platform": "gcp",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "1.5899999999999987"
+    "P95": "3.0",
+    "P99": "3.0"
   },
   {
     "AlertName": "etcdMembersDown",
@@ -7866,7 +7746,7 @@
     "Platform": "gcp",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "1.0",
+    "P95": "2.6499999999999968",
     "P99": "3.0"
   },
   {
@@ -7896,8 +7776,8 @@
     "Platform": "ovirt",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P95": "3.0",
+    "P99": "3.0"
   },
   {
     "AlertName": "etcdMembersDown",
@@ -7907,7 +7787,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "2.0",
-    "P99": "3.2699999999999996"
+    "P99": "2.5699999999999994"
   },
   {
     "AlertName": "etcdMembersDown",
@@ -7926,8 +7806,8 @@
     "Platform": "vsphere",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P95": "1.0",
+    "P99": "3.0"
   },
   {
     "AlertName": "etcdMembersDown",
@@ -7937,17 +7817,7 @@
     "Network": "sdn",
     "Topology": "single",
     "P95": "0.0",
-    "P99": "1.8499999999999972"
-  },
-  {
-    "AlertName": "etcdMembersDown",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P99": "2.5199999999999987"
   },
   {
     "AlertName": "etcdMembersDown",
@@ -8087,7 +7957,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "62.699999999999996"
   },
   {
     "AlertName": "etcdMembersDown",
@@ -8137,7 +8007,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "3630.9399999999987"
   },
   {
     "AlertName": "etcdMembersDown",
@@ -8156,8 +8026,8 @@
     "Platform": "aws",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "1.2999999999999994"
+    "P95": "3.0",
+    "P99": "4.47"
   },
   {
     "AlertName": "etcdMembersDown",
@@ -8165,19 +8035,19 @@
     "FromRelease": "",
     "Platform": "aws",
     "Network": "sdn",
-    "Topology": "ha",
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "AlertName": "etcdMembersDown",
-    "Release": "4.11",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Network": "ovn",
     "Topology": "ha",
     "P95": "2.0",
-    "P99": "2.6499999999999995"
+    "P99": "3.0"
+  },
+  {
+    "AlertName": "etcdMembersDown",
+    "Release": "4.11",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Network": "ovn",
+    "Topology": "ha",
+    "P95": "3.0",
+    "P99": "3.0"
   },
   {
     "AlertName": "etcdMembersDown",
@@ -8186,7 +8056,7 @@
     "Platform": "azure",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "0.0",
+    "P95": "2.0",
     "P99": "3.0"
   },
   {
@@ -8196,8 +8066,8 @@
     "Platform": "gcp",
     "Network": "ovn",
     "Topology": "ha",
-    "P95": "1.6999999999999962",
-    "P99": "3.0"
+    "P95": "3.1499999999999995",
+    "P99": "3.83"
   },
   {
     "AlertName": "etcdMembersDown",
@@ -8206,8 +8076,8 @@
     "Platform": "gcp",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "3.0"
+    "P95": "3.0",
+    "P99": "4.0"
   },
   {
     "AlertName": "etcdMembersDown",
@@ -8236,8 +8106,8 @@
     "Platform": "ovirt",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "2.2299999999999995"
+    "P95": "3.0",
+    "P99": "3.3899999999999997"
   },
   {
     "AlertName": "etcdMembersDown",
@@ -8246,8 +8116,8 @@
     "Platform": "vsphere",
     "Network": "sdn",
     "Topology": "ha",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P95": "1.0",
+    "P99": "2.0"
   },
   {
     "AlertName": "etcdMembersDown",
@@ -8257,7 +8127,7 @@
     "Network": "sdn",
     "Topology": "single",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "1.4099999999999995"
   },
   {
     "AlertName": "etcdMembersDown",
@@ -8587,17 +8457,7 @@
     "Network": "sdn",
     "Topology": "single",
     "P95": "0.0",
-    "P99": "1.8499999999999972"
-  },
-  {
-    "AlertName": "etcdNoLeader",
-    "Release": "4.10",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Network": "sdn",
-    "Topology": "single",
-    "P95": "0.0",
-    "P99": "0.0"
+    "P99": "1.2599999999999993"
   },
   {
     "AlertName": "etcdNoLeader",
@@ -8787,7 +8647,7 @@
     "Network": "sdn",
     "Topology": "ha",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "105.78999999999996"
   },
   {
     "AlertName": "etcdNoLeader",
@@ -8907,7 +8767,7 @@
     "Network": "sdn",
     "Topology": "single",
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "1.4099999999999995"
   },
   {
     "AlertName": "etcdNoLeader",
