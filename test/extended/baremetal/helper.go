@@ -138,6 +138,8 @@ func (b *BaremetalTestHelper) DeleteAllExtraWorkers() {
 	for _, worker := range b.extraWorkers {
 		err := b.bmcClient.Delete(context.Background(), worker.GetName(), metav1.DeleteOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
+
+		b.waitForDeletion(worker)
 	}
 }
 

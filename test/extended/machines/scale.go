@@ -216,7 +216,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 		helper.DeleteAllExtraWorkers()
 	})
 
-	g.It("grow and decrease when scaling different machineSets simultaneously", func() {
+	g.It("grow and decrease when scaling different machineSets simultaneously [Timeout:20m]", func() {
 		// expect new nodes to come up for machineSet
 		verifyNodeScalingFunc := func(c *kubernetes.Clientset, dc dynamic.Interface, expectedScaleOut int, machineSet objx.Map) bool {
 			nodes, err := getNodesFromMachineSet(c, dc, machineName(machineSet))
