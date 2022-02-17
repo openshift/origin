@@ -693,6 +693,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch][bz-storage][Late] Alerts alert/KubePersistentVolumeErrors should not be at or above pending": "alert/KubePersistentVolumeErrors should not be at or above pending [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-arch][bz-storage][Late] Alerts alert/VSphereOpenshiftNodeHealthFail should not be at or above info": "alert/VSphereOpenshiftNodeHealthFail should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-storage][Late] Alerts alert/VSphereOpenshiftNodeHealthFail should not be at or above pending": "alert/VSphereOpenshiftNodeHealthFail should not be at or above pending [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-auth] Certificates API [Privileged:ClusterAdmin] should support CSR API operations [Conformance]": "should support CSR API operations [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-auth] Certificates API [Privileged:ClusterAdmin] should support building a client with a CSR": "should support building a client with a CSR [Suite:openshift/conformance/parallel] [Suite:k8s]",
