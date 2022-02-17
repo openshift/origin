@@ -36,5 +36,8 @@ func AllAlertTests() []AlertTest {
 
 		newAlert("monitoring", "PrometheusOperatorWatchErrors").pending().neverFail(),
 		newAlert("monitoring", "PrometheusOperatorWatchErrors").firing(),
+
+		newAlert("storage", "VSphereOpenshiftNodeHealthFail").pending().neverFail(),
+		newAlert("storage", "VSphereOpenshiftNodeHealthFail").firing().neverFail(), // https://bugzilla.redhat.com/show_bug.cgi?id=2055729
 	}
 }
