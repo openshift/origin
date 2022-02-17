@@ -29,7 +29,8 @@ where
   alertName = "KubeClientErrors" or 
   alertName = "KubePersistentVolumeErrors" or 
   alertName = "MCDDrainError" or 
-  alertName = "PrometheusOperatorWatchErrors"
+  alertName = "PrometheusOperatorWatchErrors" or
+  alertName = "VSphereOpenshiftNodeHealthFail"
 order by 
  AlertName, Release, FromRelease, Topology, Platform, Network
 `
