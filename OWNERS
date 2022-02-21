@@ -27,3 +27,7 @@ filters:
   "^vendor/.*":
     labels:
     - "vendor-update"
+
+# This is a Red Hat extension, mapping the Git repository to an OpenShift Bugzilla component:
+# https://bugzilla.redhat.com/enter_bug.cgi?product=OpenShift%20Container%20Platform
+component: "Test Framework"
