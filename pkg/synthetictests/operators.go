@@ -18,6 +18,8 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// Trivial change to trigger CI
+
 func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded})
 }

@@ -16,6 +16,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// trivial change to trigger CI
+
 func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Interface) {
 	reMatchFirstQuote := regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)
 
