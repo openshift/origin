@@ -151,6 +151,10 @@ var knownEventsBugs = []knownProblem{
 		BZ:        "https://bugzilla.redhat.com/show_bug.cgi?id=2034984",
 		TestSuite: stringPointer("openshift/build"),
 	},
+	{
+		Regexp: regexp.MustCompile(`ns/openshift-ovn-kubernetes pod/ovnkube-node-[a-z0-9-]+ node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed:`),
+		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2057181",
+	},
 	//{ TODO this should only be skipped for single-node
 	//	name:    "single=node-storage",
 	//  BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1990662
