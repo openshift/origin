@@ -207,24 +207,24 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 
 		for _, tc := range testCases {
 			g.By(tc.name, func() {
+				g.AfterEach(func() {
+					gatherPostMortem(oc)
+				})
+
 				resp := oauthHTTPRequestOrFail(caCerts, oauthURL, tc.endpoint, "", tc.cert, tc.key)
 				respDump, err := httputil.DumpResponse(resp, true)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				if len(tc.expectedError) == 0 && resp.StatusCode != 200 && resp.StatusCode != 302 {
-					gatherPostMortem(oc)
 					g.Fail(fmt.Sprintf("unexpected error response status (%d) while trying to reach '%s' endpoint: %s", resp.StatusCode, tc.endpoint, respDump))
 				} else if len(tc.expectedError) > 0 {
-					gatherPostMortem(oc)
 					o.Expect(resp.Status).To(o.ContainSubstring(tc.expectedError), fmt.Sprintf("full response header: %s\n", respDump))
 				}
 
 				token := getTokenFromResponse(resp)
 				if len(token) > 0 && !tc.expectToken {
-					gatherPostMortem(oc)
 					g.Fail("did not expect to get a token")
 				}
 				if len(token) == 0 && tc.expectToken {
-					gatherPostMortem(oc)
 					g.Fail(fmt.Sprintf("Location header does not contain the access token: '%s'", resp.Header.Get("Location")))
 				}
 
@@ -239,16 +239,59 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 })
 
 func gatherPostMortem(oc *exutil.CLI) {
-	authn, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(context.Background(), "authentication", metav1.GetOptions{})
+	authn, err := oc.AdminConfigClient().
+		ConfigV1().
+		ClusterOperators().
+		Get(context.Background(), "authentication", metav1.GetOptions{})
 	if err != nil {
 		e2e.Logf("Error getting authentication operator: %v\n", err)
 	}
 	e2e.Logf("Authentication %v\n", authn)
-	routerCA, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(context.Background(), "default-ingress-cert", metav1.GetOptions{})
-	if err != nil {
-		e2e.Logf("Error getting authentication operator: %v\n", err)
+
+	getDeployment := func(name, namespace string) {
+		deployment, err := oc.AdminKubeClient().
+			AppsV1().
+			Deployments(namespace).
+			Get(context.Background(), name, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf(fmt.Errorf("get deployment from %s in %s: %w", name, namespace, err).Error())
+		}
+		e2e.Logf("deployment for %s in %s: %s", name, namespace, deployment)
 	}
-	e2e.Logf("Router CA %v\n", routerCA)
+
+	getConfigmap := func(name, namespace string) {
+		configmap, err := oc.AdminKubeClient().
+			CoreV1().
+			ConfigMaps(namespace).
+			Get(context.Background(), name, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf(fmt.Errorf("get configmap from %s in %s: %w", name, namespace, err).Error())
+		}
+		e2e.Logf("configmap for %s in %s: %s", name, namespace, configmap)
+
+	}
+
+	getLogs := func(namespace string) {
+		pods, err := oc.AdminKubeClient().
+			CoreV1().
+			Pods(namespace).
+			List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			e2e.Logf(fmt.Errorf("get pods from %s: %w", namespace, err).Error())
+		}
+		for _, pod := range pods.Items {
+			logs, err := oc.Run("logs").Args(pod.Name, "-n", namespace).Output()
+			if err != nil {
+				e2e.Logf(fmt.Errorf("get logs from %s in %s: %w", pod.Name, namespace, err).Error())
+			}
+			e2e.Logf("log from %s in %s: %s", pod.Name, namespace, logs)
+		}
+	}
+
+	oauthServerNamespace := "openshift-authentication"
+	getDeployment(oauthServerNamespace, "oauth-openshift")
+	getConfigmap(oauthServerNamespace, "v4-0-config-system-cliconfig")
+	getLogs(oauthServerNamespace)
 }
 
 func testEndpointsWithValidToken(caCerts *x509.CertPool, oauthServerURL, token string) {
