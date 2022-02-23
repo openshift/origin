@@ -17,8 +17,6 @@ type testCategorizer struct {
 	substring string
 }
 
-const ovnReadinessThreshold = 20
-
 func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-network] pods should successfully create sandboxes"
 	// we can further refine this signal by subdividing different failure modes if it is pertinent.  Right now I'm seeing
@@ -191,7 +189,7 @@ func getPodDeletionTime(events monitorapi.Intervals, podLocator string) *time.Ti
 // bug is tracked here: https://bugzilla.redhat.com/show_bug.cgi?id=2057181
 func testOvnNodeReadinessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[bz-networking] ovnkube-node readiness probe should not fail repeatedly"
-	regExp := regexp.MustCompile(`ns/openshift-ovn-kubernetes pod/ovnkube-node-[a-z0-9-]+ node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed:`)
+	regExp := regexp.MustCompile(ovnReadinessRegExpStr)
 	var tests []*junitapi.JUnitTestCase
 	var failureOutput string
 	msgMap := map[string]bool{}
@@ -201,7 +199,7 @@ func testOvnNodeReadinessProbe(events monitorapi.Intervals) []*junitapi.JUnitTes
 			if _, ok := msgMap[msg]; !ok {
 				msgMap[msg] = true
 				eventDisplayMessage, times := getTimesAnEventHappened(msg)
-				if times > ovnReadinessThreshold {
+				if times > duplicateEventThreshold {
 					failureOutput += fmt.Sprintf("event [%s] happened too frequently for %d times\n", eventDisplayMessage, times)
 				}
 			}
