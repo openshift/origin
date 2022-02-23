@@ -2,6 +2,7 @@ package synthetictests
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -183,4 +184,35 @@ func getPodDeletionTime(events monitorapi.Intervals, podLocator string) *time.Ti
 		}
 	}
 	return nil
+}
+
+// bug is tracked here: https://bugzilla.redhat.com/show_bug.cgi?id=2057181
+func testOvnNodeReadinessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[bz-networking] ovnkube-node readiness probe should not fail repeatedly"
+	regExp := regexp.MustCompile(ovnReadinessRegExpStr)
+	var tests []*junitapi.JUnitTestCase
+	var failureOutput string
+	msgMap := map[string]bool{}
+	for _, event := range events {
+		msg := fmt.Sprintf("%s - %s", event.Locator, event.Message)
+		if regExp.MatchString(msg) {
+			if _, ok := msgMap[msg]; !ok {
+				msgMap[msg] = true
+				eventDisplayMessage, times := getTimesAnEventHappened(msg)
+				if times > duplicateEventThreshold {
+					failureOutput += fmt.Sprintf("event [%s] happened too frequently for %d times\n", eventDisplayMessage, times)
+				}
+			}
+		}
+	}
+	if len(failureOutput) > 0 {
+		tests = append(tests, &junitapi.JUnitTestCase{
+			Name: testName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: failureOutput,
+			},
+		})
+
+	}
+	return tests
 }

@@ -20,6 +20,11 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
+const (
+	duplicateEventThreshold = 20
+	ovnReadinessRegExpStr   = `ns/openshift-ovn-kubernetes pod/ovnkube-node-[a-z0-9-]+ node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed:`
+)
+
 func combinedRegexp(arr ...*regexp.Regexp) *regexp.Regexp {
 	s := ""
 	for _, r := range arr {
@@ -89,6 +94,9 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 	regexp.MustCompile("ns/openshift-kube-controller-manager pod/kube-controller-manager-guard.*Unhealthy Readiness probe failed"),
 	regexp.MustCompile("ns/openshift-kube-scheduler pod/kube-scheduler-guard.*ProbeError Readiness probe error"),
 	regexp.MustCompile("ns/openshift-kube-scheduler pod/kube-scheduler-guard.*Unhealthy Readiness probe failed"),
+
+	// we have a separate test for this
+	regexp.MustCompile(ovnReadinessRegExpStr),
 }
 
 var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
@@ -280,7 +288,7 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 	displayToCount := map[string]int{}
 	for _, event := range events {
 		eventDisplayMessage, times := getTimesAnEventHappened(fmt.Sprintf("%s - %s", event.Locator, event.Message))
-		if times > 20 {
+		if times > duplicateEventThreshold {
 			if allowedRepeatedEventsRegex.MatchString(eventDisplayMessage) {
 				continue
 			}
