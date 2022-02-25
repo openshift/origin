@@ -205,14 +205,12 @@ func testOvnNodeReadinessProbe(events monitorapi.Intervals) []*junitapi.JUnitTes
 			}
 		}
 	}
+	test := &junitapi.JUnitTestCase{Name: testName}
 	if len(failureOutput) > 0 {
-		tests = append(tests, &junitapi.JUnitTestCase{
-			Name: testName,
-			FailureOutput: &junitapi.FailureOutput{
-				Output: failureOutput,
-			},
-		})
-
+		test.FailureOutput = &junitapi.FailureOutput{
+			Output: failureOutput,
+		}
 	}
+	tests = append(tests, test)
 	return tests
 }
