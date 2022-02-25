@@ -216,7 +216,12 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 		helper.DeleteAllExtraWorkers()
 	})
 
-	g.It("grow and decrease when scaling different machineSets simultaneously [Timeout:20m]", func() {
+	// The 30m timeout is essentially required by the baremetal platform environment,
+	// since an extra worker is created during the test setup: it takes approx 10 minutes for
+	// provisioning the new host, while it could take approx another 10 minutes for deprovisioning
+	// and deleting it. The extra timeout amount should be enough to cover future slower execution
+	// environments.
+	g.It("grow and decrease when scaling different machineSets simultaneously [Timeout:30m]", func() {
 		// expect new nodes to come up for machineSet
 		verifyNodeScalingFunc := func(c *kubernetes.Clientset, dc dynamic.Interface, expectedScaleOut int, machineSet objx.Map) bool {
 			nodes, err := getNodesFromMachineSet(c, dc, machineName(machineSet))
