@@ -1581,7 +1581,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Early] Managed cluster should have same number of Machines and Nodes": "have same number of Machines and Nodes [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Serial] Managed cluster should grow and decrease when scaling different machineSets simultaneously [Timeout:20m]": "grow and decrease when scaling different machineSets simultaneously [Timeout:20m] [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Serial] Managed cluster should grow and decrease when scaling different machineSets simultaneously [Timeout:30m]": "grow and decrease when scaling different machineSets simultaneously [Timeout:30m] [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-coreos] [Conformance] CoreOS bootimages TestBootimagesPresent": "TestBootimagesPresent [Suite:openshift/conformance/parallel/minimal]",
 
