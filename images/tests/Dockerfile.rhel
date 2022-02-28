@@ -9,7 +9,9 @@ FROM registry.ci.openshift.org/ocp/4.10:tools
 COPY --from=builder /tmp/build/openshift-tests /usr/bin/
 RUN PACKAGES="git gzip util-linux" && \
     if [ $HOSTTYPE = x86_64 ] || [ $HOSTTYPE = ppc64le ]; then PACKAGES="$PACKAGES python3-cinderclient"; fi && \
-    yum install --setopt=tsflags=nodocs -y $PACKAGES && yum clean all && rm -rf /var/cache/yum/* && \
+    yum install --setopt=tsflags=nodocs -y $PACKAGES && \
+    yum update -y python3-six && \
+    yum clean all && rm -rf /var/cache/yum/* && \
     git config --system user.name test && \
     git config --system user.email test@test.com && \
     chmod g+w /etc/passwd
