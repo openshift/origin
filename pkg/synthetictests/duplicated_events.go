@@ -97,6 +97,9 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 
 	// we have a separate test for this
 	regexp.MustCompile(ovnReadinessRegExpStr),
+
+	// Separated out in testBackoffPullingRegistryRedhatImage
+	regexp.MustCompile(imagePullRedhatRegEx),
 }
 
 var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
