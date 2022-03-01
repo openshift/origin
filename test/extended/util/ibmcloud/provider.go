@@ -56,6 +56,10 @@ func (p *Provider) FrameworkBeforeEach(f *framework.Framework) {
 			},
 		}
 		_, err = f.ClientSet.RbacV1().ClusterRoleBindings().Create(context.Background(), rb, metav1.CreateOptions{})
+		// Ignore errors when CRB already exists when trying to create it, as Mutex isn't configured or working properly
+		if errors.IsAlreadyExists(err) {
+			err = nil
+		}
 	}
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
