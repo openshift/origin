@@ -11,7 +11,6 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	kappsv1 "k8s.io/api/apps/v1"
 	kbatchv1 "k8s.io/api/batch/v1"
-	kbatchv1beta1 "k8s.io/api/batch/v1beta1"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -505,16 +504,16 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 		o.Expect(job.Spec.Template.Spec.Containers[0].Image).To(o.Equal(internalImageReference))
 
 		g.By("auto replacing local references on CronJobs")
-		cronjob, err := oc.KubeClient().BatchV1beta1().CronJobs(oc.Namespace()).Create(ctx, &kbatchv1beta1.CronJob{
+		cronjob, err := oc.KubeClient().BatchV1().CronJobs(oc.Namespace()).Create(ctx, &kbatchv1.CronJob{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "resolve",
 				Annotations: map[string]string{
 					"alpha.image.policy.openshift.io/resolve-names": "*",
 				},
 			},
-			Spec: kbatchv1beta1.CronJobSpec{
+			Spec: kbatchv1.CronJobSpec{
 				Schedule: "1 0 * * *",
-				JobTemplate: kbatchv1beta1.JobTemplateSpec{
+				JobTemplate: kbatchv1.JobTemplateSpec{
 					Spec: kbatchv1.JobSpec{
 						Template: kapiv1.PodTemplateSpec{
 							Spec: kapiv1.PodSpec{
@@ -533,13 +532,13 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 		o.Expect(cronjob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image).To(o.Equal(internalImageReference))
 
 		g.By("auto replacing local references on CronJobs (in pod template)")
-		cronjob, err = oc.KubeClient().BatchV1beta1().CronJobs(oc.Namespace()).Create(ctx, &kbatchv1beta1.CronJob{
+		cronjob, err = oc.KubeClient().BatchV1().CronJobs(oc.Namespace()).Create(ctx, &kbatchv1.CronJob{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "resolve-template",
 			},
-			Spec: kbatchv1beta1.CronJobSpec{
+			Spec: kbatchv1.CronJobSpec{
 				Schedule: "1 0 * * *",
-				JobTemplate: kbatchv1beta1.JobTemplateSpec{
+				JobTemplate: kbatchv1.JobTemplateSpec{
 					Spec: kbatchv1.JobSpec{
 						Template: kapiv1.PodTemplateSpec{
 							ObjectMeta: metav1.ObjectMeta{
