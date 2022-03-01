@@ -53664,6 +53664,14 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return [item.locator, "", "AlertCritical"]
     }
 
+    function defaultTimelineDisplay(item) {
+        return item.message
+    }
+
+    function defaultRowLabel(item) {
+        return item.locator
+    }
+
     function createTimelineData(timelineVal, timelineData, rawEventIntervals, preconditionFunc) {
         const data = {}
         var now = new Date();
@@ -53688,8 +53696,8 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
                 endDate = latest
             }
             let label = item.locator
-            let sub = ""
-            let val = timelineVal
+            let sub = defaultRowLabel(item)
+            let val = defaultTimelineDisplay(item)
             if (typeof val === "function") {
                 [label, sub, val] = timelineVal(item)
             }
