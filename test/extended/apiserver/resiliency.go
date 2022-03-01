@@ -96,6 +96,7 @@ var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 		gomega.Expect(len(names)).To(gomega.Equal(0), "Some pods in got restarted during kube-apiserver rollout: %s", strings.Join(names, ", "))
 
 		// Workaround for issues identified in https://bugzilla.redhat.com/show_bug.cgi?id=2059581
+		// TODO: Remove this sleep once that bug is resolved
 		time.Sleep(60 * time.Second)
 	})
 
