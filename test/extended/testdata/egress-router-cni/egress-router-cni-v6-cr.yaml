@@ -1,0 +1,35 @@
+---
+apiVersion: network.operator.openshift.io/v1
+kind: EgressRouter
+metadata:
+  name: egress-router-ipv6-test
+spec:
+  addresses: [
+    {
+      ip: "192:168:3::10/64",
+      gateway: "192:168:3::1",
+    },
+  ]
+  mode: Redirect
+  redirect: {
+    redirectRules: [
+      {
+        destinationIP: "10:100:3::0",
+        port: 80,
+        protocol: UDP,
+      },
+      {
+        destinationIP: "203:0:113::26",
+        port: 8080,
+        protocol: SCTP,
+        targetPort: 80
+      },
+      {
+        destinationIP: "203:0:113::27",
+        port: 8443,
+        protocol: TCP,
+        targetPort: 443
+      },
+    ]
+  }
+
