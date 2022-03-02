@@ -274,25 +274,13 @@
     createTimelineData("Passed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EPassed)
 
     var segmentFunc = function (segment) {
-        // for (var i in data) {
-        //     if (data[i].group == segment.group) {
-        //         var groupdata = data[i].data
-        //         for (var j in groupdata) {
-        //             if (groupdata[j].label == segment.label) {
-        //                 labeldata = groupdata[j].data
-        //                 for (var k in labeldata) {
-        //                     var startDate = new Date(labeldata[k].timeRange[0])
-        //                     var endDate = new Date(labeldata[k].timeRange[1])
-        //                     if (startDate.getTime() == segment.timeRange[0].getTime() &&
-        //                         endDate.getTime() == segment.timeRange[1].getTime()) {
-        //                         $('#myModalContent').text(labeldata[k].extended)
-        //                         $('#myModal').modal()
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+        var item = eventIntervals.items.find((e) => {
+            return e.locator === segment.label // I can have multiple events with the same locator, I wonder how this will work in those cases.
+        })
+        if (item !== undefined) {
+            $('#myModalContent').html(item.message)
+            $('#myModal').modal()
+        }
     }
 
     const el = document.querySelector('#chart');
