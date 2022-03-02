@@ -109,9 +109,7 @@ func testACLLogging(f *e2e.Framework, oc *exutil.CLI, ns []string, auditOut stri
 	}
 
 	By("making \"default deny\" and \"allow from same namespace\" network policies")
-	// make two network policies, a default deny all and allow from same namespace in ns "acl-logging-on"
-	_, err = makeDenyAllPolicy(f, ns[0])
-	expectNoError(err)
+	// a make network policy that allows ingress only from the same ns "acl-logging-on"
 	_, err = makeFromSameNSPolicy(f, ns[0])
 	expectNoError(err)
 
@@ -200,7 +198,7 @@ func verifyAuditLogs(out string, ns []string, ips []string, ipv6 bool) (bool, bo
 	}
 
 	e2e.Logf("Ensuring the audit log contains: '%s_allow-from-same-ns_0\", verdict=allow' AND '%s' AND '%s'", ns[0], ipMatchSrc+ips[1], ipMatchDst+ips[0])
-	e2e.Logf("Ensuring the audit log contains: '%s_default-deny-all\", verdict=drop' AND '%s' AND '%s'", ns[0], ipMatchSrc+ips[2], ipMatchDst+ips[0])
+	e2e.Logf("Ensuring the audit log contains: '%s_allow-from-same-ns\", verdict=drop' AND '%s' AND '%s'", ns[0], ipMatchSrc+ips[2], ipMatchDst+ips[0])
 	// Ensure the ACL audit logs are correct
 	for _, logLine := range strings.Split(out, "\n") {
 		if strings.Contains(logLine, ns[0]+"_allow-from-same-ns_0\", verdict=allow") && strings.Contains(logLine, ipMatchSrc+ips[1]) &&
@@ -208,7 +206,7 @@ func verifyAuditLogs(out string, ns []string, ips []string, ipv6 bool) (bool, bo
 			allowLogFound = true
 			continue
 		}
-		if strings.Contains(logLine, ns[0]+"_default-deny-all\", verdict=drop") && strings.Contains(logLine, ipMatchSrc+ips[2]) &&
+		if strings.Contains(logLine, ns[0]+"_allow-from-same-ns\", verdict=drop") && strings.Contains(logLine, ipMatchSrc+ips[2]) &&
 			strings.Contains(logLine, ipMatchDst+ips[0]) {
 			denyLogFound = true
 			continue
