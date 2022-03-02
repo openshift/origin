@@ -11,7 +11,6 @@ import (
 
 const (
 	imagePullRedhatRegEx          = `reason/[a-zA-Z]+ .*Back-off pulling image .*registry.redhat.io`
-	imagePullRedhatFailThreshold  = 8
 	imagePullRedhatFlakeThreshold = 5
 )
 
@@ -83,7 +82,7 @@ func newSingleEventCheckRegex(testName, regex string) *singleEventCheckRegex {
 	return &singleEventCheckRegex{
 		testName:       testName,
 		recognizer:     matchEventForRegexOrDie(regex),
-		failThreshold:  imagePullRedhatFailThreshold,
+		failThreshold:  duplicateEventThreshold,
 		flakeThreshold: imagePullRedhatFlakeThreshold,
 	}
 }
