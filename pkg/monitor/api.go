@@ -62,6 +62,7 @@ func Start(ctx context.Context, restConfig *rest.Config, additionalEventInterval
 		intervalcreation.IntervalsFromEvents_OperatorDegraded,
 		intervalcreation.IntervalsFromEvents_E2ETests,
 		intervalcreation.IntervalsFromEvents_NodeChanges,
+		intervalcreation.CreatePodIntervalsFromInstants,
 	)
 
 	m.StartSampling(ctx)
@@ -107,14 +108,6 @@ func locateEvent(event *corev1.Event) string {
 		return fmt.Sprintf("%s/%s node/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
 	}
 	return fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
-}
-
-func locatePod(pod *corev1.Pod) string {
-	return fmt.Sprintf("ns/%s pod/%s node/%s", pod.Namespace, pod.Name, pod.Spec.NodeName)
-}
-
-func locatePodContainer(pod *corev1.Pod, containerName string) string {
-	return fmt.Sprintf("ns/%s pod/%s node/%s container/%s", pod.Namespace, pod.Name, pod.Spec.NodeName, containerName)
 }
 
 func filterToSystemNamespaces(obj runtime.Object) bool {
