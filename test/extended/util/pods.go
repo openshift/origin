@@ -1,8 +1,11 @@
 package util
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"k8s.io/client-go/tools/remotecommand"
+	"os"
 	"strings"
 	"time"
 
@@ -15,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 
@@ -119,4 +123,39 @@ func ExecCommandOnMachineConfigDaemon(c clientset.Interface, oc *CLI, node *core
 	}
 	args := append(initialArgs, command...)
 	return oc.AsAdmin().Run("rsh").Args(args...).Output()
+}
+
+func ExecCommandOnPod(cli *CLI, pod corev1.Pod, command []string) (bytes.Buffer, error) {
+	var buf bytes.Buffer
+	cs := cli.KubeFramework().ClientSet
+	req := cs.CoreV1().RESTClient().
+		Post().
+		Namespace(pod.Namespace).
+		Resource("pods").
+		Name(pod.Name).
+		SubResource("exec").
+		VersionedParams(&corev1.PodExecOptions{
+			Container: pod.Spec.Containers[0].Name,
+			Command:   command,
+			Stdin:     true,
+			Stdout:    true,
+			Stderr:    true,
+			TTY:       true,
+		}, scheme.ParameterCodec)
+
+	exec, err := remotecommand.NewSPDYExecutor(cli.AdminConfig(), "POST", req.URL())
+	if err != nil {
+		return buf, err
+	}
+
+	err = exec.Stream(remotecommand.StreamOptions{
+		Stdin:  os.Stdin,
+		Stdout: &buf,
+		Stderr: os.Stderr,
+		Tty:    true,
+	})
+	if err != nil {
+		return buf, err
+	}
+	return buf, nil
 }
