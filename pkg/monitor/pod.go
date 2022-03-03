@@ -64,7 +64,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				if now.Sub(pod.CreationTimestamp.Time) > time.Minute {
 					conditions = append(conditions, &monitorapi.Condition{
 						Level:   monitorapi.Warning,
-						Locator: locatePod(pod),
+						Locator: monitorapi.LocatePod(pod),
 						Message: "pod has been pending longer than a minute",
 					})
 				}
@@ -73,7 +73,39 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 		return conditions
 	})
 
+	podScheduledFn := func(pod, oldPod *corev1.Pod) []monitorapi.Condition {
+		oldPodHasNode := oldPod != nil && len(oldPod.Spec.NodeName) > 0
+		newPodHasNode := pod != nil && len(pod.Spec.NodeName) > 0
+		if !oldPodHasNode && newPodHasNode {
+			return []monitorapi.Condition{
+				{
+					Level:   monitorapi.Warning,
+					Locator: monitorapi.LocatePodContainer(pod, pod.Name),
+					Message: monitorapi.ReasonedMessage(monitorapi.PodReasonScheduled, fmt.Sprintf("node/%s", pod.Spec.NodeName)),
+				},
+			}
+		}
+		return nil
+	}
+
+	podCreatedFns := []func(pod *corev1.Pod) []monitorapi.Condition{
+		func(pod *corev1.Pod) []monitorapi.Condition {
+			return []monitorapi.Condition{
+				{
+					Level:   monitorapi.Info,
+					Locator: monitorapi.LocatePod(pod),
+					Message: monitorapi.ReasonedMessage(monitorapi.PodReasonCreated),
+				},
+			}
+		},
+		func(pod *corev1.Pod) []monitorapi.Condition {
+			return podScheduledFn(pod, nil)
+		},
+	}
+
 	podChangeFns := []func(pod, oldPod *corev1.Pod) []monitorapi.Condition{
+		// check if the pod was scheduled
+		podScheduledFn,
 		// check phase transitions
 		func(pod, oldPod *corev1.Pod) []monitorapi.Condition {
 			new, old := pod.Status.Phase, oldPod.Status.Phase
@@ -87,26 +119,26 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				case pod.DeletionTimestamp != nil:
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Warning,
-						Locator: locatePod(pod),
+						Locator: monitorapi.LocatePod(pod),
 						Message: fmt.Sprintf("invariant violation (bug): pod should not transition %s->%s even when terminated", old, new),
 					})
 				case isMirrorPod(pod):
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Warning,
-						Locator: locatePod(pod),
+						Locator: monitorapi.LocatePod(pod),
 						Message: fmt.Sprintf("invariant violation (bug): static pod should not transition %s->%s with same UID", old, new),
 					})
 				default:
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Warning,
-						Locator: locatePod(pod),
+						Locator: monitorapi.LocatePod(pod),
 						Message: fmt.Sprintf("pod moved back to Pending"),
 					})
 				}
 			case new == corev1.PodUnknown:
 				conditions = append(conditions, monitorapi.Condition{
 					Level:   monitorapi.Warning,
-					Locator: locatePod(pod),
+					Locator: monitorapi.LocatePod(pod),
 					Message: fmt.Sprintf("pod moved to the Unknown phase"),
 				})
 			case new == corev1.PodFailed && old != corev1.PodFailed:
@@ -114,19 +146,19 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				case "Evicted":
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Error,
-						Locator: locatePod(pod),
+						Locator: monitorapi.LocatePod(pod),
 						Message: fmt.Sprintf("reason/Evicted %s", pod.Status.Message),
 					})
 				case "Preempting":
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Error,
-						Locator: locatePod(pod),
+						Locator: monitorapi.LocatePod(pod),
 						Message: fmt.Sprintf("reason/Preempted %s", pod.Status.Message),
 					})
 				default:
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Error,
-						Locator: locatePod(pod),
+						Locator: monitorapi.LocatePod(pod),
 						Message: fmt.Sprintf("reason/Failed (%s): %s", pod.Status.Reason, pod.Status.Message),
 					})
 				}
@@ -134,7 +166,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 					if t := s.State.Terminated; t != nil && t.ExitCode != 0 {
 						conditions = append(conditions, monitorapi.Condition{
 							Level:   monitorapi.Error,
-							Locator: locatePodContainer(pod, s.Name),
+							Locator: monitorapi.LocatePodContainer(pod, s.Name),
 							Message: fmt.Sprintf("init container exited with code %d (%s): %s", t.ExitCode, t.Reason, t.Message),
 						})
 					}
@@ -143,7 +175,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 					if t := s.State.Terminated; t != nil && t.ExitCode != 0 {
 						conditions = append(conditions, monitorapi.Condition{
 							Level:   monitorapi.Error,
-							Locator: locatePodContainer(pod, s.Name),
+							Locator: monitorapi.LocatePodContainer(pod, s.Name),
 							Message: fmt.Sprintf("container exited with code %d (%s): %s", t.ExitCode, t.Reason, t.Message),
 						})
 					}
@@ -164,13 +196,13 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 					if *pod.DeletionGracePeriodSeconds == 0 {
 						conditions = append(conditions, monitorapi.Condition{
 							Level:   monitorapi.Info,
-							Locator: locatePod(pod),
+							Locator: monitorapi.LocatePod(pod),
 							Message: fmt.Sprintf("reason/ForceDelete mirrored/%t", isMirrorPod(pod)),
 						})
 					} else {
 						conditions = append(conditions, monitorapi.Condition{
 							Level:   monitorapi.Info,
-							Locator: locatePod(pod),
+							Locator: monitorapi.LocatePod(pod),
 							Message: fmt.Sprintf("reason/GracefulDelete duration/%ds", *pod.DeletionGracePeriodSeconds),
 						})
 					}
@@ -179,7 +211,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 			if pod.DeletionGracePeriodSeconds == nil && oldPod.DeletionGracePeriodSeconds != nil {
 				conditions = append(conditions, monitorapi.Condition{
 					Level:   monitorapi.Error,
-					Locator: locatePod(pod),
+					Locator: monitorapi.LocatePod(pod),
 					Message: "invariant violation: pod was marked for deletion and then deletion grace period was cleared",
 				})
 			}
@@ -196,14 +228,14 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 			if len(pod.Status.ContainerStatuses) < len(oldPod.Status.ContainerStatuses) {
 				conditions = append(conditions, monitorapi.Condition{
 					Level:   monitorapi.Error,
-					Locator: locatePod(pod),
+					Locator: monitorapi.LocatePod(pod),
 					Message: "invariant violation: container statuses were removed",
 				})
 			}
 			if len(pod.Status.InitContainerStatuses) < len(oldPod.Status.InitContainerStatuses) {
 				conditions = append(conditions, monitorapi.Condition{
 					Level:   monitorapi.Error,
-					Locator: locatePod(pod),
+					Locator: monitorapi.LocatePod(pod),
 					Message: "invariant violation: init container statuses were removed",
 				})
 			}
@@ -217,52 +249,52 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				if previous.LastTerminationState.Terminated != nil && s.LastTerminationState.Terminated == nil {
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Error,
-						Locator: locatePodContainer(pod, s.Name),
+						Locator: monitorapi.LocatePodContainer(pod, s.Name),
 						Message: fmt.Sprintf("reason/TerminationStateCleared lastState.terminated was cleared on a pod (bug https://bugzilla.redhat.com/show_bug.cgi?id=1933760 or similar)"),
 					})
 				}
 				if pod.DeletionTimestamp == nil {
 					if t := s.State.Waiting; t != nil && (previous.State.Waiting == nil || t.Reason != previous.State.Waiting.Reason) {
-						conditions = append(conditions, conditionsForTransitioningContainer(pod, s, previous, false, "ContainerWait", t.Reason, " "+t.Message, time.Time{}, lastContainerTimeFromStatus(s, previous))...)
+						conditions = append(conditions, conditionsForTransitioningContainer(pod, s, previous, false, monitorapi.ContainerReasonContainerWait, t.Reason, " "+t.Message, time.Time{}, lastContainerTimeFromStatus(s, previous))...)
 					}
 					if s.State.Running != nil && previous.State.Running == nil {
-						conditions = append(conditions, conditionsForTransitioningContainer(pod, s, previous, false, "ContainerStart", "", "", s.State.Running.StartedAt.Time, lastContainerTimeFromStatus(s, previous))...)
+						conditions = append(conditions, conditionsForTransitioningContainer(pod, s, previous, false, monitorapi.ContainerReasonContainerStart, "", "", s.State.Running.StartedAt.Time, lastContainerTimeFromStatus(s, previous))...)
 					}
 				}
 				if t := s.State.Terminated; t != nil && previous.State.Terminated == nil {
 					if t.ExitCode != 0 {
 						conditions = append(conditions, monitorapi.Condition{
 							Level:   monitorapi.Error,
-							Locator: locatePodContainer(pod, s.Name),
-							Message: fmt.Sprintf("reason/ContainerExit code/%d cause/%s %s", t.ExitCode, t.Reason, t.Message),
+							Locator: monitorapi.LocatePodContainer(pod, s.Name),
+							Message: monitorapi.ReasonedMessagef(monitorapi.ContainerReasonContainerExit, "code/%d cause/%s %s", t.ExitCode, t.Reason, t.Message),
 						})
 					} else {
 						conditions = append(conditions, monitorapi.Condition{
 							Level:   monitorapi.Info,
-							Locator: locatePodContainer(pod, s.Name),
-							Message: fmt.Sprintf("reason/ContainerExit code/0 cause/%s %s", t.Reason, t.Message),
+							Locator: monitorapi.LocatePodContainer(pod, s.Name),
+							Message: monitorapi.ReasonedMessagef(monitorapi.ContainerReasonContainerExit, "code/0 cause/%s %s", t.Reason, t.Message),
 						})
 					}
 				}
 				if s.RestartCount != previous.RestartCount && s.RestartCount != 0 {
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Warning,
-						Locator: locatePodContainer(pod, s.Name),
+						Locator: monitorapi.LocatePodContainer(pod, s.Name),
 						Message: "reason/Restarted",
 					})
 				}
-				if s.State.Terminated == nil && previous.Ready && !s.Ready {
+				if previous.Ready && !s.Ready {
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Warning,
-						Locator: locatePodContainer(pod, s.Name),
-						Message: "reason/NotReady",
+						Locator: monitorapi.LocatePodContainer(pod, s.Name),
+						Message: monitorapi.ReasonedMessage(monitorapi.ContainerReasonNotReady),
 					})
 				}
 				if !previous.Ready && s.Ready {
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Info,
-						Locator: locatePodContainer(pod, s.Name),
-						Message: "reason/Ready",
+						Locator: monitorapi.LocatePodContainer(pod, s.Name),
+						Message: monitorapi.ReasonedMessage(monitorapi.ContainerReasonReady),
 					})
 				}
 			}
@@ -276,37 +308,37 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				if previous.LastTerminationState.Terminated != nil && s.LastTerminationState.Terminated == nil {
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Error,
-						Locator: locatePodContainer(pod, s.Name),
+						Locator: monitorapi.LocatePodContainer(pod, s.Name),
 						Message: fmt.Sprintf("reason/TerminationStateCleared lastState.terminated was cleared on a pod (bug https://bugzilla.redhat.com/show_bug.cgi?id=1933760 or similar)"),
 					})
 				}
 				if pod.DeletionTimestamp == nil {
 					if t := s.State.Waiting; t != nil && (previous.State.Waiting == nil || t.Reason != previous.State.Waiting.Reason) {
-						conditions = append(conditions, conditionsForTransitioningContainer(pod, s, previous, true, "ContainerWait", t.Reason, " "+t.Message, time.Time{}, lastContainerTimeFromStatus(s, previous))...)
+						conditions = append(conditions, conditionsForTransitioningContainer(pod, s, previous, true, monitorapi.ContainerReasonContainerWait, t.Reason, " "+t.Message, time.Time{}, lastContainerTimeFromStatus(s, previous))...)
 					}
 					if s.State.Running != nil && previous.State.Running == nil {
-						conditions = append(conditions, conditionsForTransitioningContainer(pod, s, previous, true, "ContainerStart", "", "", s.State.Running.StartedAt.Time, lastContainerTimeFromStatus(s, previous))...)
+						conditions = append(conditions, conditionsForTransitioningContainer(pod, s, previous, true, monitorapi.ContainerReasonContainerStart, "", "", s.State.Running.StartedAt.Time, lastContainerTimeFromStatus(s, previous))...)
 					}
 				}
 				if t := s.State.Terminated; t != nil && previous.State.Terminated == nil {
 					if t.ExitCode != 0 {
 						conditions = append(conditions, monitorapi.Condition{
 							Level:   monitorapi.Error,
-							Locator: locatePodContainer(pod, s.Name),
-							Message: fmt.Sprintf("reason/ContainerExit code/%d cause/%s %s", t.ExitCode, t.Reason, t.Message),
+							Locator: monitorapi.LocatePodContainer(pod, s.Name),
+							Message: monitorapi.ReasonedMessagef(monitorapi.ContainerReasonContainerExit, "code/%d cause/%s %s", t.ExitCode, t.Reason, t.Message),
 						})
 					} else {
 						conditions = append(conditions, monitorapi.Condition{
 							Level:   monitorapi.Info,
-							Locator: locatePodContainer(pod, s.Name),
-							Message: fmt.Sprintf("reason/ContainerExit code/0 cause/%s %s", t.Reason, t.Message),
+							Locator: monitorapi.LocatePodContainer(pod, s.Name),
+							Message: monitorapi.ReasonedMessagef(monitorapi.ContainerReasonContainerExit, "code/0 cause/%s %s", t.Reason, t.Message),
 						})
 					}
 				}
 				if s.RestartCount != previous.RestartCount {
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Warning,
-						Locator: locatePodContainer(pod, s.Name),
+						Locator: monitorapi.LocatePodContainer(pod, s.Name),
 						Message: "reason/Restarted",
 					})
 				}
@@ -319,7 +351,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 			if len(oldPod.Spec.NodeName) > 0 && pod.Spec.NodeName != oldPod.Spec.NodeName {
 				conditions = append(conditions, monitorapi.Condition{
 					Level:   monitorapi.Error,
-					Locator: locatePod(pod),
+					Locator: monitorapi.LocatePod(pod),
 					Message: fmt.Sprintf("invariant violation, pod once assigned to a node must stay on it. The pod previously scheduled to %s, has just been assigned to a new node %s", oldPod.Spec.NodeName, pod.Spec.NodeName),
 				})
 			}
@@ -329,26 +361,27 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 	podDeleteFns := []func(pod *corev1.Pod) []monitorapi.Condition{
 		// check for transitions to being deleted
 		func(pod *corev1.Pod) []monitorapi.Condition {
-			var conditions []monitorapi.Condition
+			conditions := []monitorapi.Condition{
+				{
+					Level:   monitorapi.Info,
+					Locator: monitorapi.LocatePod(pod),
+					Message: monitorapi.ReasonedMessage(monitorapi.PodReasonDeleted),
+				},
+			}
 			switch {
 			case len(pod.Spec.NodeName) == 0:
 				conditions = append(conditions, monitorapi.Condition{
 					Level:   monitorapi.Info,
-					Locator: locatePod(pod),
-					Message: "reason/DeletedBeforeScheduling",
+					Locator: monitorapi.LocatePod(pod),
+					Message: monitorapi.ReasonedMessage(monitorapi.PodReasonDeletedBeforeScheduling),
 				})
 			case pod.Status.Phase == corev1.PodFailed, pod.Status.Phase == corev1.PodSucceeded:
 				conditions = append(conditions, monitorapi.Condition{
 					Level:   monitorapi.Info,
-					Locator: locatePod(pod),
-					Message: "reason/DeletedAfterCompletion",
+					Locator: monitorapi.LocatePod(pod),
+					Message: monitorapi.ReasonedMessage(monitorapi.PodReasonDeletedAfterCompletion),
 				})
 			default:
-				conditions = append(conditions, monitorapi.Condition{
-					Level:   monitorapi.Info,
-					Locator: locatePod(pod),
-					Message: "reason/Deleted",
-				})
 			}
 			return conditions
 		},
@@ -369,11 +402,10 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				if pod.CreationTimestamp.Time.Before(startTime) {
 					return
 				}
-				m.Record(monitorapi.Condition{
-					Level:   monitorapi.Info,
-					Locator: locatePod(pod),
-					Message: "reason/Created",
-				})
+
+				for _, fn := range podCreatedFns {
+					m.Record(fn(pod)...)
+				}
 			},
 			DeleteFunc: func(obj interface{}) {
 				pod, ok := obj.(*corev1.Pod)
@@ -469,22 +501,22 @@ func conditionsForTransitioningContainer(pod *corev1.Pod, current, previous *cor
 			data, _ := json.Marshal(pod)
 			conditions = append(conditions, monitorapi.Condition{
 				Level:   monitorapi.Info,
-				Locator: locatePodContainer(pod, current.Name),
-				Message: fmt.Sprintf("reason/%s%s unable to calculate container transition time in pod: %s", reason, cause, string(data)),
+				Locator: monitorapi.LocatePodContainer(pod, current.Name),
+				Message: monitorapi.ReasonedMessagef(reason, "cause/%s unable to calculate container transition time in pod: %s", cause, string(data)),
 			})
 		case seconds > 60 && previous != nil && previous.LastTerminationState.Terminated != nil && current.LastTerminationState.Terminated == nil:
 			currentData, _ := json.Marshal(current)
 			previousData, _ := json.Marshal(previous)
 			conditions = append(conditions, monitorapi.Condition{
 				Level:   monitorapi.Info,
-				Locator: locatePodContainer(pod, current.Name),
-				Message: fmt.Sprintf("reason/%s%s duration/%.2fs very long transition, possible container status clear from Kubelet: %s -> %s", reason, cause, seconds, string(previousData), string(currentData)),
+				Locator: monitorapi.LocatePodContainer(pod, current.Name),
+				Message: monitorapi.ReasonedMessagef(reason, "cause/%s duration/%.2fs very long transition, possible container status clear from Kubelet: %s -> %s", cause, seconds, string(previousData), string(currentData)),
 			})
 		default:
 			conditions = append(conditions, monitorapi.Condition{
 				Level:   monitorapi.Info,
-				Locator: locatePodContainer(pod, current.Name),
-				Message: fmt.Sprintf("reason/%s%s duration/%.2fs%s", reason, cause, seconds, message),
+				Locator: monitorapi.LocatePodContainer(pod, current.Name),
+				Message: monitorapi.ReasonedMessagef(reason, "cause/%s duration/%.2fs%s", cause, seconds, message),
 			})
 		}
 	}

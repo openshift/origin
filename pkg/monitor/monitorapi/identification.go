@@ -108,3 +108,9 @@ func IsEventForLocator(locator string) EventIntervalMatchesFunc {
 		return false
 	}
 }
+
+type NamespacedReference struct {
+	Namespace string
+	Name      string
+	UID       string
+}
