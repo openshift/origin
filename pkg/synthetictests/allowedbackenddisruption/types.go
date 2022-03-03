@@ -45,7 +45,7 @@ SELECT
 	p95Query = `
 SELECT * FROM openshift-ci-data-analysis.ci_data.BackendDisruption_Unified_LastWeek_P95 
 order by 
- BackendName, Release, FromRelease, Topology, Platform, Network
+ BackendName, Release, FromRelease, Topology, Architecture, Platform, Network
 `
 )
 

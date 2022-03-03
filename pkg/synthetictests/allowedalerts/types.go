@@ -32,7 +32,7 @@ where
   alertName = "PrometheusOperatorWatchErrors" or
   alertName = "VSphereOpenshiftNodeHealthFail"
 order by 
- AlertName, Release, FromRelease, Topology, Platform, Network
+ AlertName, Release, FromRelease, Topology, Architecture, Platform, Network
 `
 )
 
