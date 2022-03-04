@@ -248,6 +248,25 @@ func makeNamespaceScheduleToAllNodes(f *e2e.Framework) {
 	}
 }
 
+func makeNamespaceWithExternalGatewaySet(f *e2e.Framework, gatewayIP string) {
+	for {
+		ns, err := f.ClientSet.CoreV1().Namespaces().Get(context.Background(), f.Namespace.Name, metav1.GetOptions{})
+		expectNoError(err)
+		if ns.Annotations == nil {
+			ns.Annotations = make(map[string]string)
+		}
+		ns.Annotations["k8s.ovn.org/routing-external-gws"] = gatewayIP
+		_, err = f.ClientSet.CoreV1().Namespaces().Update(context.Background(), ns, metav1.UpdateOptions{})
+		if err == nil {
+			return
+		}
+		if kapierrs.IsConflict(err) {
+			continue
+		}
+		expectNoError(err)
+	}
+}
+
 // findAppropriateNodes tries to find a source and destination for a type of node connectivity
 // test (same node, or different node).
 func findAppropriateNodes(f *e2e.Framework, nodeType NodeType) (*corev1.Node, *corev1.Node, error) {
