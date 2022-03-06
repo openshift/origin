@@ -20,6 +20,14 @@ var _ = g.Describe("[sig-imageregistry][Serial][Suite:openshift/registry/serial]
 		signerBuildFixture = exutil.FixturePath("testdata", "signer-buildconfig.yaml")
 	)
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpConfigMapStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.It("can push a signed image to openshift registry and verify it", func() {
 		g.By("building a signer image that knows how to sign images")
 		output, err := oc.Run("create").Args("-f", signerBuildFixture).Output()
@@ -28,8 +36,6 @@ var _ = g.Describe("[sig-imageregistry][Serial][Suite:openshift/registry/serial]
 		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = exutil.WaitForAnImageStreamTag(oc, oc.Namespace(), "signer", "latest")
-		containerLog, _ := oc.Run("logs").Args("builds/signer-1").Output()
-		e2e.Logf("signer build logs:\n%s\n", containerLog)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("looking up the openshift registry URL")
