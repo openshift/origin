@@ -53552,6 +53552,34 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
+    function isPod(eventInterval) {
+        if (eventInterval.locator.includes("pod/") && !eventInterval.locator.includes("alert/")) {
+            return true
+        }
+        return false
+    }
+
+    function isPodLifecycle(eventInterval) {
+        if (eventInterval.locator.includes("pod/") && (eventInterval.message.includes("reason/Created") || eventInterval.message.includes("reason/Scheduled"))) {
+            return true
+        }
+        return false
+    }
+
+    function isContainerLifecycle(eventInterval) {
+        if (eventInterval.locator.includes("container/") && (eventInterval.message.includes("reason/ContainerExit") || eventInterval.message.includes("reason/ContainerStart") || eventInterval.message.includes("reason/ContainerWait"))) {
+            return true
+        }
+        return false
+    }
+
+    function isContainerReadiness(eventInterval) {
+        if (eventInterval.locator.includes("container/") && (eventInterval.message.includes("reason/Ready") || eventInterval.message.includes("reason/NotReady"))) {
+            return true
+        }
+        return false
+    }
+
     function isE2EFailed(eventInterval) {
         if (eventInterval.locator.startsWith("e2e-test/") && eventInterval.message.includes("finished As \"Failed")) {
             return true
@@ -53602,6 +53630,37 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
             return true
         }
         return false
+    }
+
+    const reReason = new RegExp("(^| )reason/([^ ]+)")
+    function podStateValue(item) {
+        let m = item.message.match(reReason);
+
+        if (m && isPodLifecycle(item)){
+            if (m[2] == "Created") {
+                return [item.locator, ` + "`" + ` (pod lifecycle)` + "`" + `, "PodCreated"];
+            }
+            if (m[2] == "Scheduled") {
+                return [item.locator, ` + "`" + ` (pod lifecycle)` + "`" + `, "PodScheduled"];
+            }
+        }
+        if (m && isContainerLifecycle(item)){
+            if (m[2] == "ContainerWait") {
+                return [item.locator, ` + "`" + ` (container lifecycle)` + "`" + `, "ContainerWait"];
+            }
+            if (m[2] == "ContainerStart") {
+                return [item.locator, ` + "`" + ` (container lifecycle)` + "`" + `, "ContainerStart"];
+            }
+        }
+        if (m && isContainerReadiness(item)){
+            if (m[2] == "NotReady") {
+                return [item.locator, ` + "`" + ` (container readiness)` + "`" + `, "ContainerNotReady"];
+            }
+            if (m[2] == "Ready") {
+                return [item.locator, ` + "`" + ` (container readiness)` + "`" + `, "ContainerReady"];
+            }
+        }
+        return [item.locator, "", "Unknown"];
     }
 
     const rePhase = new RegExp("(^| )phase/([^ ]+)")
@@ -53719,6 +53778,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     timelineGroups.push({group: "operator-progressing", data: []})
     createTimelineData("OperatorProgressing", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorProgressing)
 
+    timelineGroups.push({group: "pods", data: []})
+    createTimelineData(podStateValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isPod)
+
     timelineGroups.push({group: "alerts", data: []})
     createTimelineData(alertSeverity, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAlert)
     // leaving this for posterity so future me (or someone else) can try it, but I think ordering by name makes the
@@ -53782,23 +53844,25 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
             'OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', // operators
             'Update', 'Drain', 'Reboot', 'OperatingSystemUpdate', 'NodeNotReady', // nodes
             'Passed', 'Skipped', 'Flaked', 'Failed',  // tests
+            'PodCreated', 'PodScheduled', 'ContainerWait', 'ContainerStart', 'ContainerNotReady', 'ContainerReady',  // pods
             'Degraded', 'Upgradeable', 'False', 'Unknown'])
         .range([
             '#fada5e','#fada5e','#ffa500','#d0312d',  // alerts
             '#d0312d', '#ffa500', '#fada5e', // operators
             '#1e7bd9', '#4294e6', '#6aaef2', '#96cbff', '#fada5e', // nodes
             '#3cb043', '#ceba76', '#ffa500', '#d0312d', // tests
+            '#96cbff', '#1e7bd9', '#96cbff', '#1e7bd9', '#fada5e','#3cb043', // pods
             '#b65049', '#32b8b6', '#ffffff', '#bbbbbb']);
     myChart.
-        data(timelineGroups).
-        zQualitative(true).
-        enableAnimations(false).
-        leftMargin(240).
-        rightMargin(550).
-        maxLineHeight(20).
-        maxHeight(10000).
-        zColorScale(ordinalScale).
-        onSegmentClick(segmentFunc)
+    data(timelineGroups).
+    zQualitative(true).
+    enableAnimations(false).
+    leftMargin(240).
+    rightMargin(550).
+    maxLineHeight(20).
+    maxHeight(10000).
+    zColorScale(ordinalScale).
+    onSegmentClick(segmentFunc)
     (el);
 
 

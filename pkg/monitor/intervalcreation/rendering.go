@@ -60,12 +60,21 @@ func BelongsInSpyglass(eventInterval monitorapi.EventInterval) bool {
 	if isLessInterestingAlert(eventInterval) {
 		return false
 	}
+	if isPodLifecycle(eventInterval) {
+		return false
+	}
 
 	return true
 }
 
 func BelongsInOperatorRollout(eventInterval monitorapi.EventInterval) bool {
 	if monitorapi.IsE2ETest(eventInterval.Locator) {
+		return false
+	}
+	if isPodLifecycle(eventInterval) {
+		if isPlatformPodEvent(eventInterval) {
+			return true
+		}
 		return false
 	}
 
@@ -76,14 +85,50 @@ func BelongsInKubeAPIServer(eventInterval monitorapi.EventInterval) bool {
 	if monitorapi.IsE2ETest(eventInterval.Locator) {
 		return false
 	}
+	if isLessInterestingAlert(eventInterval) {
+		return false
+	}
 	if isInKubeControlPlaneNamespace(eventInterval) {
 		return true
 	}
-	if isLessInterestingAlert(eventInterval) {
+	if isPodLifecycle(eventInterval) {
+		if isPlatformPodEvent(eventInterval) {
+			return true
+		}
 		return false
 	}
 
 	return true
+}
+
+func isPodLifecycle(eventInterval monitorapi.EventInterval) bool {
+	if pod := monitorapi.PodFrom(eventInterval.Locator); len(pod.UID) > 0 {
+		return true
+	}
+	if container := monitorapi.ContainerFrom(eventInterval.Locator); len(container.ContainerName) > 0 {
+		return true
+	}
+
+	return false
+}
+
+func isPlatformPodEvent(eventInterval monitorapi.EventInterval) bool {
+	// only include pod events that were created in CreatePodIntervalsFromInstants
+	if !strings.Contains(eventInterval.Message, "constructed/true") {
+		return false
+	}
+	pod := monitorapi.PodFrom(eventInterval.Locator)
+	if len(pod.UID) == 0 {
+		return false
+	}
+
+	locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
+	namespace := monitorapi.NamespaceFrom(locatorParts)
+	if strings.HasPrefix(namespace, "openshift-") {
+		return true
+	}
+
+	return false
 }
 
 var kubeControlPlaneNamespaces = sets.NewString(

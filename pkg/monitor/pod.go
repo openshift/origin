@@ -79,8 +79,8 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 		if !oldPodHasNode && newPodHasNode {
 			return []monitorapi.Condition{
 				{
-					Level:   monitorapi.Warning,
-					Locator: monitorapi.LocatePodContainer(pod, pod.Name),
+					Level:   monitorapi.Info,
+					Locator: monitorapi.LocatePod(pod),
 					Message: monitorapi.ReasonedMessage(monitorapi.PodReasonScheduled, fmt.Sprintf("node/%s", pod.Spec.NodeName)),
 				},
 			}
