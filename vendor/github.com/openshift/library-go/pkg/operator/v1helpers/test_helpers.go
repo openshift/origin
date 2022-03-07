@@ -189,10 +189,15 @@ func (n *fakeNodeLister) Get(name string) (*corev1.Node, error) {
 }
 
 // NewFakeOperatorClient returns a fake operator client suitable to use in static pod controller unit tests.
-func NewFakeOperatorClient(spec *operatorv1.OperatorSpec, status *operatorv1.OperatorStatus, triggerErr func(rv string, status *operatorv1.OperatorStatus) error) OperatorClient {
+func NewFakeOperatorClient(spec *operatorv1.OperatorSpec, status *operatorv1.OperatorStatus, triggerErr func(rv string, status *operatorv1.OperatorStatus) error) OperatorClientWithFinalizers {
+	return NewFakeOperatorClientWithObjectMeta(nil, spec, status, triggerErr)
+}
+
+func NewFakeOperatorClientWithObjectMeta(meta *metav1.ObjectMeta, spec *operatorv1.OperatorSpec, status *operatorv1.OperatorStatus, triggerErr func(rv string, status *operatorv1.OperatorStatus) error) OperatorClientWithFinalizers {
 	return &fakeOperatorClient{
 		fakeOperatorSpec:         spec,
 		fakeOperatorStatus:       status,
+		fakeObjectMeta:           meta,
 		resourceVersion:          "0",
 		triggerStatusUpdateError: triggerErr,
 	}
@@ -201,6 +206,7 @@ func NewFakeOperatorClient(spec *operatorv1.OperatorSpec, status *operatorv1.Ope
 type fakeOperatorClient struct {
 	fakeOperatorSpec         *operatorv1.OperatorSpec
 	fakeOperatorStatus       *operatorv1.OperatorStatus
+	fakeObjectMeta           *metav1.ObjectMeta
 	resourceVersion          string
 	triggerStatusUpdateError func(rv string, status *operatorv1.OperatorStatus) error
 }
@@ -210,7 +216,11 @@ func (c *fakeOperatorClient) Informer() cache.SharedIndexInformer {
 }
 
 func (c *fakeOperatorClient) GetObjectMeta() (*metav1.ObjectMeta, error) {
-	panic("not supported")
+	if c.fakeObjectMeta == nil {
+		return &metav1.ObjectMeta{}, nil
+	}
+
+	return c.fakeObjectMeta, nil
 }
 
 func (c *fakeOperatorClient) GetOperatorState() (*operatorv1.OperatorSpec, *operatorv1.OperatorStatus, string, error) {
@@ -246,4 +256,33 @@ func (c *fakeOperatorClient) UpdateOperatorSpec(resourceVersion string, spec *op
 	c.resourceVersion = strconv.Itoa(rv + 1)
 	c.fakeOperatorSpec = spec
 	return c.fakeOperatorSpec, c.resourceVersion, nil
+}
+
+func (c *fakeOperatorClient) EnsureFinalizer(finalizer string) error {
+	if c.fakeObjectMeta == nil {
+		c.fakeObjectMeta = &metav1.ObjectMeta{}
+	}
+	for _, f := range c.fakeObjectMeta.Finalizers {
+		if f == finalizer {
+			return nil
+		}
+	}
+	c.fakeObjectMeta.Finalizers = append(c.fakeObjectMeta.Finalizers, finalizer)
+	return nil
+}
+
+func (c *fakeOperatorClient) RemoveFinalizer(finalizer string) error {
+	newFinalizers := []string{}
+	for _, f := range c.fakeObjectMeta.Finalizers {
+		if f == finalizer {
+			continue
+		}
+		newFinalizers = append(newFinalizers, f)
+	}
+	c.fakeObjectMeta.Finalizers = newFinalizers
+	return nil
+}
+
+func (c *fakeOperatorClient) SetObjectMeta(meta *metav1.ObjectMeta) {
+	c.fakeObjectMeta = meta
 }

@@ -88,7 +88,7 @@ func SetSpecHashAnnotation(objMeta *metav1.ObjectMeta, spec interface{}) error {
 //
 // - Update the call to use ApplyDeploymentWithForce. This is available as a temporary measure
 // but the method is deprecated and will be removed in 4.6.
-func ApplyDeployment(client appsclientv1.DeploymentsGetter, recorder events.Recorder,
+func ApplyDeployment(ctx context.Context, client appsclientv1.DeploymentsGetter, recorder events.Recorder,
 	requiredOriginal *appsv1.Deployment, expectedGeneration int64) (*appsv1.Deployment, bool, error) {
 
 	required := requiredOriginal.DeepCopy()
@@ -97,13 +97,13 @@ func ApplyDeployment(client appsclientv1.DeploymentsGetter, recorder events.Reco
 		return nil, false, err
 	}
 
-	return ApplyDeploymentWithForce(client, recorder, required, expectedGeneration, false)
+	return ApplyDeploymentWithForce(ctx, client, recorder, required, expectedGeneration, false)
 }
 
 // ApplyDeploymentWithForce merges objectmeta and requires matching generation. It returns the final Object, whether any change as made, and an error.
 //
 // DEPRECATED - This method will be removed in 4.6 and callers will need to migrate to ApplyDeployment before then.
-func ApplyDeploymentWithForce(client appsclientv1.DeploymentsGetter, recorder events.Recorder, requiredOriginal *appsv1.Deployment, expectedGeneration int64,
+func ApplyDeploymentWithForce(ctx context.Context, client appsclientv1.DeploymentsGetter, recorder events.Recorder, requiredOriginal *appsv1.Deployment, expectedGeneration int64,
 	forceRollout bool) (*appsv1.Deployment, bool, error) {
 
 	required := requiredOriginal.DeepCopy()
@@ -115,9 +115,9 @@ func ApplyDeploymentWithForce(client appsclientv1.DeploymentsGetter, recorder ev
 		// pull-spec annotation to be applied.
 		required.Annotations["operator.openshift.io/pull-spec"] = required.Spec.Template.Spec.Containers[0].Image
 	}
-	existing, err := client.Deployments(required.Namespace).Get(context.TODO(), required.Name, metav1.GetOptions{})
+	existing, err := client.Deployments(required.Namespace).Get(ctx, required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.Deployments(required.Namespace).Create(context.TODO(), required, metav1.CreateOptions{})
+		actual, err := client.Deployments(required.Namespace).Create(ctx, required, metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
@@ -154,7 +154,7 @@ func ApplyDeploymentWithForce(client appsclientv1.DeploymentsGetter, recorder ev
 		klog.Infof("Deployment %q changes: %v", required.Namespace+"/"+required.Name, JSONPatchNoError(existing, toWrite))
 	}
 
-	actual, err := client.Deployments(required.Namespace).Update(context.TODO(), toWrite, metav1.UpdateOptions{})
+	actual, err := client.Deployments(required.Namespace).Update(ctx, toWrite, metav1.UpdateOptions{})
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
@@ -178,7 +178,7 @@ func ApplyDeploymentWithForce(client appsclientv1.DeploymentsGetter, recorder ev
 //
 // - Update the call to use ApplyDaemonSetWithForce. This is available as a temporary measure
 // but the method is deprecated and will be removed in 4.6.
-func ApplyDaemonSet(client appsclientv1.DaemonSetsGetter, recorder events.Recorder,
+func ApplyDaemonSet(ctx context.Context, client appsclientv1.DaemonSetsGetter, recorder events.Recorder,
 	requiredOriginal *appsv1.DaemonSet, expectedGeneration int64) (*appsv1.DaemonSet, bool, error) {
 
 	required := requiredOriginal.DeepCopy()
@@ -187,12 +187,12 @@ func ApplyDaemonSet(client appsclientv1.DaemonSetsGetter, recorder events.Record
 		return nil, false, err
 	}
 
-	return ApplyDaemonSetWithForce(client, recorder, required, expectedGeneration, false)
+	return ApplyDaemonSetWithForce(ctx, client, recorder, required, expectedGeneration, false)
 }
 
 // ApplyDaemonSetWithForce merges objectmeta and requires matching generation. It returns the final Object, whether any change as made, and an error
 // DEPRECATED - This method will be removed in 4.6 and callers will need to migrate to ApplyDaemonSet before then.
-func ApplyDaemonSetWithForce(client appsclientv1.DaemonSetsGetter, recorder events.Recorder, requiredOriginal *appsv1.DaemonSet, expectedGeneration int64, forceRollout bool) (*appsv1.DaemonSet, bool, error) {
+func ApplyDaemonSetWithForce(ctx context.Context, client appsclientv1.DaemonSetsGetter, recorder events.Recorder, requiredOriginal *appsv1.DaemonSet, expectedGeneration int64, forceRollout bool) (*appsv1.DaemonSet, bool, error) {
 	required := requiredOriginal.DeepCopy()
 	if required.Annotations == nil {
 		required.Annotations = map[string]string{}
@@ -202,9 +202,9 @@ func ApplyDaemonSetWithForce(client appsclientv1.DaemonSetsGetter, recorder even
 		// pull-spec annotation to be applied.
 		required.Annotations["operator.openshift.io/pull-spec"] = required.Spec.Template.Spec.Containers[0].Image
 	}
-	existing, err := client.DaemonSets(required.Namespace).Get(context.TODO(), required.Name, metav1.GetOptions{})
+	existing, err := client.DaemonSets(required.Namespace).Get(ctx, required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		actual, err := client.DaemonSets(required.Namespace).Create(context.TODO(), required, metav1.CreateOptions{})
+		actual, err := client.DaemonSets(required.Namespace).Create(ctx, required, metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
@@ -240,7 +240,7 @@ func ApplyDaemonSetWithForce(client appsclientv1.DaemonSetsGetter, recorder even
 	if klog.V(4).Enabled() {
 		klog.Infof("DaemonSet %q changes: %v", required.Namespace+"/"+required.Name, JSONPatchNoError(existing, toWrite))
 	}
-	actual, err := client.DaemonSets(required.Namespace).Update(context.TODO(), toWrite, metav1.UpdateOptions{})
+	actual, err := client.DaemonSets(required.Namespace).Update(ctx, toWrite, metav1.UpdateOptions{})
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
