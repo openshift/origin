@@ -1,0 +1,46 @@
+{
+  "items": [
+    {
+      "level": "Info",
+      "locator": "ns/e2e-kubectl-3271 pod/without-label node/ uid/e185b70c-ea3e-4600-850a-b2370a729a73",
+      "message": "reason/Created ",
+      "from": "2022-03-07T18:41:46Z",
+      "to": "2022-03-07T18:41:46Z"
+    },
+    {
+      "level": "Warning",
+      "locator": "ns/e2e-kubectl-3271 pod/without-label node/ip-10-0-141-9.us-west-2.compute.internal uid/e185b70c-ea3e-4600-850a-b2370a729a73",
+      "message": "reason/Scheduled node/ip-10-0-141-9.us-west-2.compute.internal",
+      "from": "2022-03-07T18:41:46Z",
+      "to": "2022-03-07T18:41:46Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/e2e-kubectl-3271 pod/without-label node/ip-10-0-141-9.us-west-2.compute.internal uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
+      "message": "reason/ContainerStart cause/ duration/6.00s",
+      "from": "2022-03-07T18:41:52Z",
+      "to": "2022-03-07T18:41:52Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/e2e-kubectl-3271 pod/without-label node/ip-10-0-141-9.us-west-2.compute.internal uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
+      "message": "reason/Ready ",
+      "from": "2022-03-07T18:41:52Z",
+      "to": "2022-03-07T18:41:52Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/e2e-kubectl-3271 pod/without-label node/ip-10-0-141-9.us-west-2.compute.internal uid/e185b70c-ea3e-4600-850a-b2370a729a73",
+      "message": "reason/ForceDelete mirrored/false",
+      "from": "2022-03-07T18:41:54Z",
+      "to": "2022-03-07T18:41:54Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/e2e-kubectl-3271 pod/without-label node/ip-10-0-141-9.us-west-2.compute.internal uid/e185b70c-ea3e-4600-850a-b2370a729a73",
+      "message": "reason/Deleted ",
+      "from": "2022-03-07T18:41:54Z",
+      "to": "2022-03-07T18:41:54Z"
+    }
+  ]
+}

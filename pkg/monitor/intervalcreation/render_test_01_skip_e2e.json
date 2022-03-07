@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "level": "Info",
+      "locator": "ns/e2e-daemonsets-2620 pod/daemon-set-cx5wt uid/7f73a02a-584e-4b86-a4e4-efb786051ac6",
+      "message": "constructed/true reason/Created ",
+      "from": "2022-03-07T22:46:16Z",
+      "to": "2022-03-07T22:46:16Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/e2e-daemonsets-2620 pod/daemon-set-cx5wt uid/7f73a02a-584e-4b86-a4e4-efb786051ac6 container/app",
+      "message": "constructed/true reason/ContainerWait missed real \"ContainerWait\"",
+      "from": "2022-03-07T22:46:16Z",
+      "to": "2022-03-07T22:46:22Z"
+    }
+  ]
+}
