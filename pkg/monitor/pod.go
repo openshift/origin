@@ -20,32 +20,10 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 	podInformer := cache.NewSharedIndexInformer(
 		NewErrorRecordingListWatcher(m, &cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				items, err := client.CoreV1().Pods("").List(ctx, options)
-				if err == nil {
-					last := 0
-					for i := range items.Items {
-						item := &items.Items[i]
-						// if !filterToSystemNamespaces(item) {
-						// 	continue
-						// }
-						if i != last {
-							items.Items[last] = *item
-							last++
-						}
-					}
-					items.Items = items.Items[:last]
-				}
-				return items, err
+				return client.CoreV1().Pods("").List(ctx, options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				w, err := client.CoreV1().Pods("").Watch(ctx, options)
-				if err == nil {
-					w = watch.Filter(w, func(in watch.Event) (watch.Event, bool) {
-						// return in, filterToSystemNamespaces(in.Object)
-						return in, true
-					})
-				}
-				return w, err
+				return client.CoreV1().Pods("").Watch(ctx, options)
 			},
 		}),
 		&corev1.Pod{},
@@ -387,7 +365,6 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 		},
 	}
 
-	startTime := time.Now().UTC().Add(-time.Minute)
 	podInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
@@ -396,12 +373,6 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 					return
 				}
 				m.RecordResource("pods", pod)
-
-				// filter out old pods so our monitor doesn't send a big chunk
-				// of pod creations
-				if pod.CreationTimestamp.Time.Before(startTime) {
-					return
-				}
 
 				for _, fn := range podCreatedFns {
 					m.Record(fn(pod)...)
