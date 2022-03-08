@@ -116,7 +116,7 @@ func (t podLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
 	locator := monitorapi.PodFrom(inLocator).ToLocator()
 	podEvents, ok := t.podToStateTransitions[locator]
 	if !ok {
-		return t.delegate.getStartTime(locator)
+		return t.delegate.getEndTime(locator)
 	}
 	for _, event := range podEvents {
 		if monitorapi.ReasonFrom(event.Message) == monitorapi.PodReasonDeleted {
@@ -151,7 +151,7 @@ func (t containerLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
 	locator := monitorapi.ContainerFrom(inLocator).ToLocator()
 	containerEvents, ok := t.podToContainerToLifecycleTransitions[locator]
 	if !ok {
-		return t.delegate.getStartTime(locator)
+		return t.delegate.getEndTime(locator)
 	}
 	for i := len(containerEvents) - 1; i >= 0; i-- {
 		event := containerEvents[i]

@@ -112,58 +112,122 @@ func TestIntervalCreation_TrailingReady(t *testing.T) {
 	}
 
 	expectedJSON := `{
-            "items": [
-                {
-                    "level": "Info",
-                    "locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
-                    "message": "constructed/true reason/Created ",
-                    "from": "2022-03-07T22:47:04Z",
-                    "to": "2022-03-07T22:47:04Z"
-                },
-                {
-                    "level": "Info",
-                    "locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
-                    "message": "constructed/true reason/Scheduled node/ip-10-0-154-151.ec2.internal",
-                    "from": "2022-03-07T22:47:04Z",
-                    "to": "2022-03-07T22:47:15Z"
-                },
-                {
-                    "level": "Info",
-                    "locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
-                    "message": "constructed/true reason/ContainerWait missed real \"ContainerWait\"",
-                    "from": "2022-03-07T22:47:04Z",
-                    "to": "2022-03-07T22:47:07Z"
-                },
-                {
-                    "level": "Info",
-                    "locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
-                    "message": "constructed/true reason/NotReady missed real \"NotReady\"",
-                    "from": "2022-03-07T22:47:07Z",
-                    "to": "2022-03-07T22:47:14Z"
-                },
-                {
-                    "level": "Info",
-                    "locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
-                    "message": "constructed/true reason/ContainerStart cause/ duration/3.00s",
-                    "from": "2022-03-07T22:47:07Z",
-                    "to": "2022-03-07T22:47:15Z"
-                },
-                {
-                    "level": "Info",
-                    "locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
-                    "message": "constructed/true reason/Ready ",
-                    "from": "2022-03-07T22:47:14Z",
-                    "to": "2022-03-07T22:47:15Z"
-                },
-                {
-                    "level": "Info",
-                    "locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
-                    "message": "constructed/true reason/NotReady ",
-                    "from": "2022-03-07T22:47:15Z",
-                    "to": "2022-03-07T22:47:15Z"
-                }
-            ]
-        }`
+	"items": [
+		{
+			"level": "Info",
+			"locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
+			"message": "constructed/true reason/Created ",
+			"from": "2022-03-07T22:47:04Z",
+			"to": "2022-03-07T22:47:04Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
+			"message": "constructed/true reason/Scheduled node/ip-10-0-154-151.ec2.internal",
+			"from": "2022-03-07T22:47:04Z",
+			"to": "2022-03-07T22:47:15Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
+			"message": "constructed/true reason/ContainerWait missed real \"ContainerWait\"",
+			"from": "2022-03-07T22:47:04Z",
+			"to": "2022-03-07T22:47:07Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
+			"message": "constructed/true reason/NotReady missed real \"NotReady\"",
+			"from": "2022-03-07T22:47:07Z",
+			"to": "2022-03-07T22:47:14Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
+			"message": "constructed/true reason/ContainerStart cause/ duration/3.00s",
+			"from": "2022-03-07T22:47:07Z",
+			"to": "2022-03-07T22:47:15Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
+			"message": "constructed/true reason/Ready ",
+			"from": "2022-03-07T22:47:14Z",
+			"to": "2022-03-07T22:47:15Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
+			"message": "constructed/true reason/NotReady ",
+			"from": "2022-03-07T22:47:15Z",
+			"to": "2022-03-07T22:47:15Z"
+		}
+	]
+}`
+
+	expectedJSON = strings.ReplaceAll(expectedJSON, "\t", "    ")
+
+	resultJSON := string(resultBytes)
+	if expectedJSON != resultJSON {
+		t.Fatal(resultJSON)
+	}
+}
+
+//go:embed pod_test_03_trailing_ready_2.json
+var trailingReady2PodLifecyleJSON []byte
+
+func TestIntervalCreation_TrailingReady2(t *testing.T) {
+	inputIntervals, err := monitorserialization.EventsFromJSON(trailingReady2PodLifecyleJSON)
+	if err != nil {
+		t.Fatal(err)
+	}
+	startTime, err := time.Parse(time.RFC3339, "2022-03-07T12:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	endTime, err := time.Parse(time.RFC3339, "2022-03-10T23:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := CreatePodIntervalsFromInstants(inputIntervals, startTime, endTime)
+
+	resultBytes, err := monitorserialization.EventsToJSON(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedJSON := `{
+	"items": [
+		{
+			"level": "Info",
+			"locator": "ns/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f",
+			"message": "constructed/true reason/Created ",
+			"from": "2022-03-08T23:17:18Z",
+			"to": "2022-03-08T23:17:18Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f",
+			"message": "constructed/true reason/Scheduled node/ip-10-0-231-18.us-east-2.compute.internal",
+			"from": "2022-03-08T23:17:18Z",
+			"to": "2022-03-10T23:00:00Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f container/machine-config-operator",
+			"message": "constructed/true reason/NotReady missed real \"NotReady\"",
+			"from": "2022-03-08T23:17:18Z",
+			"to": "2022-03-08T23:17:18Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f container/machine-config-operator",
+			"message": "constructed/true reason/Ready ",
+			"from": "2022-03-08T23:17:18Z",
+			"to": "2022-03-10T23:00:00Z"
+		}
+	]
+}`
 
 	expectedJSON = strings.ReplaceAll(expectedJSON, "\t", "    ")
 

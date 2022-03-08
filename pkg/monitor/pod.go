@@ -66,6 +66,55 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 		return nil
 	}
 
+	containerStatusesReadinessFn := func(pod *corev1.Pod, containerStatuses, oldContainerStatuses []corev1.ContainerStatus) []monitorapi.Condition {
+		isCreate := oldContainerStatuses == nil
+
+		conditions := []monitorapi.Condition{}
+		for i := range containerStatuses {
+			containerStatus := &containerStatuses[i]
+			containerName := containerStatus.Name
+			newContainerReady := containerStatus.Ready
+			oldContainerReady := false
+			if oldContainerStatuses != nil {
+				oldContainerStatus := findContainerStatus(oldContainerStatuses, containerName, i)
+				oldContainerReady = oldContainerStatus.Ready
+			}
+
+			// always produce conditions during create
+			if (isCreate && !newContainerReady) || (oldContainerReady && !newContainerReady) {
+				conditions = append(conditions, monitorapi.Condition{
+					Level:   monitorapi.Warning,
+					Locator: monitorapi.LocatePodContainer(pod, containerName),
+					Message: monitorapi.ReasonedMessage(monitorapi.ContainerReasonNotReady),
+				})
+			}
+			if (isCreate && newContainerReady) || (!oldContainerReady && newContainerReady) {
+				conditions = append(conditions, monitorapi.Condition{
+					Level:   monitorapi.Info,
+					Locator: monitorapi.LocatePodContainer(pod, containerName),
+					Message: monitorapi.ReasonedMessage(monitorapi.ContainerReasonReady),
+				})
+			}
+		}
+
+		return conditions
+	}
+
+	containerReadinessFn := func(pod, oldPod *corev1.Pod) []monitorapi.Condition {
+		isCreate := oldPod == nil
+
+		conditions := []monitorapi.Condition{}
+		if isCreate {
+			conditions = append(conditions, containerStatusesReadinessFn(pod, pod.Status.ContainerStatuses, nil)...)
+			conditions = append(conditions, containerStatusesReadinessFn(pod, pod.Status.InitContainerStatuses, nil)...)
+		} else {
+			conditions = append(conditions, containerStatusesReadinessFn(pod, pod.Status.ContainerStatuses, oldPod.Status.ContainerStatuses)...)
+			conditions = append(conditions, containerStatusesReadinessFn(pod, pod.Status.InitContainerStatuses, oldPod.Status.InitContainerStatuses)...)
+		}
+
+		return conditions
+	}
+
 	podCreatedFns := []func(pod *corev1.Pod) []monitorapi.Condition{
 		func(pod *corev1.Pod) []monitorapi.Condition {
 			return []monitorapi.Condition{
@@ -79,11 +128,16 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 		func(pod *corev1.Pod) []monitorapi.Condition {
 			return podScheduledFn(pod, nil)
 		},
+		func(pod *corev1.Pod) []monitorapi.Condition {
+			return containerReadinessFn(pod, nil)
+		},
 	}
 
 	podChangeFns := []func(pod, oldPod *corev1.Pod) []monitorapi.Condition{
 		// check if the pod was scheduled
 		podScheduledFn,
+		// check if readiness for containers changed
+		containerReadinessFn,
 		// check phase transitions
 		func(pod, oldPod *corev1.Pod) []monitorapi.Condition {
 			new, old := pod.Status.Phase, oldPod.Status.Phase
@@ -259,20 +313,6 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 						Level:   monitorapi.Warning,
 						Locator: monitorapi.LocatePodContainer(pod, s.Name),
 						Message: "reason/Restarted",
-					})
-				}
-				if previous.Ready && !s.Ready {
-					conditions = append(conditions, monitorapi.Condition{
-						Level:   monitorapi.Warning,
-						Locator: monitorapi.LocatePodContainer(pod, s.Name),
-						Message: monitorapi.ReasonedMessage(monitorapi.ContainerReasonNotReady),
-					})
-				}
-				if !previous.Ready && s.Ready {
-					conditions = append(conditions, monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Locator: monitorapi.LocatePodContainer(pod, s.Name),
-						Message: monitorapi.ReasonedMessage(monitorapi.ContainerReasonReady),
 					})
 				}
 			}
