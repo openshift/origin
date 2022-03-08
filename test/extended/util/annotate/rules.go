@@ -73,9 +73,6 @@ var (
 			// (prefixed with `In-tree Volumes [Driver: vsphere]`) are enough for testing this plugin.
 			// https://bugzilla.redhat.com/show_bug.cgi?id=2019115
 			`\[sig-storage\].*\[Feature:vsphere\]`,
-			// These tests are currently leaking sessions and hence disabling them until
-			// https://bugzilla.redhat.com/show_bug.cgi?id=2022824 is fixed.
-			`\[sig-storage\].+In-tree\s+Volumes\s+\[Driver: vsphere\].*`,
 			// Also, our CI doesn't support topology, so disable those tests
 			`\[sig-storage\] In-tree Volumes \[Driver: vsphere\] \[Testpattern: Dynamic PV \(delayed binding\)\] topology should fail to schedule a pod which has topologies that conflict with AllowedTopologies`,
 			`\[sig-storage\] In-tree Volumes \[Driver: vsphere\] \[Testpattern: Dynamic PV \(delayed binding\)\] topology should provision a volume and schedule a pod with AllowedTopologies`,
