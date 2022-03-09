@@ -1,12 +1,13 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
 reviewers:
-- bparees
-- deads2k
-- mfojtik
-- sdodson
+  - bparees
+  - deads2k
+  - mfojtik
+  - sdodson
+  - lwan-wanglin
 approvers:
-- bparees
-- deads2k
-- mfojtik
-- sdodson
+  - bparees
+  - deads2k
+  - mfojtik
+  - sdodson
