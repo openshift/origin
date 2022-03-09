@@ -2947,6 +2947,24 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-scheduling] [Feature:GPUDevicePlugin] run Nvidia GPU Device Plugin tests": "run Nvidia GPU Device Plugin tests [Disabled:SpecialConfig] [Suite:k8s]",
 
+	"[Top Level] [sig-scheduling][Early] The HAProxy router pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-scheduling][Early] The openshift-apiserver pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-scheduling][Early] The openshift-authentication pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-scheduling][Early] The openshift-console pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-scheduling][Early] The openshift-etcd pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-scheduling][Early] The openshift-image-registry pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-scheduling][Early] The openshift-monitoring pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-scheduling][Early] The openshift-oauth-apiserver pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-scheduling][Early] The openshift-operator-lifecycle-manager pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: CSI Ephemeral-volume (default fs)] ephemeral should create read-only inline ephemeral volume": "should create read-only inline ephemeral volume [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: CSI Ephemeral-volume (default fs)] ephemeral should create read/write inline ephemeral volume": "should create read/write inline ephemeral volume [Suite:openshift/conformance/parallel] [Suite:k8s]",
