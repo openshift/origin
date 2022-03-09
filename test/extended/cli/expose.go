@@ -7,18 +7,15 @@ import (
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 var _ = g.Describe("[sig-cli] oc expose", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc                      = exutil.NewCLI("oc-expose")
-		externalServiceFile     = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata", "external-service.yaml")
-		multiportSvcFile        = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata", "multiport-service.yaml")
-		externalServiceFileIPv6 = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata", "external-service-ipv6.yaml")
-		multiportSvcFileIPv6    = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata", "multiport-service-ipv6.yaml")
+		oc                  = exutil.NewCLI("oc-expose")
+		externalServiceFile = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata", "external-service.yaml")
+		multiportSvcFile    = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata", "multiport-service.yaml")
 	)
 
 	g.It("can ensure the expose command is functioning as expected", func() {
@@ -56,17 +53,10 @@ var _ = g.Describe("[sig-cli] oc expose", func() {
 		err = oc.Run("delete").Args("svc,route", "-l", "name=frontend").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		if e2e.TestContext.IPFamily != "ipv6" {
-			g.By("checking that external services are exposable")
-			err = oc.Run("create").Args("-f", externalServiceFile).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			defer oc.Run("delete").Args("-f", externalServiceFile).Execute()
-		} else {
-			g.By("checking that external services are exposable")
-			err = oc.Run("create").Args("-f", externalServiceFileIPv6).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			defer oc.Run("delete").Args("-f", externalServiceFileIPv6).Execute()
-		}
+		g.By("checking that external services are exposable")
+		err = oc.Run("create").Args("-f", externalServiceFile).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer oc.Run("delete").Args("-f", externalServiceFile).Execute()
 
 		err = oc.Run("expose").Args("svc/external").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -81,17 +71,10 @@ var _ = g.Describe("[sig-cli] oc expose", func() {
 		err = oc.Run("delete").Args("service", "external").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		if e2e.TestContext.IPFamily != "ipv6" {
-			g.By("checking that multiport services are in the route")
-			err = oc.Run("create").Args("-f", multiportSvcFile).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			defer oc.Run("delete").Args("-f", multiportSvcFile).Execute()
-		} else {
-			g.By("checking that multiport services are in the route")
-			err = oc.Run("create").Args("-f", multiportSvcFileIPv6).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			defer oc.Run("delete").Args("-f", multiportSvcFileIPv6).Execute()
-		}
+		g.By("checking that multiport services are in the route")
+		err = oc.Run("create").Args("-f", multiportSvcFile).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer oc.Run("delete").Args("-f", multiportSvcFile).Execute()
 
 		err = oc.Run("expose").Args("svc/frontend", "--name", "route-with-set-port").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
