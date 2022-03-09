@@ -350,6 +350,10 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 				Selector: map[string]string{"alertname": "ExtremelyHighIndividualControlPlaneCPU"},
 				Text:     "high CPU utilization during e2e runs is normal",
 			},
+			{
+				Selector: map[string]string{"alertname": "CurrentVersionNotVerified", "namespace": "openshift-cluster-version"},
+				Text:     "Versions of the clusters used in the CI may not be signed, and in these cases, it is expected for the verification to fail",
+			},
 		}
 
 		if isTechPreviewCluster(oc) {
@@ -753,6 +757,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				"AlertmanagerReceiversNotConfigured",
 				"PrometheusRemoteWriteDesiredShards",
 				"KubeJobFailed", // this is a result of bug https://bugzilla.redhat.com/show_bug.cgi?id=2054426 .  We should catch these in the late test above.
+				"CurrentVersionNotVerified",
 			}
 
 			// we exclude alerts that have their own separate tests.

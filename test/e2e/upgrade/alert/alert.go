@@ -132,6 +132,10 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 			Selector: map[string]string{"alertname": "KubeDeploymentReplicasMismatch", "namespace": "openshift-e2e-loki"},
 			Text:     "Loki is nice to have, but we can allow it to be down",
 		},
+		{
+			Selector: map[string]string{"alertname": "CurrentVersionNotVerified", "namespace": "openshift-cluster-version"},
+			Text:     "Versions of the clusters used in the CI may not be signed, and in these cases, it is expected for the verification to fail",
+		},
 	}
 
 	pendingAlertsWithBugs := helper.MetricConditions{
