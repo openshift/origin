@@ -53495,7 +53495,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>e2e-chart</title>
+    <title>EVENT_INTERVAL_TITLE_GOES_HERE</title>
     <script src="https://unpkg.com/timelines-chart"></script>
     <script src="https://d3js.org/d3-array.v1.min.js"></script>
     <script src="https://d3js.org/d3-collection.v1.min.js"></script>

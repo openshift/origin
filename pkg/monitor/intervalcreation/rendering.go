@@ -41,7 +41,9 @@ func (r eventIntervalRenderer) WriteEventData(artifactDir string, events monitor
 
 	}
 	e2eChartTemplate := testdata.MustAsset("e2echart/e2e-chart-template.html")
-	e2eChartHTML := bytes.ReplaceAll(e2eChartTemplate, []byte("EVENT_INTERVAL_JSON_GOES_HERE"), eventIntervalsJSON)
+	e2eChartTitle := fmt.Sprintf("Intervals - %s%s", r.name, timeSuffix)
+	e2eChartHTML := bytes.ReplaceAll(e2eChartTemplate, []byte("EVENT_INTERVAL_TITLE_GOES_HERE"), []byte(e2eChartTitle))
+	e2eChartHTML = bytes.ReplaceAll(e2eChartHTML, []byte("EVENT_INTERVAL_JSON_GOES_HERE"), eventIntervalsJSON)
 	e2eChartHTMLPath := filepath.Join(artifactDir, fmt.Sprintf("e2e-intervals_%s%s.html", r.name, timeSuffix))
 	if err := ioutil.WriteFile(e2eChartHTMLPath, e2eChartHTML, 0644); err != nil {
 		errs = append(errs, err)
