@@ -51,10 +51,6 @@ If your OpenShift cluster has `etcd` [encryption enabled](https://docs.openshift
 
 **NOTE** Currently this only supports encryption of the `aescbc` type. This is only noted in case future releases add in various encryption types.
 
-Once these are set properly, one can invoke the following actions:
-
-* `secrets` - get the decrypted value of an ecnrypted key
-
 This requires setting the following flags:
 
 * `-encryption-key`
@@ -93,7 +89,9 @@ cat static-pod-resources/kube-apiserver-pod-1/secrets/encryption-config/encrypti
 
 ### Retrieve Encrypted Values
 
-With this data in hand, you can now get the values and decrypt them so they can be read/used:
+Once these are set properly, one can invoke the `secrets` action:
+
+* `secrets` - get the decrypted value of an ecnrypted key
 
 ```sh
 $ etcdhelper -encryption-key="1" -encryption-secret="8kU3ejkS86Au/eLzQ4rBR//O1spU0Lbno1JzEBxI=" -key master.etcd-client.key -cert master.etcd-client.crt -cacert ca.crt secrets /kubernetes.io/secrets/openshift-network-operator/default-dockercfg-1h8g7
