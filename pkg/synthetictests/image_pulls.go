@@ -2,6 +2,7 @@ package synthetictests
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strings"
 
@@ -62,6 +63,7 @@ func (s *singleEventCheckRegex) test(events monitorapi.Intervals) []*junitapi.JU
 				Output: strings.Join(totalOutput, "\n"),
 			},
 		}
+
 		return []*junitapi.JUnitTestCase{failure}
 	}
 	if len(flakeOutput) > 0 {
@@ -82,7 +84,7 @@ func newSingleEventCheckRegex(testName, regex string) *singleEventCheckRegex {
 	return &singleEventCheckRegex{
 		testName:       testName,
 		recognizer:     matchEventForRegexOrDie(regex),
-		failThreshold:  duplicateEventThreshold,
+		failThreshold:  math.MaxInt32,
 		flakeThreshold: imagePullRedhatFlakeThreshold,
 	}
 }
