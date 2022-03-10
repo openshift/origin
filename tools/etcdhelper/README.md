@@ -100,7 +100,7 @@ data:
   .dockercfg: eyIxMC4~~~rest of the data~~~ifx013= 
 kind: Secret
 metadata:
-  ~~~~~
+~~~
 ```
 
 As opposed to what happens if you do not decrypt:
