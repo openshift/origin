@@ -3,27 +3,27 @@ package main
 import (
 	"bytes"
 	"context"
-    "crypto/aes"
-    "crypto/cipher"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
-    "encoding/base64"
 	"flag"
 	"fmt"
 	"os"
 	"time"
 
+	"github.com/openshift/api"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
 	"go.etcd.io/etcd/client/v3"
 	jsonserializer "k8s.io/apimachinery/pkg/runtime/serializer/json"
+	"k8s.io/apiserver/pkg/storage/value"
+	aestransformer "k8s.io/apiserver/pkg/storage/value/encrypt/aes"
 	"k8s.io/kubectl/pkg/scheme"
-    "k8s.io/apiserver/pkg/storage/value"
-    aestransformer "k8s.io/apiserver/pkg/storage/value/encrypt/aes"
-	"github.com/openshift/api"
 )
 
 const (
-    AESCBC_PREFIX = "k8s:enc:aescbc:v1:"
+	AESCBC_PREFIX = "k8s:enc:aescbc:v1:"
 )
 
 func init() {
@@ -37,8 +37,8 @@ func main() {
 	flag.StringVar(&keyFile, "key", "", "TLS client key.")
 	flag.StringVar(&certFile, "cert", "", "TLS client certificate.")
 	flag.StringVar(&caFile, "cacert", "", "Server TLS CA certificate.")
-    flag.StringVar(&encryptionkey, "encryption-key", getenv("ENCRYPTION_KEY"), "Encryption Key.")
-    flag.StringVar(&encryptionSecret, "encryption-secret", getenv("ENCRYPTION_SECRET"), "Encryption Secret.")
+	flag.StringVar(&encryptionkey, "encryption-key", getenv("ENCRYPTION_KEY"), "Encryption Key.")
+	flag.StringVar(&encryptionSecret, "encryption-secret", getenv("ENCRYPTION_SECRET"), "Encryption Secret.")
 
 	flag.Parse()
 
@@ -177,7 +177,7 @@ func getKey(client *clientv3.Client, key string) error {
 	}
 
 	decoder := scheme.Codecs.UniversalDeserializer()
-    encoder := jsonserializer.NewYAMLSerializer(jsonserializer.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+	encoder := jsonserializer.NewYAMLSerializer(jsonserializer.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 
 	for _, kv := range resp.Kvs {
 		obj, gvk, err := decoder.Decode(kv.Value, nil, nil)
@@ -195,8 +195,6 @@ func getKey(client *clientv3.Client, key string) error {
 
 	return nil
 }
-
-
 
 func secrets(encryptionkey string, encryptionSecret string, client *clientv3.Client, key string) error {
 
