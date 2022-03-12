@@ -42,6 +42,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/prometheus"
 	_ "github.com/openshift/origin/test/extended/quota"
 	_ "github.com/openshift/origin/test/extended/router"
+	_ "github.com/openshift/origin/test/extended/scheduling"
 	_ "github.com/openshift/origin/test/extended/security"
 	_ "github.com/openshift/origin/test/extended/single_node"
 	_ "github.com/openshift/origin/test/extended/tbr_health"
