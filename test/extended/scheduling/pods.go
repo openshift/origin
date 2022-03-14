@@ -5,6 +5,9 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/test/extended/single_node"
 	"strings"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -39,6 +42,18 @@ var _ = g.Describe("[sig-scheduling][Early]", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("scheduling-pod-check")
+
+	// TODO: Classify particular deployments according to whether they apply to
+	// infra vs control-plane topologies, because this test may still be
+	// interesting in clusters where contorl-plane topology is single-node but
+	// infra topology is HighlyAvailable. However, such clusters are not
+	// currently officially supported so this is not too urgent. on HA infra
+	// SingleReplica control plane e.g. HAProxy router pods need to be
+	// verified, but not openshift-apiserver.
+	controlPlaneTopology, _ := single_node.GetTopologies(oc.KubeFramework())
+	if controlPlaneTopology == configv1.SingleReplicaTopologyMode {
+		e2eskipper.Skipf("Test is not relevant for single replica control-plane topologies")
+	}
 
 	g.BeforeEach(func() {
 		var err error
