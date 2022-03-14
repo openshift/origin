@@ -5,10 +5,13 @@ import (
 	"sort"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
-func CreatePodIntervalsFromInstants(input monitorapi.Intervals, startTime, endTime time.Time) monitorapi.Intervals {
+func CreatePodIntervalsFromInstants(input monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, startTime, endTime time.Time) monitorapi.Intervals {
 	sort.Stable(ByPodLifecycle(input))
 	// these *static* locators to events. These are NOT the same as the actual event locators because nodes are not consistently assigned.
 	podToStateTransitions := map[string][]monitorapi.EventInterval{}
@@ -45,6 +48,7 @@ func CreatePodIntervalsFromInstants(input monitorapi.Intervals, startTime, endTi
 	podTimeBounder := podLifecycleTimeBounder{
 		delegate:              overallTimeBounder,
 		podToStateTransitions: podToStateTransitions,
+		recordedPods:          recordedResources["pods"],
 	}
 	containerTimeBounder := containerLifecycleTimeBounder{
 		delegate:                             podTimeBounder,
@@ -58,11 +62,11 @@ func CreatePodIntervalsFromInstants(input monitorapi.Intervals, startTime, endTi
 	ret := monitorapi.Intervals{}
 	ret = append(ret,
 		buildTransitionsForCategory(podToStateTransitions,
-			monitorapi.PodReasonCreated, monitorapi.PodReasonDeleted, overallTimeBounder)...,
+			monitorapi.PodReasonCreated, monitorapi.PodReasonDeleted, podTimeBounder)...,
 	)
 	ret = append(ret,
 		buildTransitionsForCategory(podToContainerToLifecycleTransitions,
-			monitorapi.ContainerReasonContainerWait, monitorapi.ContainerReasonContainerExit, podTimeBounder)...,
+			monitorapi.ContainerReasonContainerWait, monitorapi.ContainerReasonContainerExit, containerTimeBounder)...,
 	)
 	ret = append(ret,
 		buildTransitionsForCategory(podToContainerToReadinessTransitions,
@@ -95,6 +99,7 @@ func (t simpleTimeBounder) getEndTime(locator string) time.Time {
 type podLifecycleTimeBounder struct {
 	delegate              timeBounder
 	podToStateTransitions map[string][]monitorapi.EventInterval
+	recordedPods          monitorapi.InstanceMap
 }
 
 func (t podLifecycleTimeBounder) getStartTime(inLocator string) time.Time {
@@ -113,7 +118,8 @@ func (t podLifecycleTimeBounder) getStartTime(inLocator string) time.Time {
 }
 
 func (t podLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
-	locator := monitorapi.PodFrom(inLocator).ToLocator()
+	podCoordinates := monitorapi.PodFrom(inLocator)
+	locator := podCoordinates.ToLocator()
 	podEvents, ok := t.podToStateTransitions[locator]
 	if !ok {
 		return t.delegate.getEndTime(locator)
@@ -123,7 +129,37 @@ func (t podLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
 			return event.From
 		}
 	}
-	return t.delegate.getEndTime(locator)
+
+	// no hit for deleted, but if it's a RunOnce pod with all terminated containers, the logical "this pod is over"
+	// happens when the last container is terminated.
+	recordedPodObj, ok := t.recordedPods[podCoordinates.Namespace+"/"+podCoordinates.Name]
+	if !ok {
+		return t.delegate.getEndTime(locator)
+	}
+	pod, ok := recordedPodObj.(*corev1.Pod)
+	if !ok {
+		return t.delegate.getEndTime(locator)
+	}
+	if pod.Spec.RestartPolicy != corev1.RestartPolicyNever {
+		return t.delegate.getEndTime(locator)
+	}
+	if len(pod.Status.ContainerStatuses) == 0 {
+		return t.delegate.getEndTime(locator)
+	}
+	mostRecentTerminationTime := metav1.Time{}
+	for _, containerStatus := range pod.Status.ContainerStatuses {
+		// if any container is not terminated, then this pod is logically still present
+		if containerStatus.State.Terminated == nil {
+			return t.delegate.getEndTime(locator)
+		}
+		if mostRecentTerminationTime.Before(&containerStatus.State.Terminated.FinishedAt) {
+			mostRecentTerminationTime = containerStatus.State.Terminated.FinishedAt
+		}
+	}
+
+	// if a RunConce pod has finished running all of its containers, then the intervals chart will show that
+	// pod no longer existed after the last container terminated.
+	return mostRecentTerminationTime.Time
 }
 
 type containerLifecycleTimeBounder struct {
