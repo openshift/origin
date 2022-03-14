@@ -130,3 +130,48 @@ var (
 		ContainerReasonNotReady,
 	)
 )
+
+type ByTimeWithNamespacedPods []EventInterval
+
+func (intervals ByTimeWithNamespacedPods) Less(i, j int) bool {
+	lhsIsPodConstructed := strings.Contains(intervals[i].Message, "constructed") && strings.Contains(intervals[i].Locator, "pod/")
+	rhsIsPodConstructed := strings.Contains(intervals[j].Message, "constructed") && strings.Contains(intervals[j].Locator, "pod/")
+	switch {
+	case lhsIsPodConstructed && rhsIsPodConstructed:
+		lhsNamespace := NamespaceFromLocator(intervals[i].Locator)
+		rhsNamespace := NamespaceFromLocator(intervals[j].Locator)
+		if lhsNamespace < rhsNamespace {
+			return true
+		} else if lhsNamespace > rhsNamespace {
+			return false
+		} else {
+			// sort on time, so fall through.
+		}
+	case lhsIsPodConstructed && !rhsIsPodConstructed:
+		return true
+	case !lhsIsPodConstructed && rhsIsPodConstructed:
+		return false
+	case !lhsIsPodConstructed && !rhsIsPodConstructed:
+		// fall through
+	}
+
+
+		switch d := intervals[i].From.Sub(intervals[j].From); {
+		case d < 0:
+			return true
+		case d > 0:
+			return false
+		}
+		switch d := intervals[i].To.Sub(intervals[j].To); {
+		case d < 0:
+			return true
+		case d > 0:
+			return false
+		}
+		return intervals[i].Message < intervals[j].Message
+	}
+}
+func (intervals ByTimeWithNamespacedPods) Len() int { return len(intervals) }
+func (intervals ByTimeWithNamespacedPods) Swap(i, j int) {
+	intervals[i], intervals[j] = intervals[j], intervals[i]
+}
