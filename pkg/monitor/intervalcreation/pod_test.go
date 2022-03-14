@@ -6,6 +6,11 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+
 	"github.com/google/go-cmp/cmp"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 )
@@ -26,7 +31,7 @@ func TestIntervalCreation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	result := CreatePodIntervalsFromInstants(inputIntervals, startTime, endTime)
+	result := CreatePodIntervalsFromInstants(inputIntervals, monitorapi.ResourcesMap{}, startTime, endTime)
 
 	resultBytes, err := monitorserialization.EventsToJSON(result)
 	if err != nil {
@@ -104,7 +109,7 @@ func TestIntervalCreation_TrailingReady(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	result := CreatePodIntervalsFromInstants(inputIntervals, startTime, endTime)
+	result := CreatePodIntervalsFromInstants(inputIntervals, monitorapi.ResourcesMap{}, startTime, endTime)
 
 	resultBytes, err := monitorserialization.EventsToJSON(result)
 	if err != nil {
@@ -189,7 +194,7 @@ func TestIntervalCreation_TrailingReady2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	result := CreatePodIntervalsFromInstants(inputIntervals, startTime, endTime)
+	result := CreatePodIntervalsFromInstants(inputIntervals, monitorapi.ResourcesMap{}, startTime, endTime)
 
 	resultBytes, err := monitorserialization.EventsToJSON(result)
 	if err != nil {
@@ -225,6 +230,88 @@ func TestIntervalCreation_TrailingReady2(t *testing.T) {
 			"message": "constructed/true reason/Ready ",
 			"from": "2022-03-08T23:17:18Z",
 			"to": "2022-03-10T23:00:00Z"
+		}
+	]
+}`
+
+	expectedJSON = strings.ReplaceAll(expectedJSON, "\t", "    ")
+
+	resultJSON := string(resultBytes)
+	if expectedJSON != resultJSON {
+		t.Fatal(resultJSON)
+	}
+}
+
+//go:embed pod_test_04_run_once_done.json
+var runOnceDone []byte
+
+func TestIntervalCreation_RunOnceDone(t *testing.T) {
+	inputIntervals, err := monitorserialization.EventsFromJSON(runOnceDone)
+	if err != nil {
+		t.Fatal(err)
+	}
+	startTime, err := time.Parse(time.RFC3339, "2022-03-07T12:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	endTime, err := time.Parse(time.RFC3339, "2022-03-15T23:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	podTerminateTime, err := time.Parse(time.RFC3339, "2022-03-14T15:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := CreatePodIntervalsFromInstants(inputIntervals, monitorapi.ResourcesMap{
+		"pods": monitorapi.InstanceMap{
+			"openshift-kube-scheduler/installer-3-ip-10-0-136-132.us-west-2.compute.internal": &corev1.Pod{
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+				},
+				Status: corev1.PodStatus{
+					ContainerStatuses: []corev1.ContainerStatus{
+						{
+							State: corev1.ContainerState{
+								Terminated: &corev1.ContainerStateTerminated{
+									FinishedAt: metav1.Time{
+										Time: podTerminateTime,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}, startTime, endTime)
+
+	resultBytes, err := monitorserialization.EventsToJSON(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedJSON := `{
+	"items": [
+		{
+			"level": "Info",
+			"locator": "ns/openshift-kube-scheduler pod/installer-3-ip-10-0-136-132.us-west-2.compute.internal uid/b7d89367-600a-49a3-95e1-a3ef2c91ecb9",
+			"message": "constructed/true reason/Created ",
+			"from": "2022-03-10T22:46:20Z",
+			"to": "2022-03-10T22:46:20Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-kube-scheduler pod/installer-3-ip-10-0-136-132.us-west-2.compute.internal uid/b7d89367-600a-49a3-95e1-a3ef2c91ecb9",
+			"message": "constructed/true reason/Scheduled node/ip-10-0-136-132.us-west-2.compute.internal",
+			"from": "2022-03-10T22:46:20Z",
+			"to": "2022-03-14T15:00:00Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-kube-scheduler pod/installer-3-ip-10-0-136-132.us-west-2.compute.internal uid/b7d89367-600a-49a3-95e1-a3ef2c91ecb9 container/installer",
+			"message": "constructed/true reason/NotReady ",
+			"from": "2022-03-10T22:46:20Z",
+			"to": "2022-03-14T15:00:00Z"
 		}
 	]
 }`
