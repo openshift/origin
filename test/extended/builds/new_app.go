@@ -56,7 +56,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] oc new-app", func() {
 
 		g.It("should succeed with a --name of 58 characters", func() {
 			g.By("calling oc new-app")
-			err := oc.Run("new-app").Args("https://github.com/sclorg/nodejs-ex", "--name", a58, "--build-env=BUILD_LOGLEVEL=5").Execute()
+			err := oc.Run("new-app").Args("registry.redhat.io/ubi8/nodejs-16:latest~https://github.com/sclorg/nodejs-ex", "--name", a58, "--build-env=BUILD_LOGLEVEL=5").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the build to complete")
@@ -83,7 +83,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] oc new-app", func() {
 
 		g.It("should fail with a --name longer than 58 characters", func() {
 			g.By("calling oc new-app")
-			out, err := oc.Run("new-app").Args("https://github.com/sclorg/nodejs-ex", "--name", a59).Output()
+			out, err := oc.Run("new-app").Args("registry.redhat.io/ubi8/nodejs-16:latest~https://github.com/sclorg/nodejs-ex", "--name", a59).Output()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("error: invalid name: "))
 		})
@@ -91,7 +91,10 @@ var _ = g.Describe("[sig-builds][Feature:Builds] oc new-app", func() {
 		g.It("should succeed with an imagestream", func() {
 			// Bug 1767163 - oc new-app with --image-stream produced invalid labels
 			g.By("calling oc new-app with imagestream")
-			out, err := oc.Run("new-app").Args("https://github.com/sclorg/nodejs-ex", "--image-stream=nodejs:latest").Output()
+			// Note: the imagestream used here does not matter (does not have to a valid builder) since we are not checking
+			// the output results.  Since we can't rely on the samples operator being present to install sample s2i-enabled
+			// imagestreams, just use one of the static imagestreams instead (cli:latest)
+			out, err := oc.Run("new-app").Args("https://github.com/sclorg/nodejs-ex", "--image-stream=cli:latest").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(out).NotTo(o.ContainSubstring("error:"))
 		})

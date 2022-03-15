@@ -17304,9 +17304,8 @@ spec:
     type: Source
     sourceStrategy:
       from:
-        kind: ImageStreamTag
-        namespace: openshift
-        name: 'php:7.4-ubi8'
+        kind: DockerImage
+        name: registry.redhat.io/ubi8/php-74:latest
 `)
 
 func testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYamlBytes() ([]byte, error) {
@@ -17324,31 +17323,21 @@ func testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYaml() (*asset
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml = []byte(`{
-  "apiVersion": "v1",
-  "kind": "BuildConfig",
-  "metadata": {
-    "name": "myphp"
-  },
-  "spec": {
-    "source": {
-      "type": "Git",
-      "git": {
-        "uri": "https://github.com/sclorg/cakephp-ex.git"
-      }
-    },
-    "strategy": {
-      "type": "Source",
-      "sourceStrategy": {
-        "from": {
-          "kind": "ImageStreamTag",
-          "namespace": "openshift",
-          "name": "php:7.4-ubi8"
-        }
-      }
-    }
-  }
-}
+var _testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml = []byte(`apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: myphp
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/sclorg/cakephp-ex.git
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: registry.redhat.io/ubi8/php-74:latest
 `)
 
 func testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYamlBytes() ([]byte, error) {
@@ -17386,9 +17375,8 @@ spec:
             fieldRef:
               fieldPath: metadata.nofield
       from:
-        kind: ImageStreamTag
-        namespace: openshift
-        name: 'php:7.4-ubi8'
+        kind: DockerImage
+        name: registry.redhat.io/ubi8/php-74:latest
 `)
 
 func testExtendedTestdataBuildsBuildPruningErroredBuildConfigYamlBytes() ([]byte, error) {
@@ -17424,9 +17412,8 @@ spec:
     type: Source
     sourceStrategy:
       from:
-        kind: ImageStreamTag
-        namespace: openshift
-        name: 'php:7.4-ubi8'
+        kind: DockerImage
+        name: registry.redhat.io/ubi8/php-74:latest
 `)
 
 func testExtendedTestdataBuildsBuildPruningFailedBuildConfigYamlBytes() ([]byte, error) {
@@ -29589,7 +29576,7 @@ os::cmd::try_until_success 'oc rollout history dc/database --revision=2'
 # rolling back to the same revision should fail
 os::cmd::expect_failure 'oc rollback dc/database --to-version=2'
 # undo --dry-run should report the original image
-os::cmd::expect_success_and_text 'oc rollout undo dc/database --dry-run' 'image-registry.openshift-image-registry.svc:5000/openshift/mysql:8.0-el8'
+os::cmd::expect_success_and_text 'oc rollout undo dc/database --dry-run' 'registry.redhat.io/rhel8/mysql-80:latest'
 echo "rollback: ok"
 os::test::junit::declare_suite_end
 
@@ -33625,7 +33612,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
           {
             "from": {
               "kind": "DockerImage",
-              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:latest"
+              "name": "registry.redhat.io/ubi8/ruby-30:latest"
             },
             "name": "latest"
           }
@@ -33889,7 +33876,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "image-registry.openshift-image-registry.svc:5000/openshift/mysql:8.0-el8",
+                "image": "registry.redhat.io/rhel8/mysql-80:latest",
                 "ports": [
                   {
                     "containerPort": 3306,

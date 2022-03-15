@@ -1,25 +1,15 @@
-{
-  "apiVersion": "v1",
-  "kind": "BuildConfig",
-  "metadata": {
-    "name": "myphp"
-  },
-  "spec": {
-    "source": {
-      "type": "Git",
-      "git": {
-        "uri": "https://github.com/sclorg/cakephp-ex.git"
-      }
-    },
-    "strategy": {
-      "type": "Source",
-      "sourceStrategy": {
-        "from": {
-          "kind": "ImageStreamTag",
-          "namespace": "openshift",
-          "name": "php:7.4-ubi8"
-        }
-      }
-    }
-  }
-}
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: myphp
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/sclorg/cakephp-ex.git
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: registry.redhat.io/ubi8/php-74:latest

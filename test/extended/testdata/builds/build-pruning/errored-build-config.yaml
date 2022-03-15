@@ -18,6 +18,5 @@ spec:
             fieldRef:
               fieldPath: metadata.nofield
       from:
-        kind: ImageStreamTag
-        namespace: openshift
-        name: 'php:7.4-ubi8'
+        kind: DockerImage
+        name: registry.redhat.io/ubi8/php-74:latest
