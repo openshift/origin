@@ -15,7 +15,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -23,13 +22,6 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	exurl "github.com/openshift/origin/test/extended/util/url"
-)
-
-const (
-	UseLocalPluginSnapshotEnvVarName       = "USE_SNAPSHOT_JENKINS_IMAGE"
-	UseLocalClientPluginSnapshotEnvVarName = "USE_SNAPSHOT_JENKINS_CLIENT_IMAGE"
-	UseLocalSyncPluginSnapshotEnvVarName   = "USE_SNAPSHOT_JENKINS_SYNC_IMAGE"
-	UseLocalLoginPluginSnapshotEnvVarName  = "USE_SNAPSHOT_JENKINS_LOGIN_IMAGE"
 )
 
 // JenkinsRef represents a Jenkins instance running on an OpenShift server
@@ -342,101 +334,6 @@ func (j *JenkinsRef) GetJobConsoleLogsAndMatchViaBuildResult(br *exutil.BuildRes
 // GetLastJobConsoleLogs returns the last build associated with a Jenkins job.
 func (j *JenkinsRef) GetLastJobConsoleLogs(jobName string) (string, error) {
 	return j.GetJobConsoleLogs(jobName, "lastBuild")
-}
-
-// Finds the pod running Jenkins
-func FindJenkinsPod(oc *exutil.CLI) *corev1.Pod {
-	pods, err := exutil.GetApplicationPods(oc, "jenkins")
-	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
-
-	if pods == nil || pods.Items == nil {
-		g.Fail("No pods matching jenkins deploymentconfig in namespace " + oc.Namespace())
-	}
-
-	o.ExpectWithOffset(1, len(pods.Items)).To(o.Equal(1))
-	return &pods.Items[0]
-}
-
-// OverridePodTemplateImages sees if this is a prow-gcp e2e test invocation, and we want to override the agent image for the default pod templates;
-// the jenkins image will pick up the env vars passed to new-app and update the image field of the pod templates with the values
-func OverridePodTemplateImages(newAppArgs []string) []string {
-	nodejsAgent := os.Getenv("IMAGE_NODEJS_AGENT")
-	if len(strings.TrimSpace(nodejsAgent)) > 0 {
-		newAppArgs = append(newAppArgs, "-e", fmt.Sprintf("NODEJS_SLAVE_IMAGE=%s", nodejsAgent))
-	}
-	mavenAgent := os.Getenv("IMAGE_MAVEN_AGENT")
-	if len(strings.TrimSpace(mavenAgent)) > 0 {
-		newAppArgs = append(newAppArgs, "-e", fmt.Sprintf("MAVEN_SLAVE_IMAGE=%s", mavenAgent))
-	}
-	return newAppArgs
-}
-
-// SetupDockerhubImage pull in a jenkins image from docker.io for aws-build testing;
-// at some point during 4.0 dev, the jenkins imagestream in the openshift namespace
-// will leverage the rhel images from the terms based registry at registry.redhat.io
-// where credentials will be needed; we want to test against pre-release images
-func SetupDockerhubImage(localImageName, snapshotImageStream string, newAppArgs []string, oc *exutil.CLI) []string {
-	g.By("Creating a Jenkins imagestream for overridding the default Jenkins imagestream in the openshift namespace")
-
-	// Create an imagestream based on the Jenkins' plugin PR-Testing image (https://github.com/openshift/jenkins-plugin/blob/master/PR-Testing/README).
-	err := oc.Run("new-build").Args("-D", fmt.Sprintf("FROM %s", localImageName), "--to", snapshotImageStream).Execute()
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	g.By("waiting for build to finish")
-	err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), snapshotImageStream+"-1", exutil.CheckBuildSuccess, exutil.CheckBuildFailed, exutil.CheckBuildCancelled)
-	if err != nil {
-		exutil.DumpBuildLogs(snapshotImageStream, oc)
-	}
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	// Supplant the normal imagestream with the local imagestream using template parameters
-	newAppArgs = append(newAppArgs, "-p", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()))
-	newAppArgs = append(newAppArgs, "-p", fmt.Sprintf("JENKINS_IMAGE_STREAM_TAG=%s:latest", snapshotImageStream))
-
-	return newAppArgs
-}
-
-// pulls in a jenkins image built from a PR change for one of our plugins
-func SetupSnapshotImage(envVarName, localImageName, snapshotImageStream string, newAppArgs []string, oc *exutil.CLI) ([]string, bool) {
-	tag := []string{localImageName}
-	hexIDs, err := exutil.DumpAndReturnTagging(tag)
-
-	// If the user has expressed an interest in local plugin testing by setting the
-	// SNAPSHOT_JENKINS_IMAGE environment variable, try to use the local image. Inform them
-	// either about which image is being used in case their test fails.
-	snapshotImagePresent := len(hexIDs) > 0 && err == nil
-	useSnapshotImage := os.Getenv(envVarName) != ""
-
-	if useSnapshotImage {
-		g.By("Creating a snapshot Jenkins imagestream and overridding the default Jenkins imagestream")
-		o.Expect(snapshotImagePresent).To(o.BeTrue())
-
-		e2e.Logf("\n\nIMPORTANT: You are testing a local jenkins snapshot image.")
-		e2e.Logf("In order to target the official image stream, you must unset %s before running extended tests.\n\n", envVarName)
-
-		// Create an imagestream based on the Jenkins' plugin PR-Testing image (https://github.com/openshift/jenkins-plugin/blob/master/PR-Testing/README).
-		err = oc.Run("new-build").Args("-D", fmt.Sprintf("FROM %s", localImageName), "--to", snapshotImageStream).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("waiting for build to finish")
-		err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), snapshotImageStream+"-1", exutil.CheckBuildSuccess, exutil.CheckBuildFailed, exutil.CheckBuildCancelled)
-		if err != nil {
-			exutil.DumpBuildLogs(snapshotImageStream, oc)
-		}
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// Supplant the normal imagestream with the local imagestream using template parameters
-		newAppArgs = append(newAppArgs, "-p", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()))
-		newAppArgs = append(newAppArgs, "-p", fmt.Sprintf("JENKINS_IMAGE_STREAM_TAG=%s:latest", snapshotImageStream))
-
-	} else {
-		if snapshotImagePresent {
-			e2e.Logf("\n\nIMPORTANT: You have a local OpenShift jenkins snapshot image, but it is not being used for testing.")
-			e2e.Logf("In order to target your local image, you must set %s to some value before running extended tests.\n\n", envVarName)
-		}
-	}
-
-	return newAppArgs, useSnapshotImage
 }
 
 func ProcessLogURLAnnotations(oc *exutil.CLI, t *exutil.BuildResult) (*url.URL, error) {
