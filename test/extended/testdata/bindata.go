@@ -40822,8 +40822,7 @@ spec:
       - ruby
       from:
         kind: ImageStreamTag
-        name: ruby:latest
-        namespace: openshift
+        name: ruby-30:latest
     type: ImageChange
   - imageChangeParams:
       automatic: true
@@ -40831,8 +40830,7 @@ spec:
       - postgresql
       from:
         kind: ImageStreamTag
-        name: postgresql:latest
-        namespace: openshift
+        name: postgresql-13:latest
     type: ImageChange
 `)
 
@@ -41347,8 +41345,7 @@ spec:
       - ruby2
       from:
         kind: ImageStreamTag
-        name: ruby:latest
-        namespace: openshift
+        name: ruby-30:latest
     type: ImageChange
 `)
 

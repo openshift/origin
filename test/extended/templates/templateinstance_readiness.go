@@ -102,8 +102,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 	g.Context("", func() {
 		g.BeforeEach(func() {
 			// Tests that push to an ImageStreamTag need to wait for the internal registry hostname
-			// HACK - wait for OpenShift namespace imagestreams to ensure apiserver has right hostname
-			err := exutil.WaitForOpenShiftNamespaceImageStreams(cli)
+			_, err := exutil.WaitForInternalRegistryHostname(cli)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			err = cli.Run("create").Args("-f", templatefixture).Execute()
