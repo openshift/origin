@@ -1215,10 +1215,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-builds][Feature:Builds][pullsecret] docker build using a pull secret  Building from a template should create a docker build that pulls using a secret run it": "should create a docker build that pulls using a secret run it [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slow] openshift pipeline build  Sync plugin tests using the ephemeral template": "using the ephemeral template",
-
-	"[Top Level] [sig-builds][Feature:Builds][sig-devex][Feature:Jenkins][Slow] openshift pipeline build  jenkins-client-plugin tests using the ephemeral template": "using the ephemeral template",
-
 	"[Top Level] [sig-builds][Feature:Builds][timing] capture build stages and durations  should record build stages and durations for docker": "should record build stages and durations for docker [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-builds][Feature:Builds][timing] capture build stages and durations  should record build stages and durations for s2i": "should record build stages and durations for s2i [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
@@ -1254,6 +1250,8 @@ var annotations = map[string]string{
 	"[Top Level] [sig-builds][Feature:Builds][webhook] TestWebhookGitHubPushWithImage": "TestWebhookGitHubPushWithImage [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-builds][Feature:Builds][webhook] TestWebhookGitHubPushWithImageStream": "TestWebhookGitHubPushWithImageStream [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-builds][Feature:JenkinsRHELImagesOnly][Feature:Jenkins][Feature:Builds][sig-devex][Feature:Jenkins][Slow] openshift pipeline build  jenkins pipeline build config strategy using a jenkins instance launched with the ephemeral template": "using a jenkins instance launched with the ephemeral template",
 
 	"[Top Level] [sig-cli] Kubectl Port forwarding With a server listening on 0.0.0.0 should support forwarding over websockets": "should support forwarding over websockets [Skipped:Proxy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -1722,12 +1720,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][python][Slow] hot deploy for openshift python image  Django example should work with hot deploy": "should work with hot deploy",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][ruby][Slow] hot deploy for openshift ruby image  Rails example should work with hot deploy": "should work with hot deploy",
-
-	"[Top Level] [sig-devex][Feature:JenkinsRHELImagesOnly][Slow] openshift pipeline build  Sync plugin tests using the ephemeral template": "using the ephemeral template",
-
-	"[Top Level] [sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshift using slow openshift pipeline build  Sync plugin tests using the ephemeral template": "using the ephemeral template",
-
-	"[Top Level] [sig-devex][Feature:Jenkins][Slow] Jenkins repos e2e openshift using slow openshift pipeline build  Sync plugin tests using the persistent template": "using the persistent template",
 
 	"[Top Level] [sig-devex][Feature:OpenShiftControllerManager] TestAutomaticCreationOfPullSecrets": "TestAutomaticCreationOfPullSecrets [Suite:openshift/conformance/parallel]",
 

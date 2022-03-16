@@ -95,6 +95,7 @@
 // test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment
 // test/extended/testdata/builds/s2i-environment-build-app/Gemfile
 // test/extended/testdata/builds/s2i-environment-build-app/config.ru
+// test/extended/testdata/builds/simple-pipeline-bc.yaml
 // test/extended/testdata/builds/statusfail-assemble/.s2i/bin/assemble
 // test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml
 // test/extended/testdata/builds/statusfail-failedassemble.yaml
@@ -18830,6 +18831,35 @@ func testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRu() (*asset, error) 
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/s2i-environment-build-app/config.ru", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsSimplePipelineBcYaml = []byte(`apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: minimalpipeline
+spec:
+  strategy:
+    jenkinsPipelineStrategy:
+      jenkinsfile: |-
+        node() {
+          sh 'exit 0'
+        }
+    type: JenkinsPipeline
+`)
+
+func testExtendedTestdataBuildsSimplePipelineBcYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsSimplePipelineBcYaml, nil
+}
+
+func testExtendedTestdataBuildsSimplePipelineBcYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsSimplePipelineBcYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/simple-pipeline-bc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -53984,6 +54014,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment":                               testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment,
 	"test/extended/testdata/builds/s2i-environment-build-app/Gemfile":                                        testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile,
 	"test/extended/testdata/builds/s2i-environment-build-app/config.ru":                                      testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRu,
+	"test/extended/testdata/builds/simple-pipeline-bc.yaml":                                                  testExtendedTestdataBuildsSimplePipelineBcYaml,
 	"test/extended/testdata/builds/statusfail-assemble/.s2i/bin/assemble":                                    testExtendedTestdataBuildsStatusfailAssembleS2iBinAssemble,
 	"test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml":                                         testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml,
 	"test/extended/testdata/builds/statusfail-failedassemble.yaml":                                           testExtendedTestdataBuildsStatusfailFailedassembleYaml,
@@ -54599,6 +54630,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"Gemfile":   {testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile, map[string]*bintree{}},
 						"config.ru": {testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRu, map[string]*bintree{}},
 					}},
+					"simple-pipeline-bc.yaml": {testExtendedTestdataBuildsSimplePipelineBcYaml, map[string]*bintree{}},
 					"statusfail-assemble": {nil, map[string]*bintree{
 						".s2i": {nil, map[string]*bintree{
 							"bin": {nil, map[string]*bintree{
