@@ -90,7 +90,7 @@
           {
             "from": {
               "kind": "DockerImage",
-              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:latest"
+              "name": "registry.redhat.io/ubi8/ruby-30:latest"
             },
             "name": "latest"
           }
@@ -354,7 +354,7 @@
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "image-registry.openshift-image-registry.svc:5000/openshift/mysql:8.0-el8",
+                "image": "registry.redhat.io/rhel8/mysql-80:latest",
                 "ports": [
                   {
                     "containerPort": 3306,

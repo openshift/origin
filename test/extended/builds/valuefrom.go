@@ -37,12 +37,8 @@ var _ = g.Describe("[sig-builds][Feature:Builds][valueFrom] process valueFrom in
 		})
 
 		g.JustBeforeEach(func() {
-			g.By("waiting for openshift namespace imagestreams")
-			err := exutil.WaitForOpenShiftNamespaceImageStreams(oc)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
 			g.By("creating test image stream")
-			err = oc.Run("create").Args("-f", testImageStreamFixture, "--validate=false").Execute()
+			err := oc.Run("create").Args("-f", testImageStreamFixture, "--validate=false").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating test secret")
