@@ -1767,6 +1767,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-etcd][Feature:DisasterRecovery][Disruptive] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss": "[Feature:EtcdRecovery] Cluster should restore itself after quorum loss [Serial]",
 
+	"[Top Level] [sig-imageregistry] Image redirect should redirect an image pull on GCP": "should redirect an image pull on GCP [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-imageregistry][Feature:ImageAppend] Image append should create images by appending them": "should create images by appending them [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-imageregistry][Feature:ImageExtract] Image extract should extract content from an image": "should extract content from an image [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
