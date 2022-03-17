@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -18,6 +17,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	userv1 "github.com/openshift/api/user/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
@@ -66,7 +66,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer]", func() {
 
 			oauthDiscoveryData := getOAuthWellKnownData(oc)
 
-			for _, createTokenReq := range []func(string) *http.Request{
+			for _, createTokenReq := range []func(string) []*http.Request{
 				queryClientAuthRequest,
 				bodyClientAuthRequest,
 				headerClientAuthRequest,
@@ -90,21 +90,33 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer]", func() {
 
 				g.By("querying for a token")
 
-				tokenReq := createTokenReq(oauthDiscoveryData.TokenEndpoint)
-				tokenReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-				requestDump, err := httputil.DumpRequest(tokenReq, true)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				framework.Logf("%v", string(requestDump))
+				var reqErr []error
+				var tokenResponse *http.Response
+				for _, tokenReq := range createTokenReq(oauthDiscoveryData.TokenEndpoint) {
+					tokenReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+					requestDump, err := httputil.DumpRequest(tokenReq, true)
 
-				// we don't really care if this URL is safe
-				tr := &http.Transport{
-					Proxy:           http.ProxyFromEnvironment,
-					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+					o.Expect(err).NotTo(o.HaveOccurred())
+					framework.Logf("%v", string(requestDump))
+
+					// we don't really care if this URL is safe
+					tr := &http.Transport{
+						Proxy:           http.ProxyFromEnvironment,
+						TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+					}
+					client := &http.Client{Transport: tr}
+
+					tokenResponse, err = client.Do(tokenReq)
+					// if there was an error then append the error and continue
+					if err != nil {
+						reqErr = append(reqErr, err)
+						continue
+					}
+					// if there was no error then reset the error array and break
+					reqErr = nil
+					break
 				}
-				client := &http.Client{Transport: tr}
-
-				tokenResponse, err := client.Do(tokenReq)
-				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(reqErr).To(o.BeNil())
 				response, err := httputil.DumpResponse(tokenResponse, true)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				framework.Logf("%v", string(response))
@@ -114,7 +126,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer]", func() {
 	})
 })
 
-func queryClientAuthRequest(tokenEndpoint string) *http.Request {
+func queryClientAuthRequest(tokenEndpoint string) []*http.Request {
 	req, err := http.NewRequest("POST", tokenEndpoint+"?"+
 		"grant_type=authorization_code&"+
 		"code="+authzToken+"&"+
@@ -123,10 +135,10 @@ func queryClientAuthRequest(tokenEndpoint string) *http.Request {
 		nil)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	return req
+	return []*http.Request{req}
 }
 
-func bodyClientAuthRequest(tokenEndpoint string) *http.Request {
+func bodyClientAuthRequest(tokenEndpoint string) []*http.Request {
 	req, err := http.NewRequest("POST", tokenEndpoint,
 		bytes.NewBufferString("grant_type=authorization_code&"+
 			"code="+authzToken+"&"+
@@ -136,17 +148,24 @@ func bodyClientAuthRequest(tokenEndpoint string) *http.Request {
 	)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	return req
+	return []*http.Request{req}
 }
 
-func headerClientAuthRequest(tokenEndpoint string) *http.Request {
-	req, err := http.NewRequest("POST", tokenEndpoint,
+func headerClientAuthRequest(tokenEndpoint string) []*http.Request {
+	reqNoURLEscape, err := http.NewRequest("POST", tokenEndpoint,
 		bytes.NewBufferString("grant_type=authorization_code&"+
 			"code="+authzToken,
 		),
 	)
 	o.Expect(err).NotTo(o.HaveOccurred())
+	reqNoURLEscape.SetBasicAuth("oauth-client-with-plus", "secret+with+plus")
 
-	req.Header.Set("Authorization", fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte("oauth-client-with-plus:secret+with+plus"))))
-	return req
+	reqURLEscape, err := http.NewRequest("POST", tokenEndpoint,
+		bytes.NewBufferString("grant_type=authorization_code&"+
+			"code="+authzToken,
+		),
+	)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	reqURLEscape.SetBasicAuth("oauth-client-with-plus", "secret%2Bwith%2Bplus")
+	return []*http.Request{reqNoURLEscape, reqURLEscape}
 }
