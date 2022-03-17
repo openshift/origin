@@ -788,6 +788,9 @@ github.com/openshift/client-go/config/listers/config/v1
 github.com/openshift/client-go/image/clientset/versioned
 github.com/openshift/client-go/image/clientset/versioned/scheme
 github.com/openshift/client-go/image/clientset/versioned/typed/image/v1
+github.com/openshift/client-go/imageregistry/clientset/versioned
+github.com/openshift/client-go/imageregistry/clientset/versioned/scheme
+github.com/openshift/client-go/imageregistry/clientset/versioned/typed/imageregistry/v1
 github.com/openshift/client-go/network/clientset/versioned/scheme
 github.com/openshift/client-go/network/clientset/versioned/typed/network/v1
 github.com/openshift/client-go/oauth/clientset/versioned
