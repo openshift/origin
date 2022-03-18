@@ -11,29 +11,34 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	configv1 "github.com/openshift/api/config/v1"
-	imageapi "github.com/openshift/api/image/v1"
+	"github.com/opencontainers/go-digest"
+	imageregistryv1 "github.com/openshift/api/imageregistry/v1"
+	routev1 "github.com/openshift/api/route/v1"
 	imageregistry "github.com/openshift/client-go/imageregistry/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/imageregistryutil"
-	kapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/test/e2e/framework"
-	k8simage "k8s.io/kubernetes/test/utils/image"
 )
 
-var _ = g.Describe("[sig-imageregistry] Image redirect", func() {
+func storageSupportsRedirects(storage imageregistryv1.ImageRegistryConfigStorage) bool {
+	return storage.S3 != nil || storage.GCS != nil || storage.Azure != nil || storage.Swift != nil || storage.OSS != nil
+}
+
+var _ = g.Describe("[sig-imageregistry] Image registry", func() {
 	defer g.GinkgoRecover()
 
 	routeNamespace := "openshift-image-registry"
 	routeName := "test-image-redirect"
 	var oc *exutil.CLI
 	var ns string
+	var route *routev1.Route
 
 	g.BeforeEach(func() {
+		var err error
 		oc.AdminRouteClient().RouteV1().Routes(routeNamespace).Delete(context.TODO(), routeName, metav1.DeleteOptions{})
-		_, err := imageregistryutil.ExposeImageRegistry(context.TODO(), oc.AdminRouteClient(), routeName)
+		route, err = imageregistryutil.ExposeImageRegistry(context.TODO(), oc.AdminRouteClient(), routeName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -46,16 +51,8 @@ var _ = g.Describe("[sig-imageregistry] Image redirect", func() {
 
 	oc = exutil.NewCLI("image-redirect")
 
-	g.It("should redirect an image pull on GCP", func() {
+	g.It("should redirect on blob pull", func() {
 		ctx := context.TODO()
-		infrastructure, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if infrastructure.Status.PlatformStatus == nil {
-			g.Fail("missing platform")
-		}
-		if infrastructure.Status.PlatformStatus.Type != configv1.GCPPlatformType {
-			g.Skip("only run on GCP")
-		}
 		imageRegistryConfigClient, err := imageregistry.NewForConfig(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
 		imageRegistryConfig, err := imageRegistryConfigClient.ImageregistryV1().Configs().Get(ctx, "cluster", metav1.GetOptions{})
@@ -63,66 +60,11 @@ var _ = g.Describe("[sig-imageregistry] Image redirect", func() {
 		if imageRegistryConfig.Spec.DisableRedirect {
 			g.Skip("only run when using redirect")
 		}
-		if imageRegistryConfig.Spec.Storage.GCS == nil {
-			g.Skip("only run when using GCS")
+		if !storageSupportsRedirects(imageRegistryConfig.Spec.Storage) {
+			g.Skip("only run when configured image registry storage supports redirects")
 		}
 
 		ns = oc.Namespace()
-		client := oc.ImageClient().ImageV1()
-
-		// import tools:latest into this namespace - working around a pull through bug with referenced docker images
-		// https://bugzilla.redhat.com/show_bug.cgi?id=1843253
-		_, err = client.ImageStreamTags(ns).Create(context.Background(), &imageapi.ImageStreamTag{
-			ObjectMeta: metav1.ObjectMeta{Name: "1:tools"},
-			Tag: &imageapi.TagReference{
-				From: &kapi.ObjectReference{Kind: "ImageStreamTag", Namespace: "openshift", Name: "tools:latest"},
-			},
-		}, metav1.CreateOptions{})
-		o.Expect(err).ToNot(o.HaveOccurred())
-
-		isi, err := client.ImageStreamImports(ns).Create(context.Background(), &imageapi.ImageStreamImport{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "1",
-			},
-			Spec: imageapi.ImageStreamImportSpec{
-				Import: true,
-				Repository: &imageapi.RepositoryImportSpec{
-					From: kapi.ObjectReference{Kind: "DockerImage", Name: strings.Split(k8simage.GetE2EImage(k8simage.Agnhost), "/")[0]},
-					ReferencePolicy: imageapi.TagReferencePolicy{
-						Type: imageapi.LocalTagReferencePolicy,
-					},
-				},
-				Images: []imageapi.ImageImportSpec{
-					{
-						From: kapi.ObjectReference{Kind: "DockerImage", Name: k8simage.GetE2EImage(k8simage.Agnhost)},
-						To:   &kapi.LocalObjectReference{Name: "mysql"},
-					},
-				},
-			},
-		}, metav1.CreateOptions{})
-		o.Expect(err).ToNot(o.HaveOccurred())
-
-		for i, img := range isi.Status.Images {
-			o.Expect(img.Status.Status).To(o.Equal("Success"), fmt.Sprintf("imagestreamimport status for spec.image[%d] (message: %s)", i, img.Status.Message))
-		}
-		imageLayer := ""
-		for _, img := range isi.Status.Images {
-			if img.Image != nil {
-				if len(img.Image.DockerImageLayers) > 0 {
-					imageLayer = img.Image.DockerImageLayers[len(img.Image.DockerImageLayers)-1].Name
-				}
-			}
-		}
-
-		// I've now got an imported image, I need to do something equivalent to
-		// curl -v -H "Authorization: Basic $BUILD02"   https://registry.build02.ci.openshift.org/v2/openshift/tests/blobs/sha256:b46897b86ca27977cf8e71c558d5893166db6b9b944298510265660dc17b3e44
-		route, err := oc.AdminRouteClient().RouteV1().Routes(routeNamespace).Get(context.TODO(), routeName, metav1.GetOptions{})
-		o.Expect(err).ToNot(o.HaveOccurred())
-		url := fmt.Sprintf("https://%s/v2/%s/1/blobs/%s",
-			route.Status.Ingress[0].Host,
-			oc.Namespace(),
-			imageLayer,
-		)
 
 		// get the token to use to pull the data from the registry.
 		imageRegistryToken := ""
@@ -153,30 +95,91 @@ var _ = g.Describe("[sig-imageregistry] Image redirect", func() {
 				return http.ErrUseLastResponse
 			},
 		}
-		request, err := http.NewRequest("GET", url, nil)
+
+		request, err := http.NewRequest(
+			"POST",
+			fmt.Sprintf(
+				"https://%s/v2/%s/%s/blobs/uploads/",
+				route.Status.Ingress[0].Host,
+				oc.Namespace(),
+				"repo",
+			),
+			nil,
+		)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		request.Header.Set("Authorization", "Bearer "+imageRegistryToken)
-		request.Header.Set("Accept", "application/vnd.docker.distribution.manifest.v2+json")
-
 		response, err := httpClient.Do(request)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		// only dump the body if we didn't get a 200-series.  If we got a 200 series, chances are that it will be quite large.
-		dumpBody := false
-		if response.StatusCode > 299 || response.StatusCode < 200 {
-			dumpBody = true
-		}
-		bodyDump, err := httputil.DumpResponse(response, dumpBody)
+		bodyDump, err := httputil.DumpResponse(response, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		framework.Logf("response: %v", string(bodyDump))
+		framework.Logf("response from %s %s: %v", request.Method, request.URL, string(bodyDump))
+
 		o.Expect(response.StatusCode).To(
-			o.Equal(http.StatusTemporaryRedirect),
-			fmt.Sprintf("GET from %s must be %v for performance reasons; got %v", url, http.StatusTemporaryRedirect, response.StatusCode),
+			o.Equal(http.StatusAccepted),
+			fmt.Sprintf("%s from %s must be %v, got %v", request.Method, request.URL, http.StatusAccepted, response.StatusCode),
 		)
 
-		redirectLocation := response.Header["Location"][0]
-		if !strings.Contains(redirectLocation, "storage.googleapis.com") {
-			g.Fail(fmt.Sprintf("expected redirect to google storage, but got %v", response.Header["Location"]))
+		content := "Hello, world!"
+		digest := digest.FromString(content)
+
+		location := response.Header.Get("Location")
+		if strings.Contains(location, "?") {
+			location += "&"
+		} else {
+			location += "?"
+		}
+		location += "digest=" + digest.String()
+
+		request, err = http.NewRequest(
+			"PUT",
+			location,
+			strings.NewReader(content),
+		)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		request.Header.Set("Authorization", "Bearer "+imageRegistryToken)
+		response, err = httpClient.Do(request)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		bodyDump, err = httputil.DumpResponse(response, true)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		framework.Logf("response from %s %s: %v", request.Method, request.URL, string(bodyDump))
+
+		o.Expect(response.StatusCode).To(
+			o.Equal(http.StatusCreated),
+			fmt.Sprintf("%s from %s must be %v, got %v", request.Method, request.URL, http.StatusCreated, response.StatusCode),
+		)
+
+		request, err = http.NewRequest(
+			"GET",
+			fmt.Sprintf(
+				"https://%s/v2/%s/%s/blobs/%s",
+				route.Status.Ingress[0].Host,
+				oc.Namespace(),
+				"repo",
+				digest,
+			),
+			nil,
+		)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		request.Header.Set("Authorization", "Bearer "+imageRegistryToken)
+		response, err = httpClient.Do(request)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		bodyDump, err = httputil.DumpResponse(response, true)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		framework.Logf("response from %s %s: %v", request.Method, request.URL, string(bodyDump))
+
+		o.Expect(response.StatusCode).To(
+			o.Equal(http.StatusTemporaryRedirect),
+			fmt.Sprintf("%s from %s must be %v for performance reasons; got %v", request.Method, request.URL, http.StatusTemporaryRedirect, response.StatusCode),
+		)
+
+		if imageRegistryConfig.Spec.Storage.GCS != nil {
+			redirectLocation := response.Header["Location"][0]
+			if !strings.Contains(redirectLocation, "storage.googleapis.com") {
+				g.Fail(fmt.Sprintf("expected redirect to google storage, but got %v", response.Header["Location"]))
+			}
 		}
 	})
 })
