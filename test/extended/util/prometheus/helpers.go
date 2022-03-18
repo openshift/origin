@@ -216,17 +216,20 @@ func RunQueries(ctx context.Context, prometheusClient prometheusv1.API, promQuer
 }
 
 // ExpectURLStatusCodeExec attempts connection to url returning an error
-// upon failure or if status return code is not equal to statusCode.
-func ExpectURLStatusCodeExec(ns, execPodName, url string, statusCode int) error {
+// upon failure or if status return code is not equal to any of the statusCodes.
+func ExpectURLStatusCodeExec(ns, execPodName, url string, statusCodes ...int) error {
 	cmd := fmt.Sprintf("curl -k -s -o /dev/null -w '%%{http_code}' %q", url)
 	output, err := framework.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
 		return fmt.Errorf("host command failed: %v\n%s", err, output)
 	}
-	if output != strconv.Itoa(statusCode) {
-		return fmt.Errorf("last response from server was not %d: %s", statusCode, output)
+	for _, statusCode := range statusCodes {
+		if output == strconv.Itoa(statusCode) {
+			return nil
+		}
 	}
-	return nil
+
+	return fmt.Errorf("last response from server was not in %v: %s", statusCodes, output)
 }
 
 // ExpectPrometheusEndpoint attempts to connect to the metrics endpoint with
@@ -234,7 +237,7 @@ func ExpectURLStatusCodeExec(ns, execPodName, url string, statusCode int) error 
 func ExpectPrometheusEndpoint(namespace, podName, url string) {
 	var err error
 	for i := 0; i < maxPrometheusQueryAttempts; i++ {
-		err = ExpectURLStatusCodeExec(namespace, podName, url, 403)
+		err = ExpectURLStatusCodeExec(namespace, podName, url, 401, 403)
 		if err == nil {
 			break
 		}
