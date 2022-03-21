@@ -290,20 +290,19 @@ func (d duplicateEventsEvaluator) testDuplicatedE2ENamespaceEvents(events monito
 func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnly bool, events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	allowedRepeatedEventsRegex := combinedRegexp(d.allowedRepeatedEventPatterns...)
 
+	var failures []string
 	displayToCount := map[string]int{}
-	var errStrings []string
 	for _, event := range events {
 		eventDisplayMessage, times := getTimesAnEventHappened(fmt.Sprintf("%s - %s", event.Locator, event.Message))
 		if times > duplicateEventThreshold {
 			if allowedRepeatedEventsRegex.MatchString(eventDisplayMessage) {
 				continue
 			}
-			var err error
 			allowed := false
 			for _, allowRepeatedEventFn := range d.allowedRepeatedEventFns {
-				allowed, err = allowRepeatedEventFn(event, kubeClientConfig)
+				allowed, err := allowRepeatedEventFn(event, kubeClientConfig)
 				if err != nil {
-					errStrings = append(errStrings, fmt.Sprintf("error: [%v] when processing event %v", err, eventDisplayMessage))
+					failures = append(failures, fmt.Sprintf("error: [%v] when processing event %v", err, eventDisplayMessage))
 					allowed = false
 					continue
 				}
@@ -314,13 +313,9 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 			if allowed {
 				continue
 			}
-			if err == nil {
-				displayToCount[eventDisplayMessage] = times
-			}
 		}
 	}
 
-	var failures []string
 	var flakes []string
 	for display, count := range displayToCount {
 		msg := fmt.Sprintf("event happened %d times, something is wrong: %v", count, display)
@@ -356,7 +351,7 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 
 	// failures during a run always fail the test suite
 	var tests []*junitapi.JUnitTestCase
-	if len(failures) > 0 || len(flakes) > 0 || len(errStrings) > 0 {
+	if len(failures) > 0 || len(flakes) > 0 {
 		var output string
 		if len(failures) > 0 {
 			output = fmt.Sprintf("%d events happened too frequently\n\n%v", len(failures), strings.Join(failures, "\n"))
@@ -366,12 +361,6 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 				output += "\n\n"
 			}
 			output += fmt.Sprintf("%d events with known BZs\n\n%v", len(flakes), strings.Join(flakes, "\n"))
-		}
-		if len(errStrings) > 0 {
-			if output != "" {
-				output += "\n\n"
-			}
-			output += fmt.Sprintf("%d errors happened when processing events\n\n%v", len(errStrings), strings.Join(errStrings, "\n"))
 		}
 		tests = append(tests, &junitapi.JUnitTestCase{
 			Name: testName,
