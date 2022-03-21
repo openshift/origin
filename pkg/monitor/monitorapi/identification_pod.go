@@ -155,22 +155,21 @@ func (intervals ByTimeWithNamespacedPods) Less(i, j int) bool {
 		// fall through
 	}
 
-
-		switch d := intervals[i].From.Sub(intervals[j].From); {
-		case d < 0:
-			return true
-		case d > 0:
-			return false
-		}
-		switch d := intervals[i].To.Sub(intervals[j].To); {
-		case d < 0:
-			return true
-		case d > 0:
-			return false
-		}
-		return intervals[i].Message < intervals[j].Message
+	switch d := intervals[i].From.Sub(intervals[j].From); {
+	case d < 0:
+		return true
+	case d > 0:
+		return false
 	}
+	switch d := intervals[i].To.Sub(intervals[j].To); {
+	case d < 0:
+		return true
+	case d > 0:
+		return false
+	}
+	return intervals[i].Message < intervals[j].Message
 }
+
 func (intervals ByTimeWithNamespacedPods) Len() int { return len(intervals) }
 func (intervals ByTimeWithNamespacedPods) Swap(i, j int) {
 	intervals[i], intervals[j] = intervals[j], intervals[i]

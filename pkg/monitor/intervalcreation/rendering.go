@@ -14,23 +14,44 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
+type filenameBaseFunc func(timeSuffix string) string
+
 type eventIntervalRenderer struct {
-	name   string
-	filter monitorapi.EventIntervalMatchesFunc
+	name           string
+	filenameBaseFn filenameBaseFunc
+	filter         monitorapi.EventIntervalMatchesFunc
 }
 
-func NewEventIntervalRenderer(name string, filter monitorapi.EventIntervalMatchesFunc) eventIntervalRenderer {
+func NewSpyglassEventIntervalRenderer(name string, filter monitorapi.EventIntervalMatchesFunc) eventIntervalRenderer {
 	return eventIntervalRenderer{
-		name:   name,
+		name: name,
+		filenameBaseFn: func(timeSuffix string) string {
+			return fmt.Sprintf("e2e-intervals_%s%s", name, timeSuffix)
+		},
+		filter: filter,
+	}
+}
+
+func NewNonSpyglassEventIntervalRenderer(name string, filter monitorapi.EventIntervalMatchesFunc) eventIntervalRenderer {
+	return eventIntervalRenderer{
+		name: name,
+		filenameBaseFn: func(timeSuffix string) string {
+			return fmt.Sprintf("e2e-secondary_%s%s", name, timeSuffix)
+		},
 		filter: filter,
 	}
 }
 
 func (r eventIntervalRenderer) WriteEventData(artifactDir string, events monitorapi.Intervals, timeSuffix string) error {
+	filenameBase := r.filenameBaseFn(timeSuffix)
+	return r.writeEventData(artifactDir, filenameBase, events, timeSuffix)
+}
+
+func (r eventIntervalRenderer) writeEventData(artifactDir, filenameBase string, events monitorapi.Intervals, timeSuffix string) error {
 	errs := []error{}
 	interestingEvents := events.Filter(r.filter)
 
-	if err := monitorserialization.EventsIntervalsToFile(filepath.Join(artifactDir, fmt.Sprintf("e2e-intervals_%s%s.json", r.name, timeSuffix)), interestingEvents); err != nil {
+	if err := monitorserialization.EventsIntervalsToFile(filepath.Join(artifactDir, fmt.Sprintf("%s.json", filenameBase)), interestingEvents); err != nil {
 		errs = append(errs, err)
 	}
 
@@ -44,7 +65,7 @@ func (r eventIntervalRenderer) WriteEventData(artifactDir string, events monitor
 	e2eChartTitle := fmt.Sprintf("Intervals - %s%s", r.name, timeSuffix)
 	e2eChartHTML := bytes.ReplaceAll(e2eChartTemplate, []byte("EVENT_INTERVAL_TITLE_GOES_HERE"), []byte(e2eChartTitle))
 	e2eChartHTML = bytes.ReplaceAll(e2eChartHTML, []byte("EVENT_INTERVAL_JSON_GOES_HERE"), eventIntervalsJSON)
-	e2eChartHTMLPath := filepath.Join(artifactDir, fmt.Sprintf("e2e-intervals_%s%s.html", r.name, timeSuffix))
+	e2eChartHTMLPath := filepath.Join(artifactDir, fmt.Sprintf("%s.html", filenameBase))
 	if err := ioutil.WriteFile(e2eChartHTMLPath, e2eChartHTML, 0644); err != nil {
 		errs = append(errs, err)
 	}
@@ -53,6 +74,9 @@ func (r eventIntervalRenderer) WriteEventData(artifactDir string, events monitor
 }
 
 func BelongsInEverything(eventInterval monitorapi.EventInterval) bool {
+	if isPodLifecycle(eventInterval) { // there are just too many
+		return false
+	}
 	return true
 }
 
@@ -88,28 +112,21 @@ func BelongsInKubeAPIServer(eventInterval monitorapi.EventInterval) bool {
 	if isLessInterestingAlert(eventInterval) {
 		return false
 	}
-	if isInKubeControlPlaneNamespace(eventInterval) {
-		return true
-	}
 	if isPodLifecycle(eventInterval) {
-		if isPlatformPodEvent(eventInterval) {
+		if isPlatformPodEvent(eventInterval) && isInterestingNamespace(eventInterval, kubeAPIServerDependentNamespaces) {
 			return true
 		}
 		return false
+	}
+	if isInterestingNamespace(eventInterval, kubeControlPlaneNamespaces) {
+		return true
 	}
 
 	return true
 }
 
 func isPodLifecycle(eventInterval monitorapi.EventInterval) bool {
-	if pod := monitorapi.PodFrom(eventInterval.Locator); len(pod.UID) > 0 {
-		return true
-	}
-	if container := monitorapi.ContainerFrom(eventInterval.Locator); len(container.ContainerName) > 0 {
-		return true
-	}
-
-	return false
+	return strings.Contains(eventInterval.Message, "constructed/true")
 }
 
 func isPlatformPodEvent(eventInterval monitorapi.EventInterval) bool {
@@ -141,10 +158,17 @@ var kubeControlPlaneNamespaces = sets.NewString(
 	"openshift-network-operator", "openshift-multus", "openshift-ovn-kubernetes",
 )
 
-func isInKubeControlPlaneNamespace(eventInterval monitorapi.EventInterval) bool {
+var kubeAPIServerDependentNamespaces = sets.NewString(
+	"openshift-etcd-operator", "openshift-etcd",
+	"openshift-kube-apiserver-operator", "openshift-kube-apiserver",
+	"openshift-apiserver-operator", "openshift-apiserver",
+	"openshift-authentication-operator", "openshift-oauth-apiserver",
+)
+
+func isInterestingNamespace(eventInterval monitorapi.EventInterval, interestingNamespaces sets.String) bool {
 	locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
 	namespace := monitorapi.NamespaceFrom(locatorParts)
-	return kubeControlPlaneNamespaces.Has(namespace)
+	return interestingNamespaces.Has(namespace)
 }
 
 func isLessInterestingAlert(eventInterval monitorapi.EventInterval) bool {
