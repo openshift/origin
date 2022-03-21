@@ -757,7 +757,7 @@ func formatLabelHeaders(columnLabels []string) []string {
 	return formHead
 }
 
-// headers for --show-labels=true
+// formatShowLabelsHeader headers for --show-labels=true
 func formatShowLabelsHeader(showLabels bool) []string {
 	if showLabels {
 		return []string{"LABELS"}
