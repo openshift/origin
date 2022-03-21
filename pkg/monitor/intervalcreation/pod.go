@@ -120,6 +120,15 @@ func (t podLifecycleTimeBounder) getStartTime(inLocator string) time.Time {
 func (t podLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
 	podCoordinates := monitorapi.PodFrom(inLocator)
 	locator := podCoordinates.ToLocator()
+
+	// if this is a RunOnce pod that has finished running all of its containers, then the intervals chart will show that
+	// pod no longer existed after the last container terminated.
+	// We check this first so that actual pod deletion will not override this better time.
+	if runOnceContainerTermination := t.getRunOnceContainerEnd(inLocator); runOnceContainerTermination != nil {
+		return *runOnceContainerTermination
+	}
+
+	// for other pod types, use the deletion time.
 	podEvents, ok := t.podToStateTransitions[locator]
 	if !ok {
 		return t.delegate.getEndTime(locator)
@@ -130,27 +139,33 @@ func (t podLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
 		}
 	}
 
+	return t.delegate.getEndTime(locator)
+}
+
+func (t podLifecycleTimeBounder) getRunOnceContainerEnd(inLocator string) *time.Time {
+	podCoordinates := monitorapi.PodFrom(inLocator)
+
 	// no hit for deleted, but if it's a RunOnce pod with all terminated containers, the logical "this pod is over"
 	// happens when the last container is terminated.
 	recordedPodObj, ok := t.recordedPods[podCoordinates.Namespace+"/"+podCoordinates.Name]
 	if !ok {
-		return t.delegate.getEndTime(locator)
+		return nil
 	}
 	pod, ok := recordedPodObj.(*corev1.Pod)
 	if !ok {
-		return t.delegate.getEndTime(locator)
+		return nil
 	}
 	if pod.Spec.RestartPolicy != corev1.RestartPolicyNever {
-		return t.delegate.getEndTime(locator)
+		return nil
 	}
 	if len(pod.Status.ContainerStatuses) == 0 {
-		return t.delegate.getEndTime(locator)
+		return nil
 	}
 	mostRecentTerminationTime := metav1.Time{}
 	for _, containerStatus := range pod.Status.ContainerStatuses {
 		// if any container is not terminated, then this pod is logically still present
 		if containerStatus.State.Terminated == nil {
-			return t.delegate.getEndTime(locator)
+			return nil
 		}
 		if mostRecentTerminationTime.Before(&containerStatus.State.Terminated.FinishedAt) {
 			mostRecentTerminationTime = containerStatus.State.Terminated.FinishedAt
@@ -159,7 +174,7 @@ func (t podLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
 
 	// if a RunConce pod has finished running all of its containers, then the intervals chart will show that
 	// pod no longer existed after the last container terminated.
-	return mostRecentTerminationTime.Time
+	return &mostRecentTerminationTime.Time
 }
 
 type containerLifecycleTimeBounder struct {
