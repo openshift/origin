@@ -10,6 +10,8 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+
+	"k8s.io/client-go/rest"
 )
 
 type testCategorizer struct {
@@ -187,7 +189,7 @@ func getPodDeletionTime(events monitorapi.Intervals, podLocator string) *time.Ti
 }
 
 // bug is tracked here: https://bugzilla.redhat.com/show_bug.cgi?id=2057181
-func testOvnNodeReadinessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func testOvnNodeReadinessProbe(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[bz-networking] ovnkube-node readiness probe should not fail repeatedly"
 	regExp := regexp.MustCompile(ovnReadinessRegExpStr)
 	var tests []*junitapi.JUnitTestCase
@@ -200,7 +202,14 @@ func testOvnNodeReadinessProbe(events monitorapi.Intervals) []*junitapi.JUnitTes
 				msgMap[msg] = true
 				eventDisplayMessage, times := getTimesAnEventHappened(msg)
 				if times > duplicateEventThreshold {
-					failureOutput += fmt.Sprintf("event [%s] happened too frequently for %d times\n", eventDisplayMessage, times)
+					// if the readiness probe failure for this pod happened AFTER the initial installation was complete,
+					// then this probe failure is unexpected and should fail.
+					isDuringInstall, err := isEventDuringInstallation(event, kubeClientConfig, regExp)
+					if err != nil {
+						failureOutput += fmt.Sprintf("error [%v] happened when processing event [%s]\n", err, eventDisplayMessage)
+					} else if !isDuringInstall {
+						failureOutput += fmt.Sprintf("event [%s] happened too frequently for %d times\n", eventDisplayMessage, times)
+					}
 				}
 			}
 		}
