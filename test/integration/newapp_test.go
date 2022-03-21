@@ -93,8 +93,8 @@ func TestNewAppAddArguments(t *testing.T) {
 			unknown:    []string{},
 		},
 		"source": {
-			args:    []string{".", testDir, "git://github.com/openshift/origin.git"},
-			repos:   []string{".", testDir, "git://github.com/openshift/origin.git"},
+			args:    []string{".", testDir, "https://github.com/openshift/origin.git"},
+			repos:   []string{".", testDir, "https://github.com/openshift/origin.git"},
 			unknown: []string{},
 		},
 		"source custom ref": {
@@ -108,8 +108,8 @@ func TestNewAppAddArguments(t *testing.T) {
 			unknown: []string{},
 		},
 		"mix 1": {
-			args:       []string{"git://github.com/openshift/origin.git", "mysql+ruby~git@github.com/openshift/origin.git", "env1=test", "ruby-helloworld-sample"},
-			repos:      []string{"git://github.com/openshift/origin.git"},
+			args:       []string{"https://github.com/openshift/origin.git", "mysql+ruby~git@github.com/openshift/origin.git", "env1=test", "ruby-helloworld-sample"},
+			repos:      []string{"https://github.com/openshift/origin.git"},
 			components: []string{"mysql+ruby~git@github.com/openshift/origin.git", "ruby-helloworld-sample"},
 			env:        []string{"env1=test"},
 			unknown:    []string{},
