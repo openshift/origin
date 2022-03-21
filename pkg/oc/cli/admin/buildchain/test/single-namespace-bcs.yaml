@@ -94,7 +94,7 @@ items:
     resources: {}
     source:
       git:
-        uri: git://github.com/openshift/ruby-hello-world.git
+        uri: https://github.com/openshift/ruby-hello-world.git
       type: Git
     strategy:
       sourceStrategy:
@@ -125,7 +125,7 @@ items:
     resources: {}
     source:
       git:
-        uri: git://github.com/openshift/ruby-hello-world.git
+        uri: https://github.com/openshift/ruby-hello-world.git
       type: Git
     strategy:
       sourceStrategy:

@@ -556,7 +556,7 @@ func testBuild() *buildv1.Build {
 			CommonSpec: buildv1.CommonSpec{
 				Source: buildv1.BuildSource{
 					Git: &buildv1.GitBuildSource{
-						URI: "git://github.com/openshift/ruby-hello-world.git",
+						URI: "https://github.com/openshift/ruby-hello-world.git",
 					},
 					ContextDir: "contextimage",
 				},

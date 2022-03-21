@@ -2584,7 +2584,7 @@ var _testExtendedTestdataBuildsTestBuildRevisionJson = []byte(`{
         "source": {
           "type": "Git",
           "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
           }
         },
         "strategy": {
@@ -2658,7 +2658,7 @@ items:
     source:
       type: Git
       git:
-        uri: git://github.com/openshift/ruby-hello-world.git
+        uri: https://github.com/openshift/ruby-hello-world.git
     strategy:
       type: Source
       sourceStrategy:
@@ -2687,7 +2687,7 @@ items:
     source:
       type: Git
       git:
-        uri: git://github.com/openshift/ruby-hello-world.git
+        uri: https://github.com/openshift/ruby-hello-world.git
     strategy:
       type: Source
       sourceStrategy:
@@ -9484,7 +9484,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
                 "source": {
                     "type": "Git",
                     "git": {
-                        "uri": "git://github.com/openshift/ruby-hello-world.git"
+                        "uri": "https://github.com/openshift/ruby-hello-world.git"
                     }
                 },
                 "strategy": {
@@ -9513,7 +9513,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
                 "source": {
                     "type": "Git",
                     "git": {
-                        "uri": "git://github.com/openshift/ruby-hello-world.git"
+                        "uri": "https://github.com/openshift/ruby-hello-world.git"
                     }
                 },
                 "strategy": {
@@ -10811,7 +10811,7 @@ var _testExtendedTestdataRun_policyParallelBcYaml = []byte(`---
         source: 
           type: "Git"
           git: 
-            uri: "git://github.com/openshift/ruby-hello-world.git"
+            uri: "https://github.com/openshift/ruby-hello-world.git"
         strategy: 
           type: "Source"
           sourceStrategy: 
@@ -10858,7 +10858,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
         source: 
           type: "Git"
           git: 
-            uri: "git://github.com/openshift/ruby-hello-world.git"
+            uri: "https://github.com/openshift/ruby-hello-world.git"
         strategy: 
           type: "Source"
           sourceStrategy: 
@@ -10922,7 +10922,7 @@ var _testExtendedTestdataRun_policySerialLatestOnlyBcYaml = []byte(`---
         source: 
           type: "Git"
           git: 
-            uri: "git://github.com/openshift/ruby-hello-world.git"
+            uri: "https://github.com/openshift/ruby-hello-world.git"
         strategy: 
           type: "Source"
           sourceStrategy: 
@@ -12706,7 +12706,7 @@ var _testIntegrationTestdataTestBuildcliBeta2Json = []byte(`{
         "source": {
           "type": "Git",
           "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
           }
         },
         "strategy": {
@@ -12748,7 +12748,7 @@ var _testIntegrationTestdataTestBuildcliBeta2Json = []byte(`{
         "source": {
           "type": "Git",
           "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
           }
         },
         "strategy": {
@@ -12833,7 +12833,7 @@ var _testIntegrationTestdataTestBuildcliJson = []byte(`{
         "source": {
           "type": "Git",
           "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
           }
         },
         "strategy": {
@@ -12875,7 +12875,7 @@ var _testIntegrationTestdataTestBuildcliJson = []byte(`{
         "source": {
           "type": "Git",
           "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
           }
         },
         "strategy": {

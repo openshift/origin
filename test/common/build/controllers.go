@@ -808,7 +808,7 @@ func configChangeBuildConfig() *buildv1.BuildConfig {
 	bc.Name = "testcfgbc"
 	bc.Namespace = testutil.Namespace()
 	bc.Spec.Source.Git = &buildv1.GitBuildSource{}
-	bc.Spec.Source.Git.URI = "git://github.com/openshift/ruby-hello-world.git"
+	bc.Spec.Source.Git.URI = "https://github.com/openshift/ruby-hello-world.git"
 	bc.Spec.Strategy.DockerStrategy = &buildv1.DockerBuildStrategy{}
 	configChangeTrigger := buildv1.BuildTriggerPolicy{Type: buildv1.ConfigChangeBuildTriggerType}
 	bc.Spec.Triggers = append(bc.Spec.Triggers, configChangeTrigger)
@@ -861,7 +861,7 @@ func imageChangeBuildConfig(name string, strategy buildv1.BuildStrategy) *buildv
 			CommonSpec: buildv1.CommonSpec{
 				Source: buildv1.BuildSource{
 					Git: &buildv1.GitBuildSource{
-						URI: "git://github.com/openshift/ruby-hello-world.git",
+						URI: "https://github.com/openshift/ruby-hello-world.git",
 					},
 					ContextDir: "contextimage",
 				},
