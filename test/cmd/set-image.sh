@@ -15,24 +15,24 @@ os::cmd::expect_success 'oc create -f test/integration/testdata/test-deployment-
 os::cmd::expect_success 'oc create -f examples/hello-openshift/hello-pod.json'
 os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
 os::cmd::try_until_success 'oc get imagestreamtags ruby:2.5'
-os::cmd::try_until_success 'oc get imagestreamtags ruby:2.0'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.2'
 
 # test --local flag
-os::cmd::expect_failure_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --local' 'you must specify resources by --filename when --local is set.'
+os::cmd::expect_failure_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.2 --local' 'you must specify resources by --filename when --local is set.'
 # test --dry-run flag with -o formats
-os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag --dry-run' 'test-deployment-config'
-os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag --dry-run -o name' 'deploymentconfig.apps.openshift.io/test-deployment-config'
-os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag --dry-run' 'deploymentconfig.apps.openshift.io/test-deployment-config image updated \(dry run\)'
+os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.2 --source=istag --dry-run' 'test-deployment-config'
+os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.2 --source=istag --dry-run -o name' 'deploymentconfig.apps.openshift.io/test-deployment-config'
+os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.2 --source=istag --dry-run' 'deploymentconfig.apps.openshift.io/test-deployment-config image updated \(dry run\)'
 # ensure backwards compatibility with -o formats acting as --dry-run (e.g. all commands after this one succeed if specifying -o without --dry-run does not mutate resources in server)
-os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag -o yaml' 'name: test-deployment-config'
+os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.2 --source=istag -o yaml' 'name: test-deployment-config'
 
 os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.3 --source=istag'
 os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" ':5000/cmd-set-image/ruby@sha256'
 
-os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag'
+os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.2 --source=istag'
 os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" ':5000/cmd-set-image/ruby@sha256'
 
-os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag'
+os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.2 --source=istag'
 os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" ':5000/cmd-set-image/ruby@sha256'
 
 os::cmd::expect_failure 'oc set image dc/test-deployment-config ruby-helloworld=ruby:XYZ --source=istag'

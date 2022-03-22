@@ -301,7 +301,7 @@ function os::test::extended::clusterup::svcaccess () {
 	os::cmd::try_until_text "oc get endpoints git -o jsonpath='{ .subsets[*].ports[?(@.port==8080)].port }'" "8080" $(( 10*minute )) 1
     # Test that a service can be accessed from a peer pod
     sleep 10
-    os::cmd::expect_success "timeout 20s oc run peer --image=openshift/origin-gitserver:latest --attach --restart=Never --command -- curl http://git:8080/_/healthz"
+    os::cmd::expect_success "timeout 20s oc run peer --image=quay.io/openshifttest/origin-gitserver:latest --attach --restart=Never --command -- curl http://git:8080/_/healthz"
 
     # Test that a service can be accessed from the same pod
     # This doesn't work in any cluster i've tried, not sure why but it's not a cluster up issue.
@@ -315,7 +315,7 @@ function os::test::extended::clusterup::portinuse () {
     base_dir=$(os::test::extended::clusterup::make_base_dir "port_in_use")
 
     # Start listening on the host's 127.0.0.1 interface, port 53
-    os::cmd::expect_success "docker run -d --name=port53 --entrypoint=/bin/bash --net=host openshift/origin-gitserver:latest -c \"socat TCP-LISTEN:53,bind=127.0.0.1,fork SYSTEM:'echo hello'\""
+    os::cmd::expect_success "docker run -d --name=port53 --entrypoint=/bin/bash --net=host quay.io/openshifttest/origin-gitserver:latest -c \"socat TCP-LISTEN:53,bind=127.0.0.1,fork SYSTEM:'echo hello'\""
     arg=$@
     os::cmd::expect_success "oc cluster up --base-dir=${base_dir} $arg"
 }
@@ -372,18 +372,18 @@ tests=("${1:-"${default_tests[@]}"}")
 
 # re-tag the latest service catalog image w/ the origin commit because we didn't
 # build it locally, so we need a tag that aligns with the other images we're going to test here.
-docker pull openshift/origin-service-catalog:latest
-docker tag openshift/origin-service-catalog:latest openshift/origin-service-catalog:${ORIGIN_COMMIT}
+docker pull quay.io/openshift/origin-service-catalog:latest
+docker tag quay.io/openshift/origin-service-catalog:latest openshift/origin-service-catalog:${ORIGIN_COMMIT}
 
 echo "Running cluster up tests using tag $ORIGIN_COMMIT"
 
 # Tag the docker registry image with the same tag as the other origin images
-docker pull openshift/origin-docker-registry:latest
-docker tag openshift/origin-docker-registry:latest openshift/origin-docker-registry:${ORIGIN_COMMIT}
+docker pull quay.io/openshift/origin-docker-registry:latest
+docker tag quay.io/openshift/origin-docker-registry:latest openshift/origin-docker-registry:${ORIGIN_COMMIT}
 
 # Tag the web console image with the same tag as the other origin images
-docker pull openshift/origin-web-console:latest
-docker tag openshift/origin-web-console:latest openshift/origin-web-console:${ORIGIN_COMMIT}
+docker pull quay.io/openshift/origin-web-console:latest
+docker tag quay.io/openshift/origin-web-console:latest openshift/origin-web-console:${ORIGIN_COMMIT}
 
 # Ensure that KUBECONFIG is not set
 unset KUBECONFIG

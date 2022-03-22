@@ -174,11 +174,11 @@ func TestLoadAndMergeConfig(t *testing.T) {
 			"localhost/invalid/url/test":     {SigStore: ":emptyscheme"},
 			"docker.io/contoso":              {SigStore: "https://sigstore.contoso.com/fordocker"},
 			"docker.io/centos":               {SigStore: "https://sigstore.centos.org/"},
-			"docker.io/centos/mybetaprooduct": {
+			"registry.centos.org/centos/mybetaprooduct": {
 				SigStore:        "http://localhost:9999/mybetaWIP/sigstore",
 				SigStoreStaging: "file:///srv/mybetaWIP/sigstore",
 			},
-			"docker.io/centos/mybetaproduct:latest": {SigStore: "https://sigstore.centos.org/"},
+			"registry.centos.org/centos/mybetaproduct:latest": {SigStore: "https://sigstore.centos.org/"},
 		},
 	}, config)
 }

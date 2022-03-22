@@ -2545,7 +2545,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: docker.io/centos/ruby-27-centos7
+          name: quay.io/centos7/ruby-27-centos7
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
@@ -4926,7 +4926,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 0
       containers:
-      - image: "docker.io/centos:centos7"
+      - image: "registry.centos.org/centos:centos7"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
@@ -5033,7 +5033,7 @@ spec:
         name: history-limit
     spec:
       containers:
-      - image: "docker.io/centos:centos7"
+      - image: "registry.centos.org/centos:centos7"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
@@ -5076,7 +5076,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 0
       containers:
-      - image: "docker.io/centos:centos7"
+      - image: "registry.centos.org/centos:centos7"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
@@ -5108,13 +5108,13 @@ spec:
   - name: pullthrough
     from:
       kind: DockerImage
-      name: docker.io/centos:centos7
+      name: registry.centos.org/centos:centos7
     referencePolicy:
       type: Local
   - name: direct
     from:
       kind: DockerImage
-      name: docker.io/centos:centos7
+      name: registry.centos.org/centos:centos7
     referencePolicy:
      type: Source`)
 
@@ -5211,7 +5211,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 0
       containers:
-      - image: "docker.io/centos:centos7"
+      - image: "registry.centos.org/centos:centos7"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
@@ -5251,7 +5251,7 @@ spec:
         name: deployment-simple
     spec:
       containers:
-      - image: "docker.io/centos:centos7"
+      - image: "registry.centos.org/centos:centos7"
         imagePullPolicy: IfNotPresent
         command:
           - /bin/sleep
@@ -5402,7 +5402,7 @@ spec:
         name: hook
     spec:
       containers:
-      - image: "docker.io/centos:centos7"
+      - image: "registry.centos.org/centos:centos7"
         command:
           - /bin/sleep
           - infinity
@@ -5450,7 +5450,7 @@ spec:
         name: generation-test
     spec:
       containers:
-      - image: "docker.io/centos:centos7"
+      - image: "registry.centos.org/centos:centos7"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
@@ -5548,7 +5548,7 @@ spec:
         name: paused
     spec:
       containers:
-      - image: "docker.io/centos:centos7"
+      - image: "registry.centos.org/centos:centos7"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
@@ -5590,7 +5590,7 @@ spec:
       - command:
         - /bin/sleep
         - "10000"
-        image: docker.io/centos:centos7
+        image: registry.centos.org/centos:centos7
         imagePullPolicy: IfNotPresent
         name: never-ready
         readinessProbe:
@@ -5691,7 +5691,7 @@ spec:
         name: brokendeployment
     spec:
       containers:
-      - image: "docker.io/centos:centos7"
+      - image: "registry.centos.org/centos:centos7"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
@@ -5744,7 +5744,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 0
       containers:
-      - image: "docker.io/centos:centos7"
+      - image: "registry.centos.org/centos:centos7"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
@@ -11957,7 +11957,7 @@ objects:
       spec:
         containers:
         - name: gitserver
-          image: openshift/origin-gitserver
+          image: quay.io/openshifttest/origin-gitserver
           readinessProbe:
             tcpSocket:
               port: 8080
@@ -12156,7 +12156,7 @@ objects:
       spec:
         containers:
         - name: gitserver
-          image: openshift/origin-gitserver
+          image: quay.io/openshifttest/origin-gitserver
           readinessProbe:
             tcpSocket:
               port: 8080
@@ -16240,7 +16240,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/httpd-24-centos7:latest"
+              "name": "registry.centos.org/centos/httpd-24-centos7:latest"
             },
             "name": "2.4",
             "referencePolicy": {
@@ -16356,7 +16356,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/mariadb-101-centos7:latest"
+              "name": "registry.centos.org/centos/mariadb-101-centos7:latest"
             },
             "name": "10.1",
             "referencePolicy": {
@@ -16374,7 +16374,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/mariadb-102-centos7:latest"
+              "name": "registry.centos.org/centos/mariadb-102-centos7:latest"
             },
             "name": "10.2",
             "referencePolicy": {
@@ -16441,7 +16441,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/mongodb-26-centos7:latest"
+              "name": "registry.centos.org/centos/mongodb-26-centos7:latest"
             },
             "name": "2.6",
             "referencePolicy": {
@@ -16459,7 +16459,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/mongodb-32-centos7:latest"
+              "name": "registry.centos.org/centos/mongodb-32-centos7:latest"
             },
             "name": "3.2",
             "referencePolicy": {
@@ -16477,7 +16477,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/mongodb-34-centos7:latest"
+              "name": "registry.centos.org/centos/mongodb-34-centos7:latest"
             },
             "name": "3.4",
             "referencePolicy": {
@@ -16495,7 +16495,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/mongodb-36-centos7:latest"
+              "name": "registry.centos.org/centos/mongodb-36-centos7:latest"
             },
             "name": "3.6",
             "referencePolicy": {
@@ -16562,7 +16562,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/mysql-56-centos7:latest"
+              "name": "registry.centos.org/centos/mysql-56-centos7:latest"
             },
             "name": "5.6",
             "referencePolicy": {
@@ -16580,7 +16580,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/mysql-57-centos7:latest"
+              "name": "registry.centos.org/centos/mysql-57-centos7:latest"
             },
             "name": "5.7",
             "referencePolicy": {
@@ -16614,7 +16614,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/nginx-18-centos7:latest"
+              "name": "registry.centos.org/centos/nginx-18-centos7:latest"
             },
             "name": "1.8",
             "referencePolicy": {
@@ -16634,7 +16634,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/nginx-110-centos7:latest"
+              "name": "registry.centos.org/centos/nginx-110-centos7:latest"
             },
             "name": "1.10",
             "referencePolicy": {
@@ -16654,7 +16654,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/nginx-112-centos7:latest"
+              "name": "registry.centos.org/centos/nginx-112-centos7:latest"
             },
             "name": "1.12",
             "referencePolicy": {
@@ -16746,7 +16746,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/nodejs-4-centos7:latest"
+              "name": "registry.centos.org/centos/nodejs-4-centos7:latest"
             },
             "name": "4",
             "referencePolicy": {
@@ -16766,7 +16766,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/nodejs-6-centos7:latest"
+              "name": "registry.centos.org/centos/nodejs-6-centos7:latest"
             },
             "name": "6",
             "referencePolicy": {
@@ -16785,7 +16785,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/nodejs-8-centos7:latest"
+              "name": "registry.centos.org/centos/nodejs-8-centos7:latest"
             },
             "name": "8",
             "referencePolicy": {
@@ -16896,7 +16896,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/perl-520-centos7:latest"
+              "name": "registry.centos.org/centos/perl-520-centos7:latest"
             },
             "name": "5.20",
             "referencePolicy": {
@@ -16916,7 +16916,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/perl-524-centos7:latest"
+              "name": "registry.centos.org/centos/perl-524-centos7:latest"
             },
             "name": "5.24",
             "referencePolicy": {
@@ -16936,7 +16936,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/perl-526-centos7:latest"
+              "name": "registry.centos.org/centos/perl-526-centos7:latest"
             },
             "name": "5.26",
             "referencePolicy": {
@@ -16978,26 +16978,6 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           },
           {
             "annotations": {
-              "description": "Build and run PHP 5.5 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.5/README.md.",
-              "iconClass": "icon-php",
-              "openshift.io/display-name": "PHP 5.5",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
-              "supports": "php:5.5,php",
-              "tags": "hidden,builder,php",
-              "version": "5.5"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/openshift/php-55-centos7:latest"
-            },
-            "name": "5.5",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
               "description": "Build and run PHP 5.6 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.6/README.md.",
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP 5.6",
@@ -17009,7 +16989,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/php-56-centos7:latest"
+              "name": "registry.centos.org/centos/php-56-centos7:latest"
             },
             "name": "5.6",
             "referencePolicy": {
@@ -17029,7 +17009,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/php-70-centos7:latest"
+              "name": "registry.centos.org/centos/php-70-centos7:latest"
             },
             "name": "7.0",
             "referencePolicy": {
@@ -17049,7 +17029,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/php-71-centos7:latest"
+              "name": "registry.centos.org/centos/php-71-centos7:latest"
             },
             "name": "7.1",
             "referencePolicy": {
@@ -17069,7 +17049,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/php-72-centos7:latest"
+              "name": "registry.centos.org/centos/php-72-centos7:latest"
             },
             "name": "7.2",
             "referencePolicy": {
@@ -17136,7 +17116,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/postgresql-94-centos7:latest"
+              "name": "registry.centos.org/centos/postgresql-94-centos7:latest"
             },
             "name": "9.4",
             "referencePolicy": {
@@ -17154,7 +17134,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/postgresql-95-centos7:latest"
+              "name": "registry.centos.org/centos/postgresql-95-centos7:latest"
             },
             "name": "9.5",
             "referencePolicy": {
@@ -17172,7 +17152,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/postgresql-96-centos7:latest"
+              "name": "registry.centos.org/centos/postgresql-96-centos7:latest"
             },
             "name": "9.6",
             "referencePolicy": {
@@ -17190,7 +17170,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/postgresql-10-centos7:latest"
+              "name": "registry.centos.org/centos/postgresql-10-centos7:latest"
             },
             "name": "10",
             "referencePolicy": {
@@ -17263,7 +17243,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/python-27-centos7:latest"
+              "name": "registry.centos.org/centos/python-27-centos7:latest"
             },
             "name": "2.7",
             "referencePolicy": {
@@ -17283,7 +17263,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/python-34-centos7:latest"
+              "name": "registry.centos.org/centos/python-34-centos7:latest"
             },
             "name": "3.4",
             "referencePolicy": {
@@ -17303,7 +17283,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/python-35-centos7:latest"
+              "name": "registry.centos.org/centos/python-35-centos7:latest"
             },
             "name": "3.5",
             "referencePolicy": {
@@ -17323,7 +17303,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/python-36-centos7:latest"
+              "name": "registry.centos.org/centos/python-36-centos7:latest"
             },
             "name": "3.6",
             "referencePolicy": {
@@ -17372,7 +17352,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/redis-32-centos7:latest"
+              "name": "registry.centos.org/centos/redis-32-centos7:latest"
             },
             "name": "3.2",
             "referencePolicy": {
@@ -17445,7 +17425,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/ruby-22-centos7:latest"
+              "name": "registry.centos.org/centos/ruby-22-centos7:latest"
             },
             "name": "2.2",
             "referencePolicy": {
@@ -17465,7 +17445,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/ruby-23-centos7:latest"
+              "name": "registry.centos.org/centos/ruby-23-centos7:latest"
             },
             "name": "2.3",
             "referencePolicy": {
@@ -17485,7 +17465,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/ruby-24-centos7:latest"
+              "name": "registry.centos.org/centos/ruby-24-centos7:latest"
             },
             "name": "2.4",
             "referencePolicy": {
@@ -17505,7 +17485,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/ruby-25-centos7:latest"
+              "name": "registry.centos.org/centos/ruby-25-centos7:latest"
             },
             "name": "2.5",
             "referencePolicy": {
@@ -18486,26 +18466,6 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "name": "7.2"
             },
             "name": "latest",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
-              "description": "Build and run PHP 5.5 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.5/README.md.",
-              "iconClass": "icon-php",
-              "openshift.io/display-name": "PHP 5.5",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
-              "supports": "php:5.5,php",
-              "tags": "hidden,builder,php",
-              "version": "5.5"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.redhat.io/openshift3/php-55-rhel7:latest"
-            },
-            "name": "5.5",
             "referencePolicy": {
               "type": "Local"
             }
@@ -19648,7 +19608,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
           {
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/centos/ruby-27-centos7:latest"
+              "name": "quay.io/centos7/ruby-27-centos7:latest"
             },
             "name": "latest"
           }

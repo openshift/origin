@@ -593,7 +593,7 @@ func TestDockerfileBuild(t *testing.T) {
 	defer os.RemoveAll(tempdir)
 
 	config := &api.Config{
-		BuilderImage: "docker.io/centos/nodejs-8-centos7",
+		BuilderImage: "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser: "",
 		ImageWorkDir: "",
 		Source:       git.MustParse("https://github.com/sclorg/nodejs-ex"),
@@ -607,13 +607,13 @@ func TestDockerfileBuild(t *testing.T) {
 		AsDockerfile: tempdir + string(os.PathSeparator) + "MyDockerfile",
 	}
 	expected := []string{
-		"(?m)^FROM docker.io/centos/nodejs-8-centos7",
+		"(?m)^FROM registry.centos.org/centos/nodejs-8-centos7",
 		"\"io.openshift.s2i.build.commit.date\"",
 		"\"io.openshift.s2i.build.commit.id\"",
 		"\"io.openshift.s2i.build.commit.ref\"",
 		"\"io.openshift.s2i.build.commit.message\"",
 		"\"io.openshift.s2i.build.source-location\"",
-		"\"io.openshift.s2i.build.image\"=\"docker.io/centos/nodejs-8-centos7\"",
+		"\"io.openshift.s2i.build.image\"=\"registry.centos.org/centos/nodejs-8-centos7\"",
 		"\"io.openshift.s2i.build.commit.author\"",
 		"(?m)^COPY upload/src /tmp/src",
 		"(?m)^RUN chown -R 1001:0.* /tmp/src",
@@ -636,7 +636,7 @@ func TestDockerfileBuildDefaultDockerfile(t *testing.T) {
 	defer os.RemoveAll(tempdir)
 
 	config := &api.Config{
-		BuilderImage: "docker.io/centos/nodejs-8-centos7",
+		BuilderImage: "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser: "",
 		ImageWorkDir: "",
 		Source:       git.MustParse("https://github.com/sclorg/nodejs-ex"),
@@ -650,13 +650,13 @@ func TestDockerfileBuildDefaultDockerfile(t *testing.T) {
 		AsDockerfile: tempdir + string(os.PathSeparator),
 	}
 	expected := []string{
-		"(?m)^FROM docker.io/centos/nodejs-8-centos7",
+		"(?m)^FROM registry.centos.org/centos/nodejs-8-centos7",
 		"\"io.openshift.s2i.build.commit.date\"",
 		"\"io.openshift.s2i.build.commit.id\"",
 		"\"io.openshift.s2i.build.commit.ref\"",
 		"\"io.openshift.s2i.build.commit.message\"",
 		"\"io.openshift.s2i.build.source-location\"",
-		"\"io.openshift.s2i.build.image\"=\"docker.io/centos/nodejs-8-centos7\"",
+		"\"io.openshift.s2i.build.image\"=\"registry.centos.org/centos/nodejs-8-centos7\"",
 		"\"io.openshift.s2i.build.commit.author\"",
 		"(?m)^COPY upload/src /tmp/src",
 		"(?m)^RUN chown -R 1001:0.* /tmp/src",
@@ -678,7 +678,7 @@ func TestDockerfileBuildEnv(t *testing.T) {
 	defer os.RemoveAll(tempdir)
 
 	config := &api.Config{
-		BuilderImage: "docker.io/centos/nodejs-8-centos7",
+		BuilderImage: "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser: "",
 		ImageWorkDir: "",
 		Source:       git.MustParse("https://github.com/sclorg/nodejs-ex"),
@@ -716,7 +716,7 @@ func TestDockerfileBuildLabels(t *testing.T) {
 	defer os.RemoveAll(tempdir)
 
 	config := &api.Config{
-		BuilderImage: "docker.io/centos/nodejs-8-centos7",
+		BuilderImage: "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser: "",
 		ImageWorkDir: "",
 		Source:       git.MustParse("https://github.com/sclorg/nodejs-ex"),
@@ -737,7 +737,7 @@ func TestDockerfileBuildLabels(t *testing.T) {
 		"\"io.openshift.s2i.build.commit.ref\"",
 		"\"io.openshift.s2i.build.commit.message\"",
 		"\"io.openshift.s2i.build.source-location\"",
-		"\"io.openshift.s2i.build.image\"=\"docker.io/centos/nodejs-8-centos7\"",
+		"\"io.openshift.s2i.build.image\"=\"registry.centos.org/centos/nodejs-8-centos7\"",
 		"\"io.openshift.s2i.build.commit.author\"=\"shadowman\"",
 		"\"label1\"=\"value1\"",
 		"\"label2\"=\"value2\"",
@@ -776,7 +776,7 @@ func TestDockerfileBuildInjections(t *testing.T) {
 	}
 
 	config := &api.Config{
-		BuilderImage: "docker.io/centos/nodejs-8-centos7",
+		BuilderImage: "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser: "",
 		ImageWorkDir: "/workdir",
 		Source:       git.MustParse("https://github.com/sclorg/nodejs-ex"),
@@ -839,7 +839,7 @@ func TestDockerfileBuildScriptsURLAssemble(t *testing.T) {
 	}
 
 	config := &api.Config{
-		BuilderImage: "docker.io/centos/nodejs-8-centos7",
+		BuilderImage: "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser: "",
 		ImageWorkDir: "",
 		Source:       git.MustParse("https://github.com/sclorg/nodejs-ex"),
@@ -879,7 +879,7 @@ func TestDockerfileBuildScriptsURLRun(t *testing.T) {
 	}
 
 	config := &api.Config{
-		BuilderImage: "docker.io/centos/nodejs-8-centos7",
+		BuilderImage: "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser: "",
 		ImageWorkDir: "",
 		Source:       git.MustParse("https://github.com/sclorg/nodejs-ex"),
@@ -926,7 +926,7 @@ func TestDockerfileBuildSourceScriptsAssemble(t *testing.T) {
 	}
 
 	config := &api.Config{
-		BuilderImage: "docker.io/centos/nodejs-8-centos7",
+		BuilderImage: "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser: "",
 		ImageWorkDir: "",
 		Source:       git.MustParse("file:///" + filepath.ToSlash(sourcecode)),
@@ -973,7 +973,7 @@ func TestDockerfileBuildSourceScriptsRun(t *testing.T) {
 	}
 
 	config := &api.Config{
-		BuilderImage: "docker.io/centos/nodejs-8-centos7",
+		BuilderImage: "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser: "",
 		ImageWorkDir: "",
 		Source:       git.MustParse("file:///" + filepath.ToSlash(sourcecode)),
@@ -1024,7 +1024,7 @@ func TestDockerfileBuildScriptsURLImage(t *testing.T) {
 	}
 
 	config := &api.Config{
-		BuilderImage: "docker.io/centos/nodejs-8-centos7",
+		BuilderImage: "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser: "",
 		ImageWorkDir: "",
 		Source:       git.MustParse("file:///" + filepath.ToSlash(sourcecode)),
@@ -1064,7 +1064,7 @@ func TestDockerfileBuildImageScriptsURLAssemble(t *testing.T) {
 	}
 
 	config := &api.Config{
-		BuilderImage:    "docker.io/centos/nodejs-8-centos7",
+		BuilderImage:    "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser:    "",
 		ImageWorkDir:    "",
 		Source:          git.MustParse("https://github.com/sclorg/nodejs-ex"),
@@ -1104,7 +1104,7 @@ func TestDockerfileBuildImageScriptsURLRun(t *testing.T) {
 	}
 
 	config := &api.Config{
-		BuilderImage:    "docker.io/centos/nodejs-8-centos7",
+		BuilderImage:    "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser:    "",
 		ImageWorkDir:    "",
 		Source:          git.MustParse("https://github.com/sclorg/nodejs-ex"),
@@ -1151,7 +1151,7 @@ func TestDockerfileBuildImageScriptsURLImage(t *testing.T) {
 	}
 
 	config := &api.Config{
-		BuilderImage:    "docker.io/centos/nodejs-8-centos7",
+		BuilderImage:    "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser:    "",
 		ImageWorkDir:    "",
 		Source:          git.MustParse("file:///" + filepath.ToSlash(sourcecode)),
@@ -1191,7 +1191,7 @@ func TestDockerfileBuildScriptsAndImageURL(t *testing.T) {
 	}
 
 	config := &api.Config{
-		BuilderImage:    "docker.io/centos/nodejs-8-centos7",
+		BuilderImage:    "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser:    "",
 		ImageWorkDir:    "",
 		Source:          git.MustParse("https://github.com/sclorg/nodejs-ex"),
@@ -1254,7 +1254,7 @@ func TestDockerfileBuildScriptsAndImageURLConflicts(t *testing.T) {
 	}
 
 	config := &api.Config{
-		BuilderImage:    "docker.io/centos/nodejs-8-centos7",
+		BuilderImage:    "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser:    "",
 		ImageWorkDir:    "",
 		Source:          git.MustParse("https://github.com/sclorg/nodejs-ex"),
@@ -1296,7 +1296,7 @@ func TestDockerfileIncrementalBuild(t *testing.T) {
 	defer os.RemoveAll(tempdir)
 
 	config := &api.Config{
-		BuilderImage: "docker.io/centos/nodejs-8-centos7",
+		BuilderImage: "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser: "",
 		ImageWorkDir: "",
 		Incremental:  true,
@@ -1315,7 +1315,7 @@ func TestDockerfileIncrementalBuild(t *testing.T) {
 	expected := []string{
 		"(?m)^FROM test:tag as cached\n#.+\nUSER 1001",
 		"(?m)^RUN if \\[ -s /usr/libexec/s2i/save-artifacts \\]; then /usr/libexec/s2i/save-artifacts > /tmp/artifacts.tar; else touch /tmp/artifacts.tar; fi",
-		"(?m)^FROM docker.io/centos/nodejs-8-centos7",
+		"(?m)^FROM registry.centos.org/centos/nodejs-8-centos7",
 		"(?m)^COPY --from=cached /tmp/artifacts.tar /tmp/artifacts.tar",
 		"(?m)^RUN chown -R 1001:0.* /tmp/artifacts.tar",
 		"if \\[ -s /tmp/artifacts.tar \\]; then mkdir -p /tmp/artifacts; tar -xf /tmp/artifacts.tar -C /tmp/artifacts; fi",
@@ -1350,7 +1350,7 @@ func TestDockerfileIncrementalSourceSave(t *testing.T) {
 	}
 
 	config := &api.Config{
-		BuilderImage: "docker.io/centos/nodejs-8-centos7",
+		BuilderImage: "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser: "",
 		ImageWorkDir: "",
 		Incremental:  true,
@@ -1371,7 +1371,7 @@ func TestDockerfileIncrementalSourceSave(t *testing.T) {
 		"(?m)^COPY upload/scripts/save-artifacts /destination/scripts/save-artifacts",
 		"(?m)^RUN chown .*1001:0 /destination/scripts/save-artifacts",
 		"(?m)^USER 1001\nRUN if \\[ -s /destination/scripts/save-artifacts \\]; then /destination/scripts/save-artifacts > /tmp/artifacts.tar;",
-		"(?m)^FROM docker.io/centos/nodejs-8-centos7",
+		"(?m)^FROM registry.centos.org/centos/nodejs-8-centos7",
 		"mkdir -p /destination/artifacts",
 		"tar -xf /tmp/artifacts.tar -C /destination/artifacts",
 		"(?m)^RUN /usr/libexec/s2i/assemble",
@@ -1398,7 +1398,7 @@ func TestDockerfileIncrementalSaveURL(t *testing.T) {
 	}
 
 	config := &api.Config{
-		BuilderImage: "docker.io/centos/nodejs-8-centos7",
+		BuilderImage: "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser: "",
 		ImageWorkDir: "",
 		Incremental:  true,
@@ -1419,7 +1419,7 @@ func TestDockerfileIncrementalSaveURL(t *testing.T) {
 		"(?m)^COPY upload/scripts/save-artifacts /destination/scripts/save-artifacts",
 		"(?m)^RUN chown 1001:0 /destination/scripts/save-artifacts",
 		"(?m)^USER 1001\nRUN if \\[ -s /destination/scripts/save-artifacts \\]; then /destination/scripts/save-artifacts > /tmp/artifacts.tar;",
-		"(?m)^FROM docker.io/centos/nodejs-8-centos7",
+		"(?m)^FROM registry.centos.org/centos/nodejs-8-centos7",
 		"mkdir -p /destination/artifacts",
 		"tar -xf /tmp/artifacts.tar -C /destination/artifacts",
 		"(?m)^RUN /usr/libexec/s2i/assemble",
@@ -1440,7 +1440,7 @@ func TestDockerfileIncrementalTag(t *testing.T) {
 	defer os.RemoveAll(tempdir)
 
 	config := &api.Config{
-		BuilderImage:       "docker.io/centos/nodejs-8-centos7",
+		BuilderImage:       "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser:       "",
 		ImageWorkDir:       "",
 		Incremental:        true,
@@ -1457,7 +1457,7 @@ func TestDockerfileIncrementalTag(t *testing.T) {
 	expected := []string{
 		"(?m)^FROM incremental:tag as cached",
 		"/usr/libexec/s2i/save-artifacts > /tmp/artifacts.tar",
-		"(?m)^FROM docker.io/centos/nodejs-8-centos7",
+		"(?m)^FROM registry.centos.org/centos/nodejs-8-centos7",
 		"mkdir -p /tmp/artifacts",
 		"tar -xf /tmp/artifacts.tar -C /tmp/artifacts",
 		"rm /tmp/artifacts.tar",
@@ -1476,7 +1476,7 @@ func TestDockerfileIncrementalAssembleUser(t *testing.T) {
 	defer os.RemoveAll(tempdir)
 
 	config := &api.Config{
-		BuilderImage: "docker.io/centos/nodejs-8-centos7",
+		BuilderImage: "registry.centos.org/centos/nodejs-8-centos7",
 		AssembleUser: "2250",
 		ImageWorkDir: "",
 		Incremental:  true,
@@ -1491,7 +1491,7 @@ func TestDockerfileIncrementalAssembleUser(t *testing.T) {
 	expected := []string{
 		"(?m)^FROM test:tag as cached\n#.+\nUSER 2250",
 		"/usr/libexec/s2i/save-artifacts > /tmp/artifacts.tar",
-		"(?m)^FROM docker.io/centos/nodejs-8-centos7",
+		"(?m)^FROM registry.centos.org/centos/nodejs-8-centos7",
 		"(?m)^COPY --from=cached /tmp/artifacts.tar /tmp/artifacts.tar",
 		"(?m)^RUN chown -R 2250:0 .*/tmp/artifacts.tar",
 		"mkdir -p /tmp/artifacts",

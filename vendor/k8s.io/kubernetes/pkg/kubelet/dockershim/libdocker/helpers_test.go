@@ -113,7 +113,7 @@ func TestMatchImageTagOrSHA(t *testing.T) {
 			// RepoDigest match is is required
 			Inspected: dockertypes.ImageInspect{
 				ID:          "",
-				RepoDigests: []string{"docker.io/centos/ruby-23-centos7@sha256:000084acbbfb0347272112d2eb95574625c0c60b4e2fdadb139de5859cf754bf"},
+				RepoDigests: []string{"registry.centos.org/centos/ruby-23-centos7@sha256:000084acbbfb0347272112d2eb95574625c0c60b4e2fdadb139de5859cf754bf"},
 			},
 			Image:  "centos/ruby-23-centos7@sha256:940584acbbfb0347272112d2eb95574625c0c60b4e2fdadb139de5859cf754bf",
 			Output: false,
@@ -122,7 +122,7 @@ func TestMatchImageTagOrSHA(t *testing.T) {
 			// RepoDigest match is allowed
 			Inspected: dockertypes.ImageInspect{
 				ID:          "sha256:9bbdf247c91345f0789c10f50a57e36a667af1189687ad1de88a6243d05a2227",
-				RepoDigests: []string{"docker.io/centos/ruby-23-centos7@sha256:940584acbbfb0347272112d2eb95574625c0c60b4e2fdadb139de5859cf754bf"},
+				RepoDigests: []string{"registry.centos.org/centos/ruby-23-centos7@sha256:940584acbbfb0347272112d2eb95574625c0c60b4e2fdadb139de5859cf754bf"},
 			},
 			Image:  "centos/ruby-23-centos7@sha256:940584acbbfb0347272112d2eb95574625c0c60b4e2fdadb139de5859cf754bf",
 			Output: true,
@@ -131,7 +131,7 @@ func TestMatchImageTagOrSHA(t *testing.T) {
 			// RepoDigest and ID are checked
 			Inspected: dockertypes.ImageInspect{
 				ID:          "sha256:940584acbbfb0347272112d2eb95574625c0c60b4e2fdadb139de5859cf754bf",
-				RepoDigests: []string{"docker.io/centos/ruby-23-centos7@sha256:9bbdf247c91345f0789c10f50a57e36a667af1189687ad1de88a6243d05a2227"},
+				RepoDigests: []string{"registry.centos.org/centos/ruby-23-centos7@sha256:9bbdf247c91345f0789c10f50a57e36a667af1189687ad1de88a6243d05a2227"},
 			},
 			Image:  "centos/ruby-23-centos7@sha256:940584acbbfb0347272112d2eb95574625c0c60b4e2fdadb139de5859cf754bf",
 			Output: true,
@@ -142,7 +142,7 @@ func TestMatchImageTagOrSHA(t *testing.T) {
 				ID: "sha256:9bbdf247c91345f0789c10f50a57e36a667af1189687ad1de88a6243d05a2227",
 				RepoDigests: []string{
 					"centos/ruby-23-centos7@sha256:unparseable",
-					"docker.io/centos/ruby-23-centos7@sha256:940584acbbfb0347272112d2eb95574625c0c60b4e2fdadb139de5859cf754bf",
+					"registry.centos.org/centos/ruby-23-centos7@sha256:940584acbbfb0347272112d2eb95574625c0c60b4e2fdadb139de5859cf754bf",
 				},
 			},
 			Image:  "centos/ruby-23-centos7@sha256:940584acbbfb0347272112d2eb95574625c0c60b4e2fdadb139de5859cf754bf",
@@ -152,7 +152,7 @@ func TestMatchImageTagOrSHA(t *testing.T) {
 			// unparseable RepoDigest is ignored
 			Inspected: dockertypes.ImageInspect{
 				ID:          "sha256:9bbdf247c91345f0789c10f50a57e36a667af1189687ad1de88a6243d05a2227",
-				RepoDigests: []string{"docker.io/centos/ruby-23-centos7@sha256:unparseable"},
+				RepoDigests: []string{"registry.centos.org/centos/ruby-23-centos7@sha256:unparseable"},
 			},
 			Image:  "centos/ruby-23-centos7@sha256:940584acbbfb0347272112d2eb95574625c0c60b4e2fdadb139de5859cf754bf",
 			Output: false,
@@ -161,7 +161,7 @@ func TestMatchImageTagOrSHA(t *testing.T) {
 			// unparseable image digest is ignored
 			Inspected: dockertypes.ImageInspect{
 				ID:          "sha256:9bbdf247c91345f0789c10f50a57e36a667af1189687ad1de88a6243d05a2227",
-				RepoDigests: []string{"docker.io/centos/ruby-23-centos7@sha256:unparseable"},
+				RepoDigests: []string{"registry.centos.org/centos/ruby-23-centos7@sha256:unparseable"},
 			},
 			Image:  "centos/ruby-23-centos7@sha256:unparseable",
 			Output: false,
@@ -170,7 +170,7 @@ func TestMatchImageTagOrSHA(t *testing.T) {
 			// prefix match is rejected for ID and RepoDigest
 			Inspected: dockertypes.ImageInspect{
 				ID:          "sha256:unparseable",
-				RepoDigests: []string{"docker.io/centos/ruby-23-centos7@sha256:unparseable"},
+				RepoDigests: []string{"registry.centos.org/centos/ruby-23-centos7@sha256:unparseable"},
 			},
 			Image:  "sha256:unparseable",
 			Output: false,
@@ -179,7 +179,7 @@ func TestMatchImageTagOrSHA(t *testing.T) {
 			// possible SHA prefix match is rejected for ID and RepoDigest because it is not in the named format
 			Inspected: dockertypes.ImageInspect{
 				ID:          "sha256:0000f247c91345f0789c10f50a57e36a667af1189687ad1de88a6243d05a2227",
-				RepoDigests: []string{"docker.io/centos/ruby-23-centos7@sha256:0000f247c91345f0789c10f50a57e36a667af1189687ad1de88a6243d05a2227"},
+				RepoDigests: []string{"registry.centos.org/centos/ruby-23-centos7@sha256:0000f247c91345f0789c10f50a57e36a667af1189687ad1de88a6243d05a2227"},
 			},
 			Image:  "sha256:0000",
 			Output: false,

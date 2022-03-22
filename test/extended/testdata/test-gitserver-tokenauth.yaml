@@ -28,7 +28,7 @@ objects:
       spec:
         containers:
         - name: gitserver
-          image: openshift/origin-gitserver
+          image: quay.io/openshifttest/origin-gitserver
           readinessProbe:
             tcpSocket:
               port: 8080

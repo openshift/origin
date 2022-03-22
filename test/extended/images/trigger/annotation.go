@@ -40,7 +40,7 @@ var _ = g.Describe("[Feature:AnnotationTrigger] Annotation trigger", func() {
 		o.Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(o.Equal(" "))
 
 		g.By("tagging the docker.io/library/centos:latest as test:v1 image to create ImageStream")
-		out, err := oc.Run("tag").Args("docker.io/library/centos:latest", "test:v1").Output()
+		out, err := oc.Run("tag").Args("registry.centos.org/centos/centos:latest", "test:v1").Output()
 		framework.Logf("%s", out)
 		o.Expect(err).NotTo(o.HaveOccurred())
 

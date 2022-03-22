@@ -22,7 +22,7 @@ spec:
         name: generation-test
     spec:
       containers:
-      - image: "docker.io/centos:centos7"
+      - image: "registry.centos.org/centos:centos7"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:

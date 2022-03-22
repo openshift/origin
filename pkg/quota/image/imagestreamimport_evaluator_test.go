@@ -147,7 +147,7 @@ func TestImageStreamImportEvaluatorUsage(t *testing.T) {
 					{
 						From: corev1.ObjectReference{
 							Kind: "DockerImage",
-							Name: "docker.io/centos:latest",
+							Name: "registry.centos.org/centos:latest",
 						},
 					},
 				},

@@ -783,26 +783,6 @@
           },
           {
             "annotations": {
-              "description": "Build and run PHP 5.5 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.5/README.md.",
-              "iconClass": "icon-php",
-              "openshift.io/display-name": "PHP 5.5",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git",
-              "supports": "php:5.5,php",
-              "tags": "hidden,builder,php",
-              "version": "5.5"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.redhat.io/openshift3/php-55-rhel7:latest"
-            },
-            "name": "5.5",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
               "description": "Build and run PHP 5.6 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.6/README.md.",
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP 5.6",

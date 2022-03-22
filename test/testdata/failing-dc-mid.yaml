@@ -23,7 +23,7 @@ spec:
         name: failing-dc-mid
     spec:
       containers:
-      - image: "docker.io/centos:centos7"
+      - image: "registry.centos.org/centos:centos7"
         name: myapp
         command:
         - /bin/false
