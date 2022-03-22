@@ -2,6 +2,7 @@ package intervalcreation
 
 import (
 	_ "embed"
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -514,4 +515,77 @@ func TestIntervalCreation_PodBeforeBegin(t *testing.T) {
 	if expectedJSON != resultJSON {
 		t.Fatal(resultJSON)
 	}
+}
+
+type podIntervalTest struct {
+	events      []byte
+	results     string
+	startTime   string
+	endTime     string
+	podData     [][]byte
+	resourceMap monitorapi.ResourcesMap
+}
+
+func (p podIntervalTest) test(t *testing.T) {
+	resourceMap := monitorapi.ResourcesMap{}
+	if p.resourceMap != nil {
+		resourceMap = p.resourceMap
+	}
+	for _, curr := range p.podData {
+		pod := &corev1.Pod{}
+		if err := json.Unmarshal(curr, pod); err != nil {
+			t.Fatal(err)
+		}
+		podMap, ok := resourceMap["pods"]
+		if !ok {
+			podMap = monitorapi.InstanceMap{}
+		}
+		podMap[pod.Namespace+"/"+pod.Name] = pod
+		resourceMap["pods"] = podMap
+	}
+
+	inputIntervals, err := monitorserialization.EventsFromJSON(p.events)
+	if err != nil {
+		t.Fatal(err)
+	}
+	startTime, err := time.Parse(time.RFC3339, p.startTime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	endTime, err := time.Parse(time.RFC3339, p.endTime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := CreatePodIntervalsFromInstants(inputIntervals, resourceMap, startTime, endTime)
+
+	resultBytes, err := monitorserialization.EventsToJSON(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resultJSON := string(resultBytes)
+	if p.results != resultJSON {
+		t.Fatal(resultJSON)
+	}
+}
+
+//go:embed pod_test_07_long_not_ready.json
+var longNotReadyEvents []byte
+
+//go:embed pod_test_07_long_not_ready--expected.json
+var longNotReadyResults string
+
+//go:embed pod_test_07_long_not_ready--pod.json
+var longNotReadyPod []byte
+
+func TestIntervalCreation_LongNotReady(t *testing.T) {
+	test := podIntervalTest{
+		events:    longNotReadyEvents,
+		results:   longNotReadyResults,
+		startTime: "2022-03-22T19:00:00Z",
+		endTime:   "2022-03-22T19:11:18Z",
+		podData:   [][]byte{longNotReadyPod},
+	}
+
+	test.test(t)
 }

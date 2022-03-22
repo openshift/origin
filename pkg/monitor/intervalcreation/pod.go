@@ -53,6 +53,7 @@ func CreatePodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 	containerTimeBounder := containerLifecycleTimeBounder{
 		delegate:                             podTimeBounder,
 		podToContainerToLifecycleTransitions: podToContainerToLifecycleTransitions,
+		recordedPods:                         recordedResources["pods"],
 	}
 	containerReadinessTimeBounder := containerReadinessTimeBounder{
 		delegate:                             containerTimeBounder,
@@ -204,6 +205,7 @@ func (t podLifecycleTimeBounder) getRunOnceContainerEnd(inLocator string) *time.
 type containerLifecycleTimeBounder struct {
 	delegate                             timeBounder
 	podToContainerToLifecycleTransitions map[string][]monitorapi.EventInterval
+	recordedPods                         monitorapi.InstanceMap
 }
 
 func (t containerLifecycleTimeBounder) getStartTime(inLocator string) time.Time {
@@ -223,6 +225,11 @@ func (t containerLifecycleTimeBounder) getStartTime(inLocator string) time.Time 
 }
 
 func (t containerLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
+	// if this is a a terminated container that isn't restarting, then its end time is when the container was terminated.
+	if containerTermination := t.getContainerEnd(inLocator); containerTermination != nil {
+		return *containerTermination
+	}
+
 	locator := monitorapi.ContainerFrom(inLocator).ToLocator()
 	containerEvents, ok := t.podToContainerToLifecycleTransitions[locator]
 	if !ok {
@@ -237,6 +244,65 @@ func (t containerLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
 
 	// no hit, try to bound based on pod
 	return t.delegate.getEndTime(locator)
+}
+
+func (t containerLifecycleTimeBounder) getContainerEnd(inLocator string) *time.Time {
+	containerCoordinates := monitorapi.ContainerFrom(inLocator)
+
+	recordedPodObj, ok := t.recordedPods[containerCoordinates.Pod.Namespace+"/"+containerCoordinates.Pod.Name]
+	if !ok {
+		return nil
+	}
+	pod, ok := recordedPodObj.(*corev1.Pod)
+	if !ok {
+		return nil
+	}
+	for _, containerStatus := range pod.Status.ContainerStatuses {
+		if containerStatus.Name != containerCoordinates.ContainerName {
+			continue
+		}
+
+		// if we're running, then we're still running
+		if containerStatus.State.Running != nil {
+			return nil
+		}
+		// if we're wait, then we're going to be running again
+		if containerStatus.State.Waiting != nil {
+			return nil
+		}
+		// if any container is not terminated, then we have no additional data
+		if containerStatus.State.Terminated == nil {
+			return nil
+		}
+
+		// if we get here, then the container is terminated and not in a state where it is actively restarting
+		t := containerStatus.State.Terminated.FinishedAt
+		return &t.Time
+	}
+	for _, containerStatus := range pod.Status.InitContainerStatuses {
+		if containerStatus.Name != containerCoordinates.ContainerName {
+			continue
+		}
+
+		// if we're running, then we're still running
+		if containerStatus.State.Running != nil {
+			return nil
+		}
+		// if we're wait, then we're going to be running again
+		if containerStatus.State.Waiting != nil {
+			return nil
+		}
+		// if any container is not terminated, then we have no additional data
+		if containerStatus.State.Terminated == nil {
+			return nil
+		}
+
+		// if we get here, then the container is terminated and not in a state where it is actively restarting
+		t := containerStatus.State.Terminated.FinishedAt
+		return &t.Time
+	}
+
+	return nil
 }
 
 type containerReadinessTimeBounder struct {
