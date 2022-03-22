@@ -323,3 +323,195 @@ func TestIntervalCreation_RunOnceDone(t *testing.T) {
 		t.Fatal(resultJSON)
 	}
 }
+
+//go:embed pod_test_05_installer_pod.json
+var installerPod []byte
+
+func TestIntervalCreation_InstallPod(t *testing.T) {
+	inputIntervals, err := monitorserialization.EventsFromJSON(installerPod)
+	if err != nil {
+		t.Fatal(err)
+	}
+	startTime, err := time.Parse(time.RFC3339, "2022-03-07T12:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	endTime, err := time.Parse(time.RFC3339, "2022-03-25T23:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	podTerminateTime, err := time.Parse(time.RFC3339, "2022-03-21T21:37:56Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := CreatePodIntervalsFromInstants(inputIntervals, monitorapi.ResourcesMap{
+		"pods": monitorapi.InstanceMap{
+			"openshift-etcd/installer-9-ci-op-97t906zm-db044-bwrrn-master-0": &corev1.Pod{
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+				},
+				Status: corev1.PodStatus{
+					ContainerStatuses: []corev1.ContainerStatus{
+						{
+							State: corev1.ContainerState{
+								Terminated: &corev1.ContainerStateTerminated{
+									FinishedAt: metav1.Time{
+										Time: podTerminateTime,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}, startTime, endTime)
+
+	resultBytes, err := monitorserialization.EventsToJSON(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedJSON := `{
+	"items": [
+		{
+			"level": "Info",
+			"locator": "ns/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21",
+			"message": "constructed/true reason/Created ",
+			"from": "2022-03-21T21:37:20Z",
+			"to": "2022-03-21T21:37:20Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21",
+			"message": "constructed/true reason/Scheduled node/ci-op-97t906zm-db044-bwrrn-master-0",
+			"from": "2022-03-21T21:37:20Z",
+			"to": "2022-03-21T21:37:56Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21 container/installer",
+			"message": "constructed/true reason/ContainerWait missed real \"ContainerWait\"",
+			"from": "2022-03-21T21:37:20Z",
+			"to": "2022-03-21T21:37:23Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21 container/installer",
+			"message": "constructed/true reason/NotReady ",
+			"from": "2022-03-21T21:37:23Z",
+			"to": "2022-03-21T21:37:23Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21 container/installer",
+			"message": "constructed/true reason/ContainerStart cause/ duration/3.00s",
+			"from": "2022-03-21T21:37:23Z",
+			"to": "2022-03-21T21:37:56Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21 container/installer",
+			"message": "constructed/true reason/Ready ",
+			"from": "2022-03-21T21:37:23Z",
+			"to": "2022-03-21T21:37:56Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21 container/installer",
+			"message": "constructed/true reason/NotReady ",
+			"from": "2022-03-21T21:37:56Z",
+			"to": "2022-03-21T21:37:56Z"
+		}
+	]
+}`
+
+	expectedJSON = strings.ReplaceAll(expectedJSON, "\t", "    ")
+
+	resultJSON := string(resultBytes)
+	if expectedJSON != resultJSON {
+		t.Fatal(resultJSON)
+	}
+}
+
+//go:embed pod_test_06_end_before_begin.json
+var podBeforeBegin []byte
+
+func TestIntervalCreation_PodBeforeBegin(t *testing.T) {
+	inputIntervals, err := monitorserialization.EventsFromJSON(podBeforeBegin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	startTime, err := time.Parse(time.RFC3339, "2022-03-21T16:43:39Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	endTime, err := time.Parse(time.RFC3339, "2022-03-25T23:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	podTerminateTime, err := time.Parse(time.RFC3339, "2022-03-21T16:43:14Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := CreatePodIntervalsFromInstants(inputIntervals, monitorapi.ResourcesMap{
+		"pods": monitorapi.InstanceMap{
+			"openshift-kube-apiserver/revision-pruner-7-ip-10-0-214-214.us-west-1.compute.internal": &corev1.Pod{
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+				},
+				Status: corev1.PodStatus{
+					ContainerStatuses: []corev1.ContainerStatus{
+						{
+							State: corev1.ContainerState{
+								Terminated: &corev1.ContainerStateTerminated{
+									FinishedAt: metav1.Time{
+										Time: podTerminateTime,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}, startTime, endTime)
+
+	resultBytes, err := monitorserialization.EventsToJSON(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedJSON := `{
+	"items": [
+		{
+			"level": "Info",
+			"locator": "ns/openshift-kube-apiserver pod/revision-pruner-7-ip-10-0-214-214.us-west-1.compute.internal uid/6a81964d-169c-47e0-a986-551429370ae9",
+			"message": "constructed/true reason/Created ",
+			"from": "2022-03-21T16:43:14Z",
+			"to": "2022-03-21T16:43:14Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-kube-apiserver pod/revision-pruner-7-ip-10-0-214-214.us-west-1.compute.internal uid/6a81964d-169c-47e0-a986-551429370ae9",
+			"message": "constructed/true reason/Scheduled node/ip-10-0-214-214.us-west-1.compute.internal",
+			"from": "2022-03-21T16:43:14Z",
+			"to": "2022-03-21T16:43:14Z"
+		},
+		{
+			"level": "Info",
+			"locator": "ns/openshift-kube-apiserver pod/revision-pruner-7-ip-10-0-214-214.us-west-1.compute.internal uid/6a81964d-169c-47e0-a986-551429370ae9 container/pruner",
+			"message": "constructed/true reason/NotReady ",
+			"from": "2022-03-21T16:43:14Z",
+			"to": "2022-03-21T16:43:14Z"
+		}
+	]
+}`
+
+	expectedJSON = strings.ReplaceAll(expectedJSON, "\t", "    ")
+
+	resultJSON := string(resultBytes)
+	if expectedJSON != resultJSON {
+		t.Fatal(resultJSON)
+	}
+}

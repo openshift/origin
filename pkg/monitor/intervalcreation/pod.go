@@ -103,6 +103,10 @@ type podLifecycleTimeBounder struct {
 }
 
 func (t podLifecycleTimeBounder) getStartTime(inLocator string) time.Time {
+	if objCreate := t.getPodCreationTime(inLocator); objCreate != nil {
+		return *objCreate
+	}
+
 	locator := monitorapi.PodFrom(inLocator).ToLocator()
 	podEvents, ok := t.podToStateTransitions[locator]
 	if !ok {
@@ -140,6 +144,26 @@ func (t podLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
 	}
 
 	return t.delegate.getEndTime(locator)
+}
+
+func (t podLifecycleTimeBounder) getPodCreationTime(inLocator string) *time.Time {
+	podCoordinates := monitorapi.PodFrom(inLocator)
+
+	// no hit for deleted, but if it's a RunOnce pod with all terminated containers, the logical "this pod is over"
+	// happens when the last container is terminated.
+	recordedPodObj, ok := t.recordedPods[podCoordinates.Namespace+"/"+podCoordinates.Name]
+	if !ok {
+		return nil
+	}
+	pod, ok := recordedPodObj.(*corev1.Pod)
+	if !ok {
+		return nil
+	}
+	if pod.CreationTimestamp.Time.IsZero() {
+		return nil
+	}
+	temp := pod.CreationTimestamp
+	return &temp.Time
 }
 
 func (t podLifecycleTimeBounder) getRunOnceContainerEnd(inLocator string) *time.Time {
@@ -252,6 +276,8 @@ func buildTransitionsForCategory(locatorToConditions map[string][]monitorapi.Eve
 	ret := monitorapi.Intervals{}
 	// now step through each category and build the to/from interval
 	for locator, instantEvents := range locatorToConditions {
+		startTime := timeBounder.getStartTime(locator)
+		endTime := timeBounder.getEndTime(locator)
 		prevEvent := emptyEvent(timeBounder.getStartTime(locator))
 		for i := range instantEvents {
 			hasPrev := len(prevEvent.Message) > 0
@@ -267,6 +293,7 @@ func buildTransitionsForCategory(locatorToConditions map[string][]monitorapi.Eve
 				From: prevEvent.From,
 				To:   currEvent.From,
 			}
+			nextInterval = sanitizeTime(nextInterval, startTime, endTime)
 
 			switch {
 			case !hasPrev && currReason == startReason:
@@ -298,11 +325,25 @@ func buildTransitionsForCategory(locatorToConditions map[string][]monitorapi.Eve
 				From: prevEvent.From,
 				To:   timeBounder.getEndTime(locator),
 			}
+			nextInterval = sanitizeTime(nextInterval, startTime, endTime)
 			ret = append(ret, nextInterval)
 		}
 	}
 
 	return ret
+}
+
+func sanitizeTime(nextInterval monitorapi.EventInterval, startTime, endTime time.Time) monitorapi.EventInterval {
+	if nextInterval.To.After(endTime) {
+		nextInterval.To = endTime
+	}
+	if nextInterval.From.Before(startTime) {
+		nextInterval.From = startTime
+	}
+	if nextInterval.To.Before(nextInterval.From) {
+		nextInterval.From = nextInterval.To
+	}
+	return nextInterval
 }
 
 func emptyEvent(startTime time.Time) monitorapi.EventInterval {
