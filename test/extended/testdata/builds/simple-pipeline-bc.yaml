@@ -1,0 +1,12 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: minimalpipeline
+spec:
+  strategy:
+    jenkinsPipelineStrategy:
+      jenkinsfile: |-
+        node() {
+          sh 'exit 0'
+        }
+    type: JenkinsPipeline
