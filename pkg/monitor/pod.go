@@ -495,7 +495,6 @@ func lastContainerTimeFromStatus(current, previous *corev1.ContainerStatus) time
 func conditionsForTransitioningContainer(pod *corev1.Pod, current, previous *corev1.ContainerStatus, init bool, reason, cause, message string, currentTime time.Time, lastContainerTime time.Time) []monitorapi.Condition {
 	var conditions []monitorapi.Condition
 	switch cause {
-	case "PodInitializing" /*, "ContainerCreating"*/ :
 	default:
 		// on first container start, use either pod initialized or pod scheduled time
 		if lastContainerTime.IsZero() && current.LastTerminationState.Terminated == nil {
