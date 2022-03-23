@@ -313,6 +313,8 @@
 // test/extended/testdata/deployments/tag-images-deployment.yaml
 // test/extended/testdata/deployments/test-deployment-broken.yaml
 // test/extended/testdata/deployments/test-deployment-test.yaml
+// test/extended/testdata/egress-router-cni/egress-router-cni-v4-cr.yaml
+// test/extended/testdata/egress-router-cni/egress-router-cni-v6-cr.yaml
 // test/extended/testdata/forcepull-test.json
 // test/extended/testdata/gssapi/config/kubeconfig
 // test/extended/testdata/gssapi/config/oauth_config.json
@@ -41555,6 +41557,110 @@ func testExtendedTestdataDeploymentsTestDeploymentTestYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataEgressRouterCniEgressRouterCniV4CrYaml = []byte(`---
+apiVersion: network.operator.openshift.io/v1
+kind: EgressRouter
+metadata:
+  name: egress-router-ipv4-test
+spec:
+  addresses: [
+    {
+      ip: "192.168.3.10/24",
+      gateway: "192.168.3.1",
+    },
+  ]
+  mode: Redirect
+  redirect: {
+    redirectRules: [
+      {
+        destinationIP: "10.100.3.0",
+        port: 80,
+        protocol: UDP,
+      },
+      {
+        destinationIP: "203.0.113.26",
+        port: 8080,
+        protocol: SCTP,
+        targetPort: 80
+      },
+      {
+        destinationIP: "203.0.113.27",
+        port: 8443,
+        protocol: TCP,
+        targetPort: 443
+      },
+    ]
+  }
+
+`)
+
+func testExtendedTestdataEgressRouterCniEgressRouterCniV4CrYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataEgressRouterCniEgressRouterCniV4CrYaml, nil
+}
+
+func testExtendedTestdataEgressRouterCniEgressRouterCniV4CrYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataEgressRouterCniEgressRouterCniV4CrYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/egress-router-cni/egress-router-cni-v4-cr.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataEgressRouterCniEgressRouterCniV6CrYaml = []byte(`---
+apiVersion: network.operator.openshift.io/v1
+kind: EgressRouter
+metadata:
+  name: egress-router-ipv6-test
+spec:
+  addresses: [
+    {
+      ip: "192:168:3::10/64",
+      gateway: "192:168:3::1",
+    },
+  ]
+  mode: Redirect
+  redirect: {
+    redirectRules: [
+      {
+        destinationIP: "10:100:3::0",
+        port: 80,
+        protocol: UDP,
+      },
+      {
+        destinationIP: "203:0:113::26",
+        port: 8080,
+        protocol: SCTP,
+        targetPort: 80
+      },
+      {
+        destinationIP: "203:0:113::27",
+        port: 8443,
+        protocol: TCP,
+        targetPort: 443
+      },
+    ]
+  }
+
+`)
+
+func testExtendedTestdataEgressRouterCniEgressRouterCniV6CrYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataEgressRouterCniEgressRouterCniV6CrYaml, nil
+}
+
+func testExtendedTestdataEgressRouterCniEgressRouterCniV6CrYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataEgressRouterCniEgressRouterCniV6CrYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/egress-router-cni/egress-router-cni-v6-cr.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataForcepullTestJson = []byte(`{
 	"kind": "List",
 	"apiVersion": "v1",
@@ -52744,6 +52850,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/deployments/tag-images-deployment.yaml":                                          testExtendedTestdataDeploymentsTagImagesDeploymentYaml,
 	"test/extended/testdata/deployments/test-deployment-broken.yaml":                                         testExtendedTestdataDeploymentsTestDeploymentBrokenYaml,
 	"test/extended/testdata/deployments/test-deployment-test.yaml":                                           testExtendedTestdataDeploymentsTestDeploymentTestYaml,
+	"test/extended/testdata/egress-router-cni/egress-router-cni-v4-cr.yaml":                                  testExtendedTestdataEgressRouterCniEgressRouterCniV4CrYaml,
+	"test/extended/testdata/egress-router-cni/egress-router-cni-v6-cr.yaml":                                  testExtendedTestdataEgressRouterCniEgressRouterCniV6CrYaml,
 	"test/extended/testdata/forcepull-test.json":                                                             testExtendedTestdataForcepullTestJson,
 	"test/extended/testdata/gssapi/config/kubeconfig":                                                        testExtendedTestdataGssapiConfigKubeconfig,
 	"test/extended/testdata/gssapi/config/oauth_config.json":                                                 testExtendedTestdataGssapiConfigOauth_configJson,
@@ -53417,6 +53525,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"tag-images-deployment.yaml":          {testExtendedTestdataDeploymentsTagImagesDeploymentYaml, map[string]*bintree{}},
 					"test-deployment-broken.yaml":         {testExtendedTestdataDeploymentsTestDeploymentBrokenYaml, map[string]*bintree{}},
 					"test-deployment-test.yaml":           {testExtendedTestdataDeploymentsTestDeploymentTestYaml, map[string]*bintree{}},
+				}},
+				"egress-router-cni": {nil, map[string]*bintree{
+					"egress-router-cni-v4-cr.yaml": {testExtendedTestdataEgressRouterCniEgressRouterCniV4CrYaml, map[string]*bintree{}},
+					"egress-router-cni-v6-cr.yaml": {testExtendedTestdataEgressRouterCniEgressRouterCniV6CrYaml, map[string]*bintree{}},
 				}},
 				"forcepull-test.json": {testExtendedTestdataForcepullTestJson, map[string]*bintree{}},
 				"gssapi": {nil, map[string]*bintree{
