@@ -364,7 +364,10 @@ func buildTransitionsForCategory(locatorToConditions map[string][]monitorapi.Eve
 			switch {
 			case !hasPrev && currReason == startReason:
 				// if we had no data and then learned about a start, do not append anything, but track prev
-				prevEvent = currEvent
+				// we need to be sure we get the times from nextInterval because they are not all event times,
+				// but we need the message from the currEvent
+				prevEvent = nextInterval
+				prevEvent.Message = currEvent.Message
 				continue
 
 			case !hasPrev && currReason != startReason:

@@ -565,27 +565,57 @@ func (p podIntervalTest) test(t *testing.T) {
 
 	resultJSON := string(resultBytes)
 	if p.results != resultJSON {
+		t.Log(p.results)
 		t.Fatal(resultJSON)
 	}
 }
 
-//go:embed pod_test_07_long_not_ready.json
-var longNotReadyEvents []byte
+var (
+	//go:embed pod_test_07_long_not_ready.json
+	longNotReadyEvents []byte
+	//go:embed pod_test_07_long_not_ready--expected.json
+	longNotReadyResults string
+	//go:embed pod_test_07_long_not_ready--pod.json
+	longNotReadyPod []byte
 
-//go:embed pod_test_07_long_not_ready--expected.json
-var longNotReadyResults string
+	//go:embed pod_test_08_container_life.json
+	podScheduledEvents []byte
+	//go:embed pod_test_08_container_life--expected.json
+	podScheduledResults string
+	//go:embed pod_test_08_container_life--pod.json
+	podScheduledPod []byte
+)
 
-//go:embed pod_test_07_long_not_ready--pod.json
-var longNotReadyPod []byte
-
-func TestIntervalCreation_LongNotReady(t *testing.T) {
-	test := podIntervalTest{
-		events:    longNotReadyEvents,
-		results:   longNotReadyResults,
-		startTime: "2022-03-22T19:00:00Z",
-		endTime:   "2022-03-22T19:11:18Z",
-		podData:   [][]byte{longNotReadyPod},
+func TestPodIntervalCreation(t *testing.T) {
+	testCases := []struct {
+		name string
+		test podIntervalTest
+	}{
+		{
+			name: "longNotReadyEvents",
+			test: podIntervalTest{
+				events:    longNotReadyEvents,
+				results:   longNotReadyResults,
+				startTime: "2022-03-22T19:00:00Z",
+				endTime:   "2022-03-22T19:11:18Z",
+				podData:   [][]byte{longNotReadyPod},
+			},
+		},
+		{
+			name: "podScheduled",
+			test: podIntervalTest{
+				events:    podScheduledEvents,
+				results:   podScheduledResults,
+				startTime: "2022-03-22T22:02:53Z",
+				endTime:   "2022-03-22T22:29:35Z",
+				podData:   [][]byte{podScheduledPod},
+			},
+		},
 	}
 
-	test.test(t)
+	for _, test := range testCases {
+		t.Run(test.name, func(t *testing.T) {
+			test.test.test(t)
+		})
+	}
 }
