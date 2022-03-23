@@ -1,6 +1,6 @@
 package main
 
-// This file is updated via the output from https://sippy.ci.openshift.org/canary?release=$VERSION
+// This file is updated via the output from https://sippy.ci.openshift.org/api/canary?release=$VERSION
 var (
 	minimal = map[string]struct{}{
 		"user.openshift.io~v1~Group.Kubernetes resource CRUD operations user.openshift.io~v1~Group search view displays created resource instance":           {},
