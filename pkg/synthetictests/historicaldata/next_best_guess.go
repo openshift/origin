@@ -46,6 +46,9 @@ var nextBestGuessers = []NextBestKey{
 	combine(OnArchitecture("ppc64le"), PreviousReleaseUpgrade, MinorReleaseUpgrade),
 	combine(OnArchitecture("s390x"), PreviousReleaseUpgrade, MinorReleaseUpgrade),
 	combine(OnArchitecture("arm64"), PreviousReleaseUpgrade, MinorReleaseUpgrade),
+
+	combine(ForTopology("single"), OnSDN),
+	combine(ForTopology("single"), OnSDN, PreviousReleaseUpgrade),
 }
 
 // NextBestKey returns the next best key in the query_results.json generated from BigQuery and a bool indicating whether this guesser has an opinion.
@@ -156,6 +159,16 @@ func OnArchitecture(architecture string) func(in platformidentification.JobType)
 		ret := platformidentification.CloneJobType(in)
 		ret.Architecture = architecture
 		return ret, true
+	}
+}
+
+// ForTopology we match on exact topology
+func ForTopology(topology string) func(in platformidentification.JobType) (platformidentification.JobType, bool) {
+	return func(in platformidentification.JobType) (platformidentification.JobType, bool) {
+		if in.Topology != topology {
+			return platformidentification.JobType{}, false
+		}
+		return in, true
 	}
 }
 
