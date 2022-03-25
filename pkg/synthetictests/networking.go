@@ -32,6 +32,7 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 		{by: " by writing network status", substring: "error setting the networks status"},
 		{by: " by getting pod", substring: " error getting pod: pods"},
 		{by: " by writing child", substring: "write child: broken pipe"},
+		{by: " by ovn default network ready", substring: "have you checked that your default network is ready? still waiting for readinessindicatorfile"},
 		{by: " by other", substring: " "}, // always matches
 	}
 
@@ -46,12 +47,19 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 		if !strings.Contains(event.Message, "reason/FailedCreatePodSandBox Failed to create pod sandbox") {
 			continue
 		}
-		if strings.Contains(event.Message, "Multus") && strings.Contains(event.Message, "error getting pod") && (strings.Contains(event.Message, "connection refused") || strings.Contains(event.Message, "i/o timeout")) {
+		if strings.Contains(event.Message, "Multus") &&
+			strings.Contains(event.Message, "error getting pod") &&
+			(strings.Contains(event.Message, "connection refused") || strings.Contains(event.Message, "i/o timeout")) {
 			flakes = append(flakes, fmt.Sprintf("%v - multus is unable to get pods due to LB disruption https://bugzilla.redhat.com/show_bug.cgi?id=1927264 - %v", event.Locator, event.Message))
 			continue
 		}
 		if strings.Contains(event.Message, "Multus") && strings.Contains(event.Message, "error getting pod: Unauthorized") {
 			flakes = append(flakes, fmt.Sprintf("%v - multus is unable to get pods due to authorization https://bugzilla.redhat.com/show_bug.cgi?id=1972490 - %v", event.Locator, event.Message))
+			continue
+		}
+		if strings.Contains(event.Message, "Multus") &&
+			strings.Contains(event.Message, "have you checked that your default network is ready? still waiting for readinessindicatorfile") {
+			flakes = append(flakes, fmt.Sprintf("%v - multus is unable to get pods as ovnkube-node pod has not yet written readinessindicatorfile (possibly not running due to image pull delays) https://bugzilla.redhat.com/show_bug.cgi?id=20671320 - %v", event.Locator, event.Message))
 			continue
 		}
 		deletionTime := getPodDeletionTime(eventsForPods[event.Locator], event.Locator)
