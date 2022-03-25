@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/library-go/pkg/network/networkutils"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
+	utilnet "k8s.io/utils/net"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 
@@ -614,4 +615,60 @@ func createPod(client k8sclient.Interface, ns, generateName string) ([]corev1.Po
 		return retrievedPod.Status.Phase == corev1.PodRunning, nil
 	})
 	return podIPs, err
+}
+
+// SubnetIPs enumerates all IP addresses in an IP subnet (starting with the provided IP address and including the broadcast address).
+func SubnetIPs(ipnet net.IPNet) ([]net.IP, error) {
+	var ipList []net.IP
+	ip := ipnet.IP
+	for ; ipnet.Contains(ip); ip = incIP(ip) {
+		ipList = append(ipList, ip)
+	}
+
+	return ipList, nil
+}
+
+// incIP increases the current IP address by one. This function works for both IPv4 and IPv6.
+func incIP(ip net.IP) net.IP {
+	// allocate a new IP
+	newIp := make(net.IP, len(ip))
+	copy(newIp, ip)
+
+	byteIp := []byte(newIp)
+	l := len(byteIp)
+	var i int
+	for k := range byteIp {
+		// start with the rightmost index first
+		// increment it
+		// if the index is < 256, then no overflow happened and we increment and break
+		// else, continue to the next field in the byte
+		i = l - 1 - k
+		if byteIp[i] < 0xff {
+			byteIp[i]++
+			break
+		} else {
+			byteIp[i] = 0
+		}
+	}
+	return net.IP(byteIp)
+}
+
+// GetIPAddressFamily returns if this cloud uses IPv4 and/or IPv6.
+func GetIPAddressFamily(oc *exutil.CLI) (bool, bool, error) {
+	var hasIPv4 bool
+	var hasIPv6 bool
+	var err error
+
+	networkConfig, err := oc.AdminOperatorClient().OperatorV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		return false, false, err
+	}
+	for _, cidr := range networkConfig.Spec.ServiceNetwork {
+		if utilnet.IsIPv6CIDRString(cidr) {
+			hasIPv6 = true
+		} else {
+			hasIPv4 = true
+		}
+	}
+	return hasIPv4, hasIPv6, nil
 }

@@ -2495,6 +2495,18 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network][Feature:EgressFirewall] when using openshift-sdn should ensure egressnetworkpolicy is created": "should ensure egressnetworkpolicy is created [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-network][Feature:EgressIP] [external-targets] EgressIPs can be assigned automatically [Skipped:Network/OVNKubernetes]": "EgressIPs can be assigned automatically [Skipped:Network/OVNKubernetes] [Serial] [Suite:openshift/conformance/serial]",
+
+	"[Top Level] [sig-network][Feature:EgressIP] [external-targets] only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN]": "only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN] [Serial] [Suite:openshift/conformance/serial]",
+
+	"[Top Level] [sig-network][Feature:EgressIP] [external-targets] pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure]": "pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure] [Serial] [Suite:openshift/conformance/serial]",
+
+	"[Top Level] [sig-network][Feature:EgressIP] [external-targets] pods should have the assigned EgressIPs and EgressIPs can be updated [Skipped:Network/OpenShiftSDN]": "pods should have the assigned EgressIPs and EgressIPs can be updated [Skipped:Network/OpenShiftSDN] [Serial] [Suite:openshift/conformance/serial]",
+
+	"[Top Level] [sig-network][Feature:EgressIP] [external-targets] pods should keep the assigned EgressIPs when being rescheduled to another node": "pods should keep the assigned EgressIPs when being rescheduled to another node [Serial] [Suite:openshift/conformance/serial]",
+
+	"[Top Level] [sig-network][Feature:EgressIP] [internal-targets] EgressIP pods should query hostNetwork pods with the local node's SNAT": "EgressIP pods should query hostNetwork pods with the local node's SNAT [Disabled:Broken] [Serial]",
+
 	"[Top Level] [sig-network][Feature:EgressRouterCNI] should ensure ipv4 egressrouter cni resources are created": "should ensure ipv4 egressrouter cni resources are created [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network][Feature:EgressRouterCNI] when using openshift ovn-kubernetes should ensure ipv6 egressrouter cni resources are created": "should ensure ipv6 egressrouter cni resources are created [Suite:openshift/conformance/parallel]",
