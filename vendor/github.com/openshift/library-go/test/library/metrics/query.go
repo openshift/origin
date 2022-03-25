@@ -10,15 +10,13 @@ import (
 	"strings"
 	"time"
 
+	routeclient "github.com/openshift/client-go/route/clientset/versioned"
+	prometheusapi "github.com/prometheus/client_golang/api"
+	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/transport"
-
-	prometheusapi "github.com/prometheus/client_golang/api"
-	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
-
-	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 )
 
 // NewPrometheusClient returns Prometheus API or error
@@ -27,7 +25,7 @@ import (
 // `ALERTS{alertname="PodDisruptionBudgetAtLimit",alertstate="pending",namespace="pdbnamespace",poddisruptionbudget="pdbname",prometheus="openshift-monitoring/k8s",service="kube-state-metrics",severity="warning"}==1`
 // Example query:
 // `scheduler_scheduling_duration_seconds_sum`
-func NewPrometheusClient(ctx context.Context, kclient *kubernetes.Clientset, rc *routeclient.Clientset) (prometheusv1.API, error) {
+func NewPrometheusClient(ctx context.Context, kclient kubernetes.Interface, rc routeclient.Interface) (prometheusv1.API, error) {
 	_, err := kclient.CoreV1().Services("openshift-monitoring").Get(ctx, "prometheus-k8s", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -58,7 +56,7 @@ func NewPrometheusClient(ctx context.Context, kclient *kubernetes.Clientset, rc 
 	return createClient(ctx, kclient, host, bearerToken)
 }
 
-func createClient(ctx context.Context, kclient *kubernetes.Clientset, host, bearerToken string) (prometheusv1.API, error) {
+func createClient(ctx context.Context, kclient kubernetes.Interface, host, bearerToken string) (prometheusv1.API, error) {
 	// retrieve router CA
 	routerCAConfigMap, err := kclient.CoreV1().ConfigMaps("openshift-config-managed").Get(ctx, "default-ingress-cert", metav1.GetOptions{})
 	if err != nil {
