@@ -453,6 +453,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-apps] Job should run a job to completion when tasks succeed": "should run a job to completion when tasks succeed [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
+	"[Top Level] [sig-apps] Job should run a job to completion with CPU requests [Serial]": "should run a job to completion with CPU requests [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
+
 	"[Top Level] [sig-apps] ReplicaSet Replace and Patch tests [Conformance]": "Replace and Patch tests [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-apps] ReplicaSet Replicaset should have a working scale subresource [Conformance]": "Replicaset should have a working scale subresource [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
@@ -1967,13 +1969,13 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] ClusterDns [Feature:Example] should create pod that uses dns": "should create pod that uses dns [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when initial unready endpoints get ready": "should be able to preserve UDP traffic when initial unready endpoints get ready [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when initial unready endpoints get ready": "should be able to preserve UDP traffic when initial unready endpoints get ready [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when server pod cycles for a ClusterIP service": "should be able to preserve UDP traffic when server pod cycles for a ClusterIP service [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when server pod cycles for a NodePort service": "should be able to preserve UDP traffic when server pod cycles for a NodePort service [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Conntrack should drop INVALID conntrack entries [Privileged]": "should drop INVALID conntrack entries [Privileged] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-network] Conntrack should drop INVALID conntrack entries [Privileged]": "should drop INVALID conntrack entries [Privileged] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] DNS configMap nameserver Change stubDomain should be able to change stubDomain configuration [Slow][Serial]": "should be able to change stubDomain configuration [Slow][Serial] [Disabled:SpecialConfig] [Suite:k8s]",
 
@@ -2095,7 +2097,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should allow egress access on one named port [Feature:NetworkPolicy]": "should allow egress access on one named port [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OVNKubernetes] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should allow egress access to server in CIDR block [Feature:NetworkPolicy]": "should allow egress access to server in CIDR block [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:k8s]",
+	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should allow egress access to server in CIDR block [Feature:NetworkPolicy]": "should allow egress access to server in CIDR block [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should allow ingress access from namespace on one named port [Feature:NetworkPolicy]": "should allow ingress access from namespace on one named port [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OVNKubernetes] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:k8s]",
 
@@ -2105,27 +2107,27 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should allow ingress access on one named port [Feature:NetworkPolicy]": "should allow ingress access on one named port [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OVNKubernetes] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should deny egress from all pods in a namespace [Feature:NetworkPolicy] ": "should deny egress from all pods in a namespace [Feature:NetworkPolicy]  [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:k8s]",
+	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should deny egress from all pods in a namespace [Feature:NetworkPolicy] ": "should deny egress from all pods in a namespace [Feature:NetworkPolicy]  [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should deny egress from pods based on PodSelector [Feature:NetworkPolicy] ": "should deny egress from pods based on PodSelector [Feature:NetworkPolicy]  [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:k8s]",
+	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should deny egress from pods based on PodSelector [Feature:NetworkPolicy] ": "should deny egress from pods based on PodSelector [Feature:NetworkPolicy]  [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should deny ingress access to updated pod [Feature:NetworkPolicy]": "should deny ingress access to updated pod [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should deny ingress from pods on other namespaces [Feature:NetworkPolicy]": "should deny ingress from pods on other namespaces [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should enforce egress policy allowing traffic to a server in a different namespace based on PodSelector and NamespaceSelector [Feature:NetworkPolicy]": "should enforce egress policy allowing traffic to a server in a different namespace based on PodSelector and NamespaceSelector [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:k8s]",
+	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should enforce egress policy allowing traffic to a server in a different namespace based on PodSelector and NamespaceSelector [Feature:NetworkPolicy]": "should enforce egress policy allowing traffic to a server in a different namespace based on PodSelector and NamespaceSelector [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should enforce except clause while egress access to server in CIDR block [Feature:NetworkPolicy]": "should enforce except clause while egress access to server in CIDR block [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:k8s]",
+	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should enforce except clause while egress access to server in CIDR block [Feature:NetworkPolicy]": "should enforce except clause while egress access to server in CIDR block [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should enforce ingress policy allowing any port traffic to a server on a specific protocol [Feature:NetworkPolicy] [Feature:UDP]": "should enforce ingress policy allowing any port traffic to a server on a specific protocol [Feature:NetworkPolicy] [Feature:UDP] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should enforce multiple egress policies with egress allow-all policy taking precedence [Feature:NetworkPolicy]": "should enforce multiple egress policies with egress allow-all policy taking precedence [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:k8s]",
+	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should enforce multiple egress policies with egress allow-all policy taking precedence [Feature:NetworkPolicy]": "should enforce multiple egress policies with egress allow-all policy taking precedence [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should enforce multiple ingress policies with ingress allow-all policy taking precedence [Feature:NetworkPolicy]": "should enforce multiple ingress policies with ingress allow-all policy taking precedence [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should enforce multiple, stacked policies with overlapping podSelectors [Feature:NetworkPolicy]": "should enforce multiple, stacked policies with overlapping podSelectors [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should enforce policies to check ingress and egress policies can be controlled independently based on PodSelector [Feature:NetworkPolicy]": "should enforce policies to check ingress and egress policies can be controlled independently based on PodSelector [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:k8s]",
+	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should enforce policies to check ingress and egress policies can be controlled independently based on PodSelector [Feature:NetworkPolicy]": "should enforce policies to check ingress and egress policies can be controlled independently based on PodSelector [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should enforce policy based on Multiple PodSelectors and NamespaceSelectors [Feature:NetworkPolicy]": "should enforce policy based on Multiple PodSelectors and NamespaceSelectors [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
@@ -2157,7 +2159,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should enforce updated policy [Feature:NetworkPolicy]": "should enforce updated policy [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should ensure an IP overlapping both IPBlock.CIDR and IPBlock.Except is allowed [Feature:NetworkPolicy]": "should ensure an IP overlapping both IPBlock.CIDR and IPBlock.Except is allowed [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:k8s]",
+	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should ensure an IP overlapping both IPBlock.CIDR and IPBlock.Except is allowed [Feature:NetworkPolicy]": "should ensure an IP overlapping both IPBlock.CIDR and IPBlock.Except is allowed [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should not allow access by TCP when a policy specifies only UDP [Feature:NetworkPolicy]": "should not allow access by TCP when a policy specifies only UDP [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
@@ -2165,17 +2167,17 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should properly isolate pods that are selected by a policy allowing SCTP, even if the plugin doesn't support SCTP [Feature:NetworkPolicy]": "should properly isolate pods that are selected by a policy allowing SCTP, even if the plugin doesn't support SCTP [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should stop enforcing policies after they are deleted [Feature:NetworkPolicy]": "should stop enforcing policies after they are deleted [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:k8s]",
+	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should stop enforcing policies after they are deleted [Feature:NetworkPolicy]": "should stop enforcing policies after they are deleted [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should support a 'default-deny-all' policy [Feature:NetworkPolicy]": "should support a 'default-deny-all' policy [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:k8s]",
+	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should support a 'default-deny-all' policy [Feature:NetworkPolicy]": "should support a 'default-deny-all' policy [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should support a 'default-deny-ingress' policy [Feature:NetworkPolicy]": "should support a 'default-deny-ingress' policy [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should support allow-all policy [Feature:NetworkPolicy]": "should support allow-all policy [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should support denying of egress traffic on the client side (even if the server explicitly allows this traffic) [Feature:NetworkPolicy]": "should support denying of egress traffic on the client side (even if the server explicitly allows this traffic) [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:k8s]",
+	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should support denying of egress traffic on the client side (even if the server explicitly allows this traffic) [Feature:NetworkPolicy]": "should support denying of egress traffic on the client side (even if the server explicitly allows this traffic) [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should work with Ingress, Egress specified together [Feature:NetworkPolicy]": "should work with Ingress, Egress specified together [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:k8s]",
+	"[Top Level] [sig-network] Netpol NetworkPolicy between server and client should work with Ingress, Egress specified together [Feature:NetworkPolicy]": "should work with Ingress, Egress specified together [Feature:NetworkPolicy] [Disabled:Broken] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Netpol [Feature:SCTPConnectivity][LinuxOnly][Disruptive] NetworkPolicy between server and client using SCTP should enforce policy based on Ports [Feature:NetworkPolicy]": "should enforce policy based on Ports [Feature:NetworkPolicy] [Disabled:Broken] [Serial] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:k8s]",
 
@@ -2199,7 +2201,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should allow egress access on one named port [Feature:NetworkPolicy]": "should allow egress access on one named port [Feature:NetworkPolicy] [Skipped:Network/OVNKubernetes] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should allow egress access to server in CIDR block [Feature:NetworkPolicy]": "should allow egress access to server in CIDR block [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should allow egress access to server in CIDR block [Feature:NetworkPolicy]": "should allow egress access to server in CIDR block [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should allow ingress access from namespace on one named port [Feature:NetworkPolicy]": "should allow ingress access from namespace on one named port [Feature:NetworkPolicy] [Skipped:Network/OVNKubernetes] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2211,17 +2213,17 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should deny ingress access to updated pod [Feature:NetworkPolicy]": "should deny ingress access to updated pod [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should enforce egress policy allowing traffic to a server in a different namespace based on PodSelector and NamespaceSelector [Feature:NetworkPolicy]": "should enforce egress policy allowing traffic to a server in a different namespace based on PodSelector and NamespaceSelector [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should enforce egress policy allowing traffic to a server in a different namespace based on PodSelector and NamespaceSelector [Feature:NetworkPolicy]": "should enforce egress policy allowing traffic to a server in a different namespace based on PodSelector and NamespaceSelector [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should enforce except clause while egress access to server in CIDR block [Feature:NetworkPolicy]": "should enforce except clause while egress access to server in CIDR block [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should enforce except clause while egress access to server in CIDR block [Feature:NetworkPolicy]": "should enforce except clause while egress access to server in CIDR block [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should enforce multiple egress policies with egress allow-all policy taking precedence [Feature:NetworkPolicy]": "should enforce multiple egress policies with egress allow-all policy taking precedence [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should enforce multiple egress policies with egress allow-all policy taking precedence [Feature:NetworkPolicy]": "should enforce multiple egress policies with egress allow-all policy taking precedence [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should enforce multiple ingress policies with ingress allow-all policy taking precedence [Feature:NetworkPolicy]": "should enforce multiple ingress policies with ingress allow-all policy taking precedence [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should enforce multiple, stacked policies with overlapping podSelectors [Feature:NetworkPolicy]": "should enforce multiple, stacked policies with overlapping podSelectors [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should enforce policies to check ingress and egress policies can be controlled independently based on PodSelector [Feature:NetworkPolicy]": "should enforce policies to check ingress and egress policies can be controlled independently based on PodSelector [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should enforce policies to check ingress and egress policies can be controlled independently based on PodSelector [Feature:NetworkPolicy]": "should enforce policies to check ingress and egress policies can be controlled independently based on PodSelector [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should enforce policy based on NamespaceSelector with MatchExpressions[Feature:NetworkPolicy]": "should enforce policy based on NamespaceSelector with MatchExpressions[Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2241,19 +2243,19 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should enforce updated policy [Feature:NetworkPolicy]": "should enforce updated policy [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should ensure an IP overlapping both IPBlock.CIDR and IPBlock.Except is allowed [Feature:NetworkPolicy]": "should ensure an IP overlapping both IPBlock.CIDR and IPBlock.Except is allowed [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should ensure an IP overlapping both IPBlock.CIDR and IPBlock.Except is allowed [Feature:NetworkPolicy]": "should ensure an IP overlapping both IPBlock.CIDR and IPBlock.Except is allowed [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should not allow access by TCP when a policy specifies only SCTP [Feature:NetworkPolicy]": "should not allow access by TCP when a policy specifies only SCTP [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should stop enforcing policies after they are deleted [Feature:NetworkPolicy]": "should stop enforcing policies after they are deleted [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should stop enforcing policies after they are deleted [Feature:NetworkPolicy]": "should stop enforcing policies after they are deleted [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should support a 'default-deny-all' policy [Feature:NetworkPolicy]": "should support a 'default-deny-all' policy [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should support a 'default-deny-all' policy [Feature:NetworkPolicy]": "should support a 'default-deny-all' policy [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should support a 'default-deny-ingress' policy [Feature:NetworkPolicy]": "should support a 'default-deny-ingress' policy [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should support allow-all policy [Feature:NetworkPolicy]": "should support allow-all policy [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should work with Ingress,Egress specified together [Feature:NetworkPolicy]": "should work with Ingress,Egress specified together [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Skipped:Network/OpenShiftSDN] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] NetworkPolicyLegacy [LinuxOnly] NetworkPolicy between server and client should work with Ingress,Egress specified together [Feature:NetworkPolicy]": "should work with Ingress,Egress specified together [Feature:NetworkPolicy] [Skipped:Network/OpenShiftSDN/Multitenant] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Networking Granular Checks: Pods should function for intra-pod communication: http [NodeConformance] [Conformance]": "should function for intra-pod communication: http [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -2678,6 +2680,8 @@ var annotations = map[string]string{
 	"[Top Level] [sig-node] PodTemplates should run the lifecycle of PodTemplates [Conformance]": "should run the lifecycle of PodTemplates [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-node] Pods Extended Delete Grace Period should be submitted and removed": "should be submitted and removed [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[Top Level] [sig-node] Pods Extended Pod Container Status should never report container start when an init container fails": "should never report container start when an init container fails [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-node] Pods Extended Pod Container Status should never report success for a pending container": "should never report success for a pending container [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
