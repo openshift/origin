@@ -14,6 +14,12 @@
     "strategy":{
       "type":"Docker",
       "dockerStrategy":{
+        "env":[
+          {
+             "name":"BUILD_LOGLEVEL",
+             "value":"2"
+          }
+        ],
         "from":{
           "kind":"DockerImage",
           "name":"image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"

@@ -58,7 +58,14 @@ COPY --from=%[2]s /bin/ping /test/
 						},
 					},
 					Strategy: buildv1.BuildStrategy{
-						DockerStrategy: &buildv1.DockerBuildStrategy{},
+						DockerStrategy: &buildv1.DockerBuildStrategy{
+							Env: []corev1.EnvVar{
+								{
+									Name:  "BUILD_LOGLEVEL",
+									Value: "2",
+								},
+							},
+						},
 					},
 					Output: buildv1.BuildOutput{
 						To: &corev1.ObjectReference{
@@ -82,7 +89,7 @@ COPY --from=%[2]s /bin/ping /test/
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(s).ToNot(o.ContainSubstring("--> FROM scratch"))
 		o.Expect(s).ToNot(o.ContainSubstring("FROM busybox"))
-		o.Expect(s).To(o.MatchRegexp("(\\[1/2\\] STEP 1/2|STEP 1): FROM %s AS test", regexp.QuoteMeta(image.ShellImage())))
+		o.Expect(s).To(o.MatchRegexp("(\\[1/2\\] STEP 1/3|STEP 1/2|STEP 1): FROM %s AS test", regexp.QuoteMeta(image.ShellImage())))
 		o.Expect(s).To(o.ContainSubstring("COPY --from"))
 		o.Expect(s).To(o.ContainSubstring("\"OPENSHIFT_BUILD_NAMESPACE\"=\"%s\"", oc.Namespace()))
 		e2e.Logf("Build logs:\n%s", result)

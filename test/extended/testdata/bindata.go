@@ -17215,6 +17215,9 @@ items:
     strategy:
       type: Source
       sourceStrategy:
+        env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
         from:
           kind: DockerImage
           name: quay.io/redhat-developer/test-build-simples2i:1.2
@@ -17354,6 +17357,8 @@ spec:
     type: Source
     sourceStrategy:
       env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
         - name: FIELDREF_ENV
           valueFrom:
             fieldRef:
@@ -17395,6 +17400,9 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+      env:
+      - name: "BUILD_LOGLEVEL"
+        value: "2"
       from:
         kind: DockerImage
         name: registry.redhat.io/ubi8/php-74:latest
@@ -17481,7 +17489,10 @@ spec:
       FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       RUN touch /php-file
   strategy:
-    dockerStrategy: {}`)
+    dockerStrategy:
+      env:
+      - name: "BUILD_LOGLEVEL"
+        value: "2"`)
 
 func testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml, nil
@@ -18696,6 +18707,9 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+      env:
+      - name: "BUILD_LOGLEVEL"
+        value: "2"
       from:
         kind: DockerImage
         name: image-registry.openshift-image-registry.svc:5000/openshift/nodejs:latest
@@ -18866,6 +18880,9 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+      env:
+      - name: "BUILD_LOGLEVEL"
+        value: "2"
       from:
         kind: DockerImage
         name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
@@ -18997,6 +19014,9 @@ spec:
   strategy:
     type: Docker
     dockerStrategy:
+      env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
       from:
         kind: DockerImage
         name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
@@ -19028,6 +19048,9 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+      env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
       from:
         kind: DockerImage
         name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
@@ -19059,6 +19082,7 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+
       from:
         kind: DockerImage
         name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
@@ -19066,6 +19090,8 @@ spec:
       env:
         - name: http_proxy
           value: "http://%"
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
 `)
 
 func testExtendedTestdataBuildsStatusfailGenericreasonYamlBytes() ([]byte, error) {
@@ -19097,6 +19123,9 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+      env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
       from:
         kind: DockerImage
         name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
@@ -19131,6 +19160,9 @@ spec:
       - failme
   strategy:
     sourceStrategy:
+      env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
       from:
         kind: DockerImage
         name: quay.io/redhat-developer/test-build-simples2i:1.2
@@ -19167,6 +19199,9 @@ spec:
       name: bogus.registry/image
   strategy:
     sourceStrategy:
+      env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
       from:
         kind: DockerImage
         name: quay.io/redhat-developer/test-build-simples2i:1.2
@@ -19270,6 +19305,9 @@ items:
     strategy:
       type: Source
       sourceStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStreamTag
           name: python:latest
@@ -19292,6 +19330,9 @@ items:
     strategy:
       type: Docker
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: DockerImage
           name: registry.redhat.io/ubi8/python-36:latest
@@ -19543,6 +19584,8 @@ items:
           value: 127.0.0.1:3128
         - name: HTTP_PROXY
           value: 127.0.0.1:3128
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
         from:
           kind: DockerImage
           name: quay.io/redhat-developer/test-build-simples2i:1.2
@@ -19573,6 +19616,8 @@ items:
           value: https://envuser:password@proxy3.com
         - name: SOME_HTTPS_PROXY
           value: https://envuser:password@proxy4.com
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
 - kind: BuildConfig
   apiVersion: v1
   metadata:
@@ -19600,6 +19645,8 @@ items:
           value: https://envuser:password@proxy3.com
         - name: SOME_HTTPS_PROXY
           value: https://envuser:password@proxy4.com
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
 - kind: BuildConfig
   apiVersion: build.openshift.io/v1
   metadata:
@@ -19612,6 +19659,9 @@ items:
         RUN cat /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
     strategy:
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStreamTag
           name: cli
@@ -19634,42 +19684,51 @@ func testExtendedTestdataBuildsTestBuildProxyYaml() (*asset, error) {
 }
 
 var _testExtendedTestdataBuildsTestBuildRevisionJson = []byte(`{
-  "kind": "List",
-  "apiVersion": "v1",
-  "metadata": {},
-  "items": [
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-build",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "https://github.com/openshift/ruby-hello-world.git"
-          }
+  "kind":"List",
+  "apiVersion":"v1",
+  "metadata":{
+     
+  },
+  "items":[
+     {
+        "kind":"BuildConfig",
+        "apiVersion":"v1",
+        "metadata":{
+           "name":"sample-build",
+           "creationTimestamp":null
         },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "from": {
-              "kind": "DockerImage",
-              "name": "quay.io/redhat-developer/test-build-simples2i:1.2"
-            }
-          }
+        "spec":{
+           "source":{
+              "type":"Git",
+              "git":{
+                 "uri":"https://github.com/openshift/ruby-hello-world.git"
+              }
+           },
+           "strategy":{
+              "type":"Source",
+              "sourceStrategy":{
+                 "env":[
+                    {
+                       "name":"BUILD_LOGLEVEL",
+                       "value":"2"
+                    }
+                 ],
+                 "from":{
+                    "kind":"DockerImage",
+                    "name":"quay.io/redhat-developer/test-build-simples2i:1.2"
+                 }
+              }
+           },
+           "resources":{
+              
+           }
         },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    }
+        "status":{
+           "lastVersion":0
+        }
+     }
   ]
-}
-`)
+}`)
 
 func testExtendedTestdataBuildsTestBuildRevisionJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsTestBuildRevisionJson, nil
@@ -19906,6 +19965,9 @@ items:
     strategy:
       type: Docker
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: DockerImage
           name: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
@@ -19932,6 +19994,9 @@ items:
     strategy:
       type: Docker
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: DockerImage
           name: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
@@ -20002,6 +20067,9 @@ items:
     strategy:
       type: Source
       sourceStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStream
           name: test
@@ -20032,6 +20100,9 @@ items:
     strategy:
       type: Source
       sourceStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStream
           name: test
@@ -20083,6 +20154,12 @@ var _testExtendedTestdataBuildsTestCdsDockerbuildJson = []byte(`{
     "strategy":{
       "type":"Docker",
       "dockerStrategy":{
+        "env":[
+          {
+             "name":"BUILD_LOGLEVEL",
+             "value":"2"
+          }
+        ],
         "from":{
           "kind":"DockerImage",
           "name":"image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
@@ -20140,6 +20217,12 @@ var _testExtendedTestdataBuildsTestCdsSourcebuildJson = []byte(`{
         "strategy": {
           "type": "Source",
           "sourceStrategy": {
+            "env":[
+              {
+                 "name":"BUILD_LOGLEVEL",
+                 "value":"2"
+              }
+           ],
             "from": {
               "kind": "DockerImage",
               "name": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
@@ -20356,6 +20439,9 @@ items:
     strategy:
       type: Custom
       customStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         forcePull: true
         from:
           kind: ImageStreamTag
@@ -20431,6 +20517,12 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
       "strategy": {
         "type": "Docker",
         "dockerStrategy": {
+          "env":[
+            {
+               "name":"BUILD_LOGLEVEL",
+               "value":"2"
+            }
+         ],
           "from": {
             "kind": "DockerImage",
             "name": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
@@ -20461,6 +20553,12 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
       "strategy": {
         "type": "Docker",
         "dockerStrategy": {
+          "env":[
+            {
+               "name":"BUILD_LOGLEVEL",
+               "value":"2"
+            }
+         ],
           "from": {
             "kind": "ImageStreamTag",
             "name": "image1:latest"
@@ -20492,51 +20590,58 @@ var _testExtendedTestdataBuildsTestDockerBuildJson = []byte(`{
   "kind":"BuildConfig",
   "apiVersion":"v1",
   "metadata":{
-    "name":"test",
-    "labels":{
-      "name":"test"
-    }
+     "name":"test",
+     "labels":{
+        "name":"test"
+     }
   },
   "spec":{
-    "triggers":[],
-    "source":{
-      "git": {
-        "uri":"https://github.com/sclorg/nodejs-ex"        
-      },
-      "dockerfile": "FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
-    },
-    "strategy":{
-      "type":"Docker",
-      "dockerStrategy":{
-        "from":{
-          "kind":"DockerImage",
-          "name":"image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
-        }
-      }
-    },
-    "output":{
-      "to":{
-        "kind":"ImageStreamTag",
-        "name":"test:latest"
-      },
-      "imageLabels": [
-        {
-          "name": "user-specified-label",
-          "value": "arbitrary-value"
+     "triggers":[
+        
+     ],
+     "source":{
+        "git":{
+           "uri":"https://github.com/sclorg/nodejs-ex"
         },
-        {
-          "name": "io.k8s.display-name",
-          "value": "overridden"
-        },
-        {
-          "name": "io.openshift.builder-version",
-          "value": "overridden2"
+        "dockerfile":"FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
+     },
+     "strategy":{
+        "type":"Docker",
+        "dockerStrategy":{
+           "env":[
+              {
+                 "name":"BUILD_LOGLEVEL",
+                 "value":"2"
+              }
+           ],
+           "from":{
+              "kind":"DockerImage",
+              "name":"image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
+           }
         }
-      ]
-    }
+     },
+     "output":{
+        "to":{
+           "kind":"ImageStreamTag",
+           "name":"test:latest"
+        },
+        "imageLabels":[
+           {
+              "name":"user-specified-label",
+              "value":"arbitrary-value"
+           },
+           {
+              "name":"io.k8s.display-name",
+              "value":"overridden"
+           },
+           {
+              "name":"io.openshift.builder-version",
+              "value":"overridden2"
+           }
+        ]
+     }
   }
-}
-`)
+}`)
 
 func testExtendedTestdataBuildsTestDockerBuildJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsTestDockerBuildJson, nil
@@ -20618,6 +20723,12 @@ var _testExtendedTestdataBuildsTestEnvBuildJson = []byte(`{
     "strategy":{
       "type":"Source",
       "sourceStrategy":{
+        "env":[
+          {
+             "name":"BUILD_LOGLEVEL",
+             "value":"2"
+          }
+       ],
         "from":{
           "kind":"DockerImage",
           "name":"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8"
@@ -20706,6 +20817,9 @@ items:
     strategy:
       type: Source
       sourceStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStreamTag
           name: nodejs-ex:latest
@@ -20727,6 +20841,9 @@ items:
     strategy:
       type: Docker
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStreamTag
           name: nodejs-ex:latest
@@ -20745,6 +20862,9 @@ items:
     strategy:
       type: Custom
       customStrategy:
+        env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
         from:
           kind: ImageStreamTag
           name: nodejs-ex:latest
@@ -20763,6 +20883,9 @@ items:
     strategy:
       type: Jenkins
       jenkinsPipelineStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         jenkinsfile: node {}
     triggers:
     - type: ImageChange
@@ -20951,6 +21074,9 @@ items:
             ln -s ../../rh/6/root/usr/bin /opt/app-root/test-links/bin
     strategy:
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStreamTag
           name: ruby:2.7-ubi8
@@ -21010,7 +21136,10 @@ items:
         - destinationDir: injected/usr/bin
           sourcePath: /usr/bin/ruby
     strategy:
-      dockerStrategy: {}
+      dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
 
 - apiVersion: v1
   kind: ImageStream
@@ -21164,6 +21293,12 @@ var _testExtendedTestdataBuildsTestNosrcBuildJson = []byte(`{
         "strategy": {
           "type": "Source",
           "sourceStrategy": {
+            "env":[
+              {
+                 "name":"BUILD_LOGLEVEL",
+                 "value":"2"
+              }
+           ],
             "from": {
               "kind": "DockerImage",
               "name": "quay.io/redhat-developer/test-build-simples2i:1.2"
@@ -21386,6 +21521,9 @@ items:
     strategy:
       type: Source
       sourceStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStreamTag
           name: nodejs:latest
@@ -21853,6 +21991,9 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+      env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
       from:
         kind: DockerImage
         name: quay.io/redhat-developer/test-build-simples2i:1.2
@@ -22245,6 +22386,9 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+      env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
       from:
         kind: DockerImage
         name: quay.io/redhat-developer/test-build-simples2i:1.2
@@ -50387,6 +50531,9 @@ items:
     strategy:
       type: Docker
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: DockerImage
           name: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
@@ -51655,6 +51802,12 @@ var _testExtendedTestdataTestBuildcliJson = []byte(`{
           "strategy": {
             "type": "Source",
             "sourceStrategy": {
+              "env":[
+                {
+                   "name":"BUILD_LOGLEVEL",
+                   "value":"2"
+                }
+             ],
               "from": {
                 "kind": "DockerImage",
                 "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby"
@@ -51697,6 +51850,12 @@ var _testExtendedTestdataTestBuildcliJson = []byte(`{
           "strategy": {
             "type": "Source",
             "sourceStrategy": {
+              "env":[
+                {
+                   "name":"BUILD_LOGLEVEL",
+                   "value":"2"
+                }
+             ],
               "from": {
                 "kind": "DockerImage",
                 "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby"

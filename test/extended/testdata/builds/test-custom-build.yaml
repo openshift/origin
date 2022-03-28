@@ -17,6 +17,9 @@ items:
     strategy:
       type: Custom
       customStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         forcePull: true
         from:
           kind: ImageStreamTag

@@ -13,6 +13,8 @@ spec:
     type: Source
     sourceStrategy:
       env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
         - name: FIELDREF_ENV
           valueFrom:
             fieldRef:

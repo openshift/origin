@@ -9,6 +9,7 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+
       from:
         kind: DockerImage
         name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
@@ -16,3 +17,5 @@ spec:
       env:
         - name: http_proxy
           value: "http://%"
+        - name: "BUILD_LOGLEVEL"
+          value: "2"

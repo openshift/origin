@@ -13,4 +13,7 @@ spec:
       FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       RUN touch /php-file
   strategy:
-    dockerStrategy: {}
+    dockerStrategy:
+      env:
+      - name: "BUILD_LOGLEVEL"
+        value: "2"
