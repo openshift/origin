@@ -39,7 +39,6 @@ import (
 	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
 	testutils "k8s.io/kubernetes/test/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
-	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/onsi/ginkgo"
 )
@@ -271,7 +270,6 @@ var _ = SIGDescribe("kubelet", func() {
 		ns string
 	)
 	f := framework.NewDefaultFramework("kubelet")
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelBaseline
 
 	ginkgo.BeforeEach(func() {
 		c = f.ClientSet

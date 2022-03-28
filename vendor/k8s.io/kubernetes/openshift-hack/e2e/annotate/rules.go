@@ -88,6 +88,9 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1854379
 			`\[sig-storage\].*\[Driver: nfs\] \[Testpattern: Dynamic PV \(default fs\)\].*subPath should be able to unmount after the subpath directory is deleted`,
 
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1945329
+			`should drop INVALID conntrack entries`,
+
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1986306
 			`\[sig-cli\] Kubectl client kubectl wait should ignore not found error with --for=delete`,
 
@@ -107,6 +110,9 @@ var (
 			`Netpol \[LinuxOnly\] NetworkPolicy between server and client using UDP should enforce policy to allow traffic only from a pod in a different namespace based on PodSelector and NamespaceSelector`,
 
 			`Topology Hints should distribute endpoints evenly`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=2034958
+			`\[sig-network\] Conntrack should be able to preserve UDP traffic when initial unready endpoints get ready`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
@@ -207,7 +213,12 @@ var (
 		// These are skipped explicitly by openshift-hack/test-kubernetes-e2e.sh,
 		// but will also be skipped by openshift-tests in jobs that use openshift-sdn.
 		"[Skipped:Network/OpenShiftSDN]": {
+			`NetworkPolicy.*IPBlock`,    // feature is not supported by openshift-sdn
+			`NetworkPolicy.*[Ee]gress`,  // feature is not supported by openshift-sdn
 			`NetworkPolicy.*named port`, // feature is not supported by openshift-sdn
+
+			`NetworkPolicy between server and client should support a 'default-deny-all' policy`,            // uses egress feature
+			`NetworkPolicy between server and client should stop enforcing policies after they are deleted`, // uses egress feature
 		},
 	}
 

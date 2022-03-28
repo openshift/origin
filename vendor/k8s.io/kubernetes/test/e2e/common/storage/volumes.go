@@ -52,7 +52,6 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
-	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/onsi/ginkgo"
 )
@@ -60,7 +59,6 @@ import (
 // TODO(#99468): Check if these tests are still needed.
 var _ = SIGDescribe("Volumes", func() {
 	f := framework.NewDefaultFramework("volume")
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 	// note that namespace deletion is handled by delete-namespace flag
 	// filled in BeforeEach
