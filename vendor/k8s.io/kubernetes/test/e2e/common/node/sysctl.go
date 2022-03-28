@@ -26,7 +26,6 @@ import (
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	imageutils "k8s.io/kubernetes/test/utils/image"
-	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -40,7 +39,6 @@ var _ = SIGDescribe("Sysctls [LinuxOnly] [NodeConformance]", func() {
 	})
 
 	f := framework.NewDefaultFramework("sysctl")
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 	var podClient *framework.PodClient
 
 	testPod := func() *v1.Pod {

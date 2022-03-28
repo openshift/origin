@@ -29,7 +29,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/slice"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2ejob "k8s.io/kubernetes/test/e2e/framework/job"
-	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/onsi/ginkgo"
 )
@@ -43,7 +42,6 @@ const (
 
 var _ = SIGDescribe("TTLAfterFinished", func() {
 	f := framework.NewDefaultFramework("ttlafterfinished")
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelBaseline
 
 	ginkgo.It("job should be deleted once it finishes after TTL seconds", func() {
 		testFinishedJob(f)

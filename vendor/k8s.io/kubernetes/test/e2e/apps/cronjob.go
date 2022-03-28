@@ -43,7 +43,6 @@ import (
 	e2ejob "k8s.io/kubernetes/test/e2e/framework/job"
 	e2eresource "k8s.io/kubernetes/test/e2e/framework/resource"
 	imageutils "k8s.io/kubernetes/test/utils/image"
-	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 const (
@@ -53,7 +52,6 @@ const (
 
 var _ = SIGDescribe("CronJob", func() {
 	f := framework.NewDefaultFramework("cronjob")
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelBaseline
 
 	sleepCommand := []string{"sleep", "300"}
 

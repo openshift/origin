@@ -58,7 +58,6 @@ import (
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
-	admissionapi "k8s.io/pod-security-admission/api"
 	utilptr "k8s.io/utils/pointer"
 
 	"github.com/onsi/ginkgo"
@@ -132,7 +131,6 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 	var m mockDriverSetup
 
 	f := framework.NewDefaultFramework("csi-mock-volumes")
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 	init := func(tp testParameters) {
 		m = mockDriverSetup{

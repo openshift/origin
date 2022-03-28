@@ -32,7 +32,6 @@ import (
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	testutils "k8s.io/kubernetes/test/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
-	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/onsi/ginkgo"
 	// ensure libs have a chance to initialize
@@ -161,7 +160,6 @@ var _ = SIGDescribe("NoExecuteTaintManager Single Pod [Serial]", func() {
 	var cs clientset.Interface
 	var ns string
 	f := framework.NewDefaultFramework("taint-single-pod")
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelBaseline
 
 	ginkgo.BeforeEach(func() {
 		cs = f.ClientSet
@@ -343,7 +341,6 @@ var _ = SIGDescribe("NoExecuteTaintManager Multiple Pods [Serial]", func() {
 	var cs clientset.Interface
 	var ns string
 	f := framework.NewDefaultFramework("taint-multiple-pods")
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelBaseline
 
 	ginkgo.BeforeEach(func() {
 		cs = f.ClientSet
