@@ -102,6 +102,14 @@ var _ = g.Describe("[sig-arch] ClusterOperators", func() {
 							clusterOperator.Name, relatedObj.Resource)
 
 						// also ensure we find a valid rest mapping:
+
+						// "storage" ClusterOperator has some relatedResource refs to CRDs that only exists if
+						// TechPreviewNoUpgrade is enabled. This is acceptable and not a bug, but needs a special case here.
+						if clusterOperator.Name == "storage" && (relatedObj.Resource == "sharedconfigmaps" ||
+							relatedObj.Resource == "sharedsecrets") {
+							continue
+						}
+
 						resourceMatches, err := restMapper.ResourcesFor(schema.GroupVersionResource{
 							Group:    relatedObj.Group,
 							Resource: relatedObj.Resource,
