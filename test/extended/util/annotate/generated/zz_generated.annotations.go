@@ -2547,6 +2547,18 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network][Feature:Whereabouts] should use whereabouts net-attach-def to limit IP ranges for newly created pods": "should use whereabouts net-attach-def to limit IP ranges for newly created pods [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-network][Feature:tuning] pod should not start for sysctls not on whitelist net.ipv4.conf.IFNAME.arp_filter": "net.ipv4.conf.IFNAME.arp_filter [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-network][Feature:tuning] pod should not start for sysctls not on whitelist net.ipv4.conf.all.send_redirects": "net.ipv4.conf.all.send_redirects [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-network][Feature:tuning] pod should start with all sysctl on whitelist": "pod should start with all sysctl on whitelist [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-network][Feature:tuning] pod sysctl should not affect existing pods": "pod sysctl should not affect existing pods [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-network][Feature:tuning] pod sysctl should not affect newly created pods": "pod sysctl should not affect newly created pods [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-network][Feature:tuning] pod sysctls should not affect node": "pod sysctls should not affect node [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-network][endpoints] admission blocks manual creation of EndpointSlices pointing to the cluster or service network": "blocks manual creation of EndpointSlices pointing to the cluster or service network [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network][endpoints] admission blocks manual creation of Endpoints pointing to the cluster or service network": "blocks manual creation of Endpoints pointing to the cluster or service network [Suite:openshift/conformance/parallel]",
