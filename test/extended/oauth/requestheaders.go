@@ -63,18 +63,18 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 
 	g.It("test RequestHeaders IdP", func() {
 
-		// In some rare cases, CAO might be damaged when entering this test. If it is - the results
-		// of this test might flaky. This check ensures that we capture such situation early and
-		// investigate why it wasn't ready before this test.
-		e2e.Logf("Ensuring CAO is available==True, progressing==False, degraded==False")
-		waitForAuthenticationProgressing(oc, configv1.ConditionFalse)
-
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {
 			e2eskipper.Skipf("External clusters do not allow customization of the Identity Providers for the cluster.")
 		}
+
+		// In some rare cases, CAO might be damaged when entering this test. If it is - the results
+		// of this test might flaky. This check ensures that we capture such situation early and
+		// investigate why it wasn't ready before this test.
+		e2e.Logf("Ensuring CAO is available==True, progressing==False, degraded==False")
+		waitForAuthenticationProgressing(oc, configv1.ConditionFalse)
 
 		caCert, caKey := createClientCA(oc.AdminKubeClient().CoreV1())
 		defer oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Delete(context.Background(), clientCAName, metav1.DeleteOptions{})
