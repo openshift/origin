@@ -1433,10 +1433,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc basics can process templates": "can process templates [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc builds complex build start-build": "start-build [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[Top Level] [sig-cli] oc builds complex build webhooks CRUD": "webhooks CRUD [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
 	"[Top Level] [sig-cli] oc builds get buildconfig": "get buildconfig [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc builds new-build": "new-build [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
