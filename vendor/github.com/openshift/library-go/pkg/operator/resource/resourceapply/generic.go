@@ -206,13 +206,13 @@ func ApplyDirectly(ctx context.Context, clients *ClientHolder, recorder events.R
 			if clients.kubeClient == nil {
 				result.Error = fmt.Errorf("missing kubeClient")
 			} else {
-				result.Result, result.Changed, result.Error = ApplyValidatingWebhookConfiguration(ctx, clients.kubeClient.AdmissionregistrationV1(), recorder, t)
+				result.Result, result.Changed, result.Error = ApplyValidatingWebhookConfigurationImproved(ctx, clients.kubeClient.AdmissionregistrationV1(), recorder, t, cache)
 			}
 		case *admissionregistrationv1.MutatingWebhookConfiguration:
 			if clients.kubeClient == nil {
 				result.Error = fmt.Errorf("missing kubeClient")
 			} else {
-				result.Result, result.Changed, result.Error = ApplyMutatingWebhookConfiguration(ctx, clients.kubeClient.AdmissionregistrationV1(), recorder, t)
+				result.Result, result.Changed, result.Error = ApplyMutatingWebhookConfigurationImproved(ctx, clients.kubeClient.AdmissionregistrationV1(), recorder, t, cache)
 			}
 		case *storagev1.CSIDriver:
 			if clients.kubeClient == nil {
