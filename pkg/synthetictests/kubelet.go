@@ -2,6 +2,7 @@ package synthetictests
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"regexp"
 	"sort"
@@ -12,7 +13,10 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/rest"
 )
 
 func testKubeletToAPIServerGracefulTermination(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
@@ -229,11 +233,22 @@ func formatTimes(times []time.Time) []string {
 	return s
 }
 
-func testNodeUpgradeTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func testNodeUpgradeTransitions(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] nodes should not go unready after being upgraded and go unready only once"
 
 	var buf bytes.Buffer
 	var testCases []*junitapi.JUnitTestCase
+
+	// TODO: This test modification will need to be re-examned and removed if no longer needed
+	// The purpose of this is to account for an update in NTO which will force a second restart during upgrades
+	// for a cluster configuration that makes use of TuneD and the stalld service.
+	// Currently this should only occur on realtime kernels
+	// A failure here should not stop the entire test
+	realtimeNodes, err := getRealTimeWorkerNodes(kubeClientConfig)
+	if err != nil {
+		fmt.Fprintf(&buf, "DEBUG: failed to get cluster nodes, continuing : %v\n", err)
+	}
+
 	for len(events) > 0 {
 		nodesWentReady, nodesWentUnready := make(map[string][]time.Time), make(map[string][]time.Time)
 		currentNodeReady := make(map[string]bool)
@@ -250,13 +265,18 @@ func testNodeUpgradeTransitions(events monitorapi.Intervals) []*junitapi.JUnitTe
 				fmt.Fprintf(&buf, "DEBUG: found upgrade start event: %v\n", event.String())
 				break
 			}
-			if !monitorapi.IsNode(event.Locator) {
+			node, isNode := monitorapi.NodeFromLocator(event.Locator)
+			if !isNode {
 				continue
+			}
+			// If events indicate that a node reboot reason happened more than once due to machine config update AND the node kernel is a realtime kernel
+			// We increase the count to assess if we should skip
+			if _, ok := realtimeNodes[node]; ok && strings.Contains(event.Message, "reason/Reboot roles/worker Node will reboot into config ") {
+				realtimeNodes[node] += 1
 			}
 			if !strings.HasPrefix(event.Message, "condition/Ready ") || !strings.HasSuffix(event.Message, " changed") {
 				continue
 			}
-			node, _ := monitorapi.NodeFromLocator(event.Locator)
 			if strings.Contains(event.Message, " status/True ") {
 				if currentNodeReady[node] {
 					failures = append(failures, fmt.Sprintf("Node %s was reported ready twice in a row, this should be impossible", node))
@@ -292,6 +312,12 @@ func testNodeUpgradeTransitions(events monitorapi.Intervals) []*junitapi.JUnitTe
 		abnormalNodes := sets.NewString()
 		for node, unready := range nodesWentUnready {
 			ready := nodesWentReady[node]
+
+			// If Node went unready the same amount of times as an mco config update AND that node is using a
+			// realtime kernel version, we skip triggering a multiple times test failure
+			if mcoUpdates, ok := realtimeNodes[node]; ok && mcoUpdates == len(unready) {
+				continue
+			}
 			if len(unready) > 1 {
 				failures = append(failures, fmt.Sprintf("Node %s went unready multiple times: %s", node, strings.Join(formatTimes(unready), ", ")))
 				abnormalNodes.Insert(node)
@@ -310,6 +336,12 @@ func testNodeUpgradeTransitions(events monitorapi.Intervals) []*junitapi.JUnitTe
 		for node, ready := range nodesWentReady {
 			unready := nodesWentUnready[node]
 			if len(unready) > 0 {
+				continue
+			}
+
+			// If Node went unready the same amount of times as an mco config update AND that node is using a
+			// realtime kernel version, we skip triggering a multiple times test failure
+			if mcoUpdates, ok := realtimeNodes[node]; ok && mcoUpdates == len(ready) {
 				continue
 			}
 			switch {
@@ -447,4 +479,22 @@ func buildTestsFailIfRegexMatch(testName string, matchRE, dontMatchRE *regexp.Re
 	// Always including a flake for now because we're unsure what the results of this test will be. In future
 	// we hope to drop this.
 	return []*junitapi.JUnitTestCase{failure, success}
+}
+
+func getRealTimeWorkerNodes(kubeClientConfig *rest.Config) (nodes map[string]int, err error) {
+	nodes = make(map[string]int)
+	kubeNodeClient, err := corev1.NewForConfig(kubeClientConfig)
+	if err != nil {
+		return nodes, err
+	}
+	kubeNodes, err := kubeNodeClient.Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker="})
+	if err != nil {
+		return nodes, err
+	}
+	for _, node := range kubeNodes.Items {
+		if strings.Contains(node.Status.NodeInfo.KernelVersion, "rt") {
+			nodes[node.Name] = 0
+		}
+	}
+	return nodes, nil
 }
