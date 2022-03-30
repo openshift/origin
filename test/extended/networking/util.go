@@ -409,7 +409,7 @@ func InOVNKubernetesContext(body func()) {
 		func() {
 			BeforeEach(func() {
 				if networkPluginName() != OVNKubernetesPluginName {
-					e2eskipper.Skipf("Not using openshift-sdn")
+					e2eskipper.Skipf("Not using ovn-kubernetes")
 				}
 			})
 
