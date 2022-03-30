@@ -21,6 +21,9 @@ items:
             ln -s ../../rh/6/root/usr/bin /opt/app-root/test-links/bin
     strategy:
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStreamTag
           name: ruby:2.7-ubi8
@@ -80,7 +83,10 @@ items:
         - destinationDir: injected/usr/bin
           sourcePath: /usr/bin/ruby
     strategy:
-      dockerStrategy: {}
+      dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
 
 - apiVersion: v1
   kind: ImageStream

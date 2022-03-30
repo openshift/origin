@@ -8,6 +8,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -56,6 +57,12 @@ USER 1001
 						Strategy: buildv1.BuildStrategy{
 							DockerStrategy: &buildv1.DockerBuildStrategy{
 								ImageOptimizationPolicy: &skipLayers,
+								Env: []corev1.EnvVar{
+									{
+										Name:  "BUILD_LOGLEVEL",
+										Value: "2",
+									},
+								},
 							},
 						},
 					},

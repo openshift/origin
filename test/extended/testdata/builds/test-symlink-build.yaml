@@ -16,6 +16,9 @@ items:
     strategy:
       type: Source
       sourceStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStreamTag
           name: nodejs:latest

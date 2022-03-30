@@ -22,6 +22,9 @@ items:
     strategy:
       type: Source
       sourceStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStreamTag
           name: python:latest
@@ -44,6 +47,9 @@ items:
     strategy:
       type: Docker
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: DockerImage
           name: registry.redhat.io/ubi8/python-36:latest

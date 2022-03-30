@@ -11,6 +11,9 @@ spec:
       - failme
   strategy:
     sourceStrategy:
+      env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
       from:
         kind: DockerImage
         name: quay.io/redhat-developer/test-build-simples2i:1.2
