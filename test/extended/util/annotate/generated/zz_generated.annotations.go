@@ -453,6 +453,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-apps] Job should run a job to completion when tasks succeed": "should run a job to completion when tasks succeed [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
+	"[Top Level] [sig-apps] Job should run a job to completion with CPU requests [Serial]": "should run a job to completion with CPU requests [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
+
 	"[Top Level] [sig-apps] ReplicaSet Replace and Patch tests [Conformance]": "Replace and Patch tests [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-apps] ReplicaSet Replicaset should have a working scale subresource [Conformance]": "Replicaset should have a working scale subresource [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
@@ -1967,13 +1969,13 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] ClusterDns [Feature:Example] should create pod that uses dns": "should create pod that uses dns [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when initial unready endpoints get ready": "should be able to preserve UDP traffic when initial unready endpoints get ready [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when initial unready endpoints get ready": "should be able to preserve UDP traffic when initial unready endpoints get ready [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when server pod cycles for a ClusterIP service": "should be able to preserve UDP traffic when server pod cycles for a ClusterIP service [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when server pod cycles for a NodePort service": "should be able to preserve UDP traffic when server pod cycles for a NodePort service [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Conntrack should drop INVALID conntrack entries [Privileged]": "should drop INVALID conntrack entries [Privileged] [Disabled:Broken] [Suite:k8s]",
+	"[Top Level] [sig-network] Conntrack should drop INVALID conntrack entries [Privileged]": "should drop INVALID conntrack entries [Privileged] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-network] DNS configMap nameserver Change stubDomain should be able to change stubDomain configuration [Slow][Serial]": "should be able to change stubDomain configuration [Slow][Serial] [Disabled:SpecialConfig] [Suite:k8s]",
 
@@ -2684,6 +2686,8 @@ var annotations = map[string]string{
 	"[Top Level] [sig-node] PodTemplates should run the lifecycle of PodTemplates [Conformance]": "should run the lifecycle of PodTemplates [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-node] Pods Extended Delete Grace Period should be submitted and removed": "should be submitted and removed [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[Top Level] [sig-node] Pods Extended Pod Container Status should never report container start when an init container fails": "should never report container start when an init container fails [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-node] Pods Extended Pod Container Status should never report success for a pending container": "should never report success for a pending container [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
