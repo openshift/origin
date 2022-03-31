@@ -54,7 +54,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 				discoveryClient := discovery.NewDiscoveryClientForConfigOrDie(clusterAdminClientConfig)
 
 				// (map[string]*metav1.APIResourceList, error)
-				allResourceList, err := discoveryClient.ServerResources()
+				_, allResourceList, err := discoveryClient.ServerGroupsAndResources()
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}

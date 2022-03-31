@@ -365,7 +365,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	etcdSeen := map[schema.GroupVersionResource]empty{}
 	cohabitatingResources := map[string]map[schema.GroupVersionKind]empty{}
 
-	serverResources, err := kubeClient.Discovery().ServerResources()
+	_, serverResources, err := kubeClient.Discovery().ServerGroupsAndResources()
 	if err != nil {
 		t.Fatal(err)
 	}
