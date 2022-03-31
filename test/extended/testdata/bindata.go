@@ -22201,6 +22201,9 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+      env:
+        - name: BUILD_LOGLEVEL
+          value: "5"
       from:
         kind: DockerImage
         name: quay.io/redhat-developer/test-build-simples2i:1.2
