@@ -49,7 +49,7 @@ const (
 	DIFFERENT_NODE NodeType = iota
 
 	// TODO get these defined as constandts in networkutils
-	openshiftSDNPluginName  = "OpenShiftSDN"
+	openshiftSDNPluginName  = "OpenshiftSDN"
 	OVNKubernetesPluginName = "OVNKubernetes"
 )
 
