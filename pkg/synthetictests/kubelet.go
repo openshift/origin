@@ -9,8 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
+	openshiftcorev1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -239,14 +241,21 @@ func testNodeUpgradeTransitions(events monitorapi.Intervals, kubeClientConfig *r
 	var buf bytes.Buffer
 	var testCases []*junitapi.JUnitTestCase
 
-	// TODO: This test modification will need to be re-examned and removed if no longer needed
+	// TODO: This test modification will need to be re-examned and removed if no longer needed, should only effect upgrades to 4.11
 	// The purpose of this is to account for an update in NTO which will force a second restart during upgrades
 	// for a cluster configuration that makes use of TuneD and the stalld service.
 	// Currently this should only occur on realtime kernels
 	// A failure here should not stop the entire test
-	realtimeNodes, err := getRealTimeWorkerNodes(kubeClientConfig)
+	is411Upgrade, err := is411MajorUpgrade(kubeClientConfig)
 	if err != nil {
-		fmt.Fprintf(&buf, "DEBUG: failed to get cluster nodes, continuing : %v\n", err)
+		fmt.Fprintf(&buf, "DEBUG: failed to get cluster version, continuing : %v\n", err)
+	}
+	var realtimeNodes = make(map[string]int)
+	if is411Upgrade {
+		realtimeNodes, err = getRealTimeWorkerNodes(kubeClientConfig)
+		if err != nil {
+			fmt.Fprintf(&buf, "DEBUG: failed to get cluster nodes, continuing : %v\n", err)
+		}
 	}
 
 	for len(events) > 0 {
@@ -481,6 +490,29 @@ func buildTestsFailIfRegexMatch(testName string, matchRE, dontMatchRE *regexp.Re
 	return []*junitapi.JUnitTestCase{failure, success}
 }
 
+// Major Upgrades to 4.11 include a one time update to NTO that might update machine configs during upgrades
+// Use this function to determine if we need to run extra checks to account for the update
+func is411MajorUpgrade(kubeClientConfig *rest.Config) (bool, error) {
+	ocClient, err := openshiftcorev1.NewForConfig(kubeClientConfig)
+	if err != nil {
+		return false, err
+	}
+	clusterVersion, err := ocClient.ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+	var isMajorUpgrade bool
+	if len(clusterVersion.Status.History) >= 2 {
+		toRelease := platformidentification.VersionFromHistory(clusterVersion.Status.History[0])
+		fromRelease := platformidentification.VersionFromHistory(clusterVersion.Status.History[1])
+		isMajorUpgrade = toRelease == "4.11" && fromRelease != "4.11"
+	}
+	return isMajorUpgrade, nil
+}
+
+// Major Upgrades to 4.11 include a one time update to NTO that might update machine configs during upgrades
+// Nodes that run a real time kernel will more than likely incur an extra restart during this upgrade
+// Use this function to get a list of worker nodes that run a realtime kernel
 func getRealTimeWorkerNodes(kubeClientConfig *rest.Config) (nodes map[string]int, err error) {
 	nodes = make(map[string]int)
 	kubeNodeClient, err := corev1.NewForConfig(kubeClientConfig)
