@@ -156,7 +156,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	}
 
 	// we exclude alerts that have their own separate tests.
-	for _, alertTest := range allowedalerts.AllAlertTests() {
+	for _, alertTest := range allowedalerts.AllAlertTests(context.TODO(), nil) {
 		switch alertTest.AlertState() {
 		case allowedalerts.AlertPending:
 			// a pending test covers pending and everything above (firing)
