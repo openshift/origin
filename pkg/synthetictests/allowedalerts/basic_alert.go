@@ -64,6 +64,11 @@ func newAlert(bugzillaComponent, alertName string) *basicAlertTest {
 	}
 }
 
+func (a *basicAlertTest) withAllowance(allowanceCalculator AlertTestAllowanceCalculator) *basicAlertTest {
+	a.allowanceCalculator = allowanceCalculator
+	return a
+}
+
 func (a *basicAlertTest) pending() *basicAlertTest {
 	a.alertState = AlertPending
 	return a

@@ -14,7 +14,7 @@ import (
 func testAlerts(events monitorapi.Intervals, restConfig *rest.Config) []*junitapi.JUnitTestCase {
 	ret := []*junitapi.JUnitTestCase{}
 
-	alertTests := allowedalerts.AllAlertTests()
+	alertTests := allowedalerts.AllAlertTests(context.TODO(), restConfig)
 	for i := range alertTests {
 		alertTest := alertTests[i]
 
