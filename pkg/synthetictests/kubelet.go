@@ -246,13 +246,13 @@ func testNodeUpgradeTransitions(events monitorapi.Intervals, kubeClientConfig *r
 	// for a cluster configuration that makes use of TuneD and the stalld service.
 	// Currently this should only occur on realtime kernels
 	// A failure here should not stop the entire test
-	is411Upgrade, err := is411MajorUpgrade(kubeClientConfig)
+	is411Upgrade, err := is411MinorUpgrade(kubeClientConfig)
 	if err != nil {
 		fmt.Fprintf(&buf, "DEBUG: failed to get cluster version, continuing : %v\n", err)
 	}
-	var realtimeNodes = make(map[string]int)
+	var realtimeNodeConfigReboots = make(map[string]int)
 	if is411Upgrade {
-		realtimeNodes, err = getRealTimeWorkerNodes(kubeClientConfig)
+		realtimeNodeConfigReboots, err = getRealTimeWorkerNodes(kubeClientConfig)
 		if err != nil {
 			fmt.Fprintf(&buf, "DEBUG: failed to get cluster nodes, continuing : %v\n", err)
 		}
@@ -280,8 +280,8 @@ func testNodeUpgradeTransitions(events monitorapi.Intervals, kubeClientConfig *r
 			}
 			// If events indicate that a node reboot reason happened more than once due to machine config update AND the node kernel is a realtime kernel
 			// We increase the count to assess if we should skip
-			if _, ok := realtimeNodes[node]; ok && strings.Contains(event.Message, "reason/Reboot roles/worker Node will reboot into config ") {
-				realtimeNodes[node] += 1
+			if _, ok := realtimeNodeConfigReboots[node]; ok && strings.Contains(event.Message, "reason/Reboot roles/worker Node will reboot into config ") {
+				realtimeNodeConfigReboots[node] += 1
 			}
 			if !strings.HasPrefix(event.Message, "condition/Ready ") || !strings.HasSuffix(event.Message, " changed") {
 				continue
@@ -324,7 +324,7 @@ func testNodeUpgradeTransitions(events monitorapi.Intervals, kubeClientConfig *r
 
 			// If Node went unready the same amount of times as an mco config update AND that node is using a
 			// realtime kernel version, we skip triggering a multiple times test failure
-			if mcoUpdates, ok := realtimeNodes[node]; ok && mcoUpdates == len(unready) {
+			if mcoUpdates, ok := realtimeNodeConfigReboots[node]; ok && mcoUpdates == len(unready) {
 				continue
 			}
 			if len(unready) > 1 {
@@ -350,7 +350,7 @@ func testNodeUpgradeTransitions(events monitorapi.Intervals, kubeClientConfig *r
 
 			// If Node went unready the same amount of times as an mco config update AND that node is using a
 			// realtime kernel version, we skip triggering a multiple times test failure
-			if mcoUpdates, ok := realtimeNodes[node]; ok && mcoUpdates == len(ready) {
+			if mcoUpdates, ok := realtimeNodeConfigReboots[node]; ok && mcoUpdates == len(ready) {
 				continue
 			}
 			switch {
@@ -490,9 +490,9 @@ func buildTestsFailIfRegexMatch(testName string, matchRE, dontMatchRE *regexp.Re
 	return []*junitapi.JUnitTestCase{failure, success}
 }
 
-// Major Upgrades to 4.11 include a one time update to NTO that might update machine configs during upgrades
+// Minor Upgrades to 4.11 include a one time update to NTO that might update machine configs during upgrades
 // Use this function to determine if we need to run extra checks to account for the update
-func is411MajorUpgrade(kubeClientConfig *rest.Config) (bool, error) {
+func is411MinorUpgrade(kubeClientConfig *rest.Config) (bool, error) {
 	ocClient, err := openshiftcorev1.NewForConfig(kubeClientConfig)
 	if err != nil {
 		return false, err
@@ -510,7 +510,9 @@ func is411MajorUpgrade(kubeClientConfig *rest.Config) (bool, error) {
 	return isMajorUpgrade, nil
 }
 
-// Major Upgrades to 4.11 include a one time update to NTO that might update machine configs during upgrades
+var realTimeKernelRE = regexp.MustCompile(".*.rt[0-9]+.[0-9]+..*")
+
+// Minor Upgrades to 4.11 include a one time update to NTO that might update machine configs during upgrades
 // Nodes that run a real time kernel will more than likely incur an extra restart during this upgrade
 // Use this function to get a list of worker nodes that run a realtime kernel
 func getRealTimeWorkerNodes(kubeClientConfig *rest.Config) (nodes map[string]int, err error) {
@@ -524,7 +526,7 @@ func getRealTimeWorkerNodes(kubeClientConfig *rest.Config) (nodes map[string]int
 		return nodes, err
 	}
 	for _, node := range kubeNodes.Items {
-		if strings.Contains(node.Status.NodeInfo.KernelVersion, "rt") {
+		if realTimeKernelRE.MatchString(node.Status.NodeInfo.KernelVersion) {
 			nodes[node.Name] = 0
 		}
 	}
