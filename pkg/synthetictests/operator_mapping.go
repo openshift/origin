@@ -87,6 +87,8 @@ var (
 	// nothing fancy, I just copied the listing
 	KnownOperators = sets.NewString(
 		"authentication",
+		"baremetal",
+		"cloud-controller-manager",
 		"cloud-credential",
 		"cluster-autoscaler",
 		"config-operator",
@@ -94,8 +96,8 @@ var (
 		"csi-snapshot-controller",
 		"dns",
 		"etcd",
-		"ingress",
 		"image-registry",
+		"ingress",
 		"insights",
 		"kube-apiserver",
 		"kube-controller-manager",
@@ -123,6 +125,8 @@ var (
 
 func init() {
 	utilruntime.Must(addOperatorMapping("authentication", "apiserver-auth"))
+	utilruntime.Must(addOperatorMapping("baremetal", "Bare Metal Hardware Provisioning"))
+	utilruntime.Must(addOperatorMapping("cloud-controller-manager", "Cloud Compute"))
 	utilruntime.Must(addOperatorMapping("cloud-credential", "Cloud Credential Operator"))
 	utilruntime.Must(addOperatorMapping("cluster-autoscaler", "Cloud Compute"))
 	utilruntime.Must(addOperatorMapping("config-operator", "config-operator"))
@@ -130,8 +134,8 @@ func init() {
 	utilruntime.Must(addOperatorMapping("csi-snapshot-controller", "Storage"))
 	utilruntime.Must(addOperatorMapping("dns", "DNS"))
 	utilruntime.Must(addOperatorMapping("etcd", "Etcd"))
-	utilruntime.Must(addOperatorMapping("ingress", "Routing"))
 	utilruntime.Must(addOperatorMapping("image-registry", "Image Registry"))
+	utilruntime.Must(addOperatorMapping("ingress", "Routing"))
 	utilruntime.Must(addOperatorMapping("insights", "Insights Operator"))
 	utilruntime.Must(addOperatorMapping("kube-apiserver", "kube-apiserver"))
 	utilruntime.Must(addOperatorMapping("kube-controller-manager", "kube-controller-manager"))
