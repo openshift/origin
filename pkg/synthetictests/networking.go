@@ -38,7 +38,7 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 
 	failures := []string{}
 	flakes := []string{}
-	operatorsProgressing := intervalcreation.IntervalsFromEvents_OperatorProgressing(events, time.Time{}, time.Time{})
+	operatorsProgressing := intervalcreation.IntervalsFromEvents_OperatorProgressing(events, nil, time.Time{}, time.Time{})
 	networkOperatorProgressing := operatorsProgressing.Filter(func(ev monitorapi.EventInterval) bool {
 		return ev.Locator == "clusteroperator/network" || ev.Locator == "clusteroperator/machine-config"
 	})

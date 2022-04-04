@@ -1,0 +1,60 @@
+{
+  "items": [
+    {
+      "level": "Info",
+      "locator": "ns/openshift-marketplace pod/community-operators-sp6lm node/ uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
+      "message": "reason/Created ",
+      "from": "2022-03-07T22:47:04Z",
+      "to": "2022-03-07T22:47:04Z"
+    },
+    {
+      "level": "Warning",
+      "locator": "ns/openshift-marketplace pod/community-operators-sp6lm node/ip-10-0-154-151.ec2.internal uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
+      "message": "reason/Scheduled node/ip-10-0-154-151.ec2.internal",
+      "from": "2022-03-07T22:47:04Z",
+      "to": "2022-03-07T22:47:04Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-marketplace pod/community-operators-sp6lm node/ip-10-0-154-151.ec2.internal uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
+      "message": "reason/ContainerStart cause/ duration/3.00s",
+      "from": "2022-03-07T22:47:07Z",
+      "to": "2022-03-07T22:47:07Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-marketplace pod/community-operators-sp6lm node/ip-10-0-154-151.ec2.internal uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
+      "message": "reason/Ready ",
+      "from": "2022-03-07T22:47:14Z",
+      "to": "2022-03-07T22:47:14Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-marketplace pod/community-operators-sp6lm node/ip-10-0-154-151.ec2.internal uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
+      "message": "reason/GracefulDelete duration/1s",
+      "from": "2022-03-07T22:47:14Z",
+      "to": "2022-03-07T22:47:14Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-marketplace pod/community-operators-sp6lm node/ip-10-0-154-151.ec2.internal uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
+      "message": "reason/ContainerExit code/0 cause/Completed ",
+      "from": "2022-03-07T22:47:15Z",
+      "to": "2022-03-07T22:47:15Z"
+    },
+    {
+      "level": "Warning",
+      "locator": "ns/openshift-marketplace pod/community-operators-sp6lm node/ip-10-0-154-151.ec2.internal uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
+      "message": "reason/NotReady ",
+      "from": "2022-03-07T22:47:15Z",
+      "to": "2022-03-07T22:47:15Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-marketplace pod/community-operators-sp6lm node/ip-10-0-154-151.ec2.internal uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
+      "message": "reason/Deleted ",
+      "from": "2022-03-07T22:47:15Z",
+      "to": "2022-03-07T22:47:15Z"
+    }
+  ]
+}

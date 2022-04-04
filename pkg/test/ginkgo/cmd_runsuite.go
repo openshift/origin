@@ -76,11 +76,12 @@ func NewOptions() *Options {
 	return &Options{
 		RunDataWriters: []RunDataWriter{
 			// these produce the various intervals.  Different intervals focused on inspecting different problem spaces.
-			AdaptEventDataWriter(intervalcreation.NewEventIntervalRenderer("everything", intervalcreation.BelongsInEverything)),
-			AdaptEventDataWriter(intervalcreation.NewEventIntervalRenderer("spyglass", intervalcreation.BelongsInSpyglass)),
+			AdaptEventDataWriter(intervalcreation.NewSpyglassEventIntervalRenderer("everything", intervalcreation.BelongsInEverything)),
+			AdaptEventDataWriter(intervalcreation.NewSpyglassEventIntervalRenderer("spyglass", intervalcreation.BelongsInSpyglass)),
 			// TODO add visualization of individual apiserver containers and their readiness on this page
-			AdaptEventDataWriter(intervalcreation.NewEventIntervalRenderer("kube-apiserver", intervalcreation.BelongsInKubeAPIServer)),
-			AdaptEventDataWriter(intervalcreation.NewEventIntervalRenderer("operators", intervalcreation.BelongsInOperatorRollout)),
+			AdaptEventDataWriter(intervalcreation.NewSpyglassEventIntervalRenderer("kube-apiserver", intervalcreation.BelongsInKubeAPIServer)),
+			AdaptEventDataWriter(intervalcreation.NewSpyglassEventIntervalRenderer("operators", intervalcreation.BelongsInOperatorRollout)),
+			AdaptEventDataWriter(intervalcreation.NewPodEventIntervalRenderer()),
 
 			RunDataWriterFunc(monitor.WriteEventsForJobRun),
 			RunDataWriterFunc(monitor.WriteTrackedResourcesForJobRun),

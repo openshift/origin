@@ -1,6 +1,8 @@
 package monitorapi
 
-import "strings"
+import (
+	"strings"
+)
 
 // GetNodeRoles extract the node roles from the event message.
 func GetNodeRoles(event EventInterval) string {

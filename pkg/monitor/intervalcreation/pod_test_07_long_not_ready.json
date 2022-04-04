@@ -1,0 +1,39 @@
+{
+  "items": [
+    {
+      "level": "Info",
+      "locator": "ns/openshift-apiserver pod/apiserver-5b9785f765-qk9hl node/ip-10-0-142-23.us-east-2.compute.internal uid/d5f66519-ca7a-4808-94a0-b889552d411c",
+      "message": "reason/Created ",
+      "from": "2022-03-22T19:00:26Z",
+      "to": "2022-03-22T19:00:26Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-apiserver pod/apiserver-5b9785f765-qk9hl node/ip-10-0-142-23.us-east-2.compute.internal uid/d5f66519-ca7a-4808-94a0-b889552d411c",
+      "message": "reason/Scheduled node/ip-10-0-142-23.us-east-2.compute.internal",
+      "from": "2022-03-22T19:00:26Z",
+      "to": "2022-03-22T19:00:26Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-apiserver pod/apiserver-5b9785f765-qk9hl node/ip-10-0-142-23.us-east-2.compute.internal uid/d5f66519-ca7a-4808-94a0-b889552d411c container/fix-audit-permissions",
+      "message": "reason/Ready ",
+      "from": "2022-03-22T19:00:26Z",
+      "to": "2022-03-22T19:00:26Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-apiserver pod/apiserver-5b9785f765-qk9hl node/ip-10-0-142-23.us-east-2.compute.internal uid/d5f66519-ca7a-4808-94a0-b889552d411c container/openshift-apiserver",
+      "message": "reason/Ready ",
+      "from": "2022-03-22T19:00:26Z",
+      "to": "2022-03-22T19:00:26Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-apiserver pod/apiserver-5b9785f765-qk9hl node/ip-10-0-142-23.us-east-2.compute.internal uid/d5f66519-ca7a-4808-94a0-b889552d411c container/openshift-apiserver-check-endpoints",
+      "message": "reason/Ready ",
+      "from": "2022-03-22T19:00:26Z",
+      "to": "2022-03-22T19:00:26Z"
+    }
+  ]
+}
