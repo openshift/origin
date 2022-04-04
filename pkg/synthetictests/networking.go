@@ -62,6 +62,14 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 			flakes = append(flakes, fmt.Sprintf("%v - multus is unable to get pods as ovnkube-node pod has not yet written readinessindicatorfile (possibly not running due to image pull delays) https://bugzilla.redhat.com/show_bug.cgi?id=20671320 - %v", event.Locator, event.Message))
 			continue
 		}
+		if strings.Contains(event.Locator, "pod/whereabouts-pod") &&
+			strings.Contains(event.Message, "error adding container to network") &&
+			strings.Contains(event.Message, "Error at storage engine: Could not allocate IP in range: ip: 192.168.2.225 / - 192.168.2.230 ") {
+			// This failed to create sandbox case is expected due to the whereabouts-e2e test which creates a pod that is expected to
+			// not come up due to IP range exhausted.
+			// See https://github.com/openshift/origin/blob/93eb467cc8d293ba977549b05ae2e4b818c64327/test/extended/networking/whereabouts.go#L52
+			continue
+		}
 		deletionTime := getPodDeletionTime(eventsForPods[event.Locator], event.Locator)
 		if deletionTime == nil {
 			// mark sandboxes errors as flakes if networking is being updated
