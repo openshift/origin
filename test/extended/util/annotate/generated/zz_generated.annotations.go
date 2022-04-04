@@ -2503,12 +2503,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] services when using OpenshiftSDN in a mode that isolates namespaces by default should prevent connections to pods in different namespaces on the same node via service IPs": "should prevent connections to pods in different namespaces on the same node via service IPs [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:EgressFirewall] EgressFirewall should have no impact outside its namespace": "EgressFirewall should have no impact outside its namespace [Suite:openshift/conformance/parallel]",
-
-	"[Top Level] [sig-network][Feature:EgressFirewall] when using openshift ovn-kubernetes Should ensure egressfirewall is created": "Should ensure egressfirewall is created [Suite:openshift/conformance/parallel]",
-
-	"[Top Level] [sig-network][Feature:EgressFirewall] when using openshift-sdn Should ensure egressnetworkpolicy is created": "Should ensure egressnetworkpolicy is created [Suite:openshift/conformance/parallel]",
-
 	"[Top Level] [sig-network][Feature:EgressRouterCNI] should ensure ipv4 egressrouter cni resources are created": "should ensure ipv4 egressrouter cni resources are created [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network][Feature:EgressRouterCNI] when using openshift ovn-kubernetes should ensure ipv6 egressrouter cni resources are created": "should ensure ipv6 egressrouter cni resources are created [Suite:openshift/conformance/parallel]",
