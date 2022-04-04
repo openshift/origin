@@ -7,50 +7,60 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
-	admissionregistrationclientv1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1"
-	"k8s.io/klog/v2"
-
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	admissionregistrationclientv1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1"
+	"k8s.io/klog/v2"
 )
 
-// ApplyMutatingWebhookConfiguration ensures the form of the specified
+// ApplyMutatingWebhookConfigurationImproved ensures the form of the specified
 // mutatingwebhookconfiguration is present in the API. If it does not exist,
 // it will be created. If it does exist, the metadata of the required
 // mutatingwebhookconfiguration will be merged with the existing mutatingwebhookconfiguration
 // and an update performed if the mutatingwebhookconfiguration spec and metadata differ from
 // the previously required spec and metadata based on generation change.
-func ApplyMutatingWebhookConfiguration(ctx context.Context, client admissionregistrationclientv1.MutatingWebhookConfigurationsGetter, recorder events.Recorder,
-	requiredOriginal *admissionregistrationv1.MutatingWebhookConfiguration) (*admissionregistrationv1.MutatingWebhookConfiguration, bool, error) {
+func ApplyMutatingWebhookConfigurationImproved(ctx context.Context, client admissionregistrationclientv1.MutatingWebhookConfigurationsGetter, recorder events.Recorder,
+	requiredOriginal *admissionregistrationv1.MutatingWebhookConfiguration, cache ResourceCache) (*admissionregistrationv1.MutatingWebhookConfiguration, bool, error) {
 
 	if requiredOriginal == nil {
 		return nil, false, fmt.Errorf("Unexpected nil instead of an object")
 	}
-	required := requiredOriginal.DeepCopy()
 
-	existing, err := client.MutatingWebhookConfigurations().Get(ctx, required.GetName(), metav1.GetOptions{})
+	existing, err := client.MutatingWebhookConfigurations().Get(ctx, requiredOriginal.GetName(), metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
+		required := requiredOriginal.DeepCopy()
 		actual, err := client.MutatingWebhookConfigurations().Create(
 			ctx, resourcemerge.WithCleanLabelsAndAnnotations(required).(*admissionregistrationv1.MutatingWebhookConfiguration), metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		if err != nil {
 			return nil, false, err
 		}
+		// need to store the original so that the early comparison of hashes is done based on the original, not a mutated copy
+		cache.UpdateCachedResourceMetadata(requiredOriginal, actual)
 		return actual, true, nil
 	} else if err != nil {
 		return nil, false, err
 	}
 
+	if cache.SafeToSkipApply(requiredOriginal, existing) {
+		return existing, false, nil
+	}
+
+	required := requiredOriginal.DeepCopy()
 	modified := resourcemerge.BoolPtr(false)
 	existingCopy := existing.DeepCopy()
 
 	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
-	if !*modified {
+	copyMutatingWebhookCABundle(existing, required)
+	webhooksEquivalent := equality.Semantic.DeepEqual(existingCopy.Webhooks, required.Webhooks)
+	if webhooksEquivalent && !*modified {
+		// need to store the original so that the early comparison of hashes is done based on the original, not a mutated copy
+		cache.UpdateCachedResourceMetadata(requiredOriginal, existingCopy)
 		return existingCopy, false, nil
 	}
 	// at this point we know that we're going to perform a write.  We're just trying to get the object correct
 	toWrite := existingCopy // shallow copy so the code reads easier
-	copyMutatingWebhookCABundle(existing, required)
 	toWrite.Webhooks = required.Webhooks
 
 	klog.V(4).Infof("MutatingWebhookConfiguration %q changes: %v", required.GetNamespace()+"/"+required.GetName(), JSONPatchNoError(existing, toWrite))
@@ -60,7 +70,9 @@ func ApplyMutatingWebhookConfiguration(ctx context.Context, client admissionregi
 	if err != nil {
 		return nil, false, err
 	}
-	return actual, *modified || actual.GetGeneration() > existingCopy.GetGeneration(), nil
+	// need to store the original so that the early comparison of hashes is done based on the original, not a mutated copy
+	cache.UpdateCachedResourceMetadata(requiredOriginal, actual)
+	return actual, true, nil
 }
 
 // copyMutatingWebhookCABundle populates webhooks[].clientConfig.caBundle fields from existing resource if it was set before
@@ -78,42 +90,52 @@ func copyMutatingWebhookCABundle(from, to *admissionregistrationv1.MutatingWebho
 	}
 }
 
-// ApplyValidatingWebhookConfiguration ensures the form of the specified
+// ApplyValidatingWebhookConfigurationImproved ensures the form of the specified
 // validatingwebhookconfiguration is present in the API. If it does not exist,
 // it will be created. If it does exist, the metadata of the required
 // validatingwebhookconfiguration will be merged with the existing validatingwebhookconfiguration
 // and an update performed if the validatingwebhookconfiguration spec and metadata differ from
 // the previously required spec and metadata based on generation change.
-func ApplyValidatingWebhookConfiguration(ctx context.Context, client admissionregistrationclientv1.ValidatingWebhookConfigurationsGetter, recorder events.Recorder,
-	requiredOriginal *admissionregistrationv1.ValidatingWebhookConfiguration) (*admissionregistrationv1.ValidatingWebhookConfiguration, bool, error) {
+func ApplyValidatingWebhookConfigurationImproved(ctx context.Context, client admissionregistrationclientv1.ValidatingWebhookConfigurationsGetter, recorder events.Recorder,
+	requiredOriginal *admissionregistrationv1.ValidatingWebhookConfiguration, cache ResourceCache) (*admissionregistrationv1.ValidatingWebhookConfiguration, bool, error) {
 	if requiredOriginal == nil {
 		return nil, false, fmt.Errorf("Unexpected nil instead of an object")
 	}
-	required := requiredOriginal.DeepCopy()
 
-	existing, err := client.ValidatingWebhookConfigurations().Get(ctx, required.GetName(), metav1.GetOptions{})
+	existing, err := client.ValidatingWebhookConfigurations().Get(ctx, requiredOriginal.GetName(), metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
+		required := requiredOriginal.DeepCopy()
 		actual, err := client.ValidatingWebhookConfigurations().Create(
 			ctx, resourcemerge.WithCleanLabelsAndAnnotations(required).(*admissionregistrationv1.ValidatingWebhookConfiguration), metav1.CreateOptions{})
 		reportCreateEvent(recorder, required, err)
 		if err != nil {
 			return nil, false, err
 		}
+		// need to store the original so that the early comparison of hashes is done based on the original, not a mutated copy
+		cache.UpdateCachedResourceMetadata(requiredOriginal, actual)
 		return actual, true, nil
 	} else if err != nil {
 		return nil, false, err
 	}
 
+	if cache.SafeToSkipApply(requiredOriginal, existing) {
+		return existing, false, nil
+	}
+
+	required := requiredOriginal.DeepCopy()
 	modified := resourcemerge.BoolPtr(false)
 	existingCopy := existing.DeepCopy()
 
 	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
-	if !*modified {
+	copyValidatingWebhookCABundle(existing, required)
+	webhooksEquivalent := equality.Semantic.DeepEqual(existingCopy.Webhooks, required.Webhooks)
+	if webhooksEquivalent && !*modified {
+		// need to store the original so that the early comparison of hashes is done based on the original, not a mutated copy
+		cache.UpdateCachedResourceMetadata(requiredOriginal, existingCopy)
 		return existingCopy, false, nil
 	}
 	// at this point we know that we're going to perform a write.  We're just trying to get the object correct
 	toWrite := existingCopy // shallow copy so the code reads easier
-	copyValidatingWebhookCABundle(existing, required)
 	toWrite.Webhooks = required.Webhooks
 
 	klog.V(4).Infof("ValidatingWebhookConfiguration %q changes: %v", required.GetNamespace()+"/"+required.GetName(), JSONPatchNoError(existing, toWrite))
@@ -123,7 +145,9 @@ func ApplyValidatingWebhookConfiguration(ctx context.Context, client admissionre
 	if err != nil {
 		return nil, false, err
 	}
-	return actual, *modified || actual.GetGeneration() > existingCopy.GetGeneration(), nil
+	// need to store the original so that the early comparison of hashes is done based on the original, not a mutated copy
+	cache.UpdateCachedResourceMetadata(requiredOriginal, actual)
+	return actual, true, nil
 }
 
 // copyValidatingWebhookCABundle populates webhooks[].clientConfig.caBundle fields from existing resource if it was set before
