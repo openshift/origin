@@ -265,6 +265,17 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("ssc")
 
+	g.It("Demo for Jon", func() {
+		g.By("Running a pod..")
+		pod, err := exutil.NewPodExecutor(oc, "jondemo", image.ShellImage())
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		ls, err := pod.Exec("ls /")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		framework.Logf("ls=%s", ls)
+	})
+
 	g.It("TestPodDefaultCapabilities", func() {
 		g.By("Running a restricted pod and getting it's inherited capabilities")
 		pod, err := exutil.NewPodExecutor(oc, "restrictedcapsh", image.ShellImage())
