@@ -47,11 +47,11 @@ func GetJobType(ctx context.Context, clientConfig *rest.Config) (*JobType, error
 		return nil, err
 	}
 
-	release := versionFromHistory(clusterVersion.Status.History[0])
+	release := VersionFromHistory(clusterVersion.Status.History[0])
 
 	fromRelease := ""
 	if len(clusterVersion.Status.History) > 1 {
-		fromRelease = versionFromHistory(clusterVersion.Status.History[1])
+		fromRelease = VersionFromHistory(clusterVersion.Status.History[1])
 	}
 
 	platform := ""
@@ -97,7 +97,7 @@ func GetJobType(ctx context.Context, clientConfig *rest.Config) (*JobType, error
 	}, nil
 }
 
-func versionFromHistory(history configv1.UpdateHistory) string {
+func VersionFromHistory(history configv1.UpdateHistory) string {
 	versionParts := strings.Split(history.Version, ".")
 	if len(versionParts) < 2 {
 		return ""
