@@ -2463,6 +2463,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] [Feature:PerformanceDNS][Serial] Should answer DNS query for maximum number of services per cluster": "Should answer DNS query for maximum number of services per cluster [Slow] [Suite:k8s]",
 
+	"[Top Level] [sig-network] external gateway address when using openshift ovn-kubernetes Should validate failure if an external gateway address does not match the address family of the pod": "Should validate failure if an external gateway address does not match the address family of the pod [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-network] multicast when using one of the OpenshiftSDN modes 'redhat/openshift-ovs-multitenant, redhat/openshift-ovs-networkpolicy' should allow multicast traffic in namespaces where it is enabled": "should allow multicast traffic in namespaces where it is enabled [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network] multicast when using one of the OpenshiftSDN modes 'redhat/openshift-ovs-multitenant, redhat/openshift-ovs-networkpolicy' should block multicast traffic in namespaces where it is disabled": "should block multicast traffic in namespaces where it is disabled [Suite:openshift/conformance/parallel]",
