@@ -313,8 +313,6 @@
 // test/extended/testdata/deployments/tag-images-deployment.yaml
 // test/extended/testdata/deployments/test-deployment-broken.yaml
 // test/extended/testdata/deployments/test-deployment-test.yaml
-// test/extended/testdata/egress-firewall/ovnk-egressfirewall-test.yaml
-// test/extended/testdata/egress-firewall/sdn-egressnetworkpolicy-test.yaml
 // test/extended/testdata/egress-router-cni/egress-router-cni-v4-cr.yaml
 // test/extended/testdata/egress-router-cni/egress-router-cni-v6-cr.yaml
 // test/extended/testdata/forcepull-test.json
@@ -41703,76 +41701,6 @@ func testExtendedTestdataDeploymentsTestDeploymentTestYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml = []byte(`apiVersion: k8s.ovn.org/v1
-kind: EgressFirewall
-metadata:
-  name: default
-spec:
-  egress:
-  - type: Allow
-    to:
-      dnsName: docs.openshift.com
-  - type: Deny
-    to:
-      dnsName: www.google.com
-    ports:
-    - port: 80
-      protocol: TCP
-  - type: Allow
-    to:
-      cidrSelector: 8.8.8.8/32
-  - type: Deny
-    to:
-      cidrSelector: 0.0.0.0/0
-`)
-
-func testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml, nil
-}
-
-func testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/egress-firewall/ovnk-egressfirewall-test.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataEgressFirewallSdnEgressnetworkpolicyTestYaml = []byte(`apiVersion: network.openshift.io/v1
-kind: EgressNetworkPolicy
-metadata:
-  name: default
-spec:
-  egress:
-  - type: Allow
-    to:
-      dnsName: docs.openshift.com
-  - type: Allow
-    to:
-      cidrSelector: 8.8.8.8/32
-  - type: Deny
-    to:
-      cidrSelector: 0.0.0.0/0
-`)
-
-func testExtendedTestdataEgressFirewallSdnEgressnetworkpolicyTestYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataEgressFirewallSdnEgressnetworkpolicyTestYaml, nil
-}
-
-func testExtendedTestdataEgressFirewallSdnEgressnetworkpolicyTestYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataEgressFirewallSdnEgressnetworkpolicyTestYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/egress-firewall/sdn-egressnetworkpolicy-test.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataEgressRouterCniEgressRouterCniV4CrYaml = []byte(`---
 apiVersion: network.operator.openshift.io/v1
 kind: EgressRouter
@@ -53371,8 +53299,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/deployments/tag-images-deployment.yaml":                                          testExtendedTestdataDeploymentsTagImagesDeploymentYaml,
 	"test/extended/testdata/deployments/test-deployment-broken.yaml":                                         testExtendedTestdataDeploymentsTestDeploymentBrokenYaml,
 	"test/extended/testdata/deployments/test-deployment-test.yaml":                                           testExtendedTestdataDeploymentsTestDeploymentTestYaml,
-	"test/extended/testdata/egress-firewall/ovnk-egressfirewall-test.yaml":                                   testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml,
-	"test/extended/testdata/egress-firewall/sdn-egressnetworkpolicy-test.yaml":                               testExtendedTestdataEgressFirewallSdnEgressnetworkpolicyTestYaml,
 	"test/extended/testdata/egress-router-cni/egress-router-cni-v4-cr.yaml":                                  testExtendedTestdataEgressRouterCniEgressRouterCniV4CrYaml,
 	"test/extended/testdata/egress-router-cni/egress-router-cni-v6-cr.yaml":                                  testExtendedTestdataEgressRouterCniEgressRouterCniV6CrYaml,
 	"test/extended/testdata/forcepull-test.json":                                                             testExtendedTestdataForcepullTestJson,
@@ -54048,10 +53974,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"tag-images-deployment.yaml":          {testExtendedTestdataDeploymentsTagImagesDeploymentYaml, map[string]*bintree{}},
 					"test-deployment-broken.yaml":         {testExtendedTestdataDeploymentsTestDeploymentBrokenYaml, map[string]*bintree{}},
 					"test-deployment-test.yaml":           {testExtendedTestdataDeploymentsTestDeploymentTestYaml, map[string]*bintree{}},
-				}},
-				"egress-firewall": {nil, map[string]*bintree{
-					"ovnk-egressfirewall-test.yaml":     {testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml, map[string]*bintree{}},
-					"sdn-egressnetworkpolicy-test.yaml": {testExtendedTestdataEgressFirewallSdnEgressnetworkpolicyTestYaml, map[string]*bintree{}},
 				}},
 				"egress-router-cni": {nil, map[string]*bintree{
 					"egress-router-cni-v4-cr.yaml": {testExtendedTestdataEgressRouterCniEgressRouterCniV4CrYaml, map[string]*bintree{}},
