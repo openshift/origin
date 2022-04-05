@@ -70,6 +70,14 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 			// See https://github.com/openshift/origin/blob/93eb467cc8d293ba977549b05ae2e4b818c64327/test/extended/networking/whereabouts.go#L52
 			continue
 		}
+		if strings.Contains(event.Locator, "pod/simpletest-rc-to-be-deleted") &&
+			strings.Contains(event.Message, "failed to create pod network sandbox k8s_simpletest-rc-to-be-deleted") &&
+			strings.HasSuffix(event.Message, " not found") {
+			// This failed to create a sandbox case is expected due to the ovnkube-msater pod trying to bring up the logical port
+			// for a pod that is in the process of being deleted.
+			// See https://github.com/openshift/origin/blob/36ddf0503bbb9f7adf9fe3481f85c856ec0a2f31/vendor/k8s.io/kubernetes/test/e2e/apimachinery/garbage_collector.go#L739
+			continue
+		}
 		deletionTime := getPodDeletionTime(eventsForPods[event.Locator], event.Locator)
 		if deletionTime == nil {
 			// mark sandboxes errors as flakes if networking is being updated
