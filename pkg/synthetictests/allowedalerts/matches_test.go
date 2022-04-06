@@ -49,8 +49,36 @@ func TestGetClosestP95Value(t *testing.T) {
 					},
 				},
 
-				P95: mustDuration("2s"),
-				P99: mustDuration("3s"),
+				P95: mustDuration("3s"),
+				P99: mustDuration("4s"),
+			},
+		},
+		{
+			name:      "choose-different-arch",
+			alertName: "etcdGRPCRequestsSlow",
+			jobType: platformidentification.JobType{
+				Release:      "4.10",
+				FromRelease:  "4.10",
+				Platform:     "gcp",
+				Architecture: "not-real",
+				Network:      "sdn",
+				Topology:     "ha",
+			},
+			want: historicaldata.StatisticalDuration{
+				DataKey: historicaldata.DataKey{
+					Name: "etcdGRPCRequestsSlow",
+					JobType: platformidentification.JobType{
+						Release:      "4.10",
+						FromRelease:  "4.10",
+						Platform:     "gcp",
+						Architecture: "amd64",
+						Network:      "sdn",
+						Topology:     "ha",
+					},
+				},
+
+				P95: mustDuration("3s"),
+				P99: mustDuration("4s"),
 			},
 		},
 		{
