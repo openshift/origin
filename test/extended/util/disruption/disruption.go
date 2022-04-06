@@ -359,13 +359,21 @@ func hasFrameworkFlake(f *framework.Framework) (string, bool) {
 // that will be recorded alongside the current test with name. These methods only work in the
 // context of a disruption test suite today and will not be reported as JUnit failures when
 // used within normal ginkgo suties.
-func RecordJUnit(f *framework.Framework, name string, fn func() error) error {
+func RecordJUnit(f *framework.Framework, name string, fn func() (err error, flake bool)) error {
 	start := time.Now()
-	err := fn()
+	err, flake := fn()
 	duration := time.Now().Sub(start)
 	var failure string
 	if err != nil {
 		failure = err.Error()
+
+		if flake {
+			// Append an additional result with empty failure to trigger a flake.
+			f.TestSummaries = append(f.TestSummaries, additionalTest{
+				Name:     name,
+				Duration: duration,
+			})
+		}
 	}
 	f.TestSummaries = append(f.TestSummaries, additionalTest{
 		Name:     name,
