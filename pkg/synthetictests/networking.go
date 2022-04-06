@@ -42,7 +42,7 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 	networkOperatorProgressing := operatorsProgressing.Filter(func(ev monitorapi.EventInterval) bool {
 		return ev.Locator == "clusteroperator/network" || ev.Locator == "clusteroperator/machine-config"
 	})
-	eventsForPods := getEventsByPod(events)
+	eventsForPods := getEventsByPodName(events)
 	for _, event := range events {
 		if !strings.Contains(event.Message, "reason/FailedCreatePodSandBox Failed to create pod sandbox") {
 			continue
@@ -70,8 +70,9 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 			// See https://github.com/openshift/origin/blob/93eb467cc8d293ba977549b05ae2e4b818c64327/test/extended/networking/whereabouts.go#L52
 			continue
 		}
-		deletionTime := getPodDeletionTime(eventsForPods[event.Locator], event.Locator)
-		if deletionTime == nil {
+
+		partialLocator := monitorapi.NonUniquePodLocatorFrom(event.Locator)
+		if deletionTime := getPodDeletionTime(eventsForPods[partialLocator], event.Locator); deletionTime == nil {
 			// mark sandboxes errors as flakes if networking is being updated
 			match := -1
 			for i := range networkOperatorProgressing {
@@ -87,6 +88,7 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 			} else {
 				failures = append(failures, fmt.Sprintf("%v - never deleted - %v", event.Locator, event.Message))
 			}
+
 		} else {
 			timeBetweenDeleteAndFailure := event.From.Sub(*deletionTime)
 			switch {
@@ -183,21 +185,24 @@ func categorizeBySubset(categorizers []testCategorizer, failures, flakes []strin
 	return failuresBySubtest, flakesBySubtest
 }
 
-// getEventsByPod returns map keyed by pod locator with all events associated with it.
-func getEventsByPod(events monitorapi.Intervals) map[string]monitorapi.Intervals {
+// getEventsByPodName returns map keyed by pod locator with all events associated with it.
+func getEventsByPodName(events monitorapi.Intervals) map[string]monitorapi.Intervals {
 	eventsByPods := map[string]monitorapi.Intervals{}
 	for _, event := range events {
 		if !strings.Contains(event.Locator, "pod/") {
 			continue
 		}
-		eventsByPods[event.Locator] = append(eventsByPods[event.Locator], event)
+		partialLocator := monitorapi.NonUniquePodLocatorFrom(event.Locator)
+		eventsByPods[partialLocator] = append(eventsByPods[partialLocator], event)
 	}
 	return eventsByPods
 }
 
 func getPodDeletionTime(events monitorapi.Intervals, podLocator string) *time.Time {
+	partialLocator := monitorapi.NonUniquePodLocatorFrom(podLocator)
 	for _, event := range events {
-		if event.Locator == podLocator && event.Message == "reason/Deleted" {
+		currPartialLocator := monitorapi.NonUniquePodLocatorFrom(event.Locator)
+		if currPartialLocator == partialLocator && strings.Contains(event.Message, "reason/Deleted") {
 			return &event.From
 		}
 	}
