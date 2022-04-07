@@ -144,11 +144,7 @@ func RunQueryAtTime(ctx context.Context, prometheusClient prometheusv1.API, quer
 		return nil, err
 	}
 	if len(warnings) > 0 {
-		errs := []error{}
-		for _, warning := range warnings {
-			errs = append(errs, fmt.Errorf("%s", warning))
-		}
-		return nil, errors.NewAggregate(errs)
+		framework.Logf("#### warnings \n\t%v\n", strings.Join(warnings, "\n\t"))
 	}
 	if result.Type() != model.ValVector {
 		return nil, fmt.Errorf("result type is not the vector: %v", result.Type())
