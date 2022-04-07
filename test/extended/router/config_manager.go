@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -77,7 +79,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the healthz endpoint to respond")
-			healthzURI := fmt.Sprintf("http://%s:1936/healthz", routerIP)
+			healthzURI := fmt.Sprintf("http://%s/healthz", net.JoinHostPort(routerIP, "1936"))
 			err = waitForRouterOKResponseExec(ns, execPod.Name, healthzURI, routerIP, timeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 

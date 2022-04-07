@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 	"fmt"
+	"net"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -14,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 	exurl "github.com/openshift/origin/test/extended/util/url"
 )
@@ -170,7 +172,7 @@ u3YLAbyW/lHhOCiZu2iAI8AbmXem9lW6Tr7p/97s0w==
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for the router's healthz endpoint to respond")
-				healthzURI := fmt.Sprintf("http://%s:1936/healthz", routerIP)
+				healthzURI := fmt.Sprintf("http://%s/healthz", net.JoinHostPort(routerIP, "1936"))
 				healthzt := exurl.NewTester(oc.AdminKubeClient(), ns).WithErrorPassthrough(true)
 				defer healthzt.Close()
 				healthzt.Within(
