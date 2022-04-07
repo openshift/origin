@@ -118,6 +118,10 @@ var knownEventsBugs = []knownProblem{
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1986370",
 	},
 	{
+		Regexp: regexp.MustCompile(`ns/openshift-e2e-loki pod/loki-promtail-[a-z0-9]+ node/[a-z0-9.-]+ - reason/NetworkNotReady network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net\.d/\. Has your network provider started\?`),
+		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1986370",
+	},
+	{
 		Regexp: regexp.MustCompile(`ns/openshift-network-diagnostics pod/network-check-target-[a-z0-9]+ node/[a-z0-9.-]+ - reason/NetworkNotReady network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net\.d/\. Has your network provider started\?`),
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1986370",
 	},
