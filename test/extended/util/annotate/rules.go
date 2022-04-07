@@ -253,6 +253,8 @@ var (
 			`\[sig-network\]\[Feature:Router\] The HAProxy router should serve the correct routes when scoped to a single namespace and label set`,
 			`\[sig-network\]\[Feature:Router\] The HAProxy router should set Forwarded headers appropriately`,
 			`\[sig-network\]\[Feature:Router\] The HAProxy router should support reencrypt to services backed by a serving certificate automatically`,
+			`\[sig-network\]\[Feature:Router\] when FIPS is disabled the HAProxy router should serve routes when configured with a 1024-bit RSA key`,
+			`\[sig-network\]\[Feature:Router\] when FIPS is enabled the HAProxy router should not work when configured with a 1024-bit RSA key`,
 			`\[sig-network\] Networking should provide Internet connection for containers \[Feature:Networking-IPv6\]`,
 			`\[sig-node\] Managed cluster should report ready nodes the entire duration of the test run`,
 			`\[sig-storage\]\[Late\] Metrics should report short attach times`,
