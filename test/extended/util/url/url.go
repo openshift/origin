@@ -243,6 +243,7 @@ type CURL struct {
 type Test struct {
 	Name       string
 	Req        *http.Request
+	ProxyHost  string
 	SkipVerify bool
 	// we capture this here vs. the httpRequest
 	// to facilitate passing to curl
@@ -279,9 +280,15 @@ func (ut *Test) WithHeader(hdr, value string) *Test {
 	return ut
 }
 
-func (ut *Test) Through(addr string) *Test {
-	ut.Req.Header.Set("Host", ut.Req.URL.Host)
-	ut.Req.URL.Host = addr
+// Through configures the test to send requests through the given host.  The
+// host may be specified as a host name, IPv4 address, or bracketed IPv6
+// address.  Use this method when the request specifies some host A that is
+// different from the actual host B to which the connection must be made.  For
+// example, host A may belong to a route, and host B may be an HAProxy pod that
+// serves the route.  This method is useful when DNS is not configured to
+// resolve host A's host name.
+func (ut *Test) Through(host string) *Test {
+	ut.ProxyHost = host
 	return ut
 }
 
@@ -362,7 +369,11 @@ func (ut *Test) ToShell(i int) string {
 			post = post + " -d '' "
 		}
 	}
-	cmd := fmt.Sprintf(`curl -X %s %s %s -s -S -o /tmp/body -D /tmp/headers %q`, ut.Req.Method, strings.Join(headers, " "), post, ut.Req.URL)
+	proxy := ""
+	if len(ut.ProxyHost) != 0 {
+		proxy = fmt.Sprintf("--connect-to ::%q", ut.ProxyHost)
+	}
+	cmd := fmt.Sprintf(`curl -X %s %s %s %s -s -S -o /tmp/body -D /tmp/headers %q`, ut.Req.Method, proxy, strings.Join(headers, " "), post, ut.Req.URL)
 	cmd += ` -w '{"code":%{http_code}}'`
 	if ut.SkipVerify {
 		cmd += ` -k`
