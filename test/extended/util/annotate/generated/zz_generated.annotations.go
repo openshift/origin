@@ -1931,7 +1931,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation] Stackdriver Monitoring should run Stackdriver Metadata Agent [Feature:StackdriverMetadataAgent]": "should run Stackdriver Metadata Agent [Feature:StackdriverMetadataAgent] [Disabled:Unimplemented] [Suite:k8s]",
 
-	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster": "shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't exceed the 650 series limit of total series sent via telemetry from each cluster": "shouldn't exceed the 650 series limit of total series sent via telemetry from each cluster [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't report any unexpected alerts in firing or pending state": "shouldn't report any unexpected alerts in firing or pending state [Suite:openshift/conformance/parallel]",
 

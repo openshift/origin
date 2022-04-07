@@ -477,7 +477,7 @@ sort_desc(
 		framework.Logf("No alerts fired during test run")
 	})
 
-	g.It("shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster", func() {
+	g.It("shouldn't exceed the 650 series limit of total series sent via telemetry from each cluster", func() {
 		if !hasPullSecret(oc.AdminKubeClient(), "cloud.openshift.com") {
 			e2eskipper.Skipf("Telemetry is disabled")
 		}
@@ -488,9 +488,22 @@ sort_desc(
 		tests := map[string]bool{
 			// We want to limit the number of total series sent, the cluster:telemetry_selected_series:count
 			// rule contains the count of the all the series that are sent via telemetry. It is permissible
-			// for some scenarios to generate more series than 600, we just want the basic state to be below
+			// for some scenarios to generate more series than 650, we just want the basic state to be below
 			// a threshold.
-			fmt.Sprintf(`avg_over_time(cluster:telemetry_selected_series:count[%s]) >= 600`, testDuration):  false,
+			//
+			// The following query can be executed against the telemetry server
+			// to reevaluate the threshold value (replace the matcher on the version label accordingly):
+			//
+			// quantile(0.99,
+			//   avg_over_time(
+			//     (
+			//       cluster:telemetry_selected_series:count
+			//       *
+			//       on (_id) group_left group by(_id) (cluster_version{version=~"4.11.0-0.ci.+"})
+			//     )[30m:1m]
+			//   )
+			// )
+			fmt.Sprintf(`avg_over_time(cluster:telemetry_selected_series:count[%s]) >= 650`, testDuration):  false,
 			fmt.Sprintf(`max_over_time(cluster:telemetry_selected_series:count[%s]) >= 1200`, testDuration): false,
 		}
 		err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
