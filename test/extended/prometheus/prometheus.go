@@ -72,14 +72,6 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules", func(
 		"CloudCredentialOperatorTargetNamespaceMissing",
 		"CloudCredentialOperatorStaleCredentials",
 
-		// Repo: openshift/cluster-network-operator
-		// https://bugzilla.redhat.com/show_bug.cgi?id=2010361
-		"ClusterProxyApplySlow",
-		"NodeProxyApplySlow",
-		"NodeProxyApplyStale",
-		"NodeWithoutSDNPod",
-		"SDNPodNotReady",
-
 		// Repo: operator-framework/operator-lifecycle-manager
 		// https://bugzilla.redhat.com/show_bug.cgi?id=2010373
 		"CsvAbnormalFailedOver2Min",
@@ -145,17 +137,6 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules", func(
 		"etcdBackendQuotaLowSpace",
 		"etcdExcessiveDatabaseGrowth",
 		"etcdHighFsyncDurations",
-
-		// Repo: openshift/cluster-network-operator (OVN)
-		// https://bugzilla.redhat.com/show_bug.cgi?id=2010663
-		"NetworkPodsCrashLooping",
-		"NoOvnMasterLeader",
-		"NoRunningOvnMaster",
-		"NodeWithoutOVNKubeNodePodRunning",
-		"NorthboundStale",
-		"SouthboundStale",
-		"V4SubnetAllocationThresholdExceeded",
-		"V6SubnetAllocationThresholdExceeded",
 
 		// Repo: openshift/cluster-storage-operator (vSphere)
 		// https://bugzilla.redhat.com/show_bug.cgi?id=2010310
