@@ -39,9 +39,6 @@ var _ = g.Describe("[sig-builds][Feature:Builds] oc new-app", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = exutil.WaitForServiceAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()), "default")
 			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for openshift namespace imagestreams")
-			err = exutil.WaitForOpenShiftNamespaceImageStreams(oc)
-			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
 		g.AfterEach(func() {
