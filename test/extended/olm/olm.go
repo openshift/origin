@@ -240,25 +240,25 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 		oc = exutil.NewCLI("olm-23440")
 
 		buildPruningBaseDir = exutil.FixturePath("testdata", "olm")
-		operatorGroup       = filepath.Join(buildPruningBaseDir, "operatorgroup.yaml")
-		sub                 = filepath.Join(buildPruningBaseDir, "subscription.yaml")
+		ogPath              = filepath.Join(buildPruningBaseDir, "operatorgroup.yaml")
+		subPath             = filepath.Join(buildPruningBaseDir, "subscription.yaml")
+		catalogPath         = filepath.Join(buildPruningBaseDir, "catalogsource.yaml")
 	)
 
-	files := []string{sub}
 	g.It("can subscribe to the operator", func() {
 		g.By("Cluster-admin user subscribe the operator resource")
 
-		// skip test if redhat-operators is not present or disabled
-		ok, err := hasRedHatOperatorsSource(oc)
+		// Configure OperatorGroup before tests
+		og, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", ogPath, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace())).OutputToFile("og.json")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		if !ok {
-			g.Skip("redhat-operators source not found in enabled sources")
-		}
+		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", og).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-		// configure OperatorGroup before tests
-		configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", operatorGroup, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace())).OutputToFile("config.json")
+		// Configure CatalogSource before tests
+		const image = "registry.redhat.io/redhat/redhat-operator-index:v4.10"
+		catalog, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", catalogPath, "-p", "NAME=test-catalog", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), fmt.Sprintf("IMAGE=%s", image)).OutputToFile("catalog.json")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", configFile).Execute()
+		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", catalog).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		o.Eventually(func() []string {
@@ -286,12 +286,10 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 			return parsed.Status.Namespaces
 		}, 5*time.Minute, time.Second).Should(o.Equal([]string{""}))
 
-		for _, v := range files {
-			configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", v, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=redhat-operators", "SOURCENAMESPACE=openshift-marketplace", "PACKAGE=cluster-logging", "CHANNEL=stable").OutputToFile("config.json")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", configFile).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-		}
+		sub, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", subPath, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=test-catalog", fmt.Sprintf("SOURCENAMESPACE=%s", oc.Namespace()), "PACKAGE=cluster-logging", "CHANNEL=stable").OutputToFile("sub.json")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", sub).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		var current string
 		o.Eventually(func() string {
