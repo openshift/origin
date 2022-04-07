@@ -61,9 +61,15 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve the correct routes when scoped to a single namespace and label set", func() {
 
+			isFIPS, err := exutil.IsFIPS(oc.AdminKubeClient().CoreV1())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if isFIPS {
+				g.Skip("The router image's built-in default certificate is incompatible with FIPS: https://bugzilla.redhat.com/show_bug.cgi?id=2047790")
+			}
+
 			configPath := exutil.FixturePath("testdata", "router", "router-scoped.yaml")
 			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
-			err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
+			err = oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			ns := oc.KubeFramework().Namespace.Name
@@ -106,9 +112,15 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 
 		g.It("should override the route host with a custom value", func() {
 
+			isFIPS, err := exutil.IsFIPS(oc.AdminKubeClient().CoreV1())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if isFIPS {
+				g.Skip("The router image's built-in default certificate is incompatible with FIPS: https://bugzilla.redhat.com/show_bug.cgi?id=2047790")
+			}
+
 			configPath := exutil.FixturePath("testdata", "router", "router-override.yaml")
 			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
-			err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
+			err = oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			ns := oc.KubeFramework().Namespace.Name
@@ -170,9 +182,15 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 
 		g.It("should override the route host for overridden domains with a custom value", func() {
 
+			isFIPS, err := exutil.IsFIPS(oc.AdminKubeClient().CoreV1())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if isFIPS {
+				g.Skip("The router image's built-in default certificate is incompatible with FIPS: https://bugzilla.redhat.com/show_bug.cgi?id=2047790")
+			}
+
 			configPath := exutil.FixturePath("testdata", "router", "router-override-domains.yaml")
 			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
-			err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
+			err = oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			ns := oc.KubeFramework().Namespace.Name

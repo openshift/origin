@@ -25,9 +25,6 @@ objects:
   spec:
     host: first.example.com
     path: /Letter
-    tls:
-      insecureEdgeTerminationPolicy: Allow
-      termination: Edge
     to:
       name: endpoints
     ports:
@@ -42,9 +39,6 @@ objects:
   spec:
     host: second.example.com
     path: /Letter
-    tls:
-      insecureEdgeTerminationPolicy: Allow
-      termination: Edge
     to:
       name: endpoints
     ports:
