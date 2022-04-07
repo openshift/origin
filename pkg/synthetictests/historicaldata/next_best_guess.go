@@ -9,12 +9,43 @@ import (
 )
 
 // nextBestGuessers is the order in which to attempt to lookup other alternative matches that are close to this job type.
+// TODO building a cross multiply would likely be beneficial
 var nextBestGuessers = []NextBestKey{
 	MicroReleaseUpgrade,
 	MinorReleaseUpgrade,
 	PreviousReleaseUpgrade,
 	combine(PreviousReleaseUpgrade, MicroReleaseUpgrade),
 	combine(PreviousReleaseUpgrade, MinorReleaseUpgrade),
+
+	OnArchitecture("amd64"),
+	OnArchitecture("ppc64le"),
+	OnArchitecture("s390x"),
+	OnArchitecture("arm64"),
+
+	combine(OnArchitecture("amd64"), MicroReleaseUpgrade),
+	combine(OnArchitecture("ppc64le"), MicroReleaseUpgrade),
+	combine(OnArchitecture("s390x"), MicroReleaseUpgrade),
+	combine(OnArchitecture("arm64"), MicroReleaseUpgrade),
+
+	combine(OnArchitecture("amd64"), MinorReleaseUpgrade),
+	combine(OnArchitecture("ppc64le"), MinorReleaseUpgrade),
+	combine(OnArchitecture("s390x"), MinorReleaseUpgrade),
+	combine(OnArchitecture("arm64"), MinorReleaseUpgrade),
+
+	combine(OnArchitecture("amd64"), PreviousReleaseUpgrade),
+	combine(OnArchitecture("ppc64le"), PreviousReleaseUpgrade),
+	combine(OnArchitecture("s390x"), PreviousReleaseUpgrade),
+	combine(OnArchitecture("arm64"), PreviousReleaseUpgrade),
+
+	combine(OnArchitecture("amd64"), PreviousReleaseUpgrade, MicroReleaseUpgrade),
+	combine(OnArchitecture("ppc64le"), PreviousReleaseUpgrade, MicroReleaseUpgrade),
+	combine(OnArchitecture("s390x"), PreviousReleaseUpgrade, MicroReleaseUpgrade),
+	combine(OnArchitecture("arm64"), PreviousReleaseUpgrade, MicroReleaseUpgrade),
+
+	combine(OnArchitecture("amd64"), PreviousReleaseUpgrade, MinorReleaseUpgrade),
+	combine(OnArchitecture("ppc64le"), PreviousReleaseUpgrade, MinorReleaseUpgrade),
+	combine(OnArchitecture("s390x"), PreviousReleaseUpgrade, MinorReleaseUpgrade),
+	combine(OnArchitecture("arm64"), PreviousReleaseUpgrade, MinorReleaseUpgrade),
 }
 
 // NextBestKey returns the next best key in the query_results.json generated from BigQuery and a bool indicating whether this guesser has an opinion.
@@ -113,6 +144,19 @@ func OnSDN(in platformidentification.JobType) (platformidentification.JobType, b
 	ret := platformidentification.CloneJobType(in)
 	ret.Network = "sdn"
 	return ret, true
+}
+
+// OnArchitecture maybe we match a different architecture
+func OnArchitecture(architecture string) func(in platformidentification.JobType) (platformidentification.JobType, bool) {
+	return func(in platformidentification.JobType) (platformidentification.JobType, bool) {
+		if in.Architecture == architecture {
+			return platformidentification.JobType{}, false
+		}
+
+		ret := platformidentification.CloneJobType(in)
+		ret.Architecture = architecture
+		return ret, true
+	}
 }
 
 // combine will start with the input and call each guess in order.  It uses the output of the previous NextBestKeyFn
