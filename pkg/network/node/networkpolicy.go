@@ -164,8 +164,9 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 		if err != nil {
 			continue
 		}
-		npns := np.namespaces[vnid]
-		np.updateNetworkPolicy(npns, &policy)
+		if npns, ok := np.namespaces[vnid]; ok {
+			np.updateNetworkPolicy(npns, &policy)
+		}
 	}
 
 	return nil
