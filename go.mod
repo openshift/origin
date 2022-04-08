@@ -72,6 +72,7 @@ require (
 	k8s.io/kubelet v0.23.0
 	k8s.io/kubernetes v1.23.0
 	k8s.io/legacy-cloud-providers v0.23.0
+	k8s.io/pod-security-admission v0.23.0
 	k8s.io/utils v0.0.0-20211208161948-7d6a63dca704
 	sigs.k8s.io/kustomize/kyaml v0.13.0
 	sigs.k8s.io/yaml v1.2.0
