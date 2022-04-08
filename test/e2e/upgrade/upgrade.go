@@ -373,7 +373,9 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			case configv1.OpenStackPlatformType:
 				cvoAckTimeout = 4 * time.Minute
 			default:
-				cvoAckTimeout = defaultCVOUpdateAckTimeout
+				//cvoAckTimeout = defaultCVOUpdateAckTimeout
+				// TODO: do not merge, testing in CI
+				cvoAckTimeout = 2 * time.Second
 			}
 
 			start := time.Now()
