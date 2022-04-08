@@ -1,14 +1,54 @@
 package synthetictests
 
 import (
+	_ "embed"
 	"regexp"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
+
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
+
+var (
+	//go:embed duplicated_events_eviction.json
+	duplicatedEventsEviction []byte
+)
+
+func TestDuplicatedEvents(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  []byte
+		output string
+		times  int
+	}{
+		{
+			name:   "pod eviction failure",
+			input:  duplicatedEventsEviction,
+			output: "1 events happened too frequently\n\nevent happened 79 times",
+			times:  24,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			events, err := monitorserialization.EventsFromJSON(test.input)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			actual := testDuplicatedEventForStableSystem(events, nil, "unit-test")
+			if !strings.Contains(actual[0].FailureOutput.Output, test.output) {
+				t.Error(spew.Sdump(actual[0]))
+			}
+		})
+	}
+}
 
 func TestEventCountExtractor(t *testing.T) {
 	tests := []struct {
@@ -33,6 +73,11 @@ func TestEventCountExtractor(t *testing.T) {
 			name:  "other message",
 			input: "some node message",
 			times: 0,
+		},
+		{
+			name:  "pod eviction failure",
+			input: "reason/MalscheduledPod pod/router-default-84c89f5bf8-5rdcb pod/router-default-84c89f5bf8-bg9ql should be one per node, but all were placed on node/ip-10-0-172-166.ec2.internal; evicting pod/router-default-84c89f5bf8-5rdcb (79 times)",
+			times: 79,
 		},
 	}
 
