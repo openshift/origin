@@ -90,7 +90,7 @@ var (
 // upgradeAbortAtRandom is a special value indicating the abort should happen at a random percentage
 // between (0,100].
 const upgradeAbortAtRandom = -1
-const defaultCVOUpdateAckTimeout = 10 * time.Second
+const defaultCVOUpdateAckTimeout = 2 * time.Minute
 
 // SetTests controls the list of tests to run during an upgrade. See AllTests for the supported
 // suite.
@@ -395,10 +395,10 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			// We allow extra time on a couple platforms above, if we're over the default we'll flake this test
 			// to allow insight into how often we're hitting this problem and when the issue is fixed.
 			timeToAck := time.Now().Sub(start)
-			if timeToAck > defaultCVOUpdateAckTimeout {
-				return fmt.Errorf("CVO took %s to acknowledge upgrade (> %s), flaking test", timeToAck, defaultCVOUpdateAckTimeout), true
-			}
-			return nil, false
+			//if timeToAck > defaultCVOUpdateAckTimeout {
+			return fmt.Errorf("CVO took %s to acknowledge upgrade (> %s), flaking test", timeToAck, defaultCVOUpdateAckTimeout), true
+			//}
+			//return nil, false
 		},
 	); err != nil {
 		recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeFailed", fmt.Sprintf("failed to acknowledge version: %v", err), true)
