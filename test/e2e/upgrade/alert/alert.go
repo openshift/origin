@@ -191,16 +191,19 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	g.By("Checking for alerts")
 
 	start := time.Now()
+	framework.Logf("[alert] Starting alert search post-upgrade. Time %s", start)
 
 	// Block until upgrade is done
 	g.By("Waiting for upgrade to finish before checking for alerts")
 	<-done
+	framework.Logf("[alert] Upgrade finished")
 
 	// Additonal delay after upgrade completion to allow pending alerts to settle
 	g.By("Waiting before checking for alerts")
 	time.Sleep(1 * time.Minute)
 
 	testDuration := time.Now().Sub(start).Round(time.Second)
+	framework.Logf("[alert] Checking alerts. Took %s seconds", testDuration)
 
 	// Invariant: No non-info level alerts should have fired during the upgrade
 	firingAlertQuery := fmt.Sprintf(`
@@ -210,6 +213,7 @@ count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog
 `, testDuration)
 	result, err := helper.RunQuery(context.TODO(), t.prometheusClient, firingAlertQuery)
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to check firing alerts during upgrade")
+	framework.Logf("[alert] Alert query (%s). Results are (%v)", firingAlertQuery, result)
 	for _, series := range result.Data.Result {
 		labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
 		violation := fmt.Sprintf("alert %s fired for %s seconds with labels: %s", series.Metric["alertname"], series.Value, helper.LabelsAsSelector(labels))
