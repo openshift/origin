@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 	"time"
 
@@ -94,11 +95,195 @@ func FetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Confi
 		return nil, err
 	}
 
+	// firing alerts trump pending alerts, so if the alerts will overlap when we render, then we want to have pending
+	// broken up by firing, so the alert should not be listed as pending at the same time as it is firing in our intervals.
+	pendingAlerts = blackoutEvents(pendingAlerts, firingAlerts)
+
 	ret := []monitorapi.EventInterval{}
 	ret = append(ret, firingAlerts...)
 	ret = append(ret, pendingAlerts...)
 
 	return ret, nil
+}
+
+// blackoutEvents filters startingEvents and rewrites into potentially multiple events to avoid overlap with the blackoutWindows.
+// For instance, if startingEvents for locator/foo covers 1:00-1:45 and blackoutWindows for locator/Foo covers 1:10-1:15 and 1:40-1:50
+// the return has locator/foo 1:00-1:10, 1:15-1:40.
+func blackoutEvents(startingEvents, blackoutWindows []monitorapi.EventInterval) []monitorapi.EventInterval {
+	ret := []monitorapi.EventInterval{}
+
+	blackoutsByLocator := indexByLocator(blackoutWindows)
+	for i := range startingEvents {
+		startingEvent := startingEvents[i]
+		blackouts := blackoutsByLocator[startingEvent.Locator]
+		if len(blackouts) == 0 {
+			ret = append(ret, startingEvent)
+			continue
+		}
+
+		relatedBlackouts := nonOverlappingBlackoutWindowsFromEvents(blackouts)
+		currStartTime := startingEvent.From
+		maxEndTime := startingEvent.To
+		for i, currBlackout := range relatedBlackouts {
+			if currBlackout.To.Before(currStartTime) { // too early, does not apply
+				continue
+			}
+			if currBlackout.From.After(maxEndTime) { // too late, does not apply and we're done
+				break
+			}
+			var nextBlackout *blackoutWindow
+			if nextIndex := i + 1; nextIndex < len(relatedBlackouts) {
+				nextBlackout = &relatedBlackouts[nextIndex]
+			}
+
+			switch {
+			case currBlackout.From.Before(currStartTime) || currBlackout.From == currStartTime:
+				// if the blackoutEvent is before the currentStartTime, then the new startTime will be when this blackout ends
+				eventNext := startingEvent
+				eventNext.From = currBlackout.To
+				if nextBlackout != nil && nextBlackout.From.Before(maxEndTime) {
+					eventNext.To = nextBlackout.From
+				} else {
+					eventNext.To = maxEndTime
+				}
+				currStartTime = eventNext.To
+				if eventNext.From != eventNext.To && eventNext.From.Before(eventNext.To) {
+					ret = append(ret, eventNext)
+				}
+
+				// if we're at the end of the blackout list
+				if nextBlackout == nil {
+					eventNext = startingEvent
+					eventNext.From = currStartTime
+					eventNext.To = maxEndTime
+					currStartTime = eventNext.To
+					if eventNext.From != eventNext.To && eventNext.From.Before(eventNext.To) {
+						ret = append(ret, eventNext)
+					}
+				}
+
+			case currBlackout.To.After(maxEndTime) || currBlackout.To == maxEndTime:
+				// this should be the last blackout that applies to us, because all the other ones will start *after* this .To
+				// if the blackoutEvent ends after the maxEndTime, then the new maxEndTime will be when this blackout starts
+				eventNext := startingEvent
+				eventNext.From = currStartTime
+				eventNext.To = currBlackout.From
+				currStartTime = eventNext.To
+				if eventNext.From != eventNext.To && eventNext.From.Before(eventNext.To) {
+					ret = append(ret, eventNext)
+				}
+
+			default:
+				// if we're here, then the blackout is in the middle of our overall timeframe
+				eventNext := startingEvent
+				eventNext.From = currStartTime
+				eventNext.To = currBlackout.From
+				currStartTime = currBlackout.To
+				if eventNext.From != eventNext.To && eventNext.From.Before(eventNext.To) {
+					ret = append(ret, eventNext)
+				}
+
+				// if we're at the end of the blackout list
+				if nextBlackout == nil {
+					eventNext = startingEvent
+					eventNext.From = currStartTime
+					eventNext.To = maxEndTime
+					currStartTime = eventNext.To
+					if eventNext.From != eventNext.To && eventNext.From.Before(eventNext.To) {
+						ret = append(ret, eventNext)
+					}
+				}
+			}
+
+			// we're done
+			if !currStartTime.Before(maxEndTime) {
+				break
+			}
+		}
+
+	}
+
+	sort.Sort(monitorapi.Intervals(ret))
+	return ret
+}
+
+type blackoutWindow struct {
+	From time.Time
+	To   time.Time
+}
+
+func nonOverlappingBlackoutWindowsFromEvents(blackoutWindows []monitorapi.EventInterval) []blackoutWindow {
+	sort.Sort(monitorapi.Intervals(blackoutWindows))
+
+	ret := []blackoutWindow{}
+
+	for _, sourceWindow := range blackoutWindows {
+		if len(ret) == 0 {
+			ret = append(ret, blackoutWindow{
+				From: sourceWindow.From,
+				To:   sourceWindow.To,
+			})
+			continue
+		}
+
+		newRet := make([]blackoutWindow, len(ret))
+		copy(newRet, ret)
+
+		for j := range ret {
+			resultWindow := ret[j]
+
+			switch {
+			case sourceWindow.From.After(resultWindow.From) && sourceWindow.To.Before(resultWindow.To):
+				// strictly smaller, the source window can be ignored
+
+			case sourceWindow.From.After(resultWindow.To):
+				// too late, does not overlap add the source
+				newRet = append(newRet, blackoutWindow{
+					From: sourceWindow.From,
+					To:   sourceWindow.To,
+				})
+
+			case sourceWindow.To.Before(resultWindow.From):
+				// too early, does not overlap
+				newRet = append(newRet, blackoutWindow{
+					From: sourceWindow.From,
+					To:   sourceWindow.To,
+				})
+
+			case sourceWindow.From.Before(resultWindow.From) && sourceWindow.To.After(resultWindow.To):
+				// strictly larger, the new source window times should overwrite
+				resultWindow.From = sourceWindow.From
+				resultWindow.To = sourceWindow.To
+				newRet[j] = resultWindow
+
+			case sourceWindow.From.Before(resultWindow.From):
+				// the sourceWindow starts before the resultWindow and to is somewhere during, the window should start earlier
+				resultWindow.From = sourceWindow.From
+				newRet[j] = resultWindow
+
+			case sourceWindow.To.After(resultWindow.To):
+				// the sourceWindow ends after the resultWindow and from is somewhere during, the window should end later
+				resultWindow.To = sourceWindow.To
+				newRet[j] = resultWindow
+
+			default:
+				// let's hope we don't do anything here
+			}
+		}
+
+		ret = newRet
+	}
+
+	return ret
+}
+
+func indexByLocator(events []monitorapi.EventInterval) map[string][]monitorapi.EventInterval {
+	ret := map[string][]monitorapi.EventInterval{}
+	for i := range events {
+		event := events[i]
+		ret[event.Locator] = append(ret[event.Locator], event)
+	}
+	return ret
 }
 
 func CreateEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.Value, startTime time.Time) ([]monitorapi.EventInterval, error) {
