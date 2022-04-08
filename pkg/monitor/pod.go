@@ -76,8 +76,9 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 			newContainerReady := containerStatus.Ready
 			oldContainerReady := false
 			if oldContainerStatuses != nil {
-				oldContainerStatus := findContainerStatus(oldContainerStatuses, containerName, i)
-				oldContainerReady = oldContainerStatus.Ready
+				if oldContainerStatus := findContainerStatus(oldContainerStatuses, containerName, i); oldContainerStatus != nil {
+					oldContainerReady = oldContainerStatus.Ready
+				}
 			}
 
 			// always produce conditions during create
