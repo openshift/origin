@@ -90,7 +90,7 @@ var (
 // upgradeAbortAtRandom is a special value indicating the abort should happen at a random percentage
 // between (0,100].
 const upgradeAbortAtRandom = -1
-const defaultCVOUpdateAckTimeout = 2 * time.Minute
+const defaultCVOUpdateAckTimeout = 10 * time.Second
 
 // SetTests controls the list of tests to run during an upgrade. See AllTests for the supported
 // suite.
@@ -373,9 +373,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			case configv1.OpenStackPlatformType:
 				cvoAckTimeout = 4 * time.Minute
 			default:
-				//cvoAckTimeout = defaultCVOUpdateAckTimeout
-				// TODO: do not merge, testing in CI
-				cvoAckTimeout = 2 * time.Second
+				cvoAckTimeout = defaultCVOUpdateAckTimeout
 			}
 
 			start := time.Now()
