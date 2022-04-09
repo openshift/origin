@@ -607,6 +607,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch] ClusterOperators should define at least one related object that is not a namespace": "at least one related object that is not a namespace [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-arch] ClusterOperators should define valid related objects": "valid related objects [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-arch] Managed cluster should ensure control plane operators do not make themselves unevictable": "ensure control plane operators do not make themselves unevictable [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch] Managed cluster should ensure control plane pods do not run in best-effort QoS": "ensure control plane pods do not run in best-effort QoS [Suite:openshift/conformance/parallel]",
