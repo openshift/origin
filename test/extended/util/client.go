@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"k8s.io/client-go/util/retry"
 	"net"
 	"net/http"
 	"os"
@@ -62,6 +63,7 @@ import (
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/kubernetes/test/e2e/framework"
+	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
@@ -105,8 +107,17 @@ func NewCLIWithFramework(kubeFramework *framework.Framework) *CLI {
 	return cli
 }
 
+// NewCLIWithPodSecurityLevel initializes the CLI the same way as `NewCLI()`
+// but the given pod security level is applied to the created e2e test namespace.
+func NewCLIWithPodSecurityLevel(project string, level admissionapi.Level) *CLI {
+	cli := NewCLI(project)
+	cli.kubeFramework.NamespacePodSecurityEnforceLevel = level
+	return cli
+}
+
 // NewCLI initializes the CLI and Kube framework helpers with the provided
 // namespace. Should be called outside of a Ginkgo .It() function.
+// This will apply the `restricted` pod security level to the given underlying namespace.
 func NewCLI(project string) *CLI {
 	cli := NewCLIWithoutNamespace(project)
 	cli.withoutNamespace = false
@@ -285,6 +296,31 @@ func (c *CLI) SetupProject() string {
 			Group:     "",
 			Resource:  "pods",
 		},
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		// once permissions are settled the underlying namespace must have been created.
+		ns, err := c.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), newNamespace, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		if c.kubeFramework.NamespacePodSecurityEnforceLevel != "" {
+			// TODO(sur): set to restricted in a separate PR and fix failing tests
+			c.kubeFramework.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
+		}
+		if ns.Labels == nil {
+			ns.Labels = make(map[string]string)
+		}
+		ns.Labels[admissionapi.EnforceLevelLabel] = string(c.kubeFramework.NamespacePodSecurityEnforceLevel)
+		// In contrast to upstream, OpenShift sets a global default on warn and audit pod security levels.
+		// Since this would cause unwanted audit log and warning entries, we are setting the same level as for enforcement.
+		ns.Labels[admissionapi.WarnLevelLabel] = string(c.kubeFramework.NamespacePodSecurityEnforceLevel)
+		ns.Labels[admissionapi.AuditLevelLabel] = string(c.kubeFramework.NamespacePodSecurityEnforceLevel)
+
+		_, err = c.AdminKubeClient().CoreV1().Namespaces().Update(context.Background(), ns, metav1.UpdateOptions{})
+		return err
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 

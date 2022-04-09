@@ -3103,7 +3103,8 @@ k8s.io/metrics/pkg/client/custom_metrics/scheme
 k8s.io/metrics/pkg/client/external_metrics
 # k8s.io/mount-utils v0.0.0 => github.com/openshift/kubernetes/staging/src/k8s.io/mount-utils v0.0.0-20220405131139-37c5e75b4e1e
 k8s.io/mount-utils
-# k8s.io/pod-security-admission v0.0.0 => github.com/openshift/kubernetes/staging/src/k8s.io/pod-security-admission v0.0.0-20220405131139-37c5e75b4e1e
+# k8s.io/pod-security-admission v0.23.0 => github.com/openshift/kubernetes/staging/src/k8s.io/pod-security-admission v0.0.0-20220405131139-37c5e75b4e1e
+## explicit
 k8s.io/pod-security-admission/admission
 k8s.io/pod-security-admission/admission/api
 k8s.io/pod-security-admission/admission/api/load
