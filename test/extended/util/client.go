@@ -306,7 +306,7 @@ func (c *CLI) SetupProject() string {
 			return err
 		}
 
-		if c.kubeFramework.NamespacePodSecurityEnforceLevel != "" {
+		if len(c.kubeFramework.NamespacePodSecurityEnforceLevel) == 0 {
 			// TODO(sur): set to restricted in a separate PR and fix failing tests
 			c.kubeFramework.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 		}
