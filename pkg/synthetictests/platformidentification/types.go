@@ -123,7 +123,7 @@ func VersionFromHistory(history configv1.UpdateHistory) string {
 }
 
 func getArchitecture(clientConfig *rest.Config) (string, error) {
-	kubeConfig, err := kubernetes.NewForConfig(clientConfig)
+	kubeClient, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
 		return "", err
 	}
@@ -142,7 +142,7 @@ func getArchitecture(clientConfig *rest.Config) (string, error) {
 		listOpts.LabelSelector = "node-role.kubernetes.io/master"
 	}
 
-	masterNodes, err := kubeConfig.CoreV1().Nodes().List(context.Background(), listOpts)
+	masterNodes, err := kubeClient.CoreV1().Nodes().List(context.Background(), listOpts)
 	if err != nil {
 		return "", err
 	}
