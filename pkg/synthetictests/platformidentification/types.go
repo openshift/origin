@@ -7,6 +7,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
+	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -126,8 +127,22 @@ func getArchitecture(clientConfig *rest.Config) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	configClient, err := configclient.NewForConfig(clientConfig)
+	if err != nil {
+		return "", err
+	}
 
-	masterNodes, err := kubeConfig.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master"})
+	listOpts := metav1.ListOptions{}
+	controlPlaneTopology, err := exutil.GetControlPlaneTopologyFromConfigClient(configClient)
+	if err != nil {
+		return "", err
+	}
+	// ExternalTopologyMode means there are no master nodes
+	if *controlPlaneTopology != configv1.ExternalTopologyMode {
+		listOpts.LabelSelector = "node-role.kubernetes.io/master"
+	}
+
+	masterNodes, err := kubeConfig.CoreV1().Nodes().List(context.Background(), listOpts)
 	if err != nil {
 		return "", err
 	}
