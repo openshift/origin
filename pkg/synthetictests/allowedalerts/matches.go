@@ -18,8 +18,8 @@ func neverFail(flakeDelegate AlertTestAllowanceCalculator) AlertTestAllowanceCal
 	}
 }
 
-func (d *neverFailAllowance) FailAfter(alertName string, jobType platformidentification.JobType) time.Duration {
-	return 24 * time.Hour
+func (d *neverFailAllowance) FailAfter(alertName string, jobType platformidentification.JobType) (time.Duration, error) {
+	return 24 * time.Hour, nil
 }
 
 func (d *neverFailAllowance) FlakeAfter(alertName string, jobType platformidentification.JobType) time.Duration {
@@ -31,7 +31,7 @@ func (d *neverFailAllowance) FlakeAfter(alertName string, jobType platformidenti
 // returns 6s and the FlakeAfter returns 2s, then test will flake.
 type AlertTestAllowanceCalculator interface {
 	// FailAfter returns a duration an alert can be at or above the required state before failing.
-	FailAfter(alertName string, jobType platformidentification.JobType) time.Duration
+	FailAfter(alertName string, jobType platformidentification.JobType) (time.Duration, error)
 	// FlakeAfter returns a duration an alert can be at or above the required state before flaking.
 	FlakeAfter(alertName string, jobType platformidentification.JobType) time.Duration
 }
@@ -41,9 +41,9 @@ type percentileAllowances struct {
 
 var defaultAllowances = &percentileAllowances{}
 
-func (d *percentileAllowances) FailAfter(alertName string, jobType platformidentification.JobType) time.Duration {
+func (d *percentileAllowances) FailAfter(alertName string, jobType platformidentification.JobType) (time.Duration, error) {
 	allowed, _, _ := getClosestPercentilesValues(alertName, jobType)
-	return allowed.P99
+	return allowed.P99, nil
 }
 
 func (d *percentileAllowances) FlakeAfter(alertName string, jobType platformidentification.JobType) time.Duration {
