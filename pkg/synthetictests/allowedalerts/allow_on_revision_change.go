@@ -18,7 +18,7 @@ var allowedWhenEtcdRevisionChange = &etcdRevisionChangeAllowance{}
 var _ AlertTestAllowanceCalculator = &etcdRevisionChangeAllowance{}
 
 func NewAllowedWhenEtcdRevisionChange(ctx context.Context, operatorClient operatorv1client.OperatorV1Interface) (*etcdRevisionChangeAllowance, error) {
-	biggestRevision, err := getBiggestRevision(ctx, operatorClient)
+	biggestRevision, err := GetBiggestRevisionForEtcdOperator(ctx, operatorClient)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func NewAllowedWhenEtcdRevisionChange(ctx context.Context, operatorClient operat
 }
 
 func (d *etcdRevisionChangeAllowance) FailAfter(alertName string, jobType platformidentification.JobType) (time.Duration, error) {
-	biggestRevision, err := getBiggestRevision(context.TODO(), d.operatorClient)
+	biggestRevision, err := GetBiggestRevisionForEtcdOperator(context.TODO(), d.operatorClient)
 	if err != nil {
 		return 0, err
 	}
@@ -52,7 +52,8 @@ func (d *etcdRevisionChangeAllowance) FlakeAfter(alertName string, jobType platf
 	return allowed.P95
 }
 
-func getBiggestRevision(ctx context.Context, operatorClient operatorv1client.OperatorV1Interface) (int, error) {
+// GetBiggestRevisionForEtcdOperator calculates the biggest revision among replicas of the most recently successful deployment
+func GetBiggestRevisionForEtcdOperator(ctx context.Context, operatorClient operatorv1client.OperatorV1Interface) (int, error) {
 	etcd, err := operatorClient.Etcds().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
 		return 0, err
