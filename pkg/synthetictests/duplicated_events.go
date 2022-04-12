@@ -102,6 +102,9 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 
 	// Separated out in testBackoffPullingRegistryRedhatImage
 	regexp.MustCompile(imagePullRedhatRegEx),
+
+	// Separated out in testRequiredInstallerResourcesMissing
+	regexp.MustCompile(requiredResourcesMissingRegEx),
 }
 
 var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
@@ -123,6 +126,8 @@ var allowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{
 	// etcd-operator began to version etcd-endpoints configmap in 4.10 as part of static-pod-resource. During upgrade existing revisions will not contain the resource.
 	// The condition reconciles with the next revision which the result of the upgrade. TODO(hexfusion) remove in 4.11
 	regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/RequiredInstallerResourcesMissing configmaps: etcd-endpoints-[0-9]+`),
+	// There is a separate test to catch this specific case
+	regexp.MustCompile(requiredResourcesMissingRegEx),
 }
 
 var knownEventsBugs = []knownProblem{
