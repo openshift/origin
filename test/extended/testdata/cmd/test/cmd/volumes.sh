@@ -64,7 +64,7 @@ os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --add 
 os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].volumeMounts[*].subPath}'" 'foo'
 
 # ensure that we can describe volumes of type ConfigMap
-os::cmd::expect_success " echo 'apiVersion: v1
+os::cmd::expect_success " echo 'apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   name: simple-dc

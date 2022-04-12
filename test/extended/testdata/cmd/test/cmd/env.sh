@@ -33,7 +33,7 @@ os::cmd::expect_success_and_not_text 'oc set env dc/testdc PASS=x,y=z' 'no longe
 
 # create a build-config object with the JenkinsPipeline strategy
 os::cmd::expect_success 'oc process -p NAMESPACE=openshift -f ${TEST_DATA}/jenkins/jenkins-ephemeral-template.json | oc create -f -'
-os::cmd::expect_success "echo 'apiVersion: v1
+os::cmd::expect_success "echo 'apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
   name: fake-pipeline

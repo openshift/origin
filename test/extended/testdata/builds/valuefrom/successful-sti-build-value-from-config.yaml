@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
   name: mys2itest
@@ -34,7 +34,7 @@ spec:
             secretKeyRef:
               name: mysecret
               key: username
-        - name: FIELDREF_CLONE_ENV 
+        - name: FIELDREF_CLONE_ENV
           value: $(FIELDREF_ENV)
         - name: FIELDREF_CLONE_CLONE_ENV
           value: $(FIELDREF_CLONE_ENV)

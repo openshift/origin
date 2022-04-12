@@ -1,9 +1,9 @@
 {
-  "kind": "ImageStreamList",
+  "kind": "List",
   "apiVersion": "v1",
   "items": [
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -73,7 +73,7 @@
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -126,7 +126,7 @@
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -175,7 +175,7 @@
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -242,7 +242,7 @@
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -327,7 +327,7 @@
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -394,7 +394,7 @@
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -467,7 +467,7 @@
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -538,7 +538,7 @@
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -615,7 +615,7 @@
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -688,7 +688,7 @@
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -755,7 +755,7 @@
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -828,7 +828,7 @@
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -877,7 +877,7 @@
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -932,7 +932,7 @@
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {

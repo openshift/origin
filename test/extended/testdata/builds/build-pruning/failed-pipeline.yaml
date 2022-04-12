@@ -1,5 +1,5 @@
 kind: "BuildConfig"
-apiVersion: "v1"
+apiVersion: "build.openshift.io/v1"
 metadata:
   name: "failed-pipeline"
 spec:

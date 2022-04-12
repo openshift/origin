@@ -49,7 +49,7 @@
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge",
         "annotations": {
@@ -70,7 +70,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "origin-ruby-sample"
       },
@@ -81,7 +81,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "ruby-27"
       },
@@ -94,7 +94,7 @@
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "ruby-sample-build",
         "labels": {
@@ -165,7 +165,7 @@
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "frontend",
         "annotations": {
@@ -319,7 +319,7 @@
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "database",
         "annotations": {

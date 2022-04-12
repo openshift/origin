@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 kind: Template
 labels:
   template: multi-namespace-pipeline
@@ -6,7 +6,7 @@ metadata:
   annotations:
     iconClass: icon-jenkins
     tags: instant-app,jenkins
-  name: 
+  name:
 parameters:
 - description: namespace
   displayName: namespace
@@ -21,7 +21,7 @@ parameters:
   name: NAMESPACE3
   value: namespace3
 objects:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     labels:
@@ -67,7 +67,7 @@ objects:
                               echo "Created ${it.name()} from template with labels ${it.object().metadata.labels}"
                           }
 
-               
+
                       }
                   }
               }

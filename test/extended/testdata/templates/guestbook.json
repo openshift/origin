@@ -13,7 +13,7 @@
   "objects": [
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "frontend-route",
         "creationTimestamp": null

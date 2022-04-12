@@ -2,12 +2,12 @@ kind: List
 apiVersion: v1
 items:
 - kind: ImageStream
-  apiVersion: v1
+  apiVersion: image.openshift.io/v1
   metadata:
     name: local-busybox
 
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: local-busybox
   spec:
@@ -24,7 +24,7 @@ items:
     - type: ConfigChange
 
 - kind: DeploymentConfig
-  apiVersion: v1
+  apiVersion: apps.openshift.io/v1
   metadata:
     name: local-busybox1
   spec:
@@ -49,7 +49,7 @@ items:
           name: local-busybox:latest
 
 - kind: DeploymentConfig
-  apiVersion: v1
+  apiVersion: apps.openshift.io/v1
   metadata:
     name: local-busybox2
   spec:
@@ -80,7 +80,7 @@ items:
           name: local-busybox:latest
 
 - kind: DeploymentConfig
-  apiVersion: v1
+  apiVersion: apps.openshift.io/v1
   metadata:
     name: busybox1
   spec:
@@ -97,7 +97,7 @@ items:
           image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 
 - kind: DeploymentConfig
-  apiVersion: v1
+  apiVersion: apps.openshift.io/v1
   metadata:
     name: busybox2
   spec:

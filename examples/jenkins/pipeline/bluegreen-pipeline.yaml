@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 kind: Template
 labels:
   template: bluegreen-pipeline
@@ -13,7 +13,7 @@ metadata:
     tags: instant-app,jenkins
   name: bluegreen-pipeline
 objects:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     annotations:
@@ -33,7 +33,7 @@ objects:
                 def tag="blue"
                 def altTag="green"
                 def verbose="${VERBOSE}"
-        
+
                 node {
                   project = env.PROJECT_NAME
                   stage("Initialize") {
@@ -46,7 +46,7 @@ objects:
                     sh "oc get route ${tag}-${appName} -n ${project} -o jsonpath='{ .spec.host }' --loglevel=4 > routehost"
                     routeHost = readFile('routehost').trim()
                   }
-        
+
                   openshift.withCluster() {
                     openshift.withProject() {
                       stage("Build") {
@@ -55,19 +55,19 @@ objects:
                         bld.untilEach {
                           return it.object().status.phase == "Running"
                         }
-                        bld.logs('-f')                        
+                        bld.logs('-f')
                       }
-            
+
                       stage("Deploy Test") {
                         openshift.tag("${appName}:latest", "${appName}:${tag}")
                         def dc = openshift.selector('dc', "${appName}-${tag}")
                         dc.rollout().status()
                       }
-            
+
                       stage("Test") {
                         input message: "Test deployment: http://${routeHost}. Approve?", id: "approval"
                       }
-            
+
                       stage("Go Live") {
                         sh "oc set -n ${project} route-backends ${appName} ${appName}-${tag}=100 ${appName}-${altTag}=0 --loglevel=4"
                       }
@@ -81,7 +81,7 @@ objects:
              echo "Caught: ${err}"
              currentBuild.result = 'FAILURE'
              throw err
-          }          
+          }
       type: JenkinsPipeline
     triggers:
     - github:
@@ -98,7 +98,7 @@ objects:
     database-admin-password: ${DATABASE_ADMIN_PASSWORD}
     database-password: ${DATABASE_PASSWORD}
     database-user: ${DATABASE_USER}
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: blue-${NAME}
@@ -106,7 +106,7 @@ objects:
     to:
       kind: Service
       name: ${NAME}-blue
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: green-${NAME}
@@ -114,7 +114,7 @@ objects:
     to:
       kind: Service
       name: ${NAME}-green
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: ${NAME}
@@ -126,13 +126,13 @@ objects:
       kind: Service
       name: ${NAME}-blue
       weight: 100
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     annotations:
       description: Keeps track of changes in the application image
     name: ${NAME}
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     annotations:
@@ -181,7 +181,7 @@ objects:
       targetPort: 8080
     selector:
       name: ${NAME}-blue
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     annotations:
@@ -253,7 +253,7 @@ objects:
       targetPort: 8080
     selector:
       name: ${NAME}-green
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     annotations:
@@ -332,7 +332,7 @@ objects:
       targetPort: 5432
     selector:
       name: ${DATABASE_SERVICE_NAME}
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     annotations:
