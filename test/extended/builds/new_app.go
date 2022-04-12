@@ -91,7 +91,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] oc new-app", func() {
 			// Note: the imagestream used here does not matter (does not have to a valid builder) since we are not checking
 			// the output results.  Since we can't rely on the samples operator being present to install sample s2i-enabled
 			// imagestreams, just use one of the static imagestreams instead (cli:latest)
-			out, err := oc.Run("new-app").Args("https://github.com/sclorg/nodejs-ex", "--image-stream=cli:latest").Output()
+			out, err := oc.Run("new-app").Args("registry.redhat.io/ubi8/nodejs-16:latest~https://github.com/sclorg/nodejs-ex", "--image-stream=cli:latest").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(out).NotTo(o.ContainSubstring("error:"))
 		})
