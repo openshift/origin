@@ -1,6 +1,8 @@
 package networking
 
 import (
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
@@ -13,7 +15,11 @@ var _ = Describe("[sig-network] network isolation", func() {
 
 	InNonIsolatingContext(func() {
 		f1 := e2e.NewDefaultFramework("net-isolation1")
+		// TODO(sur): verify if privileged is really necessary in a follow-up
+		f1.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 		f2 := e2e.NewDefaultFramework("net-isolation2")
+		// TODO(sur): verify if privileged is really necessary in a follow-up
+		f2.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 		It("should allow communication between pods in different namespaces on the same node", func() {
 			Expect(checkPodIsolation(f1, f2, SAME_NODE)).To(Succeed())
@@ -26,7 +32,11 @@ var _ = Describe("[sig-network] network isolation", func() {
 
 	InIsolatingContext(func() {
 		f1 := e2e.NewDefaultFramework("net-isolation1")
+		// TODO(sur): verify if privileged is really necessary in a follow-up
+		f1.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 		f2 := e2e.NewDefaultFramework("net-isolation2")
+		// TODO(sur): verify if privileged is really necessary in a follow-up
+		f2.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 		It("should prevent communication between pods in different namespaces on the same node", func() {
 			Expect(checkPodIsolation(f1, f2, SAME_NODE)).NotTo(Succeed())

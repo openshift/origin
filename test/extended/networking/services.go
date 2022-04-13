@@ -1,6 +1,8 @@
 package networking
 
 import (
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
@@ -11,6 +13,8 @@ import (
 var _ = Describe("[sig-network] services", func() {
 	Context("basic functionality", func() {
 		f1 := e2e.NewDefaultFramework("net-services1")
+		// TODO(sur): verify if privileged is really necessary in a follow-up
+		f1.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 		It("should allow connections to another pod on the same node via a service IP", func() {
 			Expect(checkServiceConnectivity(f1, f1, SAME_NODE)).To(Succeed())
@@ -23,7 +27,11 @@ var _ = Describe("[sig-network] services", func() {
 
 	InNonIsolatingContext(func() {
 		f1 := e2e.NewDefaultFramework("net-services1")
+		// TODO(sur): verify if privileged is really necessary in a follow-up
+		f1.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 		f2 := e2e.NewDefaultFramework("net-services2")
+		// TODO(sur): verify if privileged is really necessary in a follow-up
+		f2.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 		It("should allow connections to pods in different namespaces on the same node via service IPs", func() {
 			Expect(checkServiceConnectivity(f1, f2, SAME_NODE)).To(Succeed())
@@ -38,7 +46,11 @@ var _ = Describe("[sig-network] services", func() {
 
 	InIsolatingContext(func() {
 		f1 := e2e.NewDefaultFramework("net-services1")
+		// TODO(sur): verify if privileged is really necessary in a follow-up
+		f1.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 		f2 := e2e.NewDefaultFramework("net-services2")
+		// TODO(sur): verify if privileged is really necessary in a follow-up
+		f2.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 		It("should prevent connections to pods in different namespaces on the same node via service IPs", func() {
 			Expect(checkServiceConnectivity(f1, f2, SAME_NODE)).NotTo(Succeed())
