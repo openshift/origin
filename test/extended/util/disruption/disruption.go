@@ -366,20 +366,20 @@ func RecordJUnit(f *framework.Framework, name string, fn func() (err error, flak
 	var failure string
 	if err != nil {
 		failure = err.Error()
-
-		if flake {
-			// Append an additional result with empty failure to trigger a flake.
-			f.TestSummaries = append(f.TestSummaries, additionalTest{
-				Name:     name,
-				Duration: duration,
-			})
-		}
 	}
 	f.TestSummaries = append(f.TestSummaries, additionalTest{
 		Name:     name,
 		Duration: duration,
 		Failure:  failure,
 	})
+	if flake {
+		// Append an additional result with empty failure to trigger a flake.
+		f.TestSummaries = append(f.TestSummaries, additionalTest{
+			Name:     name,
+			Duration: duration,
+		})
+		return nil
+	}
 	return err
 }
 
