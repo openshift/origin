@@ -133,12 +133,12 @@ func (b *bestMatcher) BestMatchP99(name string, jobType platformidentification.J
 func toStatisticalDuration(in StatisticalData) StatisticalDuration {
 	return StatisticalDuration{
 		DataKey: in.DataKey,
-		P95:     durationOrDie(in.P95),
-		P99:     durationOrDie(in.P99),
+		P95:     DurationOrDie(in.P95),
+		P99:     DurationOrDie(in.P99),
 	}
 }
 
-func durationOrDie(seconds float64) time.Duration {
+func DurationOrDie(seconds float64) time.Duration {
 	ret, err := time.ParseDuration(fmt.Sprintf("%.3fs", seconds))
 	if err != nil {
 		panic(err)

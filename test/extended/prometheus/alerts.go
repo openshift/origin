@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	alertTests := allowedalerts.AllAlertTests()
+	alertTests := allowedalerts.AllAlertTests(context.TODO(), nil)
 	for i := range alertTests {
 		alertTest := alertTests[i]
 
