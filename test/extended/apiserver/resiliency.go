@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/openshift/origin/test/extended/operators"
-	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"net/http"
@@ -68,19 +67,24 @@ var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 		ginkgo.By("Forcing API rollout")
 		forceApiRollout(oc)
 
+		// We are taking the API down, this can often take more than a minute so we have provided a reasonably generous timeout.
 		ginkgo.By("Expecting API to become unavailable")
-		wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
-			ready, _, err := isApiReady(config, httpClient)
-			return !ready, err
+		err = wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
+			ready := isApiReady(config, httpClient)
+			return !ready, nil
 		})
+
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "The API failed to become unavailable within the desired timeout")
 
 		start := time.Now()
 
 		ginkgo.By("Expecting API to become ready")
-		wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
-			ready, _, _ := isApiReady(config, httpClient)
+		err = wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
+			ready := isApiReady(config, httpClient)
 			return ready, nil
 		})
+
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "The API failed to become available again within the desired timeout")
 
 		end := time.Now()
 
@@ -94,10 +98,6 @@ var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 		ginkgo.By("with no pods restarts during API disruption")
 		names := GetRestartedPods(c, restartingContainers)
 		gomega.Expect(len(names)).To(gomega.Equal(0), "Some pods in got restarted during kube-apiserver rollout: %s", strings.Join(names, ", "))
-
-		// Workaround for issues identified in https://bugzilla.redhat.com/show_bug.cgi?id=2059581
-		// TODO: Remove this sleep once that bug is resolved
-		time.Sleep(60 * time.Second)
 	})
 
 })
@@ -135,26 +135,15 @@ func forceApiRollout(oc *exutil.CLI) {
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
-func isApiReady(clusterConfig *rest.Config, httpClient *http.Client) (ready bool, reason string, err error) {
+func isApiReady(clusterConfig *rest.Config, httpClient *http.Client) (ready bool) {
 	resp, err := httpClient.Get(clusterConfig.Host + "/readyz")
 	if resp != nil && resp.Body != nil {
 		defer resp.Body.Close()
 	}
-
-	if err != nil {
-		return false, "client failed to make the request", err
+	if err != nil || resp.StatusCode < 200 || resp.StatusCode >= 400 {
+		return false
 	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
-		body, err := ioutil.ReadAll(resp.Body)
-		if err == nil {
-			return false, fmt.Sprintf("got status code %v from the server: %v", resp.Status, body), nil
-		}
-
-		return false, fmt.Sprintf("got status code %v from the server", resp.Status), err
-	}
-
-	return true, "kube-apiserver is ready", nil
+	return true
 }
 
 func ignoreNamespaces(pod *corev1.Pod) bool {
