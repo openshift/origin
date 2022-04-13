@@ -160,6 +160,10 @@ var knownEventsBugs = []knownProblem{
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2000234",
 	},
 	{
+		Regexp: regexp.MustCompile(`ns/openshift-etcd pod/etcd-guard-.* node/.* - reason/ProbeError Readiness probe error: .* connect: connection refused`),
+		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2075204",
+	},
+	{
 		Regexp: regexp.MustCompile("ns/openshift-etcd-operator namespace/openshift-etcd-operator -.*rpc error: code = Canceled desc = grpc: the client connection is closing.*"),
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2006975",
 	},
