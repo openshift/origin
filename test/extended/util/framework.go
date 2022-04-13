@@ -22,6 +22,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	authorizationapi "k8s.io/api/authorization/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -2016,6 +2017,23 @@ func GetControlPlaneTopology(ocClient *CLI) (*configv1.TopologyMode, error) {
 
 	if ControlPlaneTopology == nil {
 		infra, err := ocClient.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failure getting test cluster Infrastructure: %s", err.Error())
+		}
+		if &infra.Status.ControlPlaneTopology == nil {
+			return nil, fmt.Errorf("missing Infrastructure.Status.ControlPlaneTopology")
+		}
+		ControlPlaneTopology = &infra.Status.ControlPlaneTopology
+	}
+	return ControlPlaneTopology, nil
+}
+
+func GetControlPlaneTopologyFromConfigClient(client *configclient.ConfigV1Client) (*configv1.TopologyMode, error) {
+	controlPlaneMutex.Lock()
+	defer controlPlaneMutex.Unlock()
+
+	if ControlPlaneTopology == nil {
+		infra, err := client.Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("failure getting test cluster Infrastructure: %s", err.Error())
 		}
