@@ -36,7 +36,7 @@ func NewBackendDisruptionTest(testName string, backend BackendSampler) *backendD
 		testName: testName,
 		backend:  backend,
 	}
-	ret.getAllowedDisruption = ret.historicalP95Disruption
+	ret.getAllowedDisruption = ret.historicalP99Disruption
 	return ret
 }
 
@@ -59,7 +59,7 @@ func (t *backendDisruptionTest) WithPostTeardown(postTearDown TearDownFunc) *bac
 	return t
 }
 
-func (t *backendDisruptionTest) historicalP95Disruption(f *framework.Framework, totalDuration time.Duration) (*time.Duration, string, error) {
+func (t *backendDisruptionTest) historicalP99Disruption(f *framework.Framework, totalDuration time.Duration) (*time.Duration, string, error) {
 	backendName := t.backend.GetDisruptionBackendName() + "-" + string(t.backend.GetConnectionType()) + "-connections"
 	jobType, err := platformidentification.GetJobType(context.TODO(), f.ClientConfig())
 	if err != nil {
