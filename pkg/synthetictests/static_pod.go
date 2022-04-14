@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -21,7 +22,7 @@ var staticPodFailureRegex = regexp.MustCompile(
 type staticPodFailure struct {
 	namespace      string
 	node           string
-	revision       string
+	revision       int64
 	failureMessage string
 }
 
@@ -30,10 +31,15 @@ func staticPodFailureFromMessage(message string) (*staticPodFailure, error) {
 	if len(matches) != 4 {
 		return nil, fmt.Errorf("wrong number of matches: %v", matches)
 	}
+	revision, err := strconv.ParseInt(matches[2], 0, 64)
+	if err != nil {
+		return nil, err
+	}
+
 	return &staticPodFailure{
 		namespace:      matches[1],
 		node:           matches[3],
-		revision:       matches[2],
+		revision:       revision,
 		failureMessage: message,
 	}, nil
 }
@@ -88,27 +94,33 @@ func testStaticPodLifecycleFailure(events monitorapi.Intervals, kubeClientConfig
 		}
 	}
 
-	// now check each failure to see if we eventually reached the level.  If we eventually reached the level, then don't flag it
+	// now check each failure to see if we eventually reached the level.  If we eventually reached the level
+	// then don't flag it
 	for _, staticPodFailure := range staticPodFailures {
 		events, err := kubeClient.EventsV1().Events(staticPodFailure.namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
 			failures = append(failures, err.Error())
 			continue
 		}
-
+		foundEventForProperRevision := false
 		for _, event := range events.Items {
 			isRevisionUpdate := event.Reason == "NodeCurrentRevisionChanged"
 			isForNode := strings.Contains(event.Note, staticPodFailure.node)
-			reachedRevision := strings.Contains(event.Note, " to "+staticPodFailure.revision+" because static pod is ready")
-			if isRevisionUpdate && isForNode && reachedRevision {
-				// if we reach the level eventually, don't fail the test. We might choose to add an "it's slow" test, but
-				// it hasn't failed.
-				continue
+			matches := regexp.MustCompile("to ([0-9]+) because static pod is ready").FindStringSubmatch(event.Note)
+			if len(matches) == 2 {
+				reachedRevision, _ := strconv.ParseInt(matches[1], 0, 64)
+				if isRevisionUpdate && isForNode && reachedRevision == staticPodFailure.revision {
+					// If we reach the level eventually, don't fail the test. We might choose to add an "it's slow" test, but
+					// it hasn't failed. It might be possible to go directly to a later revision, and if we want to account for
+					// that, the above could be changed to >= instead of equality.
+					foundEventForProperRevision = true
+				}
 			}
-
-			failures = append(failures, staticPodFailure.failureMessage)
 		}
 
+		if !foundEventForProperRevision {
+			failures = append(failures, staticPodFailure.failureMessage)
+		}
 	}
 
 	if len(failures) > 0 {

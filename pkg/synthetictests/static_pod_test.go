@@ -21,7 +21,7 @@ func Test_staticPodFailureFromMessage(t *testing.T) {
 			want: &staticPodFailure{
 				namespace:      "openshift-etcd",
 				node:           "ovirt10-gh8t5-master-2",
-				revision:       "6",
+				revision:       6,
 				failureMessage: `static pod lifecycle failure - static pod: "etcd" in namespace: "openshift-etcd" for revision: 6 on node: "ovirt10-gh8t5-master-2" didn't show up, waited: 2m30s`,
 			},
 		},
