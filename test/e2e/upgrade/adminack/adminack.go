@@ -10,6 +10,10 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/openshift/clusterversionoperator"
 
+	configv1 "github.com/openshift/api/config/v1"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
@@ -19,6 +23,7 @@ import (
 type UpgradeTest struct {
 	oc     *exutil.CLI
 	config *restclient.Config
+	poll   time.Duration
 }
 
 func (UpgradeTest) Name() string { return "check-for-admin-acks" }
@@ -34,6 +39,19 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 	config, err := framework.LoadConfig()
 	o.Expect(err).NotTo(o.HaveOccurred())
 	t.config = config
+
+	// Default poll time is 10 mins
+	t.poll = 10 * time.Minute
+	// Run test once on SNO upgrade. We don't guarantee API availability during upgrades there
+	configClient, err := configv1client.NewForConfig(t.config)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	// Don't continuously rerun the test when SNO is being upgraded
+	if infra.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode {
+		t.poll = 0
+	}
+
 	framework.Logf("Admin ack test setup complete")
 }
 
@@ -51,7 +69,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 		cancel()
 	}()
 
-	adminAckTest := &clusterversionoperator.AdminAckTest{Oc: t.oc, Config: t.config, Poll: 10 * time.Minute}
+	adminAckTest := &clusterversionoperator.AdminAckTest{Oc: t.oc, Config: t.config, Poll: t.poll}
 	adminAckTest.Test(ctx)
 }
 
