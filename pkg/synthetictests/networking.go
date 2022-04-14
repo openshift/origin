@@ -33,6 +33,7 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 		{by: " by getting pod", substring: " error getting pod: pods"},
 		{by: " by writing child", substring: "write child: broken pipe"},
 		{by: " by ovn default network ready", substring: "have you checked that your default network is ready? still waiting for readinessindicatorfile"},
+		{by: " by adding pod to network", substring: "failed (add)"},
 		{by: " by other", substring: " "}, // always matches
 	}
 
