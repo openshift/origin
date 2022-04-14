@@ -60,6 +60,38 @@ func TestGetClosestP95Value(t *testing.T) {
 			expectedDetails:  `(no exact match for historicaldata.DataKey{Name:"ingress-to-oauth-server-reused-connections", JobType:platformidentification.JobType{Release:"4.11", FromRelease:"4.11", Platform:"azure", Architecture:"amd64", Network:"sdn", Topology:"ha"}}, fell back to historicaldata.DataKey{Name:"ingress-to-oauth-server-reused-connections", JobType:platformidentification.JobType{Release:"4.11", FromRelease:"4.10", Platform:"azure", Architecture:"amd64", Network:"sdn", Topology:"ha"}})`,
 		},
 		{
+			name: "fuzzy-match-single-ovn-on-sdn",
+			args: args{
+				backendName: "image-registry-reused-connections",
+				jobType: platformidentification.JobType{
+					Release:      "4.10",
+					FromRelease:  "4.10",
+					Platform:     "aws",
+					Network:      "ovn",
+					Architecture: "amd64",
+					Topology:     "single",
+				},
+			},
+			expectedDuration: mustDuration("261.2s"),
+			expectedDetails:  `(no exact match for historicaldata.DataKey{Name:"image-registry-reused-connections", JobType:platformidentification.JobType{Release:"4.10", FromRelease:"4.10", Platform:"aws", Architecture:"amd64", Network:"ovn", Topology:"single"}}, fell back to historicaldata.DataKey{Name:"image-registry-reused-connections", JobType:platformidentification.JobType{Release:"4.10", FromRelease:"4.10", Platform:"aws", Architecture:"amd64", Network:"sdn", Topology:"single"}})`,
+		},
+		{
+			name: "fuzzy-match-single-ovn-on-sdn-previous",
+			args: args{
+				backendName: "image-registry-new-connections",
+				jobType: platformidentification.JobType{
+					Release:      "4.11",
+					FromRelease:  "4.11",
+					Platform:     "aws",
+					Network:      "ovn",
+					Architecture: "amd64",
+					Topology:     "single",
+				},
+			},
+			expectedDuration: mustDuration("263.3s"),
+			expectedDetails:  `(no exact match for historicaldata.DataKey{Name:"image-registry-new-connections", JobType:platformidentification.JobType{Release:"4.11", FromRelease:"4.11", Platform:"aws", Architecture:"amd64", Network:"ovn", Topology:"single"}}, fell back to historicaldata.DataKey{Name:"image-registry-new-connections", JobType:platformidentification.JobType{Release:"4.10", FromRelease:"4.10", Platform:"aws", Architecture:"amd64", Network:"sdn", Topology:"single"}})`,
+		},
+		{
 			name: "missing",
 			args: args{
 				backendName: "kube-api-reused-connections",
