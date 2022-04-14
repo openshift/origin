@@ -14,6 +14,8 @@ import (
 	"sync"
 	"time"
 
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 
@@ -307,6 +309,9 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 				ClientBurst: 50,
 			},
 			Timeouts: framework.NewTimeoutContextWithDefaults(),
+			// This is similar to https://github.com/kubernetes/kubernetes/blob/f33ca2306548719e5116b53fccfc278bffb809a8/test/e2e/upgrades/upgrade_suite.go#L106,
+			// where centrally all upgrade tests are being instantiated.
+			NamespacePodSecurityEnforceLevel: admissionapi.LevelPrivileged,
 		}
 	}
 	return testFrameworks
