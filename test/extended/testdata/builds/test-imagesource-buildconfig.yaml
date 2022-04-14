@@ -2,7 +2,7 @@ apiVersion: v1
 kind: List
 metadata: {}
 items:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     labels:
@@ -28,7 +28,7 @@ items:
           kind: ImageStreamTag
           name: ruby:2.7-ubi8
           namespace: openshift
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     labels:
@@ -58,7 +58,7 @@ items:
           kind: ImageStreamTag
           name: ruby:latest
           namespace: openshift
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     labels:
@@ -88,23 +88,23 @@ items:
           - name: "BUILD_LOGLEVEL"
             value: "2"
 
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     name: inputimage
   spec: {}
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     name: imagesourceapp
   spec: {}
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     name: imagedockerapp
   spec: {}
 
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     name: imagesourceapp
@@ -148,7 +148,7 @@ items:
       type: ImageChange
     - type: ConfigChange
 
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     name: imagedockerapp

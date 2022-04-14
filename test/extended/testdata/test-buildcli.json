@@ -5,7 +5,7 @@
     "items": [
       {
         "kind": "ImageStream",
-        "apiVersion": "v1",
+        "apiVersion": "image.openshift.io/v1",
         "metadata": {
           "name": "ruby-20-centos7-buildcli",
           "creationTimestamp": null
@@ -24,7 +24,7 @@
       },
       {
         "kind": "BuildConfig",
-        "apiVersion": "v1",
+        "apiVersion": "build.openshift.io/v1",
         "metadata": {
           "name": "ruby-sample-build-validtag",
           "creationTimestamp": null
@@ -72,7 +72,7 @@
       },
       {
         "kind": "BuildConfig",
-        "apiVersion": "v1",
+        "apiVersion": "build.openshift.io/v1",
         "metadata": {
           "name": "ruby-sample-build-invalidtag",
           "creationTimestamp": null

@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
 - name: IMAGE
@@ -43,7 +43,7 @@ objects:
     name: system:router
 
 # blueprints for edge, reencrypt and passthrough routes with annotation(s)
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: edge-blueprint
@@ -61,7 +61,7 @@ objects:
       kind: Service
     ports:
     - targetPort: 8080
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: reencrypt-blueprint
@@ -79,7 +79,7 @@ objects:
       kind: Service
     ports:
     - targetPort: 8443
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: passthrough-blueprint
@@ -212,7 +212,7 @@ objects:
 
 
 # insecure, edge secured, reencrypt and passthrough routes
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: insecure-route
@@ -226,7 +226,7 @@ objects:
       kind: Service
     ports:
     - targetPort: 8080
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: edge-allow-http-route
@@ -243,7 +243,7 @@ objects:
       kind: Service
     ports:
     - targetPort: 8080
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: reencrypt-route
@@ -259,7 +259,7 @@ objects:
       kind: Service
     ports:
     - targetPort: 8443
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: passthrough-route

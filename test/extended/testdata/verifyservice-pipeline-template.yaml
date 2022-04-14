@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 kind: Template
 labels:
   template: jenkins-verifyservice-pipeline
@@ -18,7 +18,7 @@ objects:
       targetPort: 6379
     selector:
       name: redis
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     name: jenkins-verifyservice-pipeline

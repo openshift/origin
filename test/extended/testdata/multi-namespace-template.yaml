@@ -1,5 +1,5 @@
 kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   name: mariadb-ephemeral
   creationTimestamp: null
@@ -53,7 +53,7 @@ objects:
           port: 3306
       selector:
         name: ${DATABASE_SERVICE_NAME}
-  - apiVersion: v1
+  - apiVersion: apps.openshift.io/v1
     kind: DeploymentConfig
     metadata:
       annotations:

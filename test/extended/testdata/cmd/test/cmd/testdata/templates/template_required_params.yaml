@@ -1,10 +1,10 @@
 kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   name: template
 objects:
 - kind: User
-  apiVersion: v1
+  apiVersion: user.openshift.io/v1
   metadata:
     name: ${required_param}
   groups: null

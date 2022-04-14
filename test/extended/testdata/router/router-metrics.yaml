@@ -2,7 +2,7 @@ apiVersion: v1
 kind: List
 items:
 # a route that has multiple weighted services that it points to
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: weightedroute
@@ -22,7 +22,7 @@ items:
       targetPort: 8080
 
 # a route that has multiple services but all weights are zero
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: zeroweightroute

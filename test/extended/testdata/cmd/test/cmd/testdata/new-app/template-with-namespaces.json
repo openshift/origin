@@ -1,6 +1,6 @@
 {
   "kind": "Template",
-  "apiVersion": "v1",
+  "apiVersion": "template.openshift.io/v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
     "creationTimestamp": null,
@@ -13,7 +13,7 @@
   "objects": [
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge-stripped",
         "namespace": "STRIPPED"
@@ -32,7 +32,7 @@
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge-substituted",
         "namespace": "${SUBSTITUTED}"
@@ -51,7 +51,7 @@
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge-prefix-substituted",
         "namespace": "prefix-${SUBSTITUTED}"
@@ -70,7 +70,7 @@
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge-refstripped",
         "namespace": "${{SUBSTITUTED}}"
@@ -89,7 +89,7 @@
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge-prefix-refstripped",
         "namespace": "prefix-${{SUBSTITUTED}}"

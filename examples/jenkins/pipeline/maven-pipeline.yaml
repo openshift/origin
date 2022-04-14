@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   name: maven-pipeline
@@ -31,7 +31,7 @@ parameters:
   name: GENERIC_WEBHOOK_SECRET
   required: true
 objects:
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     labels:
@@ -40,7 +40,7 @@ objects:
   spec: {}
   status:
     dockerImageRepository: ""
-- apiVersion: v1
+- apiVersion: image.openshift.io/fv1
   kind: ImageStream
   metadata:
     name: wildfly
@@ -61,7 +61,7 @@ objects:
         kind: ImageStreamTag
         name: "10.1"
       name: latest
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     annotations:
@@ -101,13 +101,13 @@ objects:
                     def status = sh(returnStdout: true, script: "oc start-build ${appName}-docker --from-file=target/ROOT.war -n ${project}")
 
                     def result = status.split("\n").find{ it.matches("^build.*started") }
-                    
+
                     if(!result) {
                       echo "ERROR: No started build found for ${appName}"
                       currentBuild.result = 'FAILURE'
                       return
                     }
-                    
+
                     // result can be:
                     // - build "build-name" started
                     // - build build.build.openshift.io/build-name started
@@ -115,7 +115,7 @@ objects:
                     // Goal is to isolate "build-name"
                     def startedBuild = result.replaceAll("build [^0-9a-zA-Z]*", "").replaceAll("[^0-9a-zA-Z]* started", "").replaceFirst("^.*/", "")
                     echo "Build ${startedBuild} has started. Now watching it ..."
-                    
+
                     timeout(time: 20, unit: 'MINUTES') {
                       openshift.withCluster() {
                         openshift.withProject() {
@@ -128,7 +128,7 @@ objects:
                             return object.status.phase == "Complete"
                           }
                         }
-                      }  
+                      }
                     }
                   }
                   stage("Deploy") {
@@ -155,7 +155,7 @@ objects:
     - generic:
         secret: "${GENERIC_WEBHOOK_SECRET}"
       type: Generic
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     labels:
@@ -184,7 +184,7 @@ objects:
           name: wildfly:latest
       type: Docker
     triggers: []
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     labels:
@@ -275,7 +275,7 @@ objects:
     type: ClusterIP
   status:
     loadBalancer: {}
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: ${APP_NAME}

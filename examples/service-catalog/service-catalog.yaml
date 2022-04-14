@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   name: service-catalog
@@ -37,7 +37,7 @@ objects:
       spec:
         serviceAccountName: service-catalog-apiserver
         containers:
-        - command: 
+        - command:
           - service-catalog
           args:
           - apiserver
@@ -138,7 +138,7 @@ objects:
       spec:
         serviceAccountName: service-catalog-controller
         containers:
-        - command: 
+        - command:
           - service-catalog
           args:
           - controller-manager

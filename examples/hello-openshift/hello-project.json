@@ -1,6 +1,6 @@
 {
   "kind": "Project",
-  "apiVersion": "v1",
+  "apiVersion": "project.openshift.io/v1",
   "metadata": {
     "name": "hello-openshift-project",
     "creationTimestamp": null,
