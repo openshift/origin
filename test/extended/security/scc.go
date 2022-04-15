@@ -270,7 +270,10 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 		pod, err := exutil.NewPodExecutor(oc, "restrictedcapsh", image.ShellImage())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		// TODO: remove desiredCapabilities once restricted-v2 is the default
+		// system:authenticated SCC in the cluster - in favour of alternativeDesiredCapabilities
 		desiredCapabilities := "000000000000051b"
+		alternativeDesiredCapabilities := "0000000000000000"
 
 		capabilities, err := pod.Exec("cat /proc/1/status | grep CapBnd | cut -f 2")
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -281,9 +284,12 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 		desiredCapString, err := pod.Exec("capsh --decode=" + desiredCapabilities)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		framework.Logf("comparing capabilities: %s with desired: %s", capabilities, desiredCapabilities)
-		framework.Logf("which translates to: %s compared with desired: %s", capString, desiredCapString)
-		o.Expect(capabilities).To(o.Equal(desiredCapabilities))
+		alternativeDesiredCapString, err := pod.Exec("capsh --decode=" + alternativeDesiredCapabilities)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		framework.Logf("comparing capabilities: %s with desired: %s or more restricitve desired: %s", capabilities, desiredCapabilities, alternativeDesiredCapabilities)
+		framework.Logf("which translates to: %s compared with desired: %s or more restrictive desired %s", capString, desiredCapString, alternativeDesiredCapString)
+		o.Expect(capabilities).To(o.Or(o.Equal(desiredCapabilities), o.Equal(alternativeDesiredCapabilities)))
 	})
 })
 
