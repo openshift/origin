@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -281,14 +282,19 @@ func (ut *Test) WithHeader(hdr, value string) *Test {
 }
 
 // Through configures the test to send requests through the given host.  The
-// host may be specified as a host name, IPv4 address, or bracketed IPv6
-// address.  Use this method when the request specifies some host A that is
+// host may be specified as a host name, IPv4 address, IPv6 address, or bracketed
+// IPv6  address.  Use this method when the request specifies some host A that is
 // different from the actual host B to which the connection must be made.  For
 // example, host A may belong to a route, and host B may be an HAProxy pod that
 // serves the route.  This method is useful when DNS is not configured to
 // resolve host A's host name.
 func (ut *Test) Through(host string) *Test {
-	ut.ProxyHost = host
+	if host[0] != '[' {
+		ipv6CompatHost := net.JoinHostPort(host, "")
+		ut.ProxyHost = ipv6CompatHost[:len(ipv6CompatHost)-1]
+	} else {
+		ut.ProxyHost = host
+	}
 	return ut
 }
 
