@@ -455,6 +455,16 @@ func DumpBuilds(oc *CLI) {
 	}
 }
 
+// DumpBuildConfigs will dump the yaml for every buildconfig in the test namespace
+func DumpBuildConfigs(oc *CLI) {
+	buildOutput, err := oc.AsAdmin().Run("get").Args("buildconfigs", "-o", "yaml").Output()
+	if err == nil {
+		e2e.Logf("\n\n buildconfigs yaml:\n%s\n\n", buildOutput)
+	} else {
+		e2e.Logf("\n\n got error on buildconfig yaml dump: %#v\n\n", err)
+	}
+}
+
 func GetStatefulSetPods(oc *CLI, setName string) (*corev1.PodList, error) {
 	return oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(context.Background(), metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("name=%s", setName)).String()})
 }
