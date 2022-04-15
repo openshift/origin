@@ -78,7 +78,7 @@ items:
         name: https
         targetPort: 8443
         protocol: TCP
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: serving-cert

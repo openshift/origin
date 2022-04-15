@@ -38966,7 +38966,7 @@ func testExtendedTestdataCmdTestCmdTestdataTemplateinstance_objectkindsYaml() (*
 
 var _testExtendedTestdataCmdTestCmdTestdataTemplatesBasicUsersBindingJson = []byte(`{
     "kind": "ClusterRoleBinding",
-    "apiVersion": "v1",
+    "apiVersion": "authorization.openshift.io/v1",
     "metadata": {
         "name": "basic-users",
         "selfLink": "/oapi/v1/clusterrolebindings/basic-users",
@@ -43181,7 +43181,7 @@ items:
       app: idling-echo
     ports:
       - port: 8675
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: idling-echo
@@ -48338,7 +48338,7 @@ items:
         name: https
         targetPort: 8443
         protocol: TCP
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: serving-cert

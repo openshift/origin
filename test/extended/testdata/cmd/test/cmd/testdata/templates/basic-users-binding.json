@@ -1,6 +1,6 @@
 {
     "kind": "ClusterRoleBinding",
-    "apiVersion": "v1",
+    "apiVersion": "authorization.openshift.io/v1",
     "metadata": {
         "name": "basic-users",
         "selfLink": "/oapi/v1/clusterrolebindings/basic-users",
