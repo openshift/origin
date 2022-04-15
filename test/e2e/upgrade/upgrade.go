@@ -2,6 +2,7 @@ package upgrade
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os"
@@ -14,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
@@ -347,18 +349,20 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			if err != nil {
 				return err, false
 			}
-
 			original = cv
-			cv = cv.DeepCopy()
+			monitor.oldVersion = original.Status.Desired.Version
+
 			desired = configv1.Update{
 				Version: version.Version.String(),
 				Image:   version.NodeImage,
 				Force:   true,
 			}
-			monitor.oldVersion = original.Status.Desired.Version
-
-			cv.Spec.DesiredUpdate = &desired
-			cv, err = c.ConfigV1().ClusterVersions().Update(context.Background(), cv, metav1.UpdateOptions{})
+			updateJSON, err := json.Marshal(desired)
+			if err != nil {
+				return fmt.Errorf("marshal ClusterVersion patch: %v", err), false
+			}
+			patch := []byte(fmt.Sprintf(`{"spec":{"desiredUpdate": %s}}`, updateJSON))
+			cv, err = c.ConfigV1().ClusterVersions().Patch(context.Background(), original.ObjectMeta.Name, types.MergePatchType, patch, metav1.PatchOptions{})
 			if err != nil {
 				return err, false
 			}
