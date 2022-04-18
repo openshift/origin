@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package node
@@ -69,7 +70,7 @@ type osdnPolicy interface {
 	SyncVNIDRules()
 }
 
-// Trivia change to trigger 3.11 CI
+// Trivia change to trigger 3.11 CI -- again
 type OsdnNodeConfig struct {
 	PluginName      string
 	Hostname        string
