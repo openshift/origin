@@ -15,6 +15,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+// Trivial change so we can test CI
+
 func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Interface) {
 	nodeChangeFns := []func(node, oldNode *corev1.Node) []monitorapi.Condition{
 		func(node, oldNode *corev1.Node) []monitorapi.Condition {
