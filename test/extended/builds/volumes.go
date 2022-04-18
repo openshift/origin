@@ -182,7 +182,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Phase).To(o.Equal(buildv1.BuildPhaseNew))
 			o.Expect(build.Status.Reason).To(o.BeEquivalentTo("CannotCreateBuildPodSpec"))
-			o.Expect(build.Status.Message).To(o.BeEquivalentTo("Failed to create pod spec."))
+			o.Expect(build.Status.Message).To(o.ContainSubstring("Failed to create pod spec"))
 
 		})
 		g.It("should fail mounting given csi shared resource secret into the build pod for docker strategy builds", func() {
@@ -203,7 +203,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Phase).To(o.Equal(buildv1.BuildPhaseNew))
 			o.Expect(build.Status.Reason).To(o.BeEquivalentTo("CannotCreateBuildPodSpec"))
-			o.Expect(build.Status.Message).To(o.BeEquivalentTo("Failed to create pod spec."))
+			o.Expect(build.Status.Message).To(o.ContainSubstring("Failed to create pod spec"))
 		})
 	})
 })
