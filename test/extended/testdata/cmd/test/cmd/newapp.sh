@@ -410,7 +410,7 @@ os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-worl
 
 # verify image streams with no tags are reported correctly and that --allow-missing-imagestream-tags works
 # new-app
-os::cmd::expect_success 'printf "apiVersion: v1\nkind: ImageStream\nmetadata:\n  name: emptystream\n" | oc create -f -'
+os::cmd::expect_success 'printf "apiVersion: image.openshift.io/v1\nkind: ImageStream\nmetadata:\n  name: emptystream\n" | oc create -f -'
 os::cmd::expect_failure_and_text 'oc new-app --dry-run emptystream' 'error: no tags found on matching image stream'
 os::cmd::expect_success 'oc new-app --dry-run emptystream --allow-missing-imagestream-tags'
 # new-build

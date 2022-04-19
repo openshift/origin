@@ -76,11 +76,12 @@ func NewOptions() *Options {
 	return &Options{
 		RunDataWriters: []RunDataWriter{
 			// these produce the various intervals.  Different intervals focused on inspecting different problem spaces.
-			AdaptEventDataWriter(intervalcreation.NewEventIntervalRenderer("everything", intervalcreation.BelongsInEverything)),
-			AdaptEventDataWriter(intervalcreation.NewEventIntervalRenderer("spyglass", intervalcreation.BelongsInSpyglass)),
+			AdaptEventDataWriter(intervalcreation.NewSpyglassEventIntervalRenderer("everything", intervalcreation.BelongsInEverything)),
+			AdaptEventDataWriter(intervalcreation.NewSpyglassEventIntervalRenderer("spyglass", intervalcreation.BelongsInSpyglass)),
 			// TODO add visualization of individual apiserver containers and their readiness on this page
-			AdaptEventDataWriter(intervalcreation.NewEventIntervalRenderer("kube-apiserver", intervalcreation.BelongsInKubeAPIServer)),
-			AdaptEventDataWriter(intervalcreation.NewEventIntervalRenderer("operators", intervalcreation.BelongsInOperatorRollout)),
+			AdaptEventDataWriter(intervalcreation.NewSpyglassEventIntervalRenderer("kube-apiserver", intervalcreation.BelongsInKubeAPIServer)),
+			AdaptEventDataWriter(intervalcreation.NewSpyglassEventIntervalRenderer("operators", intervalcreation.BelongsInOperatorRollout)),
+			AdaptEventDataWriter(intervalcreation.NewPodEventIntervalRenderer()),
 
 			RunDataWriterFunc(monitor.WriteEventsForJobRun),
 			RunDataWriterFunc(monitor.WriteTrackedResourcesForJobRun),
@@ -139,6 +140,13 @@ func (opt *Options) SelectSuite(suites []*TestSuite, args []string) (*TestSuite,
 		return nil, fmt.Errorf("suite %q does not exist", args[0])
 	}
 	return suite, nil
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
@@ -279,16 +287,20 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		includeSuccess = true
 	}
 
-	early, others := splitTests(tests, func(t *testCase) bool {
+	early, notEarly := splitTests(tests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Early]")
 	})
 
-	late, others := splitTests(others, func(t *testCase) bool {
+	late, primaryTests := splitTests(notEarly, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Late]")
 	})
 
-	kubeTests, openshiftTests := splitTests(others, func(t *testCase) bool {
+	kubeTests, openshiftTests := splitTests(primaryTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Suite:k8s]")
+	})
+
+	storageTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "[sig-storage]")
 	})
 
 	// If user specifies a count, duplicate the kube and openshift tests that many times.
@@ -296,10 +308,12 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	if count != -1 {
 		originalKube := kubeTests
 		originalOpenshift := openshiftTests
+		originalStorage := storageTests
 
 		for i := 1; i < count; i++ {
 			kubeTests = append(kubeTests, copyTests(originalKube)...)
 			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
+			storageTests = append(storageTests, copyTests(originalStorage)...)
 		}
 	}
 	expectedTestCount += len(openshiftTests) + len(kubeTests)
@@ -332,6 +346,11 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		kubeTestsCopy := copyTests(kubeTests)
 		q.Execute(testCtx, kubeTestsCopy, parallelism, status.Run)
 		tests = append(tests, kubeTestsCopy...)
+
+		// I thought about randomizing the order of the kube, storage, and openshift tests, but storage dominates our e2e runs, so it doesn't help much.
+		storageTestsCopy := copyTests(storageTests)
+		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), status.Run) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
+		tests = append(tests, storageTestsCopy...)
 
 		openshiftTestsCopy := copyTests(openshiftTests)
 		q.Execute(testCtx, openshiftTestsCopy, parallelism, status.Run)

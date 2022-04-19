@@ -1,6 +1,6 @@
 ---
 kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   name: grafana
   annotations:
@@ -12,7 +12,7 @@ metadata:
 parameters:
 - description: The location of the grafana image
   name: IMAGE_GRAFANA
-  value: docker.io/grafana/grafana:master 
+  value: docker.io/grafana/grafana:master
 - description: The location of the proxy image
   name: IMAGE_PROXY
   value: openshift/oauth-proxy:v1.0.0

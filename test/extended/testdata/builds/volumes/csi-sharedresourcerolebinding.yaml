@@ -1,5 +1,5 @@
 kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   name: "build-volume-csi-roles-template"
 labels:
@@ -18,7 +18,7 @@ objects:
       apiGroup: rbac.authorization.k8s.io
       kind: Role
       name: shared-resource-my-share
-      namespace: ${NAMESPACE} 
+      namespace: ${NAMESPACE}
     subjects:
     - kind: ServiceAccount
       name: builder

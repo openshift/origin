@@ -3,7 +3,7 @@ apiVersion: v1
 metadata: {}
 items:
 - kind: ImageStream
-  apiVersion: v1
+  apiVersion: image.openshift.io/v1
   metadata:
     name: origin-ruby-sample
     creationTimestamp:
@@ -11,7 +11,7 @@ items:
   status:
     dockerImageRepository: ''
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-build
     creationTimestamp:
@@ -33,11 +33,13 @@ items:
           value: 127.0.0.1:3128
         - name: HTTP_PROXY
           value: 127.0.0.1:3128
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
         from:
           kind: DockerImage
           name: quay.io/redhat-developer/test-build-simples2i:1.2
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-s2i-build-noproxy
     creationTimestamp:
@@ -63,8 +65,10 @@ items:
           value: https://envuser:password@proxy3.com
         - name: SOME_HTTPS_PROXY
           value: https://envuser:password@proxy4.com
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-docker-build-noproxy
     creationTimestamp:
@@ -90,6 +94,8 @@ items:
           value: https://envuser:password@proxy3.com
         - name: SOME_HTTPS_PROXY
           value: https://envuser:password@proxy4.com
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
 - kind: BuildConfig
   apiVersion: build.openshift.io/v1
   metadata:
@@ -102,6 +108,9 @@ items:
         RUN cat /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
     strategy:
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStreamTag
           name: cli

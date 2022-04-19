@@ -130,6 +130,15 @@ var (
 			`\[sig-cli\] Kubectl client Kubectl taint \[Serial\] should remove all the taints with the same key off a node`,
 		},
 
+		"[Feature:Networking-IPv4]": {
+			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should allow egress access to server in CIDR block`,
+			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should enforce policies to check ingress and egress policies can be controlled independently based on PodSelector`,
+			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should enforce egress policy allowing traffic to a server in a different namespace based on PodSelector and NamespaceSelector`,
+			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should work with Ingress,Egress specified together`,
+			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should enforce multiple egress policies with egress allow-all policy taking precedence`,
+			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should ensure an IP overlapping both IPBlock.CIDR and IPBlock.Except is allowed`,
+		},
+
 		// Tests that don't pass on disconnected, either due to requiring
 		// internet access for GitHub (e.g. many of the s2i builds), or
 		// because of pullthrough not supporting ICSP (https://bugzilla.redhat.com/show_bug.cgi?id=1918376)

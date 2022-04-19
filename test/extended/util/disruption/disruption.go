@@ -14,6 +14,8 @@ import (
 	"sync"
 	"time"
 
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 
@@ -307,6 +309,9 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 				ClientBurst: 50,
 			},
 			Timeouts: framework.NewTimeoutContextWithDefaults(),
+			// This is similar to https://github.com/kubernetes/kubernetes/blob/f33ca2306548719e5116b53fccfc278bffb809a8/test/e2e/upgrades/upgrade_suite.go#L106,
+			// where centrally all upgrade tests are being instantiated.
+			NamespacePodSecurityEnforceLevel: admissionapi.LevelPrivileged,
 		}
 	}
 	return testFrameworks
@@ -359,9 +364,9 @@ func hasFrameworkFlake(f *framework.Framework) (string, bool) {
 // that will be recorded alongside the current test with name. These methods only work in the
 // context of a disruption test suite today and will not be reported as JUnit failures when
 // used within normal ginkgo suties.
-func RecordJUnit(f *framework.Framework, name string, fn func() error) error {
+func RecordJUnit(f *framework.Framework, name string, fn func() (err error, flake bool)) error {
 	start := time.Now()
-	err := fn()
+	err, flake := fn()
 	duration := time.Now().Sub(start)
 	var failure string
 	if err != nil {
@@ -372,6 +377,14 @@ func RecordJUnit(f *framework.Framework, name string, fn func() error) error {
 		Duration: duration,
 		Failure:  failure,
 	})
+	if flake {
+		// Append an additional result with empty failure to trigger a flake.
+		f.TestSummaries = append(f.TestSummaries, additionalTest{
+			Name:     name,
+			Duration: duration,
+		})
+		return nil
+	}
 	return err
 }
 

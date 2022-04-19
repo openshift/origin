@@ -49,7 +49,7 @@ const (
 	DIFFERENT_NODE NodeType = iota
 
 	// TODO get these defined as constandts in networkutils
-	openshiftSDNPluginName  = "OpenshiftSDN"
+	openshiftSDNPluginName  = "OpenShiftSDN"
 	OVNKubernetesPluginName = "OVNKubernetes"
 )
 
@@ -409,7 +409,7 @@ func InOVNKubernetesContext(body func()) {
 		func() {
 			BeforeEach(func() {
 				if networkPluginName() != OVNKubernetesPluginName {
-					e2eskipper.Skipf("Not using openshift-sdn")
+					e2eskipper.Skipf("Not using ovn-kubernetes")
 				}
 			})
 

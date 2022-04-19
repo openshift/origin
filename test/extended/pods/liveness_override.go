@@ -12,6 +12,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/common/node"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/openshift/library-go/pkg/build/naming"
 )
@@ -20,6 +21,8 @@ var _ = g.Describe("[sig-node]", func() {
 	defer g.GinkgoRecover()
 
 	f := framework.NewDefaultFramework("liveness-probe-override")
+	// TODO(sur): verify if privileged is really necessary in a follow-up
+	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 	// upstream e2e will test normal grace period on shutdown
 	g.It("should override timeoutGracePeriodSeconds when annotation is set", func() {

@@ -18,7 +18,7 @@ items:
       - port: 3090
         name: udp-echo
         protocol: UDP
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: idling-echo
@@ -26,7 +26,7 @@ items:
     to:
       kind: Service
       name: idling-echo
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: idling-echo-reencrypt

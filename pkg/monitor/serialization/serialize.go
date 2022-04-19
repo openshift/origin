@@ -40,11 +40,15 @@ func EventsFromFile(filename string) (monitorapi.Intervals, error) {
 	if err != nil {
 		return nil, err
 	}
+	return EventsFromJSON(data)
+}
+
+func EventsFromJSON(data []byte) (monitorapi.Intervals, error) {
 	var list EventIntervalList
 	if err := json.Unmarshal(data, &list); err != nil {
 		return nil, err
 	}
-	events := make(monitorapi.Intervals, len(list.Items))
+	events := make(monitorapi.Intervals, 0, len(list.Items))
 	for _, interval := range list.Items {
 		level, err := monitorapi.EventLevelFromString(interval.Level)
 		if err != nil {
@@ -61,6 +65,7 @@ func EventsFromFile(filename string) (monitorapi.Intervals, error) {
 			To:   interval.To.Time,
 		})
 	}
+
 	return events, nil
 }
 

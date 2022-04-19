@@ -102,6 +102,9 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 
 	// Separated out in testBackoffPullingRegistryRedhatImage
 	regexp.MustCompile(imagePullRedhatRegEx),
+
+	// Separated out in testRequiredInstallerResourcesMissing
+	regexp.MustCompile(requiredResourcesMissingRegEx),
 }
 
 var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
@@ -123,11 +126,17 @@ var allowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{
 	// etcd-operator began to version etcd-endpoints configmap in 4.10 as part of static-pod-resource. During upgrade existing revisions will not contain the resource.
 	// The condition reconciles with the next revision which the result of the upgrade. TODO(hexfusion) remove in 4.11
 	regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/RequiredInstallerResourcesMissing configmaps: etcd-endpoints-[0-9]+`),
+	// There is a separate test to catch this specific case
+	regexp.MustCompile(requiredResourcesMissingRegEx),
 }
 
 var knownEventsBugs = []knownProblem{
 	{
 		Regexp: regexp.MustCompile(`ns/openshift-multus pod/network-metrics-daemon-[a-z0-9]+ node/[a-z0-9.-]+ - reason/NetworkNotReady network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net\.d/\. Has your network provider started\?`),
+		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1986370",
+	},
+	{
+		Regexp: regexp.MustCompile(`ns/openshift-e2e-loki pod/loki-promtail-[a-z0-9]+ node/[a-z0-9.-]+ - reason/NetworkNotReady network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net\.d/\. Has your network provider started\?`),
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1986370",
 	},
 	{
@@ -149,6 +158,10 @@ var knownEventsBugs = []knownProblem{
 	{
 		Regexp: regexp.MustCompile(`ns/openshift-etcd pod/etcd-quorum-guard-[a-z0-9-]+ node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: `),
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2000234",
+	},
+	{
+		Regexp: regexp.MustCompile(`ns/openshift-etcd pod/etcd-guard-.* node/.* - reason/ProbeError Readiness probe error: .* connect: connection refused`),
+		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2075204",
 	},
 	{
 		Regexp: regexp.MustCompile("ns/openshift-etcd-operator namespace/openshift-etcd-operator -.*rpc error: code = Canceled desc = grpc: the client connection is closing.*"),
@@ -313,6 +326,7 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 			if allowed {
 				continue
 			}
+			displayToCount[eventDisplayMessage] = times
 		}
 	}
 

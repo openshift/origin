@@ -37,6 +37,8 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testOperatorOSUpdateStartedEventRecorded(events, kubeClientConfig)...)
 	tests = append(tests, testPodNodeNameIsImmutable(events)...)
 	tests = append(tests, testBackoffPullingRegistryRedhatImage(events)...)
+	tests = append(tests, testRequiredInstallerResourcesMissing(events)...)
+	tests = append(tests, testAPIQuotaEvents(events)...)
 
 	return tests
 }
@@ -53,7 +55,7 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testPodTransitions(events)...)
 	tests = append(tests, testPodSandboxCreation(events)...)
 	tests = append(tests, testOvnNodeReadinessProbe(events, kubeClientConfig)...)
-	tests = append(tests, testNodeUpgradeTransitions(events)...)
+	tests = append(tests, testNodeUpgradeTransitions(events, kubeClientConfig)...)
 	tests = append(tests, testUpgradeOperatorStateTransitions(events)...)
 	tests = append(tests, testDuplicatedEventForUpgrade(events, kubeClientConfig, testSuite)...)
 	tests = append(tests, testStaticPodLifecycleFailure(events, kubeClientConfig, testSuite)...)
@@ -66,6 +68,8 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testOperatorOSUpdateStartedEventRecorded(events, kubeClientConfig)...)
 	tests = append(tests, testPodNodeNameIsImmutable(events)...)
 	tests = append(tests, testBackoffPullingRegistryRedhatImage(events)...)
+	tests = append(tests, testRequiredInstallerResourcesMissing(events)...)
+	tests = append(tests, testAPIQuotaEvents(events)...)
 
 	return tests
 }

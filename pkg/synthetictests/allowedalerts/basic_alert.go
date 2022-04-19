@@ -64,6 +64,11 @@ func newAlert(bugzillaComponent, alertName string) *basicAlertTest {
 	}
 }
 
+func (a *basicAlertTest) withAllowance(allowanceCalculator AlertTestAllowanceCalculator) *basicAlertTest {
+	a.allowanceCalculator = allowanceCalculator
+	return a
+}
+
 func (a *basicAlertTest) pending() *basicAlertTest {
 	a.alertState = AlertPending
 	return a
@@ -183,8 +188,12 @@ func (a *basicAlertTest) failOrFlake(ctx context.Context, restConfig *rest.Confi
 		return fail, err.Error()
 	}
 
-	failAfter := a.allowanceCalculator.FailAfter(a.alertName, *jobType)
+	failAfter, err := a.allowanceCalculator.FailAfter(a.alertName, *jobType)
+	if err != nil {
+		return fail, fmt.Sprintf("unable to calculate allowance for %s which was at %s, err %v\n\n%s", a.AlertName(), a.AlertState(), err, strings.Join(describe, "\n"))
+	}
 	flakeAfter := a.allowanceCalculator.FlakeAfter(a.alertName, *jobType)
+
 	switch {
 	case durationAtOrAboveLevel > failAfter:
 		return fail, fmt.Sprintf("%s was at or above %s for at least %s on %#v (maxAllowed=%s): pending for %s, firing for %s:\n\n%s",

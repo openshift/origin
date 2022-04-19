@@ -8,15 +8,15 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
-func IntervalsFromEvents_OperatorAvailable(intervals monitorapi.Intervals, beginning, end time.Time) monitorapi.Intervals {
+func IntervalsFromEvents_OperatorAvailable(intervals monitorapi.Intervals, _ monitorapi.ResourcesMap, beginning, end time.Time) monitorapi.Intervals {
 	return intervalsFromEvents_OperatorStatus(intervals, beginning, end, configv1.OperatorAvailable, configv1.ConditionTrue, monitorapi.Error)
 }
 
-func IntervalsFromEvents_OperatorProgressing(intervals monitorapi.Intervals, beginning, end time.Time) monitorapi.Intervals {
+func IntervalsFromEvents_OperatorProgressing(intervals monitorapi.Intervals, _ monitorapi.ResourcesMap, beginning, end time.Time) monitorapi.Intervals {
 	return intervalsFromEvents_OperatorStatus(intervals, beginning, end, configv1.OperatorProgressing, configv1.ConditionFalse, monitorapi.Warning)
 }
 
-func IntervalsFromEvents_OperatorDegraded(intervals monitorapi.Intervals, beginning, end time.Time) monitorapi.Intervals {
+func IntervalsFromEvents_OperatorDegraded(intervals monitorapi.Intervals, _ monitorapi.ResourcesMap, beginning, end time.Time) monitorapi.Intervals {
 	return intervalsFromEvents_OperatorStatus(intervals, beginning, end, configv1.OperatorDegraded, configv1.ConditionFalse, monitorapi.Error)
 }
 

@@ -29,8 +29,6 @@ var ingressControllerNonDefaultAvailableConditions = []operatorv1.OperatorCondit
 	{Type: operatorv1.IngressControllerAvailableConditionType, Status: operatorv1.ConditionTrue},
 	{Type: operatorv1.LoadBalancerManagedIngressConditionType, Status: operatorv1.ConditionTrue},
 	{Type: operatorv1.LoadBalancerReadyIngressConditionType, Status: operatorv1.ConditionTrue},
-	{Type: operatorv1.DNSManagedIngressConditionType, Status: operatorv1.ConditionTrue},
-	{Type: operatorv1.DNSReadyIngressConditionType, Status: operatorv1.ConditionTrue},
 	{Type: "Admitted", Status: operatorv1.ConditionTrue},
 }
 

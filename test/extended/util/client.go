@@ -19,26 +19,10 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	oauthv1 "github.com/openshift/api/oauth/v1"
-	projectv1 "github.com/openshift/api/project/v1"
-	userv1 "github.com/openshift/api/user/v1"
-	appsv1client "github.com/openshift/client-go/apps/clientset/versioned"
-	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
-	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
-	configv1client "github.com/openshift/client-go/config/clientset/versioned"
-	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
-	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned"
-	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
-	projectv1client "github.com/openshift/client-go/project/clientset/versioned"
-	quotav1client "github.com/openshift/client-go/quota/clientset/versioned"
-	routev1client "github.com/openshift/client-go/route/clientset/versioned"
-	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
-	templatev1client "github.com/openshift/client-go/template/clientset/versioned"
-	userv1client "github.com/openshift/client-go/user/clientset/versioned"
-	"github.com/openshift/library-go/test/library/metrics"
 	"github.com/pborman/uuid"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	yaml "gopkg.in/yaml.v2"
+
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -61,7 +45,27 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/client-go/util/flowcontrol"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
+	admissionapi "k8s.io/pod-security-admission/api"
+
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	projectv1 "github.com/openshift/api/project/v1"
+	userv1 "github.com/openshift/api/user/v1"
+	appsv1client "github.com/openshift/client-go/apps/clientset/versioned"
+	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
+	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned"
+	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned"
+	quotav1client "github.com/openshift/client-go/quota/clientset/versioned"
+	routev1client "github.com/openshift/client-go/route/clientset/versioned"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
+	templatev1client "github.com/openshift/client-go/template/clientset/versioned"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned"
+	"github.com/openshift/library-go/test/library/metrics"
 )
 
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
@@ -105,8 +109,17 @@ func NewCLIWithFramework(kubeFramework *framework.Framework) *CLI {
 	return cli
 }
 
+// NewCLIWithPodSecurityLevel initializes the CLI the same way as `NewCLI()`
+// but the given pod security level is applied to the created e2e test namespace.
+func NewCLIWithPodSecurityLevel(project string, level admissionapi.Level) *CLI {
+	cli := NewCLI(project)
+	cli.kubeFramework.NamespacePodSecurityEnforceLevel = level
+	return cli
+}
+
 // NewCLI initializes the CLI and Kube framework helpers with the provided
 // namespace. Should be called outside of a Ginkgo .It() function.
+// This will apply the `restricted` pod security level to the given underlying namespace.
 func NewCLI(project string) *CLI {
 	cli := NewCLIWithoutNamespace(project)
 	cli.withoutNamespace = false
@@ -285,6 +298,31 @@ func (c *CLI) SetupProject() string {
 			Group:     "",
 			Resource:  "pods",
 		},
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		// once permissions are settled the underlying namespace must have been created.
+		ns, err := c.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), newNamespace, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		if len(c.kubeFramework.NamespacePodSecurityEnforceLevel) == 0 {
+			// TODO(sur): set to restricted in a separate PR and fix failing tests
+			c.kubeFramework.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
+		}
+		if ns.Labels == nil {
+			ns.Labels = make(map[string]string)
+		}
+		ns.Labels[admissionapi.EnforceLevelLabel] = string(c.kubeFramework.NamespacePodSecurityEnforceLevel)
+		// In contrast to upstream, OpenShift sets a global default on warn and audit pod security levels.
+		// Since this would cause unwanted audit log and warning entries, we are setting the same level as for enforcement.
+		ns.Labels[admissionapi.WarnLevelLabel] = string(c.kubeFramework.NamespacePodSecurityEnforceLevel)
+		ns.Labels[admissionapi.AuditLevelLabel] = string(c.kubeFramework.NamespacePodSecurityEnforceLevel)
+
+		_, err = c.AdminKubeClient().CoreV1().Namespaces().Update(context.Background(), ns, metav1.UpdateOptions{})
+		return err
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 

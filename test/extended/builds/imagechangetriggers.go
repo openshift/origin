@@ -32,6 +32,8 @@ var _ = g.Describe("[sig-builds][Feature:Builds] imagechangetriggers", func() {
 				exutil.DumpPodStates(oc)
 				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
+				exutil.DumpImageStream(oc, oc.Namespace(), "nodejs-ex")
+				exutil.DumpBuildConfigs(oc)
 			}
 		})
 

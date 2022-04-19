@@ -3,7 +3,7 @@ apiVersion: v1
 metadata: {}
 items:
 - kind: ImageStream
-  apiVersion: v1
+  apiVersion: image.openshift.io/v1
   metadata:
     name: origin-ruby-sample
     creationTimestamp:
@@ -19,7 +19,7 @@ items:
     WebHookSecretKey: c2VjcmV0dmFsdWUx
   type: Opaque
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-build
     creationTimestamp:
@@ -53,7 +53,7 @@ items:
   status:
     lastVersion: 0
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-verbose-build
     creationTimestamp:
@@ -82,7 +82,7 @@ items:
   status:
     lastVersion: 0
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-build-binary
     creationTimestamp:
@@ -110,7 +110,7 @@ items:
   status:
     lastVersion: 0
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-build-github-archive
     creationTimestamp:
@@ -139,7 +139,7 @@ items:
   status:
     lastVersion: 0
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-build-binary-invalidnodeselector
     creationTimestamp:
@@ -169,7 +169,7 @@ items:
   status:
     lastVersion: 0
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-build-docker-args
     creationTimestamp:
@@ -186,6 +186,9 @@ items:
     strategy:
       type: Docker
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: DockerImage
           name: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
@@ -195,7 +198,7 @@ items:
   status:
     lastVersion: 0
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-build-docker-args-preset
     creationTimestamp:
@@ -212,6 +215,9 @@ items:
     strategy:
       type: Docker
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: DockerImage
           name: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest

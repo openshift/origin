@@ -2,29 +2,34 @@ package platformidentification
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
+	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
 type JobType struct {
-	Release     string
-	FromRelease string
-	Platform    string
-	Network     string
-	Topology    string
+	Release      string
+	FromRelease  string
+	Platform     string
+	Architecture string
+	Network      string
+	Topology     string
 }
 
 func CloneJobType(in JobType) JobType {
 	return JobType{
-		Release:     in.Release,
-		FromRelease: in.FromRelease,
-		Platform:    in.Platform,
-		Network:     in.Network,
-		Topology:    in.Topology,
+		Release:      in.Release,
+		FromRelease:  in.FromRelease,
+		Platform:     in.Platform,
+		Architecture: in.Architecture,
+		Network:      in.Network,
+		Topology:     in.Topology,
 	}
 }
 
@@ -46,12 +51,16 @@ func GetJobType(ctx context.Context, clientConfig *rest.Config) (*JobType, error
 	if err != nil {
 		return nil, err
 	}
+	architecture, err := getArchitecture(clientConfig)
+	if err != nil {
+		return nil, err
+	}
 
-	release := versionFromHistory(clusterVersion.Status.History[0])
+	release := VersionFromHistory(clusterVersion.Status.History[0])
 
 	fromRelease := ""
 	if len(clusterVersion.Status.History) > 1 {
-		fromRelease = versionFromHistory(clusterVersion.Status.History[1])
+		fromRelease = VersionFromHistory(clusterVersion.Status.History[1])
 	}
 
 	platform := ""
@@ -70,6 +79,8 @@ func GetJobType(ctx context.Context, clientConfig *rest.Config) (*JobType, error
 		platform = "ovirt"
 	case configv1.OpenStackPlatformType:
 		platform = "openstack"
+	case configv1.LibvirtPlatformType:
+		platform = "libvirt"
 	}
 
 	networkType := ""
@@ -89,15 +100,16 @@ func GetJobType(ctx context.Context, clientConfig *rest.Config) (*JobType, error
 	}
 
 	return &JobType{
-		Release:     release,
-		FromRelease: fromRelease,
-		Platform:    platform,
-		Network:     networkType,
-		Topology:    topology,
+		Release:      release,
+		FromRelease:  fromRelease,
+		Platform:     platform,
+		Architecture: architecture,
+		Network:      networkType,
+		Topology:     topology,
 	}, nil
 }
 
-func versionFromHistory(history configv1.UpdateHistory) string {
+func VersionFromHistory(history configv1.UpdateHistory) string {
 	versionParts := strings.Split(history.Version, ".")
 	if len(versionParts) < 2 {
 		return ""
@@ -108,4 +120,38 @@ func versionFromHistory(history configv1.UpdateHistory) string {
 		version = version[1:]
 	}
 	return version
+}
+
+func getArchitecture(clientConfig *rest.Config) (string, error) {
+	kubeClient, err := kubernetes.NewForConfig(clientConfig)
+	if err != nil {
+		return "", err
+	}
+	configClient, err := configclient.NewForConfig(clientConfig)
+	if err != nil {
+		return "", err
+	}
+
+	listOpts := metav1.ListOptions{}
+	controlPlaneTopology, err := exutil.GetControlPlaneTopologyFromConfigClient(configClient)
+	if err != nil {
+		return "", err
+	}
+	// ExternalTopologyMode means there are no master nodes
+	if *controlPlaneTopology != configv1.ExternalTopologyMode {
+		listOpts.LabelSelector = "node-role.kubernetes.io/master"
+	}
+
+	masterNodes, err := kubeClient.CoreV1().Nodes().List(context.Background(), listOpts)
+	if err != nil {
+		return "", err
+	}
+
+	for _, node := range masterNodes.Items {
+		if arch := node.Status.NodeInfo.Architecture; len(arch) > 0 {
+			return arch, nil
+		}
+	}
+
+	return "amd64", errors.New("could not determine architecture from master nodes")
 }

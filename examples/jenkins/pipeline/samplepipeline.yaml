@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 kind: Template
 labels:
   template: application-template-sample-pipeline
@@ -20,7 +20,7 @@ metadata:
     tags: instant-app,jenkins
   name: jenkins-pipeline-example
 objects:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     annotations:
@@ -43,7 +43,7 @@ objects:
                               return it.object().status.phase == "Running"
                             }
                             bld.logs('-f')
-                         }  
+                         }
                       }
                     }
                     stage('deploy') {
@@ -61,7 +61,7 @@ objects:
              echo "Caught: ${err}"
              currentBuild.result = 'FAILURE'
              throw err
-          }          
+          }
       type: JenkinsPipeline
     triggers:
     - github:
@@ -92,7 +92,7 @@ objects:
         targetPort: 8080
     selector:
       name: ${NAME}
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: ${NAME}
@@ -101,13 +101,13 @@ objects:
     to:
       kind: Service
       name: ${NAME}
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     annotations:
       description: Keeps track of changes in the application image
     name: ${NAME}
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     annotations:
@@ -143,7 +143,7 @@ objects:
       - generic:
           secret: ${GENERIC_WEBHOOK_SECRET}
         type: Generic
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     annotations:
@@ -228,7 +228,7 @@ objects:
         targetPort: 5432
     selector:
       name: ${DATABASE_SERVICE_NAME}
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     annotations:

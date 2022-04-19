@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -54,15 +55,9 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	g.Describe("The HAProxy router", func() {
 		g.It("should run even if it has no access to update status", func() {
 
-			isFIPS, err := exutil.IsFIPS(oc.AdminKubeClient().CoreV1())
-			o.Expect(err).NotTo(o.HaveOccurred())
-			if isFIPS {
-				g.Skip("The router image's built-in default certificate is incompatible with FIPS: https://bugzilla.redhat.com/show_bug.cgi?id=2047790")
-			}
-
 			configPath := exutil.FixturePath("testdata", "router", "router-scoped.yaml")
 			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
-			err = oc.AsAdmin().Run("new-app").Args("-f", configPath,
+			err := oc.AsAdmin().Run("new-app").Args("-f", configPath,
 				`-p=IMAGE=`+routerImage,
 				`-p=ROUTER_NAME=test-unprivileged`,
 				`-p=UPDATE_STATUS=false`,
@@ -93,7 +88,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			routerURL := fmt.Sprintf("http://%s", routerIP)
 
 			g.By("waiting for the healthz endpoint to respond")
-			healthzURI := fmt.Sprintf("http://%s:1936/healthz", routerIP)
+			healthzURI := fmt.Sprintf("http://%s/healthz", net.JoinHostPort(routerIP, "1936"))
 			err = waitForRouterOKResponseExec(ns, execPod.Name, healthzURI, routerIP, changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 

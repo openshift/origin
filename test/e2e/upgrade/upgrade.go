@@ -90,6 +90,7 @@ var (
 // upgradeAbortAtRandom is a special value indicating the abort should happen at a random percentage
 // between (0,100].
 const upgradeAbortAtRandom = -1
+const defaultCVOUpdateAckTimeout = 2 * time.Minute
 
 // SetTests controls the list of tests to run during an upgrade. See AllTests for the supported
 // suite.
@@ -341,10 +342,10 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 	if err := disruption.RecordJUnit(
 		f,
 		"[sig-cluster-lifecycle] Cluster version operator acknowledges upgrade",
-		func() error {
+		func() (error, bool) {
 			cv, err := c.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
 			if err != nil {
-				return err
+				return err, false
 			}
 
 			original = cv
@@ -359,13 +360,25 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			cv.Spec.DesiredUpdate = &desired
 			cv, err = c.ConfigV1().ClusterVersions().Update(context.Background(), cv, metav1.UpdateOptions{})
 			if err != nil {
-				return err
+				return err, false
 			}
 			updated = cv
 			var observedGeneration int64
 
+			var cvoAckTimeout time.Duration
+			switch infra.Status.PlatformStatus.Type {
+			// Timeout was previously 2min, bumped for metal/openstack while work underway on https://bugzilla.redhat.com/show_bug.cgi?id=2071998
+			case configv1.BareMetalPlatformType:
+				cvoAckTimeout = 4 * time.Minute
+			case configv1.OpenStackPlatformType:
+				cvoAckTimeout = 4 * time.Minute
+			default:
+				cvoAckTimeout = defaultCVOUpdateAckTimeout
+			}
+
+			start := time.Now()
 			// wait until the cluster acknowledges the update
-			if err := wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
+			if err := wait.PollImmediate(5*time.Second, cvoAckTimeout, func() (bool, error) {
 				cv, _, err := monitor.Check(updated.Generation, desired)
 				if err != nil || cv == nil {
 					return false, err
@@ -376,9 +389,15 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			}); err != nil {
 				return fmt.Errorf(
 					"Timed out waiting for cluster to acknowledge upgrade: %v; observedGeneration: %d; updated.Generation: %d",
-					err, observedGeneration, updated.Generation)
+					err, observedGeneration, updated.Generation), false
 			}
-			return nil
+			// We allow extra time on a couple platforms above, if we're over the default we'll flake this test
+			// to allow insight into how often we're hitting this problem and when the issue is fixed.
+			timeToAck := time.Now().Sub(start)
+			if timeToAck > defaultCVOUpdateAckTimeout {
+				return fmt.Errorf("CVO took %s to acknowledge upgrade (> %s), flaking test", timeToAck, defaultCVOUpdateAckTimeout), true
+			}
+			return nil, false
 		},
 	); err != nil {
 		recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeFailed", fmt.Sprintf("failed to acknowledge version: %v", err), true)
@@ -393,7 +412,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 	if err := disruption.RecordJUnit(
 		f,
 		"[sig-cluster-lifecycle] Cluster completes upgrade",
-		func() error {
+		func() (error, bool) {
 			framework.Logf("Cluster version operator acknowledged upgrade request")
 			aborted := false
 			action := "upgrade"
@@ -439,9 +458,9 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 
 			}); err != nil {
 				if lastMessage != "" {
-					return fmt.Errorf("Cluster did not complete %s: %v: %s", action, err, lastMessage)
+					return fmt.Errorf("Cluster did not complete %s: %v: %s", action, err, lastMessage), false
 				}
-				return fmt.Errorf("Cluster did not complete %s: %v", action, err)
+				return fmt.Errorf("Cluster did not complete %s: %v", action, err), false
 			}
 
 			framework.Logf("Completed %s to %s", action, versionString(desired))
@@ -457,7 +476,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			}
 			disruption.RecordJUnitResult(f, testCaseName, upgradeDuration, failure)
 
-			return nil
+			return nil, false
 		},
 	); err != nil {
 		recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeFailed", fmt.Sprintf("failed to reach cluster version: %v", err), true)
@@ -468,7 +487,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 	if err := disruption.RecordJUnit(
 		f,
 		"[sig-mco] Machine config pools complete upgrade",
-		func() error {
+		func() (error, bool) {
 			framework.Logf("Waiting on pools to be upgraded")
 			if err := wait.PollImmediate(10*time.Second, 30*time.Minute, func() (bool, error) {
 				mcps := dc.Resource(schema.GroupVersionResource{
@@ -494,10 +513,10 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 				}
 				return allUpdated, nil
 			}); err != nil {
-				return fmt.Errorf("Pools did not complete upgrade: %v", err)
+				return fmt.Errorf("Pools did not complete upgrade: %v", err), false
 			}
 			framework.Logf("All pools completed upgrade")
-			return nil
+			return nil, false
 		},
 	); err != nil {
 		recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeFailed", fmt.Sprintf("failed to upgrade nodes: %v", err), true)
@@ -512,11 +531,11 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 	if err := disruption.RecordJUnit(
 		f,
 		"[sig-cluster-lifecycle] ClusterOperators are available and not degraded after upgrade",
-		func() error {
+		func() (error, bool) {
 			if err := operator.WaitForOperatorsToSettle(context.TODO(), c); err != nil {
-				return err
+				return err, false
 			}
-			return nil
+			return nil, false
 		},
 	); err != nil {
 		recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeFailed", fmt.Sprintf("failed to settle operators: %v", err), true)

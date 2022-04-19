@@ -1,5 +1,5 @@
 {
-  "kind": "ImageStreamList",
+  "kind": "List",
   "apiVersion": "v1",
   "items": [
     {
@@ -1846,7 +1846,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "wildfly",
         "creationTimestamp": null,

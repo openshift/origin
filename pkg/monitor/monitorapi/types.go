@@ -103,8 +103,6 @@ func (filters IntervalFilters) Any(i EventInterval) bool {
 	return false
 }
 
-func HasDuration(i EventInterval) bool { return i.To.After(i.From) }
-
 type Intervals []EventInterval
 
 var _ sort.Interface = Intervals{}

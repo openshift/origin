@@ -12,7 +12,7 @@ func TestIntervalsFromEvents_NodeChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	changes := IntervalsFromEvents_NodeChanges(intervals, time.Time{}, time.Now())
+	changes := IntervalsFromEvents_NodeChanges(intervals, nil, time.Time{}, time.Now())
 	out, _ := monitorserialization.EventsIntervalsToJSON(changes)
 	if len(changes) != 3 {
 		t.Fatalf("unexpected changes: %s", string(out))

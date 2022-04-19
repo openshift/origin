@@ -33,16 +33,17 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 		{by: " by getting pod", substring: " error getting pod: pods"},
 		{by: " by writing child", substring: "write child: broken pipe"},
 		{by: " by ovn default network ready", substring: "have you checked that your default network is ready? still waiting for readinessindicatorfile"},
+		{by: " by adding pod to network", substring: "failed (add)"},
 		{by: " by other", substring: " "}, // always matches
 	}
 
 	failures := []string{}
 	flakes := []string{}
-	operatorsProgressing := intervalcreation.IntervalsFromEvents_OperatorProgressing(events, time.Time{}, time.Time{})
+	operatorsProgressing := intervalcreation.IntervalsFromEvents_OperatorProgressing(events, nil, time.Time{}, time.Time{})
 	networkOperatorProgressing := operatorsProgressing.Filter(func(ev monitorapi.EventInterval) bool {
 		return ev.Locator == "clusteroperator/network" || ev.Locator == "clusteroperator/machine-config"
 	})
-	eventsForPods := getEventsByPod(events)
+	eventsForPods := getEventsByPodName(events)
 	for _, event := range events {
 		if !strings.Contains(event.Message, "reason/FailedCreatePodSandBox Failed to create pod sandbox") {
 			continue
@@ -62,8 +63,17 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 			flakes = append(flakes, fmt.Sprintf("%v - multus is unable to get pods as ovnkube-node pod has not yet written readinessindicatorfile (possibly not running due to image pull delays) https://bugzilla.redhat.com/show_bug.cgi?id=20671320 - %v", event.Locator, event.Message))
 			continue
 		}
-		deletionTime := getPodDeletionTime(eventsForPods[event.Locator], event.Locator)
-		if deletionTime == nil {
+		if strings.Contains(event.Locator, "pod/whereabouts-pod") &&
+			strings.Contains(event.Message, "error adding container to network") &&
+			strings.Contains(event.Message, "Error at storage engine: Could not allocate IP in range: ip: 192.168.2.225 / - 192.168.2.230 ") {
+			// This failed to create sandbox case is expected due to the whereabouts-e2e test which creates a pod that is expected to
+			// not come up due to IP range exhausted.
+			// See https://github.com/openshift/origin/blob/93eb467cc8d293ba977549b05ae2e4b818c64327/test/extended/networking/whereabouts.go#L52
+			continue
+		}
+
+		partialLocator := monitorapi.NonUniquePodLocatorFrom(event.Locator)
+		if deletionTime := getPodDeletionTime(eventsForPods[partialLocator], event.Locator); deletionTime == nil {
 			// mark sandboxes errors as flakes if networking is being updated
 			match := -1
 			for i := range networkOperatorProgressing {
@@ -79,6 +89,7 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 			} else {
 				failures = append(failures, fmt.Sprintf("%v - never deleted - %v", event.Locator, event.Message))
 			}
+
 		} else {
 			timeBetweenDeleteAndFailure := event.From.Sub(*deletionTime)
 			switch {
@@ -175,21 +186,24 @@ func categorizeBySubset(categorizers []testCategorizer, failures, flakes []strin
 	return failuresBySubtest, flakesBySubtest
 }
 
-// getEventsByPod returns map keyed by pod locator with all events associated with it.
-func getEventsByPod(events monitorapi.Intervals) map[string]monitorapi.Intervals {
+// getEventsByPodName returns map keyed by pod locator with all events associated with it.
+func getEventsByPodName(events monitorapi.Intervals) map[string]monitorapi.Intervals {
 	eventsByPods := map[string]monitorapi.Intervals{}
 	for _, event := range events {
 		if !strings.Contains(event.Locator, "pod/") {
 			continue
 		}
-		eventsByPods[event.Locator] = append(eventsByPods[event.Locator], event)
+		partialLocator := monitorapi.NonUniquePodLocatorFrom(event.Locator)
+		eventsByPods[partialLocator] = append(eventsByPods[partialLocator], event)
 	}
 	return eventsByPods
 }
 
 func getPodDeletionTime(events monitorapi.Intervals, podLocator string) *time.Time {
+	partialLocator := monitorapi.NonUniquePodLocatorFrom(podLocator)
 	for _, event := range events {
-		if event.Locator == podLocator && event.Message == "reason/Deleted" {
+		currPartialLocator := monitorapi.NonUniquePodLocatorFrom(event.Locator)
+		if currPartialLocator == partialLocator && strings.Contains(event.Message, "reason/Deleted") {
 			return &event.From
 		}
 	}

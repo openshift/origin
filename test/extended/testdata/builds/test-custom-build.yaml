@@ -2,11 +2,11 @@ kind: List
 apiVersion: v1
 items:
 - kind: ImageStream
-  apiVersion: v1
+  apiVersion: image.openshift.io/v1
   metadata:
     name: sample-custom
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-custom-build
     labels:
@@ -17,6 +17,9 @@ items:
     strategy:
       type: Custom
       customStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         forcePull: true
         from:
           kind: ImageStreamTag

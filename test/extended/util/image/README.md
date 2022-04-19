@@ -1,8 +1,8 @@
 # Images used by e2e tests
 
-We limit the set of images used by e2e to reduce duplication and to allow us to provide offline mirroring of images for customers and restricted test environments. Every image used in e2e must be part of this utility package or referenced by the upstream `k8s.io/kubernetes/test/utils/image` package.
+We limit the set of images used by conformance e2e to reduce duplication and to allow us to provide offline mirroring of images for customers and restricted test environments. Every image used in e2e must be part of this utility package or referenced by the upstream `k8s.io/kubernetes/test/utils/image` package.
 
-All images used by e2e are mirrored to:
+All images used by e2e tests that are part of the `conformance` suite are mirrored to:
 
   quay.io/openshift/community-e2e-images:TAG
 

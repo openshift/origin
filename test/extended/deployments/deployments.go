@@ -545,6 +545,13 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 
 		g.It("should run a successful deployment with multiple triggers", func() {
 			g.By("creating DC")
+
+			_, err := oc.Run("import-image").Args("registry.redhat.io/ubi8/ruby-30:latest", "--confirm", "--reference-policy=local").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			_, err = oc.Run("import-image").Args("registry.redhat.io/rhel8/postgresql-13:latest", "--confirm", "--reference-policy=local").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			dc, err := createDeploymentConfig(oc, multipleICTFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Name).To(o.Equal(dcName))
@@ -553,6 +560,10 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		})
 
 		g.It("should run a successful deployment with a trigger used by different containers", func() {
+
+			_, err := oc.Run("import-image").Args("registry.redhat.io/ubi8/ruby-30:latest", "--confirm", "--reference-policy=local").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			dc, err := createDeploymentConfig(oc, anotherMultiICTFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Name).To(o.Equal(dcName))

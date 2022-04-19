@@ -90,8 +90,10 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer]", func() {
 
 				g.By("querying for a token")
 
-				var reqErr []error
-				var tokenResponse *http.Response
+				var (
+					tokenResponse *http.Response
+					ok            bool
+				)
 				for _, tokenReq := range createTokenReq(oauthDiscoveryData.TokenEndpoint) {
 					tokenReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 					requestDump, err := httputil.DumpRequest(tokenReq, true)
@@ -107,20 +109,26 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer]", func() {
 					client := &http.Client{Transport: tr}
 
 					tokenResponse, err = client.Do(tokenReq)
-					// if there was an error then append the error and continue
+					// if there was an error then continue
 					if err != nil {
-						reqErr = append(reqErr, err)
+						framework.Logf("%v", err)
 						continue
 					}
-					// if there was no error then reset the error array and break
-					reqErr = nil
+
+					// if the response code was not 200 then continue
+					if tokenResponse.StatusCode != http.StatusOK {
+						framework.Logf("unexpected http status code: %d", tokenResponse.StatusCode)
+						continue
+					}
+
+					// else set the success flag and break
+					ok = true
 					break
 				}
-				o.Expect(reqErr).To(o.BeNil())
+				o.Expect(ok).To(o.BeTrue())
 				response, err := httputil.DumpResponse(tokenResponse, true)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				framework.Logf("%v", string(response))
-				o.Expect(tokenResponse.StatusCode).To(o.Equal(http.StatusOK))
 			}
 		})
 	})

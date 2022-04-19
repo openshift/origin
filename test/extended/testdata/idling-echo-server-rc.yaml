@@ -35,7 +35,7 @@ items:
       app: idling-echo
     ports:
       - port: 8675
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: idling-echo

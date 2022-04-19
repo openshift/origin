@@ -22,6 +22,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enetwork "k8s.io/kubernetes/test/e2e/framework/network"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -34,6 +35,8 @@ const (
 
 var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 	f := framework.NewDefaultFramework("k8s-nettest")
+	// TODO(sur): verify if privileged is really necessary in a follow-up
+	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 	ginkgo.It("for TCP and UDP on ports 9000-9999 is allowed [Serial:Self]", func() {
 		e2eskipper.SkipUnlessNodeCountIsAtLeast(2)

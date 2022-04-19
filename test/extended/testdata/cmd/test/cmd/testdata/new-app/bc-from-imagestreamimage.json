@@ -1,10 +1,10 @@
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   creationTimestamp: null
   name: bc-from-imagestreamimage
 objects:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     creationTimestamp: null

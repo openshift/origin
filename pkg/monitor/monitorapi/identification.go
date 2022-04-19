@@ -88,6 +88,17 @@ func NamespaceFrom(locatorParts map[string]string) string {
 	return ""
 }
 
+func NamespaceFromLocator(locator string) string {
+	locatorParts := LocatorParts(locator)
+	if ns, ok := locatorParts["ns"]; ok {
+		return ns
+	}
+	if ns, ok := locatorParts["namespace"]; ok {
+		return ns
+	}
+	return ""
+}
+
 func AlertFrom(locatorParts map[string]string) string {
 	return locatorParts["alert"]
 }
@@ -107,4 +118,10 @@ func IsEventForLocator(locator string) EventIntervalMatchesFunc {
 		}
 		return false
 	}
+}
+
+type NamespacedReference struct {
+	Namespace string
+	Name      string
+	UID       string
 }

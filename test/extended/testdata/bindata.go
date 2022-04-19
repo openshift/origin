@@ -313,6 +313,8 @@
 // test/extended/testdata/deployments/tag-images-deployment.yaml
 // test/extended/testdata/deployments/test-deployment-broken.yaml
 // test/extended/testdata/deployments/test-deployment-test.yaml
+// test/extended/testdata/egress-firewall/ovnk-egressfirewall-test.yaml
+// test/extended/testdata/egress-firewall/sdn-egressnetworkpolicy-test.yaml
 // test/extended/testdata/egress-router-cni/egress-router-cni-v4-cr.yaml
 // test/extended/testdata/egress-router-cni/egress-router-cni-v6-cr.yaml
 // test/extended/testdata/forcepull-test.json
@@ -2805,7 +2807,7 @@ func examplesDbTemplatesRedisPersistentTemplateJson() (*asset, error) {
 }
 
 var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
-  "kind": "ImageStreamList",
+  "kind": "List",
   "apiVersion": "v1",
   "items": [
     {
@@ -4652,7 +4654,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "wildfly",
         "creationTimestamp": null,
@@ -5153,7 +5155,7 @@ func examplesImageStreamsImageStreamsCentos7Json() (*asset, error) {
 
 var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
   "kind": "Template",
-  "apiVersion": "v1",
+  "apiVersion": "template.openshift.io/v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
     "annotations": {
@@ -5202,7 +5204,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge",
         "annotations": {
@@ -5223,7 +5225,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "origin-ruby-sample"
       },
@@ -5234,7 +5236,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "ruby-27"
       },
@@ -5252,7 +5254,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "ruby-sample-build",
         "labels": {
@@ -5323,7 +5325,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "frontend",
         "annotations": {
@@ -5476,7 +5478,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "database",
         "annotations": {
@@ -5613,7 +5615,7 @@ func examplesSampleAppApplicationTemplateDockerbuildJson() (*asset, error) {
 
 var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
   "kind": "Template",
-  "apiVersion": "v1",
+  "apiVersion": "template.openshift.io/v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
     "annotations": {
@@ -5662,7 +5664,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge",
         "annotations": {
@@ -5683,7 +5685,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "origin-ruby-sample"
       },
@@ -5694,7 +5696,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "ruby-27"
       },
@@ -5707,7 +5709,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "ruby-sample-build",
         "labels": {
@@ -5768,7 +5770,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "frontend",
         "annotations": {
@@ -5921,7 +5923,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "database",
         "annotations": {
@@ -6108,7 +6110,7 @@ func examplesSampleAppApplicationTemplatePullspecbuildJson() (*asset, error) {
 
 var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
   "kind": "Template",
-  "apiVersion": "v1",
+  "apiVersion": "template.openshift.io/v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
     "annotations": {
@@ -6157,7 +6159,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge",
         "annotations": {
@@ -6178,7 +6180,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "origin-ruby-sample"
       },
@@ -6189,7 +6191,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "ruby-27"
       },
@@ -6202,7 +6204,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "ruby-sample-build",
         "labels": {
@@ -6273,7 +6275,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "frontend",
         "annotations": {
@@ -6426,7 +6428,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "database",
         "annotations": {
@@ -13236,7 +13238,7 @@ func examplesHelloOpenshiftHelloPodJson() (*asset, error) {
 
 var _examplesHelloOpenshiftHelloProjectJson = []byte(`{
   "kind": "Project",
-  "apiVersion": "v1",
+  "apiVersion": "project.openshift.io/v1",
   "metadata": {
     "name": "hello-openshift-project",
     "creationTimestamp": null,
@@ -13270,7 +13272,7 @@ func examplesHelloOpenshiftHelloProjectJson() (*asset, error) {
 
 var _examplesJenkinsApplicationTemplateJson = []byte(`{
   "kind": "Template",
-  "apiVersion": "v1",
+  "apiVersion": "template.openshift.io/v1",
   "metadata": {
     "name": "nodejs-helloworld-sample",
     "annotations": {
@@ -13308,7 +13310,7 @@ var _examplesJenkinsApplicationTemplateJson = []byte(`{
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "frontend"
       },
@@ -13324,7 +13326,7 @@ var _examplesJenkinsApplicationTemplateJson = []byte(`{
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "frontend-prod"
       },
@@ -13420,28 +13422,28 @@ var _examplesJenkinsApplicationTemplateJson = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "origin-nodejs-sample"
       }
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "origin-nodejs-sample2"
       }
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "origin-nodejs-sample3"
       }
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "nodejs-010-centos7"
       },
@@ -13451,7 +13453,7 @@ var _examplesJenkinsApplicationTemplateJson = []byte(`{
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "frontend",
         "labels": {
@@ -13499,7 +13501,7 @@ var _examplesJenkinsApplicationTemplateJson = []byte(`{
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "frontend"
       },
@@ -14388,7 +14390,7 @@ func examplesJenkinsJenkinsPersistentTemplateJson() (*asset, error) {
 	return a, nil
 }
 
-var _examplesJenkinsPipelineBluegreenPipelineYaml = []byte(`apiVersion: v1
+var _examplesJenkinsPipelineBluegreenPipelineYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 labels:
   template: bluegreen-pipeline
@@ -14403,7 +14405,7 @@ metadata:
     tags: instant-app,jenkins
   name: bluegreen-pipeline
 objects:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     annotations:
@@ -14423,7 +14425,7 @@ objects:
                 def tag="blue"
                 def altTag="green"
                 def verbose="${VERBOSE}"
-        
+
                 node {
                   project = env.PROJECT_NAME
                   stage("Initialize") {
@@ -14436,7 +14438,7 @@ objects:
                     sh "oc get route ${tag}-${appName} -n ${project} -o jsonpath='{ .spec.host }' --loglevel=4 > routehost"
                     routeHost = readFile('routehost').trim()
                   }
-        
+
                   openshift.withCluster() {
                     openshift.withProject() {
                       stage("Build") {
@@ -14445,19 +14447,19 @@ objects:
                         bld.untilEach {
                           return it.object().status.phase == "Running"
                         }
-                        bld.logs('-f')                        
+                        bld.logs('-f')
                       }
-            
+
                       stage("Deploy Test") {
                         openshift.tag("${appName}:latest", "${appName}:${tag}")
                         def dc = openshift.selector('dc', "${appName}-${tag}")
                         dc.rollout().status()
                       }
-            
+
                       stage("Test") {
                         input message: "Test deployment: http://${routeHost}. Approve?", id: "approval"
                       }
-            
+
                       stage("Go Live") {
                         sh "oc set -n ${project} route-backends ${appName} ${appName}-${tag}=100 ${appName}-${altTag}=0 --loglevel=4"
                       }
@@ -14471,7 +14473,7 @@ objects:
              echo "Caught: ${err}"
              currentBuild.result = 'FAILURE'
              throw err
-          }          
+          }
       type: JenkinsPipeline
     triggers:
     - github:
@@ -14488,7 +14490,7 @@ objects:
     database-admin-password: ${DATABASE_ADMIN_PASSWORD}
     database-password: ${DATABASE_PASSWORD}
     database-user: ${DATABASE_USER}
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: blue-${NAME}
@@ -14496,7 +14498,7 @@ objects:
     to:
       kind: Service
       name: ${NAME}-blue
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: green-${NAME}
@@ -14504,7 +14506,7 @@ objects:
     to:
       kind: Service
       name: ${NAME}-green
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: ${NAME}
@@ -14516,13 +14518,13 @@ objects:
       kind: Service
       name: ${NAME}-blue
       weight: 100
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     annotations:
       description: Keeps track of changes in the application image
     name: ${NAME}
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     annotations:
@@ -14571,7 +14573,7 @@ objects:
       targetPort: 8080
     selector:
       name: ${NAME}-blue
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     annotations:
@@ -14643,7 +14645,7 @@ objects:
       targetPort: 8080
     selector:
       name: ${NAME}-green
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     annotations:
@@ -14722,7 +14724,7 @@ objects:
       targetPort: 5432
     selector:
       name: ${DATABASE_SERVICE_NAME}
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     annotations:
@@ -14901,7 +14903,7 @@ func examplesJenkinsPipelineBluegreenPipelineYaml() (*asset, error) {
 	return a, nil
 }
 
-var _examplesJenkinsPipelineMavenPipelineYaml = []byte(`apiVersion: v1
+var _examplesJenkinsPipelineMavenPipelineYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   name: maven-pipeline
@@ -14934,7 +14936,7 @@ parameters:
   name: GENERIC_WEBHOOK_SECRET
   required: true
 objects:
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     labels:
@@ -14943,7 +14945,7 @@ objects:
   spec: {}
   status:
     dockerImageRepository: ""
-- apiVersion: v1
+- apiVersion: image.openshift.io/fv1
   kind: ImageStream
   metadata:
     name: wildfly
@@ -14964,7 +14966,7 @@ objects:
         kind: ImageStreamTag
         name: "10.1"
       name: latest
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     annotations:
@@ -15004,13 +15006,13 @@ objects:
                     def status = sh(returnStdout: true, script: "oc start-build ${appName}-docker --from-file=target/ROOT.war -n ${project}")
 
                     def result = status.split("\n").find{ it.matches("^build.*started") }
-                    
+
                     if(!result) {
                       echo "ERROR: No started build found for ${appName}"
                       currentBuild.result = 'FAILURE'
                       return
                     }
-                    
+
                     // result can be:
                     // - build "build-name" started
                     // - build build.build.openshift.io/build-name started
@@ -15018,7 +15020,7 @@ objects:
                     // Goal is to isolate "build-name"
                     def startedBuild = result.replaceAll("build [^0-9a-zA-Z]*", "").replaceAll("[^0-9a-zA-Z]* started", "").replaceFirst("^.*/", "")
                     echo "Build ${startedBuild} has started. Now watching it ..."
-                    
+
                     timeout(time: 20, unit: 'MINUTES') {
                       openshift.withCluster() {
                         openshift.withProject() {
@@ -15031,7 +15033,7 @@ objects:
                             return object.status.phase == "Complete"
                           }
                         }
-                      }  
+                      }
                     }
                   }
                   stage("Deploy") {
@@ -15058,7 +15060,7 @@ objects:
     - generic:
         secret: "${GENERIC_WEBHOOK_SECRET}"
       type: Generic
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     labels:
@@ -15087,7 +15089,7 @@ objects:
           name: wildfly:latest
       type: Docker
     triggers: []
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     labels:
@@ -15178,7 +15180,7 @@ objects:
     type: ClusterIP
   status:
     loadBalancer: {}
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: ${APP_NAME}
@@ -15210,7 +15212,7 @@ func examplesJenkinsPipelineMavenPipelineYaml() (*asset, error) {
 }
 
 var _examplesJenkinsPipelineNodejsSamplePipelineYaml = []byte(`kind: "BuildConfig"
-apiVersion: "v1"
+apiVersion: "build.openshift.io/v1"
 metadata:
   name: "nodejs-sample-pipeline"
 spec:
@@ -15338,7 +15340,7 @@ func examplesJenkinsPipelineNodejsSamplePipelineYaml() (*asset, error) {
 	return a, nil
 }
 
-var _examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml = []byte(`apiVersion: v1
+var _examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml = []byte(`apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
   labels:
@@ -15370,7 +15372,7 @@ func examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml() (*asset, error) 
 	return a, nil
 }
 
-var _examplesJenkinsPipelineSamplepipelineYaml = []byte(`apiVersion: v1
+var _examplesJenkinsPipelineSamplepipelineYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 labels:
   template: application-template-sample-pipeline
@@ -15392,7 +15394,7 @@ metadata:
     tags: instant-app,jenkins
   name: jenkins-pipeline-example
 objects:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     annotations:
@@ -15415,7 +15417,7 @@ objects:
                               return it.object().status.phase == "Running"
                             }
                             bld.logs('-f')
-                         }  
+                         }
                       }
                     }
                     stage('deploy') {
@@ -15433,7 +15435,7 @@ objects:
              echo "Caught: ${err}"
              currentBuild.result = 'FAILURE'
              throw err
-          }          
+          }
       type: JenkinsPipeline
     triggers:
     - github:
@@ -15464,7 +15466,7 @@ objects:
         targetPort: 8080
     selector:
       name: ${NAME}
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: ${NAME}
@@ -15473,13 +15475,13 @@ objects:
     to:
       kind: Service
       name: ${NAME}
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     annotations:
       description: Keeps track of changes in the application image
     name: ${NAME}
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     annotations:
@@ -15515,7 +15517,7 @@ objects:
       - generic:
           secret: ${GENERIC_WEBHOOK_SECRET}
         type: Generic
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     annotations:
@@ -15600,7 +15602,7 @@ objects:
         targetPort: 5432
     selector:
       name: ${DATABASE_SERVICE_NAME}
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     annotations:
@@ -16571,7 +16573,7 @@ func testExtendedTestdataAggregatorSampleApiserverServiceYaml() (*asset, error) 
 
 var _testExtendedTestdataBuildsApplicationTemplateCustombuildJson = []byte(`{
   "kind": "Template",
-  "apiVersion": "v1",
+  "apiVersion": "template.openshift.io/v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
     "annotations": {
@@ -16620,7 +16622,7 @@ var _testExtendedTestdataBuildsApplicationTemplateCustombuildJson = []byte(`{
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge",
         "annotations": {
@@ -16641,7 +16643,7 @@ var _testExtendedTestdataBuildsApplicationTemplateCustombuildJson = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "origin-ruby-sample"
       },
@@ -16652,7 +16654,7 @@ var _testExtendedTestdataBuildsApplicationTemplateCustombuildJson = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "origin-custom-docker-builder"
       },
@@ -16665,7 +16667,7 @@ var _testExtendedTestdataBuildsApplicationTemplateCustombuildJson = []byte(`{
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "ruby-sample-build",
         "labels": {
@@ -16737,7 +16739,7 @@ var _testExtendedTestdataBuildsApplicationTemplateCustombuildJson = []byte(`{
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "frontend",
         "annotations": {
@@ -16891,7 +16893,7 @@ var _testExtendedTestdataBuildsApplicationTemplateCustombuildJson = []byte(`{
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "database",
         "annotations": {
@@ -17081,7 +17083,7 @@ var _testExtendedTestdataBuildsBuildPostcommitDockerYaml = []byte(`apiVersion: v
 kind: List
 metadata: {}
 items:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     name: mydockertest
@@ -17106,7 +17108,7 @@ items:
     nodeSelector: null
   status:
     lastVersion: 0
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     name: mydockertest
@@ -17171,11 +17173,11 @@ kind: List
 metadata: {}
 items:
 - kind: ImageStream
-  apiVersion: v1
+  apiVersion: image.openshift.io/v1
   metadata:
     name: mydockertest
 - kind: ImageStream
-  apiVersion: v1
+  apiVersion: image.openshift.io/v1
   metadata:
     name: mys2itest
 `)
@@ -17199,7 +17201,7 @@ var _testExtendedTestdataBuildsBuildPostcommitStiYaml = []byte(`apiVersion: v1
 kind: List
 metadata: {}
 items:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     name: mys2itest
@@ -17215,6 +17217,9 @@ items:
     strategy:
       type: Source
       sourceStrategy:
+        env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
         from:
           kind: DockerImage
           name: quay.io/redhat-developer/test-build-simples2i:1.2
@@ -17223,7 +17228,7 @@ items:
     nodeSelector: null
   status:
     lastVersion: 0
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     name: mys2itest
@@ -17307,7 +17312,7 @@ func testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYaml() (*asset
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml = []byte(`apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
   name: myphp
@@ -17339,7 +17344,7 @@ func testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml() (*asse
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml = []byte(`apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
   name: myphp
@@ -17354,6 +17359,8 @@ spec:
     type: Source
     sourceStrategy:
       env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
         - name: FIELDREF_ENV
           valueFrom:
             fieldRef:
@@ -17378,7 +17385,7 @@ func testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml() (*asset, err
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml = []byte(`apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
   name: myphp
@@ -17395,6 +17402,9 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+      env:
+      - name: "BUILD_LOGLEVEL"
+        value: "2"
       from:
         kind: DockerImage
         name: registry.redhat.io/ubi8/php-74:latest
@@ -17416,7 +17426,7 @@ func testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml() (*asset, erro
 }
 
 var _testExtendedTestdataBuildsBuildPruningFailedPipelineYaml = []byte(`kind: "BuildConfig"
-apiVersion: "v1"
+apiVersion: "build.openshift.io/v1"
 metadata:
   name: "failed-pipeline"
 spec:
@@ -17445,7 +17455,7 @@ func testExtendedTestdataBuildsBuildPruningFailedPipelineYaml() (*asset, error) 
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildPruningImagestreamYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataBuildsBuildPruningImagestreamYaml = []byte(`apiVersion: image.openshift.io/v1
 kind: ImageStream
 metadata:
   name: myphp
@@ -17466,7 +17476,7 @@ func testExtendedTestdataBuildsBuildPruningImagestreamYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml = []byte(`apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
   name: myphp
@@ -17481,7 +17491,11 @@ spec:
       FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       RUN touch /php-file
   strategy:
-    dockerStrategy: {}`)
+    dockerStrategy:
+      env:
+      - name: "BUILD_LOGLEVEL"
+        value: "2"
+`)
 
 func testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml, nil
@@ -17499,7 +17513,7 @@ func testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml() (*asset, 
 }
 
 var _testExtendedTestdataBuildsBuildPruningSuccessfulPipelineYaml = []byte(`kind: "BuildConfig"
-apiVersion: "v1"
+apiVersion: "build.openshift.io/v1"
 metadata:
   name: "successful-pipeline"
 spec:
@@ -17508,7 +17522,7 @@ spec:
     jenkinsPipelineStrategy:
       jenkinsfile: |-
         node() {
-          sh 'exit 0' 
+          sh 'exit 0'
         }
       type: JenkinsPipeline
 `)
@@ -17881,7 +17895,7 @@ func testExtendedTestdataBuildsBuildSecretsTestConfigmapJson() (*asset, error) {
 
 var _testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson = []byte(`{
   "kind": "BuildConfig",
-  "apiVersion": "v1",
+  "apiVersion": "build.openshift.io/v1",
   "metadata": {
     "name": "test",
     "labels": {
@@ -17942,7 +17956,8 @@ var _testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson = []byte(`{
       }
     }
   }
-}`)
+}
+`)
 
 func testExtendedTestdataBuildsBuildSecretsTestDockerBuildJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson, nil
@@ -17961,7 +17976,7 @@ func testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson() (*asset, error)
 
 var _testExtendedTestdataBuildsBuildSecretsTestIsJson = []byte(`{
   "kind": "ImageStream",
-  "apiVersion": "v1",
+  "apiVersion": "image.openshift.io/v1",
   "metadata": {
     "name": "test"
   }
@@ -17985,7 +18000,7 @@ func testExtendedTestdataBuildsBuildSecretsTestIsJson() (*asset, error) {
 
 var _testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson = []byte(`{
   "kind": "BuildConfig",
-  "apiVersion": "v1",
+  "apiVersion": "build.openshift.io/v1",
   "metadata": {
     "name": "test",
     "labels": {
@@ -18225,7 +18240,7 @@ func testExtendedTestdataBuildsBuildTimingS2iBinaryDirConfigRu() (*asset, error)
 
 var _testExtendedTestdataBuildsBuildTimingTestDockerBuildJson = []byte(`{
   "kind": "BuildConfig",
-  "apiVersion": "v1",
+  "apiVersion": "build.openshift.io/v1",
   "metadata": {
     "name": "test",
     "labels": {
@@ -18281,7 +18296,7 @@ func testExtendedTestdataBuildsBuildTimingTestDockerBuildJson() (*asset, error) 
 
 var _testExtendedTestdataBuildsBuildTimingTestIsJson = []byte(`{
   "kind": "ImageStream",
-  "apiVersion": "v1",
+  "apiVersion": "image.openshift.io/v1",
   "metadata": {
     "name": "test"
   }
@@ -18305,7 +18320,7 @@ func testExtendedTestdataBuildsBuildTimingTestIsJson() (*asset, error) {
 
 var _testExtendedTestdataBuildsBuildTimingTestS2iBuildJson = []byte(`{
   "kind": "BuildConfig",
-  "apiVersion": "v1",
+  "apiVersion": "build.openshift.io/v1",
   "metadata": {
     "name": "test",
     "labels": {
@@ -18601,7 +18616,7 @@ func testExtendedTestdataBuildsDockerAddDockerAddEnvFoo() (*asset, error) {
 
 var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
   "kind": "Template",
-  "apiVersion": "v1",
+  "apiVersion": "template.openshift.io/v1",
   "metadata": {
     "name": "push-pull-builder",
     "creationTimestamp": null,
@@ -18614,7 +18629,7 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
   "objects": [
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "incremental-image",
         "creationTimestamp": null
@@ -18623,7 +18638,7 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "incremental-build",
         "creationTimestamp": null,
@@ -18686,7 +18701,7 @@ func testExtendedTestdataBuildsIncrementalAuthBuildJson() (*asset, error) {
 }
 
 var _testExtendedTestdataBuildsPullsecretLinkedNodejsBcYaml = []byte(`kind: BuildConfig
-apiVersion: v1
+apiVersion: build.openshift.io/v1
 metadata:
   name: linked-nodejs
 spec:
@@ -18696,6 +18711,9 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+      env:
+      - name: "BUILD_LOGLEVEL"
+        value: "2"
       from:
         kind: DockerImage
         name: image-registry.openshift-image-registry.svc:5000/openshift/nodejs:latest
@@ -18717,7 +18735,7 @@ func testExtendedTestdataBuildsPullsecretLinkedNodejsBcYaml() (*asset, error) {
 }
 
 var _testExtendedTestdataBuildsPullsecretPullsecretNodejsBcYaml = []byte(`kind: BuildConfig
-apiVersion: v1
+apiVersion: build.openshift.io/v1
 metadata:
   name: pullsecret-nodejs
 spec:
@@ -18855,7 +18873,7 @@ func testExtendedTestdataBuildsStatusfailAssembleS2iBinAssemble() (*asset, error
 }
 
 var _testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml = []byte(`kind: BuildConfig
-apiVersion: v1
+apiVersion: build.openshift.io/v1
 metadata:
   name: statusfail-badcontextdirsourcetoimage
 spec:
@@ -18866,6 +18884,9 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+      env:
+      - name: "BUILD_LOGLEVEL"
+        value: "2"
       from:
         kind: DockerImage
         name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
@@ -18887,7 +18908,7 @@ func testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml() (*asset, error) 
 }
 
 var _testExtendedTestdataBuildsStatusfailFailedassembleYaml = []byte(`kind: BuildConfig
-apiVersion: v1
+apiVersion: build.openshift.io/v1
 metadata:
   name: statusfail-assemblescript
 spec:
@@ -18917,7 +18938,7 @@ func testExtendedTestdataBuildsStatusfailFailedassembleYaml() (*asset, error) {
 }
 
 var _testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml = []byte(`kind: BuildConfig
-apiVersion: v1
+apiVersion: build.openshift.io/v1
 metadata:
   name: statusfail-builderimage
 spec:
@@ -18948,7 +18969,7 @@ func testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml() (*asset, error)
 }
 
 var _testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYaml = []byte(`kind: BuildConfig
-apiVersion: v1
+apiVersion: build.openshift.io/v1
 metadata:
   name: statusfail-fetchimagecontentdocker
 spec:
@@ -18987,7 +19008,7 @@ func testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYaml() (*asset, 
 }
 
 var _testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml = []byte(`kind: BuildConfig
-apiVersion: v1
+apiVersion: build.openshift.io/v1
 metadata:
   name: statusfail-fetchsourcedocker
 spec:
@@ -18997,6 +19018,9 @@ spec:
   strategy:
     type: Docker
     dockerStrategy:
+      env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
       from:
         kind: DockerImage
         name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
@@ -19018,7 +19042,7 @@ func testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml() (*asset, error)
 }
 
 var _testExtendedTestdataBuildsStatusfailFetchsources2iYaml = []byte(`kind: BuildConfig
-apiVersion: v1
+apiVersion: build.openshift.io/v1
 metadata:
   name: statusfail-fetchsourcesourcetoimage
 spec:
@@ -19028,6 +19052,9 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+      env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
       from:
         kind: DockerImage
         name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
@@ -19049,7 +19076,7 @@ func testExtendedTestdataBuildsStatusfailFetchsources2iYaml() (*asset, error) {
 }
 
 var _testExtendedTestdataBuildsStatusfailGenericreasonYaml = []byte(`kind: BuildConfig
-apiVersion: v1
+apiVersion: build.openshift.io/v1
 metadata:
   name: statusfail-genericfailure
 spec:
@@ -19059,6 +19086,7 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+
       from:
         kind: DockerImage
         name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
@@ -19066,6 +19094,8 @@ spec:
       env:
         - name: http_proxy
           value: "http://%"
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
 `)
 
 func testExtendedTestdataBuildsStatusfailGenericreasonYamlBytes() ([]byte, error) {
@@ -19084,7 +19114,7 @@ func testExtendedTestdataBuildsStatusfailGenericreasonYaml() (*asset, error) {
 }
 
 var _testExtendedTestdataBuildsStatusfailOomkilledYaml = []byte(`kind: BuildConfig
-apiVersion: v1
+apiVersion: build.openshift.io/v1
 metadata:
   name: statusfail-oomkilled
 spec:
@@ -19097,6 +19127,9 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+      env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
       from:
         kind: DockerImage
         name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
@@ -19119,7 +19152,7 @@ func testExtendedTestdataBuildsStatusfailOomkilledYaml() (*asset, error) {
 }
 
 var _testExtendedTestdataBuildsStatusfailPostcommithookYaml = []byte(`kind: BuildConfig
-apiVersion: v1
+apiVersion: build.openshift.io/v1
 metadata:
   name: statusfail-postcommithook
 spec:
@@ -19131,6 +19164,9 @@ spec:
       - failme
   strategy:
     sourceStrategy:
+      env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
       from:
         kind: DockerImage
         name: quay.io/redhat-developer/test-build-simples2i:1.2
@@ -19153,7 +19189,7 @@ func testExtendedTestdataBuildsStatusfailPostcommithookYaml() (*asset, error) {
 }
 
 var _testExtendedTestdataBuildsStatusfailPushtoregistryYaml = []byte(`kind: BuildConfig
-apiVersion: v1
+apiVersion: build.openshift.io/v1
 metadata:
   name: statusfail-pushtoregistry
 spec:
@@ -19167,6 +19203,9 @@ spec:
       name: bogus.registry/image
   strategy:
     sourceStrategy:
+      env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
       from:
         kind: DockerImage
         name: quay.io/redhat-developer/test-build-simples2i:1.2
@@ -19188,7 +19227,7 @@ func testExtendedTestdataBuildsStatusfailPushtoregistryYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsTestAuthBuildYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataBuildsTestAuthBuildYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 labels:
   template: gitauth
@@ -19200,11 +19239,11 @@ parameters:
 - name: SOURCE_SECRET
   required: true
 objects:
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     name: output
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     name: gitauth
@@ -19250,15 +19289,15 @@ var _testExtendedTestdataBuildsTestBcWithPrRefYaml = []byte(`kind: List
 apiVersion: v1
 items:
 - kind: ImageStream
-  apiVersion: v1
+  apiVersion: image.openshift.io/v1
   metadata:
     name: bc-with-pr-ref
 - kind: ImageStream
-  apiVersion: v1
+  apiVersion: image.openshift.io/v1
   metadata:
     name: bc-with-pr-ref-docker
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: bc-with-pr-ref
   spec:
@@ -19270,6 +19309,9 @@ items:
     strategy:
       type: Source
       sourceStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStreamTag
           name: python:latest
@@ -19279,7 +19321,7 @@ items:
         kind: ImageStreamTag
         name: bc-with-pr-ref:latest
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: bc-with-pr-ref-docker
   spec:
@@ -19292,6 +19334,9 @@ items:
     strategy:
       type: Docker
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: DockerImage
           name: registry.redhat.io/ubi8/python-36:latest
@@ -19437,7 +19482,7 @@ func testExtendedTestdataBuildsTestBuildClusterConfigYaml() (*asset, error) {
 
 var _testExtendedTestdataBuildsTestBuildPodsvcJson = []byte(`{
   "kind": "Template",
-  "apiVersion": "v1",
+  "apiVersion": "template.openshift.io/v1",
   "parameters": [
     {
       "name": "IMAGE_NAME",
@@ -19513,7 +19558,7 @@ apiVersion: v1
 metadata: {}
 items:
 - kind: ImageStream
-  apiVersion: v1
+  apiVersion: image.openshift.io/v1
   metadata:
     name: origin-ruby-sample
     creationTimestamp:
@@ -19521,7 +19566,7 @@ items:
   status:
     dockerImageRepository: ''
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-build
     creationTimestamp:
@@ -19543,11 +19588,13 @@ items:
           value: 127.0.0.1:3128
         - name: HTTP_PROXY
           value: 127.0.0.1:3128
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
         from:
           kind: DockerImage
           name: quay.io/redhat-developer/test-build-simples2i:1.2
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-s2i-build-noproxy
     creationTimestamp:
@@ -19573,8 +19620,10 @@ items:
           value: https://envuser:password@proxy3.com
         - name: SOME_HTTPS_PROXY
           value: https://envuser:password@proxy4.com
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-docker-build-noproxy
     creationTimestamp:
@@ -19600,6 +19649,8 @@ items:
           value: https://envuser:password@proxy3.com
         - name: SOME_HTTPS_PROXY
           value: https://envuser:password@proxy4.com
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
 - kind: BuildConfig
   apiVersion: build.openshift.io/v1
   metadata:
@@ -19612,6 +19663,9 @@ items:
         RUN cat /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
     strategy:
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStreamTag
           name: cli
@@ -19634,39 +19688,49 @@ func testExtendedTestdataBuildsTestBuildProxyYaml() (*asset, error) {
 }
 
 var _testExtendedTestdataBuildsTestBuildRevisionJson = []byte(`{
-  "kind": "List",
-  "apiVersion": "v1",
-  "metadata": {},
-  "items": [
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-build",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "https://github.com/openshift/ruby-hello-world.git"
-          }
+  "kind":"List",
+  "apiVersion":"v1",
+  "metadata":{
+
+  },
+  "items":[
+     {
+        "kind":"BuildConfig",
+        "apiVersion":"build.openshift.io/v1",
+        "metadata":{
+           "name":"sample-build",
+           "creationTimestamp":null
         },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "from": {
-              "kind": "DockerImage",
-              "name": "quay.io/redhat-developer/test-build-simples2i:1.2"
-            }
-          }
+        "spec":{
+           "source":{
+              "type":"Git",
+              "git":{
+                 "uri":"https://github.com/openshift/ruby-hello-world.git"
+              }
+           },
+           "strategy":{
+              "type":"Source",
+              "sourceStrategy":{
+                 "env":[
+                    {
+                       "name":"BUILD_LOGLEVEL",
+                       "value":"2"
+                    }
+                 ],
+                 "from":{
+                    "kind":"DockerImage",
+                    "name":"quay.io/redhat-developer/test-build-simples2i:1.2"
+                 }
+              }
+           },
+           "resources":{
+
+           }
         },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    }
+        "status":{
+           "lastVersion":0
+        }
+     }
   ]
 }
 `)
@@ -19723,7 +19787,7 @@ apiVersion: v1
 metadata: {}
 items:
 - kind: ImageStream
-  apiVersion: v1
+  apiVersion: image.openshift.io/v1
   metadata:
     name: origin-ruby-sample
     creationTimestamp:
@@ -19739,7 +19803,7 @@ items:
     WebHookSecretKey: c2VjcmV0dmFsdWUx
   type: Opaque
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-build
     creationTimestamp:
@@ -19773,7 +19837,7 @@ items:
   status:
     lastVersion: 0
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-verbose-build
     creationTimestamp:
@@ -19802,7 +19866,7 @@ items:
   status:
     lastVersion: 0
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-build-binary
     creationTimestamp:
@@ -19830,7 +19894,7 @@ items:
   status:
     lastVersion: 0
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-build-github-archive
     creationTimestamp:
@@ -19859,7 +19923,7 @@ items:
   status:
     lastVersion: 0
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-build-binary-invalidnodeselector
     creationTimestamp:
@@ -19889,7 +19953,7 @@ items:
   status:
     lastVersion: 0
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-build-docker-args
     creationTimestamp:
@@ -19906,6 +19970,9 @@ items:
     strategy:
       type: Docker
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: DockerImage
           name: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
@@ -19915,7 +19982,7 @@ items:
   status:
     lastVersion: 0
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-build-docker-args-preset
     creationTimestamp:
@@ -19932,6 +19999,9 @@ items:
     strategy:
       type: Docker
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: DockerImage
           name: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
@@ -19991,7 +20061,7 @@ items:
   data:
     username: AA==
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: test1
   spec:
@@ -20002,11 +20072,14 @@ items:
     strategy:
       type: Source
       sourceStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStream
           name: test
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: test2
   spec:
@@ -20021,7 +20094,7 @@ items:
           kind: ImageStream
           name: test
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: test3
   spec:
@@ -20032,11 +20105,14 @@ items:
     strategy:
       type: Source
       sourceStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStream
           name: test
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: test4
   spec:
@@ -20069,7 +20145,7 @@ func testExtendedTestdataBuildsTestBuildconfigsecretinjectorYaml() (*asset, erro
 
 var _testExtendedTestdataBuildsTestCdsDockerbuildJson = []byte(`{
   "kind":"BuildConfig",
-  "apiVersion":"v1",
+  "apiVersion":"build.openshift.io/v1",
   "metadata":{
     "name":"docker-build"
   },
@@ -20083,6 +20159,12 @@ var _testExtendedTestdataBuildsTestCdsDockerbuildJson = []byte(`{
     "strategy":{
       "type":"Docker",
       "dockerStrategy":{
+        "env":[
+          {
+             "name":"BUILD_LOGLEVEL",
+             "value":"2"
+          }
+        ],
         "from":{
           "kind":"DockerImage",
           "name":"image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
@@ -20115,7 +20197,7 @@ var _testExtendedTestdataBuildsTestCdsSourcebuildJson = []byte(`{
   "items": [
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "origin-ruby-sample"
       },
@@ -20126,7 +20208,7 @@ var _testExtendedTestdataBuildsTestCdsSourcebuildJson = []byte(`{
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "source-build"
       },
@@ -20140,6 +20222,12 @@ var _testExtendedTestdataBuildsTestCdsSourcebuildJson = []byte(`{
         "strategy": {
           "type": "Source",
           "sourceStrategy": {
+            "env":[
+              {
+                 "name":"BUILD_LOGLEVEL",
+                 "value":"2"
+              }
+           ],
             "from": {
               "kind": "DockerImage",
               "name": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
@@ -20174,7 +20262,7 @@ var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
   "items": [
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "dockercontext"
       },
@@ -20200,7 +20288,7 @@ var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "s2icontext"
       },
@@ -20238,14 +20326,14 @@ var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "test"
       }
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "frontend"
       },
@@ -20341,11 +20429,11 @@ var _testExtendedTestdataBuildsTestCustomBuildYaml = []byte(`kind: List
 apiVersion: v1
 items:
 - kind: ImageStream
-  apiVersion: v1
+  apiVersion: image.openshift.io/v1
   metadata:
     name: sample-custom
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: sample-custom-build
     labels:
@@ -20356,6 +20444,9 @@ items:
     strategy:
       type: Custom
       customStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         forcePull: true
         from:
           kind: ImageStreamTag
@@ -20405,7 +20496,7 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
   "metadata": {},
   "items": [{
     "kind": "ImageStream",
-    "apiVersion": "v1",
+    "apiVersion": "image.openshift.io/v1",
     "metadata": {
       "name": "image1",
       "creationTimestamp": null
@@ -20416,7 +20507,7 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
     }
   }, {
     "kind": "BuildConfig",
-    "apiVersion": "v1",
+    "apiVersion": "build.openshift.io/v1",
     "metadata": {
       "name": "docker-build",
       "creationTimestamp": null,
@@ -20431,6 +20522,12 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
       "strategy": {
         "type": "Docker",
         "dockerStrategy": {
+          "env":[
+            {
+               "name":"BUILD_LOGLEVEL",
+               "value":"2"
+            }
+         ],
           "from": {
             "kind": "DockerImage",
             "name": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
@@ -20446,7 +20543,7 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
     }
   }, {
     "kind": "BuildConfig",
-    "apiVersion": "v1",
+    "apiVersion": "build.openshift.io/v1",
     "metadata": {
       "name": "docker-build-pull",
       "creationTimestamp": null,
@@ -20461,6 +20558,12 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
       "strategy": {
         "type": "Docker",
         "dockerStrategy": {
+          "env":[
+            {
+               "name":"BUILD_LOGLEVEL",
+               "value":"2"
+            }
+         ],
           "from": {
             "kind": "ImageStreamTag",
             "name": "image1:latest"
@@ -20490,50 +20593,58 @@ func testExtendedTestdataBuildsTestDockerBuildPullsecretJson() (*asset, error) {
 
 var _testExtendedTestdataBuildsTestDockerBuildJson = []byte(`{
   "kind":"BuildConfig",
-  "apiVersion":"v1",
+  "apiVersion":"build.openshift.io/v1",
   "metadata":{
-    "name":"test",
-    "labels":{
-      "name":"test"
-    }
+     "name":"test",
+     "labels":{
+        "name":"test"
+     }
   },
   "spec":{
-    "triggers":[],
-    "source":{
-      "git": {
-        "uri":"https://github.com/sclorg/nodejs-ex"        
-      },
-      "dockerfile": "FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
-    },
-    "strategy":{
-      "type":"Docker",
-      "dockerStrategy":{
-        "from":{
-          "kind":"DockerImage",
-          "name":"image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
-        }
-      }
-    },
-    "output":{
-      "to":{
-        "kind":"ImageStreamTag",
-        "name":"test:latest"
-      },
-      "imageLabels": [
-        {
-          "name": "user-specified-label",
-          "value": "arbitrary-value"
+     "triggers":[
+
+     ],
+     "source":{
+        "git":{
+           "uri":"https://github.com/sclorg/nodejs-ex"
         },
-        {
-          "name": "io.k8s.display-name",
-          "value": "overridden"
-        },
-        {
-          "name": "io.openshift.builder-version",
-          "value": "overridden2"
+        "dockerfile":"FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
+     },
+     "strategy":{
+        "type":"Docker",
+        "dockerStrategy":{
+           "env":[
+              {
+                 "name":"BUILD_LOGLEVEL",
+                 "value":"2"
+              }
+           ],
+           "from":{
+              "kind":"DockerImage",
+              "name":"image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
+           }
         }
-      ]
-    }
+     },
+     "output":{
+        "to":{
+           "kind":"ImageStreamTag",
+           "name":"test:latest"
+        },
+        "imageLabels":[
+           {
+              "name":"user-specified-label",
+              "value":"arbitrary-value"
+           },
+           {
+              "name":"io.k8s.display-name",
+              "value":"overridden"
+           },
+           {
+              "name":"io.openshift.builder-version",
+              "value":"overridden2"
+           }
+        ]
+     }
   }
 }
 `)
@@ -20555,7 +20666,7 @@ func testExtendedTestdataBuildsTestDockerBuildJson() (*asset, error) {
 
 var _testExtendedTestdataBuildsTestDockerNoOutputnameJson = []byte(`{
   "kind": "BuildConfig",
-  "apiVersion": "v1",
+  "apiVersion": "build.openshift.io/v1",
   "metadata": {
     "name": "test-docker",
     "labels": {
@@ -20584,7 +20695,8 @@ var _testExtendedTestdataBuildsTestDockerNoOutputnameJson = []byte(`{
       }
     }
   }
-}`)
+}
+`)
 
 func testExtendedTestdataBuildsTestDockerNoOutputnameJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsTestDockerNoOutputnameJson, nil
@@ -20603,7 +20715,7 @@ func testExtendedTestdataBuildsTestDockerNoOutputnameJson() (*asset, error) {
 
 var _testExtendedTestdataBuildsTestEnvBuildJson = []byte(`{
   "kind":"BuildConfig",
-  "apiVersion":"v1",
+  "apiVersion":"build.openshift.io/v1",
   "metadata":{
     "name":"test",
     "labels":{
@@ -20618,6 +20730,12 @@ var _testExtendedTestdataBuildsTestEnvBuildJson = []byte(`{
     "strategy":{
       "type":"Source",
       "sourceStrategy":{
+        "env":[
+          {
+             "name":"BUILD_LOGLEVEL",
+             "value":"2"
+          }
+       ],
         "from":{
           "kind":"DockerImage",
           "name":"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8"
@@ -20651,7 +20769,7 @@ func testExtendedTestdataBuildsTestEnvBuildJson() (*asset, error) {
 
 var _testExtendedTestdataBuildsTestImageStreamJson = []byte(`{
   "kind": "ImageStream",
-  "apiVersion": "v1",
+  "apiVersion": "image.openshift.io/v1",
   "metadata": {
     "name": "test",
     "creationTimestamp": null,
@@ -20663,7 +20781,8 @@ var _testExtendedTestdataBuildsTestImageStreamJson = []byte(`{
   "status": {
     "dockerImageRepository": ""
   }
-}`)
+}
+`)
 
 func testExtendedTestdataBuildsTestImageStreamJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsTestImageStreamJson, nil
@@ -20684,7 +20803,7 @@ var _testExtendedTestdataBuildsTestImagechangetriggersYaml = []byte(`kind: List
 apiVersion: v1
 items:
 - kind: ImageStream
-  apiVersion: v1
+  apiVersion: image.openshift.io/v1
   metadata:
     name: nodejs-ex
   spec:
@@ -20695,7 +20814,7 @@ items:
         name: registry.redhat.io/ubi8/nodejs-12:latest
 
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: bc-source
   spec:
@@ -20706,6 +20825,9 @@ items:
     strategy:
       type: Source
       sourceStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStreamTag
           name: nodejs-ex:latest
@@ -20717,7 +20839,7 @@ items:
           name: nodejs-ex:latest
 
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: bc-docker
   spec:
@@ -20727,6 +20849,9 @@ items:
     strategy:
       type: Docker
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStreamTag
           name: nodejs-ex:latest
@@ -20738,13 +20863,16 @@ items:
           name: nodejs-ex:latest
 
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: bc-custom
   spec:
     strategy:
       type: Custom
       customStrategy:
+        env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
         from:
           kind: ImageStreamTag
           name: nodejs-ex:latest
@@ -20756,13 +20884,16 @@ items:
           name: nodejs-ex:latest
 
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: bc-jenkins
   spec:
     strategy:
       type: Jenkins
       jenkinsPipelineStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         jenkinsfile: node {}
     triggers:
     - type: ImageChange
@@ -20791,7 +20922,7 @@ var _testExtendedTestdataBuildsTestImageresolutionCustomBuildYaml = []byte(`apiV
 kind: List
 metadata: {}
 items:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: Build
   metadata:
     labels:
@@ -20838,7 +20969,7 @@ var _testExtendedTestdataBuildsTestImageresolutionDockerBuildYaml = []byte(`apiV
 kind: List
 metadata: {}
 items:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: Build
   metadata:
     labels:
@@ -20885,7 +21016,7 @@ var _testExtendedTestdataBuildsTestImageresolutionS2iBuildYaml = []byte(`apiVers
 kind: List
 metadata: {}
 items:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: Build
   metadata:
     labels:
@@ -20932,7 +21063,7 @@ var _testExtendedTestdataBuildsTestImagesourceBuildconfigYaml = []byte(`apiVersi
 kind: List
 metadata: {}
 items:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     labels:
@@ -20951,11 +21082,14 @@ items:
             ln -s ../../rh/6/root/usr/bin /opt/app-root/test-links/bin
     strategy:
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStreamTag
           name: ruby:2.7-ubi8
           namespace: openshift
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     labels:
@@ -20985,7 +21119,7 @@ items:
           kind: ImageStreamTag
           name: ruby:latest
           namespace: openshift
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     labels:
@@ -21010,25 +21144,28 @@ items:
         - destinationDir: injected/usr/bin
           sourcePath: /usr/bin/ruby
     strategy:
-      dockerStrategy: {}
+      dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
 
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     name: inputimage
   spec: {}
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     name: imagesourceapp
   spec: {}
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     name: imagedockerapp
   spec: {}
 
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     name: imagesourceapp
@@ -21072,7 +21209,7 @@ items:
       type: ImageChange
     - type: ConfigChange
 
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     name: imagedockerapp
@@ -21139,7 +21276,7 @@ var _testExtendedTestdataBuildsTestNosrcBuildJson = []byte(`{
   "items": [
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "nosrc-stream",
         "creationTimestamp": null
@@ -21151,7 +21288,7 @@ var _testExtendedTestdataBuildsTestNosrcBuildJson = []byte(`{
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "nosrc-build",
         "creationTimestamp": null
@@ -21164,6 +21301,12 @@ var _testExtendedTestdataBuildsTestNosrcBuildJson = []byte(`{
         "strategy": {
           "type": "Source",
           "sourceStrategy": {
+            "env":[
+              {
+                 "name":"BUILD_LOGLEVEL",
+                 "value":"2"
+              }
+           ],
             "from": {
               "kind": "DockerImage",
               "name": "quay.io/redhat-developer/test-build-simples2i:1.2"
@@ -21193,7 +21336,7 @@ func testExtendedTestdataBuildsTestNosrcBuildJson() (*asset, error) {
 
 var _testExtendedTestdataBuildsTestS2iBuildQuotaJson = []byte(`{
   "kind": "BuildConfig",
-  "apiVersion": "v1",
+  "apiVersion": "build.openshift.io/v1",
   "metadata": {
     "name": "s2i-build-quota",
     "creationTimestamp": null,
@@ -21211,7 +21354,7 @@ var _testExtendedTestdataBuildsTestS2iBuildQuotaJson = []byte(`{
     "source": {
       "binary": {
         "asFile": ""
-      }          
+      }
     },
     "strategy": {
       "type": "Source",
@@ -21249,7 +21392,7 @@ func testExtendedTestdataBuildsTestS2iBuildQuotaJson() (*asset, error) {
 
 var _testExtendedTestdataBuildsTestS2iBuildJson = []byte(`{
   "kind": "BuildConfig",
-  "apiVersion": "v1",
+  "apiVersion": "build.openshift.io/v1",
   "metadata": {
     "name": "test",
     "labels": {
@@ -21261,7 +21404,7 @@ var _testExtendedTestdataBuildsTestS2iBuildJson = []byte(`{
     "source": {
       "type": "Git",
       "git": {
-        "uri":"https://github.com/sclorg/nodejs-ex"        
+        "uri":"https://github.com/sclorg/nodejs-ex"
       }
     },
     "strategy": {
@@ -21320,7 +21463,7 @@ func testExtendedTestdataBuildsTestS2iBuildJson() (*asset, error) {
 
 var _testExtendedTestdataBuildsTestS2iNoOutputnameJson = []byte(`{
   "kind": "BuildConfig",
-  "apiVersion": "v1",
+  "apiVersion": "build.openshift.io/v1",
   "metadata": {
     "name": "test-sti",
     "labels": {
@@ -21351,7 +21494,8 @@ var _testExtendedTestdataBuildsTestS2iNoOutputnameJson = []byte(`{
       }
     }
   }
-}`)
+}
+`)
 
 func testExtendedTestdataBuildsTestS2iNoOutputnameJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsTestS2iNoOutputnameJson, nil
@@ -21372,11 +21516,11 @@ var _testExtendedTestdataBuildsTestSymlinkBuildYaml = []byte(`kind: List
 apiVersion: v1
 items:
 - kind: ImageStream
-  apiVersion: v1
+  apiVersion: image.openshift.io/v1
   metadata:
     name: symlink-is
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: symlink-bc
   spec:
@@ -21386,6 +21530,9 @@ items:
     strategy:
       type: Source
       sourceStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStreamTag
           name: nodejs:latest
@@ -21411,8 +21558,7 @@ func testExtendedTestdataBuildsTestSymlinkBuildYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYaml = []byte(`
-apiVersion: v1
+var _testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYaml = []byte(`apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
   name: mydockertest
@@ -21474,7 +21620,7 @@ func testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYaml() (
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYaml = []byte(`apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
   name: mys2itest
@@ -21539,8 +21685,7 @@ func testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYaml() (*as
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsValuefromSuccessfulDockerBuildValueFromConfigYaml = []byte(`
-apiVersion: v1
+var _testExtendedTestdataBuildsValuefromSuccessfulDockerBuildValueFromConfigYaml = []byte(`apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
   name: mydockertest
@@ -21610,7 +21755,7 @@ func testExtendedTestdataBuildsValuefromSuccessfulDockerBuildValueFromConfigYaml
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsValuefromSuccessfulStiBuildValueFromConfigYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataBuildsValuefromSuccessfulStiBuildValueFromConfigYaml = []byte(`apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
   name: mys2itest
@@ -21646,7 +21791,7 @@ spec:
             secretKeyRef:
               name: mysecret
               key: username
-        - name: FIELDREF_CLONE_ENV 
+        - name: FIELDREF_CLONE_ENV
           value: $(FIELDREF_ENV)
         - name: FIELDREF_CLONE_CLONE_ENV
           value: $(FIELDREF_CLONE_ENV)
@@ -21708,7 +21853,7 @@ func testExtendedTestdataBuildsValuefromTestConfigmapYaml() (*asset, error) {
 
 var _testExtendedTestdataBuildsValuefromTestIsJson = []byte(`{
   "kind": "ImageStream",
-  "apiVersion": "v1",
+  "apiVersion": "image.openshift.io/v1",
   "metadata": {
     "name": "test"
   }
@@ -21853,6 +21998,9 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+      env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
       from:
         kind: DockerImage
         name: quay.io/redhat-developer/test-build-simples2i:1.2
@@ -21917,7 +22065,7 @@ func testExtendedTestdataBuildsVolumesCsiSharedresourceroleYaml() (*asset, error
 }
 
 var _testExtendedTestdataBuildsVolumesCsiSharedresourcerolebindingYaml = []byte(`kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   name: "build-volume-csi-roles-template"
 labels:
@@ -21936,11 +22084,12 @@ objects:
       apiGroup: rbac.authorization.k8s.io
       kind: Role
       name: shared-resource-my-share
-      namespace: ${NAMESPACE} 
+      namespace: ${NAMESPACE}
     subjects:
     - kind: ServiceAccount
       name: builder
-      namespace: ${NAMESPACE}`)
+      namespace: ${NAMESPACE}
+`)
 
 func testExtendedTestdataBuildsVolumesCsiSharedresourcerolebindingYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsVolumesCsiSharedresourcerolebindingYaml, nil
@@ -22058,6 +22207,9 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+      env:
+        - name: BUILD_LOGLEVEL
+          value: "5"
       from:
         kind: DockerImage
         name: quay.io/redhat-developer/test-build-simples2i:1.2
@@ -22245,6 +22397,9 @@ spec:
   strategy:
     type: Source
     sourceStrategy:
+      env:
+        - name: "BUILD_LOGLEVEL"
+          value: "2"
       from:
         kind: DockerImage
         name: quay.io/redhat-developer/test-build-simples2i:1.2
@@ -29860,7 +30015,7 @@ os::cmd::expect_success_and_not_text 'oc set env dc/testdc PASS=x,y=z' 'no longe
 
 # create a build-config object with the JenkinsPipeline strategy
 os::cmd::expect_success 'oc process -p NAMESPACE=openshift -f ${TEST_DATA}/jenkins/jenkins-ephemeral-template.json | oc create -f -'
-os::cmd::expect_success "echo 'apiVersion: v1
+os::cmd::expect_success "echo 'apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
   name: fake-pipeline
@@ -31296,7 +31451,7 @@ os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-worl
 
 # verify image streams with no tags are reported correctly and that --allow-missing-imagestream-tags works
 # new-app
-os::cmd::expect_success 'printf "apiVersion: v1\nkind: ImageStream\nmetadata:\n  name: emptystream\n" | oc create -f -'
+os::cmd::expect_success 'printf "apiVersion: image.openshift.io/v1\nkind: ImageStream\nmetadata:\n  name: emptystream\n" | oc create -f -'
 os::cmd::expect_failure_and_text 'oc new-app --dry-run emptystream' 'error: no tags found on matching image stream'
 os::cmd::expect_success 'oc new-app --dry-run emptystream --allow-missing-imagestream-tags'
 # new-build
@@ -33041,7 +33196,7 @@ func testExtendedTestdataCmdTestCmdTemplatesSh() (*asset, error) {
 
 var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson = []byte(`{
   "kind": "Template",
-  "apiVersion": "v1",
+  "apiVersion": "template.openshift.io/v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
     "annotations": {
@@ -33090,7 +33245,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson = 
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge",
         "annotations": {
@@ -33111,7 +33266,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson = 
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "origin-ruby-sample"
       },
@@ -33122,7 +33277,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson = 
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "origin-custom-docker-builder"
       },
@@ -33135,7 +33290,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson = 
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "ruby-sample-build",
         "labels": {
@@ -33207,7 +33362,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson = 
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "frontend",
         "annotations": {
@@ -33361,7 +33516,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson = 
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "database",
         "annotations": {
@@ -33549,7 +33704,7 @@ func testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson() 
 
 var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = []byte(`{
   "kind": "Template",
-  "apiVersion": "v1",
+  "apiVersion": "template.openshift.io/v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
     "annotations": {
@@ -33598,7 +33753,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge",
         "annotations": {
@@ -33619,7 +33774,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "origin-ruby-sample"
       },
@@ -33630,7 +33785,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "ruby-27-centos7"
       },
@@ -33648,7 +33803,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "ruby-sample-build",
         "labels": {
@@ -33719,7 +33874,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "frontend",
         "annotations": {
@@ -33872,7 +34027,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "database",
         "annotations": {
@@ -34058,7 +34213,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson = []b
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge",
         "annotations": {
@@ -34079,7 +34234,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson = []b
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "origin-ruby-sample"
       },
@@ -34090,7 +34245,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson = []b
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "ruby-27"
       },
@@ -34103,7 +34258,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson = []b
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "ruby-sample-build",
         "labels": {
@@ -34174,7 +34329,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson = []b
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "frontend",
         "annotations": {
@@ -34328,7 +34483,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson = []b
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "database",
         "annotations": {
@@ -34650,7 +34805,7 @@ func testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson() (*asset,
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataIdlingDcYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataCmdTestCmdTestdataIdlingDcYaml = []byte(`apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   generateName: idling-echo-
@@ -34726,7 +34881,7 @@ items:
       - port: 3090
         name: udp-echo
         protocol: UDP
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: idling-echo
@@ -34734,7 +34889,7 @@ items:
     to:
       kind: Service
       name: idling-echo
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: idling-echo-reencrypt
@@ -34786,11 +34941,11 @@ func testExtendedTestdataCmdTestCmdTestdataIdlingSvcRouteYaml() (*asset, error) 
 }
 
 var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json = []byte(`{
-  "kind": "ImageStreamList",
+  "kind": "List",
   "apiVersion": "v1",
   "items": [
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -34860,7 +35015,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -34913,7 +35068,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -34962,7 +35117,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -35029,7 +35184,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -35114,7 +35269,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -35181,7 +35336,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -35254,7 +35409,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -35325,7 +35480,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -35402,7 +35557,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -35475,7 +35630,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -35542,7 +35697,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -35615,7 +35770,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -35664,7 +35819,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -35719,7 +35874,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
       }
     },
     {
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
       "metadata": {
         "annotations": {
@@ -35811,7 +35966,7 @@ func testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json()
 }
 
 var _testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJson = []byte(`{
-    "apiVersion": "v1",
+    "apiVersion": "template.openshift.io/v1",
     "kind": "Template",
     "labels": {
         "app": "jenkins-ephemeral",
@@ -35833,7 +35988,7 @@ var _testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJson =
     },
     "objects": [
         {
-            "apiVersion": "v1",
+            "apiVersion": "route.openshift.io/v1",
             "kind": "Route",
             "metadata": {
                 "annotations": {
@@ -35854,7 +36009,7 @@ var _testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJson =
             }
         },
         {
-            "apiVersion": "v1",
+            "apiVersion": "apps.openshift.io/v1",
             "kind": "DeploymentConfig",
             "metadata": {
                 "annotations": {
@@ -36125,7 +36280,7 @@ func testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJson()
 
 var _testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJson = []byte(`{
   "kind": "ImageStream",
-  "apiVersion": "v1",
+  "apiVersion": "image.openshift.io/v1",
   "metadata": {
     "name": "ruby",
     "annotations": {
@@ -36268,13 +36423,13 @@ func testExtendedTestdataCmdTestCmdTestdataMultiportServiceYaml() (*asset, error
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataNewAppBcFromImagestreamimageJson = []byte(`apiVersion: v1
+var _testExtendedTestdataCmdTestCmdTestdataNewAppBcFromImagestreamimageJson = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   creationTimestamp: null
   name: bc-from-imagestreamimage
 objects:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     creationTimestamp: null
@@ -36359,13 +36514,14 @@ func testExtendedTestdataCmdTestCmdTestdataNewAppBuildArgDockerfileDockerfile() 
 
 var _testExtendedTestdataCmdTestCmdTestdataNewAppCircularIsYaml = []byte(`apiVersion: v1
 items:
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     name: newapp-circular-template
   spec: {}
 kind: List
-metadata: {}`)
+metadata: {}
+`)
 
 func testExtendedTestdataCmdTestCmdTestdataNewAppCircularIsYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataCmdTestCmdTestdataNewAppCircularIsYaml, nil
@@ -36382,12 +36538,12 @@ func testExtendedTestdataCmdTestCmdTestdataNewAppCircularIsYaml() (*asset, error
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataNewAppCircularYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataCmdTestCmdTestdataNewAppCircularYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   name: circular
 objects:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     name: newapp-circular-template
@@ -36438,7 +36594,7 @@ func testExtendedTestdataCmdTestCmdTestdataNewAppCircularYaml() (*asset, error) 
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataNewAppImagestreamRefYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataCmdTestCmdTestdataNewAppImagestreamRefYaml = []byte(`apiVersion: image.openshift.io/v1
 kind: ImageStream
 metadata:
   name: myruby
@@ -36469,7 +36625,7 @@ func testExtendedTestdataCmdTestCmdTestdataNewAppImagestreamRefYaml() (*asset, e
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataNewAppInstallableStreamYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataCmdTestCmdTestdataNewAppInstallableStreamYaml = []byte(`apiVersion: image.openshift.io/v1
 kind: ImageStream
 metadata:
   name: installable
@@ -36523,10 +36679,10 @@ func testExtendedTestdataCmdTestCmdTestdataNewAppInstallableStreamYaml() (*asset
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataNewAppInvalidBuildStrategyYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataCmdTestCmdTestdataNewAppInvalidBuildStrategyYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 objects:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   spec:
     strategy:
@@ -36567,7 +36723,7 @@ func testExtendedTestdataCmdTestCmdTestdataNewAppInvalidJson() (*asset, error) {
 
 var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateMinimalExposeJson = []byte(`{
   "kind": "Template",
-  "apiVersion": "v1",
+  "apiVersion": "template.openshift.io/v1",
   "metadata": {
     "name": "helloworld-sample"
   },
@@ -36600,7 +36756,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateMinimalExposeJson = []b
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge",
         "annotations": {
@@ -36624,7 +36780,8 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateMinimalExposeJson = []b
   "labels": {
     "app": "expose-output"
   }
-}`)
+}
+`)
 
 func testExtendedTestdataCmdTestCmdTestdataNewAppTemplateMinimalExposeJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateMinimalExposeJson, nil
@@ -36643,7 +36800,7 @@ func testExtendedTestdataCmdTestCmdTestdataNewAppTemplateMinimalExposeJson() (*a
 
 var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson = []byte(`{
   "kind": "Template",
-  "apiVersion": "v1",
+  "apiVersion": "template.openshift.io/v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
     "creationTimestamp": null,
@@ -36683,7 +36840,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson = []by
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge",
         "creationTimestamp": null
@@ -36702,7 +36859,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson = []by
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "origin-ruby-sample",
         "creationTimestamp": null
@@ -36714,7 +36871,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson = []by
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "ruby-27",
         "creationTimestamp": null
@@ -36728,7 +36885,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson = []by
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "ruby-sample-build",
         "creationTimestamp": null,
@@ -36797,7 +36954,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson = []by
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "frontend",
         "creationTimestamp": null
@@ -36949,7 +37106,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson = []by
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "database",
         "creationTimestamp": null
@@ -37136,7 +37293,7 @@ func testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson() (*as
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   name: template-with-crd
@@ -37164,7 +37321,7 @@ func testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdYaml() (*asset, 
 
 var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithNamespacesJson = []byte(`{
   "kind": "Template",
-  "apiVersion": "v1",
+  "apiVersion": "template.openshift.io/v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
     "creationTimestamp": null,
@@ -37177,7 +37334,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithNamespacesJson = []
   "objects": [
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge-stripped",
         "namespace": "STRIPPED"
@@ -37196,7 +37353,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithNamespacesJson = []
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge-substituted",
         "namespace": "${SUBSTITUTED}"
@@ -37215,7 +37372,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithNamespacesJson = []
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge-prefix-substituted",
         "namespace": "prefix-${SUBSTITUTED}"
@@ -37234,7 +37391,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithNamespacesJson = []
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge-refstripped",
         "namespace": "${{SUBSTITUTED}}"
@@ -37253,7 +37410,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithNamespacesJson = []
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge-prefix-refstripped",
         "namespace": "prefix-${{SUBSTITUTED}}"
@@ -37302,7 +37459,7 @@ func testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithNamespacesJson() (*
 
 var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson = []byte(`{
   "kind": "Template",
-  "apiVersion": "v1",
+  "apiVersion": "template.openshift.io/v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
     "creationTimestamp": null,
@@ -37343,7 +37500,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson = [
     },
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "route-edge",
         "creationTimestamp": null
@@ -37365,7 +37522,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson = [
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "origin-ruby-sample",
         "creationTimestamp": null
@@ -37377,7 +37534,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson = [
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "ruby-27",
         "creationTimestamp": null
@@ -37391,7 +37548,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson = [
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "ruby-sample-build",
         "creationTimestamp": null,
@@ -37459,7 +37616,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson = [
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "frontend",
         "creationTimestamp": null
@@ -37612,7 +37769,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson = [
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "database",
         "creationTimestamp": null
@@ -38067,7 +38224,7 @@ func testExtendedTestdataCmdTestCmdTestdataOauthaccesstokenYaml() (*asset, error
 
 var _testExtendedTestdataCmdTestCmdTestdataOldTemplateJson = []byte(`{
     "kind": "Template",
-    "apiVersion": "v1",
+    "apiVersion": "template.openshift.io/v1",
     "metadata": {
         "annotations": {
             "iconClass": "icon-jboss",
@@ -38192,7 +38349,7 @@ var _testExtendedTestdataCmdTestCmdTestdataOldTemplateJson = []byte(`{
         },
         {
             "kind": "Route",
-            "apiVersion": "v1",
+            "apiVersion": "route.openshift.io/v1",
             "id": "${APPLICATION_NAME}-http",
             "metadata": {
                 "name": "${APPLICATION_NAME}",
@@ -38212,7 +38369,7 @@ var _testExtendedTestdataCmdTestCmdTestdataOldTemplateJson = []byte(`{
         },
         {
             "kind": "ImageStream",
-            "apiVersion": "v1",
+            "apiVersion": "image.openshift.io/v1",
             "metadata": {
                 "name": "${APPLICATION_NAME}",
                 "labels": {
@@ -38222,7 +38379,7 @@ var _testExtendedTestdataCmdTestCmdTestdataOldTemplateJson = []byte(`{
         },
         {
             "kind": "BuildConfig",
-            "apiVersion": "v1",
+            "apiVersion": "build.openshift.io/v1",
             "metadata": {
                 "name": "${APPLICATION_NAME}",
                 "labels": {
@@ -38280,7 +38437,7 @@ var _testExtendedTestdataCmdTestCmdTestdataOldTemplateJson = []byte(`{
         },
         {
             "kind": "DeploymentConfig",
-            "apiVersion": "v1",
+            "apiVersion": "apps.openshift.io/v1",
             "metadata": {
                 "name": "${APPLICATION_NAME}",
                 "labels": {
@@ -38744,7 +38901,7 @@ items:
   spec:
     template:
       kind: Template
-      apiVersion: v1
+      apiVersion: template.openshift.io/v1
       metadata:
         name: template
       objects:
@@ -38772,7 +38929,7 @@ items:
               - name: hello-openshift
                 image: k8s.gcr.io/e2e-test-images/agnhost:2.33
       - kind: Route
-        apiVersion: v1
+        apiVersion: route.openshift.io/v1
         metadata:
           name: route
         spec:
@@ -38809,7 +38966,7 @@ func testExtendedTestdataCmdTestCmdTestdataTemplateinstance_objectkindsYaml() (*
 
 var _testExtendedTestdataCmdTestCmdTestdataTemplatesBasicUsersBindingJson = []byte(`{
     "kind": "ClusterRoleBinding",
-    "apiVersion": "v1",
+    "apiVersion": "authorization.openshift.io/v1",
     "metadata": {
         "name": "basic-users",
         "selfLink": "/oapi/v1/clusterrolebindings/basic-users",
@@ -38889,7 +39046,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTemplatesGuestbookJson = []byte(`{
   "objects": [
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "frontend-route",
         "creationTimestamp": null
@@ -39543,7 +39700,7 @@ func testExtendedTestdataCmdTestCmdTestdataTemplatesMultilineTxt() (*asset, erro
 
 var _testExtendedTestdataCmdTestCmdTestdataTemplatesTemplateTypePrecisionJson = []byte(`{
     "kind": "Template",
-    "apiVersion": "v1",
+    "apiVersion": "template.openshift.io/v1",
     "metadata": {
         "name": "template-type-precision",
         "annotations": {
@@ -39615,12 +39772,12 @@ func testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsEnv(
 }
 
 var _testExtendedTestdataCmdTestCmdTestdataTemplatesTemplate_required_paramsYaml = []byte(`kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   name: template
 objects:
 - kind: User
-  apiVersion: v1
+  apiVersion: user.openshift.io/v1
   metadata:
     name: ${required_param}
   groups: null
@@ -39690,7 +39847,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTestBuildcliJson = []byte(`{
   "items": [
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "ruby-20-centos7-buildcli",
         "creationTimestamp": null
@@ -39709,7 +39866,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTestBuildcliJson = []byte(`{
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "ruby-sample-build-validtag",
         "creationTimestamp": null
@@ -39751,7 +39908,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTestBuildcliJson = []byte(`{
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "ruby-sample-build-invalidtag",
         "creationTimestamp": null
@@ -39810,7 +39967,7 @@ func testExtendedTestdataCmdTestCmdTestdataTestBuildcliJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataTestDeploymentConfigYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataCmdTestCmdTestdataTestDeploymentConfigYaml = []byte(`apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   name: test-deployment-config
@@ -39871,7 +40028,7 @@ func testExtendedTestdataCmdTestCmdTestdataTestDeploymentConfigYaml() (*asset, e
 
 var _testExtendedTestdataCmdTestCmdTestdataTestDockerBuildJson = []byte(`{
   "kind":"BuildConfig",
-  "apiVersion":"v1",
+  "apiVersion":"build.openshift.io/v1",
   "metadata":{
     "name":"test",
     "labels":{
@@ -39882,7 +40039,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTestDockerBuildJson = []byte(`{
     "triggers":[],
     "source":{
       "git": {
-        "uri":"https://github.com/sclorg/nodejs-ex"        
+        "uri":"https://github.com/sclorg/nodejs-ex"
       },
       "dockerfile": "FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
     },
@@ -39936,7 +40093,7 @@ func testExtendedTestdataCmdTestCmdTestdataTestDockerBuildJson() (*asset, error)
 
 var _testExtendedTestdataCmdTestCmdTestdataTestImageStreamJson = []byte(`{
   "kind": "ImageStream",
-  "apiVersion": "v1",
+  "apiVersion": "image.openshift.io/v1",
   "metadata": {
     "name": "test",
     "creationTimestamp": null,
@@ -39948,7 +40105,8 @@ var _testExtendedTestdataCmdTestCmdTestdataTestImageStreamJson = []byte(`{
   "status": {
     "dockerImageRepository": ""
   }
-}`)
+}
+`)
 
 func testExtendedTestdataCmdTestCmdTestdataTestImageStreamJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataCmdTestCmdTestdataTestImageStreamJson, nil
@@ -40000,7 +40158,7 @@ func testExtendedTestdataCmdTestCmdTestdataTestImageJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataTestMultiarchStreamYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataCmdTestCmdTestdataTestMultiarchStreamYaml = []byte(`apiVersion: image.openshift.io/v1
 kind: ImageStream
 metadata:
   name: test-multiarch-stream
@@ -40086,7 +40244,7 @@ func testExtendedTestdataCmdTestCmdTestdataTestReplicationControllerYaml() (*ass
 
 var _testExtendedTestdataCmdTestCmdTestdataTestRouteJson = []byte(`{
   "kind": "Route",
-  "apiVersion": "v1",
+  "apiVersion": "route.openshift.io/v1",
   "metadata": {
     "name": "testroute",
     "creationTimestamp": null,
@@ -40122,7 +40280,7 @@ func testExtendedTestdataCmdTestCmdTestdataTestRouteJson() (*asset, error) {
 
 var _testExtendedTestdataCmdTestCmdTestdataTestS2iBuildJson = []byte(`{
   "kind": "BuildConfig",
-  "apiVersion": "v1",
+  "apiVersion": "build.openshift.io/v1",
   "metadata": {
     "name": "test",
     "labels": {
@@ -40134,7 +40292,7 @@ var _testExtendedTestdataCmdTestCmdTestdataTestS2iBuildJson = []byte(`{
     "source": {
       "type": "Git",
       "git": {
-        "uri":"https://github.com/sclorg/nodejs-ex"        
+        "uri":"https://github.com/sclorg/nodejs-ex"
       }
     },
     "strategy": {
@@ -40236,7 +40394,7 @@ func testExtendedTestdataCmdTestCmdTestdataTestServiceJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataTestStreamYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataCmdTestCmdTestdataTestStreamYaml = []byte(`apiVersion: image.openshift.io/v1
 kind: ImageStream
 metadata:
   creationTimestamp: 2015-10-12T12:16:36Z
@@ -40503,7 +40661,7 @@ os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --add 
 os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].volumeMounts[*].subPath}'" 'foo'
 
 # ensure that we can describe volumes of type ConfigMap
-os::cmd::expect_success " echo 'apiVersion: v1
+os::cmd::expect_success " echo 'apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   name: simple-dc
@@ -40775,8 +40933,7 @@ spec:
       - ruby
       from:
         kind: ImageStreamTag
-        name: ruby:latest
-        namespace: openshift
+        name: ruby-30:latest
     type: ImageChange
   - imageChangeParams:
       automatic: true
@@ -40784,8 +40941,7 @@ spec:
       - postgresql
       from:
         kind: ImageStreamTag
-        name: postgresql:latest
-        namespace: openshift
+        name: postgresql-13:latest
     type: ImageChange
 `)
 
@@ -41300,8 +41456,7 @@ spec:
       - ruby2
       from:
         kind: ImageStreamTag
-        name: ruby:latest
-        namespace: openshift
+        name: ruby-30:latest
     type: ImageChange
 `)
 
@@ -41557,6 +41712,76 @@ func testExtendedTestdataDeploymentsTestDeploymentTestYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml = []byte(`apiVersion: k8s.ovn.org/v1
+kind: EgressFirewall
+metadata:
+  name: default
+spec:
+  egress:
+  - type: Allow
+    to:
+      dnsName: docs.openshift.com
+  - type: Deny
+    to:
+      dnsName: www.google.com
+    ports:
+    - port: 80
+      protocol: TCP
+  - type: Allow
+    to:
+      cidrSelector: 8.8.8.8/32
+  - type: Deny
+    to:
+      cidrSelector: 0.0.0.0/0
+`)
+
+func testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml, nil
+}
+
+func testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/egress-firewall/ovnk-egressfirewall-test.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataEgressFirewallSdnEgressnetworkpolicyTestYaml = []byte(`apiVersion: network.openshift.io/v1
+kind: EgressNetworkPolicy
+metadata:
+  name: default
+spec:
+  egress:
+  - type: Allow
+    to:
+      dnsName: docs.openshift.com
+  - type: Allow
+    to:
+      cidrSelector: 8.8.8.8/32
+  - type: Deny
+    to:
+      cidrSelector: 0.0.0.0/0
+`)
+
+func testExtendedTestdataEgressFirewallSdnEgressnetworkpolicyTestYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataEgressFirewallSdnEgressnetworkpolicyTestYaml, nil
+}
+
+func testExtendedTestdataEgressFirewallSdnEgressnetworkpolicyTestYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataEgressFirewallSdnEgressnetworkpolicyTestYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/egress-firewall/sdn-egressnetworkpolicy-test.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataEgressRouterCniEgressRouterCniV4CrYaml = []byte(`---
 apiVersion: network.operator.openshift.io/v1
 kind: EgressRouter
@@ -41668,7 +41893,7 @@ var _testExtendedTestdataForcepullTestJson = []byte(`{
 	"items": [
 		{
 			"kind": "BuildConfig",
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"metadata": {
 				"name": "ruby-sample-build-tc",
 				"creationTimestamp": null,
@@ -41747,7 +41972,7 @@ var _testExtendedTestdataForcepullTestJson = []byte(`{
 		},
 		{
 			"kind": "BuildConfig",
-			"apiVersion": "v1",
+			"apiVersion": "build.openshift.io/v1",
 			"metadata": {
 				"name": "ruby-sample-build-ts",
 				"creationTimestamp": null,
@@ -42076,7 +42301,7 @@ func testExtendedTestdataGssapiProxyConfigureSh() (*asset, error) {
 }
 
 var _testExtendedTestdataGssapiProxyGssapiproxyBuildconfigYaml = []byte(`kind: "BuildConfig"
-apiVersion: "v1"
+apiVersion: "build.openshift.io/v1"
 metadata:
   name: "gssapiproxy"
   labels:
@@ -42118,7 +42343,7 @@ func testExtendedTestdataGssapiProxyGssapiproxyBuildconfigYaml() (*asset, error)
 }
 
 var _testExtendedTestdataGssapiProxyGssapiproxyDeploymentconfigYaml = []byte(`kind: "DeploymentConfig"
-apiVersion: "v1"
+apiVersion: "apps.openshift.io/v1"
 metadata:
   name: "gssapiproxy-server"
   creationTimestamp: null
@@ -42201,7 +42426,7 @@ func testExtendedTestdataGssapiProxyGssapiproxyDeploymentconfigYaml() (*asset, e
 }
 
 var _testExtendedTestdataGssapiProxyGssapiproxyImagestreamYaml = []byte(`kind: "ImageStream"
-apiVersion: "v1"
+apiVersion: "image.openshift.io/v1"
 metadata:
   name: "gssapiproxy"
   creationTimestamp: null
@@ -42956,7 +43181,7 @@ items:
       app: idling-echo
     ports:
       - port: 8675
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: idling-echo
@@ -42986,7 +43211,7 @@ var _testExtendedTestdataIdlingEchoServerYaml = []byte(`apiVersion: v1
 kind: List
 metadata: {}
 items:
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     name: idling-echo
@@ -43031,7 +43256,7 @@ items:
       - port: 3090
         name: udp-echo
         protocol: UDP
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: idling-echo
@@ -43039,7 +43264,7 @@ items:
     to:
       kind: Service
       name: idling-echo
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: idling-echo-reencrypt
@@ -43167,12 +43392,12 @@ func testExtendedTestdataImageTestImageJson() (*asset, error) {
 }
 
 var _testExtendedTestdataImagePullSecretsDcWithNewPullSecretYaml = []byte(`kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   name: template
 objects:
 - kind: DeploymentConfig
-  apiVersion: v1
+  apiVersion: apps.openshift.io/v1
   metadata:
     name: my-dc
   spec:
@@ -43182,9 +43407,9 @@ objects:
     strategy:
       type: Rolling
       rollingParams:
-        pre: 
+        pre:
           failurePolicy: Abort
-          execNewPod: 
+          execNewPod:
             containerName: dc-pod
             command:
             - ls
@@ -43199,7 +43424,8 @@ objects:
         imagePullSecrets:
         - name: image-ns-pull
 parameters:
-- name: DOCKER_REGISTRY`)
+- name: DOCKER_REGISTRY
+`)
 
 func testExtendedTestdataImagePullSecretsDcWithNewPullSecretYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataImagePullSecretsDcWithNewPullSecretYaml, nil
@@ -43217,12 +43443,12 @@ func testExtendedTestdataImagePullSecretsDcWithNewPullSecretYaml() (*asset, erro
 }
 
 var _testExtendedTestdataImagePullSecretsDcWithOldPullSecretYaml = []byte(`kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   name: template
 objects:
 - kind: DeploymentConfig
-  apiVersion: v1
+  apiVersion: apps.openshift.io/v1
   metadata:
     name: my-dc-old
   spec:
@@ -43232,9 +43458,9 @@ objects:
     strategy:
       type: Rolling
       rollingParams:
-        pre: 
+        pre:
           failurePolicy: Abort
-          execNewPod: 
+          execNewPod:
             containerName: dc-pod-old
             command:
             - ls
@@ -43249,7 +43475,8 @@ objects:
         imagePullSecrets:
         - name: image-ns-pull-old
 parameters:
-- name: DOCKER_REGISTRY`)
+- name: DOCKER_REGISTRY
+`)
 
 func testExtendedTestdataImagePullSecretsDcWithOldPullSecretYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataImagePullSecretsDcWithOldPullSecretYaml, nil
@@ -43267,16 +43494,16 @@ func testExtendedTestdataImagePullSecretsDcWithOldPullSecretYaml() (*asset, erro
 }
 
 var _testExtendedTestdataImagePullSecretsPodWithNewPullSecretYaml = []byte(`kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   name: template
 objects:
-- kind: Pod 
-  apiVersion: v1 
-  metadata: 
+- kind: Pod
+  apiVersion: v1
+  metadata:
     name: new-pull-pod
-  spec: 
-    containers: 
+  spec:
+    containers:
     - name: new-pull-pod
       image: ${DOCKER_REGISTRY}/image-ns/busybox
       command:
@@ -43284,7 +43511,8 @@ objects:
     imagePullSecrets:
       - name: image-ns-pull
 parameters:
-- name: DOCKER_REGISTRY`)
+- name: DOCKER_REGISTRY
+`)
 
 func testExtendedTestdataImagePullSecretsPodWithNewPullSecretYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataImagePullSecretsPodWithNewPullSecretYaml, nil
@@ -43302,22 +43530,23 @@ func testExtendedTestdataImagePullSecretsPodWithNewPullSecretYaml() (*asset, err
 }
 
 var _testExtendedTestdataImagePullSecretsPodWithNoPullSecretYaml = []byte(`kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   name: template
 objects:
-- kind: Pod 
-  apiVersion: v1 
-  metadata: 
+- kind: Pod
+  apiVersion: v1
+  metadata:
     name: no-pull-pod
-  spec: 
-    containers: 
+  spec:
+    containers:
     - name: no-pull-pod
       image: ${DOCKER_REGISTRY}/image-ns/busybox
       command:
       - ls
 parameters:
-- name: DOCKER_REGISTRY`)
+- name: DOCKER_REGISTRY
+`)
 
 func testExtendedTestdataImagePullSecretsPodWithNoPullSecretYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataImagePullSecretsPodWithNoPullSecretYaml, nil
@@ -43335,16 +43564,16 @@ func testExtendedTestdataImagePullSecretsPodWithNoPullSecretYaml() (*asset, erro
 }
 
 var _testExtendedTestdataImagePullSecretsPodWithOldPullSecretYaml = []byte(`kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   name: template
 objects:
-- kind: Pod 
-  apiVersion: v1 
-  metadata: 
+- kind: Pod
+  apiVersion: v1
+  metadata:
     name: old-pull-pod
-  spec: 
-    containers: 
+  spec:
+    containers:
     - name: old-pull-pod
       image: ${DOCKER_REGISTRY}/image-ns/busybox
       command:
@@ -43352,7 +43581,8 @@ objects:
     imagePullSecrets:
       - name: image-ns-pull-old
 parameters:
-- name: DOCKER_REGISTRY`)
+- name: DOCKER_REGISTRY
+`)
 
 func testExtendedTestdataImagePullSecretsPodWithOldPullSecretYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataImagePullSecretsPodWithOldPullSecretYaml, nil
@@ -43432,7 +43662,7 @@ func testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPm() (*asset, erro
 
 var _testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson = []byte(`{
   "kind": "Template",
-  "apiVersion": "v1",
+  "apiVersion": "template.openshift.io/v1",
   "metadata": {
     "name": "perl-hotdeploy-example"
   },
@@ -43458,7 +43688,7 @@ var _testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson = []byte(`{
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1",
+      "apiVersion": "image.openshift.io/v1",
       "metadata": {
         "name": "${NAME}",
         "annotations": {
@@ -43468,7 +43698,7 @@ var _testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson = []byte(`{
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1",
+      "apiVersion": "build.openshift.io/v1",
       "metadata": {
         "name": "${NAME}"
       },
@@ -43488,12 +43718,12 @@ var _testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson = []byte(`{
             "kind": "ImageStreamTag",
             "name": "${NAME}:latest"
           }
-        } 
+        }
       }
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1",
+      "apiVersion": "apps.openshift.io/v1",
       "metadata": {
         "name": "${NAME}"
       },
@@ -46605,7 +46835,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
     "items": [
         {
             "kind": "BuildConfig",
-            "apiVersion": "v1",
+            "apiVersion": "build.openshift.io/v1",
             "metadata": {
                 "name": "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890a",
                 "labels": {
@@ -46634,7 +46864,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
         },
         {
             "kind": "BuildConfig",
-            "apiVersion": "v1",
+            "apiVersion": "build.openshift.io/v1",
             "metadata": {
                 "name": "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890b",
                 "labels": {
@@ -46680,7 +46910,7 @@ func testExtendedTestdataLong_namesFixtureJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataMarketplaceCsc02CscYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataMarketplaceCsc02CscYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   name: csc-template
@@ -46721,7 +46951,7 @@ func testExtendedTestdataMarketplaceCsc02CscYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataMarketplaceOpsrc02OpsrcYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataMarketplaceOpsrc02OpsrcYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   name: opsrc-template
@@ -46827,7 +47057,7 @@ func testExtendedTestdataMixedApiVersionsYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataMultiNamespacePipelineYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataMultiNamespacePipelineYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 labels:
   template: multi-namespace-pipeline
@@ -46835,7 +47065,7 @@ metadata:
   annotations:
     iconClass: icon-jenkins
     tags: instant-app,jenkins
-  name: 
+  name:
 parameters:
 - description: namespace
   displayName: namespace
@@ -46850,7 +47080,7 @@ parameters:
   name: NAMESPACE3
   value: namespace3
 objects:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     labels:
@@ -46896,7 +47126,7 @@ objects:
                               echo "Created ${it.name()} from template with labels ${it.object().metadata.labels}"
                           }
 
-               
+
                       }
                   }
               }
@@ -46925,7 +47155,7 @@ func testExtendedTestdataMultiNamespacePipelineYaml() (*asset, error) {
 }
 
 var _testExtendedTestdataMultiNamespaceTemplateYaml = []byte(`kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   name: mariadb-ephemeral
   creationTimestamp: null
@@ -46979,7 +47209,7 @@ objects:
           port: 3306
       selector:
         name: ${DATABASE_SERVICE_NAME}
-  - apiVersion: v1
+  - apiVersion: apps.openshift.io/v1
     kind: DeploymentConfig
     metadata:
       annotations:
@@ -47494,7 +47724,7 @@ func testExtendedTestdataOauthserverOauthSaYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataOlmOperatorgroupYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataOlmOperatorgroupYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   name: operatorgroup-template
@@ -47507,7 +47737,7 @@ objects:
 parameters:
 - name: NAME
 - name: NAMESPACE
-  
+
 `)
 
 func testExtendedTestdataOlmOperatorgroupYamlBytes() ([]byte, error) {
@@ -47525,7 +47755,7 @@ func testExtendedTestdataOlmOperatorgroupYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataOlmSubscriptionYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataOlmSubscriptionYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   name: subscription-template
@@ -47723,7 +47953,7 @@ func testExtendedTestdataRolesEmptyRoleYaml() (*asset, error) {
 }
 
 var _testExtendedTestdataRolesPolicyClusterrolesYaml = []byte(`kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   name: "policy-roles-template"
 labels:
@@ -47809,7 +48039,7 @@ func testExtendedTestdataRolesPolicyClusterrolesYaml() (*asset, error) {
 }
 
 var _testExtendedTestdataRolesPolicyRolesYaml = []byte(`kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   name: "policy-roles-template"
 labels:
@@ -48108,7 +48338,7 @@ items:
         name: https
         targetPort: 8443
         protocol: TCP
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: serving-cert
@@ -48136,7 +48366,7 @@ func testExtendedTestdataRouterReencryptServingCertYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterRouterCommonYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterCommonYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
 objects:
@@ -48153,7 +48383,7 @@ objects:
     name: system:router
 
 # two routes that differ only by their labels and names
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: route-1
@@ -48163,11 +48393,14 @@ objects:
   spec:
     host: first.example.com
     path: /Letter
+    tls:
+      insecureEdgeTerminationPolicy: Allow
+      termination: Edge
     to:
       name: endpoints
     ports:
     - targetPort: 8080
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: route-2
@@ -48177,13 +48410,16 @@ objects:
   spec:
     host: second.example.com
     path: /Letter
+    tls:
+      insecureEdgeTerminationPolicy: Allow
+      termination: Edge
     to:
       name: endpoints
     ports:
     - targetPort: http
 
 # routes that contain overridden domains
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: route-override-domain-1
@@ -48197,7 +48433,7 @@ objects:
       name: endpoints
     ports:
     - targetPort: 8080
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: route-override-domain-2
@@ -48261,7 +48497,7 @@ func testExtendedTestdataRouterRouterCommonYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterRouterConfigManagerYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterConfigManagerYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
 - name: IMAGE
@@ -48306,7 +48542,7 @@ objects:
     name: system:router
 
 # blueprints for edge, reencrypt and passthrough routes with annotation(s)
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: edge-blueprint
@@ -48324,7 +48560,7 @@ objects:
       kind: Service
     ports:
     - targetPort: 8080
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: reencrypt-blueprint
@@ -48342,7 +48578,7 @@ objects:
       kind: Service
     ports:
     - targetPort: 8443
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: passthrough-blueprint
@@ -48475,7 +48711,7 @@ objects:
 
 
 # insecure, edge secured, reencrypt and passthrough routes
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: insecure-route
@@ -48489,7 +48725,7 @@ objects:
       kind: Service
     ports:
     - targetPort: 8080
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: edge-allow-http-route
@@ -48506,7 +48742,7 @@ objects:
       kind: Service
     ports:
     - targetPort: 8080
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: reencrypt-route
@@ -48522,7 +48758,7 @@ objects:
       kind: Service
     ports:
     - targetPort: 8443
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: passthrough-route
@@ -48777,7 +49013,7 @@ func testExtendedTestdataRouterRouterH2specRoutesYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterRouterH2specYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterH2specYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
 - name: HAPROXY_IMAGE
@@ -49021,7 +49257,7 @@ var _testExtendedTestdataRouterRouterHttpEchoServerYaml = []byte(`apiVersion: v1
 kind: List
 metadata: {}
 items:
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     name: router-http-echo
@@ -49064,7 +49300,7 @@ items:
       - port: 8676
         name: router-http-echo
         protocol: TCP
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: router-http-echo
@@ -49293,7 +49529,7 @@ func testExtendedTestdataRouterRouterHttp2Yaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterRouterIdleYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterIdleYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 objects:
 - apiVersion: route.openshift.io/v1
@@ -49374,7 +49610,7 @@ var _testExtendedTestdataRouterRouterMetricsYaml = []byte(`apiVersion: v1
 kind: List
 items:
 # a route that has multiple weighted services that it points to
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: weightedroute
@@ -49394,7 +49630,7 @@ items:
       targetPort: 8080
 
 # a route that has multiple services but all weights are zero
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: zeroweightroute
@@ -49492,11 +49728,63 @@ func testExtendedTestdataRouterRouterMetricsYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterRouterOverrideDomainsYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterOverrideDomainsYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
 - name: IMAGE
   value: openshift/origin-haproxy-router:latest
+- name: DEFAULT_CERTIFICATE
+  value: |-
+    -----BEGIN CERTIFICATE-----
+    MIIDuTCCAqGgAwIBAgIUZYD30F0sJl7HqxE7gAequtxk/HowDQYJKoZIhvcNAQEL
+    BQAwgaExCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJTQzEVMBMGA1UEBwwMRGVmYXVs
+    dCBDaXR5MRwwGgYDVQQKDBNEZWZhdWx0IENvbXBhbnkgTHRkMRAwDgYDVQQLDAdU
+    ZXN0IENBMRowGAYDVQQDDBF3d3cuZXhhbXBsZWNhLmNvbTEiMCAGCSqGSIb3DQEJ
+    ARYTZXhhbXBsZUBleGFtcGxlLmNvbTAeFw0yMjAxMjgwMjU0MDlaFw0zMjAxMjYw
+    MjU0MDlaMHwxGDAWBgNVBAMMD3d3dy5leGFtcGxlLmNvbTELMAkGA1UECAwCU0Mx
+    CzAJBgNVBAYTAlVTMSIwIAYJKoZIhvcNAQkBFhNleGFtcGxlQGV4YW1wbGUuY29t
+    MRAwDgYDVQQKDAdFeGFtcGxlMRAwDgYDVQQLDAdFeGFtcGxlMIIBIjANBgkqhkiG
+    9w0BAQEFAAOCAQ8AMIIBCgKCAQEA71W7gdEnM+Nm4/SA/4jEJ2SPQfVjkCMsIYGO
+    WrLLHq23HkMGstQoPyBnjLY8LmkKQsNhhWGRMWQz6+yGKgI1gh8huhfocuw+HODE
+    K3ugP/3DlaVEQlIQbVzwxDx+K78UqZHecQAJfvakuS/JThxsMf8/pqLuhjAf+t9N
+    k0CO8Z6mNVALtSvyQ+e+zjmzepVtu6WmtJ+8zW9dBQEmg0QCfWFd06836LrfixLk
+    vTRgCn0lzTuj7rSuGjY45JDIvKK4jZGQJKsYN59Wxg1d2CEoXBUJOJjecVdS3NhY
+    ubHNdcm+6Equ5ZmyVEkBmv462rOcednsHU6Ggt/vWSe05EOPVQIDAQABow0wCzAJ
+    BgNVHRMEAjAAMA0GCSqGSIb3DQEBCwUAA4IBAQCHI+fkEr27bJ2IMtFuHpSLpFF3
+    E4R5oVHt8XjflwKmuclyyLa8Z7nXnuvQLHa4jwf0tWUixsmtOyQN4tBI/msMk2PF
+    +ao2amcPoIo2lAg63+jFsIzkr2MEXBPu09wwt86e3XCoqmqT1Psnihh+Ys9KIPnc
+    wMr9muGkOh03O61vo71iaV17UKeGM4bzod333pSQIXLdYnoOuvmKdCsnD00lADoI
+    93DmG/4oYR/mD93QjxPFPDxDxR4isvWGoj7iXx7CFkN7PR9B3IhZt+T//ddeau3y
+    kXK0iSxOhyaqHvl15hHQ8tKPBBJRSDVU4qmaqAYWRXr65yxBoelHhTJQ6Gt4
+    -----END CERTIFICATE-----
+    -----BEGIN PRIVATE KEY-----
+    MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDvVbuB0Scz42bj
+    9ID/iMQnZI9B9WOQIywhgY5assserbceQway1Cg/IGeMtjwuaQpCw2GFYZExZDPr
+    7IYqAjWCHyG6F+hy7D4c4MQre6A//cOVpURCUhBtXPDEPH4rvxSpkd5xAAl+9qS5
+    L8lOHGwx/z+mou6GMB/6302TQI7xnqY1UAu1K/JD577OObN6lW27paa0n7zNb10F
+    ASaDRAJ9YV3Trzfout+LEuS9NGAKfSXNO6PutK4aNjjkkMi8oriNkZAkqxg3n1bG
+    DV3YIShcFQk4mN5xV1Lc2Fi5sc11yb7oSq7lmbJUSQGa/jras5x52ewdToaC3+9Z
+    J7TkQ49VAgMBAAECggEAaCBzqOI3XSLlo+2/pe158e2VSkwZ2h8DVzyHk7xQFPPd
+    RKRCqNEXBYfypUyv2D1JAo0Aw8gUJFoFIPLR2DsHzqn+wXkfX8iaqXO8xXJO4Shl
+    zJiPnw8XKI2UDryG5D+JHNFi5uTuPLfQKOW6fmptRD9aEQS4I9eSQlKe7J7c0g+t
+    pCR1vCp6ZMFIXDgpHhquArI1fjA36nWK0dJkaO9LrTYPgeMIr0KFjEF+W3UPh/af
+    uw/KLjzyzHExwfVBcGZonb6rG1nU/7isUHqK75OhOKDcXpv+7NCBYZ6fu4COlE0O
+    +yGztbRXojWo1upKzzGPM+yoLyNA1aSljpCGOCSljQKBgQD+4i5FzRQ+e1XZxvUt
+    izypHHQcc7y9DfwKTwLXb9EUhmGCmrxVIuM+gm5N/Y/eXDjqtR2bqg7iIFjj3KTS
+    f9djCYT8FqlTtyDBk/qFNLchDX/mrykOuhqIXfT7JpQbk5+qkCy8k2ZJMl2ToNXA
+    WRqRCP4oa1WJMmoJFwo3BIVRIwKBgQDwYh2ryrs/QFE0W082oHAQ3Nrce5JmOtFp
+    70X/v8zZ8ESdeo7KOS0tNLeirBxlDGvUAesKwUHU1YwTgWhl/DkoPtv9INgT8kxS
+    VRcrix9kq62uiD+TKI732mwoG36keJdRECrQYRYjX+mf364EI+DeNmbPs3xsigaF
+    Zdbg+umxJwKBgF4fFelOvuAH2X8PGnDUDvV//VyYXKUPqfgAj1MRBotmyFFbZJqn
+    xHTL44HHVb5OHfKGKUXXeaGFQm36h573+Iio9kPE9ohkgqMZSxSvj8ST4JxGKIo4
+    rR2YXKP17hF05SwuC2cjo0z6XVXruaNLBCV0xa4VXMPKKx/qMyp37+czAoGBAL8c
+    woo6e/QlpmoBzlCX7YD6leaFODeeu6+FVBmo26zJoUOylKOiIZC3QOhL/ac44OGF
+    ROEgFL6pqNw5Hk824BpnH294FVKGaLdsfydXTHY1J7iDCkhtDn1vYl3gvib02RjR
+    ybgx9+/X6V3579fKzpTcm5C2Gk4Qzm5wMQ5dbj4xAoGBANYzYbBu8bItAEE6ohgf
+    D27SPW7VJsHGzbgRNC2SGCBzo3XaTJ0A8IMP+ghl5ndCJdLBz2FpeZLQvxOuopQD
+    J5dJXQxp7y20vh2C1e3wTPlA5CHHKpU1JZAe4THCJUg+EPwa4I+BOlvp71EB7BaH
+    bk65iLoLrUSkxMDi46qTAs5K
+    -----END PRIVATE KEY-----
 objects:
 
 # a router that overrides domains
@@ -49517,6 +49805,9 @@ objects:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
+      - name: DEFAULT_CERTIFICATE
+        value: |-
+          ${DEFAULT_CERTIFICATE}
       args:
       - "--name=test-override-domains"
       - "--namespace=$(POD_NAMESPACE)"
@@ -49555,11 +49846,63 @@ func testExtendedTestdataRouterRouterOverrideDomainsYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterRouterOverrideYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterOverrideYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
 - name: IMAGE
   value: openshift/origin-haproxy-router:latest
+- name: DEFAULT_CERTIFICATE
+  value: |-
+    -----BEGIN CERTIFICATE-----
+    MIIDuTCCAqGgAwIBAgIUZYD30F0sJl7HqxE7gAequtxk/HowDQYJKoZIhvcNAQEL
+    BQAwgaExCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJTQzEVMBMGA1UEBwwMRGVmYXVs
+    dCBDaXR5MRwwGgYDVQQKDBNEZWZhdWx0IENvbXBhbnkgTHRkMRAwDgYDVQQLDAdU
+    ZXN0IENBMRowGAYDVQQDDBF3d3cuZXhhbXBsZWNhLmNvbTEiMCAGCSqGSIb3DQEJ
+    ARYTZXhhbXBsZUBleGFtcGxlLmNvbTAeFw0yMjAxMjgwMjU0MDlaFw0zMjAxMjYw
+    MjU0MDlaMHwxGDAWBgNVBAMMD3d3dy5leGFtcGxlLmNvbTELMAkGA1UECAwCU0Mx
+    CzAJBgNVBAYTAlVTMSIwIAYJKoZIhvcNAQkBFhNleGFtcGxlQGV4YW1wbGUuY29t
+    MRAwDgYDVQQKDAdFeGFtcGxlMRAwDgYDVQQLDAdFeGFtcGxlMIIBIjANBgkqhkiG
+    9w0BAQEFAAOCAQ8AMIIBCgKCAQEA71W7gdEnM+Nm4/SA/4jEJ2SPQfVjkCMsIYGO
+    WrLLHq23HkMGstQoPyBnjLY8LmkKQsNhhWGRMWQz6+yGKgI1gh8huhfocuw+HODE
+    K3ugP/3DlaVEQlIQbVzwxDx+K78UqZHecQAJfvakuS/JThxsMf8/pqLuhjAf+t9N
+    k0CO8Z6mNVALtSvyQ+e+zjmzepVtu6WmtJ+8zW9dBQEmg0QCfWFd06836LrfixLk
+    vTRgCn0lzTuj7rSuGjY45JDIvKK4jZGQJKsYN59Wxg1d2CEoXBUJOJjecVdS3NhY
+    ubHNdcm+6Equ5ZmyVEkBmv462rOcednsHU6Ggt/vWSe05EOPVQIDAQABow0wCzAJ
+    BgNVHRMEAjAAMA0GCSqGSIb3DQEBCwUAA4IBAQCHI+fkEr27bJ2IMtFuHpSLpFF3
+    E4R5oVHt8XjflwKmuclyyLa8Z7nXnuvQLHa4jwf0tWUixsmtOyQN4tBI/msMk2PF
+    +ao2amcPoIo2lAg63+jFsIzkr2MEXBPu09wwt86e3XCoqmqT1Psnihh+Ys9KIPnc
+    wMr9muGkOh03O61vo71iaV17UKeGM4bzod333pSQIXLdYnoOuvmKdCsnD00lADoI
+    93DmG/4oYR/mD93QjxPFPDxDxR4isvWGoj7iXx7CFkN7PR9B3IhZt+T//ddeau3y
+    kXK0iSxOhyaqHvl15hHQ8tKPBBJRSDVU4qmaqAYWRXr65yxBoelHhTJQ6Gt4
+    -----END CERTIFICATE-----
+    -----BEGIN PRIVATE KEY-----
+    MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDvVbuB0Scz42bj
+    9ID/iMQnZI9B9WOQIywhgY5assserbceQway1Cg/IGeMtjwuaQpCw2GFYZExZDPr
+    7IYqAjWCHyG6F+hy7D4c4MQre6A//cOVpURCUhBtXPDEPH4rvxSpkd5xAAl+9qS5
+    L8lOHGwx/z+mou6GMB/6302TQI7xnqY1UAu1K/JD577OObN6lW27paa0n7zNb10F
+    ASaDRAJ9YV3Trzfout+LEuS9NGAKfSXNO6PutK4aNjjkkMi8oriNkZAkqxg3n1bG
+    DV3YIShcFQk4mN5xV1Lc2Fi5sc11yb7oSq7lmbJUSQGa/jras5x52ewdToaC3+9Z
+    J7TkQ49VAgMBAAECggEAaCBzqOI3XSLlo+2/pe158e2VSkwZ2h8DVzyHk7xQFPPd
+    RKRCqNEXBYfypUyv2D1JAo0Aw8gUJFoFIPLR2DsHzqn+wXkfX8iaqXO8xXJO4Shl
+    zJiPnw8XKI2UDryG5D+JHNFi5uTuPLfQKOW6fmptRD9aEQS4I9eSQlKe7J7c0g+t
+    pCR1vCp6ZMFIXDgpHhquArI1fjA36nWK0dJkaO9LrTYPgeMIr0KFjEF+W3UPh/af
+    uw/KLjzyzHExwfVBcGZonb6rG1nU/7isUHqK75OhOKDcXpv+7NCBYZ6fu4COlE0O
+    +yGztbRXojWo1upKzzGPM+yoLyNA1aSljpCGOCSljQKBgQD+4i5FzRQ+e1XZxvUt
+    izypHHQcc7y9DfwKTwLXb9EUhmGCmrxVIuM+gm5N/Y/eXDjqtR2bqg7iIFjj3KTS
+    f9djCYT8FqlTtyDBk/qFNLchDX/mrykOuhqIXfT7JpQbk5+qkCy8k2ZJMl2ToNXA
+    WRqRCP4oa1WJMmoJFwo3BIVRIwKBgQDwYh2ryrs/QFE0W082oHAQ3Nrce5JmOtFp
+    70X/v8zZ8ESdeo7KOS0tNLeirBxlDGvUAesKwUHU1YwTgWhl/DkoPtv9INgT8kxS
+    VRcrix9kq62uiD+TKI732mwoG36keJdRECrQYRYjX+mf364EI+DeNmbPs3xsigaF
+    Zdbg+umxJwKBgF4fFelOvuAH2X8PGnDUDvV//VyYXKUPqfgAj1MRBotmyFFbZJqn
+    xHTL44HHVb5OHfKGKUXXeaGFQm36h573+Iio9kPE9ohkgqMZSxSvj8ST4JxGKIo4
+    rR2YXKP17hF05SwuC2cjo0z6XVXruaNLBCV0xa4VXMPKKx/qMyp37+czAoGBAL8c
+    woo6e/QlpmoBzlCX7YD6leaFODeeu6+FVBmo26zJoUOylKOiIZC3QOhL/ac44OGF
+    ROEgFL6pqNw5Hk824BpnH294FVKGaLdsfydXTHY1J7iDCkhtDn1vYl3gvib02RjR
+    ybgx9+/X6V3579fKzpTcm5C2Gk4Qzm5wMQ5dbj4xAoGBANYzYbBu8bItAEE6ohgf
+    D27SPW7VJsHGzbgRNC2SGCBzo3XaTJ0A8IMP+ghl5ndCJdLBz2FpeZLQvxOuopQD
+    J5dJXQxp7y20vh2C1e3wTPlA5CHHKpU1JZAe4THCJUg+EPwa4I+BOlvp71EB7BaH
+    bk65iLoLrUSkxMDi46qTAs5K
+    -----END PRIVATE KEY-----
 objects:
 
 # a router that overrides host
@@ -49580,6 +49923,9 @@ objects:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
+      - name: DEFAULT_CERTIFICATE
+        value: |-
+          ${DEFAULT_CERTIFICATE}
       args:
       - "--name=test-override"
       - "--namespace=$(POD_NAMESPACE)"
@@ -49618,13 +49964,65 @@ func testExtendedTestdataRouterRouterOverrideYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterRouterScopedYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterRouterScopedYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
 - name: IMAGE
   value: openshift/origin-haproxy-router:latest
 - name: ROUTER_NAME
   value: "test-scoped"
+- name: DEFAULT_CERTIFICATE
+  value: |-
+    -----BEGIN CERTIFICATE-----
+    MIIDuTCCAqGgAwIBAgIUZYD30F0sJl7HqxE7gAequtxk/HowDQYJKoZIhvcNAQEL
+    BQAwgaExCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJTQzEVMBMGA1UEBwwMRGVmYXVs
+    dCBDaXR5MRwwGgYDVQQKDBNEZWZhdWx0IENvbXBhbnkgTHRkMRAwDgYDVQQLDAdU
+    ZXN0IENBMRowGAYDVQQDDBF3d3cuZXhhbXBsZWNhLmNvbTEiMCAGCSqGSIb3DQEJ
+    ARYTZXhhbXBsZUBleGFtcGxlLmNvbTAeFw0yMjAxMjgwMjU0MDlaFw0zMjAxMjYw
+    MjU0MDlaMHwxGDAWBgNVBAMMD3d3dy5leGFtcGxlLmNvbTELMAkGA1UECAwCU0Mx
+    CzAJBgNVBAYTAlVTMSIwIAYJKoZIhvcNAQkBFhNleGFtcGxlQGV4YW1wbGUuY29t
+    MRAwDgYDVQQKDAdFeGFtcGxlMRAwDgYDVQQLDAdFeGFtcGxlMIIBIjANBgkqhkiG
+    9w0BAQEFAAOCAQ8AMIIBCgKCAQEA71W7gdEnM+Nm4/SA/4jEJ2SPQfVjkCMsIYGO
+    WrLLHq23HkMGstQoPyBnjLY8LmkKQsNhhWGRMWQz6+yGKgI1gh8huhfocuw+HODE
+    K3ugP/3DlaVEQlIQbVzwxDx+K78UqZHecQAJfvakuS/JThxsMf8/pqLuhjAf+t9N
+    k0CO8Z6mNVALtSvyQ+e+zjmzepVtu6WmtJ+8zW9dBQEmg0QCfWFd06836LrfixLk
+    vTRgCn0lzTuj7rSuGjY45JDIvKK4jZGQJKsYN59Wxg1d2CEoXBUJOJjecVdS3NhY
+    ubHNdcm+6Equ5ZmyVEkBmv462rOcednsHU6Ggt/vWSe05EOPVQIDAQABow0wCzAJ
+    BgNVHRMEAjAAMA0GCSqGSIb3DQEBCwUAA4IBAQCHI+fkEr27bJ2IMtFuHpSLpFF3
+    E4R5oVHt8XjflwKmuclyyLa8Z7nXnuvQLHa4jwf0tWUixsmtOyQN4tBI/msMk2PF
+    +ao2amcPoIo2lAg63+jFsIzkr2MEXBPu09wwt86e3XCoqmqT1Psnihh+Ys9KIPnc
+    wMr9muGkOh03O61vo71iaV17UKeGM4bzod333pSQIXLdYnoOuvmKdCsnD00lADoI
+    93DmG/4oYR/mD93QjxPFPDxDxR4isvWGoj7iXx7CFkN7PR9B3IhZt+T//ddeau3y
+    kXK0iSxOhyaqHvl15hHQ8tKPBBJRSDVU4qmaqAYWRXr65yxBoelHhTJQ6Gt4
+    -----END CERTIFICATE-----
+    -----BEGIN PRIVATE KEY-----
+    MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDvVbuB0Scz42bj
+    9ID/iMQnZI9B9WOQIywhgY5assserbceQway1Cg/IGeMtjwuaQpCw2GFYZExZDPr
+    7IYqAjWCHyG6F+hy7D4c4MQre6A//cOVpURCUhBtXPDEPH4rvxSpkd5xAAl+9qS5
+    L8lOHGwx/z+mou6GMB/6302TQI7xnqY1UAu1K/JD577OObN6lW27paa0n7zNb10F
+    ASaDRAJ9YV3Trzfout+LEuS9NGAKfSXNO6PutK4aNjjkkMi8oriNkZAkqxg3n1bG
+    DV3YIShcFQk4mN5xV1Lc2Fi5sc11yb7oSq7lmbJUSQGa/jras5x52ewdToaC3+9Z
+    J7TkQ49VAgMBAAECggEAaCBzqOI3XSLlo+2/pe158e2VSkwZ2h8DVzyHk7xQFPPd
+    RKRCqNEXBYfypUyv2D1JAo0Aw8gUJFoFIPLR2DsHzqn+wXkfX8iaqXO8xXJO4Shl
+    zJiPnw8XKI2UDryG5D+JHNFi5uTuPLfQKOW6fmptRD9aEQS4I9eSQlKe7J7c0g+t
+    pCR1vCp6ZMFIXDgpHhquArI1fjA36nWK0dJkaO9LrTYPgeMIr0KFjEF+W3UPh/af
+    uw/KLjzyzHExwfVBcGZonb6rG1nU/7isUHqK75OhOKDcXpv+7NCBYZ6fu4COlE0O
+    +yGztbRXojWo1upKzzGPM+yoLyNA1aSljpCGOCSljQKBgQD+4i5FzRQ+e1XZxvUt
+    izypHHQcc7y9DfwKTwLXb9EUhmGCmrxVIuM+gm5N/Y/eXDjqtR2bqg7iIFjj3KTS
+    f9djCYT8FqlTtyDBk/qFNLchDX/mrykOuhqIXfT7JpQbk5+qkCy8k2ZJMl2ToNXA
+    WRqRCP4oa1WJMmoJFwo3BIVRIwKBgQDwYh2ryrs/QFE0W082oHAQ3Nrce5JmOtFp
+    70X/v8zZ8ESdeo7KOS0tNLeirBxlDGvUAesKwUHU1YwTgWhl/DkoPtv9INgT8kxS
+    VRcrix9kq62uiD+TKI732mwoG36keJdRECrQYRYjX+mf364EI+DeNmbPs3xsigaF
+    Zdbg+umxJwKBgF4fFelOvuAH2X8PGnDUDvV//VyYXKUPqfgAj1MRBotmyFFbZJqn
+    xHTL44HHVb5OHfKGKUXXeaGFQm36h573+Iio9kPE9ohkgqMZSxSvj8ST4JxGKIo4
+    rR2YXKP17hF05SwuC2cjo0z6XVXruaNLBCV0xa4VXMPKKx/qMyp37+czAoGBAL8c
+    woo6e/QlpmoBzlCX7YD6leaFODeeu6+FVBmo26zJoUOylKOiIZC3QOhL/ac44OGF
+    ROEgFL6pqNw5Hk824BpnH294FVKGaLdsfydXTHY1J7iDCkhtDn1vYl3gvib02RjR
+    ybgx9+/X6V3579fKzpTcm5C2Gk4Qzm5wMQ5dbj4xAoGBANYzYbBu8bItAEE6ohgf
+    D27SPW7VJsHGzbgRNC2SGCBzo3XaTJ0A8IMP+ghl5ndCJdLBz2FpeZLQvxOuopQD
+    J5dJXQxp7y20vh2C1e3wTPlA5CHHKpU1JZAe4THCJUg+EPwa4I+BOlvp71EB7BaH
+    bk65iLoLrUSkxMDi46qTAs5K
+    -----END PRIVATE KEY-----
 - name: UPDATE_STATUS
   value: "true"
 objects:
@@ -49646,6 +50044,9 @@ objects:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
+      - name: DEFAULT_CERTIFICATE
+        value: |-
+          ${DEFAULT_CERTIFICATE}
       args:
       - "--name=${ROUTER_NAME}"
       - "--namespace=$(POD_NAMESPACE)"
@@ -49727,11 +50128,63 @@ func testExtendedTestdataRouterRouterShardYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterWeightedRouterYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataRouterWeightedRouterYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
 - name: IMAGE
   value: openshift/origin-haproxy-router:latest
+- name: DEFAULT_CERTIFICATE
+  value: |-
+    -----BEGIN CERTIFICATE-----
+    MIIDuTCCAqGgAwIBAgIUZYD30F0sJl7HqxE7gAequtxk/HowDQYJKoZIhvcNAQEL
+    BQAwgaExCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJTQzEVMBMGA1UEBwwMRGVmYXVs
+    dCBDaXR5MRwwGgYDVQQKDBNEZWZhdWx0IENvbXBhbnkgTHRkMRAwDgYDVQQLDAdU
+    ZXN0IENBMRowGAYDVQQDDBF3d3cuZXhhbXBsZWNhLmNvbTEiMCAGCSqGSIb3DQEJ
+    ARYTZXhhbXBsZUBleGFtcGxlLmNvbTAeFw0yMjAxMjgwMjU0MDlaFw0zMjAxMjYw
+    MjU0MDlaMHwxGDAWBgNVBAMMD3d3dy5leGFtcGxlLmNvbTELMAkGA1UECAwCU0Mx
+    CzAJBgNVBAYTAlVTMSIwIAYJKoZIhvcNAQkBFhNleGFtcGxlQGV4YW1wbGUuY29t
+    MRAwDgYDVQQKDAdFeGFtcGxlMRAwDgYDVQQLDAdFeGFtcGxlMIIBIjANBgkqhkiG
+    9w0BAQEFAAOCAQ8AMIIBCgKCAQEA71W7gdEnM+Nm4/SA/4jEJ2SPQfVjkCMsIYGO
+    WrLLHq23HkMGstQoPyBnjLY8LmkKQsNhhWGRMWQz6+yGKgI1gh8huhfocuw+HODE
+    K3ugP/3DlaVEQlIQbVzwxDx+K78UqZHecQAJfvakuS/JThxsMf8/pqLuhjAf+t9N
+    k0CO8Z6mNVALtSvyQ+e+zjmzepVtu6WmtJ+8zW9dBQEmg0QCfWFd06836LrfixLk
+    vTRgCn0lzTuj7rSuGjY45JDIvKK4jZGQJKsYN59Wxg1d2CEoXBUJOJjecVdS3NhY
+    ubHNdcm+6Equ5ZmyVEkBmv462rOcednsHU6Ggt/vWSe05EOPVQIDAQABow0wCzAJ
+    BgNVHRMEAjAAMA0GCSqGSIb3DQEBCwUAA4IBAQCHI+fkEr27bJ2IMtFuHpSLpFF3
+    E4R5oVHt8XjflwKmuclyyLa8Z7nXnuvQLHa4jwf0tWUixsmtOyQN4tBI/msMk2PF
+    +ao2amcPoIo2lAg63+jFsIzkr2MEXBPu09wwt86e3XCoqmqT1Psnihh+Ys9KIPnc
+    wMr9muGkOh03O61vo71iaV17UKeGM4bzod333pSQIXLdYnoOuvmKdCsnD00lADoI
+    93DmG/4oYR/mD93QjxPFPDxDxR4isvWGoj7iXx7CFkN7PR9B3IhZt+T//ddeau3y
+    kXK0iSxOhyaqHvl15hHQ8tKPBBJRSDVU4qmaqAYWRXr65yxBoelHhTJQ6Gt4
+    -----END CERTIFICATE-----
+    -----BEGIN PRIVATE KEY-----
+    MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDvVbuB0Scz42bj
+    9ID/iMQnZI9B9WOQIywhgY5assserbceQway1Cg/IGeMtjwuaQpCw2GFYZExZDPr
+    7IYqAjWCHyG6F+hy7D4c4MQre6A//cOVpURCUhBtXPDEPH4rvxSpkd5xAAl+9qS5
+    L8lOHGwx/z+mou6GMB/6302TQI7xnqY1UAu1K/JD577OObN6lW27paa0n7zNb10F
+    ASaDRAJ9YV3Trzfout+LEuS9NGAKfSXNO6PutK4aNjjkkMi8oriNkZAkqxg3n1bG
+    DV3YIShcFQk4mN5xV1Lc2Fi5sc11yb7oSq7lmbJUSQGa/jras5x52ewdToaC3+9Z
+    J7TkQ49VAgMBAAECggEAaCBzqOI3XSLlo+2/pe158e2VSkwZ2h8DVzyHk7xQFPPd
+    RKRCqNEXBYfypUyv2D1JAo0Aw8gUJFoFIPLR2DsHzqn+wXkfX8iaqXO8xXJO4Shl
+    zJiPnw8XKI2UDryG5D+JHNFi5uTuPLfQKOW6fmptRD9aEQS4I9eSQlKe7J7c0g+t
+    pCR1vCp6ZMFIXDgpHhquArI1fjA36nWK0dJkaO9LrTYPgeMIr0KFjEF+W3UPh/af
+    uw/KLjzyzHExwfVBcGZonb6rG1nU/7isUHqK75OhOKDcXpv+7NCBYZ6fu4COlE0O
+    +yGztbRXojWo1upKzzGPM+yoLyNA1aSljpCGOCSljQKBgQD+4i5FzRQ+e1XZxvUt
+    izypHHQcc7y9DfwKTwLXb9EUhmGCmrxVIuM+gm5N/Y/eXDjqtR2bqg7iIFjj3KTS
+    f9djCYT8FqlTtyDBk/qFNLchDX/mrykOuhqIXfT7JpQbk5+qkCy8k2ZJMl2ToNXA
+    WRqRCP4oa1WJMmoJFwo3BIVRIwKBgQDwYh2ryrs/QFE0W082oHAQ3Nrce5JmOtFp
+    70X/v8zZ8ESdeo7KOS0tNLeirBxlDGvUAesKwUHU1YwTgWhl/DkoPtv9INgT8kxS
+    VRcrix9kq62uiD+TKI732mwoG36keJdRECrQYRYjX+mf364EI+DeNmbPs3xsigaF
+    Zdbg+umxJwKBgF4fFelOvuAH2X8PGnDUDvV//VyYXKUPqfgAj1MRBotmyFFbZJqn
+    xHTL44HHVb5OHfKGKUXXeaGFQm36h573+Iio9kPE9ohkgqMZSxSvj8ST4JxGKIo4
+    rR2YXKP17hF05SwuC2cjo0z6XVXruaNLBCV0xa4VXMPKKx/qMyp37+czAoGBAL8c
+    woo6e/QlpmoBzlCX7YD6leaFODeeu6+FVBmo26zJoUOylKOiIZC3QOhL/ac44OGF
+    ROEgFL6pqNw5Hk824BpnH294FVKGaLdsfydXTHY1J7iDCkhtDn1vYl3gvib02RjR
+    ybgx9+/X6V3579fKzpTcm5C2Gk4Qzm5wMQ5dbj4xAoGBANYzYbBu8bItAEE6ohgf
+    D27SPW7VJsHGzbgRNC2SGCBzo3XaTJ0A8IMP+ghl5ndCJdLBz2FpeZLQvxOuopQD
+    J5dJXQxp7y20vh2C1e3wTPlA5CHHKpU1JZAe4THCJUg+EPwa4I+BOlvp71EB7BaH
+    bk65iLoLrUSkxMDi46qTAs5K
+    -----END PRIVATE KEY-----
 objects:
 # a weighted router
 - apiVersion: v1
@@ -49751,6 +50204,9 @@ objects:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
+      - name: DEFAULT_CERTIFICATE
+        value: |-
+          ${DEFAULT_CERTIFICATE}
       args: ["--namespace=$(POD_NAMESPACE)", "-v=4", "--labels=select=weighted", "--stats-password=password", "--stats-port=1936", "--stats-user=admin"]
       hostNetwork: false
       ports:
@@ -49773,7 +50229,7 @@ objects:
     name: system:router
 
 # a route that has multiple weighted services that it points to
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: weightedroute
@@ -49794,7 +50250,7 @@ objects:
     - targetPort: 8080
 
 # a route that has multiple services but all weights are zero
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: zeroweightroute
@@ -49918,7 +50374,7 @@ var _testExtendedTestdataRun_policyParallelBcYaml = []byte(`---
   items:
     -
       kind: "ImageStream"
-      apiVersion: "v1"
+      apiVersion: "image.openshift.io/v1"
       metadata:
         name: "origin-ruby-sample"
         creationTimestamp: null
@@ -49927,7 +50383,7 @@ var _testExtendedTestdataRun_policyParallelBcYaml = []byte(`---
         dockerImageRepository: ""
     -
       kind: "BuildConfig"
-      apiVersion: "v1"
+      apiVersion: "build.openshift.io/v1"
       metadata:
         name: "sample-parallel-build"
       spec:
@@ -49973,7 +50429,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
   items:
     -
       kind: "BuildConfig"
-      apiVersion: "v1"
+      apiVersion: "build.openshift.io/v1"
       metadata:
         name: "sample-serial-build"
       spec:
@@ -49994,7 +50450,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
               name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8"
     -
       kind: "BuildConfig"
-      apiVersion: "v1"
+      apiVersion: "build.openshift.io/v1"
       metadata:
         name: "sample-serial-build-fail"
       spec:
@@ -50037,7 +50493,7 @@ var _testExtendedTestdataRun_policySerialLatestOnlyBcYaml = []byte(`---
   items:
     -
       kind: "BuildConfig"
-      apiVersion: "v1"
+      apiVersion: "build.openshift.io/v1"
       metadata:
         name: "sample-serial-latest-only-build"
       spec:
@@ -50078,7 +50534,7 @@ func testExtendedTestdataRun_policySerialLatestOnlyBcYaml() (*asset, error) {
 
 var _testExtendedTestdataS2iDropcapsRootAccessBuildYaml = []byte(`apiVersion: v1
 items:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     labels:
@@ -50103,7 +50559,7 @@ items:
           name: rootable-ruby:latest
       type: Source
     triggers: []
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     labels:
@@ -50210,7 +50666,7 @@ func testExtendedTestdataS2iDropcapsRootableRubyAssemble() (*asset, error) {
 
 var _testExtendedTestdataSampleImageStreamJson = []byte(`{
   "kind": "ImageStream",
-  "apiVersion": "v1",
+  "apiVersion": "image.openshift.io/v1",
   "metadata": {
     "name": "samplerepository",
     "creationTimestamp": null
@@ -50219,7 +50675,8 @@ var _testExtendedTestdataSampleImageStreamJson = []byte(`{
   "status": {
     "dockerImageRepository": ""
   }
-}`)
+}
+`)
 
 func testExtendedTestdataSampleImageStreamJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataSampleImageStreamJson, nil
@@ -50236,7 +50693,7 @@ func testExtendedTestdataSampleImageStreamJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataSamplepipelineWithenvsYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataSamplepipelineWithenvsYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 labels:
   template: application-template-sample-pipeline
@@ -50247,7 +50704,7 @@ metadata:
   name: jenkins-pipeline-example
 parameters:
 objects:
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     labels:
@@ -50352,12 +50809,12 @@ apiVersion: v1
 items:
 
 - kind: ImageStream
-  apiVersion: v1
+  apiVersion: image.openshift.io/v1
   metadata:
     name: signer
 
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: signer
   spec:
@@ -50387,6 +50844,9 @@ items:
     strategy:
       type: Docker
       dockerStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: DockerImage
           name: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
@@ -50415,7 +50875,7 @@ var _testExtendedTestdataStableBusyboxYaml = []byte(`kind: List
 apiVersion: v1
 metadata: {}
 items:
-  - apiVersion: v1
+  - apiVersion: image.openshift.io/v1
     dockerImageConfig: '{"architecture":"amd64","config":{"Hostname":"55cd1f8f6e5b","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["sh"],"Image":"sha256:e732471cb81a564575aad46b9510161c5945deaf18e9be3db344333d72f0b4b2","Volumes":null,"WorkingDir":"","Entrypoint":null,"OnBuild":null,"Labels":{}},"container":"764ef4448baa9a1ce19e4ae95f8cdd4eda7a1186c512773e56dc634dff208a59","container_config":{"Hostname":"55cd1f8f6e5b","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["/bin/sh","-c","#(nop)
       CMD [\"sh\"]"],"Image":"sha256:e732471cb81a564575aad46b9510161c5945deaf18e9be3db344333d72f0b4b2","Volumes":null,"WorkingDir":"","Entrypoint":null,"OnBuild":null,"Labels":{}},"created":"2016-06-23T23:23:37.198943461Z","docker_version":"1.10.3","history":[{"created":"2016-06-23T23:23:36.73131105Z","created_by":"/bin/sh
       -c #(nop) ADD file:9ca60502d646bdd815bb51e612c458e2d447b597b95cf435f9673f0966d41c1a
@@ -50477,7 +50937,7 @@ items:
       resourceVersion: "504"
       selfLink: /oapi/v1/images/sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
       uid: 7d6849b4-540c-11e6-809f-525400f25e34
-  - apiVersion: v1
+  - apiVersion: image.openshift.io/v1
     kind: ImageStream
     metadata:
       annotations:
@@ -50488,14 +50948,14 @@ items:
       resourceVersion: "505"
       selfLink: /oapi/v1/namespaces/default/imagestreams/busybox
       uid: 7d687e72-540c-11e6-809f-525400f25e34
-  - apiVersion: v1
+  - apiVersion: image.openshift.io/v1
     kind: ImageStreamMapping
     metadata:
       name: busybox
       namespace: default
     tag: latest
     image:
-      apiVersion: v1
+      apiVersion: image.openshift.io/v1
       kind: Image
       metadata:
         name: sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
@@ -50623,7 +51083,7 @@ var _testExtendedTestdataTemplatesGuestbookJson = []byte(`{
   "objects": [
     {
       "kind": "Route",
-      "apiVersion": "v1",
+      "apiVersion": "route.openshift.io/v1",
       "metadata": {
         "name": "frontend-route",
         "creationTimestamp": null
@@ -51266,7 +51726,7 @@ items:
   spec:
     template:
       kind: Template
-      apiVersion: v1
+      apiVersion: template.openshift.io/v1
       metadata:
         name: template
       objects:
@@ -51320,7 +51780,7 @@ items:
   spec:
     template:
       kind: Template
-      apiVersion: v1
+      apiVersion: template.openshift.io/v1
       metadata:
         name: template
       objects:
@@ -51348,7 +51808,7 @@ items:
               - name: hello-openshift
                 image: k8s.gcr.io/e2e-test-images/agnhost:2.33
       - kind: Route
-        apiVersion: v1
+        apiVersion: route.openshift.io/v1
         metadata:
           name: route
         spec:
@@ -51384,7 +51844,7 @@ func testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml() (*asset, er
 }
 
 var _testExtendedTestdataTemplatesTemplateinstance_readinessYaml = []byte(`kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   name: simple-example
   annotations:
@@ -51403,7 +51863,7 @@ objects:
     selector:
       name: "${NAME}"
 - kind: Route
-  apiVersion: v1
+  apiVersion: route.openshift.io/v1
   metadata:
     name: "${NAME}"
   spec:
@@ -51412,13 +51872,13 @@ objects:
       kind: Service
       name: "${NAME}"
 - kind: ImageStream
-  apiVersion: v1
+  apiVersion: image.openshift.io/v1
   metadata:
     name: "${NAME}"
     annotations:
       description: Keeps track of changes in the application image
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: "${NAME}"
     annotations:
@@ -51442,7 +51902,7 @@ objects:
     triggers:
     - type: ConfigChange
 - kind: DeploymentConfig
-  apiVersion: v1
+  apiVersion: apps.openshift.io/v1
   metadata:
     name: "${NAME}"
     annotations:
@@ -51507,7 +51967,7 @@ func testExtendedTestdataTemplatesTemplateinstance_readinessYaml() (*asset, erro
 	return a, nil
 }
 
-var _testExtendedTestdataTemplatesTemplateservicebroker_bindYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataTemplatesTemplateservicebroker_bindYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   name: tsbtemplate
@@ -51525,7 +51985,7 @@ objects:
     namespace: ${NAMESPACE}
   spec:
     template:
-      apiVersion: v1
+      apiVersion: template.openshift.io/v1
       kind: Template
       metadata:
         uid: d261a5c9-db37-40b5-ac0f-5709e0e3aac4
@@ -51558,7 +52018,7 @@ objects:
           ports:
           - name: port
             port: 1234
-      - apiVersion: v1
+      - apiVersion: route.openshift.io/v1
         kind: Route
         metadata:
           annotations:
@@ -51615,7 +52075,7 @@ var _testExtendedTestdataTestBuildcliJson = []byte(`{
     "items": [
       {
         "kind": "ImageStream",
-        "apiVersion": "v1",
+        "apiVersion": "image.openshift.io/v1",
         "metadata": {
           "name": "ruby-20-centos7-buildcli",
           "creationTimestamp": null
@@ -51634,7 +52094,7 @@ var _testExtendedTestdataTestBuildcliJson = []byte(`{
       },
       {
         "kind": "BuildConfig",
-        "apiVersion": "v1",
+        "apiVersion": "build.openshift.io/v1",
         "metadata": {
           "name": "ruby-sample-build-validtag",
           "creationTimestamp": null
@@ -51655,6 +52115,12 @@ var _testExtendedTestdataTestBuildcliJson = []byte(`{
           "strategy": {
             "type": "Source",
             "sourceStrategy": {
+              "env":[
+                {
+                   "name":"BUILD_LOGLEVEL",
+                   "value":"2"
+                }
+             ],
               "from": {
                 "kind": "DockerImage",
                 "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby"
@@ -51676,7 +52142,7 @@ var _testExtendedTestdataTestBuildcliJson = []byte(`{
       },
       {
         "kind": "BuildConfig",
-        "apiVersion": "v1",
+        "apiVersion": "build.openshift.io/v1",
         "metadata": {
           "name": "ruby-sample-build-invalidtag",
           "creationTimestamp": null
@@ -51697,6 +52163,12 @@ var _testExtendedTestdataTestBuildcliJson = []byte(`{
           "strategy": {
             "type": "Source",
             "sourceStrategy": {
+              "env":[
+                {
+                   "name":"BUILD_LOGLEVEL",
+                   "value":"2"
+                }
+             ],
               "from": {
                 "kind": "DockerImage",
                 "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby"
@@ -51717,7 +52189,8 @@ var _testExtendedTestdataTestBuildcliJson = []byte(`{
         }
       }
     ]
-  }`)
+  }
+`)
 
 func testExtendedTestdataTestBuildcliJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataTestBuildcliJson, nil
@@ -51738,12 +52211,12 @@ var _testExtendedTestdataTestCliDebugYaml = []byte(`kind: List
 apiVersion: v1
 items:
 - kind: ImageStream
-  apiVersion: v1
+  apiVersion: image.openshift.io/v1
   metadata:
     name: local-busybox
 
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: local-busybox
   spec:
@@ -51760,7 +52233,7 @@ items:
     - type: ConfigChange
 
 - kind: DeploymentConfig
-  apiVersion: v1
+  apiVersion: apps.openshift.io/v1
   metadata:
     name: local-busybox1
   spec:
@@ -51785,7 +52258,7 @@ items:
           name: local-busybox:latest
 
 - kind: DeploymentConfig
-  apiVersion: v1
+  apiVersion: apps.openshift.io/v1
   metadata:
     name: local-busybox2
   spec:
@@ -51816,7 +52289,7 @@ items:
           name: local-busybox:latest
 
 - kind: DeploymentConfig
-  apiVersion: v1
+  apiVersion: apps.openshift.io/v1
   metadata:
     name: busybox1
   spec:
@@ -51833,7 +52306,7 @@ items:
           image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 
 - kind: DeploymentConfig
-  apiVersion: v1
+  apiVersion: apps.openshift.io/v1
   metadata:
     name: busybox2
   spec:
@@ -51871,7 +52344,7 @@ func testExtendedTestdataTestCliDebugYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataTestDeploymentConfigYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataTestDeploymentConfigYaml = []byte(`apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   name: test-deployment-config
@@ -52072,7 +52545,7 @@ func testExtendedTestdataTestSecretJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataVerifyservicePipelineTemplateYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataVerifyservicePipelineTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 labels:
   template: jenkins-verifyservice-pipeline
@@ -52092,7 +52565,7 @@ objects:
       targetPort: 6379
     selector:
       name: redis
-- apiVersion: v1
+- apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
     name: jenkins-verifyservice-pipeline
@@ -52213,6 +52686,34 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
+    function isPod(eventInterval) {
+        if (eventInterval.locator.includes("pod/") && !eventInterval.locator.includes("alert/")) {
+            return true
+        }
+        return false
+    }
+
+    function isPodLifecycle(eventInterval) {
+        if (eventInterval.locator.includes("pod/") && (eventInterval.message.includes("reason/Created") || eventInterval.message.includes("reason/Scheduled"))) {
+            return true
+        }
+        return false
+    }
+
+    function isContainerLifecycle(eventInterval) {
+        if (eventInterval.locator.includes("container/") && (eventInterval.message.includes("reason/ContainerExit") || eventInterval.message.includes("reason/ContainerStart") || eventInterval.message.includes("reason/ContainerWait"))) {
+            return true
+        }
+        return false
+    }
+
+    function isContainerReadiness(eventInterval) {
+        if (eventInterval.locator.includes("container/") && (eventInterval.message.includes("reason/Ready") || eventInterval.message.includes("reason/NotReady"))) {
+            return true
+        }
+        return false
+    }
+
     function isE2EFailed(eventInterval) {
         if (eventInterval.locator.startsWith("e2e-test/") && eventInterval.message.includes("finished As \"Failed")) {
             return true
@@ -52263,6 +52764,37 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
             return true
         }
         return false
+    }
+
+    const reReason = new RegExp("(^| )reason/([^ ]+)")
+    function podStateValue(item) {
+        let m = item.message.match(reReason);
+
+        if (m && isPodLifecycle(item)){
+            if (m[2] == "Created") {
+                return [item.locator, ` + "`" + ` (pod lifecycle)` + "`" + `, "PodCreated"];
+            }
+            if (m[2] == "Scheduled") {
+                return [item.locator, ` + "`" + ` (pod lifecycle)` + "`" + `, "PodScheduled"];
+            }
+        }
+        if (m && isContainerLifecycle(item)){
+            if (m[2] == "ContainerWait") {
+                return [item.locator, ` + "`" + ` (container lifecycle)` + "`" + `, "ContainerWait"];
+            }
+            if (m[2] == "ContainerStart") {
+                return [item.locator, ` + "`" + ` (container lifecycle)` + "`" + `, "ContainerStart"];
+            }
+        }
+        if (m && isContainerReadiness(item)){
+            if (m[2] == "NotReady") {
+                return [item.locator, ` + "`" + ` (container readiness)` + "`" + `, "ContainerNotReady"];
+            }
+            if (m[2] == "Ready") {
+                return [item.locator, ` + "`" + ` (container readiness)` + "`" + `, "ContainerReady"];
+            }
+        }
+        return [item.locator, "", "Unknown"];
     }
 
     const rePhase = new RegExp("(^| )phase/([^ ]+)")
@@ -52380,6 +52912,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     timelineGroups.push({group: "operator-progressing", data: []})
     createTimelineData("OperatorProgressing", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorProgressing)
 
+    timelineGroups.push({group: "pods", data: []})
+    createTimelineData(podStateValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isPod)
+
     timelineGroups.push({group: "alerts", data: []})
     createTimelineData(alertSeverity, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAlert)
     // leaving this for posterity so future me (or someone else) can try it, but I think ordering by name makes the
@@ -52443,23 +52978,25 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
             'OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', // operators
             'Update', 'Drain', 'Reboot', 'OperatingSystemUpdate', 'NodeNotReady', // nodes
             'Passed', 'Skipped', 'Flaked', 'Failed',  // tests
+            'PodCreated', 'PodScheduled', 'ContainerWait', 'ContainerStart', 'ContainerNotReady', 'ContainerReady',  // pods
             'Degraded', 'Upgradeable', 'False', 'Unknown'])
         .range([
             '#fada5e','#fada5e','#ffa500','#d0312d',  // alerts
             '#d0312d', '#ffa500', '#fada5e', // operators
             '#1e7bd9', '#4294e6', '#6aaef2', '#96cbff', '#fada5e', // nodes
             '#3cb043', '#ceba76', '#ffa500', '#d0312d', // tests
+            '#96cbff', '#1e7bd9', '#ca8dfd', '#9300ff', '#fada5e','#3cb043', // pods
             '#b65049', '#32b8b6', '#ffffff', '#bbbbbb']);
     myChart.
-        data(timelineGroups).
-        zQualitative(true).
-        enableAnimations(false).
-        leftMargin(240).
-        rightMargin(550).
-        maxLineHeight(20).
-        maxHeight(10000).
-        zColorScale(ordinalScale).
-        onSegmentClick(segmentFunc)
+    data(timelineGroups).
+    zQualitative(true).
+    enableAnimations(false).
+    leftMargin(240).
+    rightMargin(550).
+    maxLineHeight(20).
+    maxHeight(10000).
+    zColorScale(ordinalScale).
+    onSegmentClick(segmentFunc)
     (el);
 
 
@@ -52850,6 +53387,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/deployments/tag-images-deployment.yaml":                                          testExtendedTestdataDeploymentsTagImagesDeploymentYaml,
 	"test/extended/testdata/deployments/test-deployment-broken.yaml":                                         testExtendedTestdataDeploymentsTestDeploymentBrokenYaml,
 	"test/extended/testdata/deployments/test-deployment-test.yaml":                                           testExtendedTestdataDeploymentsTestDeploymentTestYaml,
+	"test/extended/testdata/egress-firewall/ovnk-egressfirewall-test.yaml":                                   testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml,
+	"test/extended/testdata/egress-firewall/sdn-egressnetworkpolicy-test.yaml":                               testExtendedTestdataEgressFirewallSdnEgressnetworkpolicyTestYaml,
 	"test/extended/testdata/egress-router-cni/egress-router-cni-v4-cr.yaml":                                  testExtendedTestdataEgressRouterCniEgressRouterCniV4CrYaml,
 	"test/extended/testdata/egress-router-cni/egress-router-cni-v6-cr.yaml":                                  testExtendedTestdataEgressRouterCniEgressRouterCniV6CrYaml,
 	"test/extended/testdata/forcepull-test.json":                                                             testExtendedTestdataForcepullTestJson,
@@ -53525,6 +54064,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"tag-images-deployment.yaml":          {testExtendedTestdataDeploymentsTagImagesDeploymentYaml, map[string]*bintree{}},
 					"test-deployment-broken.yaml":         {testExtendedTestdataDeploymentsTestDeploymentBrokenYaml, map[string]*bintree{}},
 					"test-deployment-test.yaml":           {testExtendedTestdataDeploymentsTestDeploymentTestYaml, map[string]*bintree{}},
+				}},
+				"egress-firewall": {nil, map[string]*bintree{
+					"ovnk-egressfirewall-test.yaml":     {testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml, map[string]*bintree{}},
+					"sdn-egressnetworkpolicy-test.yaml": {testExtendedTestdataEgressFirewallSdnEgressnetworkpolicyTestYaml, map[string]*bintree{}},
 				}},
 				"egress-router-cni": {nil, map[string]*bintree{
 					"egress-router-cni-v4-cr.yaml": {testExtendedTestdataEgressRouterCniEgressRouterCniV4CrYaml, map[string]*bintree{}},

@@ -15,7 +15,7 @@ const (
 	msgPhaseNeverCompleted = "reason/NodeUpdate phase/%s roles/%s phase never completed"
 )
 
-func IntervalsFromEvents_NodeChanges(events monitorapi.Intervals, beginning, end time.Time) monitorapi.Intervals {
+func IntervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.ResourcesMap, beginning, end time.Time) monitorapi.Intervals {
 	var intervals monitorapi.Intervals
 	nodeChangeToLastStart := map[string]map[string]time.Time{}
 	nodeNameToRoles := map[string]string{}

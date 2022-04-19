@@ -11,8 +11,10 @@ import (
 )
 
 const (
-	imagePullRedhatRegEx          = `reason/[a-zA-Z]+ .*Back-off pulling image .*registry.redhat.io`
-	imagePullRedhatFlakeThreshold = 5
+	imagePullRedhatRegEx                  = `reason/[a-zA-Z]+ .*Back-off pulling image .*registry.redhat.io`
+	imagePullRedhatFlakeThreshold         = 5
+	requiredResourcesMissingRegEx         = `reason/RequiredInstallerResourcesMissing secrets: etcd-all-certs-[0-9]+`
+	requiredResourceMissingFlakeThreshold = 10
 )
 
 type eventRecognizerFunc func(event monitorapi.EventInterval) bool
@@ -32,8 +34,9 @@ type singleEventCheckRegex struct {
 }
 
 // test goes through the events, looks for a match using the s.recognizer function,
-// if a match is found, and occurs more than s.failThreshold times, we mark it as a
-// flake (this allows us to see how often this symptom is happening).
+// if a match is found, marks it as failure or flake depending on if the pattern occurs
+// above the fail/flake thresholds (this allows us to track the occurence as a specific
+// test.
 //
 func (s *singleEventCheckRegex) test(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	success := &junitapi.JUnitTestCase{Name: s.testName}
@@ -53,9 +56,6 @@ func (s *singleEventCheckRegex) test(events monitorapi.Intervals) []*junitapi.JU
 	}
 	if len(failureOutput) > 0 {
 		totalOutput := failureOutput
-		if len(flakeOutput) >= 0 {
-			totalOutput = append(totalOutput, flakeOutput...)
-		}
 		failure := &junitapi.JUnitTestCase{
 			Name:      s.testName,
 			SystemOut: strings.Join(totalOutput, "\n"),
@@ -80,12 +80,12 @@ func (s *singleEventCheckRegex) test(events monitorapi.Intervals) []*junitapi.JU
 	return []*junitapi.JUnitTestCase{success}
 }
 
-func newSingleEventCheckRegex(testName, regex string) *singleEventCheckRegex {
+func newSingleEventCheckRegex(testName, regex string, failThreshold, flakeThreshold int) *singleEventCheckRegex {
 	return &singleEventCheckRegex{
 		testName:       testName,
 		recognizer:     matchEventForRegexOrDie(regex),
-		failThreshold:  math.MaxInt32,
-		flakeThreshold: imagePullRedhatFlakeThreshold,
+		failThreshold:  failThreshold,
+		flakeThreshold: flakeThreshold,
 	}
 }
 
@@ -96,5 +96,15 @@ func newSingleEventCheckRegex(testName, regex string) *singleEventCheckRegex {
 //
 func testBackoffPullingRegistryRedhatImage(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[sig-arch] should not see excessive pull back-off on registry.redhat.io"
-	return newSingleEventCheckRegex(testName, imagePullRedhatRegEx).test(events)
+	return newSingleEventCheckRegex(testName, imagePullRedhatRegEx, math.MaxInt, imagePullRedhatFlakeThreshold).test(events)
+}
+
+// testRequiredInstallerResourcesMissing looks for this symptom:
+//   reason/RequiredInstallerResourcesMissing secrets: etcd-all-certs-3
+// and fails if it happens more than the failure threshold count of 20 and flakes more than the
+// flake threshold.  See https://bugzilla.redhat.com/show_bug.cgi?id=2031564.
+//
+func testRequiredInstallerResourcesMissing(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	testName := "[bz-etcd] should not see excessive RequiredInstallerResourcesMissing secrets"
+	return newSingleEventCheckRegex(testName, requiredResourcesMissingRegEx, duplicateEventThreshold, requiredResourceMissingFlakeThreshold).test(events)
 }

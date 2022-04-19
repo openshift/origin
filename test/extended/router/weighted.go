@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -37,12 +38,6 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve a route that points to two services and respect weights", func() {
-			isFIPS, err := exutil.IsFIPS(oc.AdminKubeClient().CoreV1())
-			o.Expect(err).NotTo(o.HaveOccurred())
-			if isFIPS {
-				g.Skip("The router image's built-in default certificate is incompatible with FIPS: https://bugzilla.redhat.com/show_bug.cgi?id=2047790")
-			}
-
 			defer func() {
 				if g.CurrentGinkgoTestDescription().Failed {
 					dumpWeightedRouterLogs(oc, g.CurrentGinkgoTestDescription().FullTestText)
@@ -58,7 +53,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			g.By(fmt.Sprintf("creating a weighted router from a config file %q", configPath))
 
 			var routerIP string
-			err = wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
+			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
 				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get(context.Background(), "weighted-router", metav1.GetOptions{})
 				if err != nil {
 					return false, err
@@ -76,7 +71,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			routerURL := fmt.Sprintf("http://%s", routerIP)
 
 			g.By("waiting for the healthz endpoint to respond")
-			healthzURI := fmt.Sprintf("http://%s:1936/healthz", routerIP)
+			healthzURI := fmt.Sprintf("http://%s/healthz", net.JoinHostPort(routerIP, "1936"))
 			err = waitForRouterOKResponseExec(ns, execPod.Name, healthzURI, routerIP, changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -93,7 +88,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			g.By(fmt.Sprintf("checking that there are three weighted backends in the router stats"))
 			var trafficValues []string
 			err = wait.PollImmediate(100*time.Millisecond, changeTimeoutSeconds*time.Second, func() (bool, error) {
-				statsURL := fmt.Sprintf("http://%s:1936/;csv", routerIP)
+				statsURL := fmt.Sprintf("http://%s/;csv", net.JoinHostPort(routerIP, "1936"))
 				stats, err := getAuthenticatedRouteURLViaPod(ns, execPod.Name, statsURL, host, "admin", "password")
 				o.Expect(err).NotTo(o.HaveOccurred())
 				trafficValues, err = parseStats(stats, "weightedroute", 7)

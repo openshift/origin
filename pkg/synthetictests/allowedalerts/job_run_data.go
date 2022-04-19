@@ -1,6 +1,7 @@
 package allowedalerts
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -25,7 +26,7 @@ func WriteAlertDataForJobRun(artifactDir string, monitor *monitor.Monitor, event
 
 func addMissingAlertsForLevel(alertList *AlertList, level AlertLevel) {
 	wellKnownAlerts := sets.NewString()
-	for _, alertTest := range AllAlertTests() {
+	for _, alertTest := range AllAlertTests(context.TODO(), nil) {
 		wellKnownAlerts.Insert(alertTest.AlertName())
 	}
 	alertsFound := sets.NewString()

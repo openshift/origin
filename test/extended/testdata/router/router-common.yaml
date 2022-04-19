@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
 objects:
@@ -15,7 +15,7 @@ objects:
     name: system:router
 
 # two routes that differ only by their labels and names
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: route-1
@@ -25,11 +25,14 @@ objects:
   spec:
     host: first.example.com
     path: /Letter
+    tls:
+      insecureEdgeTerminationPolicy: Allow
+      termination: Edge
     to:
       name: endpoints
     ports:
     - targetPort: 8080
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: route-2
@@ -39,13 +42,16 @@ objects:
   spec:
     host: second.example.com
     path: /Letter
+    tls:
+      insecureEdgeTerminationPolicy: Allow
+      termination: Edge
     to:
       name: endpoints
     ports:
     - targetPort: http
 
 # routes that contain overridden domains
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: route-override-domain-1
@@ -59,7 +65,7 @@ objects:
       name: endpoints
     ports:
     - targetPort: 8080
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: route-override-domain-2

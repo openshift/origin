@@ -151,6 +151,10 @@ var (
 		},
 		"[Skipped:azure]": {
 			"Networking should provide Internet connection for containers", // Azure does not allow ICMP traffic to internet.
+			// Azure CSI migration changed how we treat regions without zones.
+			// See https://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=2066865
+			`\[sig-storage\] In-tree Volumes \[Driver: azure-disk\] \[Testpattern: Dynamic PV \(immediate binding\)\] topology should provision a volume and schedule a pod with AllowedTopologies`,
+			`\[sig-storage\] In-tree Volumes \[Driver: azure-disk\] \[Testpattern: Dynamic PV \(delayed binding\)\] topology should provision a volume and schedule a pod with AllowedTopologies`,
 		},
 		"[Skipped:gce]": {
 			// Requires creation of a different compute instance in a different zone and is not compatible with volumeBindingMode of WaitForFirstConsumer which we use in 4.x
@@ -207,7 +211,12 @@ var (
 		// These are skipped explicitly by openshift-hack/test-kubernetes-e2e.sh,
 		// but will also be skipped by openshift-tests in jobs that use openshift-sdn.
 		"[Skipped:Network/OpenShiftSDN]": {
+			`NetworkPolicy.*IPBlock`,    // feature is not supported by openshift-sdn
+			`NetworkPolicy.*[Ee]gress`,  // feature is not supported by openshift-sdn
 			`NetworkPolicy.*named port`, // feature is not supported by openshift-sdn
+
+			`NetworkPolicy between server and client should support a 'default-deny-all' policy`,            // uses egress feature
+			`NetworkPolicy between server and client should stop enforcing policies after they are deleted`, // uses egress feature
 		},
 	}
 

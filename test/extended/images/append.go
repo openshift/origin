@@ -81,7 +81,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 	oc = exutil.NewCLI("image-append")
 
 	g.It("should create images by appending them", func() {
-		is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get(context.Background(), "php", metav1.GetOptions{})
+		is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get(context.Background(), "tools", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(is.Status.DockerImageRepository).NotTo(o.BeEmpty(), "registry not yet configured?")
 		registry := strings.Split(is.Status.DockerImageRepository, "/")[0]

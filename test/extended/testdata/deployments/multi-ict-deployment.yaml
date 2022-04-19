@@ -38,6 +38,5 @@ spec:
       - ruby2
       from:
         kind: ImageStreamTag
-        name: ruby:latest
-        namespace: openshift
+        name: ruby-30:latest
     type: ImageChange

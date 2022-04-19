@@ -11,7 +11,7 @@ items:
       targetPort: 8080
     selector:
       deploymentconfig: recreate-example
-- apiVersion: v1
+- apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
   metadata:
     name: recreate-example
@@ -43,13 +43,13 @@ items:
           kind: ImageStreamTag
           name: recreate-example:latest
       type: ImageChange
-- apiVersion: v1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     name: recreate-example
   spec:
     dockerImageRepository: openshift/deployment-example
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: recreate-example

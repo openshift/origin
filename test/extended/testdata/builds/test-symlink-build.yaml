@@ -2,11 +2,11 @@ kind: List
 apiVersion: v1
 items:
 - kind: ImageStream
-  apiVersion: v1
+  apiVersion: image.openshift.io/v1
   metadata:
     name: symlink-is
 - kind: BuildConfig
-  apiVersion: v1
+  apiVersion: build.openshift.io/v1
   metadata:
     name: symlink-bc
   spec:
@@ -16,6 +16,9 @@ items:
     strategy:
       type: Source
       sourceStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
         from:
           kind: ImageStreamTag
           name: nodejs:latest
