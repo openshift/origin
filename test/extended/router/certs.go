@@ -3,7 +3,6 @@ package router
 import (
 	"context"
 	"fmt"
-	"net"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -17,7 +16,6 @@ import (
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 
 	exutil "github.com/openshift/origin/test/extended/util"
-	exurl "github.com/openshift/origin/test/extended/util/url"
 )
 
 var _ = g.Describe("[sig-network][Feature:Router]", func() {
@@ -132,62 +130,6 @@ u3YLAbyW/lHhOCiZu2iAI8AbmXem9lW6Tr7p/97s0w==
 					return len(routerIP) != 0 && podIsReady == corev1.ConditionTrue, nil
 				})
 				o.Expect(err).To(o.HaveOccurred())
-			})
-		})
-	})
-
-	g.When("FIPS is disabled", func() {
-		g.Describe("the HAProxy router", func() {
-			g.It("should serve routes when configured with a 1024-bit RSA key", func() {
-				if isFIPS {
-					g.Skip("skipping on FIPS cluster")
-				}
-
-				configPath := exutil.FixturePath("testdata", "router", "router-scoped.yaml")
-				g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
-				err := oc.AsAdmin().Run("new-app").Args("-f", configPath,
-					"-p=IMAGE="+routerImage,
-					`-p=ROUTER_NAME=test-1024bit`,
-					`-p=DEFAULT_CERTIFICATE=`+pemData,
-				).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				ns := oc.KubeFramework().Namespace.Name
-				execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
-				defer func() {
-					oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
-				}()
-
-				var routerIP string
-				err = wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
-					pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get(context.Background(), "router-scoped", metav1.GetOptions{})
-					if err != nil {
-						return false, err
-					}
-					routerIP = pod.Status.PodIP
-					podIsReady := podConditionStatus(pod, corev1.PodReady)
-
-					return len(routerIP) != 0 && podIsReady == corev1.ConditionTrue, nil
-				})
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("waiting for the router's healthz endpoint to respond")
-				healthzURI := fmt.Sprintf("http://%s/healthz", net.JoinHostPort(routerIP, "1936"))
-				healthzt := exurl.NewTester(oc.AdminKubeClient(), ns).WithErrorPassthrough(true)
-				defer healthzt.Close()
-				healthzt.Within(
-					time.Minute,
-					exurl.Expect("GET", healthzURI).SkipTLSVerification().HasStatusCode(200),
-				)
-
-				g.By("waiting for the route to respond")
-				url := "https://first.example.com/Letter"
-				t := exurl.NewTester(oc.AdminKubeClient(), ns).WithErrorPassthrough(true)
-				defer t.Close()
-				t.Within(
-					time.Minute,
-					exurl.Expect("GET", url).Through(routerIP).SkipTLSVerification().HasStatusCode(200),
-				)
 			})
 		})
 	})
