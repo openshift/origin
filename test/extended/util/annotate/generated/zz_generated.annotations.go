@@ -2509,6 +2509,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network][Feature:Router] The HAProxy router converges when multiple routers are writing status": "converges when multiple routers are writing status [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-network][Feature:Router] The HAProxy router reports the expected host names in admitted routes' statuses": "reports the expected host names in admitted routes' statuses [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-network][Feature:Router] The HAProxy router should enable openshift-monitoring to pull metrics": "should enable openshift-monitoring to pull metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network][Feature:Router] The HAProxy router should expose a health check on the metrics port": "should expose a health check on the metrics port [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
