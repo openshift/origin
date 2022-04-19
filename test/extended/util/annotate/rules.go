@@ -131,6 +131,7 @@ var (
 		},
 
 		"[Feature:Networking-IPv4]": {
+			`\[sig-network\]\[Feature:Router\] when FIPS is disabled the HAProxy router should serve routes when configured with a 1024-bit RSA key`,
 			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should allow egress access to server in CIDR block`,
 			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should enforce policies to check ingress and egress policies can be controlled independently based on PodSelector`,
 			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should enforce egress policy allowing traffic to a server in a different namespace based on PodSelector and NamespaceSelector`,
