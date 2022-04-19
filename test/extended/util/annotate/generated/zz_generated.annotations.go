@@ -629,6 +629,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch] [Conformance] FIPS TestFIPS": "TestFIPS [Suite:openshift/conformance/parallel/minimal]",
 
+	"[Top Level] [sig-arch] [Conformance] sysctl pod should not start for sysctl not on whitelist kernel.msgmax": "kernel.msgmax [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Top Level] [sig-arch] [Conformance] sysctl pod should not start for sysctl not on whitelist net.ipv4.ip_dynaddr": "net.ipv4.ip_dynaddr [Suite:openshift/conformance/parallel/minimal]",
+
 	"[Top Level] [sig-arch] [Conformance] sysctl pod should start for each sysctl on whitelist kernel.shm_rmid_forced": "kernel.shm_rmid_forced [Suite:openshift/conformance/parallel/minimal]",
 
 	"[Top Level] [sig-arch] [Conformance] sysctl pod should start for each sysctl on whitelist net.ipv4.ip_local_port_range": "net.ipv4.ip_local_port_range [Suite:openshift/conformance/parallel/minimal]",

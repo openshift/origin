@@ -1,11 +1,16 @@
 package security
 
 import (
+	"context"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"time"
+
 	g "github.com/onsi/ginkgo"
 	t "github.com/onsi/ginkgo/extensions/table"
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 )
 
@@ -33,5 +38,24 @@ var _ = g.Describe("[sig-arch] [Conformance] sysctl", func() {
 		t.Entry("net.ipv4.tcp_syncookies", "net.ipv4.tcp_syncookies", "1", "/proc/sys/net/ipv4/tcp_syncookies"),
 		t.Entry("net.ipv4.ping_group_range", "net.ipv4.ping_group_range", "1\t0", "/proc/sys/net/ipv4/ping_group_range"),
 		t.Entry("net.ipv4.ip_unprivileged_port_start", "net.ipv4.ip_unprivileged_port_start", "1002", "/proc/sys/net/ipv4/ip_unprivileged_port_start"),
+	)
+
+	t.DescribeTable("pod should not start for sysctl not on whitelist", func(sysctl, value string) {
+		f := oc.KubeFramework()
+		podDefinition := frameworkpod.NewAgnhostPod(f.Namespace.Name, "sysctl-pod", nil, nil, nil)
+		podDefinition.Spec.SecurityContext.Sysctls = []v1.Sysctl{{Name: sysctl, Value: value}}
+		execPod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), podDefinition, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "error creating pod")
+		err = wait.PollImmediate(2*time.Second, 1*time.Minute, func() (bool, error) {
+			retrievedPod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(context.TODO(), execPod.Name, metav1.GetOptions{})
+			if err != nil {
+				return false, err
+			}
+			return retrievedPod.Status.Phase == v1.PodFailed, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not be able to create pod")
+	},
+		t.Entry("kernel.msgmax", "kernel.msgmax", "1000"),
+		t.Entry("net.ipv4.ip_dynaddr", "net.ipv4.ip_dynaddr", "1"),
 	)
 })
