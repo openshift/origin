@@ -2559,7 +2559,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network][Feature:Router] The HAProxy router should support reencrypt to services backed by a serving certificate automatically": "should support reencrypt to services backed by a serving certificate automatically [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] when FIPS is disabled the HAProxy router should serve routes when configured with a 1024-bit RSA key": "should serve routes when configured with a 1024-bit RSA key [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router] when FIPS is disabled the HAProxy router should serve routes when configured with a 1024-bit RSA key": "should serve routes when configured with a 1024-bit RSA key [Feature:Networking-IPv4] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network][Feature:Router] when FIPS is enabled the HAProxy router should not work when configured with a 1024-bit RSA key": "should not work when configured with a 1024-bit RSA key [Suite:openshift/conformance/parallel]",
 
