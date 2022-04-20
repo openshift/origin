@@ -44,6 +44,9 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	oc = exutil.NewCLI("router-config-manager")
 
 	g.BeforeEach(func() {
+		// the test has been skipped since July 2018 because it was flaking.
+		// TODO: Fix the test and re-enable it in https://issues.redhat.com/browse/NE-906.
+		g.Skip("HAProxy dynamic config manager tests skipped in 4.x")
 		ns = oc.Namespace()
 
 		routerImage, err := exutil.FindRouterImage(oc)
@@ -55,7 +58,9 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve the correct routes when running with the haproxy config manager", func() {
-			g.Skip("TODO: This test is flaking, fix it")
+			// the test has been skipped since July 2018 because it was flaking.
+			// TODO: Fix the test and re-enable it in https://issues.redhat.com/browse/NE-906.
+			g.Skip("HAProxy dynamic config manager tests skipped in 4.x")
 			ns := oc.KubeFramework().Namespace.Name
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
