@@ -102,8 +102,18 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 
 	ginkgo.By("Retrieving logs from all the Pods belonging to the DaemonSet and asserting no failure")
 	for _, pod := range pods.Items {
-		r, err := podClient.GetLogs(pod.Name, &kapiv1.PodLogOptions{Container: "querier"}).Stream(context.Background())
+		req := podClient.GetLogs(pod.Name, &kapiv1.PodLogOptions{Container: "querier"})
+		if req == nil {
+			framework.Failf("GetLogs request failed")
+		}
+
+		r, err := req.Stream(context.Background())
 		framework.ExpectNoError(err)
+		if r == nil {
+			framework.Failf("Stream returned a nil ReadCloser")
+		}
+
+		framework.Logf("Everything is fine until here. 1")
 
 		failureCount := 0.0
 		successCount := 0.0
@@ -116,6 +126,8 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 				successCount++
 			}
 		}
+
+		framework.Logf("Everything is fine until here. 2")
 
 		if successRate := (successCount / (successCount + failureCount)) * 100; successRate < 99 {
 			err = fmt.Errorf("success rate is less than 99%% on the node %s: [%0.2f]", pod.Spec.NodeName, successRate)
