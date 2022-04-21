@@ -129,6 +129,9 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 
 		framework.Logf("Everything is fine until here. 2")
 
+		framework.Logf("successCount: [%d], failureCount: [%d]", successCount, failureCount)
+		framework.Logf("Pod.Spec: [%q]", pod.Spec)
+
 		if successRate := (successCount / (successCount + failureCount)) * 100; successRate < 99 {
 			err = fmt.Errorf("success rate is less than 99%% on the node %s: [%0.2f]", pod.Spec.NodeName, successRate)
 		} else {
