@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	watchtools "k8s.io/client-go/tools/watch"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -38,16 +39,20 @@ func createDNSPod(namespace, probeCmd string) *kapiv1.Pod {
 			Namespace: namespace,
 		},
 		Spec: kapiv1.PodSpec{
-			RestartPolicy: kapiv1.RestartPolicyNever,
+			RestartPolicy:   kapiv1.RestartPolicyNever,
+			SecurityContext: e2epod.GetRestrictedPodSecurityContext(),
 			Containers: []kapiv1.Container{
 				{
-					Name:    "querier",
-					Image:   imageutils.GetE2EImage(imageutils.JessieDnsutils),
-					Command: []string{"sh", "-c", probeCmd},
+					Name:            "querier",
+					Image:           imageutils.GetE2EImage(imageutils.JessieDnsutils),
+					Command:         []string{"/bin/sh", "-c", probeCmd},
+					SecurityContext: e2epod.GetRestrictedContainerSecurityContext(),
 				},
 			},
 		},
 	}
+	var uid int64 = 65536
+	pod.Spec.SecurityContext.RunAsUser = &uid
 	return pod
 }
 
