@@ -4,7 +4,9 @@ package clusterversionoperator
 import (
 	"context"
 	"fmt"
+	"net"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -28,9 +30,16 @@ type AdminAckTest struct {
 	Poll   time.Duration
 }
 
-const adminAckGateFmt string = "^ack-[4-5][.]([0-9]{1,})-[^-]"
+const (
+	adminAckGateFmt     string = "^ack-[4-5][.]([0-9]{1,})-[^-]"
+	upgradeProgression  string = `\(([0-9]{1,2})% complete\)`
+	snoUpgradeThreshold int    = 80
+)
 
-var adminAckGateRegexp = regexp.MustCompile(adminAckGateFmt)
+var (
+	adminAckGateRegexp       = regexp.MustCompile(adminAckGateFmt)
+	upgradeProgressionRegexp = regexp.MustCompile(upgradeProgression)
+)
 
 // Test simply returns successfully if admin ack functionality is not part of the baseline being tested. Otherwise,
 // for each configured admin ack gate, test verifies the gate name format and that it contains a description. If
@@ -44,8 +53,19 @@ func (t *AdminAckTest) Test(ctx context.Context) {
 		return
 	}
 
+	infra, err := t.Oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		framework.Fail(err.Error())
+	}
+	sno := infra.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode
+
 	exercisedGates := map[string]struct{}{}
 	if err := wait.PollImmediateUntilWithContext(ctx, t.Poll, func(ctx context.Context) (bool, error) {
+		// When running against SNO the test should not run when API Server is down which happens on reboot.
+		// Reboot happens around 84% of upgrade completion.
+		if sno && !shouldTestRun(ctx, t.Oc) {
+			return false, nil
+		}
 		t.test(ctx, exercisedGates)
 		return false, nil
 	}); err == nil || err == wait.ErrWaitTimeout {
@@ -255,12 +275,7 @@ func waitForAdminAckNotRequired(ctx context.Context, config *restclient.Config, 
 }
 
 func getUpgradeableStatusCondition(conditions []configv1.ClusterOperatorStatusCondition) *configv1.ClusterOperatorStatusCondition {
-	for _, condition := range conditions {
-		if condition.Type == configv1.OperatorUpgradeable {
-			return &condition
-		}
-	}
-	return nil
+	return findOperatorStatusCondition(conditions, configv1.OperatorUpgradeable)
 }
 
 func getUpgradeable(ctx context.Context, config *restclient.Config) string {
@@ -270,4 +285,44 @@ func getUpgradeable(ctx context.Context, config *restclient.Config) string {
 		return fmt.Sprintf("Upgradeable: Status=%s, Reason=%s, Message=%q.", cond.Status, cond.Reason, cond.Message)
 	}
 	return "Upgradeable nil"
+}
+
+func findOperatorStatusCondition(conditions []configv1.ClusterOperatorStatusCondition, conditionType configv1.ClusterStatusConditionType) *configv1.ClusterOperatorStatusCondition {
+	for i := range conditions {
+		if conditions[i].Type == conditionType {
+			return &conditions[i]
+		}
+	}
+	return nil
+}
+
+// shouldTestRun decides if a test should be executed when running against SNO.
+// Admin ack test should not run against SNO when:
+// - API Server is not responding (SNO lacks HA), or
+// - Reboot will happen shortly (upgrade progression above the threshold)
+func shouldTestRun(ctx context.Context, oc *exutil.CLI) bool {
+	ver, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+	if _, ok := err.(net.Error); ok {
+		framework.Logf("Skipping admin ack test. Failed to contact the API Server.")
+		return false
+	}
+
+	progCond := findOperatorStatusCondition(ver.Status.Conditions, configv1.OperatorProgressing)
+
+	// If there's not enough data to make a decision - just run the test
+	if progCond == nil || progCond.Status != configv1.ConditionTrue || !strings.Contains(progCond.Message, "% complete") {
+		return true
+	}
+
+	matches := upgradeProgressionRegexp.FindStringSubmatch(progCond.Message)
+	if len(matches) != 2 {
+		framework.Failf("Admin ack test: unexpected amount regexp match: %v", matches)
+	}
+
+	percent, err := strconv.Atoi(matches[1])
+	if err != nil {
+		framework.Failf("Admin ack test: failed to convert upgrade percentage to int: %v", err.Error())
+	}
+
+	return percent < snoUpgradeThreshold
 }
