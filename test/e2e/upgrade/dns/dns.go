@@ -102,18 +102,10 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 
 	ginkgo.By("Retrieving logs from all the Pods belonging to the DaemonSet and asserting no failure")
 	for _, pod := range pods.Items {
-		req := podClient.GetLogs(pod.Name, &kapiv1.PodLogOptions{Container: "querier"})
-		if req == nil {
-			framework.Failf("GetLogs request failed")
-		}
-
-		r, err := req.Stream(context.Background())
-		framework.ExpectNoError(err)
-		if r == nil {
-			framework.Failf("Stream returned a nil ReadCloser")
-		}
-
 		framework.Logf("Everything is fine until here. 1")
+		framework.Logf("Pod Name: [%s]", pod.Name)
+		r, err := podClient.GetLogs(pod.Name, &kapiv1.PodLogOptions{Container: "querier"}).Stream(context.Background())
+		framework.ExpectNoError(err)
 
 		failureCount := 0.0
 		successCount := 0.0
@@ -126,7 +118,6 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 				successCount++
 			}
 		}
-
 		framework.Logf("Everything is fine until here. 2")
 
 		framework.Logf("successCount: [%d], failureCount: [%d]", successCount, failureCount)
@@ -138,6 +129,8 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 			err = nil
 		}
 		framework.ExpectNoError(err)
+
+		framework.Logf("Everything is fine until here. 3")
 	}
 }
 
