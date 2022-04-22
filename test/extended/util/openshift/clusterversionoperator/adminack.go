@@ -45,34 +45,44 @@ func (t *AdminAckTest) Test(ctx context.Context) {
 	}
 
 	exercisedGates := map[string]struct{}{}
+	success := false
+	var lastError error
 	if err := wait.PollImmediateUntilWithContext(ctx, t.Poll, func(ctx context.Context) (bool, error) {
-		t.test(ctx, exercisedGates)
+		if err := t.test(ctx, exercisedGates); err != nil {
+			framework.Logf("Retriable failure to evaluate admin acks: %v", err)
+			lastError = err
+		} else {
+			success = true
+		}
 		return false, nil
 	}); err == nil || err == wait.ErrWaitTimeout {
 		return
 	} else {
 		framework.Fail(err.Error())
 	}
+
+	if !success {
+		framework.Failf("Never able to evaluate admin acks.  Most recent failure: %v", lastError)
+	}
 }
 
-func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struct{}) {
+func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struct{}) error {
 	exists := struct{}{}
 
 	gateCm, err := getAdminGatesConfigMap(ctx, t.Oc)
 	if err != nil {
-		framework.Fail(err.Error())
+		return err
 	}
 	// Check if this release has admin ack functionality.
 	if gateCm == nil || (gateCm != nil && len(gateCm.Data) == 0) {
 		framework.Logf("Skipping admin ack test. Admin ack is not in this baseline or contains no gates.")
-		return
+		return nil
 	}
 	ackCm, err := getAdminAcksConfigMap(ctx, t.Oc)
 	if err != nil {
-		framework.Fail(err.Error())
+		return err
 	}
 	currentVersion := getCurrentVersion(ctx, t.Config)
-	var msg string
 	for k, v := range gateCm.Data {
 		if exercisedGates != nil {
 			if _, ok := exercisedGates[k]; ok {
@@ -103,14 +113,14 @@ func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struc
 				framework.Fail(err.Error())
 			}
 		}
-		if err := waitForAdminAckRequired(ctx, t.Config, msg); err != nil {
+		if err := waitForAdminAckRequired(ctx, t.Config, v); err != nil {
 			framework.Fail(err.Error())
 		}
 		// Update admin ack configmap with ack
 		if err := setAdminGate(ctx, k, "true", t.Oc); err != nil {
 			framework.Fail(err.Error())
 		}
-		if err = waitForAdminAckNotRequired(ctx, t.Config, msg); err != nil {
+		if err = waitForAdminAckNotRequired(ctx, t.Config, v); err != nil {
 			framework.Fail(err.Error())
 		}
 		if exercisedGates != nil {
@@ -118,6 +128,7 @@ func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struc
 		}
 	}
 	framework.Logf("Admin Ack verified")
+	return nil
 }
 
 // getClusterVersion returns the ClusterVersion object.
