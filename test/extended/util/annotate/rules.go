@@ -132,12 +132,6 @@ var (
 
 		"[Feature:Networking-IPv4]": {
 			`\[sig-network\]\[Feature:Router\] when FIPS is disabled the HAProxy router should serve routes when configured with a 1024-bit RSA key`,
-			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should allow egress access to server in CIDR block`,
-			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should enforce policies to check ingress and egress policies can be controlled independently based on PodSelector`,
-			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should enforce egress policy allowing traffic to a server in a different namespace based on PodSelector and NamespaceSelector`,
-			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should work with Ingress,Egress specified together`,
-			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should enforce multiple egress policies with egress allow-all policy taking precedence`,
-			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should ensure an IP overlapping both IPBlock.CIDR and IPBlock.Except is allowed`,
 		},
 
 		// Tests that don't pass on disconnected, either due to requiring
