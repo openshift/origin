@@ -1495,6 +1495,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc service creates and deletes services": "creates and deletes services [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc set image can set images for pods and deployments": "can set images for pods and deployments [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc statefulset creates and deletes statefulsets": "creates and deletes statefulsets [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc status returns expected help messages": "returns expected help messages [Suite:openshift/conformance/parallel]",
@@ -1544,8 +1546,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/services.sh": "test/cmd/services.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-data.sh": "test/cmd/set-data.sh",
-
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-image.sh": "test/cmd/set-image.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-liveness-probe.sh": "test/cmd/set-liveness-probe.sh",
 

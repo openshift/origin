@@ -222,7 +222,6 @@
 // test/extended/testdata/cmd/test/cmd/secrets.sh
 // test/extended/testdata/cmd/test/cmd/services.sh
 // test/extended/testdata/cmd/test/cmd/set-data.sh
-// test/extended/testdata/cmd/test/cmd/set-image.sh
 // test/extended/testdata/cmd/test/cmd/set-liveness-probe.sh
 // test/extended/testdata/cmd/test/cmd/setbuildhook.sh
 // test/extended/testdata/cmd/test/cmd/setbuildsecret.sh
@@ -32622,72 +32621,6 @@ func testExtendedTestdataCmdTestCmdSetDataSh() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdSetImageSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-# Cleanup cluster resources created by this test
-(
-  set +e
-  oc delete all,templates --all
-  exit 0
-) &>/dev/null
-
-
-os::test::junit::declare_suite_start "cmd/oc/set/image"
-os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-deployment-config.yaml'
-os::cmd::expect_success 'oc create -f ${TEST_DATA}/hello-openshift/hello-pod.json'
-os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-centos7.json'
-os::cmd::try_until_success 'oc get imagestreamtags ruby:2.7-ubi8'
-
-# test --local flag
-os::cmd::expect_failure_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7-ubi8 --local' 'you must specify resources by --filename when --local is set.'
-# test --dry-run flag with -o formats
-os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7-ubi8 --source=istag --dry-run' 'test-deployment-config'
-os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7-ubi8 --source=istag --dry-run -o name' 'deploymentconfig.apps.openshift.io/test-deployment-config'
-os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7-ubi8 --source=istag --dry-run' 'deploymentconfig.apps.openshift.io/test-deployment-config image updated \(dry run\)'
-
-os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7-ubi8 --source=istag'
-os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" 'image-registry.openshift-image-registry.svc:5000/cmd-set-image/ruby'
-
-os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.7-ubi8 --source=istag'
-os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" 'image-registry.openshift-image-registry.svc:5000/cmd-set-image/ruby'
-
-os::cmd::expect_failure 'oc set image dc/test-deployment-config ruby-helloworld=ruby:XYZ --source=istag'
-os::cmd::expect_failure 'oc set image dc/test-deployment-config ruby-helloworld=ruby:XYZ --source=isimage'
-
-os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=nginx'
-os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" 'nginx'
-
-os::cmd::expect_success 'oc set image pod/hello-openshift hello-openshift=nginx'
-os::cmd::expect_success_and_text "oc get pod/hello-openshift -o jsonpath='{.spec.containers[0].image}'" 'nginx'
-
-os::cmd::expect_success 'oc set image pod/hello-openshift hello-openshift=nginx:1.9.1'
-os::cmd::expect_success_and_text "oc get pod/hello-openshift -o jsonpath='{.spec.containers[0].image}'" 'nginx:1.9.1'
-
-os::cmd::expect_success 'oc set image pods,dc *=ruby:2.7-ubi8 --all --source=imagestreamtag'
-os::cmd::expect_success_and_text "oc get pod/hello-openshift -o jsonpath='{.spec.containers[0].image}'" 'image-registry.openshift-image-registry.svc:5000/cmd-set-image/ruby'
-os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" 'image-registry.openshift-image-registry.svc:5000/cmd-set-image/ruby'
-
-echo "set-image: ok"
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdSetImageShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdSetImageSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdSetImageSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdSetImageShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/set-image.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdSetLivenessProbeSh = []byte(`#!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
@@ -53296,7 +53229,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/secrets.sh":                                                         testExtendedTestdataCmdTestCmdSecretsSh,
 	"test/extended/testdata/cmd/test/cmd/services.sh":                                                        testExtendedTestdataCmdTestCmdServicesSh,
 	"test/extended/testdata/cmd/test/cmd/set-data.sh":                                                        testExtendedTestdataCmdTestCmdSetDataSh,
-	"test/extended/testdata/cmd/test/cmd/set-image.sh":                                                       testExtendedTestdataCmdTestCmdSetImageSh,
 	"test/extended/testdata/cmd/test/cmd/set-liveness-probe.sh":                                              testExtendedTestdataCmdTestCmdSetLivenessProbeSh,
 	"test/extended/testdata/cmd/test/cmd/setbuildhook.sh":                                                    testExtendedTestdataCmdTestCmdSetbuildhookSh,
 	"test/extended/testdata/cmd/test/cmd/setbuildsecret.sh":                                                  testExtendedTestdataCmdTestCmdSetbuildsecretSh,
@@ -53949,7 +53881,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							"secrets.sh":            {testExtendedTestdataCmdTestCmdSecretsSh, map[string]*bintree{}},
 							"services.sh":           {testExtendedTestdataCmdTestCmdServicesSh, map[string]*bintree{}},
 							"set-data.sh":           {testExtendedTestdataCmdTestCmdSetDataSh, map[string]*bintree{}},
-							"set-image.sh":          {testExtendedTestdataCmdTestCmdSetImageSh, map[string]*bintree{}},
 							"set-liveness-probe.sh": {testExtendedTestdataCmdTestCmdSetLivenessProbeSh, map[string]*bintree{}},
 							"setbuildhook.sh":       {testExtendedTestdataCmdTestCmdSetbuildhookSh, map[string]*bintree{}},
 							"setbuildsecret.sh":     {testExtendedTestdataCmdTestCmdSetbuildsecretSh, map[string]*bintree{}},
