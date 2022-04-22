@@ -86,6 +86,8 @@ var staticSuites = testSuites{
 				return strings.Contains(name, "[Suite:openshift/conformance/serial") || isStandardEarlyOrLateTest(name)
 			},
 			SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
+			// etcd's vertical scaling test is expensive
+			TestTimeout: 60 * time.Minute,
 		},
 		PreSuite: suiteWithProviderPreSuite,
 	},
