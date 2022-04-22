@@ -49,5 +49,10 @@ func testAPIQuotaEvents(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 			},
 		}
 	}
-	return nil
+
+	return []*junitapi.JUnitTestCase{
+		{
+			Name: testName,
+		},
+	}
 }
