@@ -105,6 +105,9 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 
 	// Separated out in testRequiredInstallerResourcesMissing
 	regexp.MustCompile(requiredResourcesMissingRegEx),
+
+	// Separated out in testBackoffStartingFailedContainer
+	regexp.MustCompile(backoffRestartingFailedRegEx),
 }
 
 var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
