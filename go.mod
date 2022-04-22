@@ -69,7 +69,7 @@ require (
 	k8s.io/kube-aggregator v0.23.0
 	k8s.io/kube-openapi v0.0.0-20211115234752-e816edb12b65
 	k8s.io/kubectl v0.23.0
-	k8s.io/kubelet v0.23.0
+	k8s.io/kubelet v0.23.0 // indirect
 	k8s.io/kubernetes v1.23.0
 	k8s.io/legacy-cloud-providers v0.23.0
 	k8s.io/pod-security-admission v0.23.0
