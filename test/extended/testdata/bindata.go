@@ -198,7 +198,6 @@
 // test/extended/testdata/cmd/test/cmd/builds.sh
 // test/extended/testdata/cmd/test/cmd/completions.sh
 // test/extended/testdata/cmd/test/cmd/config.sh
-// test/extended/testdata/cmd/test/cmd/create.sh
 // test/extended/testdata/cmd/test/cmd/deployments.sh
 // test/extended/testdata/cmd/test/cmd/describer.sh
 // test/extended/testdata/cmd/test/cmd/edit.sh
@@ -29597,43 +29596,6 @@ func testExtendedTestdataCmdTestCmdConfigSh() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdCreateSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-# Cleanup cluster resources created by this test
-(
-  set +e
-  oc delete all,templates --all
-  exit 0
-) &>/dev/null
-
-
-os::test::junit::declare_suite_start "cmd/create"
-# validate --dry-run outputs correct success message
-os::cmd::expect_success_and_text 'oc create quota quota --dry-run' 'resourcequota/quota created \(dry run\)'
-# validate -- works in create
-os::cmd::expect_success_and_text 'oc create deploymentconfig sleep --image=busybox -- /bin/sleep infinity' 'deploymentconfig.apps.openshift.io/sleep created'
-
-echo "oc create: ok"
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdCreateShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdCreateSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdCreateSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdCreateShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/create.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdDeploymentsSh = []byte(`#!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
@@ -53272,7 +53234,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/builds.sh":                                                          testExtendedTestdataCmdTestCmdBuildsSh,
 	"test/extended/testdata/cmd/test/cmd/completions.sh":                                                     testExtendedTestdataCmdTestCmdCompletionsSh,
 	"test/extended/testdata/cmd/test/cmd/config.sh":                                                          testExtendedTestdataCmdTestCmdConfigSh,
-	"test/extended/testdata/cmd/test/cmd/create.sh":                                                          testExtendedTestdataCmdTestCmdCreateSh,
 	"test/extended/testdata/cmd/test/cmd/deployments.sh":                                                     testExtendedTestdataCmdTestCmdDeploymentsSh,
 	"test/extended/testdata/cmd/test/cmd/describer.sh":                                                       testExtendedTestdataCmdTestCmdDescriberSh,
 	"test/extended/testdata/cmd/test/cmd/edit.sh":                                                            testExtendedTestdataCmdTestCmdEditSh,
@@ -53925,7 +53886,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							"builds.sh":             {testExtendedTestdataCmdTestCmdBuildsSh, map[string]*bintree{}},
 							"completions.sh":        {testExtendedTestdataCmdTestCmdCompletionsSh, map[string]*bintree{}},
 							"config.sh":             {testExtendedTestdataCmdTestCmdConfigSh, map[string]*bintree{}},
-							"create.sh":             {testExtendedTestdataCmdTestCmdCreateSh, map[string]*bintree{}},
 							"deployments.sh":        {testExtendedTestdataCmdTestCmdDeploymentsSh, map[string]*bintree{}},
 							"describer.sh":          {testExtendedTestdataCmdTestCmdDescriberSh, map[string]*bintree{}},
 							"edit.sh":               {testExtendedTestdataCmdTestCmdEditSh, map[string]*bintree{}},
