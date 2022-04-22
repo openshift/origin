@@ -231,7 +231,6 @@
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-custombuild.json
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild.json
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-stibuild.json
-// test/extended/testdata/cmd/test/cmd/testdata/external-service-ipv6.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/external-service.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/hello-openshift/hello-pod.json
 // test/extended/testdata/cmd/test/cmd/testdata/idling-dc.yaml
@@ -239,7 +238,6 @@
 // test/extended/testdata/cmd/test/cmd/testdata/image-streams/image-streams-centos7.json
 // test/extended/testdata/cmd/test/cmd/testdata/jenkins/jenkins-ephemeral-template.json
 // test/extended/testdata/cmd/test/cmd/testdata/modified-ruby-imagestream.json
-// test/extended/testdata/cmd/test/cmd/testdata/multiport-service-ipv6.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/multiport-service.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/new-app/bc-from-imagestreamimage.json
 // test/extended/testdata/cmd/test/cmd/testdata/new-app/build-arg-dockerfile/Dockerfile
@@ -34669,41 +34667,6 @@ func testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson() (*a
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataExternalServiceIpv6Yaml = []byte(`apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    external: service
-  name: external
-  resourceVersion: "1"
-  uid: 19cff995-5546-11e5-9f57-080027c5bfa9
-spec:
-  clusterIP: fd02::8
-  ports:
-  - nodePort: 0
-    port: 443
-    protocol: TCP
-    targetPort: 443
-  sessionAffinity: None
-  type: ClusterIP
-status:
-  loadBalancer: {}`)
-
-func testExtendedTestdataCmdTestCmdTestdataExternalServiceIpv6YamlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataExternalServiceIpv6Yaml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataExternalServiceIpv6Yaml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataExternalServiceIpv6YamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/external-service-ipv6.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml = []byte(`apiVersion: v1
 kind: Service
 metadata:
@@ -36329,51 +36292,6 @@ func testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJson() (*asset
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/modified-ruby-imagestream.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdTestdataMultiportServiceIpv6Yaml = []byte(`apiVersion: v1
-kind: List
-items:
-- apiVersion: v1
-  kind: Service
-  metadata:
-    creationTimestamp: 2015-10-13T10:13:11Z
-    labels:
-      test: missing-route-port
-    name: frontend
-    resourceVersion: "259"
-    uid: 024d82eb-7193-11e5-b84d-080027c5bfa9
-  spec:
-    clusterIP: fd02::9
-    ports:
-    - name: web
-      port: 5432
-      protocol: TCP
-      targetPort: 8080
-    - name: web2
-      port: 5433
-      protocol: TCP
-      targetPort: 8080
-    selector:
-      name: frontend
-    sessionAffinity: None
-    type: ClusterIP
-  status:
-    loadBalancer: {}`)
-
-func testExtendedTestdataCmdTestCmdTestdataMultiportServiceIpv6YamlBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTestdataMultiportServiceIpv6Yaml, nil
-}
-
-func testExtendedTestdataCmdTestCmdTestdataMultiportServiceIpv6Yaml() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTestdataMultiportServiceIpv6YamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/multiport-service-ipv6.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -53305,7 +53223,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/testdata/application-template-custombuild.json":                     testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild.json":                     testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/application-template-stibuild.json":                        testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/external-service-ipv6.yaml":                                testExtendedTestdataCmdTestCmdTestdataExternalServiceIpv6Yaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/external-service.yaml":                                     testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/hello-openshift/hello-pod.json":                            testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/idling-dc.yaml":                                            testExtendedTestdataCmdTestCmdTestdataIdlingDcYaml,
@@ -53313,7 +53230,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/testdata/image-streams/image-streams-centos7.json":                  testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json,
 	"test/extended/testdata/cmd/test/cmd/testdata/jenkins/jenkins-ephemeral-template.json":                   testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/modified-ruby-imagestream.json":                            testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJson,
-	"test/extended/testdata/cmd/test/cmd/testdata/multiport-service-ipv6.yaml":                               testExtendedTestdataCmdTestCmdTestdataMultiportServiceIpv6Yaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/multiport-service.yaml":                                    testExtendedTestdataCmdTestCmdTestdataMultiportServiceYaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/new-app/bc-from-imagestreamimage.json":                     testExtendedTestdataCmdTestCmdTestdataNewAppBcFromImagestreamimageJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/new-app/build-arg-dockerfile/Dockerfile":                   testExtendedTestdataCmdTestCmdTestdataNewAppBuildArgDockerfileDockerfile,
@@ -53959,7 +53875,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 								"application-template-custombuild.json": {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson, map[string]*bintree{}},
 								"application-template-dockerbuild.json": {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson, map[string]*bintree{}},
 								"application-template-stibuild.json":    {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson, map[string]*bintree{}},
-								"external-service-ipv6.yaml":            {testExtendedTestdataCmdTestCmdTestdataExternalServiceIpv6Yaml, map[string]*bintree{}},
 								"external-service.yaml":                 {testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml, map[string]*bintree{}},
 								"hello-openshift": {nil, map[string]*bintree{
 									"hello-pod.json": {testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson, map[string]*bintree{}},
@@ -53973,7 +53888,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 									"jenkins-ephemeral-template.json": {testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJson, map[string]*bintree{}},
 								}},
 								"modified-ruby-imagestream.json": {testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJson, map[string]*bintree{}},
-								"multiport-service-ipv6.yaml":    {testExtendedTestdataCmdTestCmdTestdataMultiportServiceIpv6Yaml, map[string]*bintree{}},
 								"multiport-service.yaml":         {testExtendedTestdataCmdTestCmdTestdataMultiportServiceYaml, map[string]*bintree{}},
 								"new-app": {nil, map[string]*bintree{
 									"bc-from-imagestreamimage.json": {testExtendedTestdataCmdTestCmdTestdataNewAppBcFromImagestreamimageJson, map[string]*bintree{}},
