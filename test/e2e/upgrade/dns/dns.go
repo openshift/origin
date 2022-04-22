@@ -22,6 +22,11 @@ import (
 
 type UpgradeTest struct{}
 
+type upgradePhase string
+
+const duringUpgrade upgradePhase = "duringUpgrade"
+const afterUpgrade upgradePhase = "afterUpgrade"
+
 var appName string
 
 func (t *UpgradeTest) Name() string { return "check-for-dns-availability" }
@@ -45,7 +50,7 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 // to cover during and after upgrade phase, and verifies the results.
 func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, _ upgrades.UpgradeType) {
 	ginkgo.By("Validating DNS results during upgrade")
-	t.validateDNSResults(f)
+	t.validateDNSResults(f, duringUpgrade)
 
 	// Block until upgrade is done
 	<-done
@@ -54,7 +59,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, _ upgra
 	time.Sleep(1 * time.Minute)
 
 	ginkgo.By("Validating DNS results after upgrade")
-	t.validateDNSResults(f)
+	t.validateDNSResults(f, afterUpgrade)
 }
 
 // getServiceIP gets Cluster IP from DNS Service
@@ -93,7 +98,7 @@ func (t *UpgradeTest) createDNSTestDaemonSet(f *framework.Framework, dnsServiceI
 }
 
 // validateDNSResults retrieves the Pod logs and validates the results
-func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
+func (t *UpgradeTest) validateDNSResults(f *framework.Framework, phase upgradePhase) {
 	ginkgo.By(fmt.Sprintf("Listing Pods with label app=%s", appName))
 	podClient := f.ClientSet.CoreV1().Pods(f.Namespace.Name)
 	selector, _ := labels.Parse(fmt.Sprintf("app=%s", appName))
@@ -102,8 +107,19 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 
 	ginkgo.By("Retrieving logs from all the Pods belonging to the DaemonSet and asserting no failure")
 	for _, pod := range pods.Items {
-		framework.Logf("Everything is fine until here. 1")
-		framework.Logf("Pod Name: [%s]", pod.Name)
+		p, err := podClient.Get(context.Background(), pod.Name, metav1.GetOptions{})
+		if err != nil || p.Status.Phase != kapiv1.PodRunning {
+			if phase == duringUpgrade {
+				framework.Logf("Failed to get pod [%s] during upgrade. Skipping validating DNS result for this pod", pod.Name)
+				continue
+			} else {
+				if err != nil {
+					framework.Failf("Failed to get pod %s after upgrade: %v", pod.Name, err)
+				}
+				framework.Failf("Pod %s is not in running state after upgrade: %s", pod.Name, pod.Status.Phase)
+			}
+		}
+
 		r, err := podClient.GetLogs(pod.Name, &kapiv1.PodLogOptions{Container: "querier"}).Stream(context.Background())
 		framework.ExpectNoError(err)
 
@@ -118,10 +134,6 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 				successCount++
 			}
 		}
-		framework.Logf("Everything is fine until here. 2")
-
-		framework.Logf("successCount: [%d], failureCount: [%d]", successCount, failureCount)
-		framework.Logf("Pod.Spec: [%q]", pod.Spec)
 
 		if successRate := (successCount / (successCount + failureCount)) * 100; successRate < 99 {
 			err = fmt.Errorf("success rate is less than 99%% on the node %s: [%0.2f]", pod.Spec.NodeName, successRate)
@@ -129,8 +141,6 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 			err = nil
 		}
 		framework.ExpectNoError(err)
-
-		framework.Logf("Everything is fine until here. 3")
 	}
 }
 
