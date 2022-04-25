@@ -107,8 +107,9 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework, phase upgradePh
 
 	ginkgo.By("Retrieving logs from all the Pods belonging to the DaemonSet and asserting no failure")
 	for _, pod := range pods.Items {
+		framework.Logf("Everything is fine until here. 1")
 		p, err := podClient.Get(context.Background(), pod.Name, metav1.GetOptions{})
-		if err != nil || p.Status.Phase != kapiv1.PodRunning {
+		if err != nil || p == nil || p.Status.Phase != kapiv1.PodRunning {
 			if phase == duringUpgrade {
 				framework.Logf("Failed to get pod [%s] during upgrade. Skipping validating DNS result for this pod", pod.Name)
 				continue
@@ -119,9 +120,12 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework, phase upgradePh
 				framework.Failf("Pod %s is not in running state after upgrade: %s", pod.Name, pod.Status.Phase)
 			}
 		}
+		framework.Logf("Everything is fine until here. 2")
 
 		r, err := podClient.GetLogs(pod.Name, &kapiv1.PodLogOptions{Container: "querier"}).Stream(context.Background())
 		framework.ExpectNoError(err)
+
+		framework.Logf("Everything is fine until here. 3")
 
 		failureCount := 0.0
 		successCount := 0.0
@@ -135,12 +139,16 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework, phase upgradePh
 			}
 		}
 
+		framework.Logf("Everything is fine until here. 4")
+
 		if successRate := (successCount / (successCount + failureCount)) * 100; successRate < 99 {
 			err = fmt.Errorf("success rate is less than 99%% on the node %s: [%0.2f]", pod.Spec.NodeName, successRate)
 		} else {
 			err = nil
 		}
 		framework.ExpectNoError(err)
+
+		framework.Logf("Everything is fine until here. 5")
 	}
 }
 
