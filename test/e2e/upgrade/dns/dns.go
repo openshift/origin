@@ -122,8 +122,16 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework, phase upgradePh
 		}
 		framework.Logf("Everything is fine until here. 2")
 
-		r, err := podClient.GetLogs(pod.Name, &kapiv1.PodLogOptions{Container: "querier"}).Stream(context.Background())
+		req := podClient.GetLogs(pod.Name, &kapiv1.PodLogOptions{Container: "querier"})
+		if req == nil {
+			framework.Failf("GetLogs request failed")
+		}
+
+		r, err := req.Stream(context.Background())
 		framework.ExpectNoError(err)
+		if r == nil {
+			framework.Failf("Stream returned a nil ReadCloser")
+		}
 
 		framework.Logf("Everything is fine until here. 3")
 
