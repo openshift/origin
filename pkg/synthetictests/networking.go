@@ -1,16 +1,19 @@
 package synthetictests
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-
-	"github.com/openshift/origin/pkg/monitor/intervalcreation"
+	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"k8s.io/client-go/rest"
 )
 
@@ -19,7 +22,7 @@ type testCategorizer struct {
 	substring string
 }
 
-func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[sig-network] pods should successfully create sandboxes"
 	// we can further refine this signal by subdividing different failure modes if it is pertinent.  Right now I'm seeing
 	// 1. error reading container (probably exited) json message: EOF
@@ -28,6 +31,7 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 	// 4. write child: broken pipe
 	bySubStrings := []testCategorizer{
 		{by: " by reading container", substring: "error reading container (probably exited) json message: EOF"},
+		{by: " by pinging container registry", substring: "pinging container registry"}, // likely combined with i/o timeout but separate test for visibility
 		{by: " by not timing out", substring: "i/o timeout"},
 		{by: " by writing network status", substring: "error setting the networks status"},
 		{by: " by getting pod", substring: " error getting pod: pods"},
@@ -44,6 +48,20 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 		return ev.Locator == "clusteroperator/network" || ev.Locator == "clusteroperator/machine-config"
 	})
 	eventsForPods := getEventsByPodName(events)
+
+	var platform v1.PlatformType
+	configClient, err := configclient.NewForConfig(clientConfig)
+	if err != nil {
+		failures = append(failures, fmt.Sprintf("error creating configClient: %v", err))
+	} else {
+		infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+		if err != nil {
+			failures = append(failures, fmt.Sprintf("error getting cluster infrastructure: %v", err))
+		} else {
+			platform = infra.Status.PlatformStatus.Type
+		}
+	}
+
 	for _, event := range events {
 		if !strings.Contains(event.Message, "reason/FailedCreatePodSandBox Failed to create pod sandbox") {
 			continue
@@ -70,6 +88,12 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 			// not come up due to IP range exhausted.
 			// See https://github.com/openshift/origin/blob/93eb467cc8d293ba977549b05ae2e4b818c64327/test/extended/networking/whereabouts.go#L52
 			continue
+		}
+		if strings.Contains(event.Message, "pinging container registry") && strings.Contains(event.Message, "i/o timeout") {
+			if platform == v1.AzurePlatformType {
+				flakes = append(flakes, fmt.Sprintf("%v - i/o timeout common flake when pinging container registry on azure - %v", event.Locator, event.Message))
+				continue
+			}
 		}
 
 		partialLocator := monitorapi.NonUniquePodLocatorFrom(event.Locator)
