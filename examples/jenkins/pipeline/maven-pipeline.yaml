@@ -40,7 +40,7 @@ objects:
   spec: {}
   status:
     dockerImageRepository: ""
-- apiVersion: image.openshift.io/fv1
+- apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
     name: wildfly
