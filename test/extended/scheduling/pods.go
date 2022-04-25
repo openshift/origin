@@ -2,13 +2,14 @@ package scheduling
 
 import (
 	"context"
-	"strings"
+	"fmt"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	configv1 "github.com/openshift/api/config/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
+	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -64,13 +65,13 @@ func getPodDeploymentName(pod *corev1.Pod, namespaceReplicaSets *appsv1.ReplicaS
 	return ""
 }
 
-func (p requirePodsOnDifferentNodesTest) getDeploymentPods(oc *exutil.CLI) []*corev1.Pod {
-	pods, err := oc.KubeFramework().ClientSet.CoreV1().Pods(p.namespace).List(context.Background(), metav1.ListOptions{})
+func (p requirePodsOnDifferentNodesTest) getDeploymentPods(ctx context.Context, oc *exutil.CLI) []*corev1.Pod {
+	pods, err := oc.KubeFramework().ClientSet.CoreV1().Pods(p.namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		e2e.Failf("unable to list pods: %v", err)
 	}
 
-	replicaSets, err := oc.KubeFramework().ClientSet.AppsV1().ReplicaSets(p.namespace).List(context.Background(), metav1.ListOptions{})
+	replicaSets, err := oc.KubeFramework().ClientSet.AppsV1().ReplicaSets(p.namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		e2e.Failf("unable to list replicaSets: %v", err)
 	}
@@ -88,35 +89,8 @@ func (p requirePodsOnDifferentNodesTest) getDeploymentPods(oc *exutil.CLI) []*co
 	return deploymentPods
 }
 
-func (p requirePodsOnDifferentNodesTest) run(oc *exutil.CLI) {
-	ctx := context.TODO()
-
-	if clusterVersion, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{}); err == nil && len(clusterVersion.Status.History) > 0 {
-		// most recent is first.  Check the most recently installed version, if it is 4.10 or earlier, skip this test
-		for _, releaseUpdate := range clusterVersion.Status.History {
-			if releaseUpdate.State != configv1.CompletedUpdate {
-				continue
-			}
-			switch {
-			case strings.HasPrefix(releaseUpdate.Version, "4.0") ||
-				strings.HasPrefix(releaseUpdate.Version, "4.1.") ||
-				strings.HasPrefix(releaseUpdate.Version, "4.2.") ||
-				strings.HasPrefix(releaseUpdate.Version, "4.3.") ||
-				strings.HasPrefix(releaseUpdate.Version, "4.4.") ||
-				strings.HasPrefix(releaseUpdate.Version, "4.5.") ||
-				strings.HasPrefix(releaseUpdate.Version, "4.6") ||
-				strings.HasPrefix(releaseUpdate.Version, "4.7") ||
-				strings.HasPrefix(releaseUpdate.Version, "4.8") ||
-				strings.HasPrefix(releaseUpdate.Version, "4.9") ||
-				strings.HasPrefix(releaseUpdate.Version, "4.10"):
-				return
-			}
-			// if we got here, then we're 4.11 or after, so we run the test.  skip the rest of the history.
-			break
-		}
-	}
-
-	deploymentPods := p.getDeploymentPods(oc)
+func (p requirePodsOnDifferentNodesTest) run(ctx context.Context, oc *exutil.CLI, jobType *platformidentification.JobType) {
+	deploymentPods := p.getDeploymentPods(ctx, oc)
 
 	if len(deploymentPods) == 0 {
 		// This is not a bug. Not all deployments are available all the time.
@@ -126,19 +100,39 @@ func (p requirePodsOnDifferentNodesTest) run(oc *exutil.CLI) {
 	}
 
 	nodeNameMap := map[string]string{}
+	var err error
 	for _, pod := range deploymentPods {
 		if podName, ok := nodeNameMap[pod.Spec.NodeName]; ok {
-			e2e.Failf("ns/%s pod %s and pod %s are running on the same node: %s", p.namespace, pod.Name, podName, pod.Spec.NodeName)
+			err = fmt.Errorf("ns/%s pod %s and pod %s are running on the same node: %s", p.namespace, pod.Name, podName, pod.Spec.NodeName)
+			if err2 := jobType.MostRecentlyCompletedVersionIsAtLeast("4.11"); err2 != nil {
+				result.Flakef("%v, but separation was inconsistent before 4.11, and %v", err, err2)
+				return
+			}
 		} else {
 			nodeNameMap[pod.Spec.NodeName] = pod.Name
 		}
+	}
+
+	if err != nil {
+		e2e.Fail(err.Error())
 	}
 }
 
 var _ = g.Describe("[sig-scheduling][Early]", func() {
 	defer g.GinkgoRecover()
+	ctx := context.TODO()
 
 	oc := exutil.NewCLI("scheduling-pod-check")
+
+	restConfig, err := exutil.GetClientConfig(exutil.KubeConfigPath())
+	if err != nil {
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
+
+	jobType, err := platformidentification.GetJobType(ctx, restConfig)
+	if err != nil {
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
 
 	g.BeforeEach(func() {
 		var err error
@@ -148,67 +142,67 @@ var _ = g.Describe("[sig-scheduling][Early]", func() {
 
 	g.Describe("The HAProxy router pods", func() {
 		g.It("should be scheduled on different nodes", func() {
-			requirePodsOnDifferentNodesTest{namespace: "openshift-ingress", deployment: "router-default"}.run(oc)
+			requirePodsOnDifferentNodesTest{namespace: "openshift-ingress", deployment: "router-default"}.run(ctx, oc, jobType)
 		})
 	})
 
 	g.Describe("The openshift-apiserver pods", func() {
 		g.It("should be scheduled on different nodes", func() {
-			requirePodsOnDifferentNodesTest{namespace: "openshift-apiserver", deployment: "apiserver"}.run(oc)
+			requirePodsOnDifferentNodesTest{namespace: "openshift-apiserver", deployment: "apiserver"}.run(ctx, oc, jobType)
 		})
 	})
 
 	g.Describe("The openshift-authentication pods", func() {
 		g.It("should be scheduled on different nodes", func() {
-			requirePodsOnDifferentNodesTest{namespace: "openshift-authentication", deployment: "oauth-openshift"}.run(oc)
+			requirePodsOnDifferentNodesTest{namespace: "openshift-authentication", deployment: "oauth-openshift"}.run(ctx, oc, jobType)
 		})
 	})
 
 	g.Describe("The openshift-console pods", func() {
 		g.It("should be scheduled on different nodes", func() {
-			requirePodsOnDifferentNodesTest{namespace: "openshift-console", deployment: "console"}.run(oc)
+			requirePodsOnDifferentNodesTest{namespace: "openshift-console", deployment: "console"}.run(ctx, oc, jobType)
 		})
 	})
 
 	g.Describe("The openshift-console pods", func() {
 		g.It("should be scheduled on different nodes", func() {
-			requirePodsOnDifferentNodesTest{namespace: "openshift-console", deployment: "downloads"}.run(oc)
+			requirePodsOnDifferentNodesTest{namespace: "openshift-console", deployment: "downloads"}.run(ctx, oc, jobType)
 		})
 	})
 
 	g.Describe("The openshift-etcd pods", func() {
 		g.It("should be scheduled on different nodes", func() {
-			requirePodsOnDifferentNodesTest{namespace: "openshift-etcd", deployment: "etcd-quorum-guard"}.run(oc)
+			requirePodsOnDifferentNodesTest{namespace: "openshift-etcd", deployment: "etcd-quorum-guard"}.run(ctx, oc, jobType)
 		})
 	})
 
 	g.Describe("The openshift-image-registry pods", func() {
 		g.It("should be scheduled on different nodes", func() {
-			requirePodsOnDifferentNodesTest{namespace: "openshift-image-registry", deployment: "image-registry"}.run(oc)
+			requirePodsOnDifferentNodesTest{namespace: "openshift-image-registry", deployment: "image-registry"}.run(ctx, oc, jobType)
 		})
 	})
 
 	g.Describe("The openshift-monitoring pods", func() {
 		g.It("should be scheduled on different nodes", func() {
-			requirePodsOnDifferentNodesTest{namespace: "openshift-monitoring", deployment: "prometheus-adapter"}.run(oc)
+			requirePodsOnDifferentNodesTest{namespace: "openshift-monitoring", deployment: "prometheus-adapter"}.run(ctx, oc, jobType)
 		})
 	})
 
 	g.Describe("The openshift-monitoring pods", func() {
 		g.It("should be scheduled on different nodes", func() {
-			requirePodsOnDifferentNodesTest{namespace: "openshift-monitoring", deployment: "thanos-querier"}.run(oc)
+			requirePodsOnDifferentNodesTest{namespace: "openshift-monitoring", deployment: "thanos-querier"}.run(ctx, oc, jobType)
 		})
 	})
 
 	g.Describe("The openshift-oauth-apiserver pods", func() {
 		g.It("should be scheduled on different nodes", func() {
-			requirePodsOnDifferentNodesTest{namespace: "openshift-oauth-apiserver", deployment: "apiserver"}.run(oc)
+			requirePodsOnDifferentNodesTest{namespace: "openshift-oauth-apiserver", deployment: "apiserver"}.run(ctx, oc, jobType)
 		})
 	})
 
 	g.Describe("The openshift-operator-lifecycle-manager pods", func() {
 		g.It("should be scheduled on different nodes", func() {
-			requirePodsOnDifferentNodesTest{namespace: "openshift-operator-lifecycle-manager", deployment: "packageserver"}.run(oc)
+			requirePodsOnDifferentNodesTest{namespace: "openshift-operator-lifecycle-manager", deployment: "packageserver"}.run(ctx, oc, jobType)
 		})
 	})
 })
