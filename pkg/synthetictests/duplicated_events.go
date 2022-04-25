@@ -4,14 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	v1 "github.com/openshift/api/config/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
+	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-
-	v1 "github.com/openshift/api/config/v1"
-	configclient "github.com/openshift/client-go/config/clientset/versioned"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -243,7 +243,7 @@ func testDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 	return tests
 }
 
-func testDuplicatedEventForStableSystem(events monitorapi.Intervals, kubeClientConfig *rest.Config, testSuite string) []*junitapi.JUnitTestCase {
+func testDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfig *rest.Config, testSuite string) []*junitapi.JUnitTestCase {
 	evaluator := duplicateEventsEvaluator{
 		allowedRepeatedEventPatterns: allowedRepeatedEventPatterns,
 		allowedRepeatedEventFns:      allowedRepeatedEventFns,
@@ -251,13 +251,23 @@ func testDuplicatedEventForStableSystem(events monitorapi.Intervals, kubeClientC
 		testSuite:                    testSuite,
 	}
 
-	if err := evaluator.getClusterInfo(kubeClientConfig); err != nil {
+	operatorClient, err := operatorv1client.NewForConfig(clientConfig)
+	if err != nil {
+		panic(err)
+	}
+	etcdAllowance, err := newDuplicatedEventsAllowedWhenEtcdRevisionChange(context.TODO(), operatorClient)
+	if err != nil {
+		panic(fmt.Errorf("unable to construct duplicated events allowance for etcd, err = %v", err))
+	}
+	evaluator.allowedRepeatedEventFns = append(evaluator.allowedRepeatedEventFns, etcdAllowance.allowEtcdGuardReadinessProbeFailure)
+
+	if err := evaluator.getClusterInfo(clientConfig); err != nil {
 		e2e.Logf("could not fetch cluster info: %w", err)
 	}
 
 	tests := []*junitapi.JUnitTestCase{}
-	tests = append(tests, evaluator.testDuplicatedCoreNamespaceEvents(events, kubeClientConfig)...)
-	tests = append(tests, evaluator.testDuplicatedE2ENamespaceEvents(events, kubeClientConfig)...)
+	tests = append(tests, evaluator.testDuplicatedCoreNamespaceEvents(events, clientConfig)...)
+	tests = append(tests, evaluator.testDuplicatedE2ENamespaceEvents(events, clientConfig)...)
 	return tests
 }
 
@@ -272,7 +282,6 @@ type isRepeatedEventOKFunc func(monitorEvent monitorapi.EventInterval, kubeClien
 // I hate regexes, so I only do this because I really have to.
 func (d duplicateEventsEvaluator) testDuplicatedCoreNamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[sig-arch] events should not repeat pathologically"
-
 	interestingEvents := monitorapi.Intervals{}
 	for i := range events {
 		event := events[i]
@@ -560,4 +569,37 @@ func platformPointer(platform v1.PlatformType) *v1.PlatformType {
 
 func stringPointer(testSuite string) *string {
 	return &testSuite
+}
+
+type etcdRevisionChangeAllowance struct {
+	allowedGuardProbeFailurePattern        *regexp.Regexp
+	maxAllowedGuardProbeFailurePerRevision int
+
+	currentRevision int
+}
+
+func newDuplicatedEventsAllowedWhenEtcdRevisionChange(ctx context.Context, operatorClient operatorv1client.OperatorV1Interface) (*etcdRevisionChangeAllowance, error) {
+	currentRevision, err := allowedalerts.GetBiggestRevisionForEtcdOperator(ctx, operatorClient)
+	if err != nil {
+		return nil, err
+	}
+	return &etcdRevisionChangeAllowance{
+		allowedGuardProbeFailurePattern:        regexp.MustCompile(`ns/openshift-etcd pod/etcd-guard-ip-.* node/[a-z0-9.-]+ - reason/(Unhealthy|ProbeError) Readiness probe.*`),
+		maxAllowedGuardProbeFailurePerRevision: 60 / 5, // 60s for starting a new pod, divided by the probe interval
+		currentRevision:                        currentRevision,
+	}, nil
+}
+
+// allowEtcdGuardReadinessProbeFailure tolerates events that match allowedGuardProbeFailurePattern unless we receive more than maxAllowedGuardProbeFailure
+func (a *etcdRevisionChangeAllowance) allowEtcdGuardReadinessProbeFailure(monitorEvent monitorapi.EventInterval, _ *rest.Config) (bool, error) {
+	eventMessage := fmt.Sprintf("%s - %s", monitorEvent.Locator, monitorEvent.Message)
+
+	// if the number of revisions is different compared to what we have collected at the beginning of the test suite
+	// allow for failed readiness probe from the etcd-guard pods
+	// since the guards are static and the etcd pods come and go during a rollout
+	// which causes allowedGuardProbeFailurePattern to fire
+	if a.allowedGuardProbeFailurePattern.MatchString(eventMessage) {
+		return true, nil
+	}
+	return false, nil
 }
