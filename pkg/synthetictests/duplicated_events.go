@@ -87,6 +87,9 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 	// promtail crashlooping as its being started by sideloading manifests.  per @vrutkovs
 	regexp.MustCompile("ns/openshift-e2e-loki pod/loki-promtail.*Readiness probe"),
 
+	// Related to known bug below, but we do not need to report on loki: https://bugzilla.redhat.com/show_bug.cgi?id=1986370
+	regexp.MustCompile("ns/openshift-e2e-loki pod/loki-promtail.*reason/NetworkNotReady"),
+
 	// kube-apiserver guard probe failing due to kube-apiserver operands getting rolled out
 	// multiple times during the bootstrapping phase of a cluster installation
 	regexp.MustCompile("ns/openshift-kube-apiserver pod/kube-apiserver-guard.*ProbeError Readiness probe error"),
