@@ -2,8 +2,11 @@ package scheduling
 
 import (
 	"context"
+	"strings"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -86,6 +89,33 @@ func (p requirePodsOnDifferentNodesTest) getDeploymentPods(oc *exutil.CLI) []*co
 }
 
 func (p requirePodsOnDifferentNodesTest) run(oc *exutil.CLI) {
+	ctx := context.TODO()
+
+	if clusterVersion, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{}); err == nil && len(clusterVersion.Status.History) > 0 {
+		// most recent is first.  Check the most recently installed version, if it is 4.10 or earlier, skip this test
+		for _, releaseUpdate := range clusterVersion.Status.History {
+			if releaseUpdate.State != configv1.CompletedUpdate {
+				continue
+			}
+			switch {
+			case strings.HasPrefix(releaseUpdate.Version, "4.0") ||
+				strings.HasPrefix(releaseUpdate.Version, "4.1.") ||
+				strings.HasPrefix(releaseUpdate.Version, "4.2.") ||
+				strings.HasPrefix(releaseUpdate.Version, "4.3.") ||
+				strings.HasPrefix(releaseUpdate.Version, "4.4.") ||
+				strings.HasPrefix(releaseUpdate.Version, "4.5.") ||
+				strings.HasPrefix(releaseUpdate.Version, "4.6") ||
+				strings.HasPrefix(releaseUpdate.Version, "4.7") ||
+				strings.HasPrefix(releaseUpdate.Version, "4.8") ||
+				strings.HasPrefix(releaseUpdate.Version, "4.9") ||
+				strings.HasPrefix(releaseUpdate.Version, "4.10"):
+				return
+			}
+			// if we got here, then we're 4.11 or after, so we run the test.  skip the rest of the history.
+			break
+		}
+	}
+
 	deploymentPods := p.getDeploymentPods(oc)
 
 	if len(deploymentPods) == 0 {
