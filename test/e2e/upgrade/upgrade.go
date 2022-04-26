@@ -420,13 +420,19 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			return nil, false
 		},
 	); err != nil {
-		//before returning the err force a failure for completes upgrade which follows this test
-		disruption.RecordJUnit(f, clusterCompletesUpgradeTestName, func() (error, bool) {
-			framework.Logf("Cluster version operator failed to acknowledge upgrade request")
-			return fmt.Errorf("Cluster did not complete upgrade: operator failed to acknowledge upgrade request"), false
+		//before returning the err force a failure in a test scenario
+		disruption.RecordJUnit(f, "[sig-cluster-lifecycle] intentional test failure", func() (error, bool) {
+			framework.Logf("Validating failure occurs with err")
+			return fmt.Errorf("Validating failure occurs %s: %s", "upgrade", "forced failure (err)"), false
 		})
 		recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeFailed", fmt.Sprintf("failed to acknowledge version: %v", err), true)
 		return err
+	} else {
+		//force the failure here as well just to make sure we get our signal
+		disruption.RecordJUnit(f, "[sig-cluster-lifecycle] intentional test failure", func() (error, bool) {
+			framework.Logf("Validating failure occurs without err")
+			return fmt.Errorf("Validating failure occurs %s: %s", "upgrade", "forced failure (no err)"), false
+		})
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
