@@ -359,7 +359,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		}
 
 		// we exclude alerts that have their own separate tests.
-		for _, alertTest := range allowedalerts.AllAlertTests(context.TODO(), nil) {
+		for _, alertTest := range allowedalerts.AllAlertTests(context.TODO(), nil, 0) {
 			switch alertTest.AlertState() {
 			case allowedalerts.AlertPending:
 				// a pending test covers pending and everything above (firing)
@@ -750,7 +750,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			}
 
 			// we exclude alerts that have their own separate tests.
-			for _, alertTest := range allowedalerts.AllAlertTests(context.TODO(), nil) {
+			for _, alertTest := range allowedalerts.AllAlertTests(context.TODO(), nil, 0) {
 				allowedAlertNames = append(allowedAlertNames, alertTest.AlertName())
 			}
 
