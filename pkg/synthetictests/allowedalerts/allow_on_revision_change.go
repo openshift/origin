@@ -2,11 +2,16 @@ package allowedalerts
 
 import (
 	"context"
+	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 type etcdRevisionChangeAllowance struct {
@@ -65,4 +70,31 @@ func GetBiggestRevisionForEtcdOperator(ctx context.Context, operatorClient opera
 		}
 	}
 	return biggestRevision, nil
+}
+
+// GetEstimatedNumberOfRevisionsForEtcdOperator calculates the number of revisions that have occurred between now and duration
+func GetEstimatedNumberOfRevisionsForEtcdOperator(ctx context.Context, kubeClient kubernetes.Interface, duration time.Duration) (int, error) {
+	configMaps, err := kubeClient.CoreV1().ConfigMaps("openshift-etcd").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return 0, err
+	}
+
+	var revisionCounter int
+	allowedRevisionsTS := time.Now().Add(-duration)
+	for _, configMap := range configMaps.Items {
+		if strings.Contains(configMap.Name, "revision-status-") {
+			sub := strings.Split(configMap.Name, "-")
+			if len(sub) != 3 {
+				return 0, fmt.Errorf("the configmap: %v has an incorrect name, unable to extract the revision number", configMap.Name)
+			}
+			_, err := strconv.Atoi(sub[2])
+			if err != nil {
+				return 0, err
+			}
+			if configMap.CreationTimestamp.After(allowedRevisionsTS) {
+				revisionCounter++
+			}
+		}
+	}
+	return revisionCounter, nil
 }
