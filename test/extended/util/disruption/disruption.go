@@ -16,6 +16,7 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"github.com/openshift/origin/test/extended/single_node"
 
 	g "github.com/onsi/ginkgo"
 
@@ -377,4 +378,40 @@ func RecordJUnitResult(f *framework.Framework, name string, duration time.Durati
 		Duration: duration,
 		Failure:  failure,
 	})
+}
+
+// Historical percent values were created from ci-search data and buffered by 5 for single node
+var snoHistoricalValues = map[string]float64{
+	"kubernetes-api-available-new-connections:aws":      0.15,
+	"kubernetes-api-available-new-connections:azure":    0.35,
+	"kubernetes-api-available-reused-connections:aws":   0.12,
+	"kubernetes-api-available-reused-connections:azure": 0.35,
+
+	"openshift-api-available-new-connections:aws":      0.20,
+	"openshift-api-available-new-connections:azure":    0.40,
+	"openshift-api-available-reused-connections:aws":   0.20,
+	"openshift-api-available-reused-connections:azure": 0.40,
+
+	"oauth-api-available-new-connections:aws":      0.15,
+	"oauth-api-available-new-connections:azure":    0.40,
+	"oauth-api-available-reused-connections:aws":   0.15,
+	"oauth-api-available-reused-connections:azure": 0.40,
+
+	"frontend-ingress-available:aws":   0.80,
+	"frontend-ingress-available:azure": 0.60,
+
+	"image-registry-available:aws":   0.40,
+	"image-registry-available:azure": 0.30,
+}
+
+// GetSingleNodeDistributionWithDefault Get tolerated distribution for SingleNode based off of historical values,
+// If no value was found for the test name or the test is not running against a single node cluster the supplied default value will be returned.
+func GetSingleNodeDistributionWithDefault(testName string, defaultValue float64, f *framework.Framework) float64 {
+	key := fmt.Sprintf("%s:%s", testName, strings.ToLower(framework.TestContext.Provider))
+	isSingleNodeInfra := single_node.IsSingleNodeInfra(f)
+	if val, ok := snoHistoricalValues[key]; isSingleNodeInfra && ok {
+		framework.Logf("Cluster is running in single-node, increasing toleration from (%f) to (%f)", defaultValue, val)
+		return val
+	}
+	return defaultValue
 }

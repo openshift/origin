@@ -119,6 +119,11 @@ func isAllowedToFail(deployment appsv1.Deployment) bool {
 	return false
 }
 
+func IsSingleNodeInfra(f *e2e.Framework) bool {
+	_, infra := getTopologies(f)
+	return infra == v1.SingleReplicaTopologyMode
+}
+
 var _ = Describe("[sig-arch] Cluster topology single node tests", func() {
 	f := e2e.NewDefaultFramework("single-node")
 

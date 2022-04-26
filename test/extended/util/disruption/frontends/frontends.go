@@ -79,6 +79,7 @@ func (t *AvailableTest) Setup(f *framework.Framework) {
 func (t *AvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
 	client, err := framework.LoadClientset()
 	framework.ExpectNoError(err)
+	toleratedDisruption := disruption.GetSingleNodeDistributionWithDefault(t.Name(), 0.20, f)
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
@@ -105,7 +106,7 @@ func (t *AvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 	cancel()
 	end := time.Now()
 
-	disruption.ExpectNoDisruption(f, 0.20, end.Sub(start), m.Intervals(time.Time{}, time.Time{}), "Frontends were unreachable during disruption")
+	disruption.ExpectNoDisruption(f, toleratedDisruption, end.Sub(start), m.Intervals(time.Time{}, time.Time{}), "Frontends were unreachable during disruption")
 }
 
 // Teardown cleans up any remaining resources.

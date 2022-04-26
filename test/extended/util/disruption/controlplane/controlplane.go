@@ -123,6 +123,7 @@ func (t *availableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 			toleratedDisruption = 0
 		}
 	}
+	toleratedDisruption = disruption.GetSingleNodeDistributionWithDefault(t.Name(), toleratedDisruption, f)
 	disruption.ExpectNoDisruption(f, toleratedDisruption, end.Sub(start), m.Intervals(time.Time{}, time.Time{}), fmt.Sprintf("API %q was unreachable during disruption (AWS has a known issue: https://bugzilla.redhat.com/show_bug.cgi?id=1943804)", t.name))
 }
 
