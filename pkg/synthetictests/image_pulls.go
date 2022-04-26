@@ -15,6 +15,8 @@ const (
 	imagePullRedhatFlakeThreshold         = 5
 	requiredResourcesMissingRegEx         = `reason/RequiredInstallerResourcesMissing secrets: etcd-all-certs-[0-9]+`
 	requiredResourceMissingFlakeThreshold = 10
+	backoffRestartingFailedRegEx          = `reason/BackOff Back-off restarting failed container`
+	backoffRestartingFlakeThreshold       = 10
 )
 
 type eventRecognizerFunc func(event monitorapi.EventInterval) bool
@@ -107,4 +109,12 @@ func testBackoffPullingRegistryRedhatImage(events monitorapi.Intervals) []*junit
 func testRequiredInstallerResourcesMissing(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[bz-etcd] should not see excessive RequiredInstallerResourcesMissing secrets"
 	return newSingleEventCheckRegex(testName, requiredResourcesMissingRegEx, duplicateEventThreshold, requiredResourceMissingFlakeThreshold).test(events)
+}
+
+// testBackoffStartingFailedContainer looks for this symptom:
+//   reason/BackOff Back-off restarting failed container
+//
+func testBackoffStartingFailedContainer(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	testName := "[sig-cluster-lifecycle] should not see excessive Back-off restarting failed containers"
+	return newSingleEventCheckRegex(testName, backoffRestartingFailedRegEx, duplicateEventThreshold, backoffRestartingFlakeThreshold).test(events)
 }
