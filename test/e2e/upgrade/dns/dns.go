@@ -102,6 +102,19 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 
 	ginkgo.By("Retrieving logs from all the Pods belonging to the DaemonSet and asserting no failure")
 	for _, pod := range pods.Items {
+		// Sleep up to a minute more for the pod to come up.
+		maxWait := 6
+		for i := 0; i < maxWait; i++ {
+			if len(pod.Status.ContainerStatuses) > 0 && pod.Status.ContainerStatuses[0].State.Waiting != nil {
+				time.Sleep(10 * time.Second)
+			} else {
+				break
+			}
+		}
+		if maxWait == 6 {
+			err = fmt.Errorf("Pod '%s' took too long to come up; unable to check its logs", pod.Name)
+			framework.ExpectNoError(err)
+		}
 		r, err := podClient.GetLogs(pod.Name, &kapiv1.PodLogOptions{Container: "querier"}).Stream(context.Background())
 		framework.ExpectNoError(err)
 
