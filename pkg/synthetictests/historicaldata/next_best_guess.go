@@ -15,6 +15,9 @@ var nextBestGuessers = []NextBestKey{
 	PreviousReleaseUpgrade,
 	combine(PreviousReleaseUpgrade, MicroReleaseUpgrade),
 	combine(PreviousReleaseUpgrade, MinorReleaseUpgrade),
+
+	combine(ForTopology("single"), OnSDN),
+	combine(ForTopology("single"), OnSDN, PreviousReleaseUpgrade),
 }
 
 // NextBestKey returns the next best key in the query_results.json generated from BigQuery and a bool indicating whether this guesser has an opinion.
@@ -113,6 +116,16 @@ func OnSDN(in platformidentification.JobType) (platformidentification.JobType, b
 	ret := platformidentification.CloneJobType(in)
 	ret.Network = "sdn"
 	return ret, true
+}
+
+// ForTopology we match on exact topology
+func ForTopology(topology string) func(in platformidentification.JobType) (platformidentification.JobType, bool) {
+	return func(in platformidentification.JobType) (platformidentification.JobType, bool) {
+		if in.Topology != topology {
+			return platformidentification.JobType{}, false
+		}
+		return in, true
+	}
 }
 
 // combine will start with the input and call each guess in order.  It uses the output of the previous NextBestKeyFn

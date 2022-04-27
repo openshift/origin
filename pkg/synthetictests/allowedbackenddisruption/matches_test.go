@@ -58,6 +58,36 @@ func TestGetClosestP95Value(t *testing.T) {
 			expectedDetails:  `(no exact match for historicaldata.DataKey{Name:"ingress-to-oauth-server-reused-connections", JobType:platformidentification.JobType{Release:"4.11", FromRelease:"4.11", Platform:"azure", Network:"sdn", Topology:"ha"}}, fell back to historicaldata.DataKey{Name:"ingress-to-oauth-server-reused-connections", JobType:platformidentification.JobType{Release:"4.11", FromRelease:"4.10", Platform:"azure", Network:"sdn", Topology:"ha"}})`,
 		},
 		{
+			name: "fuzzy-match-single-ovn-on-sdn",
+			args: args{
+				backendName: "image-registry-reused-connections",
+				jobType: platformidentification.JobType{
+					Release:     "4.10",
+					FromRelease: "4.10",
+					Platform:    "aws",
+					Network:     "ovn",
+					Topology:    "single",
+				},
+			},
+			expectedDuration: mustDuration("211.86s"),
+			expectedDetails:  `(no exact match for historicaldata.DataKey{Name:"image-registry-reused-connections", JobType:platformidentification.JobType{Release:"4.10", FromRelease:"4.10", Platform:"aws", Network:"ovn", Topology:"single"}}, fell back to historicaldata.DataKey{Name:"image-registry-reused-connections", JobType:platformidentification.JobType{Release:"4.10", FromRelease:"4.10", Platform:"aws", Network:"sdn", Topology:"single"}})`,
+		},
+		{
+			name: "fuzzy-match-single-ovn-on-sdn-previous",
+			args: args{
+				backendName: "image-registry-new-connections",
+				jobType: platformidentification.JobType{
+					Release:     "4.11",
+					FromRelease: "4.11",
+					Platform:    "aws",
+					Network:     "ovn",
+					Topology:    "single",
+				},
+			},
+			expectedDuration: mustDuration("210.86s"),
+			expectedDetails:  `(no exact match for historicaldata.DataKey{Name:"image-registry-new-connections", JobType:platformidentification.JobType{Release:"4.11", FromRelease:"4.11", Platform:"aws", Network:"ovn", Topology:"single"}}, fell back to historicaldata.DataKey{Name:"image-registry-new-connections", JobType:platformidentification.JobType{Release:"4.10", FromRelease:"4.10", Platform:"aws", Network:"sdn", Topology:"single"}})`,
+		},
+		{
 			name: "missing",
 			args: args{
 				backendName: "kube-api-reused-connections",
