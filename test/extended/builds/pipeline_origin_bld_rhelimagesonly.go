@@ -214,10 +214,6 @@ var _ = g.Describe("[sig-devex][Feature:JenkinsRHELImagesOnly][Slow] openshift p
 					}
 					br.AssertSuccess()
 
-					g.By("confirm all the log annotations are there")
-					_, err = jenkins.ProcessLogURLAnnotations(oc, br)
-					o.Expect(err).NotTo(o.HaveOccurred())
-
 					g.By("get build console logs and see if succeeded")
 					out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
 					if err != nil {
