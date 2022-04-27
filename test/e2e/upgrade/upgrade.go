@@ -340,6 +340,9 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 	}
 	defer monitor.Describe(f)
 
+	//used below in separate paths
+	clusterCompletesUpgradeTestName := "[sig-cluster-lifecycle] Cluster completes upgrade"
+
 	// trigger the update and record verification as an independent step
 	if err := disruption.RecordJUnit(
 		f,
@@ -404,6 +407,11 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			return nil, false
 		},
 	); err != nil {
+		//before returning the err force a failure for completes upgrade which follows this test
+		disruption.RecordJUnit(f, clusterCompletesUpgradeTestName, func() (error, bool) {
+			framework.Logf("Cluster version operator failed to acknowledge upgrade request")
+			return fmt.Errorf("Cluster did not complete upgrade: operator failed to acknowledge upgrade request"), false
+		})
 		recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeFailed", fmt.Sprintf("failed to acknowledge version: %v", err), true)
 		return err
 	}
@@ -415,7 +423,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 	// observe the upgrade, taking action as necessary
 	if err := disruption.RecordJUnit(
 		f,
-		"[sig-cluster-lifecycle] Cluster completes upgrade",
+		clusterCompletesUpgradeTestName,
 		func() (error, bool) {
 			framework.Logf("Cluster version operator acknowledged upgrade request")
 			aborted := false
