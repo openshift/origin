@@ -433,6 +433,9 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			framework.Logf("Validating failure occurs without err")
 			return fmt.Errorf("Validating failure occurs %s: %s", "upgrade", "forced failure (no err)"), false
 		})
+
+		//force return of error to see if the run fails
+		return fmt.Errorf("Cluster did not complete updgrade: FORCED FAILURE")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
