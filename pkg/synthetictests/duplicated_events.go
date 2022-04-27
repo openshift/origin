@@ -328,7 +328,8 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 			}
 			allowed := false
 			for _, allowRepeatedEventFn := range d.allowedRepeatedEventFns {
-				allowed, err := allowRepeatedEventFn(event, kubeClientConfig)
+				var err error
+				allowed, err = allowRepeatedEventFn(event, kubeClientConfig)
 				if err != nil {
 					failures = append(failures, fmt.Sprintf("error: [%v] when processing event %v", err, eventDisplayMessage))
 					allowed = false
