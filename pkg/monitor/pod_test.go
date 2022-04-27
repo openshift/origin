@@ -42,10 +42,11 @@ func Test_podNetworkIPCache_updatePod(t *testing.T) {
 		pod *corev1.Pod
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   []monitorapi.Condition
+		name     string
+		fields   fields
+		args     args
+		want     []monitorapi.Condition
+		finalMap map[string]sets.String
 	}{
 		{
 			name: "newly-created",
@@ -56,6 +57,11 @@ func Test_podNetworkIPCache_updatePod(t *testing.T) {
 				pod: addIP(newPod("alfa", "zulu"), "10.28.0.96"),
 			},
 			want: nil,
+			finalMap: map[string]sets.String{
+				"10.28.0.96": sets.NewString(
+					monitorapi.LocatePod(newPod("alfa", "zulu")),
+				),
+			},
 		},
 		{
 			name: "deleted-not-present",
@@ -65,7 +71,8 @@ func Test_podNetworkIPCache_updatePod(t *testing.T) {
 			args: args{
 				pod: setDeletionTimestamp(addIP(newPod("alfa", "zulu"), "10.28.0.96"), time.Now()),
 			},
-			want: nil,
+			want:     nil,
+			finalMap: map[string]sets.String{},
 		},
 		{
 			name: "deleted-ip-present-not-with-pod",
@@ -80,6 +87,11 @@ func Test_podNetworkIPCache_updatePod(t *testing.T) {
 				pod: setDeletionTimestamp(addIP(newPod("alfa", "zulu"), "10.28.0.96"), time.Now()),
 			},
 			want: nil,
+			finalMap: map[string]sets.String{
+				"10.28.0.96": sets.NewString(
+					monitorapi.LocatePod(newPod("alfa", "yankee")),
+				),
+			},
 		},
 		{
 			name: "deleted-ip-present-with-pod",
@@ -93,7 +105,8 @@ func Test_podNetworkIPCache_updatePod(t *testing.T) {
 			args: args{
 				pod: setDeletionTimestamp(addIP(newPod("alfa", "zulu"), "10.28.0.96"), time.Now()),
 			},
-			want: nil,
+			want:     nil,
+			finalMap: map[string]sets.String{},
 		},
 		{
 			name: "deleted-ip-present-with-two-pods",
@@ -109,6 +122,11 @@ func Test_podNetworkIPCache_updatePod(t *testing.T) {
 				pod: setDeletionTimestamp(addIP(newPod("alfa", "zulu"), "10.28.0.96"), time.Now()),
 			},
 			want: nil,
+			finalMap: map[string]sets.String{
+				"10.28.0.96": sets.NewString(
+					monitorapi.LocatePod(newPod("alfa", "yankee")),
+				),
+			},
 		},
 		{
 			name: "update-of-existing-pod",
@@ -123,6 +141,11 @@ func Test_podNetworkIPCache_updatePod(t *testing.T) {
 				pod: addIP(newPod("alfa", "zulu"), "10.28.0.96"),
 			},
 			want: nil,
+			finalMap: map[string]sets.String{
+				"10.28.0.96": sets.NewString(
+					monitorapi.LocatePod(newPod("alfa", "zulu")),
+				),
+			},
 		},
 		{
 			name: "update-of-existing-pod-already-duplicated",
@@ -138,6 +161,12 @@ func Test_podNetworkIPCache_updatePod(t *testing.T) {
 				pod: addIP(newPod("alfa", "zulu"), "10.28.0.96"),
 			},
 			want: nil,
+			finalMap: map[string]sets.String{
+				"10.28.0.96": sets.NewString(
+					monitorapi.LocatePod(newPod("alfa", "yankee")),
+					monitorapi.LocatePod(newPod("alfa", "zulu")),
+				),
+			},
 		},
 		{
 			name: "add-conflicting-pod",
@@ -158,6 +187,12 @@ func Test_podNetworkIPCache_updatePod(t *testing.T) {
 					Message: `reason/ReusedPodIP podIP 10.28.0.96 is currently assigned to multiple pods: ns/alfa pod/yankee node/ uid/;ns/alfa pod/zulu node/ uid/`,
 				},
 			},
+			finalMap: map[string]sets.String{
+				"10.28.0.96": sets.NewString(
+					monitorapi.LocatePod(newPod("alfa", "yankee")),
+					monitorapi.LocatePod(newPod("alfa", "zulu")),
+				),
+			},
 		},
 		{
 			name: "add-conflicting-pod-second-ip",
@@ -177,6 +212,15 @@ func Test_podNetworkIPCache_updatePod(t *testing.T) {
 					Locator: monitorapi.LocatePod(newPod("alfa", "zulu")),
 					Message: `reason/ReusedPodIP podIP 10.28.0.96 is currently assigned to multiple pods: ns/alfa pod/yankee node/ uid/;ns/alfa pod/zulu node/ uid/`,
 				},
+			},
+			finalMap: map[string]sets.String{
+				"10.28.0.96": sets.NewString(
+					monitorapi.LocatePod(newPod("alfa", "yankee")),
+					monitorapi.LocatePod(newPod("alfa", "zulu")),
+				),
+				"2001:0db8:85a3:0000:0000:8a2e:0370:7334": sets.NewString(
+					monitorapi.LocatePod(newPod("alfa", "zulu")),
+				),
 			},
 		},
 		{
@@ -206,7 +250,16 @@ func Test_podNetworkIPCache_updatePod(t *testing.T) {
 					Message: `reason/ReusedPodIP podIP 10.28.0.96 is currently assigned to multiple pods: ns/alfa pod/yankee node/ uid/;ns/alfa pod/zulu node/ uid/`,
 				},
 			},
-		},
+			finalMap: map[string]sets.String{
+				"10.28.0.96": sets.NewString(
+					monitorapi.LocatePod(newPod("alfa", "yankee")),
+					monitorapi.LocatePod(newPod("alfa", "zulu")),
+				),
+				"2001:0db8:85a3:0000:0000:8a2e:0370:7334": sets.NewString(
+					monitorapi.LocatePod(newPod("alfa", "x-ray")),
+					monitorapi.LocatePod(newPod("alfa", "zulu")),
+				),
+			}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -215,6 +268,9 @@ func Test_podNetworkIPCache_updatePod(t *testing.T) {
 			}
 			if got := p.updatePod(tt.args.pod, nil); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("updatePod() = %v, want %v", got, tt.want)
+			}
+			if !reflect.DeepEqual(p.podIPsToCurrentPodLocators, tt.finalMap) {
+				t.Errorf("map = %v, want %v", p.podIPsToCurrentPodLocators, tt.finalMap)
 			}
 		})
 	}
