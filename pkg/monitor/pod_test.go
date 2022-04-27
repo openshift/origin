@@ -39,7 +39,8 @@ func Test_podNetworkIPCache_updatePod(t *testing.T) {
 		podIPsToCurrentPodLocators map[string]sets.String
 	}
 	type args struct {
-		pod *corev1.Pod
+		pod    *corev1.Pod
+		oldPod *corev1.Pod
 	}
 	tests := []struct {
 		name     string
@@ -224,6 +225,26 @@ func Test_podNetworkIPCache_updatePod(t *testing.T) {
 			},
 		},
 		{
+			name: "change-pod-ip",
+			fields: fields{
+				podIPsToCurrentPodLocators: map[string]sets.String{
+					"10.28.0.96": sets.NewString(
+						monitorapi.LocatePod(newPod("alfa", "yankee")),
+					),
+				},
+			},
+			args: args{
+				pod:    addIP(newPod("alfa", "yankee"), "2001:0db8:85a3:0000:0000:8a2e:0370:7334"),
+				oldPod: addIP(newPod("alfa", "yankee"), "10.28.0.96"),
+			},
+			want: nil,
+			finalMap: map[string]sets.String{
+				"2001:0db8:85a3:0000:0000:8a2e:0370:7334": sets.NewString(
+					monitorapi.LocatePod(newPod("alfa", "yankee")),
+				),
+			},
+		},
+		{
 			name: "add-two-conflicts",
 			fields: fields{
 				podIPsToCurrentPodLocators: map[string]sets.String{
@@ -266,7 +287,7 @@ func Test_podNetworkIPCache_updatePod(t *testing.T) {
 			p := &podNetworkIPCache{
 				podIPsToCurrentPodLocators: tt.fields.podIPsToCurrentPodLocators,
 			}
-			if got := p.updatePod(tt.args.pod, nil); !reflect.DeepEqual(got, tt.want) {
+			if got := p.updatePod(tt.args.pod, tt.args.oldPod); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("updatePod() = %v, want %v", got, tt.want)
 			}
 			if !reflect.DeepEqual(p.podIPsToCurrentPodLocators, tt.finalMap) {

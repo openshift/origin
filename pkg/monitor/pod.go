@@ -637,7 +637,7 @@ type podNetworkIPCache struct {
 	podIPsToCurrentPodLocators map[string]sets.String
 }
 
-func (p *podNetworkIPCache) updatePod(pod, _ *corev1.Pod) []monitorapi.Condition {
+func (p *podNetworkIPCache) updatePod(pod, oldPod *corev1.Pod) []monitorapi.Condition {
 	var conditions []monitorapi.Condition
 
 	p.lock.Lock()
@@ -649,19 +649,35 @@ func (p *podNetworkIPCache) updatePod(pod, _ *corev1.Pod) []monitorapi.Condition
 	}
 
 	podLocator := monitorapi.LocatePod(pod)
-
-	if isPodIPReleased(pod) {
-		for _, podIP := range pod.Status.PodIPs {
-			ip := podIP.IP
-			if _, ok := p.podIPsToCurrentPodLocators[ip]; !ok {
-				continue
-			}
-			p.podIPsToCurrentPodLocators[ip].Delete(podLocator)
-			if len(p.podIPsToCurrentPodLocators[ip]) == 0 {
-				delete(p.podIPsToCurrentPodLocators, ip)
-			}
+	oldIPs := sets.NewString()
+	if oldPod != nil {
+		for _, curr := range oldPod.Status.PodIPs {
+			oldIPs.Insert(curr.IP)
 		}
+	}
+	newIPs := sets.NewString()
+	for _, curr := range pod.Status.PodIPs {
+		newIPs.Insert(curr.IP)
+	}
+	// we no longer use IPs that are not on the current pod and we no longer use IPs
+	// if those IPs have been released.
+	noLongerUsedIPs := oldIPs.Difference(newIPs)
+	if isPodIPReleased(pod) {
+		noLongerUsedIPs.Insert(newIPs.UnsortedList()...)
+	}
 
+	for _, ip := range noLongerUsedIPs.List() {
+		if _, ok := p.podIPsToCurrentPodLocators[ip]; !ok {
+			continue
+		}
+		p.podIPsToCurrentPodLocators[ip].Delete(podLocator)
+		if len(p.podIPsToCurrentPodLocators[ip]) == 0 {
+			delete(p.podIPsToCurrentPodLocators, ip)
+		}
+	}
+
+	// if the pod IP has been released, then we don't add the data
+	if isPodIPReleased(pod) {
 		return conditions
 	}
 
