@@ -95,6 +95,9 @@ func ReasonedMessagef(reason, messageFormat string, a ...interface{}) string {
 }
 
 const (
+	// PodIPReused means the same pod IP is in use by two pods at the same time.
+	PodIPReused = "ReusedPodIP"
+
 	PodReasonCreated   = "Created"
 	PodReasonDeleted   = "Deleted"
 	PodReasonScheduled = "Scheduled"
