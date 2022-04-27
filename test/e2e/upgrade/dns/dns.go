@@ -102,6 +102,10 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 
 	ginkgo.By("Retrieving logs from all the Pods belonging to the DaemonSet and asserting no failure")
 	for _, pod := range pods.Items {
+		if len(pod.Status.ContainerStatuses) > 0 && pod.Status.ContainerStatuses[0].State.Waiting != nil {
+			// this container is waiting, so there will be no logs even if we try again later, we won't have logs of interest
+			continue
+		}
 		r, err := podClient.GetLogs(pod.Name, &kapiv1.PodLogOptions{Container: "querier"}).Stream(context.Background())
 		framework.ExpectNoError(err)
 
