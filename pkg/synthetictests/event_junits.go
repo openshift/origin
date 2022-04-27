@@ -71,5 +71,6 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 // machine, even if the machine crashes.
 func SystemEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config, testSuite string) (tests []*junitapi.JUnitTestCase) {
 	tests = append(tests, testSystemDTimeout(events)...)
+	tests = append(tests, testPodIPReuse(events)...)
 	return tests
 }

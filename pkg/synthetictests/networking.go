@@ -199,3 +199,31 @@ func getNodeRebootTime(events monitorapi.Intervals, node string) *time.Time {
 	}
 	return nil
 }
+
+func testPodIPReuse(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[bz-networking] pod IPs should not be used by two pods at the same time"
+
+	failures := []string{}
+	for _, event := range events {
+		if reason := monitorapi.ReasonFrom(event.Message); reason != monitorapi.PodIPReused {
+			continue
+		}
+		failures = append(failures, event.Message)
+	}
+
+	if len(failures) == 0 {
+		return []*junitapi.JUnitTestCase{
+			{Name: testName},
+		}
+	}
+
+	return []*junitapi.JUnitTestCase{
+		{
+			Name: testName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: strings.Join(failures, "\n"),
+			},
+			SystemOut: strings.Join(failures, "\n"),
+		},
+	}
+}

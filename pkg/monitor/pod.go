@@ -4,13 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
@@ -73,7 +75,14 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 		return conditions
 	})
 
+	podIPTracker := &podNetworkIPCache{
+		podIPsToCurrentPodLocators: map[string]sets.String{},
+	}
+	trackPodIPReuseFn := podIPTracker.updatePod
+
 	podChangeFns := []func(pod, oldPod *corev1.Pod) []monitorapi.Condition{
+		// check to see if pod IPs were reused simultaneously
+		trackPodIPReuseFn,
 		// check phase transitions
 		func(pod, oldPod *corev1.Pod) []monitorapi.Condition {
 			new, old := pod.Status.Phase, oldPod.Status.Phase
@@ -327,6 +336,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 		},
 	}
 	podDeleteFns := []func(pod *corev1.Pod) []monitorapi.Condition{
+		podIPTracker.deletePod,
 		// check for transitions to being deleted
 		func(pod *corev1.Pod) []monitorapi.Condition {
 			var conditions []monitorapi.Condition
@@ -374,6 +384,11 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 					Locator: locatePod(pod),
 					Message: "reason/Created",
 				})
+
+				m.Record(
+					// check to see if pod IPs were reused simultaneously
+					trackPodIPReuseFn(pod, nil)...,
+				)
 			},
 			DeleteFunc: func(obj interface{}) {
 				pod, ok := obj.(*corev1.Pod)
@@ -406,10 +421,6 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 	)
 
 	go podInformer.Run(ctx.Done())
-}
-
-func containerHasPreviousState(c *corev1.ContainerStatus) bool {
-	return c.LastTerminationState != corev1.ContainerState{}
 }
 
 func podContainerPhaseStartTime(pod *corev1.Pod, init bool) time.Time {
@@ -493,4 +504,76 @@ func conditionsForTransitioningContainer(pod *corev1.Pod, current, previous *cor
 
 func isMirrorPod(pod *corev1.Pod) bool {
 	return len(pod.Annotations["kubernetes.io/config.mirror"]) > 0
+}
+
+type podNetworkIPCache struct {
+	lock sync.Mutex
+
+	// podIPsToCurrentPodLocators contains the name of the pods currently using a given pod IP.
+	// This only tracks the current state, because we will emit monitor error events on any overlaps.
+	podIPsToCurrentPodLocators map[string]sets.String
+}
+
+func (p *podNetworkIPCache) updatePod(pod, _ *corev1.Pod) []monitorapi.Condition {
+	var conditions []monitorapi.Condition
+
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	// only consider pod network pods because host network pods will have duplicated IPs
+	if pod.Spec.HostNetwork {
+		return conditions
+	}
+
+	podLocator := monitorapi.LocatePod(pod)
+
+	if pod.DeletionTimestamp != nil {
+		for _, podIP := range pod.Status.PodIPs {
+			ip := podIP.IP
+			if _, ok := p.podIPsToCurrentPodLocators[ip]; !ok {
+				continue
+			}
+			p.podIPsToCurrentPodLocators[ip].Delete(podLocator)
+			if len(p.podIPsToCurrentPodLocators[ip]) == 0 {
+				delete(p.podIPsToCurrentPodLocators, ip)
+			}
+		}
+
+		return conditions
+	}
+
+	for _, podIP := range pod.Status.PodIPs {
+		ip := podIP.IP
+		podNames, existing := p.podIPsToCurrentPodLocators[ip]
+		if !existing {
+			p.podIPsToCurrentPodLocators[ip] = sets.NewString(podLocator)
+			continue
+		}
+		// pods get updated a lot, we'll see the same one many times.
+		if podNames.Has(podLocator) {
+			continue
+		}
+
+		// if we have an existing entry AND we do not already contain this pod name, then have a duplicate.
+		// we'll add the new pod and then fail
+		podNames.Insert(podLocator)
+		p.podIPsToCurrentPodLocators[ip] = podNames
+
+		conditions = append(conditions, monitorapi.Condition{
+			Level:   monitorapi.Error,
+			Locator: podLocator,
+			Message: monitorapi.ReasonedMessagef(monitorapi.PodIPReused, "podIP %v is currently assigned to multiple pods: %v", ip, strings.Join(podNames.List(), ";")),
+		})
+	}
+
+	return conditions
+}
+
+func (p *podNetworkIPCache) deletePod(pod *corev1.Pod) []monitorapi.Condition {
+	podCopy := pod.DeepCopy()
+	if podCopy.DeletionTimestamp == nil {
+		t := metav1.Now()
+		podCopy.DeletionTimestamp = &t
+	}
+	return p.updatePod(podCopy, nil)
 }
