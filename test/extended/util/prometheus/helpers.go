@@ -78,7 +78,7 @@ func LocatePrometheus(oc *exutil.CLI) (queryURL, prometheusURL, bearerToken stri
 			if secret.Type != v1.SecretTypeServiceAccountToken {
 				continue
 			}
-			if !strings.HasPrefix(secret.Name, "prometheus-") {
+			if !strings.HasPrefix(secret.Name, "prometheus-k8s-token") {
 				continue
 			}
 			bearerToken = string(secret.Data[v1.ServiceAccountTokenKey])
