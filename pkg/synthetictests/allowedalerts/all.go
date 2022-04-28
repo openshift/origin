@@ -2,25 +2,26 @@ package allowedalerts
 
 import (
 	"context"
+	"time"
 
-	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
 // AllAlertTests returns the list of AlertTests with independent tests instead of a general check.
 // clientConfig may be nil, but the quality of the allowances will be better if it is set.
 // You may choose to send nil to get a list of names for instance.
-func AllAlertTests(ctx context.Context, clientConfig *rest.Config) []AlertTest {
+func AllAlertTests(ctx context.Context, clientConfig *rest.Config, duration time.Duration) []AlertTest {
 	var etcdAllowance AlertTestAllowanceCalculator
 	etcdAllowance = defaultAllowances
 
 	// if we have a clientConfig,  use it.
 	if clientConfig != nil {
-		operatorClient, err := operatorv1client.NewForConfig(clientConfig)
+		kubeClient, err := kubernetes.NewForConfig(clientConfig)
 		if err != nil {
 			panic(err)
 		}
-		etcdAllowance, err = NewAllowedWhenEtcdRevisionChange(ctx, operatorClient)
+		etcdAllowance, err = NewAllowedWhenEtcdRevisionChange(ctx, kubeClient, duration)
 		if err != nil {
 			panic(err)
 		}
