@@ -278,7 +278,7 @@ func testPodIPReuse(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 		if reason := monitorapi.ReasonFrom(event.Message); reason != monitorapi.PodIPReused {
 			continue
 		}
-		failures = append(failures, event.Message)
+		failures = append(failures, event.From.Format(time.RFC3339)+" "+event.Message)
 	}
 
 	if len(failures) == 0 {
