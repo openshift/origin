@@ -4,21 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	v1 "github.com/openshift/api/config/v1"
-	configclient "github.com/openshift/client-go/config/clientset/versioned"
-	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
-	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"regexp"
 	"strconv"
 	"strings"
+
+	v1 "github.com/openshift/api/config/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 const (
@@ -274,7 +274,7 @@ func testDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfi
 // isRepeatedEventOKFunc takes a monitorEvent as input and returns true if the repeated event is OK.
 // This commonly happens for known bugs and for cases where events are repeated intentionally by tests.
 // Use this to handle cases where, "if X is true, then the repeated event is ok".
-type isRepeatedEventOKFunc func(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config) (bool, error)
+type isRepeatedEventOKFunc func(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config, times int) (bool, error)
 
 // we want to identify events based on the monitor because it is (currently) our only spot that tracks events over time
 // for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] test
@@ -329,7 +329,7 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 			allowed := false
 			for _, allowRepeatedEventFn := range d.allowedRepeatedEventFns {
 				var err error
-				allowed, err = allowRepeatedEventFn(event, kubeClientConfig)
+				allowed, err = allowRepeatedEventFn(event, kubeClientConfig, times)
 				if err != nil {
 					failures = append(failures, fmt.Sprintf("error: [%v] when processing event %v", err, eventDisplayMessage))
 					allowed = false
@@ -515,7 +515,7 @@ func isEventDuringInstallation(monitorEvent monitorapi.EventInterval, kubeClient
 // we're looking for something like
 // > ns/openshift-console pod/console-7c6f797fd9-5m94j node/ip-10-0-158-106.us-west-2.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.129.0.49:8443/health": dial tcp 10.129.0.49:8443: connect: connection refused
 // with a firstTimestamp before the cluster completed the initial installation
-func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config) (bool, error) {
+func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config, _ int) (bool, error) {
 	if !strings.Contains(monitorEvent.Locator, "ns/openshift-console") {
 		return false, nil
 	}
@@ -591,15 +591,14 @@ func newDuplicatedEventsAllowedWhenEtcdRevisionChange(ctx context.Context, opera
 	}, nil
 }
 
-// allowEtcdGuardReadinessProbeFailure tolerates events that match allowedGuardProbeFailurePattern unless we receive more than maxAllowedGuardProbeFailure
-func (a *etcdRevisionChangeAllowance) allowEtcdGuardReadinessProbeFailure(monitorEvent monitorapi.EventInterval, _ *rest.Config) (bool, error) {
+// allowEtcdGuardReadinessProbeFailure tolerates events that match allowedGuardProbeFailurePattern unless we receive more than a.maxAllowedGuardProbeFailurePerRevision*a.currentRevision
+func (a *etcdRevisionChangeAllowance) allowEtcdGuardReadinessProbeFailure(monitorEvent monitorapi.EventInterval, _ *rest.Config, times int) (bool, error) {
 	eventMessage := fmt.Sprintf("%s - %s", monitorEvent.Locator, monitorEvent.Message)
 
-	// if the number of revisions is different compared to what we have collected at the beginning of the test suite
-	// allow for failed readiness probe from the etcd-guard pods
+	// allow for a.maxAllowedGuardProbeFailurePerRevision * a.currentRevision failed readiness probe from the etcd-guard pods
 	// since the guards are static and the etcd pods come and go during a rollout
 	// which causes allowedGuardProbeFailurePattern to fire
-	if a.allowedGuardProbeFailurePattern.MatchString(eventMessage) {
+	if a.allowedGuardProbeFailurePattern.MatchString(eventMessage) && a.maxAllowedGuardProbeFailurePerRevision*a.currentRevision < times {
 		return true, nil
 	}
 	return false, nil
