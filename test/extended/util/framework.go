@@ -60,7 +60,6 @@ import (
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/origin/test/extended/testdata"
 	utilimage "github.com/openshift/origin/test/extended/util/image"
-	k8sclient "k8s.io/client-go/kubernetes"
 )
 
 // WaitForInternalRegistryHostname waits for the internal registry hostname to be made available to the cluster.
@@ -1613,7 +1612,7 @@ func ParseLabelsOrDie(str string) labels.Selector {
 // as the target for networking connectivity checks.  The ip address
 // of the created pod will be returned if the pod is launched
 // successfully.
-func LaunchWebserverPod(client k8sclient.Interface, namespace, podName, nodeName string) (ip string) {
+func LaunchWebserverPod(f *e2e.Framework, podName, nodeName string) (ip string) {
 	containerName := fmt.Sprintf("%s-container", podName)
 	port := 8080
 	pod := &corev1.Pod{
@@ -1633,10 +1632,10 @@ func LaunchWebserverPod(client k8sclient.Interface, namespace, podName, nodeName
 			RestartPolicy: corev1.RestartPolicyNever,
 		},
 	}
-	podClient := client.CoreV1().Pods(namespace)
+	podClient := f.ClientSet.CoreV1().Pods(f.Namespace.Name)
 	_, err := podClient.Create(context.Background(), pod, metav1.CreateOptions{})
 	e2e.ExpectNoError(err)
-	e2e.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(client, podName, namespace))
+	e2e.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, podName, f.Namespace.Name))
 	createdPod, err := podClient.Get(context.Background(), podName, metav1.GetOptions{})
 	e2e.ExpectNoError(err)
 	ip = net.JoinHostPort(createdPod.Status.PodIP, strconv.Itoa(port))
