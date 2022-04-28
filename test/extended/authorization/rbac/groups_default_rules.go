@@ -30,6 +30,7 @@ import (
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/oauth"
 	"github.com/openshift/api/project"
+	"github.com/openshift/api/security"
 	"github.com/openshift/api/template"
 	"github.com/openshift/api/user"
 
@@ -116,6 +117,8 @@ var (
 			rbacv1helpers.NewRule("get", "list").Groups(storageGroup).Resources("storageclasses").RuleOrDie(),
 			rbacv1helpers.NewRule("get", "list", "watch").Groups(snapshotGroup).Resources("volumesnapshotclasses").RuleOrDie(),
 			rbacv1helpers.NewRule("list", "watch").Groups(projectGroup, legacyProjectGroup).Resources("projects").RuleOrDie(),
+
+			rbacv1helpers.NewRule("use").Groups(security.GroupName).Resources("securitycontextconstraints").Names("restricted-v2").RuleOrDie(),
 
 			// These custom resources are used to extend console functionality
 			// The console team is working on eliminating this exception in the near future
