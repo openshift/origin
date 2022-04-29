@@ -3,16 +3,17 @@ package networking
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
 	"net"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
 
 	configv1 "github.com/openshift/api/config/v1"
 	projectv1 "github.com/openshift/api/project/v1"
@@ -180,10 +181,14 @@ func createWebserverLBService(client k8sclient.Interface, namespace, serviceName
 	return err
 }
 
-func deleteService(serviceClient v1.ServiceInterface, serviceName string) error {
-	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+func deleteService(serviceClient v1.ServiceInterface, serviceName string) {
+	retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		return serviceClient.Delete(context.Background(), serviceName, metav1.DeleteOptions{})
 	})
+	Eventually(func() bool {
+		_, err := serviceClient.Get(context.Background(), serviceName, metav1.GetOptions{})
+		return kapierrs.IsNotFound(err)
+	}, 5*time.Minute, 25*time.Second).Should(Equal(true))
 }
 
 func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, host string, timeout time.Duration) error {

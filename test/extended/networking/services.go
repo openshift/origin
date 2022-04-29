@@ -110,8 +110,20 @@ var _ = Describe("[sig-network] services", func() {
 			By("check service is within external ip within allowed range")
 			for {
 				err := createWebserverLBService(k8sClient, namespace, serviceName, "", []string{"192.168.132.10"}, nil)
+				if err != nil {
+					e2e.Logf("error occurred while creating %s/%s service: %v: reason: %v", namespace, serviceName, err, kapierrs.ReasonForError(err))
+				}
+				if err != nil && strings.Contains(err.Error(), "connection reset by peer") {
+					// kube api server is still rolling out changed external ip configuration and somehow its closing client connection
+					// while its in progress. so retry after retryInterval.
+					e2e.Logf("external ip config rollout is in progress, retry creating service %s until it succeeds or exceeds test timeout 30 mins", serviceName)
+					time.Sleep(retryInterval)
+					continue
+				}
 				deleteService(serviceClient, serviceName)
 				if err != nil && kapierrs.IsForbidden(err) {
+					// external ip configuration rollout is not complete. so retry after retryInterval.
+					e2e.Logf("external ip config rollout is in progress, retry creating service %s until it succeeds or exceeds test timeout 30 mins", serviceName)
 					time.Sleep(retryInterval)
 					continue
 				}
@@ -131,13 +143,24 @@ var _ = Describe("[sig-network] services", func() {
 			By("check load balance service creation fails")
 			for {
 				err := createWebserverLBService(k8sClient, namespace, serviceName, "", []string{"192.168.132.10"}, nil)
-				deleteService(serviceClient, serviceName)
-				if err == nil {
-					e2e.Logf("error not occurred while creating %s/%s service", namespace, serviceName)
+				if err != nil {
+					e2e.Logf("error occurred while creating %s/%s service: %v: reason: %v", namespace, serviceName, err, kapierrs.ReasonForError(err))
+				}
+				if err != nil && strings.Contains(err.Error(), "connection reset by peer") {
+					// kube api server is still rolling out changed external ip configuration and somehow its closing client connection
+					// while its in progress. so retry after retryInterval.
+					e2e.Logf("external ip config rollout is in progress, retry creating service %s until it succeeds or exceeds test timeout 30 mins", serviceName)
 					time.Sleep(retryInterval)
 					continue
 				}
-				e2e.Logf("error occurred while creating %s/%s service: %v", namespace, serviceName, err)
+				deleteService(serviceClient, serviceName)
+				if err == nil {
+					e2e.Logf("error not occurred while creating %s/%s service", namespace, serviceName)
+					// external ip configuration rollout is not complete. so retry after retryInterval.
+					e2e.Logf("external ip config rollout is in progress, retry creating service %s until it succeeds or exceeds test timeout 30 mins", serviceName)
+					time.Sleep(retryInterval)
+					continue
+				}
 				Expect(kapierrs.IsForbidden(err)).Should(Equal(true))
 				break
 			}
@@ -166,8 +189,20 @@ var _ = Describe("[sig-network] services", func() {
 			By("check load balancer service having desired ingress ip prefix")
 			for {
 				err := createWebserverLBService(k8sClient, namespace, serviceName, "", []string{}, nil)
+				if err != nil {
+					e2e.Logf("error occurred while creating %s/%s service: %v: reason: %v", namespace, serviceName, err, kapierrs.ReasonForError(err))
+				}
+				if err != nil && strings.Contains(err.Error(), "connection reset by peer") {
+					// kube api server is still rolling out changed external ip configuration and somehow its closing client connection
+					// while its in progress. so retry after retryInterval.
+					e2e.Logf("external ip config rollout is in progress, retry creating service %s until it succeeds or exceeds test timeout 30 mins", serviceName)
+					time.Sleep(retryInterval)
+					continue
+				}
 				if err != nil && kapierrs.IsForbidden(err) {
 					deleteService(serviceClient, serviceName)
+					// external ip configuration rollout is not complete. so retry after retryInterval.
+					e2e.Logf("external ip config rollout is in progress, retry creating service %s until it succeeds or exceeds test timeout 30 mins", serviceName)
 					time.Sleep(retryInterval)
 					continue
 				}
@@ -180,6 +215,8 @@ var _ = Describe("[sig-network] services", func() {
 				}
 				deleteService(serviceClient, serviceName)
 				if !strings.HasPrefix(ingressIP, "192.168.132") {
+					// external ip configuration rollout is not complete. so retry after retryInterval.
+					e2e.Logf("external ip config rollout is in progress, retry creating service %s until it succeeds or exceeds test timeout 30 mins", serviceName)
 					time.Sleep(retryInterval)
 					continue
 				}
@@ -194,8 +231,20 @@ var _ = Describe("[sig-network] services", func() {
 			By("check load balance service creation fails")
 			for {
 				err := createWebserverLBService(k8sClient, namespace, serviceName, "", []string{"192.168.132.10"}, nil)
+				if err != nil {
+					e2e.Logf("error occurred while creating %s/%s service: %v: reason: %v", namespace, serviceName, err, kapierrs.ReasonForError(err))
+				}
+				if err != nil && strings.Contains(err.Error(), "connection reset by peer") {
+					// kube api server is still rolling out changed external ip configuration and somehow its closing client connection
+					// while its in progress. so retry after retryInterval.
+					e2e.Logf("external ip config rollout is in progress, retry creating service %s until it succeeds or exceeds test timeout 30 mins", serviceName)
+					time.Sleep(retryInterval)
+					continue
+				}
 				deleteService(serviceClient, serviceName)
 				if err == nil {
+					// external ip configuration rollout is not complete. so retry after retryInterval.
+					e2e.Logf("external ip config rollout is in progress, retry creating service %s until it succeeds or exceeds test timeout 30 mins", serviceName)
 					time.Sleep(retryInterval)
 					continue
 				}
