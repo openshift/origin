@@ -3,6 +3,7 @@ package operators
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -64,20 +65,35 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Early] Managed clu
 var _ = g.Describe("[sig-node] Managed cluster", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithoutNamespace("managed-cluster-node")
+		oc = exutil.NewCLIWithoutNamespace("managed-cluster-node").AsAdmin()
 	)
+
+	var staticNodeNames []string
+	g.It("record the number of nodes at the beginning of the tests [Early]", func() {
+		nodeList, err := oc.KubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		for _, node := range nodeList.Items {
+			staticNodeNames = append(staticNodeNames, node.Name)
+		}
+	})
 
 	g.It("should report ready nodes the entire duration of the test run [Late]", func() {
 		// we only consider samples since the beginning of the test
 		testDuration := exutil.DurationSinceStartInSeconds().String()
 
 		tests := map[string]bool{
-			// all nodes should be reporting ready throughout the entire run, as long as they are older than 6m, and they still
+			// static (nodes we collected before starting the tests) nodes should be reporting ready throughout the entire run, as long as they are older than 6m, and they still
 			// exist in 1m (because prometheus doesn't support negative offsets, we have to shift the entire query left). Since
 			// the late test might not catch a node not ready at the very end of the run anyway, we don't do anything special
 			// to shift the test execution later, we just note that there's a scrape_interval+wait_interval gap here of up to
 			// 1m30s and we can live with ith
-			fmt.Sprintf(`(min_over_time((max by (node) (kube_node_status_condition{condition="Ready",status="true"} offset 1m) and (((max by (node) (kube_node_status_condition offset 1m))) and (0*max by (node) (kube_node_status_condition offset 7m)) and (0*max by (node) (kube_node_status_condition))))[%s:1s])) < 1`, testDuration): false,
+			//
+			// note:
+			// we are only interested in examining the health of nodes collected at the beginning of a test suite
+			// because some tests might add and remove nodes as part of their testing logic
+			// nodes added dynamically naturally initially are not ready causing this query to fail
+			fmt.Sprintf(`(min_over_time((max by (node) (kube_node_status_condition{condition="Ready",status="true",node=~"%s"} offset 1m) and (((max by (node) (kube_node_status_condition offset 1m))) and (0*max by (node) (kube_node_status_condition offset 7m)) and (0*max by (node) (kube_node_status_condition))))[%s:1s])) < 1`, strings.Join(staticNodeNames, "|"), testDuration): false,
 		}
 		err := prometheus.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
