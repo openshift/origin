@@ -12,7 +12,6 @@ import (
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -580,7 +579,7 @@ type etcdRevisionChangeAllowance struct {
 }
 
 func newDuplicatedEventsAllowedWhenEtcdRevisionChange(ctx context.Context, operatorClient operatorv1client.OperatorV1Interface) (*etcdRevisionChangeAllowance, error) {
-	currentRevision, err := allowedalerts.GetBiggestRevisionForEtcdOperator(ctx, operatorClient)
+	currentRevision, err := getBiggestRevisionForEtcdOperator(ctx, operatorClient)
 	if err != nil {
 		return nil, err
 	}
@@ -602,4 +601,19 @@ func (a *etcdRevisionChangeAllowance) allowEtcdGuardReadinessProbeFailure(monito
 		return true, nil
 	}
 	return false, nil
+}
+
+// getBiggestRevisionForEtcdOperator calculates the biggest revision among replicas of the most recently successful deployment
+func getBiggestRevisionForEtcdOperator(ctx context.Context, operatorClient operatorv1client.OperatorV1Interface) (int, error) {
+	etcd, err := operatorClient.Etcds().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return 0, err
+	}
+	biggestRevision := 0
+	for _, nodeStatus := range etcd.Status.NodeStatuses {
+		if int(nodeStatus.CurrentRevision) > biggestRevision {
+			biggestRevision = int(nodeStatus.CurrentRevision)
+		}
+	}
+	return biggestRevision, nil
 }
