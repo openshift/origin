@@ -1,7 +1,9 @@
 package api
 
 import (
+	kadmissionv1 "k8s.io/api/admission/v1"
 	kadmissionv1beta1 "k8s.io/api/admission/v1beta1"
+	kadmissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	kadmissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	kappsv1 "k8s.io/api/apps/v1"
 	kappsv1beta1 "k8s.io/api/apps/v1beta1"
@@ -11,20 +13,34 @@ import (
 	kauthorizationv1 "k8s.io/api/authorization/v1"
 	kauthorizationv1beta1 "k8s.io/api/authorization/v1beta1"
 	kautoscalingv1 "k8s.io/api/autoscaling/v1"
+	kautoscalingv2 "k8s.io/api/autoscaling/v2"
 	kautoscalingv2beta1 "k8s.io/api/autoscaling/v2beta1"
+	kautoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	kbatchv1 "k8s.io/api/batch/v1"
 	kbatchv1beta1 "k8s.io/api/batch/v1beta1"
+	kcertificatesv1 "k8s.io/api/certificates/v1"
 	kcertificatesv1beta1 "k8s.io/api/certificates/v1beta1"
+	kcoordinationv1 "k8s.io/api/coordination/v1"
+	kcoordinationv1beta1 "k8s.io/api/coordination/v1beta1"
 	kcorev1 "k8s.io/api/core/v1"
+	keventsv1 "k8s.io/api/events/v1"
 	keventsv1beta1 "k8s.io/api/events/v1beta1"
 	kextensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	kflowcontrolv1alpha1 "k8s.io/api/flowcontrol/v1alpha1"
+	kflowcontrolv1beta1 "k8s.io/api/flowcontrol/v1beta1"
+	kflowcontrolv1beta2 "k8s.io/api/flowcontrol/v1beta2"
 	kimagepolicyv1alpha1 "k8s.io/api/imagepolicy/v1alpha1"
 	knetworkingv1 "k8s.io/api/networking/v1"
+	knetworkingv1beta1 "k8s.io/api/networking/v1beta1"
+	knodev1 "k8s.io/api/node/v1"
+	knodev1alpha1 "k8s.io/api/node/v1alpha1"
+	knodev1beta1 "k8s.io/api/node/v1beta1"
 	kpolicyv1 "k8s.io/api/policy/v1"
 	kpolicyv1beta1 "k8s.io/api/policy/v1beta1"
 	krbacv1 "k8s.io/api/rbac/v1"
 	krbacv1alpha1 "k8s.io/api/rbac/v1alpha1"
 	krbacv1beta1 "k8s.io/api/rbac/v1beta1"
+	kschedulingv1 "k8s.io/api/scheduling/v1"
 	kschedulingv1alpha1 "k8s.io/api/scheduling/v1alpha1"
 	kschedulingv1beta1 "k8s.io/api/scheduling/v1beta1"
 	kstoragev1 "k8s.io/api/storage/v1"
@@ -98,7 +114,9 @@ var (
 	Install = schemeBuilder.AddToScheme
 
 	kubeSchemeBuilder = runtime.NewSchemeBuilder(
+		kadmissionv1.AddToScheme,
 		kadmissionv1beta1.AddToScheme,
+		kadmissionregistrationv1.AddToScheme,
 		kadmissionregistrationv1beta1.AddToScheme,
 		kappsv1.AddToScheme,
 		kappsv1beta1.AddToScheme,
@@ -108,20 +126,34 @@ var (
 		kauthorizationv1.AddToScheme,
 		kauthorizationv1beta1.AddToScheme,
 		kautoscalingv1.AddToScheme,
+		kautoscalingv2.AddToScheme,
 		kautoscalingv2beta1.AddToScheme,
+		kautoscalingv2beta2.AddToScheme,
 		kbatchv1.AddToScheme,
 		kbatchv1beta1.AddToScheme,
+		kcertificatesv1.AddToScheme,
 		kcertificatesv1beta1.AddToScheme,
 		kcorev1.AddToScheme,
+		kcoordinationv1.AddToScheme,
+		kcoordinationv1beta1.AddToScheme,
+		keventsv1.AddToScheme,
 		keventsv1beta1.AddToScheme,
 		kextensionsv1beta1.AddToScheme,
+		kflowcontrolv1alpha1.AddToScheme,
+		kflowcontrolv1beta1.AddToScheme,
+		kflowcontrolv1beta2.AddToScheme,
 		kimagepolicyv1alpha1.AddToScheme,
 		knetworkingv1.AddToScheme,
+		knetworkingv1beta1.AddToScheme,
+		knodev1.AddToScheme,
+		knodev1alpha1.AddToScheme,
+		knodev1beta1.AddToScheme,
 		kpolicyv1.AddToScheme,
 		kpolicyv1beta1.AddToScheme,
 		krbacv1.AddToScheme,
 		krbacv1beta1.AddToScheme,
 		krbacv1alpha1.AddToScheme,
+		kschedulingv1.AddToScheme,
 		kschedulingv1alpha1.AddToScheme,
 		kschedulingv1beta1.AddToScheme,
 		kstoragev1.AddToScheme,
