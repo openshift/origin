@@ -2495,10 +2495,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] services basic functionality should allow connections to another pod on the same node via a service IP": "should allow connections to another pod on the same node via a service IP [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] services external ip ensures policy is configured correctly on the cluster [Serial]": "ensures policy is configured correctly on the cluster [Serial] [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [sig-network] services when running openshift cluster on bare metal ensures external auto assign cidr is configured correctly on the cluster [Serial]": "ensures external auto assign cidr is configured correctly on the cluster [Serial] [Suite:openshift/conformance/serial]",
-
 	"[Top Level] [sig-network] services when using OpenshiftSDN in a mode that does not isolate namespaces by default should allow connections to pods in different namespaces on different nodes via service IPs": "should allow connections to pods in different namespaces on different nodes via service IPs [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network] services when using OpenshiftSDN in a mode that does not isolate namespaces by default should allow connections to pods in different namespaces on the same node via service IPs": "should allow connections to pods in different namespaces on the same node via service IPs [Suite:openshift/conformance/parallel]",
