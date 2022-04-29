@@ -49198,6 +49198,8 @@ objects:
         initialDelaySeconds: 10
         periodSeconds: 30
         successThreshold: 1
+      securityContext:
+        allowPrivilegeEscalation: true
       volumeMounts:
       - mountPath: /etc/serving-cert
         name: cert
