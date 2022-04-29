@@ -484,7 +484,13 @@ func SyncPartialConfigMap(ctx context.Context, client coreclientv1.ConfigMapsGet
 }
 
 func deleteConfigMapSyncTarget(ctx context.Context, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, targetNamespace, targetName string) (bool, error) {
-	err := client.ConfigMaps(targetNamespace).Delete(ctx, targetName, metav1.DeleteOptions{})
+	// This goal of this additional GET is to avoid reaching the API with a DELETE request
+	// in case the target doesn't exist. This is useful when using a cached client.
+	_, err := client.ConfigMaps(targetNamespace).Get(ctx, targetName, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return false, nil
+	}
+	err = client.ConfigMaps(targetNamespace).Delete(ctx, targetName, metav1.DeleteOptions{})
 	if apierrors.IsNotFound(err) {
 		return false, nil
 	}

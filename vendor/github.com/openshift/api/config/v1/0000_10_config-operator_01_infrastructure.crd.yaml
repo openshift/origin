@@ -89,6 +89,9 @@ spec:
                     kubevirt:
                       description: Kubevirt contains settings specific to the kubevirt infrastructure provider.
                       type: object
+                    nutanix:
+                      description: Nutanix contains settings specific to the Nutanix infrastructure provider.
+                      type: object
                     openstack:
                       description: OpenStack contains settings specific to the OpenStack infrastructure provider.
                       type: object
@@ -122,7 +125,7 @@ spec:
                             - name
                           x-kubernetes-list-type: map
                     type:
-                      description: type is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are "AWS", "Azure", "BareMetal", "GCP", "Libvirt", "OpenStack", "VSphere", "oVirt", "KubeVirt", "EquinixMetal", "PowerVS", "AlibabaCloud" and "None". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform.
+                      description: type is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are "AWS", "Azure", "BareMetal", "GCP", "Libvirt", "OpenStack", "VSphere", "oVirt", "KubeVirt", "EquinixMetal", "PowerVS", "AlibabaCloud", "Nutanix" and "None". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform.
                       type: string
                       enum:
                         - ""
@@ -140,6 +143,7 @@ spec:
                         - EquinixMetal
                         - PowerVS
                         - AlibabaCloud
+                        - Nutanix
                     vsphere:
                       description: VSphere contains settings specific to the VSphere infrastructure provider.
                       type: object
@@ -193,6 +197,7 @@ spec:
                     - EquinixMetal
                     - PowerVS
                     - AlibabaCloud
+                    - Nutanix
                 platformStatus:
                   description: platformStatus holds status information specific to the underlying infrastructure provider.
                   type: object
@@ -362,6 +367,16 @@ spec:
                         ingressIP:
                           description: ingressIP is an external IP which routes to the default ingress controller. The IP is a suitable target of a wildcard DNS record used to resolve default route host names.
                           type: string
+                    nutanix:
+                      description: Nutanix contains settings specific to the Nutanix infrastructure provider.
+                      type: object
+                      properties:
+                        apiServerInternalIP:
+                          description: apiServerInternalIP is an IP address to contact the Kubernetes API server that can be used by components inside the cluster, like kubelets using the infrastructure rather than Kubernetes networking. It is the IP that the Infrastructure.status.apiServerInternalURI points to. It is the IP for a self-hosted load balancer in front of the API servers.
+                          type: string
+                        ingressIP:
+                          description: ingressIP is an external IP which routes to the default ingress controller. The IP is a suitable target of a wildcard DNS record used to resolve default route host names.
+                          type: string
                     openstack:
                       description: OpenStack contains settings specific to the OpenStack infrastructure provider.
                       type: object
@@ -424,7 +439,7 @@ spec:
                           description: 'zone holds the default zone for the new Power VS resources created by the cluster. Note: Currently only single-zone OCP clusters are supported'
                           type: string
                     type:
-                      description: "type is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", \"oVirt\", \"EquinixMetal\", \"PowerVS\", \"AlibabaCloud\" and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform. \n This value will be synced with to the `status.platform` and `status.platformStatus.type`. Currently this value cannot be changed once set."
+                      description: "type is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", \"oVirt\", \"EquinixMetal\", \"PowerVS\", \"AlibabaCloud\", \"Nutanix\" and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform. \n This value will be synced with to the `status.platform` and `status.platformStatus.type`. Currently this value cannot be changed once set."
                       type: string
                       enum:
                         - ""
@@ -442,6 +457,7 @@ spec:
                         - EquinixMetal
                         - PowerVS
                         - AlibabaCloud
+                        - Nutanix
                     vsphere:
                       description: VSphere contains settings specific to the VSphere infrastructure provider.
                       type: object

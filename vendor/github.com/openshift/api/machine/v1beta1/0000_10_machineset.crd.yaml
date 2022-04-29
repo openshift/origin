@@ -188,6 +188,9 @@ spec:
                                     type: string
                                     maxLength: 512
                                     minLength: 3
+                              x-kubernetes-list-map-keys:
+                                - name
+                              x-kubernetes-list-type: map
                             preTerminate:
                               description: PreTerminate hooks prevent the machine from being terminated. PreTerminate hooks be actioned after the Machine has been drained.
                               type: array
@@ -209,6 +212,9 @@ spec:
                                     type: string
                                     maxLength: 512
                                     minLength: 3
+                              x-kubernetes-list-map-keys:
+                                - name
+                              x-kubernetes-list-type: map
                         metadata:
                           description: ObjectMeta will autopopulate the Node created. Use this to indicate what labels, annotations, name prefix, etc., should be used when creating the Node.
                           type: object

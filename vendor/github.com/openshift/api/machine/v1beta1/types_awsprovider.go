@@ -44,6 +44,16 @@ type AWSMachineProviderConfig struct {
 	// it should use the default of its subnet.
 	// +optional
 	PublicIP *bool `json:"publicIp,omitempty"`
+	// NetworkInterfaceType specifies the type of network interface to be used for the primary
+	// network interface.
+	// Valid values are "ENA", "EFA", and omitted, which means no opinion and the platform
+	// chooses a good default which may change over time.
+	// The current default value is "ENA".
+	// Please visit https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/efa.html to learn more
+	// about the AWS Elastic Fabric Adapter interface option.
+	// +kubebuilder:validation:Enum:="ENA";"EFA"
+	// +optional
+	NetworkInterfaceType AWSNetworkInterfaceType `json:"networkInterfaceType,omitempty"`
 	// SecurityGroups is an array of references to security groups that should be applied to the
 	// instance.
 	// +optional
@@ -177,6 +187,29 @@ type Placement struct {
 	// supported 3 options: default, dedicated and host.
 	// +optional
 	Tenancy InstanceTenancy `json:"tenancy,omitempty"`
+	// Group specifies a reference to an AWSPlacementGroup resource to create the Machine within.
+	// If the group specified does not exist, the Machine will not be created and will enter the failed phase.
+	// +optional
+	Group LocalAWSPlacementGroupReference `json:"group,omitempty"`
+	// PartitionNumber specifies the numbered partition in which instances should be launched.
+	// It is recommended to only use this value if multiple MachineSets share
+	// a single Placement Group, in which case, each MachineSet should represent an individual partition number.
+	// If unset, when a Partition placement group is used, AWS will attempt to
+	// distribute instances evenly between partitions.
+	// If PartitionNumber is set when used with a non Partition type Placement Group, this will be considered an error.
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=7
+	// +optional
+	PartitionNumber int32 `json:"partitionNumber,omitempty"`
+}
+
+// LocalAWSPlacementGroupReference contains enough information to let you locate the
+// referenced AWSPlacementGroup inside the same namespace.
+// +structType=atomic
+type LocalAWSPlacementGroupReference struct {
+	// Name of the AWSPlacementGroup.
+	// +kubebuilder:validation:=Required
+	Name string `json:"name"`
 }
 
 // Filter is a filter used to identify an AWS resource
@@ -233,6 +266,19 @@ const (
 const (
 	ClassicLoadBalancerType AWSLoadBalancerType = "classic" // AWS classic ELB
 	NetworkLoadBalancerType AWSLoadBalancerType = "network" // AWS Network Load Balancer (NLB)
+)
+
+// AWSNetworkInterfaceType defines the network interface type of the the
+// AWS EC2 network interface.
+type AWSNetworkInterfaceType string
+
+const (
+	// AWSENANetworkInterfaceType is the default network interface type,
+	// the EC2 Elastic Network Adapter commonly used with EC2 instances.
+	// This should be used for standard network operations.
+	AWSENANetworkInterfaceType AWSNetworkInterfaceType = "ENA"
+	// AWSEFANetworkInterfaceType is the Elastic Fabric Adapter network interface type.
+	AWSEFANetworkInterfaceType AWSNetworkInterfaceType = "EFA"
 )
 
 // AWSMachineProviderStatus is the type that will be embedded in a Machine.Status.ProviderStatus field.
