@@ -77,7 +77,6 @@ func AllTests() []upgrades.Test {
 		&apps.DaemonSetUpgradeTest{},
 		imageregistry.NewImageRegistryAvailableWithNewConnectionsTest(),
 		imageregistry.NewImageRegistryAvailableWithReusedConnectionsTest(),
-		&prometheus.ImagePullsAreFast{},
 		&prometheus.MetricsAvailableAfterUpgradeTest{},
 		&dns.UpgradeTest{},
 	}

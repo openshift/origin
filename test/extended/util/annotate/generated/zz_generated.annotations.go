@@ -45,6 +45,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload should guarantee NUMA-aligned cpu cores in gu pods with single pod, single container requesting 4 cores, 1 device": "with single pod, single container requesting 4 cores, 1 device [Suite:openshift/conformance/serial]",
 
+	"[Top Level] [bz-Image Registry][sig-imageregistry][Late] Image pulls should be fast": "should be fast [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-api-machinery] API data in etcd should be stored at the correct location and version for all resources [Serial]": "should be stored at the correct location and version for all resources [Serial] [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-api-machinery] API priority and fairness should ensure that requests can be classified by adding FlowSchema and PriorityLevelConfiguration": "should ensure that requests can be classified by adding FlowSchema and PriorityLevelConfiguration [Suite:openshift/conformance/parallel] [Suite:k8s]",
