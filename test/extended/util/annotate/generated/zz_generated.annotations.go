@@ -2679,6 +2679,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-node] Lease lease API should be available [Conformance]": "lease API should be available [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
+	"[Top Level] [sig-node] Managed cluster record the number of nodes at the beginning of the tests [Early]": "record the number of nodes at the beginning of the tests [Early] [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-node] Managed cluster should report ready nodes the entire duration of the test run [Late]": "should report ready nodes the entire duration of the test run [Late] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-node] Mount propagation should propagate mounts within defined scopes": "should propagate mounts within defined scopes [Suite:openshift/conformance/parallel] [Suite:k8s]",
