@@ -582,7 +582,7 @@ func (a *etcdRevisionChangeAllowance) allowEtcdGuardReadinessProbeFailure(monito
 	// allow for a.maxAllowedGuardProbeFailurePerRevision * a.currentRevision failed readiness probe from the etcd-guard pods
 	// since the guards are static and the etcd pods come and go during a rollout
 	// which causes allowedGuardProbeFailurePattern to fire
-	if a.allowedGuardProbeFailurePattern.MatchString(eventMessage) && a.maxAllowedGuardProbeFailurePerRevision*a.currentRevision < times {
+	if a.allowedGuardProbeFailurePattern.MatchString(eventMessage) && a.maxAllowedGuardProbeFailurePerRevision*a.currentRevision > times {
 		return true, nil
 	}
 	return false, nil
