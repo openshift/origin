@@ -3,6 +3,7 @@ package network
 import (
 	"fmt"
 	"net"
+	"os"
 	"time"
 
 	miekgdns "github.com/miekg/dns"
@@ -149,7 +150,7 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *kubepr
 		for _, s := range options.DNSNameservers {
 			nameservers = append(nameservers, s)
 		}
-		if len(options.DNSRecursiveResolvConf) > 0 {
+		if len(options.DNSRecursiveResolvConf) > 0 && fileExists(options.DNSRecursiveResolvConf) {
 			c, err := miekgdns.ClientConfigFromFile(options.DNSRecursiveResolvConf)
 			if err != nil {
 				return nil, fmt.Errorf("could not start DNS, unable to read config file: %v", err)
@@ -184,6 +185,14 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *kubepr
 	}
 
 	return config, nil
+}
+
+func fileExists(filepath string) bool {
+	file, err := os.Stat(filepath)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !file.IsDir()
 }
 
 func (networkConfig *NetworkConfig) ReloadIPTables() {
