@@ -111,10 +111,21 @@ func testRequiredInstallerResourcesMissing(events monitorapi.Intervals) []*junit
 	return newSingleEventCheckRegex(testName, requiredResourcesMissingRegEx, duplicateEventThreshold, requiredResourceMissingFlakeThreshold).test(events)
 }
 
-// testBackoffStartingFailedContainer looks for this symptom:
+// testBackoffStartingFailedContainer looks for this symptom in core namespaces:
 //   reason/BackOff Back-off restarting failed container
-//
 func testBackoffStartingFailedContainer(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[sig-cluster-lifecycle] should not see excessive Back-off restarting failed containers"
-	return newSingleEventCheckRegex(testName, backoffRestartingFailedRegEx, duplicateEventThreshold, backoffRestartingFlakeThreshold).test(events)
+
+	return newSingleEventCheckRegex(testName, backoffRestartingFailedRegEx, duplicateEventThreshold, backoffRestartingFlakeThreshold).
+		test(events.Filter(monitorapi.Not(monitorapi.IsInE2ENamespace)))
+}
+
+// testBackoffStartingFailedContainerForE2ENamespaces looks for this symptom in e2e namespaces:
+//   reason/BackOff Back-off restarting failed container
+func testBackoffStartingFailedContainerForE2ENamespaces(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	testName := "[sig-cluster-lifecycle] should not see excessive Back-off restarting failed containers in e2e namespaces"
+
+	// always flake for now
+	return newSingleEventCheckRegex(testName, backoffRestartingFailedRegEx, math.MaxInt, backoffRestartingFlakeThreshold).
+		test(events.Filter(monitorapi.IsInE2ENamespace))
 }

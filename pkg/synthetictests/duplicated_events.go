@@ -281,15 +281,8 @@ type isRepeatedEventOKFunc func(monitorEvent monitorapi.EventInterval, kubeClien
 // I hate regexes, so I only do this because I really have to.
 func (d duplicateEventsEvaluator) testDuplicatedCoreNamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[sig-arch] events should not repeat pathologically"
-	interestingEvents := monitorapi.Intervals{}
-	for i := range events {
-		event := events[i]
-		if !strings.Contains(event.Locator, "ns/e2e-") {
-			interestingEvents = append(interestingEvents, event)
-		}
-	}
 
-	return d.testDuplicatedEvents(testName, false, interestingEvents, kubeClientConfig)
+	return d.testDuplicatedEvents(testName, false, events.Filter(monitorapi.Not(monitorapi.IsInE2ENamespace)), kubeClientConfig)
 }
 
 // we want to identify events based on the monitor because it is (currently) our only spot that tracks events over time
@@ -299,15 +292,7 @@ func (d duplicateEventsEvaluator) testDuplicatedCoreNamespaceEvents(events monit
 func (d duplicateEventsEvaluator) testDuplicatedE2ENamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[sig-arch] events should not repeat pathologically in e2e namespaces"
 
-	interestingEvents := monitorapi.Intervals{}
-	for i := range events {
-		event := events[i]
-		if strings.Contains(event.Locator, "ns/e2e-") {
-			interestingEvents = append(interestingEvents, event)
-		}
-	}
-
-	return d.testDuplicatedEvents(testName, true, interestingEvents, kubeClientConfig)
+	return d.testDuplicatedEvents(testName, true, events.Filter(monitorapi.IsInE2ENamespace), kubeClientConfig)
 }
 
 // we want to identify events based on the monitor because it is (currently) our only spot that tracks events over time

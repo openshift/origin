@@ -39,6 +39,7 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testBackoffPullingRegistryRedhatImage(events)...)
 	tests = append(tests, testRequiredInstallerResourcesMissing(events)...)
 	tests = append(tests, testBackoffStartingFailedContainer(events)...)
+	tests = append(tests, testBackoffStartingFailedContainerForE2ENamespaces(events)...)
 	tests = append(tests, testAPIQuotaEvents(events)...)
 
 	return tests
@@ -71,6 +72,7 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testBackoffPullingRegistryRedhatImage(events)...)
 	tests = append(tests, testRequiredInstallerResourcesMissing(events)...)
 	tests = append(tests, testBackoffStartingFailedContainer(events)...)
+	tests = append(tests, testBackoffStartingFailedContainerForE2ENamespaces(events)...)
 	tests = append(tests, testAPIQuotaEvents(events)...)
 
 	return tests
