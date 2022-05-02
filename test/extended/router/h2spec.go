@@ -84,6 +84,9 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			canaryImage, err := getCanaryImage(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
+			err = oc.AsAdmin().Run("adm", "policy", "add-scc-to-user").Args("restricted", "-n", oc.Namespace(), "-z", "default").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to provide the default namespace SA with access to the restricted SCC")
+
 			g.By("Creating h2spec test service")
 			err = oc.Run("new-app").Args("-f", h2specServiceConfigPath,
 				"-p", "HAPROXY_IMAGE="+routerImage,
