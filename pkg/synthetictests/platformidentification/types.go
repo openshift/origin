@@ -22,6 +22,13 @@ type JobType struct {
 	Topology     string
 }
 
+const (
+	ArchitectureS390    = "s390x"
+	ArchitectureAMD64   = "amd64"
+	ArchitecturePPC64le = "ppc64le"
+	ArchitectureARM64   = "arm64"
+)
+
 func CloneJobType(in JobType) JobType {
 	return JobType{
 		Release:      in.Release,
