@@ -40,6 +40,12 @@ function os::test::extended::clusterup::run_test () {
     local test_home="${ARTIFACT_DIR}/${test}/home"
     mkdir -p "${test_home}"
     [ -d "${global_home}/.docker" ] && cp -r ${global_home}/.docker ${test_home}
+    if [ -d "${global_home}/.docker" ]; then
+      echo "A .docker/config from ${global_home} has been copied for testing"
+	else
+	  echo "There was no .docker/config to copy -- your test will probably fail""
+    fi
+
     export HOME="${test_home}"
     pushd "${HOME}" &> /dev/null
     os::log::info "Using ${HOME} as home directory"
