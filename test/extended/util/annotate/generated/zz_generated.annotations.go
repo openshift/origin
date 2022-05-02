@@ -653,6 +653,22 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch][Late] operators should not create watch channels very often": "operators should not create watch channels very often [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-arch][bz-Cluster Version Operator][Late] Alerts alert/ClusterVersionOperatorDown should not be at or above info": "alert/ClusterVersionOperatorDown should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Cluster Version Operator][Late] Alerts alert/ClusterVersionOperatorDown should not be at or above pending": "alert/ClusterVersionOperatorDown should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-DNS][Late] Alerts alert/CoreDNSErrorsHigh should not be at or above info": "alert/CoreDNSErrorsHigh should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-DNS][Late] Alerts alert/CoreDNSErrorsHigh should not be at or above pending": "alert/CoreDNSErrorsHigh should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Node][Late] Alerts alert/KubeletDown should not be at or above info": "alert/KubeletDown should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Node][Late] Alerts alert/KubeletDown should not be at or above pending": "alert/KubeletDown should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Routing][Late] Alerts alert/IngressControllerDegraded should not be at or above info": "alert/IngressControllerDegraded should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Routing][Late] Alerts alert/IngressControllerDegraded should not be at or above pending": "alert/IngressControllerDegraded should not be at or above pending [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdGRPCRequestsSlow should not be at or above info": "alert/etcdGRPCRequestsSlow should not be at or above info [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdGRPCRequestsSlow should not be at or above pending": "alert/etcdGRPCRequestsSlow should not be at or above pending [Suite:openshift/conformance/parallel]",
@@ -689,6 +705,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdNoLeader should not be at or above pending": "alert/etcdNoLeader should not be at or above pending [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/AggregatedAPIDown should not be at or above info": "alert/AggregatedAPIDown should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/AggregatedAPIDown should not be at or above pending": "alert/AggregatedAPIDown should not be at or above pending [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/KubeAPIErrorBudgetBurn should not be at or above info": "alert/KubeAPIErrorBudgetBurn should not be at or above info [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/KubeAPIErrorBudgetBurn should not be at or above pending": "alert/KubeAPIErrorBudgetBurn should not be at or above pending [Suite:openshift/conformance/parallel]",
@@ -697,13 +717,33 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/KubeClientErrors should not be at or above pending": "alert/KubeClientErrors should not be at or above pending [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/KubePodCrashLooping should not be at or above info": "alert/KubePodCrashLooping should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/KubePodCrashLooping should not be at or above pending": "alert/KubePodCrashLooping should not be at or above pending [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-arch][bz-machine config operator][Late] Alerts alert/MCDDrainError should not be at or above info": "alert/MCDDrainError should not be at or above info [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][bz-machine config operator][Late] Alerts alert/MCDDrainError should not be at or above pending": "alert/MCDDrainError should not be at or above pending [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-arch][bz-monitoring][Late] Alerts alert/AlertmanagerClusterDown should not be at or above info": "alert/AlertmanagerClusterDown should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-monitoring][Late] Alerts alert/AlertmanagerClusterDown should not be at or above pending": "alert/AlertmanagerClusterDown should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-monitoring][Late] Alerts alert/PrometheusErrorSendingAlertsToSomeAlertmanagers should not be at or above info": "alert/PrometheusErrorSendingAlertsToSomeAlertmanagers should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-monitoring][Late] Alerts alert/PrometheusErrorSendingAlertsToSomeAlertmanagers should not be at or above pending": "alert/PrometheusErrorSendingAlertsToSomeAlertmanagers should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-monitoring][Late] Alerts alert/PrometheusOperatorListErrors should not be at or above info": "alert/PrometheusOperatorListErrors should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-monitoring][Late] Alerts alert/PrometheusOperatorListErrors should not be at or above pending": "alert/PrometheusOperatorListErrors should not be at or above pending [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-arch][bz-monitoring][Late] Alerts alert/PrometheusOperatorWatchErrors should not be at or above info": "alert/PrometheusOperatorWatchErrors should not be at or above info [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][bz-monitoring][Late] Alerts alert/PrometheusOperatorWatchErrors should not be at or above pending": "alert/PrometheusOperatorWatchErrors should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-monitoring][Late] Alerts alert/TargetDown should not be at or above info": "alert/TargetDown should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-monitoring][Late] Alerts alert/TargetDown should not be at or above pending": "alert/TargetDown should not be at or above pending [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][bz-monitoring][Late] Alerts alert/Watchdog must have no gaps or changes": "alert/Watchdog must have no gaps or changes [Suite:openshift/conformance/parallel]",
 
