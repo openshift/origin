@@ -15,6 +15,7 @@ import (
 	"github.com/RangelReale/osincli"
 	"github.com/davecgh/go-spew/spew"
 
+	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -195,7 +196,7 @@ func DeployOAuthServer(oc *exutil.CLI, idps []osinv1.IdentityProvider, configMap
 }
 
 func waitForOAuthServerReady(oc *exutil.CLI) error {
-	if err := exutil.WaitForUserBeAuthorized(oc, "system:serviceaccount:"+oc.Namespace()+":e2e-oauth", "*", "*"); err != nil {
+	if err := exutil.WaitForUserBeAuthorized(oc, "system:serviceaccount:"+oc.Namespace()+":e2e-oauth", &authorizationv1.ResourceAttributes{Namespace: oc.Namespace(), Verb: "*", Resource: "*"}); err != nil {
 		return err
 	}
 	if err := waitForOAuthServerPodReady(oc); err != nil {
