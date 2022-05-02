@@ -42,7 +42,7 @@ func (e *EtcdClientFactoryImpl) newEtcdClientForTarget(target string) (*clientv3
 	ctx, cancel := context.WithCancel(context.Background())
 	cmd := exec.CommandContext(ctx, "oc", "port-forward", target, ":2379", "-n", "openshift-etcd")
 
-	done := func() {
+	cmdDone := func() {
 		cancel()
 		_ = cmd.Wait() // wait to clean up resources but ignore returned error since cancel kills the process
 	}
@@ -50,7 +50,7 @@ func (e *EtcdClientFactoryImpl) newEtcdClientForTarget(target string) (*clientv3
 	var err error // so we can clean up on error
 	defer func() {
 		if err != nil {
-			done()
+			cmdDone()
 		}
 	}()
 
@@ -106,6 +106,11 @@ func (e *EtcdClientFactoryImpl) newEtcdClientForTarget(target string) (*clientv3
 	})
 	if err != nil {
 		return nil, nil, err
+	}
+
+	done := func() {
+		cmdDone()
+		etcdClient3.Close() // ignore the errors
 	}
 
 	return etcdClient3, done, nil
