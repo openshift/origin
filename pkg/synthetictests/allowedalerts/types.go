@@ -15,22 +15,6 @@ const (
 	// network type basis.
 	p95Query = `
 SELECT * FROM openshift-ci-data-analysis.ci_data.Alerts_Unified_LastWeek_P95
-where
-  alertName = "etcdMembersDown" or 
-  alertName = "etcdGRPCRequestsSlow" or 
-  alertName = "etcdHighNumberOfFailedGRPCRequests" or 
-  alertName = "etcdMemberCommunicationSlow" or 
-  alertName = "etcdNoLeader" or 
-  alertName = "etcdHighFsyncDurations" or 
-  alertName = "etcdHighCommitDurations" or 
-  alertName = "etcdInsufficientMembers" or 
-  alertName = "etcdHighNumberOfLeaderChanges" or 
-  alertName = "KubeAPIErrorBudgetBurn" or 
-  alertName = "KubeClientErrors" or 
-  alertName = "KubePersistentVolumeErrors" or 
-  alertName = "MCDDrainError" or 
-  alertName = "PrometheusOperatorWatchErrors" or
-  alertName = "VSphereOpenshiftNodeHealthFail"
 order by 
  AlertName, Release, FromRelease, Topology, Platform, Network
 `
