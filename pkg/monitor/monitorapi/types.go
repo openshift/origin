@@ -180,6 +180,14 @@ func IsInfoEvent(eventInterval EventInterval) bool {
 	return eventInterval.Level == Info
 }
 
+// IsInE2ENamespace returns true if the eventInterval is in an e2e namespace
+func IsInE2ENamespace(eventInterval EventInterval) bool {
+	if strings.Contains(eventInterval.Locator, "ns/e2e-") {
+		return true
+	}
+	return false
+}
+
 func And(filters ...EventIntervalMatchesFunc) EventIntervalMatchesFunc {
 	return func(eventInterval EventInterval) bool {
 		for _, filter := range filters {
@@ -199,6 +207,12 @@ func Or(filters ...EventIntervalMatchesFunc) EventIntervalMatchesFunc {
 			}
 		}
 		return false
+	}
+}
+
+func Not(filter EventIntervalMatchesFunc) EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		return !filter(eventInterval)
 	}
 }
 
