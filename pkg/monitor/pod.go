@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
@@ -33,7 +34,6 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 		time.Hour,
 		nil,
 	)
-
 	m.AddSampler(func(now time.Time) []*monitorapi.Condition {
 		var conditions []*monitorapi.Condition
 		for _, obj := range podInformer.GetStore().List() {
@@ -53,6 +53,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 		}
 		return conditions
 	})
+	go podInformer.Run(ctx.Done())
 
 	podScheduledFn := func(pod, oldPod *corev1.Pod) []monitorapi.Condition {
 		oldPodHasNode := oldPod != nil && len(oldPod.Spec.NodeName) > 0
@@ -491,48 +492,17 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 		},
 	}
 
-	podInformer.AddEventHandler(
-		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				pod, ok := obj.(*corev1.Pod)
-				if !ok {
-					return
-				}
-				m.RecordResource("pods", pod)
-
-				for _, fn := range podCreatedFns {
-					m.Record(fn(pod)...)
-				}
-			},
-			DeleteFunc: func(obj interface{}) {
-				pod, ok := obj.(*corev1.Pod)
-				if !ok {
-					return
-				}
-				m.RecordResource("pods", pod)
-				for _, fn := range podDeleteFns {
-					m.Record(fn(pod)...)
-				}
-			},
-			UpdateFunc: func(old, obj interface{}) {
-				pod, ok := obj.(*corev1.Pod)
-				if !ok {
-					return
-				}
-				m.RecordResource("pods", pod)
-				oldPod, ok := old.(*corev1.Pod)
-				if !ok {
-					return
-				}
-				if pod.UID != oldPod.UID {
-					return
-				}
-				for _, fn := range podChangeFns {
-					m.Record(fn(pod, oldPod)...)
-				}
-			},
-		},
+	listWatch := cache.NewListWatchFromClient(client.CoreV1().RESTClient(), "pods", "", fields.Everything())
+	customStore := newMonitoringStore(
+		"pods",
+		toCreateFns(podCreatedFns),
+		toUpdateFns(podChangeFns),
+		toDeleteFns(podDeleteFns),
+		m,
+		m,
 	)
+	reflector := cache.NewReflector(listWatch, &corev1.Pod{}, customStore, 0)
+	go reflector.Run(ctx.Done())
 
 	// start controller to watch for shared pod IPs.
 	sharedInformers := informers.NewSharedInformerFactory(client, 24*time.Hour)
@@ -540,7 +510,48 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 	go podIPController.Run(ctx)
 	go sharedInformers.Start(ctx.Done())
 
-	go podInformer.Run(ctx.Done())
+}
+
+func toCreateFns(podCreateFns []func(pod *corev1.Pod) []monitorapi.Condition) []objCreateFunc {
+	ret := []objCreateFunc{}
+
+	for i := range podCreateFns {
+		fn := podCreateFns[i]
+		ret = append(ret, func(obj interface{}) []monitorapi.Condition {
+			return fn(obj.(*corev1.Pod))
+		})
+	}
+
+	return ret
+}
+
+func toDeleteFns(podDeleteFns []func(pod *corev1.Pod) []monitorapi.Condition) []objDeleteFunc {
+	ret := []objDeleteFunc{}
+
+	for i := range podDeleteFns {
+		fn := podDeleteFns[i]
+		ret = append(ret, func(obj interface{}) []monitorapi.Condition {
+			return fn(obj.(*corev1.Pod))
+		})
+	}
+
+	return ret
+}
+
+func toUpdateFns(podUpdateFns []func(pod, oldPod *corev1.Pod) []monitorapi.Condition) []objUpdateFunc {
+	ret := []objUpdateFunc{}
+
+	for i := range podUpdateFns {
+		fn := podUpdateFns[i]
+		ret = append(ret, func(obj, oldObj interface{}) []monitorapi.Condition {
+			if oldObj == nil {
+				return fn(obj.(*corev1.Pod), nil)
+			}
+			return fn(obj.(*corev1.Pod), oldObj.(*corev1.Pod))
+		})
+	}
+
+	return ret
 }
 
 func podContainerPhaseStartTime(pod *corev1.Pod, init bool) time.Time {
