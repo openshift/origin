@@ -43,7 +43,7 @@ function os::test::extended::clusterup::run_test () {
     if [ -d "${global_home}/.docker" ]; then
       echo "A .docker/config from ${global_home} has been copied for testing"
 	else
-	  echo "There was no .docker/config to copy -- your test will probably fail""
+	  echo "There was no .docker/config to copy -- your test will probably fail"
     fi
 
     export HOME="${test_home}"
