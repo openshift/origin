@@ -118,6 +118,8 @@ var (
 			`\[sig-network\] DNS should resolve DNS of partial qualified names for services`,
 			`\[sig-arch\] Only known images used by tests`,
 			`\[sig-network\] DNS should provide DNS for the cluster`,
+			// This test does not work when using in-proxy cluster, see https://bugzilla.redhat.com/show_bug.cgi?id=2084560
+			`\[sig-network\] Networking should provide Internet connection for containers`,
 		},
 		"[Skipped:SingleReplicaTopology]": {
 			`\[sig-apps\] Daemon set \[Serial\] should rollback without unnecessary restarts \[Conformance\]`,
