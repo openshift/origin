@@ -103,10 +103,7 @@ func (s *TestSuite) Filter(tests []*testCase) []*testCase {
 	return matches
 }
 
-func newSuiteFromFile(name string, contents []byte) (*TestSuite, error) {
-	suite := &TestSuite{
-		Name: name,
-	}
+func matchTestsFromFile(suite *TestSuite, contents []byte) error {
 	tests := make(map[string]int)
 	for _, line := range strings.Split(string(contents), "\n") {
 		line = strings.TrimSpace(line)
@@ -114,14 +111,32 @@ func newSuiteFromFile(name string, contents []byte) (*TestSuite, error) {
 			var err error
 			line, err = strconv.Unquote(line)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			tests[line]++
 		}
 	}
+	match := suite.Matches
 	suite.Matches = func(name string) bool {
+		// If there is an existing Matches function for the suite,
+		// require the test to pass the existing match and also
+		// be in the file contents.
+		if match != nil && !match(name) {
+			return false
+		}
 		_, ok := tests[name]
 		return ok
+	}
+	return nil
+}
+
+func newSuiteFromFile(name string, contents []byte) (*TestSuite, error) {
+	suite := &TestSuite{
+		Name: name,
+	}
+	err := matchTestsFromFile(suite, contents)
+	if err != nil {
+		return nil, err
 	}
 	return suite, nil
 }
