@@ -19,32 +19,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP] test RequestHeaders IdP": "test RequestHeaders IdP [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster [Disabled:Broken] with non-gu workload should run with no regressions with single pod, single container requesting 1 core": "with single pod, single container requesting 1 core",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster [Disabled:Broken] with non-gu workload should run with no regressions with single pod, single container requesting multiple cores": "with single pod, single container requesting multiple cores",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload attached to SRIOV networks should let resource-aligned PODs have working SRIOV network interface": "should let resource-aligned PODs have working SRIOV network interface [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload saturating NUMA nodes should allow a pod requesting as many cores as a full NUMA node have": "should allow a pod requesting as many cores as a full NUMA node have [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload saturating NUMA nodes should guarantee correct allocation with concurrent creation": "should guarantee correct allocation with concurrent creation [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload saturating NUMA nodes should reject pod requesting more cores than a single NUMA node have": "should reject pod requesting more cores than a single NUMA node have [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload should guarantee NUMA-aligned cpu cores in gu pods with multiple pods, each with a single container requesting 1 core, 1 device": "with multiple pods, each with a single container requesting 1 core, 1 device [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload should guarantee NUMA-aligned cpu cores in gu pods with multiple pods, each with a single container requesting 2 core, 1 device": "with multiple pods, each with a single container requesting 2 core, 1 device [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload should guarantee NUMA-aligned cpu cores in gu pods with multiple pods, each with multiple containers requesting 1 core, 1 device": "with multiple pods, each with multiple containers requesting 1 core, 1 device [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload should guarantee NUMA-aligned cpu cores in gu pods with multiple pods, each with multiple containers requesting 1 core, only one requesting 1 device": "with multiple pods, each with multiple containers requesting 1 core, only one requesting 1 device [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload should guarantee NUMA-aligned cpu cores in gu pods with single pod, multiple containers requesting 1 core, 1 device each": "with single pod, multiple containers requesting 1 core, 1 device each [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload should guarantee NUMA-aligned cpu cores in gu pods with single pod, single container requesting 1 core, 1 device": "with single pod, single container requesting 1 core, 1 device [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload should guarantee NUMA-aligned cpu cores in gu pods with single pod, single container requesting 4 cores, 1 device": "with single pod, single container requesting 4 cores, 1 device [Suite:openshift/conformance/serial]",
-
 	"[Top Level] [sig-api-machinery] API data in etcd should be stored at the correct location and version for all resources [Serial]": "should be stored at the correct location and version for all resources [Serial] [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-api-machinery] API priority and fairness should ensure that requests can be classified by adding FlowSchema and PriorityLevelConfiguration": "should ensure that requests can be classified by adding FlowSchema and PriorityLevelConfiguration [Suite:openshift/conformance/parallel] [Suite:k8s]",
