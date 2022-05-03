@@ -1894,19 +1894,15 @@ func NewGitRepo(repoName string) (GitRepo, error) {
 
 // WaitForUserBeAuthorized waits a minute until the cluster bootstrap roles are available
 // and the provided user is authorized to perform the action on the resource.
-func WaitForUserBeAuthorized(oc *CLI, user, verb, resource string) error {
+func WaitForUserBeAuthorized(oc *CLI, user string, attributes *authorizationapi.ResourceAttributes) error {
 	sar := &authorizationapi.SubjectAccessReview{
 		Spec: authorizationapi.SubjectAccessReviewSpec{
-			ResourceAttributes: &authorizationapi.ResourceAttributes{
-				Namespace: oc.Namespace(),
-				Verb:      verb,
-				Resource:  resource,
-			},
-			User: user,
+			ResourceAttributes: attributes,
+			User:               user,
 		},
 	}
 	return wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
-		e2e.Logf("Waiting for user '%v' to be authorized to %v the %v resource", user, verb, resource)
+		e2e.Logf("Waiting for user '%q' to be authorized for %v", user, attributes, oc.Namespace())
 		resp, err := oc.AdminKubeClient().AuthorizationV1().SubjectAccessReviews().Create(context.Background(), sar, metav1.CreateOptions{})
 		if err == nil && resp != nil && resp.Status.Allowed {
 			return true, nil
@@ -1915,7 +1911,7 @@ func WaitForUserBeAuthorized(oc *CLI, user, verb, resource string) error {
 			e2e.Logf("Error creating SubjectAccessReview: %v", err)
 		}
 		if resp != nil {
-			e2e.Logf("SubjectAccessReview.Status: %#v", resp.Status)
+			e2e.Logf("SubjectAccessReview.Status: %#v", resp)
 		}
 		return false, err
 	})
