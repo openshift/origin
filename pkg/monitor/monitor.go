@@ -19,7 +19,7 @@ import (
 type Monitor struct {
 	interval            time.Duration
 	samplers            []SamplerFunc
-	intervalCreationFns []IntervalCreationFunc
+	IntervalCreationFns []IntervalCreationFunc
 
 	lock           sync.Mutex
 	events         monitorapi.Intervals
@@ -27,7 +27,7 @@ type Monitor struct {
 	samples        []*sample
 
 	recordedResourceLock sync.Mutex
-	recordedResources    monitorapi.ResourcesMap
+	RecordedResources    monitorapi.ResourcesMap
 }
 
 // NewMonitor creates a monitor with the default sampling interval.
@@ -40,7 +40,7 @@ func NewMonitor() *Monitor {
 func NewMonitorWithInterval(interval time.Duration) *Monitor {
 	return &Monitor{
 		interval:          interval,
-		recordedResources: monitorapi.ResourcesMap{},
+		RecordedResources: monitorapi.ResourcesMap{},
 	}
 }
 
@@ -82,7 +82,7 @@ func (m *Monitor) CurrentResourceState() monitorapi.ResourcesMap {
 	defer m.recordedResourceLock.Unlock()
 
 	ret := monitorapi.ResourcesMap{}
-	for resourceType, instanceResourceMap := range m.recordedResources {
+	for resourceType, instanceResourceMap := range m.RecordedResources {
 		retInstance := monitorapi.InstanceMap{}
 		for instanceKey, obj := range instanceResourceMap {
 			retInstance[instanceKey] = obj.DeepCopyObject()
@@ -97,10 +97,10 @@ func (m *Monitor) RecordResource(resourceType string, obj runtime.Object) {
 	m.recordedResourceLock.Lock()
 	defer m.recordedResourceLock.Unlock()
 
-	recordedResource, ok := m.recordedResources[resourceType]
+	recordedResource, ok := m.RecordedResources[resourceType]
 	if !ok {
 		recordedResource = monitorapi.InstanceMap{}
-		m.recordedResources[resourceType] = recordedResource
+		m.RecordedResources[resourceType] = recordedResource
 	}
 
 	key, err := cache.MetaNamespaceKeyFunc(obj)
@@ -277,12 +277,6 @@ func (m *Monitor) Intervals(from, to time.Time) monitorapi.Intervals {
 
 	intervals := mergeIntervals(sortedEvents.Slice(from, to), unsortedEvents.CopyAndSort(from, to), filterSamples(samples, from, to))
 	originalLen := len(intervals)
-
-	recordedResources := m.CurrentResourceState()
-	// create additional intervals from events
-	for _, createIntervals := range m.intervalCreationFns {
-		intervals = append(intervals, createIntervals(intervals, recordedResources, from, to)...)
-	}
 
 	// we must sort the result
 	if len(intervals) != originalLen {

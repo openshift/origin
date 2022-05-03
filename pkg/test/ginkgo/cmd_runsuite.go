@@ -420,6 +420,13 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		}
 	}
 
+	recordedResources := m.CurrentResourceState()
+	// create additional intervals from events
+	for _, createIntervals := range m.IntervalCreationFns {
+		events = append(events, createIntervals(events, recordedResources, time.Time{}, time.Time{})...)
+	}
+	sort.Sort(events)
+
 	// add events from alerts so we can create the intervals
 	alertEventIntervals, err := monitor.FetchEventIntervalsForAllAlerts(ctx, restConfig, start)
 	if err != nil {

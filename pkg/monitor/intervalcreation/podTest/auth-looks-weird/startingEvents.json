@@ -1,0 +1,96 @@
+{
+  "items": [
+    {
+      "level": "Info",
+      "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 node/ uid/0fdd0e88-544e-4a58-9135-66edea6dae76",
+      "message": "reason/Created ",
+      "from": "2022-05-03T06:22:05Z",
+      "to": "2022-05-03T06:22:05Z"
+    },
+    {
+      "level": "Warning",
+      "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 node/ uid/0fdd0e88-544e-4a58-9135-66edea6dae76",
+      "message": "pod has been pending longer than a minute",
+      "from": "2022-05-03T06:23:05Z",
+      "to": "2022-05-03T06:29:55Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 node/ip-10-0-249-241.ec2.internal uid/0fdd0e88-544e-4a58-9135-66edea6dae76",
+      "message": "reason/Scheduled node/ip-10-0-249-241.ec2.internal",
+      "from": "2022-05-03T06:29:56Z",
+      "to": "2022-05-03T06:29:56Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 node/ip-10-0-249-241.ec2.internal uid/0fdd0e88-544e-4a58-9135-66edea6dae76 container/fix-audit-permissions",
+      "message": "reason/ContainerWait cause/ cause/PodInitializing duration/0.32s ",
+      "from": "2022-05-03T06:29:56Z",
+      "to": "2022-05-03T06:29:56Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 node/ip-10-0-249-241.ec2.internal uid/0fdd0e88-544e-4a58-9135-66edea6dae76 container/oauth-apiserver",
+      "message": "reason/ContainerWait cause/ cause/PodInitializing duration/0.32s ",
+      "from": "2022-05-03T06:29:56Z",
+      "to": "2022-05-03T06:29:56Z"
+    },
+    {
+      "level": "Warning",
+      "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 node/ip-10-0-249-241.ec2.internal uid/0fdd0e88-544e-4a58-9135-66edea6dae76 container/fix-audit-permissions",
+      "message": "reason/NotReady ",
+      "from": "2022-05-03T06:29:56Z",
+      "to": "2022-05-03T06:29:56Z"
+    },
+    {
+      "level": "Warning",
+      "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 node/ip-10-0-249-241.ec2.internal uid/0fdd0e88-544e-4a58-9135-66edea6dae76 container/oauth-apiserver",
+      "message": "reason/NotReady ",
+      "from": "2022-05-03T06:29:56Z",
+      "to": "2022-05-03T06:29:56Z"
+    },
+    {
+      "level": "Warning",
+      "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 node/ip-10-0-249-241.ec2.internal uid/0fdd0e88-544e-4a58-9135-66edea6dae76",
+      "message": "pod has been pending longer than a minute",
+      "from": "2022-05-03T06:29:56Z",
+      "to": "2022-05-03T06:35:50Z"
+    },
+    {
+      "level": "Warning",
+      "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 node/ip-10-0-249-241.ec2.internal",
+      "message": "reason/FailedCreatePodSandBox Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox k8s_apiserver-5b65fccd9-ntzp4_openshift-oauth-apiserver_0fdd0e88-544e-4a58-9135-66edea6dae76_0(cfe66a0f741fdf91a36be392a270aa8e28e36f8a42ea03c506058b8316d8647b): error adding pod openshift-oauth-apiserver_apiserver-5b65fccd9-ntzp4 to CNI network \"multus-cni-network\": plugin type=\"multus\" name=\"multus-cni-network\" failed (add): [openshift-oauth-apiserver/apiserver-5b65fccd9-ntzp4/0fdd0e88-544e-4a58-9135-66edea6dae76:ovn-kubernetes]: error adding container to network \"ovn-kubernetes\": CNI request failed with status 400: '[openshift-oauth-apiserver/apiserver-5b65fccd9-ntzp4 cfe66a0f741fdf91a36be392a270aa8e28e36f8a42ea03c506058b8316d8647b] [openshift-oauth-apiserver/apiserver-5b65fccd9-ntzp4 cfe66a0f741fdf91a36be392a270aa8e28e36f8a42ea03c506058b8316d8647b] failed to configure pod interface: timed out waiting for OVS port binding (ovn-installed) for 0a:58:0a:82:00:0c [10.130.0.12/23]\n'",
+      "from": "2022-05-03T06:31:59Z",
+      "to": "2022-05-03T06:31:59Z"
+    },
+    {
+      "level": "Warning",
+      "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 node/ip-10-0-249-241.ec2.internal",
+      "message": "reason/FailedCreatePodSandBox Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox k8s_apiserver-5b65fccd9-ntzp4_openshift-oauth-apiserver_0fdd0e88-544e-4a58-9135-66edea6dae76_0(ca60c8fa8266d8ebe058ae3c1d15f5cdd2b9212e8fde9fda08cde76822a0c269): error adding pod openshift-oauth-apiserver_apiserver-5b65fccd9-ntzp4 to CNI network \"multus-cni-network\": plugin type=\"multus\" name=\"multus-cni-network\" failed (add): [openshift-oauth-apiserver/apiserver-5b65fccd9-ntzp4/0fdd0e88-544e-4a58-9135-66edea6dae76:ovn-kubernetes]: error adding container to network \"ovn-kubernetes\": CNI request failed with status 400: '[openshift-oauth-apiserver/apiserver-5b65fccd9-ntzp4 ca60c8fa8266d8ebe058ae3c1d15f5cdd2b9212e8fde9fda08cde76822a0c269] [openshift-oauth-apiserver/apiserver-5b65fccd9-ntzp4 ca60c8fa8266d8ebe058ae3c1d15f5cdd2b9212e8fde9fda08cde76822a0c269] failed to configure pod interface: timed out waiting for OVS port binding (ovn-installed) for 0a:58:0a:82:00:0c [10.130.0.12/23]\n'",
+      "from": "2022-05-03T06:34:01Z",
+      "to": "2022-05-03T06:34:01Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 node/ip-10-0-249-241.ec2.internal uid/0fdd0e88-544e-4a58-9135-66edea6dae76 container/fix-audit-permissions",
+      "message": "reason/Ready ",
+      "from": "2022-05-03T06:35:51Z",
+      "to": "2022-05-03T06:35:51Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 node/ip-10-0-249-241.ec2.internal uid/0fdd0e88-544e-4a58-9135-66edea6dae76 container/oauth-apiserver",
+      "message": "reason/ContainerStart cause/ duration/1.00s",
+      "from": "2022-05-03T06:35:51Z",
+      "to": "2022-05-03T06:35:51Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 node/ip-10-0-249-241.ec2.internal uid/0fdd0e88-544e-4a58-9135-66edea6dae76 container/oauth-apiserver",
+      "message": "reason/Ready ",
+      "from": "2022-05-03T06:35:56Z",
+      "to": "2022-05-03T06:35:56Z"
+    }
+
+  ]
+}

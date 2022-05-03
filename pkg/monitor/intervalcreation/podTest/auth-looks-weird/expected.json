@@ -1,0 +1,67 @@
+{
+    "items": [
+        {
+            "level": "Info",
+            "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 uid/0fdd0e88-544e-4a58-9135-66edea6dae76",
+            "message": "constructed/true reason/Created ",
+            "from": "2022-05-03T05:05:25Z",
+            "to": "2022-05-03T06:37:14Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 uid/0fdd0e88-544e-4a58-9135-66edea6dae76",
+            "message": "constructed/true reason/Scheduled node/ip-10-0-249-241.ec2.internal",
+            "from": "2022-05-03T05:05:25Z",
+            "to": "2022-05-03T06:37:14Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 uid/0fdd0e88-544e-4a58-9135-66edea6dae76 container/oauth-apiserver",
+            "message": "constructed/true reason/ContainerWait cause/ cause/PodInitializing duration/0.32s ",
+            "from": "2022-05-03T05:05:25Z",
+            "to": "2022-05-03T06:37:14Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 uid/0fdd0e88-544e-4a58-9135-66edea6dae76 container/oauth-apiserver",
+            "message": "constructed/true reason/ContainerStart cause/ duration/1.00s",
+            "from": "2022-05-03T05:05:25Z",
+            "to": "2022-05-03T06:37:14Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 uid/0fdd0e88-544e-4a58-9135-66edea6dae76 container/oauth-apiserver",
+            "message": "constructed/true reason/Ready ",
+            "from": "2022-05-03T05:05:25Z",
+            "to": "2022-05-03T06:37:14Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 uid/0fdd0e88-544e-4a58-9135-66edea6dae76 container/oauth-apiserver",
+            "message": "constructed/true reason/NotReady ",
+            "from": "2022-05-03T05:05:25Z",
+            "to": "2022-05-03T06:37:14Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 uid/0fdd0e88-544e-4a58-9135-66edea6dae76 container/fix-audit-permissions",
+            "message": "constructed/true reason/ContainerWait cause/ cause/PodInitializing duration/0.32s ",
+            "from": "2022-05-03T06:29:56Z",
+            "to": "2022-05-03T06:35:48Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 uid/0fdd0e88-544e-4a58-9135-66edea6dae76 container/fix-audit-permissions",
+            "message": "constructed/true reason/NotReady ",
+            "from": "2022-05-03T06:29:56Z",
+            "to": "2022-05-03T06:35:48Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-oauth-apiserver pod/apiserver-5b65fccd9-ntzp4 uid/0fdd0e88-544e-4a58-9135-66edea6dae76 container/fix-audit-permissions",
+            "message": "constructed/true reason/Ready ",
+            "from": "2022-05-03T06:35:48Z",
+            "to": "2022-05-03T06:35:48Z"
+        }
+    ]
+}

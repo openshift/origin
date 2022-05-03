@@ -55,8 +55,8 @@ func Start(ctx context.Context, restConfig *rest.Config, additionalEventInterval
 
 	// add interval creation at the same point where we add the monitors
 	startClusterOperatorMonitoring(ctx, m, configClient)
-	m.intervalCreationFns = append(
-		m.intervalCreationFns,
+	m.IntervalCreationFns = append(
+		m.IntervalCreationFns,
 		intervalcreation.IntervalsFromEvents_OperatorAvailable,
 		intervalcreation.IntervalsFromEvents_OperatorProgressing,
 		intervalcreation.IntervalsFromEvents_OperatorDegraded,

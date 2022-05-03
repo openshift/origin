@@ -1,0 +1,783 @@
+{
+  "metadata": {
+    "annotations": {
+      "k8s.ovn.org/pod-networks": "{\"default\":{\"ip_addresses\":[\"10.130.0.12/23\"],\"mac_address\":\"0a:58:0a:82:00:0c\",\"gateway_ips\":[\"10.130.0.1\"],\"ip_address\":\"10.130.0.12/23\",\"gateway_ip\":\"10.130.0.1\"}}",
+      "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.130.0.12\"\n    ],\n    \"mac\": \"0a:58:0a:82:00:0c\",\n    \"default\": true,\n    \"dns\": {}\n}]",
+      "k8s.v1.cni.cncf.io/networks-status": "[{\n    \"name\": \"ovn-kubernetes\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.130.0.12\"\n    ],\n    \"mac\": \"0a:58:0a:82:00:0c\",\n    \"default\": true,\n    \"dns\": {}\n}]",
+      "monitor.openshift.io/observed-recreation-count": "9",
+      "monitor.openshift.io/observed-update-count": "10",
+      "openshift.io/scc": "node-exporter",
+      "operator.openshift.io/dep-openshift-oauth-apiserver.etcd-client.secret": "Lfhvww==",
+      "operator.openshift.io/dep-openshift-oauth-apiserver.etcd-serving-ca.configmap": "kL54CQ=="
+    },
+    "creationTimestamp": "2022-05-03T06:22:05Z",
+    "generateName": "apiserver-5b65fccd9-",
+    "labels": {
+      "apiserver": "true",
+      "app": "openshift-oauth-apiserver",
+      "oauth-apiserver-anti-affinity": "true",
+      "pod-template-hash": "5b65fccd9",
+      "revision": "1"
+    },
+    "managedFields": [
+      {
+        "apiVersion": "v1",
+        "fieldsType": "FieldsV1",
+        "fieldsV1": {
+          "f:metadata": {
+            "f:annotations": {
+              ".": {},
+              "f:operator.openshift.io/dep-openshift-oauth-apiserver.etcd-client.secret": {},
+              "f:operator.openshift.io/dep-openshift-oauth-apiserver.etcd-serving-ca.configmap": {},
+              "f:target.workload.openshift.io/management": {}
+            },
+            "f:generateName": {},
+            "f:labels": {
+              ".": {},
+              "f:apiserver": {},
+              "f:app": {},
+              "f:oauth-apiserver-anti-affinity": {},
+              "f:pod-template-hash": {},
+              "f:revision": {}
+            },
+            "f:ownerReferences": {
+              ".": {},
+              "k:{\"uid\":\"08405d9b-bd6a-4e8a-865e-7c9c28bbb9a9\"}": {}
+            }
+          },
+          "f:spec": {
+            "f:affinity": {
+              ".": {},
+              "f:podAntiAffinity": {
+                ".": {},
+                "f:requiredDuringSchedulingIgnoredDuringExecution": {}
+              }
+            },
+            "f:containers": {
+              "k:{\"name\":\"oauth-apiserver\"}": {
+                ".": {},
+                "f:args": {},
+                "f:command": {},
+                "f:image": {},
+                "f:imagePullPolicy": {},
+                "f:livenessProbe": {
+                  ".": {},
+                  "f:failureThreshold": {},
+                  "f:httpGet": {
+                    ".": {},
+                    "f:path": {},
+                    "f:port": {},
+                    "f:scheme": {}
+                  },
+                  "f:periodSeconds": {},
+                  "f:successThreshold": {},
+                  "f:timeoutSeconds": {}
+                },
+                "f:name": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"containerPort\":8443,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:containerPort": {},
+                    "f:protocol": {}
+                  }
+                },
+                "f:readinessProbe": {
+                  ".": {},
+                  "f:failureThreshold": {},
+                  "f:httpGet": {
+                    ".": {},
+                    "f:path": {},
+                    "f:port": {},
+                    "f:scheme": {}
+                  },
+                  "f:periodSeconds": {},
+                  "f:successThreshold": {},
+                  "f:timeoutSeconds": {}
+                },
+                "f:resources": {
+                  ".": {},
+                  "f:requests": {
+                    ".": {},
+                    "f:cpu": {},
+                    "f:memory": {}
+                  }
+                },
+                "f:securityContext": {
+                  ".": {},
+                  "f:privileged": {},
+                  "f:runAsUser": {}
+                },
+                "f:startupProbe": {
+                  ".": {},
+                  "f:failureThreshold": {},
+                  "f:httpGet": {
+                    ".": {},
+                    "f:path": {},
+                    "f:port": {},
+                    "f:scheme": {}
+                  },
+                  "f:periodSeconds": {},
+                  "f:successThreshold": {},
+                  "f:timeoutSeconds": {}
+                },
+                "f:terminationMessagePath": {},
+                "f:terminationMessagePolicy": {},
+                "f:volumeMounts": {
+                  ".": {},
+                  "k:{\"mountPath\":\"/var/log/oauth-apiserver\"}": {
+                    ".": {},
+                    "f:mountPath": {},
+                    "f:name": {}
+                  },
+                  "k:{\"mountPath\":\"/var/run/configmaps/audit\"}": {
+                    ".": {},
+                    "f:mountPath": {},
+                    "f:name": {}
+                  },
+                  "k:{\"mountPath\":\"/var/run/configmaps/etcd-serving-ca\"}": {
+                    ".": {},
+                    "f:mountPath": {},
+                    "f:name": {}
+                  },
+                  "k:{\"mountPath\":\"/var/run/configmaps/trusted-ca-bundle\"}": {
+                    ".": {},
+                    "f:mountPath": {},
+                    "f:name": {}
+                  },
+                  "k:{\"mountPath\":\"/var/run/secrets/encryption-config\"}": {
+                    ".": {},
+                    "f:mountPath": {},
+                    "f:name": {}
+                  },
+                  "k:{\"mountPath\":\"/var/run/secrets/etcd-client\"}": {
+                    ".": {},
+                    "f:mountPath": {},
+                    "f:name": {}
+                  },
+                  "k:{\"mountPath\":\"/var/run/secrets/serving-cert\"}": {
+                    ".": {},
+                    "f:mountPath": {},
+                    "f:name": {}
+                  }
+                }
+              }
+            },
+            "f:dnsPolicy": {},
+            "f:enableServiceLinks": {},
+            "f:initContainers": {
+              ".": {},
+              "k:{\"name\":\"fix-audit-permissions\"}": {
+                ".": {},
+                "f:command": {},
+                "f:image": {},
+                "f:imagePullPolicy": {},
+                "f:name": {},
+                "f:resources": {
+                  ".": {},
+                  "f:requests": {
+                    ".": {},
+                    "f:cpu": {},
+                    "f:memory": {}
+                  }
+                },
+                "f:securityContext": {
+                  ".": {},
+                  "f:privileged": {},
+                  "f:runAsUser": {}
+                },
+                "f:terminationMessagePath": {},
+                "f:terminationMessagePolicy": {},
+                "f:volumeMounts": {
+                  ".": {},
+                  "k:{\"mountPath\":\"/var/log/oauth-apiserver\"}": {
+                    ".": {},
+                    "f:mountPath": {},
+                    "f:name": {}
+                  }
+                }
+              }
+            },
+            "f:nodeSelector": {},
+            "f:priorityClassName": {},
+            "f:restartPolicy": {},
+            "f:schedulerName": {},
+            "f:securityContext": {},
+            "f:serviceAccount": {},
+            "f:serviceAccountName": {},
+            "f:terminationGracePeriodSeconds": {},
+            "f:tolerations": {},
+            "f:volumes": {
+              ".": {},
+              "k:{\"name\":\"audit-dir\"}": {
+                ".": {},
+                "f:hostPath": {
+                  ".": {},
+                  "f:path": {},
+                  "f:type": {}
+                },
+                "f:name": {}
+              },
+              "k:{\"name\":\"audit-policies\"}": {
+                ".": {},
+                "f:configMap": {
+                  ".": {},
+                  "f:defaultMode": {},
+                  "f:name": {}
+                },
+                "f:name": {}
+              },
+              "k:{\"name\":\"encryption-config\"}": {
+                ".": {},
+                "f:name": {},
+                "f:secret": {
+                  ".": {},
+                  "f:defaultMode": {},
+                  "f:optional": {},
+                  "f:secretName": {}
+                }
+              },
+              "k:{\"name\":\"etcd-client\"}": {
+                ".": {},
+                "f:name": {},
+                "f:secret": {
+                  ".": {},
+                  "f:defaultMode": {},
+                  "f:secretName": {}
+                }
+              },
+              "k:{\"name\":\"etcd-serving-ca\"}": {
+                ".": {},
+                "f:configMap": {
+                  ".": {},
+                  "f:defaultMode": {},
+                  "f:name": {}
+                },
+                "f:name": {}
+              },
+              "k:{\"name\":\"serving-cert\"}": {
+                ".": {},
+                "f:name": {},
+                "f:secret": {
+                  ".": {},
+                  "f:defaultMode": {},
+                  "f:secretName": {}
+                }
+              },
+              "k:{\"name\":\"trusted-ca-bundle\"}": {
+                ".": {},
+                "f:configMap": {
+                  ".": {},
+                  "f:defaultMode": {},
+                  "f:items": {},
+                  "f:name": {},
+                  "f:optional": {}
+                },
+                "f:name": {}
+              }
+            }
+          }
+        },
+        "manager": "kube-controller-manager",
+        "operation": "Update",
+        "time": "2022-05-03T06:22:05Z"
+      },
+      {
+        "apiVersion": "v1",
+        "fieldsType": "FieldsV1",
+        "fieldsV1": {
+          "f:status": {
+            "f:conditions": {
+              ".": {},
+              "k:{\"type\":\"PodScheduled\"}": {
+                ".": {},
+                "f:lastProbeTime": {},
+                "f:lastTransitionTime": {},
+                "f:message": {},
+                "f:reason": {},
+                "f:status": {},
+                "f:type": {}
+              }
+            }
+          }
+        },
+        "manager": "kube-scheduler",
+        "operation": "Update",
+        "subresource": "status",
+        "time": "2022-05-03T06:22:05Z"
+      },
+      {
+        "apiVersion": "v1",
+        "fieldsType": "FieldsV1",
+        "fieldsV1": {
+          "f:metadata": {
+            "f:annotations": {
+              "f:k8s.ovn.org/pod-networks": {}
+            }
+          }
+        },
+        "manager": "ip-10-0-163-236",
+        "operation": "Update",
+        "time": "2022-05-03T06:29:56Z"
+      },
+      {
+        "apiVersion": "v1",
+        "fieldsType": "FieldsV1",
+        "fieldsV1": {
+          "f:metadata": {
+            "f:annotations": {
+              "f:k8s.v1.cni.cncf.io/network-status": {},
+              "f:k8s.v1.cni.cncf.io/networks-status": {}
+            }
+          }
+        },
+        "manager": "multus",
+        "operation": "Update",
+        "subresource": "status",
+        "time": "2022-05-03T06:35:48Z"
+      },
+      {
+        "apiVersion": "v1",
+        "fieldsType": "FieldsV1",
+        "fieldsV1": {
+          "f:status": {
+            "f:conditions": {
+              "k:{\"type\":\"ContainersReady\"}": {
+                ".": {},
+                "f:lastProbeTime": {},
+                "f:lastTransitionTime": {},
+                "f:status": {},
+                "f:type": {}
+              },
+              "k:{\"type\":\"Initialized\"}": {
+                ".": {},
+                "f:lastProbeTime": {},
+                "f:lastTransitionTime": {},
+                "f:status": {},
+                "f:type": {}
+              },
+              "k:{\"type\":\"Ready\"}": {
+                ".": {},
+                "f:lastProbeTime": {},
+                "f:lastTransitionTime": {},
+                "f:status": {},
+                "f:type": {}
+              }
+            },
+            "f:containerStatuses": {},
+            "f:hostIP": {},
+            "f:initContainerStatuses": {},
+            "f:phase": {},
+            "f:podIP": {},
+            "f:podIPs": {
+              ".": {},
+              "k:{\"ip\":\"10.130.0.12\"}": {
+                ".": {},
+                "f:ip": {}
+              }
+            },
+            "f:startTime": {}
+          }
+        },
+        "manager": "Go-http-client",
+        "operation": "Update",
+        "subresource": "status",
+        "time": "2022-05-03T06:35:56Z"
+      }
+    ],
+    "name": "apiserver-5b65fccd9-ntzp4",
+    "namespace": "openshift-oauth-apiserver",
+    "ownerReferences": [
+      {
+        "apiVersion": "apps/v1",
+        "blockOwnerDeletion": true,
+        "controller": true,
+        "kind": "ReplicaSet",
+        "name": "apiserver-5b65fccd9",
+        "uid": "08405d9b-bd6a-4e8a-865e-7c9c28bbb9a9"
+      }
+    ],
+    "resourceVersion": "82638",
+    "uid": "0fdd0e88-544e-4a58-9135-66edea6dae76"
+  },
+  "spec": {
+    "affinity": {
+      "podAntiAffinity": {
+        "requiredDuringSchedulingIgnoredDuringExecution": [
+          {
+            "labelSelector": {
+              "matchLabels": {
+                "apiserver": "true",
+                "app": "openshift-oauth-apiserver",
+                "oauth-apiserver-anti-affinity": "true"
+              }
+            },
+            "topologyKey": "kubernetes.io/hostname"
+          }
+        ]
+      }
+    },
+    "containers": [
+      {
+        "args": [
+          "if [ -s /var/run/configmaps/trusted-ca-bundle/tls-ca-bundle.pem ]; then\n  echo \"Copying system trust bundle\"\n  cp -f /var/run/configmaps/trusted-ca-bundle/tls-ca-bundle.pem /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem\nfi\nexec oauth-apiserver start \\\n  --secure-port=8443 \\\n  --audit-log-path=/var/log/oauth-apiserver/audit.log \\\n  --audit-log-format=json \\\n  --audit-log-maxsize=100 \\\n  --audit-log-maxbackup=10 \\\n  --audit-policy-file=/var/run/configmaps/audit/policy.yaml \\\n  --etcd-cafile=/var/run/configmaps/etcd-serving-ca/ca-bundle.crt \\\n  --etcd-keyfile=/var/run/secrets/etcd-client/tls.key \\\n  --etcd-certfile=/var/run/secrets/etcd-client/tls.crt \\\n  --shutdown-delay-duration=15s \\\n  --tls-private-key-file=/var/run/secrets/serving-cert/tls.key \\\n  --tls-cert-file=/var/run/secrets/serving-cert/tls.crt \\\n  --api-audiences=https://kubernetes.default.svc \\\n  --cors-allowed-origins='//127\\.0\\.0\\.1(:|$)' \\\n  --cors-allowed-origins='//localhost(:|$)' \\\n  --etcd-servers=https://10.0.153.167:2379 \\\n  --etcd-servers=https://10.0.163.236:2379 \\\n  --etcd-servers=https://10.0.249.241:2379 \\\n  --tls-cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 \\\n  --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 \\\n  --tls-cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 \\\n  --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 \\\n  --tls-cipher-suites=TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 \\\n  --tls-cipher-suites=TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 \\\n  --tls-min-version=VersionTLS12 \\\n  --v=2\n"
+        ],
+        "command": [
+          "/bin/bash",
+          "-ec"
+        ],
+        "image": "registry.ci.openshift.org/ocp/4.11-2022-05-03-042258@sha256:4bd50801c802b9ca7e6165366d5ffc8fa142c0a4477a2de6389935f93103ab8e",
+        "imagePullPolicy": "IfNotPresent",
+        "livenessProbe": {
+          "failureThreshold": 3,
+          "httpGet": {
+            "path": "healthz",
+            "port": 8443,
+            "scheme": "HTTPS"
+          },
+          "periodSeconds": 10,
+          "successThreshold": 1,
+          "timeoutSeconds": 1
+        },
+        "name": "oauth-apiserver",
+        "ports": [
+          {
+            "containerPort": 8443,
+            "protocol": "TCP"
+          }
+        ],
+        "readinessProbe": {
+          "failureThreshold": 1,
+          "httpGet": {
+            "path": "readyz",
+            "port": 8443,
+            "scheme": "HTTPS"
+          },
+          "periodSeconds": 5,
+          "successThreshold": 1,
+          "timeoutSeconds": 1
+        },
+        "resources": {
+          "requests": {
+            "cpu": "150m",
+            "memory": "200Mi"
+          }
+        },
+        "securityContext": {
+          "privileged": true,
+          "runAsUser": 0
+        },
+        "startupProbe": {
+          "failureThreshold": 30,
+          "httpGet": {
+            "path": "healthz",
+            "port": 8443,
+            "scheme": "HTTPS"
+          },
+          "periodSeconds": 5,
+          "successThreshold": 1,
+          "timeoutSeconds": 1
+        },
+        "terminationMessagePath": "/dev/termination-log",
+        "terminationMessagePolicy": "FallbackToLogsOnError",
+        "volumeMounts": [
+          {
+            "mountPath": "/var/run/configmaps/audit",
+            "name": "audit-policies"
+          },
+          {
+            "mountPath": "/var/run/secrets/etcd-client",
+            "name": "etcd-client"
+          },
+          {
+            "mountPath": "/var/run/configmaps/etcd-serving-ca",
+            "name": "etcd-serving-ca"
+          },
+          {
+            "mountPath": "/var/run/configmaps/trusted-ca-bundle",
+            "name": "trusted-ca-bundle"
+          },
+          {
+            "mountPath": "/var/run/secrets/serving-cert",
+            "name": "serving-cert"
+          },
+          {
+            "mountPath": "/var/run/secrets/encryption-config",
+            "name": "encryption-config"
+          },
+          {
+            "mountPath": "/var/log/oauth-apiserver",
+            "name": "audit-dir"
+          },
+          {
+            "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+            "name": "kube-api-access-tkczb",
+            "readOnly": true
+          }
+        ]
+      }
+    ],
+    "dnsPolicy": "ClusterFirst",
+    "enableServiceLinks": true,
+    "imagePullSecrets": [
+      {
+        "name": "oauth-apiserver-sa-dockercfg-xqsnv"
+      }
+    ],
+    "initContainers": [
+      {
+        "command": [
+          "sh",
+          "-c",
+          "chmod 0700 /var/log/oauth-apiserver \u0026\u0026 touch /var/log/oauth-apiserver/audit.log \u0026\u0026 chmod 0600 /var/log/oauth-apiserver/*"
+        ],
+        "image": "registry.ci.openshift.org/ocp/4.11-2022-05-03-042258@sha256:4bd50801c802b9ca7e6165366d5ffc8fa142c0a4477a2de6389935f93103ab8e",
+        "imagePullPolicy": "IfNotPresent",
+        "name": "fix-audit-permissions",
+        "resources": {
+          "requests": {
+            "cpu": "15m",
+            "memory": "50Mi"
+          }
+        },
+        "securityContext": {
+          "privileged": true,
+          "runAsUser": 0
+        },
+        "terminationMessagePath": "/dev/termination-log",
+        "terminationMessagePolicy": "FallbackToLogsOnError",
+        "volumeMounts": [
+          {
+            "mountPath": "/var/log/oauth-apiserver",
+            "name": "audit-dir"
+          },
+          {
+            "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+            "name": "kube-api-access-tkczb",
+            "readOnly": true
+          }
+        ]
+      }
+    ],
+    "nodeName": "ip-10-0-249-241.ec2.internal",
+    "nodeSelector": {
+      "node-role.kubernetes.io/master": ""
+    },
+    "preemptionPolicy": "PreemptLowerPriority",
+    "priority": 2000001000,
+    "priorityClassName": "system-node-critical",
+    "restartPolicy": "Always",
+    "schedulerName": "default-scheduler",
+    "securityContext": {},
+    "serviceAccount": "oauth-apiserver-sa",
+    "serviceAccountName": "oauth-apiserver-sa",
+    "terminationGracePeriodSeconds": 90,
+    "tolerations": [
+      {
+        "effect": "NoSchedule",
+        "key": "node-role.kubernetes.io/master",
+        "operator": "Exists"
+      },
+      {
+        "effect": "NoExecute",
+        "key": "node.kubernetes.io/unreachable",
+        "operator": "Exists",
+        "tolerationSeconds": 120
+      },
+      {
+        "effect": "NoExecute",
+        "key": "node.kubernetes.io/not-ready",
+        "operator": "Exists",
+        "tolerationSeconds": 120
+      },
+      {
+        "effect": "NoSchedule",
+        "key": "node.kubernetes.io/memory-pressure",
+        "operator": "Exists"
+      }
+    ],
+    "volumes": [
+      {
+        "configMap": {
+          "defaultMode": 420,
+          "name": "audit-1"
+        },
+        "name": "audit-policies"
+      },
+      {
+        "name": "etcd-client",
+        "secret": {
+          "defaultMode": 420,
+          "secretName": "etcd-client"
+        }
+      },
+      {
+        "configMap": {
+          "defaultMode": 420,
+          "name": "etcd-serving-ca"
+        },
+        "name": "etcd-serving-ca"
+      },
+      {
+        "name": "serving-cert",
+        "secret": {
+          "defaultMode": 420,
+          "secretName": "serving-cert"
+        }
+      },
+      {
+        "configMap": {
+          "defaultMode": 420,
+          "items": [
+            {
+              "key": "ca-bundle.crt",
+              "path": "tls-ca-bundle.pem"
+            }
+          ],
+          "name": "trusted-ca-bundle",
+          "optional": true
+        },
+        "name": "trusted-ca-bundle"
+      },
+      {
+        "name": "encryption-config",
+        "secret": {
+          "defaultMode": 420,
+          "optional": true,
+          "secretName": "encryption-config-1"
+        }
+      },
+      {
+        "hostPath": {
+          "path": "/var/log/oauth-apiserver",
+          "type": ""
+        },
+        "name": "audit-dir"
+      },
+      {
+        "name": "kube-api-access-tkczb",
+        "projected": {
+          "defaultMode": 420,
+          "sources": [
+            {
+              "serviceAccountToken": {
+                "expirationSeconds": 3607,
+                "path": "token"
+              }
+            },
+            {
+              "configMap": {
+                "items": [
+                  {
+                    "key": "ca.crt",
+                    "path": "ca.crt"
+                  }
+                ],
+                "name": "kube-root-ca.crt"
+              }
+            },
+            {
+              "downwardAPI": {
+                "items": [
+                  {
+                    "fieldRef": {
+                      "apiVersion": "v1",
+                      "fieldPath": "metadata.namespace"
+                    },
+                    "path": "namespace"
+                  }
+                ]
+              }
+            },
+            {
+              "configMap": {
+                "items": [
+                  {
+                    "key": "service-ca.crt",
+                    "path": "service-ca.crt"
+                  }
+                ],
+                "name": "openshift-service-ca.crt"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "status": {
+    "conditions": [
+      {
+        "lastProbeTime": null,
+        "lastTransitionTime": "2022-05-03T06:35:49Z",
+        "status": "True",
+        "type": "Initialized"
+      },
+      {
+        "lastProbeTime": null,
+        "lastTransitionTime": "2022-05-03T06:35:56Z",
+        "status": "True",
+        "type": "Ready"
+      },
+      {
+        "lastProbeTime": null,
+        "lastTransitionTime": "2022-05-03T06:35:56Z",
+        "status": "True",
+        "type": "ContainersReady"
+      },
+      {
+        "lastProbeTime": null,
+        "lastTransitionTime": "2022-05-03T06:29:56Z",
+        "status": "True",
+        "type": "PodScheduled"
+      }
+    ],
+    "containerStatuses": [
+      {
+        "containerID": "cri-o://c3f5b60f14459e0841469083d45f843474cd500e62c52b2e14d95bcefa54194e",
+        "image": "registry.ci.openshift.org/ocp/4.11-2022-05-03-042258@sha256:4bd50801c802b9ca7e6165366d5ffc8fa142c0a4477a2de6389935f93103ab8e",
+        "imageID": "registry.ci.openshift.org/ocp/4.11-2022-04-29-080325@sha256:4bd50801c802b9ca7e6165366d5ffc8fa142c0a4477a2de6389935f93103ab8e",
+        "lastState": {},
+        "name": "oauth-apiserver",
+        "ready": true,
+        "restartCount": 0,
+        "started": true,
+        "state": {
+          "running": {
+            "startedAt": "2022-05-03T06:35:50Z"
+          }
+        }
+      }
+    ],
+    "hostIP": "10.0.249.241",
+    "initContainerStatuses": [
+      {
+        "containerID": "cri-o://83efea8f5c785e300b277fb3defdf8fa0409c431a089204d4f016aaead754707",
+        "image": "registry.ci.openshift.org/ocp/4.11-2022-05-03-042258@sha256:4bd50801c802b9ca7e6165366d5ffc8fa142c0a4477a2de6389935f93103ab8e",
+        "imageID": "registry.ci.openshift.org/ocp/4.11-2022-04-29-080325@sha256:4bd50801c802b9ca7e6165366d5ffc8fa142c0a4477a2de6389935f93103ab8e",
+        "lastState": {},
+        "name": "fix-audit-permissions",
+        "ready": true,
+        "restartCount": 0,
+        "state": {
+          "terminated": {
+            "containerID": "cri-o://83efea8f5c785e300b277fb3defdf8fa0409c431a089204d4f016aaead754707",
+            "exitCode": 0,
+            "finishedAt": "2022-05-03T06:35:48Z",
+            "reason": "Completed",
+            "startedAt": "2022-05-03T06:35:48Z"
+          }
+        }
+      }
+    ],
+    "phase": "Running",
+    "podIP": "10.130.0.12",
+    "podIPs": [
+      {
+        "ip": "10.130.0.12"
+      }
+    ],
+    "qosClass": "Burstable",
+    "startTime": "2022-05-03T06:29:56Z"
+  }
+}
