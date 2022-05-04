@@ -102,9 +102,9 @@ func (opt *Options) AsEnv() []string {
 
 func (opt *Options) SelectSuite(suites []*TestSuite, args []string) (*TestSuite, error) {
 	var suite *TestSuite
-	var in []byte
 
 	if len(opt.TestFile) > 0 {
+		var in []byte
 		var err error
 		if opt.TestFile == "-" {
 			in, err = ioutil.ReadAll(os.Stdin)
@@ -117,12 +117,9 @@ func (opt *Options) SelectSuite(suites []*TestSuite, args []string) (*TestSuite,
 		if err != nil {
 			return nil, err
 		}
-		// If a test file was provided with no suite, use the "files" suite.
-		if len(args) == 0 {
-			suite, err = newSuiteFromFile("files", in)
-			if err != nil {
-				return nil, fmt.Errorf("could not read test suite from input: %v", err)
-			}
+		suite, err = newSuiteFromFile("files", in)
+		if err != nil {
+			return nil, fmt.Errorf("could not read test suite from input: %v", err)
 		}
 	}
 
@@ -141,14 +138,6 @@ func (opt *Options) SelectSuite(suites []*TestSuite, args []string) (*TestSuite,
 	if suite == nil {
 		fmt.Fprintf(opt.ErrOut, SuitesString(suites, "Select a test suite to run against the server:\n\n"))
 		return nil, fmt.Errorf("suite %q does not exist", args[0])
-	}
-	// If suite and test file were both provided, override the Matches
-	// function to match the tests from both the suite and the file.
-	if len(opt.TestFile) > 0 {
-		err := matchTestsFromFile(suite, in)
-		if err != nil {
-			return nil, err
-		}
 	}
 	return suite, nil
 }
