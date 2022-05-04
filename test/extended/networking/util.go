@@ -20,6 +20,7 @@ import (
 	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	"github.com/openshift/library-go/pkg/network/networkutils"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
+	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 
@@ -27,6 +28,7 @@ import (
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -42,6 +44,8 @@ import (
 )
 
 type NodeType int
+
+type IPFamily string
 
 const (
 	// Initial pod start can be delayed O(minutes) by slow docker pulls
@@ -62,6 +66,12 @@ const (
 	// TODO get these defined as constandts in networkutils
 	openshiftSDNPluginName  = "OpenShiftSDN"
 	OVNKubernetesPluginName = "OVNKubernetes"
+
+	// IP Address Families
+	IPv4      IPFamily = "ipv4"
+	IPv6      IPFamily = "ipv6"
+	DualStack IPFamily = "dual"
+	Unknown   IPFamily = "unknown"
 )
 
 // IsIPv6 returns true if a group of ips are ipv6.
@@ -494,14 +504,28 @@ func InOpenShiftSDNContext(body func()) {
 	)
 }
 
-func InBareMetalClusterContext(oc *exutil.CLI, body func()) {
-	Context("when running openshift cluster on bare metal",
+func InBareMetalIPv4ClusterContext(oc *exutil.CLI, body func()) {
+	Context("when running openshift ipv4 cluster on bare metal",
 		func() {
 			BeforeEach(func() {
 				pType, err := platformType(oc.AdminConfigClient())
 				expectNoError(err)
-				if pType != configv1.BareMetalPlatformType {
-					e2eskipper.Skipf("Not running in bare metal platform")
+				if pType != configv1.BareMetalPlatformType || getIPFamilyForCluster(oc.KubeFramework()) != IPv4 {
+					e2eskipper.Skipf("Not running in bare metal ipv4 cluster")
+				}
+			})
+
+			body()
+		},
+	)
+}
+
+func InIPv4ClusterContext(oc *exutil.CLI, body func()) {
+	Context("when running openshift ipv4 cluster",
+		func() {
+			BeforeEach(func() {
+				if getIPFamilyForCluster(oc.KubeFramework()) != IPv4 {
+					e2eskipper.Skipf("Not running in ipv4 cluster")
 				}
 			})
 
@@ -558,4 +582,47 @@ func networkAttachmentDefinitionClient(config *rest.Config) (dynamic.Namespaceab
 	}
 	nadClient := dynClient.Resource(nadGVR)
 	return nadClient, nil
+}
+
+func getIPFamilyForCluster(f *e2e.Framework) IPFamily {
+	podIPs, err := createPod(f.ClientSet, f.Namespace.Name, "test-ip-family-pod")
+	expectNoError(err)
+	switch len(podIPs) {
+	case 1:
+		ip := net.ParseIP(podIPs[0].IP)
+		if ip.To4() != nil {
+			return IPv4
+		} else {
+			return IPv6
+		}
+	case 2:
+		ip1 := net.ParseIP(podIPs[0].IP)
+		ip2 := net.ParseIP(podIPs[1].IP)
+		if ip1 == nil || ip2 == nil {
+			return Unknown
+		}
+		if (ip1.To4() == nil) == (ip2.To4() == nil) {
+			return Unknown
+		}
+		return DualStack
+	default:
+		return Unknown
+	}
+}
+
+func createPod(client k8sclient.Interface, ns, generateName string) ([]corev1.PodIP, error) {
+	pod := frameworkpod.NewAgnhostPod(ns, "", nil, nil, nil)
+	pod.ObjectMeta.GenerateName = generateName
+	execPod, err := client.CoreV1().Pods(ns).Create(context.TODO(), pod, metav1.CreateOptions{})
+	expectNoError(err, "failed to create new pod in namespace: %s", ns)
+	var podIPs []corev1.PodIP
+	err = wait.PollImmediate(poll, 2*time.Minute, func() (bool, error) {
+		retrievedPod, err := client.CoreV1().Pods(execPod.Namespace).Get(context.TODO(), execPod.Name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		podIPs = retrievedPod.Status.PodIPs
+		return retrievedPod.Status.Phase == corev1.PodRunning, nil
+	})
+	return podIPs, err
 }

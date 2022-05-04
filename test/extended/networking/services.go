@@ -86,8 +86,8 @@ var _ = Describe("[sig-network] services", func() {
 
 	var retryInterval = 1 * time.Minute
 
-	Context("external ip", func() {
-		It("ensures policy is configured correctly on the cluster [Serial]", func() {
+	InIPv4ClusterContext(oc, func() {
+		It("ensures external ip policy is configured correctly on the cluster [Serial]", func() {
 			namespace := oc.Namespace()
 			adminConfigClient := oc.AdminConfigClient()
 			k8sClient := oc.KubeClient()
@@ -167,7 +167,7 @@ var _ = Describe("[sig-network] services", func() {
 		})
 	})
 
-	InBareMetalClusterContext(oc, func() {
+	InBareMetalIPv4ClusterContext(oc, func() {
 		It("ensures external auto assign cidr is configured correctly on the cluster [Serial]", func() {
 			namespace := oc.Namespace()
 			adminConfigClient := oc.AdminConfigClient()
