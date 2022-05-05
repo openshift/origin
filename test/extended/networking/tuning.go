@@ -37,7 +37,7 @@ var whitelistedSysctls = []SysctlVariant{
 	{Sysctl: "net.ipv4.conf.IFNAME.accept_redirects", Value: "1", Path: "/proc/sys/net/ipv4/conf/net1/accept_redirects"},
 	{Sysctl: "net.ipv6.conf.IFNAME.accept_redirects", Value: "1", Path: "/proc/sys/net/ipv6/conf/net1/accept_redirects"},
 	{Sysctl: "net.ipv4.conf.IFNAME.secure_redirects", Value: "1", Path: "/proc/sys/net/ipv4/conf/net1/secure_redirects"},
-	{Sysctl: "net.ipv6.neigh.IFNAME.base_reachable_time_ms", Value: "30005", Path: "/proc/sys/net/ipv6/neigh/net1/base_reachable_time_ms"},
+	{Sysctl: "net.ipv6.neigh.IFNAME.base_reachable_time_ms", Value: "30010", Path: "/proc/sys/net/ipv6/neigh/net1/base_reachable_time_ms"},
 	{Sysctl: "net.ipv6.neigh.IFNAME.retrans_time_ms", Value: "1005", Path: "/proc/sys/net/ipv6/neigh/net1/retrans_time_ms"},
 }
 
