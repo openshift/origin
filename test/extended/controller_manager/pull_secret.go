@@ -67,15 +67,6 @@ var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
 		saNamespace := oc.Namespace()
 		saName := "default"
 
-		// Get a service account token
-		saToken, err := waitForServiceAccountToken(clusterAdminKubeClient, saNamespace, saName, 20, time.Second)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if len(saToken) == 0 {
-			t.Errorf("token was not created")
-		}
-
 		// Get the matching dockercfg secret
 		_, saPullSecret, err := waitForServiceAccountPullSecret(clusterAdminKubeClient, saNamespace, saName, 20, time.Second)
 		if err != nil {
