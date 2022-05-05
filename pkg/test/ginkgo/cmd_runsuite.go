@@ -396,7 +396,9 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	var syntheticTestResults []*junitapi.JUnitTestCase
 	var syntheticFailure bool
 	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
-	events := m.Intervals(time.Time{}, time.Time{})
+	from := time.Time{}
+	to := time.Time{}
+	events := m.Intervals(from, to)
 
 	if len(opt.JUnitDir) > 0 {
 		var additionalEvents monitorapi.Intervals
@@ -419,6 +421,14 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 			sort.Sort(events)
 		}
 	}
+
+	// create additional intervals from events
+	computedIntervalFns := m.IntervalCreationFns()
+	recordedResources := m.CurrentResourceState()
+	for _, createIntervals := range computedIntervalFns {
+		events = append(events, createIntervals(events, recordedResources, from, to)...)
+	}
+	sort.Sort(events)
 
 	// add events from alerts so we can create the intervals
 	alertEventIntervals, err := monitor.FetchEventIntervalsForAllAlerts(ctx, restConfig, start)

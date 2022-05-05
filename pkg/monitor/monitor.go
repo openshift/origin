@@ -278,18 +278,16 @@ func (m *Monitor) Intervals(from, to time.Time) monitorapi.Intervals {
 	intervals := mergeIntervals(sortedEvents.Slice(from, to), unsortedEvents.CopyAndSort(from, to), filterSamples(samples, from, to))
 	originalLen := len(intervals)
 
-	recordedResources := m.CurrentResourceState()
-	// create additional intervals from events
-	for _, createIntervals := range m.intervalCreationFns {
-		intervals = append(intervals, createIntervals(intervals, recordedResources, from, to)...)
-	}
-
 	// we must sort the result
 	if len(intervals) != originalLen {
 		sort.Sort(intervals)
 	}
 
 	return intervals
+}
+
+func (m *Monitor) IntervalCreationFns() []IntervalCreationFunc {
+	return m.intervalCreationFns
 }
 
 // filterSamples converts the sorted samples that are within [from,to) to a set of

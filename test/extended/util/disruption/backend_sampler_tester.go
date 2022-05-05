@@ -3,6 +3,7 @@ package disruption
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
@@ -149,12 +150,21 @@ func (t *backendDisruptionTest) Test(f *framework.Framework, done <-chan struct{
 	allowedDisruption, disruptionDetails, err := t.getAllowedDisruption(f, end.Sub(start))
 	framework.ExpectNoError(err)
 
+	events := m.Intervals(time.Time{}, time.Time{})
+	// create additional intervals from events
+	computedIntervalFns := m.IntervalCreationFns()
+	recordedResources := m.CurrentResourceState()
+	for _, createIntervals := range computedIntervalFns {
+		events = append(events, createIntervals(events, recordedResources, time.Time{}, time.Time{})...)
+	}
+	sort.Sort(events)
+
 	ginkgo.By(fmt.Sprintf("writing results: %s", t.backend.GetLocator()))
 	ExpectNoDisruptionForDuration(
 		f,
 		*allowedDisruption,
 		end.Sub(start),
-		m.Intervals(time.Time{}, time.Time{}),
+		events,
 		fmt.Sprintf("%s was unreachable during disruption: %v", t.backend.GetLocator(), disruptionDetails),
 	)
 
