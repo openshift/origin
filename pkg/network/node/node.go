@@ -70,7 +70,7 @@ type osdnPolicy interface {
 	SyncVNIDRules()
 }
 
-// Trivia change to trigger 3.11 CI -- again
+// Trivia change to trigger 3.11 CI -- again, one more time to run e2e-gcp and check RPM_REPO
 type OsdnNodeConfig struct {
 	PluginName      string
 	Hostname        string
