@@ -40,7 +40,6 @@ import (
 
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	k8sclient "k8s.io/client-go/kubernetes"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 type NodeType int
@@ -189,16 +188,6 @@ func createWebserverLBService(client k8sclient.Interface, namespace, serviceName
 	}
 	_, err = serviceClient.Get(context.Background(), serviceName, metav1.GetOptions{})
 	return err
-}
-
-func deleteService(serviceClient v1.ServiceInterface, serviceName string) {
-	retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		return serviceClient.Delete(context.Background(), serviceName, metav1.DeleteOptions{})
-	})
-	Eventually(func() bool {
-		_, err := serviceClient.Get(context.Background(), serviceName, metav1.GetOptions{})
-		return kapierrs.IsNotFound(err)
-	}, 5*time.Minute, 25*time.Second).Should(Equal(true))
 }
 
 func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, host string, timeout time.Duration) error {
