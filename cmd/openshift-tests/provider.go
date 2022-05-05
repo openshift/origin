@@ -25,6 +25,9 @@ import (
 	// Initialize alibabacloud as a provider
 	_ "github.com/openshift/origin/test/extended/util/alibabacloud"
 
+	// Initialize nutanix as a provider
+	_ "github.com/openshift/origin/test/extended/util/nutanix"
+
 	// these are loading important global flags that we need to get and set
 	_ "k8s.io/kubernetes/test/e2e"
 	_ "k8s.io/kubernetes/test/e2e/lifecycle"
