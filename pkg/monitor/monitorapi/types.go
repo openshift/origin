@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -186,6 +188,13 @@ func IsInE2ENamespace(eventInterval EventInterval) bool {
 		return true
 	}
 	return false
+}
+
+func IsInNamespaces(namespaces sets.String) EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		ns := NamespaceFromLocator(eventInterval.Locator)
+		return namespaces.Has(ns)
+	}
 }
 
 func And(filters ...EventIntervalMatchesFunc) EventIntervalMatchesFunc {

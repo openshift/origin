@@ -133,7 +133,7 @@ func (r podRendering) WriteEventData(artifactDir string, events monitorapi.Inter
 	for _, namespaceGroup := range namespaceGroups {
 		writer := NewNonSpyglassEventIntervalRenderer(namespaceGroup.name,
 			func(eventInterval monitorapi.EventInterval) bool {
-				if !isPodLifecycle(eventInterval) {
+				if !IsPodLifecycle(eventInterval) {
 					return false
 				}
 				if isInterestingNamespace(eventInterval, namespaceGroup.namespaces) {
