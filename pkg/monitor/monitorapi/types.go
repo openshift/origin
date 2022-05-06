@@ -197,6 +197,29 @@ func IsInNamespaces(namespaces sets.String) EventIntervalMatchesFunc {
 	}
 }
 
+// ContainsAllParts ensures that all listed key match at least one of the values.
+func ContainsAllParts(matchers map[string][]string) EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		actualParts := LocatorParts(eventInterval.Locator)
+		for key, possibleValues := range matchers {
+			actualValue := actualParts[key]
+
+			found := false
+			for _, possibleValue := range possibleValues {
+				if actualValue == possibleValue {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return false
+			}
+		}
+
+		return true
+	}
+}
+
 func And(filters ...EventIntervalMatchesFunc) EventIntervalMatchesFunc {
 	return func(eventInterval EventInterval) bool {
 		for _, filter := range filters {
