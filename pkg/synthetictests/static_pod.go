@@ -2,6 +2,7 @@ package synthetictests
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -114,6 +115,38 @@ func testStaticPodLifecycleFailure(events monitorapi.Intervals, kubeClientConfig
 					// it hasn't failed. It might be possible to go directly to a later revision, and if we want to account for
 					// that, the above could be changed to >= instead of equality.
 					foundEventForProperRevision = true
+				}
+			}
+		}
+
+		// We are suspecting events API and core API are not returning the same events. Double check here.
+		// For debugging purpose
+		if !foundEventForProperRevision {
+			coreEvents, err := kubeClient.CoreV1().Events(staticPodFailure.namespace).List(ctx, metav1.ListOptions{})
+			if err == nil {
+				for _, event := range coreEvents.Items {
+					isRevisionUpdate := event.Reason == "NodeCurrentRevisionChanged"
+					isForNode := strings.Contains(event.Message, staticPodFailure.node)
+					matches := regexp.MustCompile("to ([0-9]+) because static pod is ready").FindStringSubmatch(event.Message)
+					if len(matches) == 2 {
+						reachedRevision, _ := strconv.ParseInt(matches[1], 0, 64)
+						if isRevisionUpdate && isForNode && reachedRevision == staticPodFailure.revision {
+							// Found the event in events returned from core API
+							foundEventForProperRevision = true
+							fmt.Printf("test %s with failure message '%s' recovered\n", testName, staticPodFailure.failureMessage)
+							// Log the events API events
+							eventString, err := json.Marshal(events)
+							if err == nil {
+								fmt.Printf("test %s recovered: corresponding events from events API %s\n", testName, eventString)
+							}
+
+							// Log the core API events
+							eventString, err = json.Marshal(coreEvents)
+							if err == nil {
+								fmt.Printf("test %s recovered: corresponding events from core API %s\n", testName, eventString)
+							}
+						}
+					}
 				}
 			}
 		}
