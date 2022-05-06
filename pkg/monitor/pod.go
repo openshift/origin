@@ -209,8 +209,14 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				continue
 			}
 
-			// if we are transitioning to a terminated state
-			if oldContainerStatus == nil || oldContainerStatus.LastTerminationState.Terminated == nil {
+			switch {
+			case oldContainerStatus == nil:
+				// if we have no container status, then this is probably an initial list and we missed the initial start.  Don't emit the
+				// the container exit because it will be a disconnected event that can confuse our container lifecycle ordering based
+				// on the event stream
+
+			case oldContainerStatus.LastTerminationState.Terminated == nil:
+				// if we are transitioning to a terminated state
 				if containerStatus.LastTerminationState.Terminated.ExitCode != 0 {
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Error,
