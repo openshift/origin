@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
+	authenticationv1 "k8s.io/api/authentication/v1"
 	certv1 "k8s.io/api/certificates/v1"
 	kubeclient "k8s.io/client-go/kubernetes"
 	certclientv1 "k8s.io/client-go/kubernetes/typed/certificates/v1"
@@ -96,12 +97,17 @@ var _ = g.Describe("[sig-cluster-lifecycle]", func() {
 		csrbytes, err := x509.CreateCertificateRequest(rand.Reader, certRequestTemplate, priv)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		// get the token of the node-bootstrapper and use it to build a client for it
-		bootstrapperToken, err := oc.AsAdmin().Run("sa").Args("get-token", "node-bootstrapper", "-n", "openshift-machine-config-operator").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
+		// create a new token request for node-bootstrapper service account and use it to build a client for it
+		tokenRequest := &authenticationv1.TokenRequest{
+			Spec: authenticationv1.TokenRequestSpec{
+				Audiences: []string{"https://kubernetes.default.svc"},
+			},
+		}
 
+		bootstrapperToken, err := oc.AdminKubeClient().CoreV1().ServiceAccounts("openshift-machine-config-operator").CreateToken(context.TODO(), "node-bootstrapper", tokenRequest, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
 		saClientConfig := restclient.AnonymousClientConfig(oc.AdminConfig())
-		saClientConfig.BearerToken = bootstrapperToken
+		saClientConfig.BearerToken = bootstrapperToken.Status.Token
 
 		bootstrapperClient := kubeclient.NewForConfigOrDie(saClientConfig)
 
