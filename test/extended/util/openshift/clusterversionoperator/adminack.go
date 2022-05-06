@@ -106,7 +106,7 @@ func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struc
 						"false with reason AdminAckRequired and message %q.", k, v)
 				}
 				framework.Logf("Gate %s has been ack'ed. Upgradeable is "+
-					"false but not due to this gate which would set reason AdminAckRequired with message %s. %s", k, v, getUpgradeable(ctx, t.Config))
+					"false but not due to this gate which would set reason AdminAckRequired or MultipleReasons with message %s. %s", k, v, getUpgradeable(ctx, t.Config))
 			}
 			// Clear admin ack configmap gate ack
 			if err := setAdminGate(ctx, k, "", t.Oc); err != nil {
@@ -202,12 +202,12 @@ func getAdminAcksConfigMap(ctx context.Context, oc *exutil.CLI) (*corev1.ConfigM
 	return cm, nil
 }
 
-// adminAckRequiredWithMessage returns true if Upgradeable condition reason contains AdminAckRequired
-// and message contains given message.
+// adminAckRequiredWithMessage returns true if Upgradeable condition reason is AdminAckRequired
+// or MultipleReasons and message contains given message.
 func adminAckRequiredWithMessage(ctx context.Context, config *restclient.Config, message string) bool {
 	clusterVersion := getClusterVersion(ctx, config)
 	cond := getUpgradeableStatusCondition(clusterVersion.Status.Conditions)
-	if cond != nil && strings.Contains(cond.Reason, "AdminAckRequired") && strings.Contains(cond.Message, message) {
+	if cond != nil && (cond.Reason == "AdminAckRequired" || cond.Reason == "MultipleReasons") && strings.Contains(cond.Message, message) {
 		return true
 	}
 	return false
@@ -247,20 +247,20 @@ func waitForAdminAckRequired(ctx context.Context, config *restclient.Config, mes
 		}
 		return false, nil
 	}); err != nil {
-		return fmt.Errorf("Error while waiting for Upgradeable to go AdminAckRequired with message %q: %w\n%s", message, err, getUpgradeable(ctx, config))
+		return fmt.Errorf("Error while waiting for Upgradeable to complain about AdminAckRequired with message %q: %w\n%s", message, err, getUpgradeable(ctx, config))
 	}
 	return nil
 }
 
 func waitForAdminAckNotRequired(ctx context.Context, config *restclient.Config, message string) error {
-	framework.Logf("Waiting for Upgradeable to not be AdminAckRequired for %q ...", message)
+	framework.Logf("Waiting for Upgradeable to not complain about AdminAckRequired for %q ...", message)
 	if err := wait.PollImmediate(10*time.Second, 3*time.Minute, func() (bool, error) {
 		if !adminAckRequiredWithMessage(ctx, config, message) {
 			return true, nil
 		}
 		return false, nil
 	}); err != nil {
-		return fmt.Errorf("Error while waiting for Upgradeable to not be AdminAckRequired with message %q: %w\n%s", message, err, getUpgradeable(ctx, config))
+		return fmt.Errorf("Error while waiting for Upgradeable to not complain about AdminAckRequired with message %q: %w\n%s", message, err, getUpgradeable(ctx, config))
 	}
 	return nil
 }
