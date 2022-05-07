@@ -12,6 +12,7 @@ import (
 	machinev1beta1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/pointer"
@@ -104,6 +105,14 @@ func EnsureMasterMachinesAndCount(ctx context.Context, t TestingT, machineClient
 	return wait.Poll(waitPollInterval, waitPollTimeout, func() (bool, error) {
 		machineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
 		if err != nil {
+			// we tolerate some disruption until https://bugzilla.redhat.com/show_bug.cgi?id=2082778
+			// is fixed and rely on the monitor for reporting (p99).
+			// this is okay since we observe disruption during the upgrade jobs too,
+			// the only difference is that during the upgrade job we don’t access the API except from the monitor.
+			if transientAPIError(err) {
+				t.Logf("ignoring %v for now, the error is considered a transient error (will retry)", err)
+				return false, nil
+			}
 			return false, err
 		}
 
@@ -274,4 +283,20 @@ func hasMachineDeletionHook(machine *machinev1beta1.Machine) bool {
 		}
 	}
 	return false
+}
+
+// transientAPIError returns true if the provided error indicates that a retry against an HA server has a good chance to succeed.
+func transientAPIError(err error) bool {
+	switch {
+	case err == nil:
+		return false
+	case net.IsProbableEOF(err), net.IsConnectionReset(err), net.IsNoRoutesError(err), isClientConnectionLost(err):
+		return true
+	default:
+		return false
+	}
+}
+
+func isClientConnectionLost(err error) bool {
+	return strings.Contains(err.Error(), "client connection lost")
 }
