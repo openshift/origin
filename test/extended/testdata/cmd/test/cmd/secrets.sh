@@ -150,9 +150,3 @@ os::cmd::expect_success 'oc secret unlink --help'
 
 echo "secrets: ok"
 os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/serviceaccounts-create-kubeconfig"
-os::cmd::expect_success "oc serviceaccounts create-kubeconfig default > '${BASETMPDIR}/generated_default.kubeconfig'"
-os::cmd::expect_success_and_text "KUBECONFIG='${BASETMPDIR}/generated_default.kubeconfig' oc whoami" "system:serviceaccount:$(oc project -q):default"
-echo "serviceaccounts: ok"
-os::test::junit::declare_suite_end
