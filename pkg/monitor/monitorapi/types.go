@@ -329,5 +329,11 @@ func (intervals Intervals) Clamp(from, to time.Time) {
 	}
 }
 
-type InstanceMap map[string]runtime.Object
+type InstanceKey struct {
+	Namespace string
+	Name      string
+	UID       string
+}
+
+type InstanceMap map[InstanceKey]runtime.Object
 type ResourcesMap map[string]InstanceMap

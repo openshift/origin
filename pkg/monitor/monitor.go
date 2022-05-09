@@ -11,7 +11,6 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/cache"
 )
 
 // Monitor records events that have occurred in memory and can also periodically
@@ -103,14 +102,18 @@ func (m *Monitor) RecordResource(resourceType string, obj runtime.Object) {
 		m.recordedResources[resourceType] = recordedResource
 	}
 
-	key, err := cache.MetaNamespaceKeyFunc(obj)
+	newMetadata, err := meta.Accessor(obj)
 	if err != nil {
 		// coding error
 		panic(err)
 	}
+	key := monitorapi.InstanceKey{
+		Namespace: newMetadata.GetNamespace(),
+		Name:      newMetadata.GetName(),
+		UID:       fmt.Sprintf("%v", newMetadata.GetUID()),
+	}
 
 	toStore := obj.DeepCopyObject()
-	newMetadata, _ := meta.Accessor(toStore)
 	// without metadata, just stomp in the new value, we can't add annotations
 	if newMetadata == nil {
 		recordedResource[key] = toStore

@@ -15,7 +15,7 @@ import (
 )
 
 func InstanceMapToFile(filename string, resourceType string, instances monitorapi.InstanceMap) error {
-	namespaceToKeys := map[string]sets.String{}
+	namespaceToKeys := map[string][]monitorapi.InstanceKey{}
 	for key, obj := range instances {
 		ns := "---missing|metadata---"
 		metadata, err := meta.Accessor(obj)
@@ -24,15 +24,15 @@ func InstanceMapToFile(filename string, resourceType string, instances monitorap
 		}
 
 		if _, ok := namespaceToKeys[ns]; !ok {
-			namespaceToKeys[ns] = sets.String{}
+			namespaceToKeys[ns] = []monitorapi.InstanceKey{}
 		}
-		namespaceToKeys[ns].Insert(key)
+		namespaceToKeys[ns] = append(namespaceToKeys[ns], key)
 	}
 
 	nsToItems := map[string]*unstructured.UnstructuredList{}
 	for _, ns := range sets.StringKeySet(namespaceToKeys).List() {
 		nsList := &unstructured.UnstructuredList{}
-		for _, instanceKey := range namespaceToKeys[ns].List() {
+		for _, instanceKey := range namespaceToKeys[ns] {
 			instanceMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(instances[instanceKey])
 			if err != nil {
 				return err

@@ -2,7 +2,8 @@
   "metadata": {
     "creationTimestamp": null,
     "name": "revision-pruner-7-ip-10-0-214-214.us-west-1.compute.internal",
-    "namespace": "openshift-kube-apiserver"
+    "namespace": "openshift-kube-apiserver",
+    "uid": "6a81964d-169c-47e0-a986-551429370ae9"
   },
   "spec": {
     "containers": null,
