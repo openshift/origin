@@ -18,7 +18,7 @@ func Test_checkCRDs(t *testing.T) {
 		if err != nil {
 			t.Errorf("Fail: %s", err)
 		}
-		failures := checkCRDs(crdList)
+		failures := checkSubresourceStatus(crdList)
 		if len(failures) > 0 {
 			t.Error("There should be no failures")
 			for _, i := range failures {

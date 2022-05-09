@@ -16,10 +16,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// checkCRDs returns a list of names of CRDs that don't have a "status" in the CRD schema
-// and also a subresource.status defined.
+// checkSubresourceStatus returns a list of names of CRDs that have a "status" in the CRD schema
+// but no subresource.status defined.
 // For now, it ignores the ones that are currently failing.
-func checkCRDs(crdItemList []apiextensionsv1.CustomResourceDefinition) []string {
+func checkSubresourceStatus(crdItemList []apiextensionsv1.CustomResourceDefinition) []string {
 
 	// These CRDs, at the time this test was written, do not have a "status" in the CRD schema
 	// and subresource.status.
@@ -27,28 +27,10 @@ func checkCRDs(crdItemList []apiextensionsv1.CustomResourceDefinition) []string 
 	// These CRDs should be tidied up over time.
 	//
 	exceptionsList := sets.NewString(
-		"builds.config.openshift.io",
-		"clusternetworks.network.openshift.io",
-		"consoleclidownloads.console.openshift.io",
-		"consoleexternalloglinks.console.openshift.io",
-		"consolelinks.console.openshift.io",
-		"consolenotifications.console.openshift.io",
-		"consoleplugins.console.openshift.io",
-		"consolequickstarts.console.openshift.io",
-		"consoleyamlsamples.console.openshift.io",
-		"egressnetworkpolicies.network.openshift.io",
-		"hostsubnets.network.openshift.io",
-		"imagecontentpolicies.config.openshift.io",
-		"imagecontentsourcepolicies.operator.openshift.io",
-		"machineconfigs.machineconfiguration.openshift.io",
-		"netnamespaces.network.openshift.io",
 		"networks.config.openshift.io",
 		"networks.operator.openshift.io",
 		"operatorpkis.network.operator.openshift.io",
 		"profiles.tuned.openshift.io",
-		"rangeallocations.security.internal.openshift.io",
-		"rolebindingrestrictions.authorization.openshift.io",
-		"securitycontextconstraints.security.openshift.io",
 		"tuneds.tuned.openshift.io",
 	)
 
@@ -82,7 +64,69 @@ func checkCRDs(crdItemList []apiextensionsv1.CustomResourceDefinition) []string 
 			if !(crdItem.Spec.Versions[i].Subresources != nil && crdItem.Spec.Versions[i].Subresources.Status != nil) {
 				failures = append(failures, fmt.Sprintf("CRD %s has a status in the schema but no subresource.status", crdName))
 			}
-		} else {
+		}
+	}
+
+	return failures
+}
+
+// checkStatusInSchema returns a list of names of CRDs that don't have a "status" in the CRD schema.
+// For now, it ignores the ones that are currently failing.
+func checkStatusInSchema(crdItemList []apiextensionsv1.CustomResourceDefinition) []string {
+
+	// These CRDs, at the time this test was written, do not have a "status" in the CRD schema
+	// and subresource.status.
+	// These can be skipped for now but we don't want the number to increase.
+	// These CRDs should be tidied up over time.
+	//
+	exceptionsList := sets.NewString(
+		"builds.config.openshift.io",
+		"clusternetworks.network.openshift.io",
+		"consoleclidownloads.console.openshift.io",
+		"consoleexternalloglinks.console.openshift.io",
+		"consolelinks.console.openshift.io",
+		"consolenotifications.console.openshift.io",
+		"consoleplugins.console.openshift.io",
+		"consolequickstarts.console.openshift.io",
+		"consoleyamlsamples.console.openshift.io",
+		"egressnetworkpolicies.network.openshift.io",
+		"hostsubnets.network.openshift.io",
+		"imagecontentpolicies.config.openshift.io",
+		"imagecontentsourcepolicies.operator.openshift.io",
+		"machineconfigs.machineconfiguration.openshift.io",
+		"netnamespaces.network.openshift.io",
+		"rangeallocations.security.internal.openshift.io",
+		"rolebindingrestrictions.authorization.openshift.io",
+		"securitycontextconstraints.security.openshift.io",
+	)
+
+	failures := []string{}
+	for _, crdItem := range crdItemList {
+
+		// This test is interested only in CRDs that end with "openshift.io".
+		if !strings.HasSuffix(crdItem.ObjectMeta.Name, "openshift.io") {
+			continue
+		}
+
+		crdName := crdItem.ObjectMeta.Name
+
+		// Skip CRDs in the exceptions list for now.
+		if exceptionsList.Has(crdName) {
+			continue
+		}
+
+		// Iterate through all versions of the CustomResourceDefinition Spec looking for one with
+		// a schema status element,
+		foundStatusInSchema := false
+		var i int
+		for i = 0; i < len(crdItem.Spec.Versions); i++ {
+			if _, ok := crdItem.Spec.Versions[i].Schema.OpenAPIV3Schema.Properties["status"]; ok {
+				foundStatusInSchema = true
+				break
+			}
+		}
+
+		if !foundStatusInSchema {
 			failures = append(failures, fmt.Sprintf("CRD %s has no 'status' element in its schema", crdName))
 		}
 	}
@@ -95,7 +139,7 @@ var _ = g.Describe("[sig-arch][Early]", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		crd_item_list []apiextensionsv1.CustomResourceDefinition
+		crdItemList []apiextensionsv1.CustomResourceDefinition
 	)
 
 	oc := exutil.NewCLI("subresource-status-check")
@@ -103,13 +147,40 @@ var _ = g.Describe("[sig-arch][Early]", func() {
 	g.BeforeEach(func() {
 		var err error
 		crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
-		crd_item_list, err = getCRDItemList(*crdClient)
+		crdItemList, err = getCRDItemList(*crdClient)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.Describe("CRDs for openshift.io", func() {
 		g.It("should have subresource.status", func() {
-			failures := checkCRDs(crd_item_list)
+			failures := checkSubresourceStatus(crdItemList)
+			if len(failures) > 0 {
+				e2e.Fail(strings.Join(failures, "\n"))
+			}
+		})
+	})
+})
+
+var _ = g.Describe("[sig-arch][Early]", func() {
+
+	defer g.GinkgoRecover()
+
+	var (
+		crdItemList []apiextensionsv1.CustomResourceDefinition
+	)
+
+	oc := exutil.NewCLI("schema-status-check")
+
+	g.BeforeEach(func() {
+		var err error
+		crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
+		crdItemList, err = getCRDItemList(*crdClient)
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
+	g.Describe("CRDs for openshift.io", func() {
+		g.It("should have a status in the CRD schema", func() {
+			failures := checkStatusInSchema(crdItemList)
 			if len(failures) > 0 {
 				e2e.Fail(strings.Join(failures, "\n"))
 			}
