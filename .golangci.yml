@@ -1,0 +1,6 @@
+linters:
+  disable-all: true
+  enable:
+    - nosprintfhostport
+  presets: []
+  fast: true
