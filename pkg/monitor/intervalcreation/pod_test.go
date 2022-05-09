@@ -74,7 +74,12 @@ func (p podIntervalTest) test(t *testing.T) {
 			t.Fatal(err)
 		}
 		podMap := resourceMap["pods"]
-		podMap[pod.Namespace+"/"+pod.Name] = pod
+		instanceKey := monitorapi.InstanceKey{
+			Namespace: pod.Namespace,
+			Name:      pod.Name,
+			UID:       fmt.Sprintf("%v", pod.UID),
+		}
+		podMap[instanceKey] = pod
 		resourceMap["pods"] = podMap
 	}
 
