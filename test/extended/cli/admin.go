@@ -459,12 +459,14 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("serviceaccount/my-sa-name created"))
 		o.Expect(ocns.Run("get").Args("sa", "my-sa-name").Execute()).To(o.Succeed())
-		err = wait.Poll(cliInterval, cliTimeout, func() (bool, error) {
-			err := ocns.Run("sa", "get-token").Args("my-sa-name").Execute()
-			return err == nil, nil
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
 
+		// TODO (soltysh): after k8s 1.24 lands we should be able to replace this with:
+		// token, err := oc.Run("create").Args("token", "testsa").Output()
+		// err = wait.Poll(cliInterval, cliTimeout, func() (bool, error) {
+		// 	err := ocns.Run("sa", "get-token").Args("my-sa-name").Execute()
+		// 	return err == nil, nil
+		// })
+		// o.Expect(err).NotTo(o.HaveOccurred())
 		// TODO (soltysh): the problem with this test is we can't force --token
 		// flag to take precedence over KUBECONFIG env var which is injected
 		// by default into tests:
