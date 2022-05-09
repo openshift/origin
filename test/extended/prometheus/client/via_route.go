@@ -3,16 +3,13 @@ package client
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/transport"
@@ -20,6 +17,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 
 	"github.com/openshift/origin/test/extended/util"
+	promHelpers "github.com/openshift/origin/test/extended/util/prometheus"
 )
 
 // NewE2EPrometheusRouterClient returns a Prometheus HTTP API client configured to
@@ -47,27 +45,13 @@ func NewE2EPrometheusRouterClient(oc *util.CLI) (prometheusv1.API, error) {
 		return nil, err
 	}
 
-	// retrieve an openshift-monitoring service account secret
-	var secret *corev1.Secret
-	secrets, err := kubeClient.CoreV1().Secrets("openshift-monitoring").List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-	for _, currSecret := range secrets.Items {
-		if currSecret.Type == corev1.SecretTypeServiceAccountToken && strings.HasPrefix(currSecret.Name, "prometheus-") {
-			secret = &currSecret
-			break
-		}
-	}
-	if secret == nil {
-		return nil, fmt.Errorf("unable to locate service prometheus service account secret")
-	}
+	token := promHelpers.GetPrometheusSABearerToken(oc)
 
 	// prometheus API client, configured for route host and bearer token auth, and no cert verification
 	client, err := api.NewClient(api.Config{
 		Address: "https://" + route.Status.Ingress[0].Host,
 		RoundTripper: transport.NewBearerAuthRoundTripper(
-			string(secret.Data[corev1.ServiceAccountTokenKey]),
+			token,
 			&http.Transport{
 				Proxy: http.ProxyFromEnvironment,
 				DialContext: (&net.Dialer{
