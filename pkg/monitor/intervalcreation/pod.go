@@ -171,10 +171,15 @@ func (t podLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
 
 func (t podLifecycleTimeBounder) getPodCreationTime(inLocator string) *time.Time {
 	podCoordinates := monitorapi.PodFrom(inLocator)
+	instanceKey := monitorapi.InstanceKey{
+		Namespace: podCoordinates.Namespace,
+		Name:      podCoordinates.Name,
+		UID:       podCoordinates.UID,
+	}
 
 	// no hit for deleted, but if it's a RunOnce pod with all terminated containers, the logical "this pod is over"
 	// happens when the last container is terminated.
-	recordedPodObj, ok := t.recordedPods[podCoordinates.Namespace+"/"+podCoordinates.Name]
+	recordedPodObj, ok := t.recordedPods[instanceKey]
 	if !ok {
 		return nil
 	}
@@ -203,10 +208,15 @@ func (t podLifecycleTimeBounder) getPodCreationTime(inLocator string) *time.Time
 
 func (t podLifecycleTimeBounder) getPodDeletionTime(inLocator string) *time.Time {
 	podCoordinates := monitorapi.PodFrom(inLocator)
+	instanceKey := monitorapi.InstanceKey{
+		Namespace: podCoordinates.Namespace,
+		Name:      podCoordinates.Name,
+		UID:       podCoordinates.UID,
+	}
 
 	// no hit for deleted, but if it's a RunOnce pod with all terminated containers, the logical "this pod is over"
 	// happens when the last container is terminated.
-	recordedPodObj, ok := t.recordedPods[podCoordinates.Namespace+"/"+podCoordinates.Name]
+	recordedPodObj, ok := t.recordedPods[instanceKey]
 	if !ok {
 		return nil
 	}
@@ -224,10 +234,15 @@ func (t podLifecycleTimeBounder) getPodDeletionTime(inLocator string) *time.Time
 
 func (t podLifecycleTimeBounder) getRunOnceContainerEnd(inLocator string) *time.Time {
 	podCoordinates := monitorapi.PodFrom(inLocator)
+	instanceKey := monitorapi.InstanceKey{
+		Namespace: podCoordinates.Namespace,
+		Name:      podCoordinates.Name,
+		UID:       podCoordinates.UID,
+	}
 
 	// no hit for deleted, but if it's a RunOnce pod with all terminated containers, the logical "this pod is over"
 	// happens when the last container is terminated.
-	recordedPodObj, ok := t.recordedPods[podCoordinates.Namespace+"/"+podCoordinates.Name]
+	recordedPodObj, ok := t.recordedPods[instanceKey]
 	if !ok {
 		return nil
 	}
@@ -303,8 +318,13 @@ func (t containerLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
 
 func (t containerLifecycleTimeBounder) getContainerEnd(inLocator string) *time.Time {
 	containerCoordinates := monitorapi.ContainerFrom(inLocator)
+	instanceKey := monitorapi.InstanceKey{
+		Namespace: containerCoordinates.Pod.Namespace,
+		Name:      containerCoordinates.Pod.Name,
+		UID:       containerCoordinates.Pod.UID,
+	}
 
-	recordedPodObj, ok := t.recordedPods[containerCoordinates.Pod.Namespace+"/"+containerCoordinates.Pod.Name]
+	recordedPodObj, ok := t.recordedPods[instanceKey]
 	if !ok {
 		return nil
 	}

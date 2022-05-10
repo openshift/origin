@@ -14,7 +14,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/cache"
 
 	"github.com/openshift/origin/pkg/monitor"
 
@@ -274,11 +273,12 @@ func loadKnownPods(filename string) (monitorapi.ResourcesMap, error) {
 			if err != nil {
 				return nil, err
 			}
-			podKey, err := cache.MetaNamespaceKeyFunc(pod)
-			if err != nil {
-				return nil, err
+			instanceKey := monitorapi.InstanceKey{
+				Namespace: pod.Namespace,
+				Name:      pod.Name,
+				UID:       fmt.Sprintf("%v", pod.UID),
 			}
-			pods[podKey] = pod
+			pods[instanceKey] = pod
 		}
 	}
 

@@ -2,7 +2,8 @@
   "metadata": {
     "creationTimestamp": null,
     "name": "installer-3-ip-10-0-136-132.us-west-2.compute.internal",
-    "namespace": "openshift-kube-scheduler"
+    "namespace": "openshift-kube-scheduler",
+    "uid": "b7d89367-600a-49a3-95e1-a3ef2c91ecb9"
   },
   "spec": {
     "containers": null,
