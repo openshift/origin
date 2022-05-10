@@ -3,17 +3,16 @@ package operators
 import (
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 )
 
-func Test_checkCRDs(t *testing.T) {
+func Test_checkSubresourceStatus(t *testing.T) {
 
 	crdClient := setupLocalAPIClientset()
-	t.Run("check_crds test", func(t *testing.T) {
+	t.Run("Test_checkSubresourceStatus test", func(t *testing.T) {
 		crdList, err := getCRDItemList(*crdClient)
 		if err != nil {
 			t.Errorf("Fail: %s", err)
@@ -22,24 +21,34 @@ func Test_checkCRDs(t *testing.T) {
 		if len(failures) > 0 {
 			t.Error("There should be no failures")
 			for _, i := range failures {
-				if strings.Contains(i, "has no 'status' element in its schema") {
-					fmt.Println(i)
-				}
-			}
-			for _, i := range failures {
-				if !strings.Contains(i, "has no 'status' element in its schema") {
-					fmt.Println(i)
-				}
+				fmt.Println(i)
 			}
 		}
 	})
 }
 
+func Test_checkStatusInSchema(t *testing.T) {
+
+	crdClient := setupLocalAPIClientset()
+	t.Run("Test_checkStatusInSchema test", func(t *testing.T) {
+		crdList, err := getCRDItemList(*crdClient)
+		if err != nil {
+			t.Errorf("Fail: %s", err)
+		}
+		failures := checkStatusInSchema(crdList)
+		if len(failures) > 0 {
+			t.Error("There should be no failures")
+			for _, i := range failures {
+				fmt.Println(i)
+			}
+		}
+	})
+}
 func setupLocalAPIClientset() *apiextensionsclientset.Clientset {
 	// Get the kubeconfig by creating an Openshift cluster with cluster-bot, downloading it,
 	// and using the filename for KUBECONFIG.
 	home_dir := os.Getenv("HOME")
-	err := os.Setenv("KUBECONFIG", fmt.Sprintf("%s/Downloads/cluster-bot-2022-04-07-164806.kubeconfig.txt", home_dir))
+	err := os.Setenv("KUBECONFIG", fmt.Sprintf("%s/Downloads/cluster-bot-2022-05-10-100029.kubeconfig.txt", home_dir))
 	kube_dir := os.Getenv("KUBECONFIG")
 	fmt.Println(kube_dir)
 	if err != nil {
