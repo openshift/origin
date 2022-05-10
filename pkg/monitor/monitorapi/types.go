@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -186,6 +188,36 @@ func IsInE2ENamespace(eventInterval EventInterval) bool {
 		return true
 	}
 	return false
+}
+
+func IsInNamespaces(namespaces sets.String) EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		ns := NamespaceFromLocator(eventInterval.Locator)
+		return namespaces.Has(ns)
+	}
+}
+
+// ContainsAllParts ensures that all listed key match at least one of the values.
+func ContainsAllParts(matchers map[string][]string) EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		actualParts := LocatorParts(eventInterval.Locator)
+		for key, possibleValues := range matchers {
+			actualValue := actualParts[key]
+
+			found := false
+			for _, possibleValue := range possibleValues {
+				if actualValue == possibleValue {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return false
+			}
+		}
+
+		return true
+	}
 }
 
 func And(filters ...EventIntervalMatchesFunc) EventIntervalMatchesFunc {

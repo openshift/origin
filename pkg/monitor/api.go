@@ -30,6 +30,17 @@ func GetMonitorRESTConfig() (*rest.Config, error) {
 	return clusterConfig, nil
 }
 
+func DefaultIntervalCreationFns() []IntervalCreationFunc {
+	return []IntervalCreationFunc{
+		intervalcreation.IntervalsFromEvents_OperatorAvailable,
+		intervalcreation.IntervalsFromEvents_OperatorProgressing,
+		intervalcreation.IntervalsFromEvents_OperatorDegraded,
+		intervalcreation.IntervalsFromEvents_E2ETests,
+		intervalcreation.IntervalsFromEvents_NodeChanges,
+		intervalcreation.CreatePodIntervalsFromInstants,
+	}
+}
+
 // Start begins monitoring the cluster referenced by the default kube configuration until
 // context is finished.
 func Start(ctx context.Context, restConfig *rest.Config, additionalEventIntervalRecorders []StartEventIntervalRecorderFunc) (*Monitor, error) {
@@ -55,15 +66,7 @@ func Start(ctx context.Context, restConfig *rest.Config, additionalEventInterval
 
 	// add interval creation at the same point where we add the monitors
 	startClusterOperatorMonitoring(ctx, m, configClient)
-	m.intervalCreationFns = append(
-		m.intervalCreationFns,
-		intervalcreation.IntervalsFromEvents_OperatorAvailable,
-		intervalcreation.IntervalsFromEvents_OperatorProgressing,
-		intervalcreation.IntervalsFromEvents_OperatorDegraded,
-		intervalcreation.IntervalsFromEvents_E2ETests,
-		intervalcreation.IntervalsFromEvents_NodeChanges,
-		intervalcreation.CreatePodIntervalsFromInstants,
-	)
+	m.intervalCreationFns = append(m.intervalCreationFns, DefaultIntervalCreationFns()...)
 
 	m.StartSampling(ctx)
 	return m, nil

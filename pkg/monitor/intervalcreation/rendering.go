@@ -74,7 +74,7 @@ func (r eventIntervalRenderer) writeEventData(artifactDir, filenameBase string, 
 }
 
 func BelongsInEverything(eventInterval monitorapi.EventInterval) bool {
-	if isPodLifecycle(eventInterval) { // there are just too many
+	if IsPodLifecycle(eventInterval) { // there are just too many
 		return false
 	}
 	return true
@@ -84,7 +84,7 @@ func BelongsInSpyglass(eventInterval monitorapi.EventInterval) bool {
 	if isLessInterestingAlert(eventInterval) {
 		return false
 	}
-	if isPodLifecycle(eventInterval) {
+	if IsPodLifecycle(eventInterval) {
 		return false
 	}
 
@@ -95,7 +95,7 @@ func BelongsInOperatorRollout(eventInterval monitorapi.EventInterval) bool {
 	if monitorapi.IsE2ETest(eventInterval.Locator) {
 		return false
 	}
-	if isPodLifecycle(eventInterval) {
+	if IsPodLifecycle(eventInterval) {
 		if isPlatformPodEvent(eventInterval) {
 			return true
 		}
@@ -112,7 +112,7 @@ func BelongsInKubeAPIServer(eventInterval monitorapi.EventInterval) bool {
 	if isLessInterestingAlert(eventInterval) {
 		return false
 	}
-	if isPodLifecycle(eventInterval) {
+	if IsPodLifecycle(eventInterval) {
 		if isPlatformPodEvent(eventInterval) && isInterestingNamespace(eventInterval, kubeAPIServerDependentNamespaces) {
 			return true
 		}
@@ -125,8 +125,16 @@ func BelongsInKubeAPIServer(eventInterval monitorapi.EventInterval) bool {
 	return true
 }
 
-func isPodLifecycle(eventInterval monitorapi.EventInterval) bool {
+func IsPodLifecycle(eventInterval monitorapi.EventInterval) bool {
 	return strings.Contains(eventInterval.Message, "constructed/true")
+}
+
+func IsOriginalPodEvent(eventInterval monitorapi.EventInterval) bool {
+	// constructed events are not original
+	if strings.Contains(eventInterval.Message, "constructed/true") {
+		return false
+	}
+	return strings.Contains(eventInterval.Locator, "pod/")
 }
 
 func isPlatformPodEvent(eventInterval monitorapi.EventInterval) bool {
