@@ -40,7 +40,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 
 		g.By("checking for the openshift machine api operator")
 		// TODO: skip if platform != aws
-		skipUnlessMachineAPIOperator(dc, c.CoreV1().Namespaces())
+		SkipUnlessMachineAPIOperator(dc, c.CoreV1().Namespaces())
 
 		g.By("ensuring every node is linked to a machine api resource")
 		allNodes, err := c.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
@@ -102,7 +102,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 	})
 })
 
-// skipUnlessMachineAPI is used to deterine if the Machine API is installed and running in a cluster.
+// SkipUnlessMachineAPI is used to deterine if the Machine API is installed and running in a cluster.
 // It is expected to skip the test if it determines that the Machine API is not installed/running.
 // Use this early in a test that relies on Machine API functionality.
 //
@@ -110,7 +110,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 // If machines are not installed it skips the test case.
 // It then checks to see if the `openshift-machine-api` namespace is installed.
 // If the namespace is not present it skips the test case.
-func skipUnlessMachineAPIOperator(dc dynamic.Interface, c coreclient.NamespaceInterface) {
+func SkipUnlessMachineAPIOperator(dc dynamic.Interface, c coreclient.NamespaceInterface) {
 	machineClient := dc.Resource(schema.GroupVersionResource{Group: "machine.openshift.io", Resource: "machines", Version: "v1beta1"})
 
 	err := wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {

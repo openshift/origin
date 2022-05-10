@@ -243,7 +243,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 
 		g.By("checking for the openshift machine api operator")
 		// TODO: skip if platform != aws
-		skipUnlessMachineAPIOperator(dc, c.CoreV1().Namespaces())
+		SkipUnlessMachineAPIOperator(dc, c.CoreV1().Namespaces())
 
 		g.By("fetching worker machineSets")
 		machineSets, err := listWorkerMachineSets(dc)
