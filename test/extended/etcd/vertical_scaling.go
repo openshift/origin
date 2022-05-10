@@ -9,9 +9,11 @@ import (
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	testlibraryapi "github.com/openshift/library-go/test/library/apiserver"
 	scalingtestinglibrary "github.com/openshift/origin/test/extended/etcd/helpers"
+	machineapihelpers "github.com/openshift/origin/test/extended/machines"
 	exutil "github.com/openshift/origin/test/extended/util"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -25,6 +27,11 @@ var _ = g.Describe("[sig-etcd][Serial] etcd", func() {
 	// The test ends by removing the newly added machine and validating the size of the cluster
 	// and asserting the member was removed from the etcd cluster by contacting MemberList API.
 	g.It("is able to vertically scale up and down with a single node", func() {
+		// prerequisite, we do run the test only on a platform that supports functional MachineAPI
+		dc, err := dynamic.NewForConfig(oc.AdminConfig())
+		o.Expect(err).ToNot(o.HaveOccurred())
+		machineapihelpers.SkipUnlessMachineAPIOperator(dc, oc.KubeClient().CoreV1().Namespaces())
+
 		// set up
 		ctx := context.TODO()
 		etcdClientFactory := scalingtestinglibrary.NewEtcdClientFactory(oc.KubeClient())
