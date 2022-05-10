@@ -41,7 +41,7 @@ type HelmChartRepositoryList struct {
 // Helm chart repository exposed within the cluster
 type HelmChartRepositorySpec struct {
 
-	// If set to true, disable the repo usage in the cluster
+	// If set to true, disable the repo usage in the cluster/namespace
 	// +optional
 	Disabled bool `json:"disabled,omitempty"`
 
