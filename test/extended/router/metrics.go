@@ -91,9 +91,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 				context.TODO(),
 				"prometheus-k8s",
 				&authenticationv1.TokenRequest{
-					Spec: authenticationv1.TokenRequestSpec{
-						Audiences: []string{"https://kubernetes.default.svc"},
-					},
+					Spec: authenticationv1.TokenRequestSpec{},
 				},
 				metav1.CreateOptions{},
 			)
