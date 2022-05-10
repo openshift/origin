@@ -52792,6 +52792,10 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
     timelineGroups.push({group: "pods", data: []})
     createTimelineData(podStateValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isPod)
+    timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
+        // I think I really want ordering by time in each of a few categories
+        return e1.label < e2.label ? -1 : e1.label > e2.label;
+    })
 
     timelineGroups.push({group: "alerts", data: []})
     createTimelineData(alertSeverity, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAlert)
