@@ -47,6 +47,5 @@ import (
 	_ "github.com/openshift/origin/test/extended/single_node"
 	_ "github.com/openshift/origin/test/extended/tbr_health"
 	_ "github.com/openshift/origin/test/extended/templates"
-	_ "github.com/openshift/origin/test/extended/topology_manager"
 	_ "github.com/openshift/origin/test/extended/user"
 )

@@ -19,11 +19,9 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("etcd-leader-change").AsAdmin()
 
-	var earlyMaxRevision int
+	var earlyTimeStamp time.Time
 	g.It("record the start revision of the etcd-operator [Early]", func() {
-		var err error
-		earlyMaxRevision, err = allowedalerts.GetBiggestRevisionForEtcdOperator(context.TODO(), oc.AdminOperatorClient().OperatorV1())
-		o.Expect(err).ToNot(o.HaveOccurred())
+		earlyTimeStamp = time.Now()
 	})
 
 	g.It("leader changes are not excessive [Late]", func() {
@@ -59,12 +57,10 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 		// calculate the number of etcd rollouts during the tests
 		// based on that calculate the number of allowed leader elections
 		// we allow max 3 elections per revision (we assume there are 3 master machines at most)
-		lateMaxRevision, err := allowedalerts.GetBiggestRevisionForEtcdOperator(context.TODO(), oc.AdminOperatorClient().OperatorV1())
+		numberOfRevisions, err := allowedalerts.GetEstimatedNumberOfRevisionsForEtcdOperator(context.TODO(), oc.KubeClient(), time.Now().Sub(earlyTimeStamp))
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-		numberOfRevisions := lateMaxRevision - earlyMaxRevision
 		allowedNumberOfRevisions := numberOfRevisions * 3
-
 		leaderChanges := vec[0].Value
 		if int(leaderChanges) > allowedNumberOfRevisions {
 			o.Expect(fmt.Errorf("observed %s leader changes (expected %v) in %s: Leader changes are a result of stopping the etcd leader process or from latency (disk or network), review etcd performance metrics", leaderChanges, allowedNumberOfRevisions, testDuration)).ToNot(o.HaveOccurred())

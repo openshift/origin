@@ -51,10 +51,57 @@ func ApplyStorageClass(ctx context.Context, client storageclientv1.StorageClasse
 		klog.Infof("StorageClass %q changes: %v", required.Name, JSONPatchNoError(existingCopy, requiredCopy))
 	}
 
-	// TODO if provisioner, parameters, reclaimpolicy, or volumebindingmode are different, update will fail so delete and recreate
+	if storageClassNeedsRecreate(existingCopy, requiredCopy) {
+		requiredCopy.ObjectMeta.ResourceVersion = ""
+		err = client.StorageClasses().Delete(ctx, existingCopy.Name, metav1.DeleteOptions{})
+		reportDeleteEvent(recorder, requiredCopy, err, "Deleting StorageClass to re-create it with updated parameters")
+		if err != nil && !apierrors.IsNotFound(err) {
+			return existing, false, err
+		}
+		actual, err := client.StorageClasses().Create(ctx, requiredCopy, metav1.CreateOptions{})
+		if err != nil && apierrors.IsAlreadyExists(err) {
+			// Delete() few lines above did not really delete the object,
+			// the API server is probably waiting for a finalizer removal or so.
+			// Report an error, but something else than "Already exists", because
+			// that would be very confusing - Apply failed because the object
+			// already exists???
+			err = fmt.Errorf("failed to re-create StorageClass %s, waiting for the original object to be deleted", existingCopy.Name)
+		} else if err != nil {
+			err = fmt.Errorf("failed to re-create StorageClass %s: %s", existingCopy.Name, err)
+		}
+		reportCreateEvent(recorder, actual, err)
+		return actual, true, err
+	}
+
+	// Only mutable fields need a change
 	actual, err := client.StorageClasses().Update(ctx, requiredCopy, metav1.UpdateOptions{})
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
+}
+
+func storageClassNeedsRecreate(oldSC, newSC *storagev1.StorageClass) bool {
+	// Based on kubernetes/kubernetes/pkg/apis/storage/validation/validation.go,
+	// these fields are immutable.
+	if !equality.Semantic.DeepEqual(oldSC.Parameters, newSC.Parameters) {
+		return true
+	}
+	if oldSC.Provisioner != newSC.Provisioner {
+		return true
+	}
+
+	// In theory, ReclaimPolicy is always set, just in case:
+	if (oldSC.ReclaimPolicy == nil && newSC.ReclaimPolicy != nil) ||
+		(oldSC.ReclaimPolicy != nil && newSC.ReclaimPolicy == nil) {
+		return true
+	}
+	if oldSC.ReclaimPolicy != nil && newSC.ReclaimPolicy != nil && *oldSC.ReclaimPolicy != *newSC.ReclaimPolicy {
+		return true
+	}
+
+	if !equality.Semantic.DeepEqual(oldSC.VolumeBindingMode, newSC.VolumeBindingMode) {
+		return true
+	}
+	return false
 }
 
 // ApplyCSIDriver merges objectmeta, does not worry about anything else
@@ -119,6 +166,8 @@ func ApplyCSIDriver(ctx context.Context, client storageclientv1.CSIDriversGetter
 		// that would be very confusing - Apply failed because the object
 		// already exists???
 		err = fmt.Errorf("failed to re-create CSIDriver object %s, waiting for the original object to be deleted", existingCopy.Name)
+	} else if err != nil {
+		err = fmt.Errorf("failed to re-create CSIDriver %s: %s", existingCopy.Name, err)
 	}
 	reportCreateEvent(recorder, existingCopy, err)
 	return actual, true, err

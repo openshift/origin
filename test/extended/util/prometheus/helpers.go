@@ -70,6 +70,13 @@ func LocatePrometheus(oc *exutil.CLI) (queryURL, prometheusURL, bearerToken stri
 		return "", "", "", false
 	}
 
+	bearerToken = GetPrometheusSABearerToken(oc)
+
+	return "https://thanos-querier.openshift-monitoring.svc:9091", "https://prometheus-k8s.openshift-monitoring.svc:9091", bearerToken, true
+}
+
+func GetPrometheusSABearerToken(oc *exutil.CLI) string {
+	var bearerToken string
 	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "openshift-monitoring", "prometheus-k8s", 2*time.Minute)
 	for i := 0; i < 30; i++ {
 		secrets, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-monitoring").List(context.Background(), metav1.ListOptions{})
@@ -78,7 +85,7 @@ func LocatePrometheus(oc *exutil.CLI) (queryURL, prometheusURL, bearerToken stri
 			if secret.Type != v1.SecretTypeServiceAccountToken {
 				continue
 			}
-			if !strings.HasPrefix(secret.Name, "prometheus-") {
+			if !strings.HasPrefix(secret.Name, "prometheus-k8s-token") {
 				continue
 			}
 			bearerToken = string(secret.Data[v1.ServiceAccountTokenKey])
@@ -91,8 +98,7 @@ func LocatePrometheus(oc *exutil.CLI) (queryURL, prometheusURL, bearerToken stri
 		}
 	}
 	o.Expect(bearerToken).ToNot(o.BeEmpty())
-
-	return "https://thanos-querier.openshift-monitoring.svc:9091", "https://prometheus-k8s.openshift-monitoring.svc:9091", bearerToken, true
+	return bearerToken
 }
 
 type MetricCondition struct {

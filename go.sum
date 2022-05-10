@@ -667,8 +667,8 @@ github.com/opencontainers/selinux v1.8.2 h1:c4ca10UMgRcvZ6h0K4HtS15UaVSBEaE+iln2
 github.com/opencontainers/selinux v1.8.2/go.mod h1:MUIHuUEvKB1wtJjQdOyYRgOnLD2xAPP8dBsCoU0KuF8=
 github.com/openshift/api v0.0.0-20211209135129-c58d9f695577/go.mod h1:DoslCwtqUpr3d/gsbq4ZlkaMEdYqKxuypsDjorcHhME=
 github.com/openshift/api v0.0.0-20211209173311-a19f3b9052a6/go.mod h1:DoslCwtqUpr3d/gsbq4ZlkaMEdYqKxuypsDjorcHhME=
-github.com/openshift/api v0.0.0-20220110171111-997c316db5e1 h1:gvAPP+X17EZwlyim5d/KCmNng6zp+4fRxul0X2Z068A=
-github.com/openshift/api v0.0.0-20220110171111-997c316db5e1/go.mod h1:F/eU6jgr6Q2VhMu1mSpMmygxAELd7+BUxs3NHZ25jV4=
+github.com/openshift/api v0.0.0-20220315184754-d7c10d0b647e h1:Rsk+kdRKrkhoHnUi3qBm11TZsdFX/Fovcbm3cK4yfzQ=
+github.com/openshift/api v0.0.0-20220315184754-d7c10d0b647e/go.mod h1:F/eU6jgr6Q2VhMu1mSpMmygxAELd7+BUxs3NHZ25jV4=
 github.com/openshift/apiserver-library-go v0.0.0-20220329105944-e64b3328dd17 h1:gayZhXTciVgShm60M+lgOenM42LuTNS1/xg6Idl5RtQ=
 github.com/openshift/apiserver-library-go v0.0.0-20220329105944-e64b3328dd17/go.mod h1:xmXp4ppleImFhXXeHI7/jPoZiu0xvkPbrciB+U8K+64=
 github.com/openshift/build-machinery-go v0.0.0-20210712174854-1bb7fd1518d3/go.mod h1:b1BuldmJlbA/xYtdZvKi+7j5YGB44qJUJDZ9zwiNCfE=
@@ -727,8 +727,9 @@ github.com/openshift/kubernetes/staging/src/k8s.io/pod-security-admission v0.0.0
 github.com/openshift/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20220405131139-37c5e75b4e1e h1:71EyvQGJ4D5kDYs6hAoBexTD8+7EyhbKZzbgHL48Fbs=
 github.com/openshift/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20220405131139-37c5e75b4e1e/go.mod h1:SzYUEBny/tNNzkgPDf//V6g3lw15pIlGhCeXNoQkQnA=
 github.com/openshift/library-go v0.0.0-20211209153216-ed9bc958bd8a/go.mod h1:M/Gi/GUUrMdSS07nrYtTiK43J6/VUAyk/+IfN4ZqUY4=
-github.com/openshift/library-go v0.0.0-20220315122757-21a67f25d837 h1:y5e1zbo4/r369GdviW2VSPA+yprvUrW/zlK03XSWWdA=
 github.com/openshift/library-go v0.0.0-20220315122757-21a67f25d837/go.mod h1:6AmNM4N4nHftckybV/U7bQW+5AvK5TW81ndSI6KEidw=
+github.com/openshift/library-go v0.0.0-20220502112129-771a6581efac h1:6xz+51B5pRa8NVDginayvbza4WnAo1HwLeWCT/X3lyw=
+github.com/openshift/library-go v0.0.0-20220502112129-771a6581efac/go.mod h1:QGr0pban45i4G7e1Z1yH1tcUrceok6QXrqqjSDb2q8M=
 github.com/openshift/onsi-ginkgo v4.7.0-origin.0+incompatible h1:6XSBotNi58b4MwVV4F9o/jd4BaQd+uJyz+s5TR0/ot8=
 github.com/openshift/onsi-ginkgo v4.7.0-origin.0+incompatible/go.mod h1:azqkkH4Vpp9A579CC26hicol/wViXag9rOwElif6v9E=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
@@ -758,8 +759,9 @@ github.com/prometheus/client_golang v0.9.3/go.mod h1:/TN21ttK/J9q6uSwhBd54HahCDf
 github.com/prometheus/client_golang v1.0.0/go.mod h1:db9x61etRT2tGnBNRi70OPL5FsnadC4Ky3P0J6CfImo=
 github.com/prometheus/client_golang v1.1.0/go.mod h1:I1FGZT9+L76gKKOs5djB6ezCbFQP1xR9D75/vuwEF3g=
 github.com/prometheus/client_golang v1.7.1/go.mod h1:PY5Wy2awLA44sXw4AOSfFBetzPP4j5+D6mVACh+pe2M=
-github.com/prometheus/client_golang v1.11.0 h1:HNkLOAEQMIDv/K+04rukrLx6ch7msSRwf3/SASFAGtQ=
 github.com/prometheus/client_golang v1.11.0/go.mod h1:Z6t4BnS23TR94PD6BsDNk8yVqroYurpAkEiz0P2BEV0=
+github.com/prometheus/client_golang v1.11.1 h1:+4eQaD7vAZ6DsfsxB15hbE0odUjGI5ARs9yskGu1v4s=
+github.com/prometheus/client_golang v1.11.1/go.mod h1:Z6t4BnS23TR94PD6BsDNk8yVqroYurpAkEiz0P2BEV0=
 github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910/go.mod h1:MbSGuTsp3dbXC40dX6PRTWyKYBIrTGTE9sqQNg2J8bo=
 github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=

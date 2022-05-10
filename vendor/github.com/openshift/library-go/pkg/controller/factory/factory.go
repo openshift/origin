@@ -18,6 +18,11 @@ import (
 // DefaultQueueKey is the queue key used for string trigger based controllers.
 const DefaultQueueKey = "key"
 
+// DefaultQueueKeysFunc returns a slice with a single element - the DefaultQueueKey
+func DefaultQueueKeysFunc(_ runtime.Object) []string {
+	return []string{DefaultQueueKey}
+}
+
 // Factory is generator that generate standard Kubernetes controllers.
 // Factory is really generic and should be only used for simple controllers that does not require special stuff..
 type Factory struct {
@@ -50,7 +55,7 @@ type namespaceInformer struct {
 type informersWithQueueKey struct {
 	informers  []Informer
 	filter     EventFilterFunc
-	queueKeyFn ObjectQueueKeyFunc
+	queueKeyFn ObjectQueueKeysFunc
 }
 
 type filteredInformers struct {
@@ -66,7 +71,13 @@ type PostStartHook func(ctx context.Context, syncContext SyncContext) error
 // ObjectQueueKeyFunc is used to make a string work queue key out of the runtime object that is passed to it.
 // This can extract the "namespace/name" if you need to or just return "key" if you building controller that only use string
 // triggers.
+// DEPRECATED: use ObjectQueueKeysFunc instead
 type ObjectQueueKeyFunc func(runtime.Object) string
+
+// ObjectQueueKeysFunc is used to make a string work queue keys out of the runtime object that is passed to it.
+// This can extract the "namespace/name" if you need to or just return "key" if you building controller that only use string
+// triggers.
+type ObjectQueueKeysFunc func(runtime.Object) []string
 
 // EventFilterFunc is used to filter informer events to prevent Sync() from being called
 type EventFilterFunc func(obj interface{}) bool
@@ -119,8 +130,10 @@ func (f *Factory) WithBareInformers(informers ...Informer) *Factory {
 // Pass the queueKeyFn you want to use to transform the informer runtime.Object into string key used by work queue.
 func (f *Factory) WithInformersQueueKeyFunc(queueKeyFn ObjectQueueKeyFunc, informers ...Informer) *Factory {
 	f.informerQueueKeys = append(f.informerQueueKeys, informersWithQueueKey{
-		informers:  informers,
-		queueKeyFn: queueKeyFn,
+		informers: informers,
+		queueKeyFn: func(o runtime.Object) []string {
+			return []string{queueKeyFn(o)}
+		},
 	})
 	return f
 }
@@ -131,6 +144,34 @@ func (f *Factory) WithInformersQueueKeyFunc(queueKeyFn ObjectQueueKeyFunc, infor
 // Pass the queueKeyFn you want to use to transform the informer runtime.Object into string key used by work queue.
 // Pass filter to filter out events that should not trigger Sync() call.
 func (f *Factory) WithFilteredEventsInformersQueueKeyFunc(queueKeyFn ObjectQueueKeyFunc, filter EventFilterFunc, informers ...Informer) *Factory {
+	f.informerQueueKeys = append(f.informerQueueKeys, informersWithQueueKey{
+		informers: informers,
+		filter:    filter,
+		queueKeyFn: func(o runtime.Object) []string {
+			return []string{queueKeyFn(o)}
+		},
+	})
+	return f
+}
+
+// WithInformersQueueKeysFunc is used to register event handlers and get the caches synchronized functions.
+// Pass informers you want to use to react to changes on resources. If informer event is observed, then the Sync() function
+// is called.
+// Pass the queueKeyFn you want to use to transform the informer runtime.Object into string key used by work queue.
+func (f *Factory) WithInformersQueueKeysFunc(queueKeyFn ObjectQueueKeysFunc, informers ...Informer) *Factory {
+	f.informerQueueKeys = append(f.informerQueueKeys, informersWithQueueKey{
+		informers:  informers,
+		queueKeyFn: queueKeyFn,
+	})
+	return f
+}
+
+// WithFilteredEventsInformersQueueKeysFunc is used to register event handlers and get the caches synchronized functions.
+// Pass informers you want to use to react to changes on resources. If informer event is observed, then the Sync() function
+// is called.
+// Pass the queueKeyFn you want to use to transform the informer runtime.Object into string key used by work queue.
+// Pass filter to filter out events that should not trigger Sync() call.
+func (f *Factory) WithFilteredEventsInformersQueueKeysFunc(queueKeyFn ObjectQueueKeysFunc, filter EventFilterFunc, informers ...Informer) *Factory {
 	f.informerQueueKeys = append(f.informerQueueKeys, informersWithQueueKey{
 		informers:  informers,
 		filter:     filter,
@@ -254,9 +295,7 @@ func (f *Factory) ToController(name string, eventRecorder events.Recorder) Contr
 	for i := range f.informers {
 		for d := range f.informers[i].informers {
 			informer := f.informers[i].informers[d]
-			informer.AddEventHandler(c.syncContext.(syncContext).eventHandler(func(runtime.Object) string {
-				return DefaultQueueKey
-			}, f.informers[i].filter))
+			informer.AddEventHandler(c.syncContext.(syncContext).eventHandler(DefaultQueueKeysFunc, f.informers[i].filter))
 			c.cachesToSync = append(c.cachesToSync, informer.HasSynced)
 		}
 	}
@@ -266,9 +305,7 @@ func (f *Factory) ToController(name string, eventRecorder events.Recorder) Contr
 	}
 
 	for i := range f.namespaceInformers {
-		f.namespaceInformers[i].informer.AddEventHandler(c.syncContext.(syncContext).eventHandler(func(runtime.Object) string {
-			return DefaultQueueKey
-		}, f.namespaceInformers[i].nsFilter))
+		f.namespaceInformers[i].informer.AddEventHandler(c.syncContext.(syncContext).eventHandler(DefaultQueueKeysFunc, f.namespaceInformers[i].nsFilter))
 		c.cachesToSync = append(c.cachesToSync, f.namespaceInformers[i].informer.HasSynced)
 	}
 

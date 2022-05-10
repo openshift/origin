@@ -10,6 +10,22 @@ import (
 	"strings"
 	"time"
 
+	g "github.com/onsi/ginkgo"
+	configv1 "github.com/openshift/api/config/v1"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
+	"github.com/openshift/origin/test/e2e/upgrade/adminack"
+	"github.com/openshift/origin/test/e2e/upgrade/alert"
+	"github.com/openshift/origin/test/e2e/upgrade/dns"
+	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
+	"github.com/openshift/origin/test/e2e/upgrade/service"
+	"github.com/openshift/origin/test/extended/prometheus"
+	"github.com/openshift/origin/test/extended/util/disruption"
+	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
+	"github.com/openshift/origin/test/extended/util/disruption/frontends"
+	"github.com/openshift/origin/test/extended/util/disruption/imageregistry"
+	"github.com/openshift/origin/test/extended/util/operator"
+	"github.com/pborman/uuid"
 	v1 "k8s.io/api/core/v1"
 	eventsv1 "k8s.io/api/events/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,23 +42,6 @@ import (
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	"k8s.io/kubernetes/test/e2e/upgrades/apps"
 	"k8s.io/kubernetes/test/e2e/upgrades/node"
-
-	g "github.com/onsi/ginkgo"
-	"github.com/pborman/uuid"
-
-	configv1 "github.com/openshift/api/config/v1"
-	configv1client "github.com/openshift/client-go/config/clientset/versioned"
-	"github.com/openshift/origin/test/e2e/upgrade/adminack"
-	"github.com/openshift/origin/test/e2e/upgrade/alert"
-	"github.com/openshift/origin/test/e2e/upgrade/dns"
-	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
-	"github.com/openshift/origin/test/e2e/upgrade/service"
-	"github.com/openshift/origin/test/extended/prometheus"
-	"github.com/openshift/origin/test/extended/util/disruption"
-	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
-	"github.com/openshift/origin/test/extended/util/disruption/frontends"
-	"github.com/openshift/origin/test/extended/util/disruption/imageregistry"
-	"github.com/openshift/origin/test/extended/util/operator"
 )
 
 // NoTests is an empty list of tests
@@ -77,6 +76,7 @@ func AllTests() []upgrades.Test {
 		&apps.DaemonSetUpgradeTest{},
 		imageregistry.NewImageRegistryAvailableWithNewConnectionsTest(),
 		imageregistry.NewImageRegistryAvailableWithReusedConnectionsTest(),
+		&prometheus.ImagePullsAreFast{},
 		&prometheus.MetricsAvailableAfterUpgradeTest{},
 		&dns.UpgradeTest{},
 	}
@@ -291,23 +291,36 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 
 	infra, err := c.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	framework.ExpectNoError(err)
-	if infra.Status.PlatformStatus.Type == configv1.AWSPlatformType {
+	network, err := c.ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
+	framework.ExpectNoError(err)
+	platformType, err := platformidentification.GetJobType(context.TODO(), config)
+	framework.ExpectNoError(err)
+
+	switch {
+	case infra.Status.PlatformStatus.Type == configv1.AWSPlatformType:
 		// due to https://bugzilla.redhat.com/show_bug.cgi?id=1943804 upgrades take ~12 extra minutes on AWS
 		// and see commit d69db34a816f3ce8a9ab567621d145c5cd2d257f which notes that some AWS upgrades can
 		// take close to 105 minutes total (75 is base duration, so adding 30 more if it's AWS)
 		durationToSoftFailure = baseDurationToSoftFailure + (30 * time.Minute)
-	} else {
+
+	case network.Status.NetworkType == "OVNKubernetes":
 		// if the cluster is on AWS we've already bumped the timeout enough, but if not we need to check if
 		// the CNI is OVN and increase our timeout for that
-		network, err := c.ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
-		framework.ExpectNoError(err)
-		if network.Status.NetworkType == "OVNKubernetes" {
-			// deploying with OVN is expected to take longer. on average, ~15m longer
-			// some extra context to this increase which links to a jira showing which operators take longer:
-			// compared to OpenShiftSDN:
-			//   https://bugzilla.redhat.com/show_bug.cgi?id=1942164
-			durationToSoftFailure = baseDurationToSoftFailure + (15 * time.Minute)
-		}
+		// For now, deploying with OVN is expected to take longer. on average, ~15m longer
+		// some extra context to this increase which links to a jira showing which operators take longer:
+		// compared to OpenShiftSDN:
+		//   https://bugzilla.redhat.com/show_bug.cgi?id=1942164
+		durationToSoftFailure = baseDurationToSoftFailure + (15 * time.Minute)
+
+	case platformType.Architecture == platformidentification.ArchitectureS390:
+		// s390 appears to take nearly 100 minutes to upgrade. Not sure why, but let's keep it from getting worse and provide meaningful
+		// test results.
+		durationToSoftFailure = 100 * time.Minute
+
+	case platformType.Architecture == platformidentification.ArchitecturePPC64le:
+		// ppc appears to take just over 75 minutes. Not sure why, but let's keep it from getting worse and provide meaningful
+		// test results.
+		durationToSoftFailure = 80 * time.Minute
 	}
 
 	framework.Logf("Starting upgrade to version=%s image=%s attempt=%s", version.Version.String(), version.NodeImage, uid)
@@ -339,6 +352,9 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		client: c,
 	}
 	defer monitor.Describe(f)
+
+	//used below in separate paths
+	clusterCompletesUpgradeTestName := "[sig-cluster-lifecycle] Cluster completes upgrade"
 
 	// trigger the update and record verification as an independent step
 	if err := disruption.RecordJUnit(
@@ -404,6 +420,11 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			return nil, false
 		},
 	); err != nil {
+		//before returning the err force a failure for completes upgrade which follows this test
+		disruption.RecordJUnit(f, clusterCompletesUpgradeTestName, func() (error, bool) {
+			framework.Logf("Cluster version operator failed to acknowledge upgrade request")
+			return fmt.Errorf("Cluster did not complete upgrade: operator failed to acknowledge upgrade request"), false
+		})
 		recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeFailed", fmt.Sprintf("failed to acknowledge version: %v", err), true)
 		return err
 	}
@@ -415,7 +436,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 	// observe the upgrade, taking action as necessary
 	if err := disruption.RecordJUnit(
 		f,
-		"[sig-cluster-lifecycle] Cluster completes upgrade",
+		clusterCompletesUpgradeTestName,
 		func() (error, bool) {
 			framework.Logf("Cluster version operator acknowledged upgrade request")
 			aborted := false

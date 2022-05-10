@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"k8s.io/client-go/informers"
 
+	"github.com/openshift/origin/pkg/monitor/podipcontroller"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -206,8 +209,14 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				continue
 			}
 
-			// if we are transitioning to a terminated state
-			if oldContainerStatus == nil || oldContainerStatus.LastTerminationState.Terminated == nil {
+			switch {
+			case oldContainerStatus == nil:
+				// if we have no container status, then this is probably an initial list and we missed the initial start.  Don't emit the
+				// the container exit because it will be a disconnected event that can confuse our container lifecycle ordering based
+				// on the event stream
+
+			case oldContainerStatus.LastTerminationState.Terminated == nil:
+				// if we are transitioning to a terminated state
 				if containerStatus.LastTerminationState.Terminated.ExitCode != 0 {
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Error,
@@ -531,11 +540,13 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 		},
 	)
 
-	go podInformer.Run(ctx.Done())
-}
+	// start controller to watch for shared pod IPs.
+	sharedInformers := informers.NewSharedInformerFactory(client, 24*time.Hour)
+	podIPController := podipcontroller.NewSimultaneousPodIPController(m, sharedInformers.Core().V1().Pods())
+	go podIPController.Run(ctx)
+	go sharedInformers.Start(ctx.Done())
 
-func containerHasPreviousState(c *corev1.ContainerStatus) bool {
-	return c.LastTerminationState != corev1.ContainerState{}
+	go podInformer.Run(ctx.Done())
 }
 
 func podContainerPhaseStartTime(pod *corev1.Pod, init bool) time.Time {

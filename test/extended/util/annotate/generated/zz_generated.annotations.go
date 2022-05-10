@@ -19,33 +19,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP] test RequestHeaders IdP": "test RequestHeaders IdP [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster [Disabled:Broken] with non-gu workload should run with no regressions with single pod, single container requesting 1 core": "with single pod, single container requesting 1 core",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster [Disabled:Broken] with non-gu workload should run with no regressions with single pod, single container requesting multiple cores": "with single pod, single container requesting multiple cores",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload attached to SRIOV networks should let resource-aligned PODs have working SRIOV network interface": "should let resource-aligned PODs have working SRIOV network interface [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload saturating NUMA nodes should allow a pod requesting as many cores as a full NUMA node have": "should allow a pod requesting as many cores as a full NUMA node have [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload saturating NUMA nodes should guarantee correct allocation with concurrent creation": "should guarantee correct allocation with concurrent creation [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload saturating NUMA nodes should reject pod requesting more cores than a single NUMA node have": "should reject pod requesting more cores than a single NUMA node have [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload should guarantee NUMA-aligned cpu cores in gu pods with multiple pods, each with a single container requesting 1 core, 1 device": "with multiple pods, each with a single container requesting 1 core, 1 device [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload should guarantee NUMA-aligned cpu cores in gu pods with multiple pods, each with a single container requesting 2 core, 1 device": "with multiple pods, each with a single container requesting 2 core, 1 device [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload should guarantee NUMA-aligned cpu cores in gu pods with multiple pods, each with multiple containers requesting 1 core, 1 device": "with multiple pods, each with multiple containers requesting 1 core, 1 device [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload should guarantee NUMA-aligned cpu cores in gu pods with multiple pods, each with multiple containers requesting 1 core, only one requesting 1 device": "with multiple pods, each with multiple containers requesting 1 core, only one requesting 1 device [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload should guarantee NUMA-aligned cpu cores in gu pods with single pod, multiple containers requesting 1 core, 1 device each": "with single pod, multiple containers requesting 1 core, 1 device each [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload should guarantee NUMA-aligned cpu cores in gu pods with single pod, single container requesting 1 core, 1 device": "with single pod, single container requesting 1 core, 1 device [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [Serial][sig-node][Feature:TopologyManager] Configured cluster with gu workload should guarantee NUMA-aligned cpu cores in gu pods with single pod, single container requesting 4 cores, 1 device": "with single pod, single container requesting 4 cores, 1 device [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [sig-api-machinery] API data in etcd should be stored at the correct location and version for all resources [Serial]": "should be stored at the correct location and version for all resources [Serial] [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-api-machinery] API data in etcd should be stored at the correct location and version for all resources [Serial]": "should be stored at the correct location and version for all resources [Serial] [SkippedUntil:05272022:blocker-bz/2081021] [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-api-machinery] API priority and fairness should ensure that requests can be classified by adding FlowSchema and PriorityLevelConfiguration": "should ensure that requests can be classified by adding FlowSchema and PriorityLevelConfiguration [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -733,7 +707,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-auth] ServiceAccounts ServiceAccountIssuerDiscovery should support OIDC discovery of service account issuer [Conformance]": "ServiceAccountIssuerDiscovery should support OIDC discovery of service account issuer [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-auth] ServiceAccounts should allow opting out of API token automount  [Conformance]": "should allow opting out of API token automount  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-auth] ServiceAccounts should allow opting out of API token automount  [Conformance]": "should allow opting out of API token automount  [Conformance] [SkippedUntil:05272022:blocker-bz/2081087] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-auth] ServiceAccounts should ensure a single API token exists": "should ensure a single API token exists [Disabled:Broken] [Suite:k8s]",
 
@@ -1511,8 +1485,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/config.sh": "test/cmd/config.sh",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/create.sh": "test/cmd/create.sh",
-
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/deployments.sh": "test/cmd/deployments.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/describer.sh": "test/cmd/describer.sh",
@@ -1783,6 +1755,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-etcd][Feature:DisasterRecovery][Disruptive] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss": "[Feature:EtcdRecovery] Cluster should restore itself after quorum loss [Serial]",
 
+	"[Top Level] [sig-etcd][Serial] etcd is able to vertically scale up and down with a single node": "is able to vertically scale up and down with a single node [Suite:openshift/conformance/serial]",
+
 	"[Top Level] [sig-imageregistry] Image registry should redirect on blob pull": "should redirect on blob pull [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-imageregistry][Feature:ImageAppend] Image append should create images by appending them": "should create images by appending them [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
@@ -1895,7 +1869,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation] Events API should delete a collection of events [Conformance]": "should delete a collection of events [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-instrumentation] Events API should ensure that an event can be fetched, patched, deleted, and listed [Conformance]": "should ensure that an event can be fetched, patched, deleted, and listed [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-instrumentation] Events API should ensure that an event can be fetched, patched, deleted, and listed [Conformance]": "should ensure that an event can be fetched, patched, deleted, and listed [Conformance] [SkippedUntil:05272022:blocker-bz/2081084] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-instrumentation] Events should delete a collection of events [Conformance]": "should delete a collection of events [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -2501,10 +2475,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] services basic functionality should allow connections to another pod on the same node via a service IP": "should allow connections to another pod on the same node via a service IP [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network] services external ip ensures policy is configured correctly on the cluster [Serial]": "ensures policy is configured correctly on the cluster [Serial] [Suite:openshift/conformance/serial]",
-
-	"[Top Level] [sig-network] services when running openshift cluster on bare metal ensures external auto assign cidr is configured correctly on the cluster [Serial]": "ensures external auto assign cidr is configured correctly on the cluster [Serial] [Suite:openshift/conformance/serial]",
-
 	"[Top Level] [sig-network] services when using OpenshiftSDN in a mode that does not isolate namespaces by default should allow connections to pods in different namespaces on different nodes via service IPs": "should allow connections to pods in different namespaces on different nodes via service IPs [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network] services when using OpenshiftSDN in a mode that does not isolate namespaces by default should allow connections to pods in different namespaces on the same node via service IPs": "should allow connections to pods in different namespaces on the same node via service IPs [Suite:openshift/conformance/parallel]",
@@ -2538,6 +2508,8 @@ var annotations = map[string]string{
 	"[Top Level] [sig-network][Feature:Router] The HAProxy router converges when multiple routers are writing conflicting status": "converges when multiple routers are writing conflicting status [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network][Feature:Router] The HAProxy router converges when multiple routers are writing status": "converges when multiple routers are writing status [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-network][Feature:Router] The HAProxy router reports the expected host names in admitted routes' statuses": "reports the expected host names in admitted routes' statuses [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network][Feature:Router] The HAProxy router should enable openshift-monitoring to pull metrics": "should enable openshift-monitoring to pull metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
@@ -2688,6 +2660,8 @@ var annotations = map[string]string{
 	"[Top Level] [sig-node] KubeletManagedEtcHosts should test kubelet managed /etc/hosts file [LinuxOnly] [NodeConformance] [Conformance]": "should test kubelet managed /etc/hosts file [LinuxOnly] [NodeConformance] [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-node] Lease lease API should be available [Conformance]": "lease API should be available [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+
+	"[Top Level] [sig-node] Managed cluster record the number of nodes at the beginning of the tests [Early]": "record the number of nodes at the beginning of the tests [Early] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-node] Managed cluster should report ready nodes the entire duration of the test run [Late]": "should report ready nodes the entire duration of the test run [Late] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 

@@ -22,6 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/conditions"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -83,10 +84,21 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		username, password = string(statsSecret.Data["statsUsername"]), string(statsSecret.Data["statsPassword"])
 
-		// Extract a bearer token from Prometheus authorized to access
-		// the router metrics URL.
-		bearerToken, err = findMetricsBearerToken(oc)
+		token, err := oc.AdminKubeClient().
+			CoreV1().
+			ServiceAccounts("openshift-monitoring").
+			CreateToken(
+				context.TODO(),
+				"prometheus-k8s",
+				&authenticationv1.TokenRequest{
+					Spec: authenticationv1.TokenRequestSpec{
+						Audiences: []string{"https://kubernetes.default.svc"},
+					},
+				},
+				metav1.CreateOptions{},
+			)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		bearerToken = token.Status.Token
 
 		ns = oc.KubeFramework().Namespace.Name
 	})
@@ -445,34 +457,6 @@ func getBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error
 		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
 	}
 	return output, nil
-}
-
-func findMetricsBearerToken(oc *exutil.CLI) (string, error) {
-	sa, err := oc.AdminKubeClient().CoreV1().ServiceAccounts("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-
-	var secretName string
-	for _, secret := range sa.Secrets {
-		if strings.Contains(secret.Name, "prometheus-k8s-token") {
-			secretName = secret.Name
-			break
-		}
-	}
-	if len(secretName) == 0 {
-		return "", fmt.Errorf("serviceaccount 'openshift-monitoring/prometheus-k8s' does not contain 'prometheus-k8s-token' secret")
-	}
-
-	secret, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-monitoring").Get(context.Background(), secretName, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-	token, ok := secret.Data["token"]
-	if !ok {
-		return "", fmt.Errorf("secret 'openshift-monitoring/%s' does not contain bearer token", secretName)
-	}
-	return string(token), nil
 }
 
 func waitForAdmittedRoute(maxInterval time.Duration, client routev1client.RouteV1Interface, ns, name, ingressName string, errorOnRejection bool) (string, error) {

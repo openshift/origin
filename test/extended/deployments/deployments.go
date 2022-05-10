@@ -11,6 +11,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -481,9 +482,9 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(waitForLatestCondition(oc, dcName, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
 			g.By("verifying the deployer service account can update imagestreamtags and user can get them")
-			err = exutil.WaitForUserBeAuthorized(oc, oc.Username(), "get", "imagestreamtags")
+			err = exutil.WaitForUserBeAuthorized(oc, oc.Username(), &authorizationv1.ResourceAttributes{Namespace: oc.Namespace(), Verb: "get", Resource: "imagestreamtags"})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = exutil.WaitForUserBeAuthorized(oc, "system:serviceaccount:"+oc.Namespace()+":deployer", "update", "imagestreamtags")
+			err = exutil.WaitForUserBeAuthorized(oc, "system:serviceaccount:"+oc.Namespace()+":deployer", &authorizationv1.ResourceAttributes{Namespace: oc.Namespace(), Verb: "update", Resource: "imagestreamtags"})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying the post deployment action happened: tag is set")

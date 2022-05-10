@@ -15,6 +15,7 @@ func CreatePodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 	sort.Stable(ByPodLifecycle(input))
 	// these *static* locators to events. These are NOT the same as the actual event locators because nodes are not consistently assigned.
 	podToStateTransitions := map[string][]monitorapi.EventInterval{}
+	allPodTransitions := map[string][]monitorapi.EventInterval{}
 	podToContainerToLifecycleTransitions := map[string][]monitorapi.EventInterval{}
 	podToContainerToReadinessTransitions := map[string][]monitorapi.EventInterval{}
 
@@ -24,6 +25,7 @@ func CreatePodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 		if len(pod.Name) == 0 {
 			continue
 		}
+		allPodTransitions[pod.ToLocator()] = append(allPodTransitions[pod.ToLocator()], event)
 		isRecognizedPodReason := monitorapi.PodLifecycleTransitionReasons.Has(monitorapi.ReasonFrom(event.Message))
 
 		container := monitorapi.ContainerFrom(event.Locator)
@@ -48,6 +50,7 @@ func CreatePodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 	podTimeBounder := podLifecycleTimeBounder{
 		delegate:              overallTimeBounder,
 		podToStateTransitions: podToStateTransitions,
+		allPodTransitions:     allPodTransitions,
 		recordedPods:          recordedResources["pods"],
 	}
 	containerTimeBounder := containerLifecycleTimeBounder{
@@ -100,22 +103,37 @@ func (t simpleTimeBounder) getEndTime(locator string) time.Time {
 type podLifecycleTimeBounder struct {
 	delegate              timeBounder
 	podToStateTransitions map[string][]monitorapi.EventInterval
+	allPodTransitions     map[string][]monitorapi.EventInterval
 	recordedPods          monitorapi.InstanceMap
 }
 
 func (t podLifecycleTimeBounder) getStartTime(inLocator string) time.Time {
-	if objCreate := t.getPodCreationTime(inLocator); objCreate != nil {
-		return *objCreate
+	podCreationTime := t.getPodCreationTime(inLocator)
+
+	// use the earliest known event as a creation time, since it clearly existed at that point in time.
+	var podCreateEventTime *time.Time
+	locator := monitorapi.PodFrom(inLocator).ToLocator()
+	podEvents := t.allPodTransitions[locator]
+	for _, event := range podEvents {
+		podCreateEventTime = &event.From
+		break
 	}
 
-	locator := monitorapi.PodFrom(inLocator).ToLocator()
-	podEvents, ok := t.podToStateTransitions[locator]
-	if !ok {
+	switch {
+	case podCreationTime == nil && podCreateEventTime == nil:
 		return t.delegate.getStartTime(locator)
-	}
-	for _, event := range podEvents {
-		if monitorapi.ReasonFrom(event.Message) == monitorapi.PodReasonCreated {
-			return event.From
+
+	case podCreationTime != nil && podCreateEventTime == nil:
+		return *podCreationTime
+
+	case podCreationTime == nil && podCreateEventTime != nil:
+		return *podCreateEventTime
+
+	case podCreationTime != nil && podCreateEventTime != nil:
+		if podCreationTime.Before(*podCreateEventTime) {
+			return *podCreationTime
+		} else {
+			return *podCreateEventTime
 		}
 	}
 
@@ -133,7 +151,11 @@ func (t podLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
 		return *runOnceContainerTermination
 	}
 
-	// for other pod types, use the deletion time.
+	// for other pod types, use the deletion time if we have it
+	if objDelete := t.getPodDeletionTime(inLocator); objDelete != nil {
+		return *objDelete
+	}
+
 	podEvents, ok := t.podToStateTransitions[locator]
 	if !ok {
 		return t.delegate.getEndTime(locator)
@@ -163,7 +185,40 @@ func (t podLifecycleTimeBounder) getPodCreationTime(inLocator string) *time.Time
 	if pod.CreationTimestamp.Time.IsZero() {
 		return nil
 	}
+
+	// static pods can have a creation time that is actually after their first observed time.  In a weird quirk of the API,
+	// it's possible to see the first appearance using annotations[kubernetes.io/config.seen].  This may be coincidence,
+	// but it's handy for now to make a slightly more useful graph
+	if staticPodSeen, ok := pod.Annotations["kubernetes.io/config.seen"]; ok {
+		staticPodSeenTime, err := time.Parse(time.RFC3339Nano, staticPodSeen)
+		if err != nil {
+			panic(err)
+		}
+		return &staticPodSeenTime
+	}
+
 	temp := pod.CreationTimestamp
+	return &temp.Time
+}
+
+func (t podLifecycleTimeBounder) getPodDeletionTime(inLocator string) *time.Time {
+	podCoordinates := monitorapi.PodFrom(inLocator)
+
+	// no hit for deleted, but if it's a RunOnce pod with all terminated containers, the logical "this pod is over"
+	// happens when the last container is terminated.
+	recordedPodObj, ok := t.recordedPods[podCoordinates.Namespace+"/"+podCoordinates.Name]
+	if !ok {
+		return nil
+	}
+	pod, ok := recordedPodObj.(*corev1.Pod)
+	if !ok {
+		return nil
+	}
+	if pod.DeletionTimestamp == nil {
+		return nil
+	}
+
+	temp := pod.DeletionTimestamp
 	return &temp.Time
 }
 
@@ -403,13 +458,13 @@ func buildTransitionsForCategory(locatorToConditions map[string][]monitorapi.Eve
 }
 
 func sanitizeTime(nextInterval monitorapi.EventInterval, startTime, endTime time.Time) monitorapi.EventInterval {
-	if nextInterval.To.After(endTime) {
+	if !endTime.IsZero() && nextInterval.To.After(endTime) {
 		nextInterval.To = endTime
 	}
 	if nextInterval.From.Before(startTime) {
 		nextInterval.From = startTime
 	}
-	if nextInterval.To.Before(nextInterval.From) {
+	if !nextInterval.To.IsZero() && nextInterval.To.Before(nextInterval.From) {
 		nextInterval.From = nextInterval.To
 	}
 	return nextInterval

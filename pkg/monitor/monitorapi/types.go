@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -180,6 +182,44 @@ func IsInfoEvent(eventInterval EventInterval) bool {
 	return eventInterval.Level == Info
 }
 
+// IsInE2ENamespace returns true if the eventInterval is in an e2e namespace
+func IsInE2ENamespace(eventInterval EventInterval) bool {
+	if strings.Contains(eventInterval.Locator, "ns/e2e-") {
+		return true
+	}
+	return false
+}
+
+func IsInNamespaces(namespaces sets.String) EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		ns := NamespaceFromLocator(eventInterval.Locator)
+		return namespaces.Has(ns)
+	}
+}
+
+// ContainsAllParts ensures that all listed key match at least one of the values.
+func ContainsAllParts(matchers map[string][]string) EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		actualParts := LocatorParts(eventInterval.Locator)
+		for key, possibleValues := range matchers {
+			actualValue := actualParts[key]
+
+			found := false
+			for _, possibleValue := range possibleValues {
+				if actualValue == possibleValue {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return false
+			}
+		}
+
+		return true
+	}
+}
+
 func And(filters ...EventIntervalMatchesFunc) EventIntervalMatchesFunc {
 	return func(eventInterval EventInterval) bool {
 		for _, filter := range filters {
@@ -199,6 +239,12 @@ func Or(filters ...EventIntervalMatchesFunc) EventIntervalMatchesFunc {
 			}
 		}
 		return false
+	}
+}
+
+func Not(filter EventIntervalMatchesFunc) EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		return !filter(eventInterval)
 	}
 }
 

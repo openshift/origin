@@ -124,7 +124,7 @@ const (
 )
 
 // PlatformType is a specific supported infrastructure provider.
-// +kubebuilder:validation:Enum="";AWS;Azure;BareMetal;GCP;Libvirt;OpenStack;None;VSphere;oVirt;IBMCloud;KubeVirt;EquinixMetal;PowerVS;AlibabaCloud
+// +kubebuilder:validation:Enum="";AWS;Azure;BareMetal;GCP;Libvirt;OpenStack;None;VSphere;oVirt;IBMCloud;KubeVirt;EquinixMetal;PowerVS;AlibabaCloud;Nutanix
 type PlatformType string
 
 const (
@@ -169,6 +169,9 @@ const (
 
 	// AlibabaCloudPlatformType represents Alibaba Cloud infrastructure.
 	AlibabaCloudPlatformType PlatformType = "AlibabaCloud"
+
+	// NutanixPlatformType represents Nutanix infrastructure.
+	NutanixPlatformType PlatformType = "Nutanix"
 )
 
 // IBMCloudProviderType is a specific supported IBM Cloud provider cluster type
@@ -196,7 +199,7 @@ type PlatformSpec struct {
 	// other integrations are enabled. If None, no infrastructure automation is
 	// enabled. Allowed values are "AWS", "Azure", "BareMetal", "GCP", "Libvirt",
 	// "OpenStack", "VSphere", "oVirt", "KubeVirt", "EquinixMetal", "PowerVS",
-	// "AlibabaCloud" and "None". Individual components may not support all platforms,
+	// "AlibabaCloud", "Nutanix" and "None". Individual components may not support all platforms,
 	// and must handle unrecognized platforms as None if they do not support that platform.
 	//
 	// +unionDiscriminator
@@ -249,6 +252,10 @@ type PlatformSpec struct {
 	// AlibabaCloud contains settings specific to the Alibaba Cloud infrastructure provider.
 	// +optional
 	AlibabaCloud *AlibabaCloudPlatformSpec `json:"alibabaCloud,omitempty"`
+
+	// Nutanix contains settings specific to the Nutanix infrastructure provider.
+	// +optional
+	Nutanix *NutanixPlatformSpec `json:"nutanix,omitempty"`
 }
 
 // PlatformStatus holds the current status specific to the underlying infrastructure provider
@@ -260,7 +267,7 @@ type PlatformStatus struct {
 	// balancers, dynamic volume provisioning, machine creation and deletion, and
 	// other integrations are enabled. If None, no infrastructure automation is
 	// enabled. Allowed values are "AWS", "Azure", "BareMetal", "GCP", "Libvirt",
-	// "OpenStack", "VSphere", "oVirt", "EquinixMetal", "PowerVS", "AlibabaCloud" and "None".
+	// "OpenStack", "VSphere", "oVirt", "EquinixMetal", "PowerVS", "AlibabaCloud", "Nutanix" and "None".
 	// Individual components may not support all platforms, and must handle
 	// unrecognized platforms as None if they do not support that platform.
 	//
@@ -315,6 +322,10 @@ type PlatformStatus struct {
 	// AlibabaCloud contains settings specific to the Alibaba Cloud infrastructure provider.
 	// +optional
 	AlibabaCloud *AlibabaCloudPlatformStatus `json:"alibabaCloud,omitempty"`
+
+	// Nutanix contains settings specific to the Nutanix infrastructure provider.
+	// +optional
+	Nutanix *NutanixPlatformStatus `json:"nutanix,omitempty"`
 }
 
 // AWSServiceEndpoint store the configuration of a custom url to
@@ -690,6 +701,23 @@ type AlibabaCloudResourceTag struct {
 	// +kubebuilder:validation:MaxLength=128
 	// +required
 	Value string `json:"value"`
+}
+
+// NutanixPlatformSpec holds the desired state of the Nutanix infrastructure provider.
+// This only includes fields that can be modified in the cluster.
+type NutanixPlatformSpec struct{}
+
+// NutanixPlatformStatus holds the current status of the Nutanix infrastructure provider.
+type NutanixPlatformStatus struct {
+	// apiServerInternalIP is an IP address to contact the Kubernetes API server that can be used
+	// by components inside the cluster, like kubelets using the infrastructure rather
+	// than Kubernetes networking. It is the IP that the Infrastructure.status.apiServerInternalURI
+	// points to. It is the IP for a self-hosted load balancer in front of the API servers.
+	APIServerInternalIP string `json:"apiServerInternalIP,omitempty"`
+
+	// ingressIP is an external IP which routes to the default ingress controller.
+	// The IP is a suitable target of a wildcard DNS record used to resolve default route host names.
+	IngressIP string `json:"ingressIP,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

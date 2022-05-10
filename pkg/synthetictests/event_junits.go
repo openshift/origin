@@ -32,13 +32,14 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testErrImagePullConnTimeout(events)...)
 	tests = append(tests, testErrImagePullGenericOpenShiftNamespaces(events)...)
 	tests = append(tests, testErrImagePullGeneric(events)...)
-	tests = append(tests, testAlerts(events, kubeClientConfig)...)
+	tests = append(tests, testAlerts(events, kubeClientConfig, duration)...)
 	tests = append(tests, testOperatorOSUpdateStaged(events, kubeClientConfig)...)
 	tests = append(tests, testOperatorOSUpdateStartedEventRecorded(events, kubeClientConfig)...)
 	tests = append(tests, testPodNodeNameIsImmutable(events)...)
 	tests = append(tests, testBackoffPullingRegistryRedhatImage(events)...)
 	tests = append(tests, testRequiredInstallerResourcesMissing(events)...)
 	tests = append(tests, testBackoffStartingFailedContainer(events)...)
+	tests = append(tests, testBackoffStartingFailedContainerForE2ENamespaces(events)...)
 	tests = append(tests, testAPIQuotaEvents(events)...)
 
 	return tests
@@ -64,13 +65,14 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testErrImagePullConnTimeout(events)...)
 	tests = append(tests, testErrImagePullGenericOpenShiftNamespaces(events)...)
 	tests = append(tests, testErrImagePullGeneric(events)...)
-	tests = append(tests, testAlerts(events, kubeClientConfig)...)
+	tests = append(tests, testAlerts(events, kubeClientConfig, duration)...)
 	tests = append(tests, testOperatorOSUpdateStaged(events, kubeClientConfig)...)
 	tests = append(tests, testOperatorOSUpdateStartedEventRecorded(events, kubeClientConfig)...)
 	tests = append(tests, testPodNodeNameIsImmutable(events)...)
 	tests = append(tests, testBackoffPullingRegistryRedhatImage(events)...)
 	tests = append(tests, testRequiredInstallerResourcesMissing(events)...)
 	tests = append(tests, testBackoffStartingFailedContainer(events)...)
+	tests = append(tests, testBackoffStartingFailedContainerForE2ENamespaces(events)...)
 	tests = append(tests, testAPIQuotaEvents(events)...)
 
 	return tests
@@ -81,5 +83,6 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 // machine, even if the machine crashes.
 func SystemEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config, testSuite string) (tests []*junitapi.JUnitTestCase) {
 	tests = append(tests, testSystemDTimeout(events)...)
+	tests = append(tests, testPodIPReuse(events)...)
 	return tests
 }

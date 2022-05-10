@@ -13,6 +13,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/monitor_cmd"
+
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+
 	"github.com/onsi/ginkgo"
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/serviceability"
@@ -71,6 +75,11 @@ func main() {
 		newRunTestCommand(),
 		newRunMonitorCommand(),
 		cmd.NewRunResourceWatchCommand(),
+		monitor_cmd.NewTimelineCommand(genericclioptions.IOStreams{
+			In:     os.Stdin,
+			Out:    os.Stdout,
+			ErrOut: os.Stderr,
+		}),
 	)
 
 	f := flag.CommandLine.Lookup("v")

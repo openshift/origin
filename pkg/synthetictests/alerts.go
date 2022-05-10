@@ -2,6 +2,7 @@ package synthetictests
 
 import (
 	"context"
+	"time"
 
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
@@ -11,10 +12,10 @@ import (
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 )
 
-func testAlerts(events monitorapi.Intervals, restConfig *rest.Config) []*junitapi.JUnitTestCase {
+func testAlerts(events monitorapi.Intervals, restConfig *rest.Config, duration time.Duration) []*junitapi.JUnitTestCase {
 	ret := []*junitapi.JUnitTestCase{}
 
-	alertTests := allowedalerts.AllAlertTests(context.TODO(), restConfig)
+	alertTests := allowedalerts.AllAlertTests(context.TODO(), restConfig, duration)
 	for i := range alertTests {
 		alertTest := alertTests[i]
 

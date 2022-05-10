@@ -12,8 +12,8 @@ import (
 // ConsoleQuickStart is an extension for guiding user through various
 // workflows in the OpenShift web console.
 //
-// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
-// +openshift:compatibility-gen:level=1
+// Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=2
 type ConsoleQuickStart struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -127,8 +127,8 @@ type ConsoleQuickStartTaskSummary struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
-// +openshift:compatibility-gen:level=1
+// Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=2
 type ConsoleQuickStartList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`

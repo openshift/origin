@@ -198,7 +198,6 @@
 // test/extended/testdata/cmd/test/cmd/builds.sh
 // test/extended/testdata/cmd/test/cmd/completions.sh
 // test/extended/testdata/cmd/test/cmd/config.sh
-// test/extended/testdata/cmd/test/cmd/create.sh
 // test/extended/testdata/cmd/test/cmd/deployments.sh
 // test/extended/testdata/cmd/test/cmd/describer.sh
 // test/extended/testdata/cmd/test/cmd/edit.sh
@@ -29595,43 +29594,6 @@ func testExtendedTestdataCmdTestCmdConfigSh() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdCreateSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-# Cleanup cluster resources created by this test
-(
-  set +e
-  oc delete all,templates --all
-  exit 0
-) &>/dev/null
-
-
-os::test::junit::declare_suite_start "cmd/create"
-# validate --dry-run outputs correct success message
-os::cmd::expect_success_and_text 'oc create quota quota --dry-run' 'resourcequota/quota created \(dry run\)'
-# validate -- works in create
-os::cmd::expect_success_and_text 'oc create deploymentconfig sleep --image=busybox -- /bin/sleep infinity' 'deploymentconfig.apps.openshift.io/sleep created'
-
-echo "oc create: ok"
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdCreateShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdCreateSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdCreateSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdCreateShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/create.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdDeploymentsSh = []byte(`#!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
@@ -32101,10 +32063,12 @@ os::test::junit::declare_suite_start "cmd/quota/clusterquota"
 # This tests creating a clusterresourcequota against an existing namespace with a known number of resources
 os::cmd::expect_success 'oc new-project quota-foo --as=deads --as-group=system:authenticated --as-group=system:authenticated:oauth'
 os::cmd::expect_success 'oc label namespace/quota-foo owner=deads'
-os::cmd::try_until_text 'oc get secrets -o name -n quota-foo | wc -l' '9'
+# before k8s 1.24 this will return 9, starting from 1.24 it'll return 6
+os::cmd::try_until_text 'oc get secrets -o name -n quota-foo | wc -l' '6|9'
 os::cmd::expect_success 'oc create clusterquota for-deads --project-label-selector=owner=deads --hard=secrets=10'
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n quota-foo --as deads -o name' "for-deads"
-os::cmd::try_until_text 'oc get secrets --all-namespaces; oc get appliedclusterresourcequota/for-deads -n quota-foo --as deads -o jsonpath=used={.status.total.used.secrets}' "used=9"
+# before k8s 1.24 this will return 9, starting from 1.24 it'll return 6
+os::cmd::try_until_text 'oc get secrets --all-namespaces; oc get appliedclusterresourcequota/for-deads -n quota-foo --as deads -o jsonpath=used={.status.total.used.secrets}' "used=6|used=9"
 
 os::cmd::expect_failure_and_text 'oc create clusterquota for-deads-malformed --project-annotation-selector="openshift.#$%/requester=deads"' "prefix part a (DNS-1123|lowercase RFC 1123) subdomain must consist of lower case alphanumeric characters"
 os::cmd::expect_failure_and_text 'oc create clusterquota for-deads-malformed --project-annotation-selector=openshift.io/requester=deads,openshift.io/novalue' "Malformed annotation selector"
@@ -32480,12 +32444,6 @@ os::cmd::expect_success 'oc secret link --help'
 os::cmd::expect_success 'oc secret unlink --help'
 
 echo "secrets: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/serviceaccounts-create-kubeconfig"
-os::cmd::expect_success "oc serviceaccounts create-kubeconfig default > '${BASETMPDIR}/generated_default.kubeconfig'"
-os::cmd::expect_success_and_text "KUBECONFIG='${BASETMPDIR}/generated_default.kubeconfig' oc whoami" "system:serviceaccount:$(oc project -q):default"
-echo "serviceaccounts: ok"
 os::test::junit::declare_suite_end
 `)
 
@@ -49116,6 +49074,8 @@ objects:
         initialDelaySeconds: 10
         periodSeconds: 30
         successThreshold: 1
+      securityContext:
+        allowPrivilegeEscalation: true
       volumeMounts:
       - mountPath: /etc/serving-cert
         name: cert
@@ -53190,7 +53150,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/builds.sh":                                                          testExtendedTestdataCmdTestCmdBuildsSh,
 	"test/extended/testdata/cmd/test/cmd/completions.sh":                                                     testExtendedTestdataCmdTestCmdCompletionsSh,
 	"test/extended/testdata/cmd/test/cmd/config.sh":                                                          testExtendedTestdataCmdTestCmdConfigSh,
-	"test/extended/testdata/cmd/test/cmd/create.sh":                                                          testExtendedTestdataCmdTestCmdCreateSh,
 	"test/extended/testdata/cmd/test/cmd/deployments.sh":                                                     testExtendedTestdataCmdTestCmdDeploymentsSh,
 	"test/extended/testdata/cmd/test/cmd/describer.sh":                                                       testExtendedTestdataCmdTestCmdDescriberSh,
 	"test/extended/testdata/cmd/test/cmd/edit.sh":                                                            testExtendedTestdataCmdTestCmdEditSh,
@@ -53841,7 +53800,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							"builds.sh":             {testExtendedTestdataCmdTestCmdBuildsSh, map[string]*bintree{}},
 							"completions.sh":        {testExtendedTestdataCmdTestCmdCompletionsSh, map[string]*bintree{}},
 							"config.sh":             {testExtendedTestdataCmdTestCmdConfigSh, map[string]*bintree{}},
-							"create.sh":             {testExtendedTestdataCmdTestCmdCreateSh, map[string]*bintree{}},
 							"deployments.sh":        {testExtendedTestdataCmdTestCmdDeploymentsSh, map[string]*bintree{}},
 							"describer.sh":          {testExtendedTestdataCmdTestCmdDescriberSh, map[string]*bintree{}},
 							"edit.sh":               {testExtendedTestdataCmdTestCmdEditSh, map[string]*bintree{}},

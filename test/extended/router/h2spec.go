@@ -12,14 +12,17 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
-	"github.com/openshift/origin/test/extended/router/h2spec"
-	"github.com/openshift/origin/test/extended/router/shard"
-	exutil "github.com/openshift/origin/test/extended/util"
+	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+
+	securityv1 "github.com/openshift/api/security/v1"
+	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
+	"github.com/openshift/origin/test/extended/router/h2spec"
+	"github.com/openshift/origin/test/extended/router/shard"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const h2specDialTimeoutInSeconds = 30
@@ -82,6 +85,19 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 
 			g.By("Locating the canary image reference")
 			canaryImage, err := getCanaryImage(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = oc.AsAdmin().Run("adm", "policy", "add-scc-to-user").Args("restricted", "-n", oc.Namespace(), "-z", "default").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to provide the default namespace SA with access to the restricted SCC")
+
+			err = exutil.WaitForUserBeAuthorized(oc, "system:serviceaccount:"+oc.Namespace()+":default",
+				&authorizationv1.ResourceAttributes{
+					Namespace: oc.Namespace(),
+					Verb:      "use",
+					Group:     securityv1.GroupName,
+					Resource:  "securitycontextconstraints",
+					Name:      "restricted"},
+			)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Creating h2spec test service")

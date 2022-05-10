@@ -8,17 +8,16 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-
 	v1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 const (
@@ -243,7 +242,7 @@ func testDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 	return tests
 }
 
-func testDuplicatedEventForStableSystem(events monitorapi.Intervals, kubeClientConfig *rest.Config, testSuite string) []*junitapi.JUnitTestCase {
+func testDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfig *rest.Config, testSuite string) []*junitapi.JUnitTestCase {
 	evaluator := duplicateEventsEvaluator{
 		allowedRepeatedEventPatterns: allowedRepeatedEventPatterns,
 		allowedRepeatedEventFns:      allowedRepeatedEventFns,
@@ -251,20 +250,30 @@ func testDuplicatedEventForStableSystem(events monitorapi.Intervals, kubeClientC
 		testSuite:                    testSuite,
 	}
 
-	if err := evaluator.getClusterInfo(kubeClientConfig); err != nil {
+	operatorClient, err := operatorv1client.NewForConfig(clientConfig)
+	if err != nil {
+		panic(err)
+	}
+	etcdAllowance, err := newDuplicatedEventsAllowedWhenEtcdRevisionChange(context.TODO(), operatorClient)
+	if err != nil {
+		panic(fmt.Errorf("unable to construct duplicated events allowance for etcd, err = %v", err))
+	}
+	evaluator.allowedRepeatedEventFns = append(evaluator.allowedRepeatedEventFns, etcdAllowance.allowEtcdGuardReadinessProbeFailure)
+
+	if err := evaluator.getClusterInfo(clientConfig); err != nil {
 		e2e.Logf("could not fetch cluster info: %w", err)
 	}
 
 	tests := []*junitapi.JUnitTestCase{}
-	tests = append(tests, evaluator.testDuplicatedCoreNamespaceEvents(events, kubeClientConfig)...)
-	tests = append(tests, evaluator.testDuplicatedE2ENamespaceEvents(events, kubeClientConfig)...)
+	tests = append(tests, evaluator.testDuplicatedCoreNamespaceEvents(events, clientConfig)...)
+	tests = append(tests, evaluator.testDuplicatedE2ENamespaceEvents(events, clientConfig)...)
 	return tests
 }
 
 // isRepeatedEventOKFunc takes a monitorEvent as input and returns true if the repeated event is OK.
 // This commonly happens for known bugs and for cases where events are repeated intentionally by tests.
 // Use this to handle cases where, "if X is true, then the repeated event is ok".
-type isRepeatedEventOKFunc func(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config) (bool, error)
+type isRepeatedEventOKFunc func(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config, times int) (bool, error)
 
 // we want to identify events based on the monitor because it is (currently) our only spot that tracks events over time
 // for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] test
@@ -273,15 +282,7 @@ type isRepeatedEventOKFunc func(monitorEvent monitorapi.EventInterval, kubeClien
 func (d duplicateEventsEvaluator) testDuplicatedCoreNamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[sig-arch] events should not repeat pathologically"
 
-	interestingEvents := monitorapi.Intervals{}
-	for i := range events {
-		event := events[i]
-		if !strings.Contains(event.Locator, "ns/e2e-") {
-			interestingEvents = append(interestingEvents, event)
-		}
-	}
-
-	return d.testDuplicatedEvents(testName, false, interestingEvents, kubeClientConfig)
+	return d.testDuplicatedEvents(testName, false, events.Filter(monitorapi.Not(monitorapi.IsInE2ENamespace)), kubeClientConfig)
 }
 
 // we want to identify events based on the monitor because it is (currently) our only spot that tracks events over time
@@ -291,15 +292,7 @@ func (d duplicateEventsEvaluator) testDuplicatedCoreNamespaceEvents(events monit
 func (d duplicateEventsEvaluator) testDuplicatedE2ENamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[sig-arch] events should not repeat pathologically in e2e namespaces"
 
-	interestingEvents := monitorapi.Intervals{}
-	for i := range events {
-		event := events[i]
-		if strings.Contains(event.Locator, "ns/e2e-") {
-			interestingEvents = append(interestingEvents, event)
-		}
-	}
-
-	return d.testDuplicatedEvents(testName, true, interestingEvents, kubeClientConfig)
+	return d.testDuplicatedEvents(testName, true, events.Filter(monitorapi.IsInE2ENamespace), kubeClientConfig)
 }
 
 // we want to identify events based on the monitor because it is (currently) our only spot that tracks events over time
@@ -319,7 +312,8 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 			}
 			allowed := false
 			for _, allowRepeatedEventFn := range d.allowedRepeatedEventFns {
-				allowed, err := allowRepeatedEventFn(event, kubeClientConfig)
+				var err error
+				allowed, err = allowRepeatedEventFn(event, kubeClientConfig, times)
 				if err != nil {
 					failures = append(failures, fmt.Sprintf("error: [%v] when processing event %v", err, eventDisplayMessage))
 					allowed = false
@@ -505,7 +499,7 @@ func isEventDuringInstallation(monitorEvent monitorapi.EventInterval, kubeClient
 // we're looking for something like
 // > ns/openshift-console pod/console-7c6f797fd9-5m94j node/ip-10-0-158-106.us-west-2.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.129.0.49:8443/health": dial tcp 10.129.0.49:8443: connect: connection refused
 // with a firstTimestamp before the cluster completed the initial installation
-func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config) (bool, error) {
+func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config, _ int) (bool, error) {
 	if !strings.Contains(monitorEvent.Locator, "ns/openshift-console") {
 		return false, nil
 	}
@@ -560,4 +554,51 @@ func platformPointer(platform v1.PlatformType) *v1.PlatformType {
 
 func stringPointer(testSuite string) *string {
 	return &testSuite
+}
+
+type etcdRevisionChangeAllowance struct {
+	allowedGuardProbeFailurePattern        *regexp.Regexp
+	maxAllowedGuardProbeFailurePerRevision int
+
+	currentRevision int
+}
+
+func newDuplicatedEventsAllowedWhenEtcdRevisionChange(ctx context.Context, operatorClient operatorv1client.OperatorV1Interface) (*etcdRevisionChangeAllowance, error) {
+	currentRevision, err := getBiggestRevisionForEtcdOperator(ctx, operatorClient)
+	if err != nil {
+		return nil, err
+	}
+	return &etcdRevisionChangeAllowance{
+		allowedGuardProbeFailurePattern:        regexp.MustCompile(`ns/openshift-etcd pod/etcd-guard-ip-.* node/[a-z0-9.-]+ - reason/(Unhealthy|ProbeError) Readiness probe.*`),
+		maxAllowedGuardProbeFailurePerRevision: 60 / 5, // 60s for starting a new pod, divided by the probe interval
+		currentRevision:                        currentRevision,
+	}, nil
+}
+
+// allowEtcdGuardReadinessProbeFailure tolerates events that match allowedGuardProbeFailurePattern unless we receive more than a.maxAllowedGuardProbeFailurePerRevision*a.currentRevision
+func (a *etcdRevisionChangeAllowance) allowEtcdGuardReadinessProbeFailure(monitorEvent monitorapi.EventInterval, _ *rest.Config, times int) (bool, error) {
+	eventMessage := fmt.Sprintf("%s - %s", monitorEvent.Locator, monitorEvent.Message)
+
+	// allow for a.maxAllowedGuardProbeFailurePerRevision * a.currentRevision failed readiness probe from the etcd-guard pods
+	// since the guards are static and the etcd pods come and go during a rollout
+	// which causes allowedGuardProbeFailurePattern to fire
+	if a.allowedGuardProbeFailurePattern.MatchString(eventMessage) && a.maxAllowedGuardProbeFailurePerRevision*a.currentRevision > times {
+		return true, nil
+	}
+	return false, nil
+}
+
+// getBiggestRevisionForEtcdOperator calculates the biggest revision among replicas of the most recently successful deployment
+func getBiggestRevisionForEtcdOperator(ctx context.Context, operatorClient operatorv1client.OperatorV1Interface) (int, error) {
+	etcd, err := operatorClient.Etcds().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return 0, err
+	}
+	biggestRevision := 0
+	for _, nodeStatus := range etcd.Status.NodeStatuses {
+		if int(nodeStatus.CurrentRevision) > biggestRevision {
+			biggestRevision = int(nodeStatus.CurrentRevision)
+		}
+	}
+	return biggestRevision, nil
 }

@@ -79,6 +79,11 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 		err = oc.Run("delete").Args("dc/test", "pod/test2", "job/test3").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		// validate dry-run creation of resourcequota
+		out, err := oc.Run("create").Args("quota", "quota", "--dry-run").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("resourcequota/quota created (dry run)"))
+
 		// need admin here
 		ocAdmin := oc.AsAdmin()
 		err = ocAdmin.Run("create").Args("clusterquota", "limit-bob", "--project-label-selector=openshift.io/requestor=user-bob", "--hard=pods=10").Execute()

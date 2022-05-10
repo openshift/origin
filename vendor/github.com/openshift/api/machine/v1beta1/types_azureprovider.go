@@ -34,6 +34,9 @@ type AzureMachineProviderSpec struct {
 	Image Image `json:"image"`
 	// OSDisk represents the parameters for creating the OS disk.
 	OSDisk OSDisk `json:"osDisk"`
+	// DataDisk specifies the parameters that are used to add one or more data disks to the machine.
+	// +optional
+	DataDisks []DataDisk `json:"dataDisks,omitempty"`
 	// SSHPublicKey is the public key to use to SSH to the virtual machine.
 	// +optional
 	SSHPublicKey string `json:"sshPublicKey,omitempty"`
@@ -83,6 +86,28 @@ type AzureMachineProviderSpec struct {
 	// SecurityProfile specifies the Security profile settings for a virtual machine.
 	// +optional
 	SecurityProfile *SecurityProfile `json:"securityProfile,omitempty"`
+	// UltraSSDCapability enables or disables Azure UltraSSD capability for a virtual machine.
+	// This can be used to allow/disallow binding of Azure UltraSSD to the Machine both as Data Disks or via Persistent Volumes.
+	// This Azure feature is subject to a specific scope and certain limitations.
+	// More informations on this can be found in the official Azure documentation for Ultra Disks:
+	// (https://docs.microsoft.com/en-us/azure/virtual-machines/disks-enable-ultra-ssd?tabs=azure-portal#ga-scope-and-limitations).
+	//
+	// When omitted, if at least one Data Disk of type UltraSSD is specified, the platform will automatically enable the capability.
+	// If a Perisistent Volume backed by an UltraSSD is bound to a Pod on the Machine, when this field is ommitted, the platform will *not* automatically enable the capability (unless already enabled by the presence of an UltraSSD as Data Disk).
+	// This may manifest in the Pod being stuck in `ContainerCreating` phase.
+	// This defaulting behaviour may be subject to change in future.
+	//
+	// When set to "Enabled", if the capability is available for the Machine based on the scope and limitations described above, the capability will be set on the Machine.
+	// This will thus allow UltraSSD both as Data Disks and Persistent Volumes.
+	// If set to "Enabled" when the capability can't be available due to scope and limitations, the Machine will go into "Failed" state.
+	//
+	// When set to "Disabled", UltraSSDs will not be allowed either as Data Disks nor as Persistent Volumes.
+	// In this case if any UltraSSDs are specified as Data Disks on a Machine, the Machine will go into a "Failed" state.
+	// If instead any UltraSSDs are backing the volumes (via Persistent Volumes) of any Pods scheduled on a Node which is backed by the Machine, the Pod may get stuck in `ContainerCreating` phase.
+	//
+	// +kubebuilder:validation:Enum:="Enabled";"Disabled"
+	// +optional
+	UltraSSDCapability AzureUltraSSDCapabilityState `json:"ultraSSDCapability,omitempty"`
 	// AcceleratedNetworking enables or disables Azure accelerated networking feature.
 	// Set to false by default. If true, then this will depend on whether the requested
 	// VMSize is supported. If set to true with an unsupported VMSize, Azure will return an error.
@@ -200,7 +225,7 @@ type OSDisk struct {
 	// OSType is the operating system type of the OS disk. Possible values include "Linux" and "Windows".
 	OSType string `json:"osType"`
 	// ManagedDisk specifies the Managed Disk parameters for the OS disk.
-	ManagedDisk ManagedDiskParameters `json:"managedDisk"`
+	ManagedDisk OSDiskManagedDiskParameters `json:"managedDisk"`
 	// DiskSizeGB is the size in GB to assign to the data disk.
 	DiskSizeGB int32 `json:"diskSizeGB"`
 	// DiskSettings describe ephemeral disk settings for the os disk.
@@ -215,6 +240,63 @@ type OSDisk struct {
 	CachingType string `json:"cachingType,omitempty"`
 }
 
+// DataDisk specifies the parameters that are used to add one or more data disks to the machine.
+// A Data Disk is a managed disk that's attached to a virtual machine to store application data.
+// It differs from an OS Disk as it doesn't come with a pre-installed OS, and it cannot contain the boot volume.
+// It is registered as SCSI drive and labeled with the chosen `lun`. e.g. for `lun: 0` the raw disk device will be available at `/dev/disk/azure/scsi1/lun0`.
+//
+// As the Data Disk disk device is attached raw to the virtual machine, it will need to be partitioned, formatted with a filesystem and mounted, in order for it to be usable.
+// This can be done by creating a custom userdata Secret with custom Ignition configuration to achieve the desired initialization.
+// At this stage the previously defined `lun` is to be used as the "device" key for referencing the raw disk device to be initialized.
+// Once the custom userdata Secret has been created, it can be referenced in the Machine's `.providerSpec.userDataSecret`.
+// For further guidance and examples, please refer to the official OpenShift docs.
+type DataDisk struct {
+	// NameSuffix is the suffix to be appended to the machine name to generate the disk name.
+	// Each disk name will be in format <machineName>_<nameSuffix>.
+	// NameSuffix name must start and finish with an alphanumeric character and can only contain letters, numbers, underscores, periods or hyphens.
+	// The overall disk name must not exceed 80 chars in length.
+	// +kubebuilder:validation:Pattern:=`^[a-zA-Z0-9](?:[\w\.-]*[a-zA-Z0-9])?$`
+	// +kubebuilder:validation:MaxLength:=78
+	// +kubebuilder:validation:Required
+	NameSuffix string `json:"nameSuffix"`
+	// DiskSizeGB is the size in GB to assign to the data disk.
+	// +kubebuilder:validation:Minimum=4
+	// +kubebuilder:validation:Required
+	DiskSizeGB int32 `json:"diskSizeGB"`
+	// ManagedDisk specifies the Managed Disk parameters for the data disk.
+	// Empty value means no opinion and the platform chooses a default, which is subject to change over time.
+	// Currently the default is a ManagedDisk with with storageAccountType: "Premium_LRS" and diskEncryptionSet.id: "Default".
+	// +optional
+	ManagedDisk DataDiskManagedDiskParameters `json:"managedDisk,omitempty"`
+	// Lun Specifies the logical unit number of the data disk.
+	// This value is used to identify data disks within the VM and therefore must be unique for each data disk attached to a VM.
+	// This value is also needed for referencing the data disks devices within userdata to perform disk initialization through Ignition (e.g. partition/format/mount).
+	// The value must be between 0 and 63.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=63
+	// +kubebuilder:validation:Required
+	Lun int32 `json:"lun,omitempty"`
+	// CachingType specifies the caching requirements.
+	// Empty value means no opinion and the platform chooses a default, which is subject to change over time.
+	// Currently the default is CachingTypeNone.
+	// +optional
+	// +kubebuilder:validation:Enum=None;ReadOnly;ReadWrite
+	CachingType CachingTypeOption `json:"cachingType,omitempty"`
+}
+
+// CachingTypeOption defines the different values for a CachingType.
+type CachingTypeOption string
+
+// These are the valid CachingTypeOption values.
+const (
+	// CachingTypeReadOnly means the CachingType is "ReadOnly".
+	CachingTypeReadOnly CachingTypeOption = "ReadOnly"
+	// CachingTypeReadWrite means the CachingType is "ReadWrite".
+	CachingTypeReadWrite CachingTypeOption = "ReadWrite"
+	// CachingTypeNone means the CachingType is "None".
+	CachingTypeNone CachingTypeOption = "None"
+)
+
 // DiskSettings describe ephemeral disk settings for the os disk.
 type DiskSettings struct {
 	// EphemeralStorageLocation enables ephemeral OS when set to 'Local'.
@@ -227,18 +309,47 @@ type DiskSettings struct {
 	EphemeralStorageLocation string `json:"ephemeralStorageLocation,omitempty"`
 }
 
-// ManagedDiskParameters is the parameters of a managed disk.
-type ManagedDiskParameters struct {
-	// StorageAccountType is the storage account type to use. Possible values include "Standard_LRS" and "Premium_LRS".
+// OSDiskManagedDiskParameters is the parameters of a OSDisk managed disk.
+type OSDiskManagedDiskParameters struct {
+	// StorageAccountType is the storage account type to use.
+	// Possible values include "Standard_LRS", "Premium_LRS".
 	StorageAccountType string `json:"storageAccountType"`
 	// DiskEncryptionSet is the disk encryption set properties
 	// +optional
 	DiskEncryptionSet *DiskEncryptionSetParameters `json:"diskEncryptionSet,omitempty"`
 }
 
+// DataDiskManagedDiskParameters is the parameters of a DataDisk managed disk.
+type DataDiskManagedDiskParameters struct {
+	// StorageAccountType is the storage account type to use.
+	// Possible values include "Standard_LRS", "Premium_LRS" and "UltraSSD_LRS".
+	// +kubebuilder:validation:Enum=Standard_LRS;Premium_LRS;UltraSSD_LRS
+	StorageAccountType StorageAccountType `json:"storageAccountType"`
+	// DiskEncryptionSet is the disk encryption set properties.
+	// Empty value means no opinion and the platform chooses a default, which is subject to change over time.
+	// Currently the default is a DiskEncryptionSet with id: "Default".
+	// +optional
+	DiskEncryptionSet *DiskEncryptionSetParameters `json:"diskEncryptionSet,omitempty"`
+}
+
+// StorageAccountType defines the different storage types to use for a ManagedDisk.
+type StorageAccountType string
+
+// These are the valid StorageAccountType types.
+const (
+	// "StorageAccountStandardLRS" means the Standard_LRS storage type.
+	StorageAccountStandardLRS StorageAccountType = "Standard_LRS"
+	// "StorageAccountPremiumLRS" means the Premium_LRS storage type.
+	StorageAccountPremiumLRS StorageAccountType = "Premium_LRS"
+	// "StorageAccountUltraSSDLRS" means the UltraSSD_LRS storage type.
+	StorageAccountUltraSSDLRS StorageAccountType = "UltraSSD_LRS"
+)
+
 // DiskEncryptionSetParameters is the disk encryption set properties
 type DiskEncryptionSetParameters struct {
 	// ID is the disk encryption set ID
+	// Empty value means no opinion and the platform chooses a default, which is subject to change over time.
+	// Currently the default is: "Default".
 	// +optional
 	ID string `json:"id,omitempty"`
 }
@@ -272,3 +383,14 @@ type AzureMachineProviderCondition struct {
 	// +optional
 	Message string `json:"message"`
 }
+
+// AzureUltraSSDCapabilityState defines the different states of an UltraSSDCapability
+type AzureUltraSSDCapabilityState string
+
+// These are the valid AzureUltraSSDCapabilityState states.
+const (
+	// "AzureUltraSSDCapabilityTrue" means the Azure UltraSSDCapability is Enabled
+	AzureUltraSSDCapabilityTrue AzureUltraSSDCapabilityState = "Enabled"
+	// "AzureUltraSSDCapabilityFalse" means the Azure UltraSSDCapability is Disabled
+	AzureUltraSSDCapabilityFalse AzureUltraSSDCapabilityState = "Disabled"
+)

@@ -60,7 +60,6 @@ import (
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/openshift/origin/test/extended/testdata"
 	utilimage "github.com/openshift/origin/test/extended/util/image"
-	k8sclient "k8s.io/client-go/kubernetes"
 )
 
 // WaitForInternalRegistryHostname waits for the internal registry hostname to be made available to the cluster.
@@ -1035,23 +1034,17 @@ func WaitForServiceAccount(c corev1client.ServiceAccountInterface, name string) 
 			return false, fmt.Errorf("Failed to get service account %q: %v", name, err)
 		}
 		secretNames := []string{}
-		var hasDockercfg, hasToken bool
-		for _, s := range sc.Secrets {
-			if strings.Contains(s.Name, "-token-") {
-				hasToken = true
-			}
-			secretNames = append(secretNames, s.Name)
-		}
+		var hasDockercfg bool
 		for _, s := range sc.ImagePullSecrets {
 			if strings.Contains(s.Name, "-dockercfg-") {
 				hasDockercfg = true
 			}
 			secretNames = append(secretNames, s.Name)
 		}
-		if hasDockercfg && hasToken {
+		if hasDockercfg {
 			return true, nil
 		}
-		e2e.Logf("Waiting for service account %q secrets (%s) to include dockercfg/token ...", name, strings.Join(secretNames, ","))
+		e2e.Logf("Waiting for service account %q secrets (%s) to include dockercfg ...", name, strings.Join(secretNames, ","))
 		return false, nil
 	}
 	return wait.Poll(100*time.Millisecond, 3*time.Minute, waitFn)
@@ -1613,7 +1606,7 @@ func ParseLabelsOrDie(str string) labels.Selector {
 // as the target for networking connectivity checks.  The ip address
 // of the created pod will be returned if the pod is launched
 // successfully.
-func LaunchWebserverPod(client k8sclient.Interface, namespace, podName, nodeName string) (ip string) {
+func LaunchWebserverPod(f *e2e.Framework, podName, nodeName string) (ip string) {
 	containerName := fmt.Sprintf("%s-container", podName)
 	port := 8080
 	pod := &corev1.Pod{
@@ -1633,10 +1626,10 @@ func LaunchWebserverPod(client k8sclient.Interface, namespace, podName, nodeName
 			RestartPolicy: corev1.RestartPolicyNever,
 		},
 	}
-	podClient := client.CoreV1().Pods(namespace)
+	podClient := f.ClientSet.CoreV1().Pods(f.Namespace.Name)
 	_, err := podClient.Create(context.Background(), pod, metav1.CreateOptions{})
 	e2e.ExpectNoError(err)
-	e2e.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(client, podName, namespace))
+	e2e.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, podName, f.Namespace.Name))
 	createdPod, err := podClient.Get(context.Background(), podName, metav1.GetOptions{})
 	e2e.ExpectNoError(err)
 	ip = net.JoinHostPort(createdPod.Status.PodIP, strconv.Itoa(port))
@@ -1901,19 +1894,15 @@ func NewGitRepo(repoName string) (GitRepo, error) {
 
 // WaitForUserBeAuthorized waits a minute until the cluster bootstrap roles are available
 // and the provided user is authorized to perform the action on the resource.
-func WaitForUserBeAuthorized(oc *CLI, user, verb, resource string) error {
+func WaitForUserBeAuthorized(oc *CLI, user string, attributes *authorizationapi.ResourceAttributes) error {
 	sar := &authorizationapi.SubjectAccessReview{
 		Spec: authorizationapi.SubjectAccessReviewSpec{
-			ResourceAttributes: &authorizationapi.ResourceAttributes{
-				Namespace: oc.Namespace(),
-				Verb:      verb,
-				Resource:  resource,
-			},
-			User: user,
+			ResourceAttributes: attributes,
+			User:               user,
 		},
 	}
 	return wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
-		e2e.Logf("Waiting for user '%v' to be authorized to %v the %v resource", user, verb, resource)
+		e2e.Logf("Waiting for user '%q' to be authorized for %v", user, attributes, oc.Namespace())
 		resp, err := oc.AdminKubeClient().AuthorizationV1().SubjectAccessReviews().Create(context.Background(), sar, metav1.CreateOptions{})
 		if err == nil && resp != nil && resp.Status.Allowed {
 			return true, nil
@@ -1922,7 +1911,7 @@ func WaitForUserBeAuthorized(oc *CLI, user, verb, resource string) error {
 			e2e.Logf("Error creating SubjectAccessReview: %v", err)
 		}
 		if resp != nil {
-			e2e.Logf("SubjectAccessReview.Status: %#v", resp.Status)
+			e2e.Logf("SubjectAccessReview.Status: %#v", resp)
 		}
 		return false, err
 	})
