@@ -18,6 +18,8 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	imageutils "k8s.io/kubernetes/test/utils/image"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 type UpgradeTest struct{}
@@ -97,16 +99,15 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 	ginkgo.By(fmt.Sprintf("Listing Pods with label app=%s", appName))
 	podClient := f.ClientSet.CoreV1().Pods(f.Namespace.Name)
 	selector, _ := labels.Parse(fmt.Sprintf("app=%s", appName))
-	pods, err := podClient.List(context.Background(), metav1.ListOptions{LabelSelector: selector.String()})
+	podNames, err := exutil.WaitForPods(podClient, selector, exutil.CheckPodIsReady, 1, 5*time.Minute)
 	framework.ExpectNoError(err)
 
 	ginkgo.By("Retrieving logs from all the Pods belonging to the DaemonSet and asserting no failure")
-	for _, pod := range pods.Items {
-		if len(pod.Status.ContainerStatuses) > 0 && pod.Status.ContainerStatuses[0].State.Waiting != nil {
-			// this container is waiting, so there will be no logs even if we try again later, we won't have logs of interest
-			continue
-		}
-		r, err := podClient.GetLogs(pod.Name, &kapiv1.PodLogOptions{Container: "querier"}).Stream(context.Background())
+	for _, podName := range podNames {
+		pod, err := podClient.Get(context.Background(), podName, metav1.GetOptions{})
+		framework.ExpectNoError(err)
+
+		r, err := podClient.GetLogs(podName, &kapiv1.PodLogOptions{Container: "querier"}).Stream(context.Background())
 		framework.ExpectNoError(err)
 
 		failureCount := 0.0
