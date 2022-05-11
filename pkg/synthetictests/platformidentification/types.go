@@ -117,16 +117,17 @@ func GetJobType(ctx context.Context, clientConfig *rest.Config) (*JobType, error
 }
 
 func VersionFromHistory(history configv1.UpdateHistory) string {
-	versionParts := strings.Split(history.Version, ".")
+	return VersionFromString(history.Version)
+}
+
+func VersionFromString(v string) string {
+	versionParts := strings.Split(v, ".")
 	if len(versionParts) < 2 {
 		return ""
 	}
 
 	version := versionParts[0] + "." + versionParts[1]
-	if strings.HasPrefix(version, "v") {
-		version = version[1:]
-	}
-	return version
+	return strings.TrimPrefix(version, "v")
 }
 
 func getArchitecture(clientConfig *rest.Config) (string, error) {

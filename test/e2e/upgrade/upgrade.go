@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -36,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -189,6 +191,27 @@ func latestCompleted(history []configv1.UpdateHistory) (*configv1.Update, bool) 
 	return nil, false
 }
 
+func is411MinorUpgrade(p *platformidentification.JobType) bool {
+	toRelease := platformidentification.VersionFromString(p.Release)
+	fromRelease := platformidentification.VersionFromString(p.FromRelease)
+	return toRelease == "4.11" && fromRelease != "4.11"
+}
+
+var realTimeKernelRE = regexp.MustCompile(".*.rt[0-9]+.[0-9]+..*")
+
+func containsRTKernelWorker(config *rest.Config) bool {
+	kubeNodeClient, err := corev1.NewForConfig(config)
+	framework.ExpectNoError(err)
+	kubeNodes, err := kubeNodeClient.Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker="})
+	framework.ExpectNoError(err)
+	for _, node := range kubeNodes.Items {
+		if realTimeKernelRE.MatchString(node.Status.NodeInfo.KernelVersion) {
+			return true
+		}
+	}
+	return false
+}
+
 func getUpgradeContext(c configv1client.Interface, upgradeImage string) (*upgrades.UpgradeContext, error) {
 	if upgradeImage == "[pause]" {
 		return &upgrades.UpgradeContext{
@@ -321,6 +344,11 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		// ppc appears to take just over 75 minutes. Not sure why, but let's keep it from getting worse and provide meaningful
 		// test results.
 		durationToSoftFailure = 80 * time.Minute
+	}
+
+	// 4.11 Upgrades that have RT workers face an extra restart which can increase upgrade times.
+	if is411MinorUpgrade(platformType) && containsRTKernelWorker(config) {
+		durationToSoftFailure = durationToSoftFailure + (15 * time.Minute)
 	}
 
 	framework.Logf("Starting upgrade to version=%s image=%s attempt=%s", version.Version.String(), version.NodeImage, uid)
