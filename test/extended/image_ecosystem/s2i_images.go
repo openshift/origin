@@ -56,20 +56,6 @@ var s2iImages = map[string][]tc{
 			Arches:   []string{"amd64", "ppc64le", "s390x"},
 		},
 		{
-			Version:  "26",
-			Cmd:      "ruby --version",
-			Expected: "ruby 2.6",
-			Tag:      "2.6-ubi8",
-			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
-		},
-		{
-			Version:  "26",
-			Cmd:      "ruby --version",
-			Expected: "ruby 2.6",
-			Tag:      "2.6-ubi7",
-			Arches:   []string{"amd64", "ppc64le", "s390x"},
-		},
-		{
 			Version:  "25",
 			Cmd:      "ruby --version",
 			Expected: "ruby 2.5",
@@ -84,13 +70,6 @@ var s2iImages = map[string][]tc{
 			Expected: "Python 2.7",
 			Tag:      "2.7-ubi8",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
-		},
-		{
-			Version:  "27",
-			Cmd:      "python --version",
-			Expected: "Python 2.7",
-			Tag:      "2.7-ubi7",
-			Arches:   []string{"amd64", "ppc64le", "s390x"},
 		},
 		{
 			Version:  "36",
@@ -220,13 +199,6 @@ var s2iImages = map[string][]tc{
 			Expected: "6.0",
 			Tag:      "6.0-ubi8",
 			Arches:   []string{"amd64", "arm64", "s390x"},
-		},
-		{
-			Version:  "50",
-			Cmd:      "dotnet --version",
-			Expected: "5.0",
-			Tag:      "5.0-ubi8",
-			Arches:   []string{"amd64"},
 		},
 		{
 			Version:  "31",
