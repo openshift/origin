@@ -31,14 +31,14 @@ require (
 	github.com/onsi/ginkgo v4.7.0-origin.0+incompatible
 	github.com/onsi/gomega v1.10.1
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/openshift/api v0.0.0-20220315184754-d7c10d0b647e
+	github.com/openshift/api v0.0.0-20220110171111-997c316db5e1
 	github.com/openshift/apiserver-library-go v0.0.0-20220329105944-e64b3328dd17
 	github.com/openshift/build-machinery-go v0.0.0-20211213093930-7e33a7eb4ce3
 	github.com/openshift/client-go v0.0.0-20211209144617-7385dd6338e3
-	github.com/openshift/library-go v0.0.0-20220502112129-771a6581efac
+	github.com/openshift/library-go v0.0.0-20220315122757-21a67f25d837
 	github.com/pborman/uuid v1.2.0
 	github.com/pquerna/cachecontrol v0.0.0-20201205024021-ac21108117ac // indirect
-	github.com/prometheus/client_golang v1.11.1
+	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.28.0
 	github.com/spf13/cobra v1.2.1
