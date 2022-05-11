@@ -217,18 +217,9 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 					}
 
 					fileName := filepath.Base(path)
-					if (strings.Contains(fileName, "-termination-") && strings.HasSuffix(fileName, ".log.gz")) ||
-						strings.HasSuffix(fileName, "termination.log.gz") ||
-						(strings.Contains(fileName, "-startup-") && strings.HasSuffix(fileName, ".log.gz")) ||
-						strings.HasSuffix(fileName, "startup.log.gz") ||
-						fileName == ".lock" ||
-						fileName == "lock.log" {
-						// these are expected, but have unstructured log format
+					if !IsAuditFile(fileName) {
 						return nil
 					}
-
-					isAuditFile := (strings.Contains(fileName, "-audit-") && strings.HasSuffix(fileName, ".log.gz")) || strings.HasSuffix(fileName, "audit.log.gz")
-					o.Expect(isAuditFile).To(o.BeTrue())
 
 					// at this point, we expect only audit files with json events, one per line
 
@@ -390,4 +381,18 @@ func GetPluginOutputDir(tempDir string) string {
 	}
 	e2e.Logf("found a single subdirectory %q, so assuming it is a new-style must-gather", dir)
 	return dir
+}
+
+func IsAuditFile(fileName string) bool {
+	if (strings.Contains(fileName, "-termination-") && strings.HasSuffix(fileName, ".log.gz")) ||
+		strings.HasSuffix(fileName, "termination.log.gz") ||
+		(strings.Contains(fileName, "-startup-") && strings.HasSuffix(fileName, ".log.gz")) ||
+		strings.HasSuffix(fileName, "startup.log.gz") ||
+		fileName == ".lock" ||
+		fileName == "lock.log" {
+		// these are expected, but have unstructured log format
+		return false
+	}
+
+	return (strings.Contains(fileName, "-audit-") && strings.HasSuffix(fileName, ".log.gz")) || strings.HasSuffix(fileName, "audit.log.gz")
 }
