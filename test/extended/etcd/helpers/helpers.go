@@ -7,14 +7,19 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	o "github.com/onsi/gomega"
 
+	configv1 "github.com/openshift/api/config/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
+	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	machinev1beta1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1"
+	exutil "github.com/openshift/origin/test/extended/util"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/utils/pointer"
 )
 
@@ -276,6 +281,62 @@ func MachineNameToEtcdMemberName(ctx context.Context, kubeClient kubernetes.Inte
 	}
 
 	return "", fmt.Errorf("unable to find a node for the corresponding %q machine on ProviderID: %v, checked: %v", machineName, machineProviderID, nodeNames)
+}
+
+func SkipIfUnsupportedPlatform(ctx context.Context, oc *exutil.CLI) {
+	machineClientSet, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(err).ToNot(o.HaveOccurred())
+	machineClient := machineClientSet.MachineV1beta1().Machines("openshift-machine-api")
+	skipUnlessFunctionalMachineAPI(ctx, machineClient)
+	skipIfBareMetal(oc)
+	skipIfAzure(oc)
+	skipIfSingleNode(oc)
+}
+
+func skipUnlessFunctionalMachineAPI(ctx context.Context, machineClient machinev1beta1client.MachineInterface) {
+	machines, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
+	o.Expect(err).ToNot(o.HaveOccurred())
+	if len(machines.Items) == 0 {
+		e2eskipper.Skipf("haven't found machines resources on the cluster, this test can be run on a platform that supports functional MachineAPI")
+		return
+	}
+
+	// we expect just a single machine to be in the Running state
+	for _, machine := range machines.Items {
+		phase := pointer.StringDeref(machine.Status.Phase, "")
+		if phase == "Running" {
+			return
+		}
+	}
+	e2eskipper.Skipf("haven't found a machine in running state, this test can be run on a platform that supports functional MachineAPI")
+	return
+}
+
+func skipIfBareMetal(oc *exutil.CLI) {
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	if infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType {
+		e2eskipper.Skipf("this test is currently broken on the metal platform and needs to be fixed")
+	}
+}
+
+func skipIfAzure(oc *exutil.CLI) {
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	if infra.Status.PlatformStatus.Type == configv1.AzurePlatformType {
+		e2eskipper.Skipf("this test is currently flaky on the azure platform")
+	}
+}
+
+func skipIfSingleNode(oc *exutil.CLI) {
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	if infra.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode {
+		e2eskipper.Skipf("this test can be run only against an HA cluster, skipping it on an SNO env")
+	}
 }
 
 func hasMachineDeletionHook(machine *machinev1beta1.Machine) bool {

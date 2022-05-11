@@ -32,6 +32,9 @@ var _ = g.Describe("[sig-etcd][Serial] etcd", func() {
 		o.Expect(err).ToNot(o.HaveOccurred())
 		machineClient := machineClientSet.MachineV1beta1().Machines("openshift-machine-api")
 
+		// make sure it can be run on the current platform
+		scalingtestinglibrary.SkipIfUnsupportedPlatform(ctx, oc)
+
 		// assert the cluster state before we run the test
 		err = scalingtestinglibrary.EnsureInitialClusterState(ctx, g.GinkgoT(), etcdClientFactory, machineClient)
 		o.Expect(err).ToNot(o.HaveOccurred())
