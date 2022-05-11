@@ -41,8 +41,7 @@ $(call add-crd-gen,cloudnetwork,./cloudnetwork/v1,./cloudnetwork/v1,./cloudnetwo
 $(call add-crd-gen,network,./network/v1,./network/v1,./network/v1)
 $(call add-crd-gen,networkoperator,./networkoperator/v1,./networkoperator/v1,./networkoperator/v1)
 $(call add-crd-gen,operatorcontrolplane,./operatorcontrolplane/v1alpha1,./operatorcontrolplane/v1alpha1,./operatorcontrolplane/v1alpha1)
-$(call add-crd-gen,machine-beta,./machine/v1beta1,./machine/v1beta1,./machine/v1beta1)
-$(call add-crd-gen,machine,./machine/v1,./machine/v1,./machine/v1)
+$(call add-crd-gen,machine,./machine/v1beta1,./machine/v1beta1,./machine/v1beta1)
 
 RUNTIME ?= podman
 RUNTIME_IMAGE_NAME ?= openshift-api-generator

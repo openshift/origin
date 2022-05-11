@@ -1751,8 +1751,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-etcd][Feature:DisasterRecovery][Disruptive] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss": "[Feature:EtcdRecovery] Cluster should restore itself after quorum loss [Serial]",
 
-	"[Top Level] [sig-etcd][Serial] etcd is able to vertically scale up and down with a single node": "is able to vertically scale up and down with a single node [Suite:openshift/conformance/serial]",
-
 	"[Top Level] [sig-imageregistry] Image registry should redirect on blob pull": "should redirect on blob pull [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-imageregistry][Feature:ImageAppend] Image append should create images by appending them": "should create images by appending them [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
