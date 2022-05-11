@@ -1,17 +1,25 @@
 package apiserver
 
 import (
+	"bufio"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path"
+	"path/filepath"
 	"strings"
 
 	g "github.com/onsi/ginkgo"
+	o "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
+	clihelpers "github.com/openshift/origin/test/extended/cli"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -133,4 +141,93 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			t.Errorf("API LBs or the kubernetes service send requests to kube-apiserver before it is ready, probably due to broken LB configuration: %#v. This can lead to inconsistent responses like 403s in other components.", ev)
 		}
 	})
+
+	g.It("API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients", func() {
+		// set up
+		results := map[string]int{}
+		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer os.RemoveAll(tempDir)
+		args := []string{"--dest-dir", tempDir, "--", "/usr/bin/gather_audit_logs"}
+
+		// download the audit logs from the cluster
+		o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
+
+		// act
+		expectedDirectoriesToExpectedCount := []string{path.Join(clihelpers.GetPluginOutputDir(tempDir), "audit_logs", "kube-apiserver")}
+		for _, auditDirectory := range expectedDirectoriesToExpectedCount {
+			err := filepath.Walk(auditDirectory, func(path string, info os.FileInfo, err error) error {
+				g.By(path)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				if info.IsDir() {
+					return nil
+				}
+				fileName := filepath.Base(path)
+				if !clihelpers.IsAuditFile(fileName) {
+					return nil
+				}
+
+				file, err := os.Open(path)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				defer file.Close()
+				fi, err := file.Stat()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if fi.Size() == 0 {
+					return nil
+				}
+
+				gzipReader, err := gzip.NewReader(file)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				apiServerName := extractAPIServerNameFromAuditFile(fileName)
+				o.Expect(apiServerName).ToNot(o.BeEmpty())
+				lateRequestCounter := 0
+				readFile := false
+
+				scanner := bufio.NewScanner(gzipReader)
+				for scanner.Scan() {
+					text := scanner.Text()
+					if !strings.HasSuffix(text, "}") {
+						continue // ignore truncated data
+					}
+					o.Expect(text).To(o.HavePrefix(`{"kind":"Event",`))
+
+					if strings.Contains(text, "openshift.io/during-graceful") && strings.Contains(text, "openshift-origin-external-backend-sampler") {
+						lateRequestCounter++
+					}
+					readFile = true
+				}
+				o.Expect(readFile).To(o.BeTrue())
+
+				if lateRequestCounter > 0 {
+					previousLateRequestCounter, _ := results[apiServerName]
+					results[apiServerName] = previousLateRequestCounter + lateRequestCounter
+				}
+
+				return nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			var finalMessageBuilder strings.Builder
+			for apiServerName, lateRequestCounter := range results {
+				// tolerate a few late request
+				if lateRequestCounter > 10 {
+					finalMessageBuilder.WriteString(fmt.Sprintf("\n %v observed %v late requests", apiServerName, lateRequestCounter))
+				}
+			}
+			// for now, we will report it as flaky, change it to fail once it proves itself
+			if len(finalMessageBuilder.String()) > 0 {
+				result.Flakef("the following API Servers observed late requests: %v", finalMessageBuilder.String())
+			}
+		}
+	})
 })
+
+func extractAPIServerNameFromAuditFile(auditFileName string) string {
+	pos := strings.Index(auditFileName, "-audit")
+	if pos == -1 {
+		return ""
+	}
+	return auditFileName[0:pos]
+}
