@@ -50,7 +50,7 @@ func TestGetClosestP95Value(t *testing.T) {
 				},
 
 				P95: mustDuration("3s"),
-				P99: mustDuration("4s"),
+				P99: mustDuration("3s"),
 			},
 		},
 		{
@@ -78,7 +78,7 @@ func TestGetClosestP95Value(t *testing.T) {
 				},
 
 				P95: mustDuration("3s"),
-				P99: mustDuration("4s"),
+				P99: mustDuration("3s"),
 			},
 		},
 		{
