@@ -6,6 +6,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	configv1 "github.com/openshift/api/config/v1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	testlibraryapi "github.com/openshift/library-go/test/library/apiserver"
 	scalingtestinglibrary "github.com/openshift/origin/test/extended/etcd/helpers"
@@ -15,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 var _ = g.Describe("[sig-etcd][Serial] etcd", func() {
@@ -28,9 +30,11 @@ var _ = g.Describe("[sig-etcd][Serial] etcd", func() {
 	// and asserting the member was removed from the etcd cluster by contacting MemberList API.
 	g.It("is able to vertically scale up and down with a single node", func() {
 		// prerequisite, we do run the test only on a platform that supports functional MachineAPI
+		// we also currently skip it on metal as it is broken
 		dc, err := dynamic.NewForConfig(oc.AdminConfig())
 		o.Expect(err).ToNot(o.HaveOccurred())
 		machineapihelpers.SkipUnlessMachineAPIOperator(dc, oc.KubeClient().CoreV1().Namespaces())
+		skipIfBareMetal(oc)
 
 		// set up
 		ctx := context.TODO()
@@ -83,3 +87,12 @@ var _ = g.Describe("[sig-etcd][Serial] etcd", func() {
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 })
+
+func skipIfBareMetal(oc *exutil.CLI) {
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	if infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType {
+		e2eskipper.Skipf("this test is currently broken on the metal platform and needs to be fixed")
+	}
+}
