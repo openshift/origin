@@ -261,6 +261,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and don't send request early": "API LBs follow /readyz of kube-apiserver and don't send request early [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients": "API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and stop sending requests": "API LBs follow /readyz of kube-apiserver and stop sending requests [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-api-machinery][Feature:APIServer][Late] kube-apiserver terminates within graceful termination period": "kube-apiserver terminates within graceful termination period [Suite:openshift/conformance/parallel]",
