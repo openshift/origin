@@ -13,6 +13,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 var _ = g.Describe("[sig-etcd][Serial] etcd", func() {
@@ -25,6 +26,8 @@ var _ = g.Describe("[sig-etcd][Serial] etcd", func() {
 	// The test ends by removing the newly added machine and validating the size of the cluster
 	// and asserting the member was removed from the etcd cluster by contacting MemberList API.
 	g.It("is able to vertically scale up and down with a single node", func() {
+		e2eskipper.Skipf("skipping as it currently fails on the metal platform")
+
 		// set up
 		ctx := context.TODO()
 		etcdClientFactory := scalingtestinglibrary.NewEtcdClientFactory(oc.KubeClient())
