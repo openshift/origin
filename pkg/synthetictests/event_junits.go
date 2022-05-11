@@ -24,6 +24,7 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testPodSandboxCreation(events, kubeClientConfig)...)
 	tests = append(tests, testOvnNodeReadinessProbe(events, kubeClientConfig)...)
 	tests = append(tests, testAllAPIAvailability(events, duration)...)
+	tests = append(tests, testMultipleSingleSecondAvailabilityFailure(events)...)
 	tests = append(tests, testAllIngressAvailability(events, duration)...)
 	tests = append(tests, testStableSystemOperatorStateTransitions(events)...)
 	tests = append(tests, testDuplicatedEventForStableSystem(events, kubeClientConfig, testSuite)...)
@@ -74,6 +75,7 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testBackoffStartingFailedContainer(events)...)
 	tests = append(tests, testBackoffStartingFailedContainerForE2ENamespaces(events)...)
 	tests = append(tests, testAPIQuotaEvents(events)...)
+	tests = append(tests, testMultipleSingleSecondAvailabilityFailure(events)...)
 
 	return tests
 }
