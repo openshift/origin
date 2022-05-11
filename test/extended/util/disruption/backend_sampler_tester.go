@@ -36,13 +36,8 @@ func NewBackendDisruptionTest(testName string, backend BackendSampler) *backendD
 		testName: testName,
 		backend:  backend,
 	}
-	ret.getAllowedDisruption = ret.historicalP95Disruption
+	ret.getAllowedDisruption = alwaysAllowOneSecond(ret.historicalP95Disruption)
 	return ret
-}
-
-func (t *backendDisruptionTest) WithAllowedDisruption(allowedDisruptionFn AllowedDisruptionFunc) *backendDisruptionTest {
-	t.getAllowedDisruption = allowedDisruptionFn
-	return t
 }
 
 type SetupFunc func(f *framework.Framework, backendSampler BackendSampler) error
@@ -59,7 +54,26 @@ func (t *backendDisruptionTest) WithPostTeardown(postTearDown TearDownFunc) *bac
 	return t
 }
 
-func (t *backendDisruptionTest) historicalP95Disruption(f *framework.Framework, totalDuration time.Duration) (*time.Duration, string, error) {
+func alwaysAllowOneSecond(delegateFn AllowedDisruptionFunc) AllowedDisruptionFunc {
+	return func(f *framework.Framework) (*time.Duration, string, error) {
+		delegateDuration, delegateReason, delegateError := delegateFn(f)
+		if delegateError != nil {
+			return delegateDuration, delegateReason, delegateError
+		}
+		if delegateDuration == nil {
+			return delegateDuration, delegateReason, delegateError
+		}
+
+		oneSecond := 1 * time.Second
+		if *delegateDuration < oneSecond {
+			return &oneSecond, "always allow at least 1s", nil
+		}
+
+		return delegateDuration, delegateReason, delegateError
+	}
+}
+
+func (t *backendDisruptionTest) historicalP95Disruption(f *framework.Framework) (*time.Duration, string, error) {
 	backendName := t.backend.GetDisruptionBackendName() + "-" + string(t.backend.GetConnectionType()) + "-connections"
 	jobType, err := platformidentification.GetJobType(context.TODO(), f.ClientConfig())
 	if err != nil {
@@ -70,7 +84,7 @@ func (t *backendDisruptionTest) historicalP95Disruption(f *framework.Framework, 
 }
 
 // returns allowedDuration, detailsString(for display), error
-type AllowedDisruptionFunc func(f *framework.Framework, totalDuration time.Duration) (*time.Duration, string, error)
+type AllowedDisruptionFunc func(f *framework.Framework) (*time.Duration, string, error)
 
 // availableTest tests that route frontends are available before, during, and
 // after a cluster upgrade.
@@ -146,7 +160,7 @@ func (t *backendDisruptionTest) Test(f *framework.Framework, done <-chan struct{
 
 	end := time.Now()
 
-	allowedDisruption, disruptionDetails, err := t.getAllowedDisruption(f, end.Sub(start))
+	allowedDisruption, disruptionDetails, err := t.getAllowedDisruption(f)
 	framework.ExpectNoError(err)
 
 	ginkgo.By(fmt.Sprintf("writing results: %s", t.backend.GetLocator()))
