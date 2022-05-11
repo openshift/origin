@@ -50,6 +50,7 @@ func CreateNewMasterMachine(ctx context.Context, t TestingT, machineClient machi
 	machineToClone.Name = fmt.Sprintf("%s-clone", machineToClone.Name)
 	machineToClone.Spec.ProviderID = nil
 	machineToClone.ResourceVersion = ""
+	machineToClone.Annotations = map[string]string{}
 
 	clonedMachine, err := machineClient.Create(context.TODO(), machineToClone, metav1.CreateOptions{})
 	if err != nil {
