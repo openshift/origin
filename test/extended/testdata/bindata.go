@@ -301,6 +301,12 @@
 // test/extended/testdata/deployments/tag-images-deployment.yaml
 // test/extended/testdata/deployments/test-deployment-broken.yaml
 // test/extended/testdata/deployments/test-deployment-test.yaml
+// test/extended/testdata/dns/go-v1-16/Dockerfile
+// test/extended/testdata/dns/go-v1-16/dns_libraries_go
+// test/extended/testdata/dns/go-v1-16/dns_libraries_go.yaml
+// test/extended/testdata/dns/go-v1-17/Dockerfile
+// test/extended/testdata/dns/go-v1-17/dns_libraries_go
+// test/extended/testdata/dns/go-v1-17/dns_libraries_go.yaml
 // test/extended/testdata/egress-firewall/ovnk-egressfirewall-test.yaml
 // test/extended/testdata/egress-firewall/sdn-egressnetworkpolicy-test.yaml
 // test/extended/testdata/egress-router-cni/egress-router-cni-v4-cr.yaml
@@ -41204,6 +41210,306 @@ func testExtendedTestdataDeploymentsTestDeploymentTestYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataDnsGoV116Dockerfile = []byte(`FROM registry.redhat.io/ubi8/go-toolset:1.16.12
+
+ENV GOCACHE=/tmp/
+
+COPY dns_libraries_go /go/dns_libraries.go
+
+CMD ["/bin/sh", "-c", "sleep 9999999"]
+`)
+
+func testExtendedTestdataDnsGoV116DockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataDnsGoV116Dockerfile, nil
+}
+
+func testExtendedTestdataDnsGoV116Dockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataDnsGoV116DockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/dns/go-v1-16/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDnsGoV116Dns_libraries_go = []byte(`package main
+
+import (
+	"context"
+	"flag"
+	"log"
+	"net"
+	"time"
+)
+
+func main() {
+	clusterIP := flag.String("cluster-ip", "", "clusterIP for CoreDNS service")
+	flag.Parse()
+	if *clusterIP == "" {
+		log.Fatal("cluster-ip must be set")
+	}
+
+	r := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: 10 * time.Second,
+			}
+			return d.DialContext(ctx, network, net.JoinHostPort(*clusterIP, "53"))
+		},
+	}
+	addrs, err := r.LookupHost(context.Background(), "www.redhat.com")
+	if err != nil {
+		log.Fatalf("Failed to look up host: %v", err)
+	}
+
+	log.Printf("Successfully resolved: %q", addrs)
+}
+`)
+
+func testExtendedTestdataDnsGoV116Dns_libraries_goBytes() ([]byte, error) {
+	return _testExtendedTestdataDnsGoV116Dns_libraries_go, nil
+}
+
+func testExtendedTestdataDnsGoV116Dns_libraries_go() (*asset, error) {
+	bytes, err := testExtendedTestdataDnsGoV116Dns_libraries_goBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/dns/go-v1-16/dns_libraries_go", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDnsGoV116Dns_libraries_goYaml = []byte(`apiVersion: v1
+kind: List
+metadata: {}
+items:
+  - apiVersion: build.openshift.io/v1
+    kind: BuildConfig
+    metadata:
+      labels:
+        build: dns-libraries-go-v1-16
+      name: dns-libraries-go-v1-16
+    spec:
+      output:
+        to:
+          kind: ImageStreamTag
+          name: dns-libraries-go-v1-16:latest
+      source:
+        binary: {}
+        type: Binary
+      strategy:
+        dockerStrategy: {}
+        type: Docker
+      triggers: []
+  - apiVersion: image.openshift.io/v1
+    kind: ImageStream
+    metadata:
+      labels:
+        build: dns-libraries-go-v1-16
+      name: dns-libraries-go-v1-16
+    spec: { }
+  - apiVersion: apps.openshift.io/v1
+    kind: DeploymentConfig
+    metadata:
+      labels:
+        app: dns-libraries-go-v1-16
+      name: dns-libraries-go-v1-16
+    spec:
+      replicas: 1
+      selector:
+        app: dns-libraries-go-v1-16
+        deploymentconfig: dns-libraries-go-v1-16
+      template:
+        metadata:
+          labels:
+            app: dns-libraries-go-v1-16
+            deploymentconfig: dns-libraries-go-v1-16
+        spec:
+          containers:
+            - image: dns-libraries-go-v1-16
+              imagePullPolicy: Always
+              name: dns-libraries-go-v1-16
+      triggers:
+        - imageChangeParams:
+            automatic: true
+            containerNames:
+              - dns-libraries-go-v1-16
+            from:
+              kind: ImageStreamTag
+              name: dns-libraries-go-v1-16:latest
+          type: ImageChange
+`)
+
+func testExtendedTestdataDnsGoV116Dns_libraries_goYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDnsGoV116Dns_libraries_goYaml, nil
+}
+
+func testExtendedTestdataDnsGoV116Dns_libraries_goYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDnsGoV116Dns_libraries_goYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/dns/go-v1-16/dns_libraries_go.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDnsGoV117Dockerfile = []byte(`FROM registry.redhat.io/ubi8/go-toolset:1.17.10
+
+ENV GOCACHE=/tmp/
+
+COPY dns_libraries_go /go/dns_libraries.go
+
+CMD ["/bin/sh", "-c", "sleep 9999999"]
+`)
+
+func testExtendedTestdataDnsGoV117DockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataDnsGoV117Dockerfile, nil
+}
+
+func testExtendedTestdataDnsGoV117Dockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataDnsGoV117DockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/dns/go-v1-17/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDnsGoV117Dns_libraries_go = []byte(`package main
+
+import (
+	"context"
+	"flag"
+	"log"
+	"net"
+	"time"
+)
+
+func main() {
+	clusterIP := flag.String("cluster-ip", "", "clusterIP for CoreDNS service")
+	flag.Parse()
+	if *clusterIP == "" {
+		log.Fatal("cluster-ip must be set")
+	}
+
+	r := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: 10 * time.Second,
+			}
+			return d.DialContext(ctx, network, net.JoinHostPort(*clusterIP, "53"))
+		},
+	}
+	addrs, err := r.LookupHost(context.Background(), "www.redhat.com")
+	if err != nil {
+		log.Fatalf("Failed to look up host: %v", err)
+	}
+
+	log.Printf("Successfully resolved: %q", addrs)
+}
+`)
+
+func testExtendedTestdataDnsGoV117Dns_libraries_goBytes() ([]byte, error) {
+	return _testExtendedTestdataDnsGoV117Dns_libraries_go, nil
+}
+
+func testExtendedTestdataDnsGoV117Dns_libraries_go() (*asset, error) {
+	bytes, err := testExtendedTestdataDnsGoV117Dns_libraries_goBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/dns/go-v1-17/dns_libraries_go", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDnsGoV117Dns_libraries_goYaml = []byte(`apiVersion: v1
+kind: List
+metadata: {}
+items:
+  - apiVersion: build.openshift.io/v1
+    kind: BuildConfig
+    metadata:
+      labels:
+        build: dns-libraries-go-v1-17
+      name: dns-libraries-go-v1-17
+    spec:
+      output:
+        to:
+          kind: ImageStreamTag
+          name: dns-libraries-go-v1-17:latest
+      source:
+        binary: {}
+        type: Binary
+      strategy:
+        dockerStrategy: {}
+        type: Docker
+      triggers: []
+  - apiVersion: image.openshift.io/v1
+    kind: ImageStream
+    metadata:
+      labels:
+        build: dns-libraries-go-v1-17
+      name: dns-libraries-go-v1-17
+    spec: { }
+  - apiVersion: apps.openshift.io/v1
+    kind: DeploymentConfig
+    metadata:
+      labels:
+        app: dns-libraries-go-v1-17
+      name: dns-libraries-go-v1-17
+    spec:
+      replicas: 1
+      selector:
+        app: dns-libraries-go-v1-17
+        deploymentconfig: dns-libraries-go-v1-17
+      template:
+        metadata:
+          labels:
+            app: dns-libraries-go-v1-17
+            deploymentconfig: dns-libraries-go-v1-17
+        spec:
+          containers:
+            - image: dns-libraries-go-v1-17
+              imagePullPolicy: Always
+              name: dns-libraries-go-v1-17
+      triggers:
+        - imageChangeParams:
+            automatic: true
+            containerNames:
+              - dns-libraries-go-v1-17
+            from:
+              kind: ImageStreamTag
+              name: dns-libraries-go-v1-17:latest
+          type: ImageChange
+`)
+
+func testExtendedTestdataDnsGoV117Dns_libraries_goYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDnsGoV117Dns_libraries_goYaml, nil
+}
+
+func testExtendedTestdataDnsGoV117Dns_libraries_goYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDnsGoV117Dns_libraries_goYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/dns/go-v1-17/dns_libraries_go.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml = []byte(`apiVersion: k8s.ovn.org/v1
 kind: EgressFirewall
 metadata:
@@ -52907,6 +53213,12 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/deployments/tag-images-deployment.yaml":                                          testExtendedTestdataDeploymentsTagImagesDeploymentYaml,
 	"test/extended/testdata/deployments/test-deployment-broken.yaml":                                         testExtendedTestdataDeploymentsTestDeploymentBrokenYaml,
 	"test/extended/testdata/deployments/test-deployment-test.yaml":                                           testExtendedTestdataDeploymentsTestDeploymentTestYaml,
+	"test/extended/testdata/dns/go-v1-16/Dockerfile":                                                         testExtendedTestdataDnsGoV116Dockerfile,
+	"test/extended/testdata/dns/go-v1-16/dns_libraries_go":                                                   testExtendedTestdataDnsGoV116Dns_libraries_go,
+	"test/extended/testdata/dns/go-v1-16/dns_libraries_go.yaml":                                              testExtendedTestdataDnsGoV116Dns_libraries_goYaml,
+	"test/extended/testdata/dns/go-v1-17/Dockerfile":                                                         testExtendedTestdataDnsGoV117Dockerfile,
+	"test/extended/testdata/dns/go-v1-17/dns_libraries_go":                                                   testExtendedTestdataDnsGoV117Dns_libraries_go,
+	"test/extended/testdata/dns/go-v1-17/dns_libraries_go.yaml":                                              testExtendedTestdataDnsGoV117Dns_libraries_goYaml,
 	"test/extended/testdata/egress-firewall/ovnk-egressfirewall-test.yaml":                                   testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml,
 	"test/extended/testdata/egress-firewall/sdn-egressnetworkpolicy-test.yaml":                               testExtendedTestdataEgressFirewallSdnEgressnetworkpolicyTestYaml,
 	"test/extended/testdata/egress-router-cni/egress-router-cni-v4-cr.yaml":                                  testExtendedTestdataEgressRouterCniEgressRouterCniV4CrYaml,
@@ -53573,6 +53885,18 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"tag-images-deployment.yaml":          {testExtendedTestdataDeploymentsTagImagesDeploymentYaml, map[string]*bintree{}},
 					"test-deployment-broken.yaml":         {testExtendedTestdataDeploymentsTestDeploymentBrokenYaml, map[string]*bintree{}},
 					"test-deployment-test.yaml":           {testExtendedTestdataDeploymentsTestDeploymentTestYaml, map[string]*bintree{}},
+				}},
+				"dns": {nil, map[string]*bintree{
+					"go-v1-16": {nil, map[string]*bintree{
+						"Dockerfile":            {testExtendedTestdataDnsGoV116Dockerfile, map[string]*bintree{}},
+						"dns_libraries_go":      {testExtendedTestdataDnsGoV116Dns_libraries_go, map[string]*bintree{}},
+						"dns_libraries_go.yaml": {testExtendedTestdataDnsGoV116Dns_libraries_goYaml, map[string]*bintree{}},
+					}},
+					"go-v1-17": {nil, map[string]*bintree{
+						"Dockerfile":            {testExtendedTestdataDnsGoV117Dockerfile, map[string]*bintree{}},
+						"dns_libraries_go":      {testExtendedTestdataDnsGoV117Dns_libraries_go, map[string]*bintree{}},
+						"dns_libraries_go.yaml": {testExtendedTestdataDnsGoV117Dns_libraries_goYaml, map[string]*bintree{}},
+					}},
 				}},
 				"egress-firewall": {nil, map[string]*bintree{
 					"ovnk-egressfirewall-test.yaml":     {testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml, map[string]*bintree{}},

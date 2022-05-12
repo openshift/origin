@@ -2223,6 +2223,10 @@ var Annotations = map[string]string{
 
 	"[sig-instrumentation][sig-builds][Feature:Builds] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics [apigroup:config.openshift.io][apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[sig-network-edge] DNS lookup using Go's DNS resolver": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network-edge] DNS lookup using glibc's DNS resolver": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network-edge] DNS should answer A and AAAA queries for a dual-stack service [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network-edge] DNS should answer endpoint and wildcard queries for the cluster": " [Disabled:Broken]",
