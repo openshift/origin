@@ -2,6 +2,7 @@ package monitorapi
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -198,7 +199,7 @@ func IsInNamespaces(namespaces sets.String) EventIntervalMatchesFunc {
 }
 
 // ContainsAllParts ensures that all listed key match at least one of the values.
-func ContainsAllParts(matchers map[string][]string) EventIntervalMatchesFunc {
+func ContainsAllParts(matchers map[string][]*regexp.Regexp) EventIntervalMatchesFunc {
 	return func(eventInterval EventInterval) bool {
 		actualParts := LocatorParts(eventInterval.Locator)
 		for key, possibleValues := range matchers {
@@ -206,7 +207,7 @@ func ContainsAllParts(matchers map[string][]string) EventIntervalMatchesFunc {
 
 			found := false
 			for _, possibleValue := range possibleValues {
-				if actualValue == possibleValue {
+				if possibleValue.MatchString(actualValue) {
 					found = true
 					break
 				}
@@ -216,6 +217,23 @@ func ContainsAllParts(matchers map[string][]string) EventIntervalMatchesFunc {
 			}
 		}
 
+		return true
+	}
+}
+
+// NotContainsAllParts returns a function that returns false if any key matches.
+func NotContainsAllParts(matchers map[string][]*regexp.Regexp) EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		actualParts := LocatorParts(eventInterval.Locator)
+		for key, possibleValues := range matchers {
+			actualValue := actualParts[key]
+
+			for _, possibleValue := range possibleValues {
+				if possibleValue.MatchString(actualValue) {
+					return false
+				}
+			}
+		}
 		return true
 	}
 }
