@@ -205,7 +205,9 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 			}
 
 			// if this container is not terminated, then we don't need to compute an event for it.
-			if containerStatus.LastTerminationState.Terminated == nil {
+			lastTerminated := containerStatus.LastTerminationState.Terminated != nil
+			currentTerminated := containerStatus.State.Terminated != nil
+			if !lastTerminated && !currentTerminated {
 				continue
 			}
 
@@ -215,7 +217,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				// the container exit because it will be a disconnected event that can confuse our container lifecycle ordering based
 				// on the event stream
 
-			case oldContainerStatus.LastTerminationState.Terminated == nil:
+			case lastTerminated && oldContainerStatus.LastTerminationState.Terminated == nil:
 				// if we are transitioning to a terminated state
 				if containerStatus.LastTerminationState.Terminated.ExitCode != 0 {
 					conditions = append(conditions, monitorapi.Condition{
@@ -228,6 +230,22 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 						Level:   monitorapi.Info,
 						Locator: monitorapi.LocatePodContainer(pod, containerName),
 						Message: monitorapi.ReasonedMessagef(monitorapi.ContainerReasonContainerExit, "code/0 cause/%s %s", containerStatus.LastTerminationState.Terminated.Reason, containerStatus.LastTerminationState.Terminated.Message),
+					})
+				}
+
+			case currentTerminated && oldContainerStatus.State.Terminated == nil:
+				// if we are transitioning to a terminated state
+				if containerStatus.State.Terminated.ExitCode != 0 {
+					conditions = append(conditions, monitorapi.Condition{
+						Level:   monitorapi.Error,
+						Locator: monitorapi.LocatePodContainer(pod, containerName),
+						Message: monitorapi.ReasonedMessagef(monitorapi.ContainerReasonContainerExit, "code/%d cause/%s %s", containerStatus.State.Terminated.ExitCode, containerStatus.State.Terminated.Reason, containerStatus.State.Terminated.Message),
+					})
+				} else {
+					conditions = append(conditions, monitorapi.Condition{
+						Level:   monitorapi.Info,
+						Locator: monitorapi.LocatePodContainer(pod, containerName),
+						Message: monitorapi.ReasonedMessagef(monitorapi.ContainerReasonContainerExit, "code/0 cause/%s %s", containerStatus.State.Terminated.Reason, containerStatus.State.Terminated.Message),
 					})
 				}
 			}
