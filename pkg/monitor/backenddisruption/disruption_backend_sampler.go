@@ -65,6 +65,9 @@ type BackendSampler struct {
 	// http status code is accepted.
 	expectRegexp *regexp.Regexp
 
+	// userAgent used to sets the User-Agent HTTP Header for all requests that are sent by this sampler
+	userAgent string
+
 	// initHTTPClient ensures we only create the http client once
 	initHTTPClient sync.Once
 	// httpClient is used to connect to the host+path
@@ -168,6 +171,12 @@ func (b *BackendSampler) WithTLSConfig(tlsConfig *tls.Config) *BackendSampler {
 // or 3xx response is acceptable.
 func (b *BackendSampler) WithExpectedBody(expectedBody string) *BackendSampler {
 	b.expect = expectedBody
+	return b
+}
+
+// WithUserAgent sets the User-Agent HTTP Header for all requests that are sent by this sampler
+func (b *BackendSampler) WithUserAgent(userAgent string) *BackendSampler {
+	b.userAgent = userAgent
 	return b
 }
 
@@ -282,15 +291,20 @@ func (b *BackendSampler) GetHTTPClient() (*http.Client, error) {
 			return
 		}
 
-		roundTripper, err := b.wrapWithAuth(http.RoundTripper(httpTransport))
+		var err error
+		rt := http.RoundTripper(httpTransport)
+		rt, err = b.wrapWithAuth(rt)
 		if err != nil {
 			b.httpClient = nil
 			b.httpClientErr = err
 			return
 		}
+		if len(b.userAgent) > 0 {
+			rt = transport.NewUserAgentRoundTripper(b.userAgent, rt)
+		}
 
 		b.httpClient = &http.Client{
-			Transport: roundTripper,
+			Transport: rt,
 			Timeout:   timeoutForEntireRequest,
 		}
 		b.httpClientErr = nil
