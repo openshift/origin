@@ -94,3 +94,81 @@ func testPodNodeNameIsImmutable(events monitorapi.Intervals) []*junitapi.JUnitTe
 		},
 	}}
 }
+
+func testMultipleSingleSecondAvailabilityFailure(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const multipleFailuresTestPrefix = "[sig-network] there should be nearly zero single second disruptions for "
+	const manyFailureTestPrefix = "[sig-network] there should be reasonably few single second disruptions for "
+
+	allServers := sets.String{}
+	allDisruptionEventsIntervals := events.Filter(monitorapi.IsDisruptionEvent)
+	for _, eventInterval := range allDisruptionEventsIntervals {
+		backend := monitorapi.DisruptionFrom(monitorapi.LocatorParts(eventInterval.Locator))
+		switch {
+		case strings.HasPrefix(backend, "ingress-"):
+			allServers.Insert(eventInterval.Locator)
+		case strings.HasSuffix(backend, "-api"):
+			allServers.Insert(eventInterval.Locator)
+		}
+	}
+
+	ret := []*junitapi.JUnitTestCase{}
+	for _, serverLocator := range allServers.List() {
+		disruptionEvents := events.Filter(
+			monitorapi.And(
+				isOneSecondEvent,
+				monitorapi.IsEventForLocator(serverLocator),
+				monitorapi.IsErrorEvent,
+			),
+		)
+
+		multipleFailuresTestName := multipleFailuresTestPrefix + serverLocator
+		manyFailuresTestName := manyFailureTestPrefix + serverLocator
+		multipleFailuresPass := &junitapi.JUnitTestCase{
+			Name:      multipleFailuresTestName,
+			SystemOut: strings.Join(disruptionEvents.Strings(), "\n"),
+		}
+		manyFailuresPass := &junitapi.JUnitTestCase{
+			Name:      manyFailuresTestName,
+			SystemOut: strings.Join(disruptionEvents.Strings(), "\n"),
+		}
+		multipleFailuresFail := &junitapi.JUnitTestCase{
+			Name: multipleFailuresTestName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: fmt.Sprintf("%s had %v single second disruptions", serverLocator, len(disruptionEvents)),
+			},
+			SystemOut: strings.Join(disruptionEvents.Strings(), "\n"),
+		}
+		manyFailuresFail := &junitapi.JUnitTestCase{
+			Name: manyFailuresTestName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: fmt.Sprintf("%s had %v single second disruptions", serverLocator, len(disruptionEvents)),
+			},
+			SystemOut: strings.Join(disruptionEvents.Strings(), "\n"),
+		}
+
+		switch {
+		case len(disruptionEvents) < 20:
+			ret = append(ret, multipleFailuresPass, manyFailuresPass)
+
+		case len(disruptionEvents) > 20: // chosen to be big enough that we should not hit this unless something is weird
+			ret = append(ret, multipleFailuresFail, manyFailuresPass)
+
+		case len(disruptionEvents) > 50: // chosen to be big enough that we should not hit this unless something is really really wrong
+			ret = append(ret, multipleFailuresFail, manyFailuresFail)
+		}
+	}
+
+	return ret
+}
+
+func isOneSecondEvent(eventInterval monitorapi.EventInterval) bool {
+	duration := eventInterval.To.Sub(eventInterval.From)
+	switch {
+	case duration <= 0:
+		return false
+	case duration > time.Second:
+		return false
+	default:
+		return true
+	}
+}
