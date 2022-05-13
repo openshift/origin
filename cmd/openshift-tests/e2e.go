@@ -120,6 +120,8 @@ var staticSuites = testSuites{
 				}
 				return strings.Contains(name, "[Suite:openshift/conformance/serial") || isStandardEarlyOrLateTest(name)
 			},
+			// doubling default test timeout (15 mins) which is needed for external ip configuration related serial tests.
+			TestTimeout:         30 * time.Minute,
 			SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
 		},
 		PreSuite: suiteWithProviderPreSuite,
