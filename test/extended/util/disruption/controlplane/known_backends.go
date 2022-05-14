@@ -115,6 +115,7 @@ func createAPIServerBackendSampler(clusterConfig *rest.Config, disruptionBackend
 	if err != nil {
 		return nil, err
 	}
+	backendSampler.WithUserAgent("openshift-origin-external-backend-sampler")
 
 	return backendSampler, nil
 }
