@@ -28,25 +28,27 @@ func (ConsolePluginList) SwaggerDoc() map[string]string {
 }
 
 var map_ConsolePluginProxy = map[string]string{
-	"":         "ConsolePluginProxy holds information on various service types to which console's backend will proxy the plugin's requests.",
-	"services": "services is a list of in-cluster Services that the plugin will connect to. The Service must use HTTPS. Console backend exposes the following endpoint in order to proxy communication between the plugin and the Service:\n\n/api/proxy/namespace/<service-namespace>/service/<service-name>:<port-number>/<request-path>?<optional-query-parameters>\n\nRequest example path:\n\n/api/proxy/namespace/helm/service/helm-charts:8443/releases?limit=10",
+	"":              "ConsolePluginProxy holds information on various service types to which console's backend will proxy the plugin's requests.",
+	"type":          "type is the type of the console plugin's proxy. Currently only \"Service\" is supported.",
+	"alias":         "alias is a proxy name that identifies the plugin's proxy. An alias name should be unique per plugin. The console backend exposes following proxy endpoint:\n\n/api/proxy/plugin/<plugin-name>/<proxy-alias>/<request-path>?<optional-query-parameters>\n\nRequest example path:\n\n/api/proxy/plugin/acm/search/pods?namespace=openshift-apiserver",
+	"service":       "service is an in-cluster Service that the plugin will connect to. The Service must use HTTPS. The console backend exposes an endpoint in order to proxy communication between the plugin and the Service. Note: service field is required for now, since currently only \"Service\" type is supported.",
+	"caCertificate": "caCertificate provides the cert authority certificate contents, in case the proxied Service is using custom service CA. By default, the service CA bundle provided by the service-ca operator is used. ",
+	"authorize":     "authorize indicates if the proxied request should contain the logged-in user's OpenShift access token in the \"Authorization\" request header. For example:\n\nAuthorization: Bearer sha256~kV46hPnEYhCWFnB85r5NrprAxggzgb6GOeLbgcKNsH0\n\nBy default the access token is not part of the proxied request.",
 }
 
 func (ConsolePluginProxy) SwaggerDoc() map[string]string {
 	return map_ConsolePluginProxy
 }
 
-var map_ConsolePluginProxyService = map[string]string{
-	"":              "ConsolePluginProxyService holds information on Service to which console's backend will proxy the plugin's requests.",
-	"name":          "name of Service that the plugin needs to connect to.",
-	"namespace":     "namespace of Service that the plugin needs to connect to",
-	"port":          "port on which the Service that the plugin needs to connect to is listening on.",
-	"caCertificate": "caCertificate provides the cert authority certificate contents, in case the proxied Service is using custom service CA. By default service CA bundle is used. ",
-	"authorize":     "authorize indicates if the proxied request will logged-in user's OpenShift access token in the \"Authorization\" request header:\n\nAuthorization: Bearer sha256~kV46hPnEYhCWFnB85r5NrprAxggzgb6GOeLbgcKNsH0\n\nBy default the access token is not part of the proxied request.",
+var map_ConsolePluginProxyServiceConfig = map[string]string{
+	"":          "ProxyTypeServiceConfig holds information on Service to which console's backend will proxy the plugin's requests.",
+	"name":      "name of Service that the plugin needs to connect to.",
+	"namespace": "namespace of Service that the plugin needs to connect to",
+	"port":      "port on which the Service that the plugin needs to connect to is listening on.",
 }
 
-func (ConsolePluginProxyService) SwaggerDoc() map[string]string {
-	return map_ConsolePluginProxyService
+func (ConsolePluginProxyServiceConfig) SwaggerDoc() map[string]string {
+	return map_ConsolePluginProxyServiceConfig
 }
 
 var map_ConsolePluginService = map[string]string{
@@ -65,7 +67,7 @@ var map_ConsolePluginSpec = map[string]string{
 	"":            "ConsolePluginSpec is the desired plugin configuration.",
 	"displayName": "displayName is the display name of the plugin.",
 	"service":     "service is a Kubernetes Service that exposes the plugin using a deployment with an HTTP server. The Service must use HTTPS and Service serving certificate. The console backend will proxy the plugins assets from the Service using the service CA bundle.",
-	"proxy":       "proxy is a list of Services that the plugin needs to connect to.",
+	"proxy":       "proxy is a list of proxies that describe various service type to which the plugin needs to connect to.",
 }
 
 func (ConsolePluginSpec) SwaggerDoc() map[string]string {

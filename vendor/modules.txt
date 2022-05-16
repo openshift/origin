@@ -667,7 +667,7 @@ github.com/opencontainers/runtime-spec/specs-go
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
-# github.com/openshift/api v0.0.0-20220110171111-997c316db5e1
+# github.com/openshift/api v0.0.0-20220315184754-d7c10d0b647e
 ## explicit
 github.com/openshift/api
 github.com/openshift/api/annotations
@@ -791,6 +791,9 @@ github.com/openshift/client-go/image/clientset/versioned/typed/image/v1
 github.com/openshift/client-go/imageregistry/clientset/versioned
 github.com/openshift/client-go/imageregistry/clientset/versioned/scheme
 github.com/openshift/client-go/imageregistry/clientset/versioned/typed/imageregistry/v1
+github.com/openshift/client-go/machine/clientset/versioned
+github.com/openshift/client-go/machine/clientset/versioned/scheme
+github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1
 github.com/openshift/client-go/network/clientset/versioned/scheme
 github.com/openshift/client-go/network/clientset/versioned/typed/network/v1
 github.com/openshift/client-go/oauth/clientset/versioned
@@ -833,7 +836,7 @@ github.com/openshift/client-go/user/informers/externalversions/internalinterface
 github.com/openshift/client-go/user/informers/externalversions/user
 github.com/openshift/client-go/user/informers/externalversions/user/v1
 github.com/openshift/client-go/user/listers/user/v1
-# github.com/openshift/library-go v0.0.0-20220315122757-21a67f25d837
+# github.com/openshift/library-go v0.0.0-20220502112129-771a6581efac
 ## explicit
 github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig
 github.com/openshift/library-go/pkg/apiserver/admission/admissiontimeout
@@ -879,6 +882,8 @@ github.com/openshift/library-go/pkg/security/ldaputil
 github.com/openshift/library-go/pkg/security/uid
 github.com/openshift/library-go/pkg/serviceability
 github.com/openshift/library-go/pkg/template/templateprocessingclient
+github.com/openshift/library-go/test/library
+github.com/openshift/library-go/test/library/apiserver
 github.com/openshift/library-go/test/library/metrics
 # github.com/pborman/uuid v1.2.0
 ## explicit
@@ -897,7 +902,7 @@ github.com/pmezard/go-difflib/difflib
 ## explicit
 github.com/pquerna/cachecontrol
 github.com/pquerna/cachecontrol/cacheobject
-# github.com/prometheus/client_golang v1.11.0
+# github.com/prometheus/client_golang v1.11.1
 ## explicit
 github.com/prometheus/client_golang/api
 github.com/prometheus/client_golang/api/prometheus/v1

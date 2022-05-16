@@ -26,7 +26,7 @@ type ConsolePluginSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +optional
-	DisplayName string `json:"displayName"`
+	DisplayName string `json:"displayName,omitempty"`
 	// service is a Kubernetes Service that exposes the plugin using a
 	// deployment with an HTTP server. The Service must use HTTPS and
 	// Service serving certificate. The console backend will proxy the
@@ -34,34 +34,75 @@ type ConsolePluginSpec struct {
 	// +kubebuilder:validation:Required
 	// +required
 	Service ConsolePluginService `json:"service"`
-	// proxy is a list of Services that the plugin needs to connect to.
+	// proxy is a list of proxies that describe various service type
+	// to which the plugin needs to connect to.
 	// +kubebuilder:validation:Optional
 	// +optional
-	Proxy ConsolePluginProxy `json:"proxy"`
+	Proxy []ConsolePluginProxy `json:"proxy,omitempty"`
 }
 
 // ConsolePluginProxy holds information on various service types
 // to which console's backend will proxy the plugin's requests.
 type ConsolePluginProxy struct {
-	// services is a list of in-cluster Services that the plugin
-	// will connect to. The Service must use HTTPS. Console backend
-	// exposes the following endpoint in order to proxy communication
-	// between the plugin and the Service:
+	// type is the type of the console plugin's proxy. Currently only "Service" is supported.
+	// +kubebuilder:validation:Required
+	// +required
+	Type ConsolePluginProxyType `json:"type"`
+	// alias is a proxy name that identifies the plugin's proxy. An alias name
+	// should be unique per plugin. The console backend exposes following
+	// proxy endpoint:
 	//
-	// /api/proxy/namespace/<service-namespace>/service/<service-name>:<port-number>/<request-path>?<optional-query-parameters>
+	// /api/proxy/plugin/<plugin-name>/<proxy-alias>/<request-path>?<optional-query-parameters>
 	//
 	// Request example path:
 	//
-	// /api/proxy/namespace/helm/service/helm-charts:8443/releases?limit=10
+	// /api/proxy/plugin/acm/search/pods?namespace=openshift-apiserver
 	//
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=128
+	// +kubebuilder:validation:Pattern=`^[A-Za-z0-9-_]+$`
+	// +required
+	Alias string `json:"alias"`
+	// service is an in-cluster Service that the plugin will connect to.
+	// The Service must use HTTPS. The console backend exposes an endpoint
+	// in order to proxy communication between the plugin and the Service.
+	// Note: service field is required for now, since currently only "Service"
+	// type is supported.
+	// +kubebuilder:validation:Required
+	// +required
+	Service ConsolePluginProxyServiceConfig `json:"service,omitempty"`
+	// caCertificate provides the cert authority certificate contents,
+	// in case the proxied Service is using custom service CA.
+	// By default, the service CA bundle provided by the service-ca operator is used.
+	// +kubebuilder:validation:Pattern=`^-----BEGIN CERTIFICATE-----([\s\S]*)-----END CERTIFICATE-----\s?$`
 	// +kubebuilder:validation:Optional
 	// +optional
-	Services []ConsolePluginProxyService `json:"services"`
+	CACertificate string `json:"caCertificate,omitempty"`
+	// authorize indicates if the proxied request should contain the logged-in user's
+	// OpenShift access token in the "Authorization" request header. For example:
+	//
+	// Authorization: Bearer sha256~kV46hPnEYhCWFnB85r5NrprAxggzgb6GOeLbgcKNsH0
+	//
+	// By default the access token is not part of the proxied request.
+	// +kubebuilder:default:=false
+	// +kubebuilder:validation:Optional
+	// +optional
+	Authorize bool `json:"authorize,omitempty"`
 }
 
-// ConsolePluginProxyService holds information on Service to which
+// ProxyType is an enumeration of available proxy types
+// +kubebuilder:validation:Pattern=`^(Service)$`
+type ConsolePluginProxyType string
+
+const (
+	// ProxyTypeService is used when proxying communication to a Service
+	ProxyTypeService ConsolePluginProxyType = "Service"
+)
+
+// ProxyTypeServiceConfig holds information on Service to which
 // console's backend will proxy the plugin's requests.
-type ConsolePluginProxyService struct {
+type ConsolePluginProxyServiceConfig struct {
 	// name of Service that the plugin needs to connect to.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
@@ -81,23 +122,6 @@ type ConsolePluginProxyService struct {
 	// +kubebuilder:validation:Minimum:=1
 	// +required
 	Port int32 `json:"port"`
-	// caCertificate provides the cert authority certificate contents,
-	// in case the proxied Service is using custom service CA.
-	// By default service CA bundle is used.
-	// +kubebuilder:validation:Pattern=`^-----BEGIN CERTIFICATE-----([\s\S]*)-----END CERTIFICATE-----\s?$`
-	// +kubebuilder:validation:Optional
-	// +optional
-	CACertificate string `json:"caCertificate,omitempty"`
-	// authorize indicates if the proxied request will logged-in user's
-	// OpenShift access token in the "Authorization" request header:
-	//
-	// Authorization: Bearer sha256~kV46hPnEYhCWFnB85r5NrprAxggzgb6GOeLbgcKNsH0
-	//
-	// By default the access token is not part of the proxied request.
-	// +kubebuilder:default:=false
-	// +kubebuilder:validation:Optional
-	// +optional
-	Authorize bool `json:"authorize,omitempty"`
 }
 
 // ConsolePluginService holds information on Service that is serving

@@ -1,0 +1,90 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    api-approved.openshift.io: https://github.com/openshift/api/pull/1107
+    include.release.openshift.io/ibm-cloud-managed: "true"
+    include.release.openshift.io/self-managed-high-availability: "true"
+    include.release.openshift.io/single-node-developer: "true"
+  name: nodes.config.openshift.io
+spec:
+  group: config.openshift.io
+  names:
+    kind: Node
+    listKind: NodeList
+    plural: nodes
+    singular: node
+  scope: Namespaced
+  versions:
+    - name: v1
+      schema:
+        openAPIV3Schema:
+          description: "Node holds cluster-wide information about node specific features. \n Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer)."
+          type: object
+          required:
+            - spec
+          properties:
+            apiVersion:
+              description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+              type: string
+            kind:
+              description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: spec holds user settable values for configuration
+              type: object
+              properties:
+                cgroupMode:
+                  description: CgroupMode determines the cgroups version on the node
+                  type: string
+                workerLatencyProfile:
+                  description: WorkerLatencyProfile determins the how fast the kubelet is updating the status and corresponding reaction of the cluster
+                  type: string
+            status:
+              description: status holds observed values.
+              type: object
+              properties:
+                workerLatencyProfileStatus:
+                  description: WorkerLatencyProfileStatus provides the current status of WorkerLatencyProfile
+                  type: object
+                  properties:
+                    conditions:
+                      description: conditions describes the state of the WorkerLatencyProfile and related components (Kubelet or Controller Manager or Kube API Server)
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - lastTransitionTime
+                          - owner
+                          - status
+                          - type
+                        properties:
+                          lastTransitionTime:
+                            description: lastTransitionTime is the time of the last update to the current status property.
+                            type: string
+                            format: date-time
+                          message:
+                            description: message provides additional information about the current condition. This is only to be consumed by humans.  It may contain Line Feed characters (U+000A), which should be rendered as new lines.
+                            type: string
+                          owner:
+                            description: Owner specifies the operator that is updating this condition
+                            type: string
+                          reason:
+                            description: reason is the CamelCase reason for the condition's current status.
+                            type: string
+                          status:
+                            description: status of the condition, one of True, False, Unknown.
+                            type: string
+                          type:
+                            description: type specifies the aspect reported by this condition.
+                            type: string
+      served: true
+      storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

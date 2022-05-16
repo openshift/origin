@@ -45,7 +45,7 @@ func (c syncContext) Recorder() events.Recorder {
 }
 
 // eventHandler provides default event handler that is added to an informers passed to controller factory.
-func (c syncContext) eventHandler(queueKeyFunc ObjectQueueKeyFunc, filter EventFilterFunc) cache.ResourceEventHandler {
+func (c syncContext) eventHandler(queueKeysFunc ObjectQueueKeysFunc, filter EventFilterFunc) cache.ResourceEventHandler {
 	resourceEventHandler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			runtimeObj, ok := obj.(runtime.Object)
@@ -53,7 +53,7 @@ func (c syncContext) eventHandler(queueKeyFunc ObjectQueueKeyFunc, filter EventF
 				utilruntime.HandleError(fmt.Errorf("added object %+v is not runtime Object", obj))
 				return
 			}
-			c.Queue().Add(queueKeyFunc(runtimeObj))
+			c.enqueueKeys(queueKeysFunc(runtimeObj)...)
 		},
 		UpdateFunc: func(old, new interface{}) {
 			runtimeObj, ok := new.(runtime.Object)
@@ -61,19 +61,20 @@ func (c syncContext) eventHandler(queueKeyFunc ObjectQueueKeyFunc, filter EventF
 				utilruntime.HandleError(fmt.Errorf("updated object %+v is not runtime Object", runtimeObj))
 				return
 			}
-			c.Queue().Add(queueKeyFunc(runtimeObj))
+			c.enqueueKeys(queueKeysFunc(runtimeObj)...)
 		},
 		DeleteFunc: func(obj interface{}) {
 			runtimeObj, ok := obj.(runtime.Object)
 			if !ok {
 				if tombstone, ok := obj.(cache.DeletedFinalStateUnknown); ok {
-					c.Queue().Add(queueKeyFunc(tombstone.Obj.(runtime.Object)))
+					c.enqueueKeys(queueKeysFunc(tombstone.Obj.(runtime.Object))...)
+
 					return
 				}
 				utilruntime.HandleError(fmt.Errorf("updated object %+v is not runtime Object", runtimeObj))
 				return
 			}
-			c.Queue().Add(queueKeyFunc(runtimeObj))
+			c.enqueueKeys(queueKeysFunc(runtimeObj)...)
 		},
 	}
 	if filter == nil {
@@ -82,6 +83,12 @@ func (c syncContext) eventHandler(queueKeyFunc ObjectQueueKeyFunc, filter EventF
 	return cache.FilteringResourceEventHandler{
 		FilterFunc: filter,
 		Handler:    resourceEventHandler,
+	}
+}
+
+func (c syncContext) enqueueKeys(keys ...string) {
+	for _, qKey := range keys {
+		c.queue.Add(qKey)
 	}
 }
 
