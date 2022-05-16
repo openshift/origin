@@ -1743,6 +1743,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-devex][Feature:Templates] templateservicebroker security test  should pass security tests": "should pass security tests [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-etcd] etcd cluster has the same number of master nodes and voting members from the endpoints configmap [Early]": "cluster has the same number of master nodes and voting members from the endpoints configmap [Early] [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-etcd] etcd leader changes are not excessive [Late]": "leader changes are not excessive [Late] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-etcd] etcd record the start revision of the etcd-operator [Early]": "record the start revision of the etcd-operator [Early] [Suite:openshift/conformance/parallel]",
