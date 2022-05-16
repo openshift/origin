@@ -19,6 +19,16 @@ var _ = g.Describe("[sig-etcd][Serial] etcd", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("etcd-scaling").AsAdmin()
 
+	var cleanupPlatformSpecificConfiguration func()
+
+	g.BeforeEach(func() {
+		cleanupPlatformSpecificConfiguration = scalingtestinglibrary.InitPlatformSpecificConfiguration(oc)
+	})
+
+	g.AfterEach(func() {
+		cleanupPlatformSpecificConfiguration()
+	})
+
 	// The following test covers a basic vertical scaling scenario.
 	// It starts by adding a new master machine to the cluster
 	// next it validates the size of etcd cluster and makes sure the new member is healthy.
