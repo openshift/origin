@@ -122,6 +122,11 @@ func testStaticPodLifecycleFailure(events monitorapi.Intervals, kubeClientConfig
 		// We are suspecting events API and core API are not returning the same events. Double check here.
 		// For debugging purpose
 		if !foundEventForProperRevision {
+			// Log the events API events
+			eventString, err := json.Marshal(events)
+			if err == nil {
+				fmt.Printf("test %s with failure message '%s' failed: corresponding events from events API %s\n", testName, staticPodFailure.failureMessage, eventString)
+			}
 			coreEvents, err := kubeClient.CoreV1().Events(staticPodFailure.namespace).List(ctx, metav1.ListOptions{})
 			if err == nil {
 				for _, event := range coreEvents.Items {
@@ -134,11 +139,6 @@ func testStaticPodLifecycleFailure(events monitorapi.Intervals, kubeClientConfig
 							// Found the event in events returned from core API
 							foundEventForProperRevision = true
 							fmt.Printf("test %s with failure message '%s' recovered\n", testName, staticPodFailure.failureMessage)
-							// Log the events API events
-							eventString, err := json.Marshal(events)
-							if err == nil {
-								fmt.Printf("test %s recovered: corresponding events from events API %s\n", testName, eventString)
-							}
 
 							// Log the core API events
 							eventString, err = json.Marshal(coreEvents)
