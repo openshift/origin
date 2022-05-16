@@ -20,6 +20,13 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/serviceability"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	utilflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2"
+	"k8s.io/kubectl/pkg/util/templates"
+
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/resourcewatch/cmd"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
@@ -28,12 +35,6 @@ import (
 	"github.com/openshift/origin/test/extended/util/cluster"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	utilflag "k8s.io/component-base/cli/flag"
-	"k8s.io/component-base/logs"
-	"k8s.io/klog/v2"
-	"k8s.io/kubectl/pkg/util/templates"
 )
 
 func main() {
@@ -316,6 +317,9 @@ func newRunCommand() *cobra.Command {
 					fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 				}
 				err = opt.Run(&suite.TestSuite, "openshift-tests")
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", err.Error())
+				}
 				if suite.PostSuite != nil {
 					suite.PostSuite(opt)
 				}
@@ -379,6 +383,9 @@ func newRunUpgradeCommand() *cobra.Command {
 					fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 				}
 				err = opt.Run(&suite.TestSuite, "openshift-tests-upgrade")
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", err.Error())
+				}
 				if suite.PostSuite != nil {
 					suite.PostSuite(opt)
 				}
