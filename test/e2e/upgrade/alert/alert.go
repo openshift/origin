@@ -14,7 +14,10 @@ import (
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	kapiv1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 )
@@ -220,6 +223,18 @@ count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog
 		if cause := firingAlertsWithBugs.Matches(series); cause != nil {
 			knownViolations.Insert(fmt.Sprintf("%s (open bug: %s)", violation, cause.Text))
 		} else {
+			if series.Metric["alertName"] == "KubePodNotReady" {
+				if kPNRDueToImagePullBackoff(helper.LabelsAsSelector(labels), series.Timestamp.Time(), t.oc.AdminKubeClient()) {
+					unexpectedViolationsAsFlakes.Insert(violation)
+					continue
+				}
+			}
+			if series.Metric["alertName"] == "RedhatOperatorsCatalogError" {
+				if redhatOperatorPodsNotPending(series.Timestamp.Time(), t.oc.AdminKubeClient()) {
+					unexpectedViolationsAsFlakes.Insert(violation)
+					continue
+				}
+			}
 			unexpectedViolations.Insert(violation)
 		}
 	}
@@ -271,4 +286,74 @@ sort_desc(
 // Teardown cleans up any remaining resources.
 func (t *UpgradeTest) Teardown(f *framework.Framework) {
 	// rely on the namespace deletion to clean up everything
+}
+
+// redhatOperatorPodsNotPending returns true of we determined that there is a redhat-operator
+// pod not in Pending state impling that we don't need to fail on the RedhatOperatorsCatalogError
+// alert.
+func redhatOperatorPodsNotPending(alertTime time.Time, kubeClient kubernetes.Interface) bool {
+	// Search the events in the openshift-marketplace namespace for redhat-operator pods to
+	// see if there are redhat-operator pods no longer pending.
+	ctx := context.Background()
+	podList, err := kubeClient.CoreV1().Pods("openshift-marketplace").List(ctx, v1.ListOptions{})
+	if err != nil {
+		// Unable to get events, so we cannot do any analysis.
+		return false
+	}
+	for _, pod := range podList.Items {
+		if strings.Contains(pod.ObjectMeta.Name, "redhat-operators") && pod.Status.Phase != kapiv1.PodPending {
+			podStartTime := pod.Status.StartTime.Time
+			if alertTime.Before(podStartTime) && podStartTime.Sub(alertTime) > time.Minute*10 {
+				framework.Logf("RedhatOperatorsCatalogError alert failure suppressed since %s is not Pending 10+ minutes later", pod.ObjectMeta.Name)
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// kPNRDueToImagePullBackoff returns true if we searched events and determined that the
+// KubePodNotReady alert fired due to an imagePullBackoff event associated with the
+// involved object represented in the alertLabel.
+func kPNRDueToImagePullBackoff(alertLabel string, alertTime time.Time, kubeClient kubernetes.Interface) bool {
+	// an alertLabel looks like {namespace="openshift-marketplace", pod="redhat-operators-65mdd", ..
+	// Remove the leading and trailing braces.
+	noBraces := strings.ReplaceAll(alertLabel[1:], "}", "")
+	alertLabelItems := strings.Split(noBraces, ",")
+	var alertParts = make(map[string]string)
+	for _, labelItem := range alertLabelItems {
+		parts := strings.Split(labelItem, "=")
+		alertParts[strings.ReplaceAll(parts[0], " ", "")] = strings.ReplaceAll(parts[1], "\"", "")
+	}
+	if _, ok := alertParts["namespace"]; !ok {
+		// Namespace not found so don't search events on this firing alert.
+		return false
+	}
+	if _, ok := alertParts["pod"]; !ok {
+		// Pod not found so don't search events on this firing alert.
+		return false
+	}
+
+	// Search the events in this pod's namespace to see if the alert happened due to
+	// ImagePullBackOff event.
+	ctx := context.Background()
+	events, err := kubeClient.CoreV1().Events(alertParts["namespace"]).List(ctx, v1.ListOptions{})
+	if err != nil {
+		// Unable to get events, so we cannot tell if this was due to an imagePullBackoff event.
+		return false
+	}
+	for _, event := range events.Items {
+		if event.InvolvedObject.Name == alertParts["pod"] && strings.Contains(event.Message, "ImagePullBackOff") {
+			//if event.InvolvedObject.Name == alertParts["pod"] && strings.Contains(event.Message, "unable to get cluster infrastructure") {
+			imagePullBackoffTime := event.FirstTimestamp.Time
+			if alertTime.After(imagePullBackoffTime) && (alertTime.Sub(imagePullBackoffTime) < time.Minute*10) {
+				framework.Logf("KubePodNotReady alert failure suppressed due to ImagePullBackoff on %s", alertParts["pod"])
+				return true
+			}
+
+			// We only look at a single event where it's an ImagePullBackOff for this pod.
+			break
+		}
+	}
+	return false
 }
