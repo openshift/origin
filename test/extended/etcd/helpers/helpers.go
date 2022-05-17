@@ -70,7 +70,7 @@ func CreateNewMasterMachine(ctx context.Context, t TestingT, machineClient machi
 
 func EnsureMasterMachine(ctx context.Context, t TestingT, machineName string, machineClient machinev1beta1client.MachineInterface) error {
 	waitPollInterval := 15 * time.Second
-	waitPollTimeout := 5 * time.Minute
+	waitPollTimeout := 10 * time.Minute
 	t.Logf("Waiting up to %s for %q machine to be in the Running state", waitPollTimeout.String(), machineName)
 
 	return wait.Poll(waitPollInterval, waitPollTimeout, func() (bool, error) {
