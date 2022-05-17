@@ -15,6 +15,7 @@ import (
 	machinev1beta1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1"
 	exutil "github.com/openshift/origin/test/extended/util"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -295,9 +296,16 @@ func SkipIfUnsupportedPlatform(ctx context.Context, oc *exutil.CLI) {
 
 func skipUnlessFunctionalMachineAPI(ctx context.Context, machineClient machinev1beta1client.MachineInterface) {
 	machines, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
-	o.Expect(err).ToNot(o.HaveOccurred())
-	if len(machines.Items) == 0 {
+	// the machine API can be unavailable resulting in a 404 or an empty list
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			o.Expect(err).ToNot(o.HaveOccurred())
+		}
 		e2eskipper.Skipf("haven't found machines resources on the cluster, this test can be run on a platform that supports functional MachineAPI")
+		return
+	}
+	if len(machines.Items) == 0 {
+		e2eskipper.Skipf("got an empty list of machines resources from the cluster, this test can be run on a platform that supports functional MachineAPI")
 		return
 	}
 
