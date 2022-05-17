@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"context"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -17,6 +18,7 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 	oc := exutil.NewCLIWithoutNamespace("etcd-invariants").AsAdmin()
 
 	g.It("cluster has the same number of master nodes and voting members from the endpoints configmap [Early]", func() {
+		exutil.SkipIfExternalControlplaneTopology(oc, "clusters with external controlplane topology don't have master nodes")
 		masterNodeLabelSelectorString := "node-role.kubernetes.io/master"
 		masterNodeList, err := oc.KubeClient().CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: masterNodeLabelSelectorString})
 		o.Expect(err).ToNot(o.HaveOccurred())
