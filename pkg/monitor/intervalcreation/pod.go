@@ -305,11 +305,11 @@ func (t containerLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
 	if !ok {
 		return t.delegate.getEndTime(locator)
 	}
-	for i := len(containerEvents) - 1; i >= 0; i-- {
-		event := containerEvents[i]
-		if monitorapi.ReasonFrom(event.Message) == monitorapi.ContainerReasonContainerExit {
-			return event.From
-		}
+	// if the last event is a containerExit, then that's as long as the container lasted.
+	// if the last event isn't a containerExit, then the last time we're aware of for the container is parent.
+	lastEvent := containerEvents[len(containerEvents)-1]
+	if monitorapi.ReasonFrom(lastEvent.Message) == monitorapi.ContainerReasonContainerExit {
+		return lastEvent.From
 	}
 
 	// no hit, try to bound based on pod

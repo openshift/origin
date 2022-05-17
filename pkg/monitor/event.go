@@ -123,18 +123,7 @@ func recordAddOrUpdateEvent(
 	// special case some very common events
 	switch obj.Reason {
 	case "":
-	case "Scheduled":
-		if obj.InvolvedObject.Kind == "Pod" {
-			if strings.HasPrefix(message, "Successfully assigned ") {
-				if i := strings.Index(message, " to "); i != -1 {
-					node := message[i+4:]
-					message = fmt.Sprintf("node/%s reason/%s", node, obj.Reason)
-					break
-				}
-			}
-		}
-		message = fmt.Sprintf("reason/%s %s", obj.Reason, message)
-	case "Started", "Created", "Killing":
+	case "Killing":
 		if obj.InvolvedObject.Kind == "Pod" {
 			if containerName, ok := eventForContainer(obj.InvolvedObject.FieldPath); ok {
 				message = fmt.Sprintf("container/%s reason/%s", containerName, obj.Reason)
