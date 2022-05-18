@@ -619,6 +619,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch] ocp payload should be based on existing source OLM version should contain the source commit id": "OLM version should contain the source commit id [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-arch][Early] CRDs for openshift.io should have a status in the CRD schema": "should have a status in the CRD schema [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][Early] CRDs for openshift.io should have subresource.status": "should have subresource.status [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-arch][Early] Managed cluster should start all core operators": "start all core operators [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][Feature:ClusterUpgrade] Cluster should remain functional during upgrade [Disruptive]": "Cluster should remain functional during upgrade [Disruptive] [Serial]",
