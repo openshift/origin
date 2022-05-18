@@ -569,7 +569,7 @@ func newDuplicatedEventsAllowedWhenEtcdRevisionChange(ctx context.Context, opera
 		return nil, err
 	}
 	return &etcdRevisionChangeAllowance{
-		allowedGuardProbeFailurePattern:        regexp.MustCompile(`ns/openshift-etcd pod/etcd-guard-ip-.* node/[a-z0-9.-]+ - reason/(Unhealthy|ProbeError) Readiness probe.*`),
+		allowedGuardProbeFailurePattern:        regexp.MustCompile(`ns/openshift-etcd pod/etcd-guard-.* node/[a-z0-9.-]+ - reason/(Unhealthy|ProbeError) Readiness probe.*`),
 		maxAllowedGuardProbeFailurePerRevision: 60 / 5, // 60s for starting a new pod, divided by the probe interval
 		currentRevision:                        currentRevision,
 	}, nil
