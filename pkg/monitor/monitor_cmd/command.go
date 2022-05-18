@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -35,6 +36,7 @@ type TimelineOptions struct {
 	LocatorMatchers []string
 	Namespaces      []string
 	OutputType      string
+	EndDate         string
 
 	KnownRenderers map[string]RenderFunc
 	KnownTimelines map[string]monitorapi.EventIntervalMatchesFunc
@@ -103,7 +105,8 @@ func (o *TimelineOptions) Bind(flagset *pflag.FlagSet) error {
 	flagset.StringVarP(&o.OutputType, "output", "o", o.OutputType, fmt.Sprintf("type of output: [%s]", strings.Join(sets.StringKeySet(o.KnownRenderers).List(), ",")))
 	flagset.StringVar(&o.TimelineType, "type", o.TimelineType, "type of timeline to produce: "+strings.Join(sets.StringKeySet(o.KnownTimelines).List(), ","))
 	flagset.StringVar(&o.PodResourceFilename, "known-pods", o.PodResourceFilename, "resource-pods_<timestamp>.zip filename from openshift-tests.")
-	flagset.StringSliceVarP(&o.LocatorMatchers, "locator", "l", o.LocatorMatchers, "key=value selector for monitor event locators.  for instance -lpod=openshift-etcd-installer.  The same key listed multiple times means an OR.  Each separate key is logically ANDed")
+	flagset.StringSliceVarP(&o.LocatorMatchers, "locator", "l", o.LocatorMatchers, "key=value selector for monitor event locators (where value is a regex).  for instance -lpod=openshift-etcd-installer.  The same key listed multiple times means an OR.  Each separate key is logically ANDed.  Precede value with a dash for anti-match")
+	flagset.StringVarP(&o.EndDate, "end-date", "e", o.EndDate, fmt.Sprintf("End date (default is one hour after latest event) in RFC3399 format in UTC timezone: %s", time.RFC3339))
 
 	return nil
 }
@@ -136,23 +139,48 @@ func (o *TimelineOptions) Validate() error {
 		}
 	}
 
+	if len(o.EndDate) > 0 {
+		_, err := time.ParseInLocation(time.RFC3339, o.EndDate, time.UTC)
+		if err != nil {
+			return fmt.Errorf("The --end-date value needs to be a valid time in RFC3339 format: %s", time.RFC3339)
+		}
+	}
 	return nil
 }
 
 func (o *TimelineOptions) ToTimeline() *Timeline {
-	locatorMatcher := map[string][]string{}
+	locatorMatcher := map[string][]*regexp.Regexp{}
+	inverseLocatorMatcher := map[string][]*regexp.Regexp{}
 
 	for _, matcherString := range o.LocatorMatchers {
 		parts := strings.SplitN(matcherString, "=", 2)
-		locatorMatcher[parts[0]] = append(locatorMatcher[parts[0]], parts[1])
+
+		// value starts with a "-"" so treat it as an anti-matcher.
+		if strings.HasPrefix(parts[1], "-") {
+			regExp := regexp.MustCompile(parts[1][1:])
+			inverseLocatorMatcher[parts[0]] = append(inverseLocatorMatcher[parts[0]], regExp)
+		} else {
+			regExp := regexp.MustCompile(parts[1])
+			locatorMatcher[parts[0]] = append(locatorMatcher[parts[0]], regExp)
+		}
+	}
+
+	var endDateTime = &time.Time{}
+	if len(o.EndDate) > 0 {
+		parsedTime, _ := time.Parse(time.RFC3339, o.EndDate)
+		endDateTime = &parsedTime
+	} else {
+		endDateTime = nil
 	}
 
 	return &Timeline{
 		MonitorEventFilename: o.MonitorEventFilename,
 		PodResourceFilename:  o.PodResourceFilename,
 
-		LocatorMatcher: locatorMatcher,
-		Namespaces:     o.Namespaces,
+		LocatorMatcher:        locatorMatcher,
+		RemovedLocatorMatcher: inverseLocatorMatcher,
+		Namespaces:            o.Namespaces,
+		EndDate:               endDateTime,
 
 		Renderer:       o.KnownRenderers[o.OutputType],
 		TimelineFilter: o.KnownTimelines[o.TimelineType],
@@ -164,8 +192,10 @@ type Timeline struct {
 	MonitorEventFilename string
 	PodResourceFilename  string
 
-	LocatorMatcher map[string][]string
-	Namespaces     []string
+	LocatorMatcher        map[string][]*regexp.Regexp
+	RemovedLocatorMatcher map[string][]*regexp.Regexp
+	Namespaces            []string
+	EndDate               *time.Time
 
 	Renderer       RenderFunc
 	TimelineFilter monitorapi.EventIntervalMatchesFunc
@@ -195,9 +225,28 @@ func (o *Timeline) Run() error {
 		filteredEvents = filteredEvents.Filter(monitorapi.ContainsAllParts(o.LocatorMatcher))
 	}
 
+	if len(o.RemovedLocatorMatcher) > 0 {
+		filteredEvents = filteredEvents.Filter(monitorapi.NotContainsAllParts(o.RemovedLocatorMatcher))
+	}
 	// compute intervals from raw
 	from := time.Time{}
-	to := time.Time{}
+	var to time.Time
+
+	if o.EndDate == nil {
+		// Limit the final timestamp "To" to one hour after the latest "To" value.
+		// Handle the case where filteredEvents has everything filtered out.
+		to = time.Time{}
+		if len(filteredEvents) > 0 {
+			for _, e := range filteredEvents {
+				if to.Before(e.To) {
+					to = e.To
+				}
+			}
+			to = to.Add(1 * time.Hour)
+		}
+	} else {
+		to = *o.EndDate
+	}
 	computedIntervalFns := monitor.DefaultIntervalCreationFns()
 	for _, createIntervals := range computedIntervalFns {
 		filteredEvents = append(filteredEvents, createIntervals(filteredEvents, recordedResources, from, to)...)
