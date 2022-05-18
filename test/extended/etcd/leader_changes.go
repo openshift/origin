@@ -3,6 +3,7 @@ package etcd
 import (
 	"context"
 	"fmt"
+	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -17,6 +18,14 @@ import (
 var _ = g.Describe("[sig-etcd] etcd", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("etcd-leader-change").AsAdmin()
+
+	var earlyMaxRevision int
+	g.It("record the start revision of the etcd-operator [Early]", func() {
+		var err error
+		earlyMaxRevision, err = allowedalerts.GetBiggestRevisionForEtcdOperator(context.TODO(), oc.AdminOperatorClient().OperatorV1())
+		o.Expect(err).ToNot(o.HaveOccurred())
+	})
+
 	g.It("leader changes are not excessive [Late]", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -47,9 +56,18 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 			o.Expect(fmt.Errorf("expecting Prometheus query to return at least one item, got 0 instead")).ToNot(o.HaveOccurred())
 		}
 
+		// calculate the number of etcd rollouts during the tests
+		// based on that calculate the number of allowed leader elections
+		// we allow max 3 elections per revision (we assume there are 3 master machines at most)
+		lateMaxRevision, err := allowedalerts.GetBiggestRevisionForEtcdOperator(context.TODO(), oc.AdminOperatorClient().OperatorV1())
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		numberOfRevisions := lateMaxRevision - earlyMaxRevision
+		allowedNumberOfRevisions := numberOfRevisions * 3
+
 		leaderChanges := vec[0].Value
-		if leaderChanges != 0 {
-			o.Expect(fmt.Errorf("Observed %s leader changes (expected 0) in %s: Leader changes are a result of stopping the etcd leader process or from latency (disk or network), review etcd performance metrics", leaderChanges, testDuration)).ToNot(o.HaveOccurred())
+		if int(leaderChanges) > allowedNumberOfRevisions {
+			o.Expect(fmt.Errorf("observed %s leader changes (expected %v) in %s: Leader changes are a result of stopping the etcd leader process or from latency (disk or network), review etcd performance metrics", leaderChanges, allowedNumberOfRevisions, testDuration)).ToNot(o.HaveOccurred())
 		}
 	})
 })
