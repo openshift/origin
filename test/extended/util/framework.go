@@ -36,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
 	quotav1 "k8s.io/apiserver/pkg/quota/v1"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 	batchv1client "k8s.io/client-go/kubernetes/typed/batch/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -2082,4 +2083,26 @@ func SkipIfExternalControlplaneTopology(oc *CLI, reason string) {
 	if *controlPlaneTopology == configv1.ExternalTopologyMode {
 		skipper.Skipf(reason)
 	}
+}
+
+// DoesApiResourceExist searches the list of ApiResources and returns "true" if a given
+// apiResourceName Exists. Valid search strings are for example "cloudprivateipconfigs" or "machines".
+func DoesApiResourceExist(oc *CLI, apiResourceName string) (bool, error) {
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(oc.AdminConfig())
+	if err != nil {
+		return false, err
+	}
+	_, allResourceList, err := discoveryClient.ServerGroupsAndResources()
+	if err != nil {
+		return false, err
+	}
+	for _, apiResourceList := range allResourceList {
+		for _, apiResource := range apiResourceList.APIResources {
+			if apiResource.Name == apiResourceName {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
 }

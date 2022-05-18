@@ -66,6 +66,9 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=2004074
 			`\[sig-network-edge\]\[Feature:Idling\] Unidling should work with TCP \(while idling\)`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=2070929
+			`\[sig-network\]\[Feature:EgressIP\] \[internal-targets\]`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
@@ -86,7 +89,9 @@ var (
 			`openshift mongodb replication creating from a template`, // flaking on deployment
 		},
 		// tests that must be run without competition
-		"[Serial]": {},
+		"[Serial]": {
+			`\[sig-network\]\[Feature:EgressIP\]`,
+		},
 		// tests that can't be run in parallel with a copy of itself
 		"[Serial:Self]": {
 			`\[sig-network\] HostPort validates that there is no conflict between pods with same hostPort but different hostIP and protocol`,
