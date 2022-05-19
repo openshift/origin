@@ -428,8 +428,7 @@ func (c *CLI) setupNamespacePodSecurity(ns string) error {
 		}
 
 		if len(c.kubeFramework.NamespacePodSecurityEnforceLevel) == 0 {
-			// TODO(sur): set to restricted in a separate PR and fix failing tests
-			c.kubeFramework.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
+			c.kubeFramework.NamespacePodSecurityEnforceLevel = admissionapi.LevelRestricted
 		}
 		if ns.Labels == nil {
 			ns.Labels = make(map[string]string)
