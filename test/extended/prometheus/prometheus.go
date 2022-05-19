@@ -309,6 +309,11 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 				Selector: map[string]string{"alertname": "KubeJobFailed", "namespace": "openshift-multus"}, // not sure how to do a job_name prefix
 				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=2054426",
 			},
+			{
+				Selector: map[string]string{"alertname": "NodeNetworkInterfaceFlapping", "device": "tunbr", "job": "node-exporter"},
+				Text:     "tunbr is an ephemeral bridge interface that can go up an down depending on if the ephemeral network is created/deleted",
+				// https://issues.redhat.com/browse/SDN-3008
+			},
 		}
 		allowedFiringAlerts := helper.MetricConditions{
 			{
