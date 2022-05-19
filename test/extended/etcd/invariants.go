@@ -2,15 +2,20 @@ package etcd
 
 import (
 	"context"
+	"fmt"
+	"net"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 
+	configv1 "github.com/openshift/api/config/v1"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog/v2"
 )
 
 var _ = g.Describe("[sig-etcd] etcd", func() {
@@ -22,11 +27,28 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 		masterNodeLabelSelectorString := "node-role.kubernetes.io/master"
 		masterNodeList, err := oc.KubeClient().CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: masterNodeLabelSelectorString})
 		o.Expect(err).ToNot(o.HaveOccurred())
+
+		ipFamily := getCurrentNetworkTopology(oc)
 		currentMasterNodesIPListSet := sets.NewString()
 		for _, masterNode := range masterNodeList.Items {
 			for _, masterNodeAddress := range masterNode.Status.Addresses {
 				if masterNodeAddress.Type == corev1.NodeInternalIP {
-					currentMasterNodesIPListSet.Insert(masterNodeAddress.Address)
+					switch ipFamily {
+					case "tcp4":
+						isIPv4, err := isIPv4(masterNodeAddress.Address)
+						o.Expect(err).ToNot(o.HaveOccurred())
+						if isIPv4 {
+							currentMasterNodesIPListSet.Insert(masterNodeAddress.Address)
+						}
+					case "tcp6":
+						isIPv4, err := isIPv4(masterNodeAddress.Address)
+						o.Expect(err).ToNot(o.HaveOccurred())
+						if !isIPv4 {
+							currentMasterNodesIPListSet.Insert(masterNodeAddress.Address)
+						}
+					default:
+						g.GinkgoT().Fatalf("unexpected ip family: %q", ipFamily)
+					}
 				}
 			}
 		}
@@ -51,3 +73,59 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 		}
 	})
 })
+
+func getCurrentNetworkTopology(oc *exutil.CLI) string {
+	configClient, err := configv1client.NewForConfig(oc.AdminConfig())
+	o.Expect(err).ToNot(o.HaveOccurred())
+	nework, err := configClient.ConfigV1().Networks().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	o.Expect(err).ToNot(o.HaveOccurred())
+	ipFamily, err := getPreferredIPFamily(nework)
+	o.Expect(err).ToNot(o.HaveOccurred())
+	return ipFamily
+}
+
+// GetPreferredIPFamily checks network status for service CIDR to conclude IP family. If status is not yet populated fallback to spec.
+func getPreferredIPFamily(network *configv1.Network) (string, error) {
+	var serviceCIDR string
+	switch {
+	case len(network.Status.ServiceNetwork) != 0:
+		serviceCIDR = network.Status.ServiceNetwork[0]
+		if len(serviceCIDR) == 0 {
+			return "", fmt.Errorf("networks.%s/cluster: status.serviceNetwork[0] is empty", configv1.GroupName)
+		}
+		break
+	case len(network.Spec.ServiceNetwork) != 0:
+		klog.Warningf("networks.%s/cluster: status.serviceNetwork not found falling back to spec.serviceNetwork", configv1.GroupName)
+		serviceCIDR = network.Spec.ServiceNetwork[0]
+		if len(serviceCIDR) == 0 {
+			return "", fmt.Errorf("networks.%s/cluster: spec.serviceNetwork[0] is empty", configv1.GroupName)
+		}
+		break
+	default:
+		return "", fmt.Errorf("networks.%s/cluster: status|spec.serviceNetwork not found", configv1.GroupName)
+	}
+
+	ip, _, err := net.ParseCIDR(serviceCIDR)
+
+	switch {
+	case err != nil:
+		return "", err
+	case ip.To4() == nil:
+		return "tcp6", nil
+	default:
+		return "tcp4", nil
+	}
+}
+
+func isIPv4(ipString string) (bool, error) {
+	ip := net.ParseIP(ipString)
+
+	switch {
+	case ip == nil:
+		return false, fmt.Errorf("not an IP")
+	case ip.To4() == nil:
+		return false, nil
+	default:
+		return true, nil
+	}
+}
