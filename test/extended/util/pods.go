@@ -16,7 +16,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientset "k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	"k8s.io/kubernetes/test/e2e/framework/pod"
+	podframework "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	"github.com/openshift/origin/test/extended/util/image"
 )
@@ -72,13 +72,17 @@ func RemovePodsWithPrefixes(oc *CLI, prefixes ...string) error {
 
 // CreateExecPodOrFail creates a pod used as a vessel for kubectl exec commands.
 // Pod name is uniquely generated.
+// The security context of this pod complies to the "restricted" profile.
+// If necessary this can be overriden in tweaks.
 func CreateExecPodOrFail(client kubernetes.Interface, ns, name string, tweak ...func(*v1.Pod)) *v1.Pod {
-	return pod.CreateExecPodOrFail(client, ns, name, func(pod *v1.Pod) {
+	return podframework.CreateExecPodOrFail(client, ns, name, func(pod *v1.Pod) {
 		pod.Name = name
 		pod.GenerateName = ""
 		pod.Spec.Containers[0].Image = image.ShellImage()
 		pod.Spec.Containers[0].Command = []string{"sh", "-c", "trap exit TERM; while true; do sleep 5; done"}
 		pod.Spec.Containers[0].Args = nil
+		pod.Spec.Containers[0].SecurityContext = podframework.GetRestrictedContainerSecurityContext()
+		pod.Spec.SecurityContext = podframework.GetRestrictedPodSecurityContext()
 
 		for _, fn := range tweak {
 			fn(pod)
