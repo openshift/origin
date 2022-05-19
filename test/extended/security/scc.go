@@ -20,6 +20,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
+	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
@@ -86,7 +87,8 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	ctx := context.Background()
 
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scc")
+	// pods running as root are being started here
+	oc := exutil.NewCLIWithPodSecurityLevel("scc", admissionapi.LevelBaseline)
 
 	g.It("TestAllowedSCCViaRBAC", func() {
 		t := g.GinkgoT()
