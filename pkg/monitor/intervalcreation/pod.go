@@ -151,10 +151,8 @@ func (t podLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
 		return *runOnceContainerTermination
 	}
 
-	// for other pod types, use the deletion time if we have it
-	if objDelete := t.getPodDeletionTime(inLocator); objDelete != nil {
-		return *objDelete
-	}
+	// pods will logically be gone once the pod deletion + grace period is over. Or at least they should be
+	lastPossiblePodDelete := t.getPodDeletionPlusGraceTime(inLocator)
 
 	podEvents, ok := t.podToStateTransitions[locator]
 	if !ok {
@@ -162,6 +160,11 @@ func (t podLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
 	}
 	for _, event := range podEvents {
 		if monitorapi.ReasonFrom(event.Message) == monitorapi.PodReasonDeleted {
+			// if the last possible pod delete is before the delete from teh watch stream, it just means our watch was delayed.
+			// use the pod time instead.
+			if lastPossiblePodDelete != nil && lastPossiblePodDelete.Before(event.From) {
+				return *lastPossiblePodDelete
+			}
 			return event.From
 		}
 	}
@@ -206,7 +209,7 @@ func (t podLifecycleTimeBounder) getPodCreationTime(inLocator string) *time.Time
 	return &temp.Time
 }
 
-func (t podLifecycleTimeBounder) getPodDeletionTime(inLocator string) *time.Time {
+func (t podLifecycleTimeBounder) getPodDeletionPlusGraceTime(inLocator string) *time.Time {
 	podCoordinates := monitorapi.PodFrom(inLocator)
 	instanceKey := monitorapi.InstanceKey{
 		Namespace: podCoordinates.Namespace,
@@ -228,8 +231,11 @@ func (t podLifecycleTimeBounder) getPodDeletionTime(inLocator string) *time.Time
 		return nil
 	}
 
-	temp := pod.DeletionTimestamp
-	return &temp.Time
+	deletionTime := pod.DeletionTimestamp.Time
+	if pod.Spec.TerminationGracePeriodSeconds != nil {
+		deletionTime = deletionTime.Add(time.Duration(*pod.Spec.TerminationGracePeriodSeconds * int64(time.Second)))
+	}
+	return &deletionTime
 }
 
 func (t podLifecycleTimeBounder) getRunOnceContainerEnd(inLocator string) *time.Time {
