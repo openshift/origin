@@ -98,9 +98,10 @@ const (
 	// PodIPReused means the same pod IP is in use by two pods at the same time.
 	PodIPReused = "ReusedPodIP"
 
-	PodReasonCreated   = "Created"
-	PodReasonDeleted   = "Deleted"
-	PodReasonScheduled = "Scheduled"
+	PodReasonCreated               = "Created"
+	PodReasonGracefulDeleteStarted = "GracefulDelete"
+	PodReasonDeleted               = "Deleted"
+	PodReasonScheduled             = "Scheduled"
 
 	ContainerReasonContainerExit  = "ContainerExit"
 	ContainerReasonContainerStart = "ContainerStart"
@@ -121,6 +122,7 @@ var (
 	PodLifecycleTransitionReasons = sets.NewString(
 		PodReasonCreated,
 		PodReasonScheduled,
+		PodReasonGracefulDeleteStarted,
 		PodReasonDeleted,
 	)
 
