@@ -113,13 +113,39 @@ func testMultipleSingleSecondAvailabilityFailure(events monitorapi.Intervals) []
 
 	ret := []*junitapi.JUnitTestCase{}
 	for _, serverLocator := range allServers.List() {
-		disruptionEvents := events.Filter(
+		allDisruptionEvents := events.Filter(
 			monitorapi.And(
-				isOneSecondEvent,
 				monitorapi.IsEventForLocator(serverLocator),
 				monitorapi.IsErrorEvent,
 			),
 		)
+
+		disruptionEvents := monitorapi.Intervals{}
+		for i, interval := range allDisruptionEvents {
+			if !isOneSecondEvent(interval) {
+				continue
+			}
+			if i > 0 {
+				prev := allDisruptionEvents[i-1]
+				// if the previous disruption interval for this backend is within one second of when this one started,
+				// then we're looking at a contiguous outage that is longer than one second.
+				// this can happen when we have contiguous failures for different reasons.
+				if prev.To.Add(1 * time.Second).After(interval.From) {
+					continue
+				}
+			}
+			if i < len(allDisruptionEvents)-1 {
+				next := allDisruptionEvents[i+1]
+				// if the next disruption interval for this backend is within one second of when this one ended,
+				// then we're looking at a contiguous outage that is longer than one second.
+				// this can happen when we have contiguous failures for different reasons.
+				if interval.To.Add(1 * time.Second).After(next.From) {
+					continue
+				}
+			}
+
+			disruptionEvents = append(disruptionEvents, allDisruptionEvents[i])
+		}
 
 		multipleFailuresTestName := multipleFailuresTestPrefix + serverLocator
 		manyFailuresTestName := manyFailureTestPrefix + serverLocator
