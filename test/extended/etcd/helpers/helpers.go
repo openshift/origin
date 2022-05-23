@@ -16,9 +16,11 @@ import (
 	bmhelper "github.com/openshift/origin/test/extended/baremetal"
 	exutil "github.com/openshift/origin/test/extended/util"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -255,7 +257,9 @@ func EnsureHealthyMember(t TestingT, etcdClientFactory EtcdClientCreator, member
 
 // MachineNameToEtcdMemberName finds an etcd member name that corresponds to the given machine name
 // first it looks up a node that corresponds to the machine by comparing the ProviderID field
-// next, it returns the node name as it is used to name an etcd member
+// next, it returns the node name as it is used to name an etcd member.
+//
+// In cases the ProviderID is empty it will try to find a node that matches an internal IP address
 //
 // note:
 // it will exit and report an error in case the node was not found
@@ -264,26 +268,46 @@ func MachineNameToEtcdMemberName(ctx context.Context, kubeClient kubernetes.Inte
 	if err != nil {
 		return "", err
 	}
-	machineProviderID := pointer.StringDeref(machine.Spec.ProviderID, "")
-	if len(machineProviderID) == 0 {
-		return "", fmt.Errorf("failed to get the providerID for %q machine", machineName)
-	}
 
-	// find corresponding node, match on providerID
 	masterNodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master"})
 	if err != nil {
 		return "", err
 	}
 
-	var nodeNames []string
-	for _, masterNode := range masterNodes.Items {
-		if masterNode.Spec.ProviderID == machineProviderID {
-			return masterNode.Name, nil
+	machineProviderID := pointer.StringDeref(machine.Spec.ProviderID, "")
+	if len(machineProviderID) != 0 {
+		// case 1: find corresponding node, match on providerID
+		var nodeNames []string
+		for _, masterNode := range masterNodes.Items {
+			if masterNode.Spec.ProviderID == machineProviderID {
+				return masterNode.Name, nil
+			}
+			nodeNames = append(nodeNames, masterNode.Name)
 		}
-		nodeNames = append(nodeNames, masterNode.Name)
+
+		return "", fmt.Errorf("unable to find a node for the corresponding %q machine on ProviderID: %v, checked: %v", machineName, machineProviderID, nodeNames)
 	}
 
-	return "", fmt.Errorf("unable to find a node for the corresponding %q machine on ProviderID: %v, checked: %v", machineName, machineProviderID, nodeNames)
+	// case 2: match on an internal ip address
+	machineIPListSet := sets.NewString()
+	for _, addr := range machine.Status.Addresses {
+		if addr.Type == corev1.NodeInternalIP {
+			machineIPListSet.Insert(addr.Address)
+		}
+	}
+
+	var nodeNames []string
+	for _, masterNode := range masterNodes.Items {
+		for _, addr := range masterNode.Status.Addresses {
+			if addr.Type == corev1.NodeInternalIP {
+				if machineIPListSet.Has(addr.Address) {
+					return masterNode.Name, nil
+				}
+			}
+			nodeNames = append(nodeNames, masterNode.Name)
+		}
+	}
+	return "", fmt.Errorf("unable to find a node for the corresponding %q machine on the following machine's IPs: %v, checked: %v", machineName, machineIPListSet.List(), nodeNames)
 }
 
 func InitPlatformSpecificConfiguration(oc *exutil.CLI) func() {
