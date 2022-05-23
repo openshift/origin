@@ -6,6 +6,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -14,7 +16,7 @@ var _ = g.Describe("[sig-cli] oc probe", func() {
 
 	var (
 		deploymentConfig = exutil.FixturePath("testdata", "test-deployment-config.yaml")
-		oc               = exutil.NewCLI("oc-probe")
+		oc               = exutil.NewCLIWithPodSecurityLevel("oc-probe", admissionapi.LevelBaseline)
 	)
 
 	g.It("can ensure the probe command is functioning as expected on pods", func() {

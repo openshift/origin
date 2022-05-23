@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	k8simage "k8s.io/kubernetes/test/utils/image"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 
@@ -20,7 +21,7 @@ import (
 
 var _ = g.Describe("[sig-imageregistry][Feature:Image] oc tag", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("image-oc-tag")
+	oc := exutil.NewCLIWithPodSecurityLevel("image-oc-tag", admissionapi.LevelBaseline)
 	ctx := context.Background()
 
 	g.It("should preserve image reference for external images", func() {

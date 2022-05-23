@@ -10,6 +10,7 @@ import (
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kdeployutil "k8s.io/kubernetes/test/e2e/framework/deployment"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
@@ -18,7 +19,7 @@ import (
 var _ = g.Describe("[sig-builds][Feature:Builds] build can reference a cluster service", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc             = exutil.NewCLI("build-service")
+		oc             = exutil.NewCLIWithPodSecurityLevel("build-service", admissionapi.LevelBaseline)
 		testDockerfile = fmt.Sprintf(`
 FROM %s
 RUN cat /etc/resolv.conf

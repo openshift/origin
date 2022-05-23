@@ -8,10 +8,14 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	configv1 "github.com/openshift/api/config/v1"
-	exutil "github.com/openshift/origin/test/extended/util"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	admissionapi "k8s.io/pod-security-admission/api"
+
+	configv1 "github.com/openshift/api/config/v1"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (
@@ -46,7 +50,7 @@ func validateFIPSOnNode(oc *exutil.CLI, fipsExpected bool, node *corev1.Node) er
 
 var _ = g.Describe("[sig-arch] [Conformance] FIPS", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("fips")
+	oc := exutil.NewCLIWithPodSecurityLevel("fips", admissionapi.LevelPrivileged)
 
 	g.It("TestFIPS", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)

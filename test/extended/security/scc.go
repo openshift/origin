@@ -7,11 +7,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	securityv1 "github.com/openshift/api/security/v1"
-	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
-	"github.com/openshift/origin/test/extended/authorization"
-	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/image"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -21,11 +16,18 @@ import (
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
+
+	securityv1 "github.com/openshift/api/security/v1"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
+
+	"github.com/openshift/origin/test/extended/authorization"
+	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scc")
+	oc := exutil.NewCLIWithPodSecurityLevel("scc", admissionapi.LevelPrivileged)
 	ctx := context.Background()
 
 	g.It("TestPodUpdateSCCEnforcement", func() {
@@ -88,7 +90,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 
 	defer g.GinkgoRecover()
 	// pods running as root are being started here
-	oc := exutil.NewCLIWithPodSecurityLevel("scc", admissionapi.LevelBaseline)
+	oc := exutil.NewCLIWithPodSecurityLevel("scc", admissionapi.LevelPrivileged)
 
 	g.It("TestAllowedSCCViaRBAC", func() {
 		t := g.GinkgoT()
@@ -265,7 +267,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 
 var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("ssc")
+	oc := exutil.NewCLIWithPodSecurityLevel("ssc", admissionapi.LevelBaseline)
 
 	g.It("TestPodDefaultCapabilities", func() {
 		g.By("Running a restricted pod and getting it's inherited capabilities")

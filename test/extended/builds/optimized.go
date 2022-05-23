@@ -11,8 +11,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	buildv1 "github.com/openshift/api/build/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 )
@@ -20,7 +22,7 @@ import (
 var _ = g.Describe("[sig-builds][Feature:Builds] Optimized image builds", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc             = exutil.NewCLI("build-dockerfile-env")
+		oc             = exutil.NewCLIWithPodSecurityLevel("build-dockerfile-env", admissionapi.LevelBaseline)
 		skipLayers     = buildv1.ImageOptimizationSkipLayers
 		testDockerfile = fmt.Sprintf(`
 FROM %s

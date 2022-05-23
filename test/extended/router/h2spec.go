@@ -17,9 +17,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	securityv1 "github.com/openshift/api/security/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
+
 	"github.com/openshift/origin/test/extended/router/h2spec"
 	"github.com/openshift/origin/test/extended/router/shard"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -40,7 +42,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 		h2specRoutesConfigPath      = exutil.FixturePath("testdata", "router", "router-h2spec-routes.yaml")
 		h2specRouterShardConfigPath = exutil.FixturePath("testdata", "router", "router-shard.yaml")
 
-		oc              = exutil.NewCLI("router-h2spec")
+		oc              = exutil.NewCLIWithPodSecurityLevel("router-h2spec", admissionapi.LevelBaseline)
 		shardConfigPath string // computed
 	)
 

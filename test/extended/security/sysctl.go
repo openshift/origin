@@ -2,20 +2,23 @@ package security
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"time"
 
 	g "github.com/onsi/ginkgo"
 	t "github.com/onsi/ginkgo/extensions/table"
 	o "github.com/onsi/gomega"
-	exutil "github.com/openshift/origin/test/extended/util"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
+	admissionapi "k8s.io/pod-security-admission/api"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-arch] [Conformance] sysctl", func() {
-	oc := exutil.NewCLI("sysctl")
+	oc := exutil.NewCLIWithPodSecurityLevel("sysctl", admissionapi.LevelPrivileged)
 	t.DescribeTable("whitelists", func(sysctl, value, path, defaultSysctlValue string) {
 		f := oc.KubeFramework()
 		var preexistingPod *v1.Pod

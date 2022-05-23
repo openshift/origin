@@ -5,13 +5,16 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-builds][Feature:Builds] custom build with buildah", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                 = exutil.NewCLI("custom-build")
+		oc                 = exutil.NewCLIWithPodSecurityLevel("custom-build", admissionapi.LevelBaseline)
 		customBuildAdd     = exutil.FixturePath("testdata", "builds", "custom-build")
 		customBuildFixture = exutil.FixturePath("testdata", "builds", "test-custom-build.yaml")
 	)

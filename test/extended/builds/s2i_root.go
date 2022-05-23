@@ -10,8 +10,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	buildv1 "github.com/openshift/api/build/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 )
@@ -30,7 +32,7 @@ func After(oc *exutil.CLI) {
 
 var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a root user image", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("s2i-build-root")
+	oc := exutil.NewCLIWithPodSecurityLevel("s2i-build-root", admissionapi.LevelBaseline)
 
 	g.It("should create a root build and fail without a privileged SCC", func() {
 		g.Skip("TODO: figure out why we aren't properly denying this, also consider whether we still need to deny it")

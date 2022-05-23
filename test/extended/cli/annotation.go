@@ -6,6 +6,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -16,7 +18,7 @@ var _ = g.Describe("[sig-cli] oc annotate", func() {
 		podAnnotationTemplate = `{{index .metadata.annotations "new-anno"}}`
 	)
 
-	var oc = exutil.NewCLI("oc-annotation")
+	var oc = exutil.NewCLIWithPodSecurityLevel("oc-annotation", admissionapi.LevelBaseline)
 
 	g.It("pod", func() {
 		g.By("creating hello-openshift pod")

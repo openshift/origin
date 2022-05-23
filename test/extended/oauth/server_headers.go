@@ -11,13 +11,14 @@ import (
 
 	"k8s.io/client-go/rest"
 	"k8s.io/kube-openapi/pkg/util/sets"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/oauthserver"
 )
 
 var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Headers]", func() {
-	var oc = exutil.NewCLI("oauth-server-headers")
+	var oc = exutil.NewCLIWithPodSecurityLevel("oauth-server-headers", admissionapi.LevelBaseline)
 	var transport http.RoundTripper
 	var oauthServerAddr string
 	var oauthServerCleanup func()

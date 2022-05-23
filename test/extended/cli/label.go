@@ -6,6 +6,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -16,7 +18,7 @@ const (
 var _ = g.Describe("[sig-cli] oc label", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLI("oc-label")
+	var oc = exutil.NewCLIWithPodSecurityLevel("oc-label", admissionapi.LevelBaseline)
 
 	g.It("pod", func() {
 		g.By("creating hello-openshift pod")

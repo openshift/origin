@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 
@@ -25,7 +27,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] s2i build with environmen
 		imageStreamFixture   = exutil.FixturePath("testdata", "builds", "test-image-stream.json")
 		stiEnvBuildFixture   = exutil.FixturePath("testdata", "builds", "test-env-build.json")
 		podAndServiceFixture = exutil.FixturePath("testdata", "builds", "test-build-podsvc.json")
-		oc                   = exutil.NewCLI("build-sti-env")
+		oc                   = exutil.NewCLIWithPodSecurityLevel("build-sti-env", admissionapi.LevelBaseline)
 	)
 
 	g.Context("", func() {

@@ -12,6 +12,7 @@ import (
 	kapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8simage "k8s.io/kubernetes/test/utils/image"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	imageapi "github.com/openshift/api/image/v1"
 	imageclientset "github.com/openshift/client-go/image/clientset/versioned"
@@ -30,7 +31,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 		}
 	})
 
-	oc = exutil.NewCLI("image-extract")
+	oc = exutil.NewCLIWithPodSecurityLevel("image-extract", admissionapi.LevelBaseline)
 
 	g.It("should extract content from an image", func() {
 		is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get(context.Background(), "tools", metav1.GetOptions{})

@@ -26,6 +26,7 @@ import (
 	kubeclient "k8s.io/client-go/kubernetes"
 	certclientv1 "k8s.io/client-go/kubernetes/typed/certificates/v1"
 	restclient "k8s.io/client-go/rest"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -33,7 +34,7 @@ import (
 )
 
 var _ = g.Describe("[sig-cluster-lifecycle]", func() {
-	oc := exutil.NewCLI("cluster-client-cert")
+	oc := exutil.NewCLIWithPodSecurityLevel("cluster-client-cert", admissionapi.LevelBaseline)
 	defer g.GinkgoRecover()
 
 	g.It("Pods cannot access the /config/master API endpoint", func() {

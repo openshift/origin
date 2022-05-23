@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -21,21 +19,20 @@ import (
 	"github.com/prometheus/common/model"
 
 	v1 "k8s.io/api/core/v1"
-
-	configv1 "github.com/openshift/api/config/v1"
-
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-
 	clientset "k8s.io/client-go/kubernetes"
-
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+	admissionapi "k8s.io/pod-security-admission/api"
 
+	configv1 "github.com/openshift/api/config/v1"
+
+	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -497,7 +494,7 @@ sort_desc(
 var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithoutNamespace("prometheus")
+		oc = exutil.NewCLIWithPodSecurityLevel("prometheus", admissionapi.LevelBaseline)
 
 		url, prometheusURL, bearerToken string
 	)
@@ -545,7 +542,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 		})
 
 		g.It("should start and expose a secured proxy and unsecured metrics", func() {
-			ns := oc.SetupNamespace()
+			ns := oc.Namespace()
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))

@@ -6,6 +6,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -13,7 +15,7 @@ var _ = g.Describe("[sig-cli] oc rsh", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc                     = exutil.NewCLI("oc-rsh")
+		oc                     = exutil.NewCLIWithPodSecurityLevel("oc-rsh", admissionapi.LevelBaseline)
 		multiContainersFixture = exutil.FixturePath("testdata", "cli", "pod-with-two-containers.yaml")
 		podsLabel              = exutil.ParseLabelsOrDie("name=hello-centos")
 	)

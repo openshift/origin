@@ -17,6 +17,7 @@ import (
 
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
@@ -161,7 +162,7 @@ func checkSingleIdle(oc *exutil.CLI, idlingFile string, resources map[string][]s
 var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                  = exutil.NewCLI("cli-idling").Verbose()
+		oc                  = exutil.NewCLIWithPodSecurityLevel("cli-idling", admissionapi.LevelBaseline).Verbose()
 		echoServerFixture   = exutil.FixturePath("testdata", "idling-echo-server.yaml")
 		echoServerRcFixture = exutil.FixturePath("testdata", "idling-echo-server-rc.yaml")
 		framework           = oc.KubeFramework()

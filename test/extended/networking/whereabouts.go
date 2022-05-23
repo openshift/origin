@@ -8,16 +8,19 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 )
 
 var _ = g.Describe("[sig-network][Feature:Whereabouts]", func() {
 
-	oc := exutil.NewCLI("whereabouts-e2e")
+	oc := exutil.NewCLIWithPodSecurityLevel("whereabouts-e2e", admissionapi.LevelBaseline)
 
 	// Whereabouts is already installed in Origin. These tests aims to verify the integrity of the installation.
 

@@ -7,6 +7,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -20,7 +22,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][valueFrom] process valueFrom in
 		successfulDockerBuildValueFrom = filepath.Join(valueFromBaseDir, "successful-docker-build-value-from-config.yaml")
 		failedSTIBuildValueFrom        = filepath.Join(valueFromBaseDir, "failed-sti-build-value-from-config.yaml")
 		failedDockerBuildValueFrom     = filepath.Join(valueFromBaseDir, "failed-docker-build-value-from-config.yaml")
-		oc                             = exutil.NewCLI("build-valuefrom")
+		oc                             = exutil.NewCLIWithPodSecurityLevel("build-valuefrom", admissionapi.LevelBaseline)
 	)
 
 	g.Context("", func() {

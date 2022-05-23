@@ -8,6 +8,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 
@@ -25,7 +27,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] incremental s2i build", f
 	var (
 		templateFixture      = exutil.FixturePath("testdata", "builds", "incremental-auth-build.json")
 		podAndServiceFixture = exutil.FixturePath("testdata", "builds", "test-build-podsvc.json")
-		oc                   = exutil.NewCLI("build-sti-inc")
+		oc                   = exutil.NewCLIWithPodSecurityLevel("build-sti-inc", admissionapi.LevelBaseline)
 	)
 
 	g.Context("", func() {

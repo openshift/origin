@@ -14,6 +14,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
@@ -23,7 +24,7 @@ import (
 )
 
 var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Token Expiration]", func() {
-	var oc = exutil.NewCLI("oauth-expiration")
+	var oc = exutil.NewCLIWithPodSecurityLevel("oauth-expiration", admissionapi.LevelBaseline)
 	var newRequestTokenOptions oauthserver.NewRequestTokenOptionsFunc
 	var oauthServerCleanup func()
 

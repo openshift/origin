@@ -7,6 +7,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	eximages "github.com/openshift/origin/test/extended/images"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -17,7 +19,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] result image should have proper
 		imageStreamFixture = exutil.FixturePath("testdata", "builds", "test-image-stream.json")
 		stiBuildFixture    = exutil.FixturePath("testdata", "builds", "test-s2i-build.json")
 		dockerBuildFixture = exutil.FixturePath("testdata", "builds", "test-docker-build.json")
-		oc                 = exutil.NewCLI("build-sti-labels")
+		oc                 = exutil.NewCLIWithPodSecurityLevel("build-sti-labels", admissionapi.LevelBaseline)
 	)
 
 	g.Context("", func() {

@@ -10,6 +10,7 @@ import (
 
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/openshift/api/image/docker10"
 	"github.com/openshift/library-go/pkg/image/imageutil"
@@ -78,7 +79,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 		}
 	})
 
-	oc = exutil.NewCLI("image-append")
+	oc = exutil.NewCLIWithPodSecurityLevel("image-append", admissionapi.LevelBaseline)
 
 	g.It("should create images by appending them", func() {
 		is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get(context.Background(), "tools", metav1.GetOptions{})

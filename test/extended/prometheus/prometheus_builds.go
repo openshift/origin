@@ -8,9 +8,11 @@ import (
 	o "github.com/onsi/gomega"
 
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	configv1 "github.com/openshift/api/config/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 )
@@ -18,7 +20,7 @@ import (
 var _ = g.Describe("[sig-instrumentation][sig-builds][Feature:Builds] Prometheus", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithoutNamespace("prometheus")
+		oc = exutil.NewCLIWithPodSecurityLevel("prometheus", admissionapi.LevelBaseline)
 	)
 
 	g.AfterEach(func() {
@@ -40,7 +42,6 @@ var _ = g.Describe("[sig-instrumentation][sig-builds][Feature:Builds] Prometheus
 					"Remove this skip when https://issues.redhat.com/browse/CO-895 is implemented.")
 			}
 
-			oc.SetupProject()
 			appTemplate := exutil.FixturePath("testdata", "builds", "build-pruning", "successful-build-config.yaml")
 
 			br := startOpenShiftBuild(oc, appTemplate)

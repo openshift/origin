@@ -19,6 +19,7 @@ import (
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
@@ -277,7 +278,7 @@ RUN echo %[3]s > /3
 var _ = g.Describe("[sig-imageregistry][Feature:ImageMirror][Slow] Image mirror", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLI("image-mirror")
+	var oc = exutil.NewCLIWithPodSecurityLevel("image-mirror", admissionapi.LevelBaseline)
 
 	g.It("mirror image from integrated registry to external registry", func() {
 		g.By("get user credentials")
