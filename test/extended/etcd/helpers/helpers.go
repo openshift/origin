@@ -290,7 +290,6 @@ func SkipIfUnsupportedPlatform(ctx context.Context, oc *exutil.CLI) {
 	machineClient := machineClientSet.MachineV1beta1().Machines("openshift-machine-api")
 	skipUnlessFunctionalMachineAPI(ctx, machineClient)
 	skipIfBareMetal(oc)
-	skipIfAzure(oc)
 	skipIfSingleNode(oc)
 }
 
@@ -326,15 +325,6 @@ func skipIfBareMetal(oc *exutil.CLI) {
 
 	if infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType {
 		e2eskipper.Skipf("this test is currently broken on the metal platform and needs to be fixed")
-	}
-}
-
-func skipIfAzure(oc *exutil.CLI) {
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	if infra.Status.PlatformStatus.Type == configv1.AzurePlatformType {
-		e2eskipper.Skipf("this test is currently flaky on the azure platform")
 	}
 }
 
