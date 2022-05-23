@@ -52572,7 +52572,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     }
 
     function isPodLifecycle(eventInterval) {
-        if (eventInterval.locator.includes("pod/") && (eventInterval.message.includes("reason/Created") || eventInterval.message.includes("reason/Scheduled"))) {
+        if (eventInterval.locator.includes("pod/") && (eventInterval.message.includes("reason/Created") || eventInterval.message.includes("reason/Scheduled") || eventInterval.message.includes("reason/GracefulDelete"))) {
             return true
         }
         return false
@@ -52654,6 +52654,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
             }
             if (m[2] == "Scheduled") {
                 return [item.locator, ` + "`" + ` (pod lifecycle)` + "`" + `, "PodScheduled"];
+            }
+            if (m[2] == "GracefulDelete") {
+                return [item.locator, ` + "`" + ` (pod lifecycle)` + "`" + `, "PodTerminating"];
             }
         }
         if (m && isContainerLifecycle(item)){
@@ -52860,14 +52863,14 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
             'OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', // operators
             'Update', 'Drain', 'Reboot', 'OperatingSystemUpdate', 'NodeNotReady', // nodes
             'Passed', 'Skipped', 'Flaked', 'Failed',  // tests
-            'PodCreated', 'PodScheduled', 'ContainerWait', 'ContainerStart', 'ContainerNotReady', 'ContainerReady',  // pods
+            'PodCreated', 'PodScheduled', 'PodTerminating','ContainerWait', 'ContainerStart', 'ContainerNotReady', 'ContainerReady',  // pods
             'Degraded', 'Upgradeable', 'False', 'Unknown'])
         .range([
             '#fada5e','#fada5e','#ffa500','#d0312d',  // alerts
             '#d0312d', '#ffa500', '#fada5e', // operators
             '#1e7bd9', '#4294e6', '#6aaef2', '#96cbff', '#fada5e', // nodes
             '#3cb043', '#ceba76', '#ffa500', '#d0312d', // tests
-            '#96cbff', '#1e7bd9', '#ca8dfd', '#9300ff', '#fada5e','#3cb043', // pods
+            '#96cbff', '#1e7bd9', '#ffa500', '#ca8dfd', '#9300ff', '#fada5e','#3cb043', // pods
             '#b65049', '#32b8b6', '#ffffff', '#bbbbbb']);
     myChart.
     data(timelineGroups).

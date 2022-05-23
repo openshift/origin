@@ -434,7 +434,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 						conditions = append(conditions, monitorapi.Condition{
 							Level:   monitorapi.Info,
 							Locator: monitorapi.LocatePod(pod),
-							Message: fmt.Sprintf("reason/GracefulDelete duration/%ds", *pod.DeletionGracePeriodSeconds),
+							Message: monitorapi.ReasonedMessagef(monitorapi.PodReasonGracefulDeleteStarted, "duration/%ds", *pod.DeletionGracePeriodSeconds),
 						})
 					}
 				}
