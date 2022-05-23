@@ -9,6 +9,7 @@ import (
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kdeployutil "k8s.io/kubernetes/test/e2e/framework/deployment"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	deployutil "github.com/openshift/origin/test/extended/deployments"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -25,7 +26,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] oc new-app", func() {
 	// whose name itself includes the app name.  Ensure we can create and fully
 	// deploy an app with a 58 character name [63 maximum - len('-9999' suffix)].
 
-	oc := exutil.NewCLI("new-app")
+	oc := exutil.NewCLIWithPodSecurityLevel("new-app", admissionapi.LevelBaseline)
 
 	g.Context("", func() {
 

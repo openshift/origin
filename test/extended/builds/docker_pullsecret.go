@@ -6,6 +6,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -18,7 +20,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][pullsecret] docker build using 
 
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-docker-build-pullsecret.json")
-		oc           = exutil.NewCLI("docker-build-pullsecret")
+		oc           = exutil.NewCLIWithPodSecurityLevel("docker-build-pullsecret", admissionapi.LevelBaseline)
 	)
 
 	g.Context("", func() {

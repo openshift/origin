@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -28,7 +29,7 @@ const (
 
 var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 
-	egFwoc := exutil.NewCLI(egressFWE2E)
+	egFwoc := exutil.NewCLIWithPodSecurityLevel(egressFWE2E, admissionapi.LevelPrivileged)
 	egFwf := egFwoc.KubeFramework()
 
 	// The OVNKubernetes subnet plugin supports EgressFirewall objects.
@@ -47,7 +48,7 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 			})
 		},
 	)
-	noegFwoc := exutil.NewCLI(noEgressFWE2E)
+	noegFwoc := exutil.NewCLIWithPodSecurityLevel(noEgressFWE2E, admissionapi.LevelBaseline)
 	noegFwf := noegFwoc.KubeFramework()
 	g.It("egressFirewall should have no impact outside its namespace", func() {
 		g.By("creating test pod")

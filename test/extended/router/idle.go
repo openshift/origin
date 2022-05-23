@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -28,7 +29,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 
 	var (
 		configPath = exutil.FixturePath("testdata", "router", "router-idle.yaml")
-		oc         = exutil.NewCLI("router-idling")
+		oc         = exutil.NewCLIWithPodSecurityLevel("router-idling", admissionapi.LevelBaseline)
 	)
 
 	// this hook must be registered before the framework namespace teardown

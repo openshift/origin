@@ -12,13 +12,14 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds with a context directory", func() {
 	defer g.GinkgoRecover()
 	var (
 		appFixture            = exutil.FixturePath("testdata", "builds", "test-context-build.json")
-		oc                    = exutil.NewCLI("contextdir")
+		oc                    = exutil.NewCLIWithPodSecurityLevel("contextdir", admissionapi.LevelBaseline)
 		s2iBuildConfigName    = "s2icontext"
 		s2iBuildName          = "s2icontext-1"
 		dcName                = "frontend"

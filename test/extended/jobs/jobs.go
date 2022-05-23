@@ -11,11 +11,12 @@ import (
 
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 var _ = g.Describe("[sig-apps][Feature:Jobs]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("job-controller")
+	oc := exutil.NewCLIWithPodSecurityLevel("job-controller", admissionapi.LevelBaseline)
 
 	g.It("Users should be able to create and run a job in a user project", func() {
 		for _, ver := range []string{"v1"} {

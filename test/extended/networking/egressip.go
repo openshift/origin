@@ -11,15 +11,19 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	configv1 "github.com/openshift/api/config/v1"
-	cloudnetwork "github.com/openshift/client-go/cloudnetwork/clientset/versioned"
-	exutil "github.com/openshift/origin/test/extended/util"
+
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/skipper"
+	admissionapi "k8s.io/pod-security-admission/api"
+
+	configv1 "github.com/openshift/api/config/v1"
+	cloudnetwork "github.com/openshift/client-go/cloudnetwork/clientset/versioned"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (
@@ -40,7 +44,7 @@ const (
 )
 
 var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
-	oc := exutil.NewCLI(namespacePrefix)
+	oc := exutil.NewCLIWithPodSecurityLevel(namespacePrefix, admissionapi.LevelPrivileged)
 	portAllocator := NewPortAllocator(egressIPTargetHostPortMin, egressIPTargetHostPortMax)
 
 	var (

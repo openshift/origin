@@ -3,18 +3,22 @@ package networking
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
+
 	g "github.com/onsi/ginkgo"
 	t "github.com/onsi/ginkgo/extensions/table"
 	o "github.com/onsi/gomega"
-	exutil "github.com/openshift/origin/test/extended/util"
+
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
-	"strings"
-	"time"
+	admissionapi "k8s.io/pod-security-admission/api"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (
@@ -54,7 +58,7 @@ func getPodNodeName(client clientset.Interface, namespace, name string) string {
 }
 
 var _ = g.Describe("[sig-network][Feature:tuning]", func() {
-	oc := exutil.NewCLI("tuning")
+	oc := exutil.NewCLIWithPodSecurityLevel("tuning", admissionapi.LevelPrivileged)
 	f := oc.KubeFramework()
 
 	g.It("pod should start with all sysctl on whitelist", func() {

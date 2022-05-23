@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	exurl "github.com/openshift/origin/test/extended/util/url"
@@ -22,7 +23,7 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc = exutil.NewCLI("operators-routable")
+		oc = exutil.NewCLIWithPodSecurityLevel("operators-routable", admissionapi.LevelBaseline)
 
 		// routeHostWait is how long to wait for routes to be assigned a host
 		routeHostWait = 30 * time.Second

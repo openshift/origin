@@ -8,6 +8,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -16,7 +17,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] build have source revision meta
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-build-revision.json")
-		oc           = exutil.NewCLI("cli-build-revision")
+		oc           = exutil.NewCLIWithPodSecurityLevel("cli-build-revision", admissionapi.LevelBaseline)
 	)
 
 	g.Context("", func() {

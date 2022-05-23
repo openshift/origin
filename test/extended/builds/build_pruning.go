@@ -11,8 +11,10 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	buildv1 "github.com/openshift/api/build/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -27,7 +29,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] prune builds based on settings 
 		failedBuildConfig     = filepath.Join(buildPruningBaseDir, "failed-build-config.yaml")
 		erroredBuildConfig    = filepath.Join(buildPruningBaseDir, "errored-build-config.yaml")
 		groupBuildConfig      = filepath.Join(buildPruningBaseDir, "default-group-build-config.yaml")
-		oc                    = exutil.NewCLI("build-pruning")
+		oc                    = exutil.NewCLIWithPodSecurityLevel("build-pruning", admissionapi.LevelBaseline)
 		pollingInterval       = time.Second
 		timeout               = time.Minute
 	)

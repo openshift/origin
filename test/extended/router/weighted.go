@@ -12,12 +12,13 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	"k8s.io/kubernetes/test/e2e/framework/pod"
 
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/kubernetes/test/e2e/framework/pod"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -26,7 +27,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
 		configPath = exutil.FixturePath("testdata", "router", "weighted-router.yaml")
-		oc         = exutil.NewCLI("weighted-router")
+		oc         = exutil.NewCLIWithPodSecurityLevel("weighted-router", admissionapi.LevelBaseline)
 	)
 
 	g.BeforeEach(func() {

@@ -4,6 +4,8 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	g "github.com/onsi/ginkgo"
 
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -19,7 +21,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageInfo] Image info", func() {
 		}
 	})
 
-	oc = exutil.NewCLI("image-info")
+	oc = exutil.NewCLIWithPodSecurityLevel("image-info", admissionapi.LevelBaseline)
 
 	g.It("should display information about images", func() {
 		ns = oc.Namespace()

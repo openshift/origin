@@ -12,6 +12,7 @@ import (
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
+	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 var _ = g.Describe("[sig-builds][Feature:Builds][Slow] testing build configuration hooks", func() {
@@ -20,7 +21,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] testing build configurati
 		dockerBuildFixture = exutil.FixturePath("testdata", "builds", "build-postcommit", "docker.yaml")
 		s2iBuildFixture    = exutil.FixturePath("testdata", "builds", "build-postcommit", "sti.yaml")
 		imagestreamFixture = exutil.FixturePath("testdata", "builds", "build-postcommit", "imagestreams.yaml")
-		oc                 = exutil.NewCLI("cli-test-hooks")
+		oc                 = exutil.NewCLIWithPodSecurityLevel("cli-test-hooks", admissionapi.LevelBaseline)
 	)
 
 	g.Context("", func() {

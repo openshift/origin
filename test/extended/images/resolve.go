@@ -16,13 +16,14 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	k8simage "k8s.io/kubernetes/test/utils/image"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func() {
 	defer g.GinkgoRecover()
-	var oc = exutil.NewCLI("resolve-local-names")
+	var oc = exutil.NewCLIWithPodSecurityLevel("resolve-local-names", admissionapi.LevelBaseline)
 	one := int64(0)
 	ctx := context.Background()
 

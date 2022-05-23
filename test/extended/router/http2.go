@@ -19,13 +19,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	"k8s.io/pod-security-admission/api"
 
 	configv1 "github.com/openshift/api/config/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
-	exutil "github.com/openshift/origin/test/extended/util"
 
 	"github.com/openshift/origin/test/extended/router/certgen"
 	"github.com/openshift/origin/test/extended/router/shard"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (
@@ -63,7 +64,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 		http2RoutesConfigPath      = exutil.FixturePath("testdata", "router", "router-http2-routes.yaml")
 		http2RouterShardConfigPath = exutil.FixturePath("testdata", "router", "router-shard.yaml")
 
-		oc = exutil.NewCLI("router-http2")
+		oc = exutil.NewCLIWithPodSecurityLevel("router-http2", api.LevelBaseline)
 
 		shardConfigPath string // computed
 	)

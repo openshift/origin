@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 
@@ -81,7 +82,7 @@ u3YLAbyW/lHhOCiZu2iAI8AbmXem9lW6Tr7p/97s0w==
 		}
 	})
 
-	oc = exutil.NewCLI("router-certs")
+	oc = exutil.NewCLIWithPodSecurityLevel("router-certs", admissionapi.LevelBaseline)
 
 	g.BeforeEach(func() {
 		ns = oc.Namespace()

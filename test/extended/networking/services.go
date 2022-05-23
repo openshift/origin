@@ -1,20 +1,20 @@
 package networking
 
 import (
-	"k8s.io/apiserver/pkg/storage/names"
-	admissionapi "k8s.io/pod-security-admission/api"
-
 	"context"
 	"strings"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	exutil "github.com/openshift/origin/test/extended/util"
+
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/storage/names"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+	admissionapi "k8s.io/pod-security-admission/api"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = Describe("[sig-network] services", func() {
@@ -49,7 +49,7 @@ var _ = Describe("[sig-network] services", func() {
 		})
 	})
 
-	oc := exutil.NewCLI("ns-global")
+	oc := exutil.NewCLIWithPodSecurityLevel("ns-global", admissionapi.LevelBaseline)
 
 	InIsolatingContext(func() {
 		f1 := e2e.NewDefaultFramework("net-services1")
