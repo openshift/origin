@@ -57,6 +57,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 		egressIPNamespace      string
 		externalNamespace      string
 		packetSnifferDaemonSet *v1.DaemonSet
+		packetSnifferInterface string
 
 		ingressDomain string
 
@@ -69,7 +70,6 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 		targetPort     int
 	)
 
-	// BeforeEach for OVN Kubernetes
 	g.BeforeEach(func() {
 		g.By("Verifying that this cluster uses a network plugin that is supported for this test")
 		networkPlugin = networkPluginName()
@@ -346,8 +346,13 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 			_, err := oc.AsAdmin().Run("adm").Args("policy", "add-scc-to-user", "privileged", fmt.Sprintf("system:serviceaccount:%s:default", externalNamespace)).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
+			g.By("Determining the interface that will be used for packet sniffing")
+			packetSnifferInterface, err = findPacketSnifferInterface(oc, networkPlugin, egressIPNodesOrderedNames)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			framework.Logf("Using interface %s for packet captures", packetSnifferInterface)
+
 			g.By("Spawning the packet sniffer pods on the EgressIP assignable hosts")
-			packetSnifferDaemonSet, err = createPacketSnifferDaemonSet(oc, externalNamespace, egressIPNodesOrderedNames, targetProtocol, targetPort)
+			packetSnifferDaemonSet, err = createPacketSnifferDaemonSet(oc, externalNamespace, egressIPNodesOrderedNames, targetProtocol, targetPort, packetSnifferInterface)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
