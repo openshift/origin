@@ -32,6 +32,8 @@ func checkSubresourceStatus(crdItemList []apiextensionsv1.CustomResourceDefiniti
 		"operatorpkis.network.operator.openshift.io",
 		"profiles.tuned.openshift.io",
 		"tuneds.tuned.openshift.io",
+		"sharedconfigmaps.sharedresource.openshift.io", // https://bugzilla.redhat.com/show_bug.cgi?id=2088533
+		"sharedsecrets.sharedresource.openshift.io",    // https://bugzilla.redhat.com/show_bug.cgi?id=2088533
 	)
 
 	failures := []string{}
