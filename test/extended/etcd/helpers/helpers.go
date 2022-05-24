@@ -210,26 +210,34 @@ func EnsureVotingMembersCount(t TestingT, etcdClientFactory EtcdClientCreator, e
 	})
 }
 
-func EnsureMemberRemoved(etcdClientFactory EtcdClientCreator, memberName string) error {
-	etcdClient, closeFn, err := etcdClientFactory.NewEtcdClient()
-	if err != nil {
-		return err
-	}
-	defer closeFn()
+func EnsureMemberRemoved(t TestingT, etcdClientFactory EtcdClientCreator, memberName string) error {
+	waitPollInterval := 15 * time.Second
+	waitPollTimeout := 1 * time.Minute
+	t.Logf("Waiting up to %s for %v member to be removed from the cluster", waitPollTimeout.String(), memberName)
 
-	ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Second)
-	defer cancel()
-	rsp, err := etcdClient.MemberList(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, member := range rsp.Members {
-		if member.Name == memberName {
-			return fmt.Errorf("member %v hasn't been removed", spew.Sdump(member))
+	return wait.Poll(waitPollInterval, waitPollTimeout, func() (bool, error) {
+		etcdClient, closeFn, err := etcdClientFactory.NewEtcdClient()
+		if err != nil {
+			t.Logf("failed to get etcd client, will retry, err: %v", err)
+			return false, nil
 		}
-	}
-	return nil
+		defer closeFn()
+
+		ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Second)
+		defer cancel()
+		rsp, err := etcdClient.MemberList(ctx)
+		if err != nil {
+			t.Logf("failed to get member list, will retry, err: %v", err)
+			return false, nil
+		}
+
+		for _, member := range rsp.Members {
+			if member.Name == memberName {
+				return false, fmt.Errorf("member %v hasn't been removed", spew.Sdump(member))
+			}
+		}
+		return true, nil
+	})
 }
 
 func EnsureHealthyMember(t TestingT, etcdClientFactory EtcdClientCreator, memberName string) error {
