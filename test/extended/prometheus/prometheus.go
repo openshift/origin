@@ -521,6 +521,9 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 				e2eskipper.Skipf("Telemetry is disabled")
 			}
 
+			// TODO: temporarily disabled
+			e2eskipper.Skipf("test is currently broken due to problems with a pull secret: https://bugzilla.redhat.com/show_bug.cgi?id=2089831")
+
 			tests := map[string]bool{}
 			if hasTelemeterClient(oc.AdminKubeClient()) {
 				e2e.Logf("Found telemeter-client pod")
