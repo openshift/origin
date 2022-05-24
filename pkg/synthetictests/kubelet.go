@@ -280,7 +280,7 @@ func testNodeUpgradeTransitions(events monitorapi.Intervals, kubeClientConfig *r
 			}
 			// If events indicate that a node reboot reason happened more than once due to machine config update AND the node kernel is a realtime kernel
 			// We increase the count to assess if we should skip
-			if _, ok := realtimeNodeConfigReboots[node]; ok && strings.Contains(event.Message, "reason/Reboot roles/worker Node will reboot into config ") {
+			if _, ok := realtimeNodeConfigReboots[node]; ok && strings.Contains(event.Message, "Update completed for config rendered-worker-") {
 				realtimeNodeConfigReboots[node] += 1
 			}
 			if !strings.HasPrefix(event.Message, "condition/Ready ") || !strings.HasSuffix(event.Message, " changed") {
@@ -501,13 +501,13 @@ func is411MinorUpgrade(kubeClientConfig *rest.Config) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	var isMajorUpgrade bool
+	var isMinorUpgrade bool
 	if len(clusterVersion.Status.History) >= 2 {
 		toRelease := platformidentification.VersionFromHistory(clusterVersion.Status.History[0])
 		fromRelease := platformidentification.VersionFromHistory(clusterVersion.Status.History[1])
-		isMajorUpgrade = toRelease == "4.11" && fromRelease != "4.11"
+		isMinorUpgrade = toRelease == "4.11" && fromRelease != "4.11"
 	}
-	return isMajorUpgrade, nil
+	return isMinorUpgrade, nil
 }
 
 var realTimeKernelRE = regexp.MustCompile(".*.rt[0-9]+.[0-9]+..*")
