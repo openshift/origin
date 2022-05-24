@@ -3,7 +3,7 @@ FROM fedora:latest
 ENV GOPATH=/go
 ENV PATH=/go/bin:/usr/local/go/bin:$PATH
 
-RUN dnf -y install make git unzip wget findutils
+RUN dnf -y install make git unzip wget findutils gcc diffutils
 
 RUN wget https://go.dev/dl/go1.17.6.linux-amd64.tar.gz && \
     rm -rf /usr/local/go && \

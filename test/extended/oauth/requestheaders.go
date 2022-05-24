@@ -15,6 +15,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"regexp"
+	"sort"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -30,8 +31,10 @@ import (
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	configv1 "github.com/openshift/api/config/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
-	clusteroperatorhelpers "github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
+
+	"github.com/openshift/library-go/pkg/operator/status"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -67,7 +70,7 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 		// of this test might flaky. This check ensures that we capture such situation early and
 		// investigate why it wasn't ready before this test.
 		e2e.Logf("Ensuring CAO is available==True, progressing==False, degraded==False")
-		waitForAuthenticationProgressing(oc, configv1.ConditionFalse)
+		waitForAuthenticationProgressing(oc, operatorv1.ConditionFalse)
 
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -409,8 +412,8 @@ func generateCert(caCert *x509.Certificate, caKey *rsa.PrivateKey, cn string, ek
 }
 
 func waitForNewOAuthConfig(oc *exutil.CLI) {
-	waitForAuthenticationProgressing(oc, configv1.ConditionTrue)
-	waitForAuthenticationProgressing(oc, configv1.ConditionFalse)
+	waitForAuthenticationProgressing(oc, operatorv1.ConditionTrue)
+	waitForAuthenticationProgressing(oc, operatorv1.ConditionFalse)
 }
 
 // oauthHTTPRequestOrFail wraps oauthHTTPRequest and fails the test if the request failed
@@ -505,31 +508,71 @@ func getTokenFromResponse(resp *http.Response) string {
 	return ""
 }
 
-func waitForAuthenticationProgressing(oc *exutil.CLI, expectedProgressing configv1.ConditionStatus) {
+func waitForAuthenticationProgressing(
+	oc *exutil.CLI,
+	expectedProgressing operatorv1.ConditionStatus,
+) {
 	err := wait.PollImmediate(time.Second, 10*time.Minute, func() (bool, error) {
-		authn, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(context.Background(), "authentication", metav1.GetOptions{})
+		auth, err := oc.AdminOperatorClient().
+			OperatorV1().
+			Authentications().
+			Get(context.Background(), "cluster", metav1.GetOptions{})
 		if err != nil {
 			e2e.Logf("Error getting authentication operator: %v", err)
 			return false, err
 		}
 
-		progressing := clusteroperatorhelpers.FindStatusCondition(authn.Status.Conditions, configv1.OperatorProgressing)
-		if progressing == nil || progressing.Status != expectedProgressing {
-			e2e.Logf("Waiting for progressing condition to be %q: %s", expectedProgressing, spew.Sdump(authn.Status.Conditions))
+		if expectedProgressing != status.UnionCondition(
+			operatorv1.OperatorStatusTypeProgressing,
+			expectedProgressing,
+			nil, // inertia
+			auth.Status.Conditions...,
+		).Status {
+			sort.Slice(auth.Status.Conditions, func(i, j int) bool {
+				return auth.Status.Conditions[i].Type < auth.Status.Conditions[j].Type
+			})
+
+			e2e.Logf(
+				"Waiting for progressing condition to be %q: %s",
+				expectedProgressing, spew.Sdump(auth.Status.Conditions),
+			)
 			return false, nil
 		}
 
-		if expectedProgressing == configv1.ConditionFalse {
+		if expectedProgressing == operatorv1.ConditionFalse {
 			// make additional checks on availability and degraded status
-			if clusteroperatorhelpers.IsStatusConditionFalse(authn.Status.Conditions, configv1.OperatorAvailable) ||
-				clusteroperatorhelpers.IsStatusConditionTrue(authn.Status.Conditions, configv1.OperatorDegraded) {
-				e2e.Logf("Waiting for available==True, progressing==False, degraded==False: %s", spew.Sdump(authn.Status.Conditions))
+			isAvailable := operatorv1.ConditionTrue == status.UnionCondition(
+				operatorv1.OperatorStatusTypeAvailable,
+				operatorv1.ConditionTrue,
+				nil, // inertia
+				auth.Status.Conditions...,
+			).Status
+			isDegraded := operatorv1.ConditionTrue == status.UnionCondition(
+				operatorv1.OperatorStatusTypeDegraded,
+				// The goal is to be false, so everything that is not falsy,
+				// should flip the whole condition to True.
+				operatorv1.ConditionFalse,
+				nil, // inertia
+				auth.Status.Conditions...,
+			).Status
+			if !isAvailable || isDegraded {
+				sort.Slice(auth.Status.Conditions, func(i, j int) bool {
+					return auth.Status.Conditions[i].Type < auth.Status.Conditions[j].Type
+				})
+
+				e2e.Logf(
+					"Waiting for available==True, progressing==False, degraded==False: %s",
+					spew.Sdump(auth.Status.Conditions),
+				)
+
 				return false, nil
 			}
-
 		}
 
 		return true, nil
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+func sortByType(conditions []operatorv1.OperatorCondition) {
 }

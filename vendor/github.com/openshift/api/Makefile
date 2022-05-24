@@ -66,6 +66,10 @@ update-scripts:
 	hack/update-swagger-docs.sh
 .PHONY: update-scripts
 
+verify-with-container: Dockerfile.build
+	$(RUNTIME) build -t $(RUNTIME_IMAGE_NAME) -f Dockerfile.build .
+	$(RUNTIME) run -ti --rm -v $(PWD):/go/src/github.com/openshift/api:z -w /go/src/github.com/openshift/api $(RUNTIME_IMAGE_NAME) make verify
+
 generate-with-container: Dockerfile.build
 	$(RUNTIME) build -t $(RUNTIME_IMAGE_NAME) -f Dockerfile.build .
 	$(RUNTIME) run -ti --rm -v $(PWD):/go/src/github.com/openshift/api:z -w /go/src/github.com/openshift/api $(RUNTIME_IMAGE_NAME) make update
