@@ -83,7 +83,7 @@ var _ = g.Describe("[sig-etcd][Serial] etcd", func() {
 		framework.Logf("successfully deleted the machine %q from the API", machineName)
 		err = scalingtestinglibrary.EnsureVotingMembersCount(g.GinkgoT(), etcdClientFactory, 3)
 		o.Expect(err).ToNot(o.HaveOccurred())
-		err = scalingtestinglibrary.EnsureMemberRemoved(etcdClientFactory, memberName)
+		err = scalingtestinglibrary.EnsureMemberRemoved(g.GinkgoT(), etcdClientFactory, memberName)
 		o.Expect(err).ToNot(o.HaveOccurred())
 		err = scalingtestinglibrary.EnsureMasterMachinesAndCount(ctx, g.GinkgoT(), machineClient)
 		o.Expect(err).ToNot(o.HaveOccurred())
