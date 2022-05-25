@@ -8,6 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
+
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/library-go/test/library/metrics"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -17,15 +21,15 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func WhenWasAlertFiring(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName string) ([]monitorapi.EventInterval, error) {
-	return whenWasAlertInState(ctx, prometheusClient, startTime, alertName, "firing")
+func WhenWasAlertFiring(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName, namespace string) ([]monitorapi.EventInterval, error) {
+	return whenWasAlertInState(ctx, prometheusClient, startTime, alertName, "firing", namespace)
 }
 
-func WhenWasAlertPending(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName string) ([]monitorapi.EventInterval, error) {
-	return whenWasAlertInState(ctx, prometheusClient, startTime, alertName, "pending")
+func WhenWasAlertPending(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName, namespace string) ([]monitorapi.EventInterval, error) {
+	return whenWasAlertInState(ctx, prometheusClient, startTime, alertName, "pending", namespace)
 }
 
-func whenWasAlertInState(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName, alertState string) ([]monitorapi.EventInterval, error) {
+func whenWasAlertInState(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName, alertState, namespace string) ([]monitorapi.EventInterval, error) {
 	if alertState != "pending" && alertState != "firing" {
 		return nil, fmt.Errorf("unrecognized alertState: %v", alertState)
 	}
@@ -34,7 +38,16 @@ func whenWasAlertInState(ctx context.Context, prometheusClient prometheusv1.API,
 		End:   time.Now(),
 		Step:  1 * time.Second,
 	}
-	query := fmt.Sprintf(`ALERTS{alertstate="%s",alertname=%q}`, alertState, alertName)
+	query := ""
+	switch {
+	case len(namespace) == 0:
+		query = fmt.Sprintf(`ALERTS{alertstate="%s",alertname=%q}`, alertState, alertName)
+	case namespace == platformidentification.NamespaceOther:
+		query = fmt.Sprintf(`ALERTS{alertstate="%s",alertname=%q}`, alertState, alertName)
+	default:
+		query = fmt.Sprintf(`ALERTS{alertstate="%s",alertname=%q,namespace=%q}`, alertState, alertName, namespace)
+	}
+
 	alerts, warningsForQuery, err := prometheusClient.QueryRange(ctx, query, timeRange)
 	if err != nil {
 		return nil, err
@@ -46,6 +59,14 @@ func whenWasAlertInState(ctx context.Context, prometheusClient prometheusv1.API,
 	ret, err := CreateEventIntervalsForAlerts(ctx, alerts, startTime)
 	if err != nil {
 		return nil, err
+	}
+
+	if namespace == platformidentification.NamespaceOther {
+		knownNamespaces := sets.StringKeySet(platformidentification.GetNamespacesToBugzillaComponents())
+		ret = monitorapi.Intervals(ret).Filter(func(eventInterval monitorapi.EventInterval) bool {
+			namespace := monitorapi.NamespaceFromLocator(eventInterval.Locator)
+			return !knownNamespaces.Has(namespace)
+		})
 	}
 
 	return ret, nil

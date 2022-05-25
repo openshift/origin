@@ -27,43 +27,49 @@ func AllAlertTests(ctx context.Context, clientConfig *rest.Config, duration time
 		}
 	}
 
-	return []AlertTest{
-		newWatchdogAlert(),
+	ret := []AlertTest{}
+	ret = append(ret, newWatchdogAlert())
+	ret = append(ret, newNamespacedAlert("KubePodNotReady").pending().neverFail().toTests()...)
+	ret = append(ret, newNamespacedAlert("KubePodNotReady").firing().toTests()...)
 
-		newAlert("etcd", "etcdMembersDown").pending().neverFail(),
-		newAlert("etcd", "etcdMembersDown").firing(),
-		newAlert("etcd", "etcdGRPCRequestsSlow").pending().neverFail(),
-		newAlert("etcd", "etcdGRPCRequestsSlow").firing(),
-		newAlert("etcd", "etcdHighNumberOfFailedGRPCRequests").pending().neverFail(),
-		newAlert("etcd", "etcdHighNumberOfFailedGRPCRequests").firing(),
-		newAlert("etcd", "etcdMemberCommunicationSlow").pending().neverFail(),
-		newAlert("etcd", "etcdMemberCommunicationSlow").firing(),
-		newAlert("etcd", "etcdNoLeader").pending().neverFail(),
-		newAlert("etcd", "etcdNoLeader").firing(),
-		newAlert("etcd", "etcdHighFsyncDurations").pending().neverFail(),
-		newAlert("etcd", "etcdHighFsyncDurations").firing(),
-		newAlert("etcd", "etcdHighCommitDurations").pending().neverFail(),
-		newAlert("etcd", "etcdHighCommitDurations").firing(),
-		newAlert("etcd", "etcdInsufficientMembers").pending().neverFail(),
-		newAlert("etcd", "etcdInsufficientMembers").firing(),
-		newAlert("etcd", "etcdHighNumberOfLeaderChanges").pending().neverFail(),
-		newAlert("etcd", "etcdHighNumberOfLeaderChanges").withAllowance(etcdAllowance).firing(),
+	ret = append(ret, newAlert("etcd", "etcdMembersDown").pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("etcd", "etcdMembersDown").firing().toTests()...)
+	ret = append(ret, newAlert("etcd", "etcdGRPCRequestsSlow").pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("etcd", "etcdGRPCRequestsSlow").firing().toTests()...)
+	ret = append(ret, newAlert("etcd", "etcdHighNumberOfFailedGRPCRequests").pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("etcd", "etcdHighNumberOfFailedGRPCRequests").firing().toTests()...)
+	ret = append(ret, newAlert("etcd", "etcdMemberCommunicationSlow").pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("etcd", "etcdMemberCommunicationSlow").firing().toTests()...)
+	ret = append(ret, newAlert("etcd", "etcdNoLeader").pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("etcd", "etcdNoLeader").firing().toTests()...)
+	ret = append(ret, newAlert("etcd", "etcdHighFsyncDurations").pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("etcd", "etcdHighFsyncDurations").firing().toTests()...)
+	ret = append(ret, newAlert("etcd", "etcdHighCommitDurations").pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("etcd", "etcdHighCommitDurations").firing().toTests()...)
+	ret = append(ret, newAlert("etcd", "etcdInsufficientMembers").pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("etcd", "etcdInsufficientMembers").firing().toTests()...)
+	ret = append(ret, newAlert("etcd", "etcdHighNumberOfLeaderChanges").pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("etcd", "etcdHighNumberOfLeaderChanges").withAllowance(etcdAllowance).firing().toTests()...)
 
-		newAlert("kube-apiserver", "KubeAPIErrorBudgetBurn").pending().neverFail(),
-		newAlert("kube-apiserver", "KubeAPIErrorBudgetBurn").firing(),
-		newAlert("kube-apiserver", "KubeClientErrors").pending().neverFail(),
-		newAlert("kube-apiserver", "KubeClientErrors").firing(),
+	ret = append(ret, newAlert("kube-apiserver", "KubeAPIErrorBudgetBurn").pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("kube-apiserver", "KubeAPIErrorBudgetBurn").firing().toTests()...)
+	ret = append(ret, newAlert("kube-apiserver", "KubeClientErrors").pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("kube-apiserver", "KubeClientErrors").firing().toTests()...)
 
-		newAlert("storage", "KubePersistentVolumeErrors").pending().neverFail(),
-		newAlert("storage", "KubePersistentVolumeErrors").firing(),
+	ret = append(ret, newAlert("storage", "KubePersistentVolumeErrors").pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("storage", "KubePersistentVolumeErrors").firing().toTests()...)
 
-		newAlert("machine config operator", "MCDDrainError").pending().neverFail(),
-		newAlert("machine config operator", "MCDDrainError").firing(),
+	ret = append(ret, newAlert("machine config operator", "MCDDrainError").pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("machine config operator", "MCDDrainError").firing().toTests()...)
 
-		newAlert("monitoring", "PrometheusOperatorWatchErrors").pending().neverFail(),
-		newAlert("monitoring", "PrometheusOperatorWatchErrors").firing(),
+	ret = append(ret, newAlert("monitoring", "PrometheusOperatorWatchErrors").pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("monitoring", "PrometheusOperatorWatchErrors").firing().toTests()...)
 
-		newAlert("storage", "VSphereOpenshiftNodeHealthFail").pending().neverFail(),
-		newAlert("storage", "VSphereOpenshiftNodeHealthFail").firing().neverFail(), // https://bugzilla.redhat.com/show_bug.cgi?id=2055729
-	}
+	ret = append(ret, newAlert("OLM", "RedhatOperatorsCatalogError").pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("OLM", "RedhatOperatorsCatalogError").firing().toTests()...)
+
+	ret = append(ret, newAlert("storage", "VSphereOpenshiftNodeHealthFail").pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("storage", "VSphereOpenshiftNodeHealthFail").firing().neverFail().toTests()...) // https://bugzilla.redhat.com/show_bug.cgi?id=2055729
+
+	return ret
 }

@@ -6,11 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -47,16 +46,26 @@ const (
 	AlertUnknown  AlertState = "unknown"
 )
 
+type alertBuilder struct {
+	bugzillaComponent  string
+	divideByNamespaces bool
+	alertName          string
+	alertState         AlertState
+
+	allowanceCalculator AlertTestAllowanceCalculator
+}
+
 type basicAlertTest struct {
 	bugzillaComponent string
 	alertName         string
+	namespace         string
 	alertState        AlertState
 
 	allowanceCalculator AlertTestAllowanceCalculator
 }
 
-func newAlert(bugzillaComponent, alertName string) *basicAlertTest {
-	return &basicAlertTest{
+func newAlert(bugzillaComponent, alertName string) *alertBuilder {
+	return &alertBuilder{
 		bugzillaComponent:   bugzillaComponent,
 		alertName:           alertName,
 		alertState:          AlertPending,
@@ -64,38 +73,76 @@ func newAlert(bugzillaComponent, alertName string) *basicAlertTest {
 	}
 }
 
-func (a *basicAlertTest) withAllowance(allowanceCalculator AlertTestAllowanceCalculator) *basicAlertTest {
+func newNamespacedAlert(alertName string) *alertBuilder {
+	return &alertBuilder{
+		divideByNamespaces:  true,
+		alertName:           alertName,
+		alertState:          AlertPending,
+		allowanceCalculator: defaultAllowances,
+	}
+}
+
+func (a *alertBuilder) withAllowance(allowanceCalculator AlertTestAllowanceCalculator) *alertBuilder {
 	a.allowanceCalculator = allowanceCalculator
 	return a
 }
 
-func (a *basicAlertTest) pending() *basicAlertTest {
+func (a *alertBuilder) pending() *alertBuilder {
 	a.alertState = AlertPending
 	return a
 }
 
-func (a *basicAlertTest) firing() *basicAlertTest {
+func (a *alertBuilder) firing() *alertBuilder {
 	a.alertState = AlertInfo
 	return a
 }
 
-func (a *basicAlertTest) warning() *basicAlertTest {
+func (a *alertBuilder) warning() *alertBuilder {
 	a.alertState = AlertWarning
 	return a
 }
 
-func (a *basicAlertTest) critical() *basicAlertTest {
+func (a *alertBuilder) critical() *alertBuilder {
 	a.alertState = AlertCritical
 	return a
 }
 
-func (a *basicAlertTest) neverFail() *basicAlertTest {
+func (a *alertBuilder) neverFail() *alertBuilder {
 	a.allowanceCalculator = neverFail(a.allowanceCalculator)
 	return a
 }
 
-func (a *basicAlertTest) toTest() AlertTest {
-	return a
+func (a *alertBuilder) toTests() []AlertTest {
+	if !a.divideByNamespaces {
+		return []AlertTest{
+			&basicAlertTest{
+				bugzillaComponent:   a.bugzillaComponent,
+				alertName:           a.alertName,
+				alertState:          a.alertState,
+				allowanceCalculator: a.allowanceCalculator,
+			},
+		}
+	}
+
+	ret := []AlertTest{}
+	for namespace, bzComponent := range platformidentification.GetNamespacesToBugzillaComponents() {
+		ret = append(ret, &basicAlertTest{
+			bugzillaComponent:   bzComponent,
+			namespace:           namespace,
+			alertName:           a.alertName,
+			alertState:          a.alertState,
+			allowanceCalculator: a.allowanceCalculator,
+		})
+	}
+	ret = append(ret, &basicAlertTest{
+		bugzillaComponent:   "Unknown",
+		namespace:           platformidentification.NamespaceOther,
+		alertName:           a.alertName,
+		alertState:          a.alertState,
+		allowanceCalculator: a.allowanceCalculator,
+	})
+
+	return ret
 }
 
 func (a *basicAlertTest) TestNamePrefix() string {
@@ -103,11 +150,25 @@ func (a *basicAlertTest) TestNamePrefix() string {
 }
 
 func (a *basicAlertTest) LateTestNameSuffix() string {
-	return fmt.Sprintf("alert/%s should not be at or above %s", a.alertName, a.alertState)
+	switch {
+	case len(a.namespace) == 0:
+		return fmt.Sprintf("alert/%s should not be at or above %s", a.alertName, a.alertState)
+	case a.namespace == platformidentification.NamespaceOther:
+		return fmt.Sprintf("alert/%s should not be at or above %s in all the other namespaces", a.alertName, a.alertState)
+	default:
+		return fmt.Sprintf("alert/%s should not be at or above %s in ns/%s", a.alertName, a.alertState, a.namespace)
+	}
 }
 
 func (a *basicAlertTest) InvariantTestName() string {
-	return fmt.Sprintf("[bz-%v][invariant] alert/%s should not be at or above %s", a.bugzillaComponent, a.alertName, a.alertState)
+	switch {
+	case len(a.namespace) == 0:
+		return fmt.Sprintf("[bz-%v][invariant] alert/%s should not be at or above %s", a.bugzillaComponent, a.alertName, a.alertState)
+	case a.namespace == platformidentification.NamespaceOther:
+		return fmt.Sprintf("[bz-%v][invariant] alert/%s should not be at or above %s in all the other namespaces", a.bugzillaComponent, a.alertName, a.alertState)
+	default:
+		return fmt.Sprintf("[bz-%v][invariant] alert/%s should not be at or above %s in ns/%s", a.bugzillaComponent, a.alertName, a.alertState, a.namespace)
+	}
 }
 
 func (a *basicAlertTest) AlertName() string {
@@ -120,11 +181,11 @@ func (a *basicAlertTest) AlertState() AlertState {
 
 func (a *basicAlertTest) TestAlert(ctx context.Context, prometheusClient prometheusv1.API, restConfig *rest.Config) error {
 	// TODO, could only do these based on what we're checking
-	firingIntervals, err := monitor.WhenWasAlertFiring(ctx, prometheusClient, exutil.BestStartTime(), a.AlertName())
+	firingIntervals, err := monitor.WhenWasAlertFiring(ctx, prometheusClient, exutil.BestStartTime(), a.AlertName(), a.namespace)
 	if err != nil {
 		return err
 	}
-	pendingIntervals, err := monitor.WhenWasAlertPending(ctx, prometheusClient, exutil.BestStartTime(), a.AlertName())
+	pendingIntervals, err := monitor.WhenWasAlertPending(ctx, prometheusClient, exutil.BestStartTime(), a.AlertName(), a.namespace)
 	if err != nil {
 		return err
 	}
@@ -187,6 +248,9 @@ func (a *basicAlertTest) failOrFlake(ctx context.Context, restConfig *rest.Confi
 	if err != nil {
 		return fail, err.Error()
 	}
+
+	// TODO for namespaced alerts, we need to query the data on a per-namespace basis.
+	//  For the ones we're starting with, they tend to fail one at a time, so this will hopefully not be an awful starting point until we get there.
 
 	failAfter, err := a.allowanceCalculator.FailAfter(a.alertName, *jobType)
 	if err != nil {

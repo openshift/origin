@@ -631,6 +631,198 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch][Late] operators should not create watch channels very often": "operators should not create watch channels very often [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-arch][bz-Cloud Compute][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cloud-controller-manager": "alert/KubePodNotReady should not be at or above info in ns/openshift-cloud-controller-manager [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Cloud Compute][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cloud-controller-manager-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-cloud-controller-manager-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Cloud Compute][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-machine-approver": "alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-machine-approver [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Cloud Compute][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-machine-api": "alert/KubePodNotReady should not be at or above info in ns/openshift-machine-api [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Cloud Compute][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cloud-controller-manager": "alert/KubePodNotReady should not be at or above pending in ns/openshift-cloud-controller-manager [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Cloud Compute][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cloud-controller-manager-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-cloud-controller-manager-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Cloud Compute][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-machine-approver": "alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-machine-approver [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Cloud Compute][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-machine-api": "alert/KubePodNotReady should not be at or above pending in ns/openshift-machine-api [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Cloud Credential Operator][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cloud-credential-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-cloud-credential-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Cloud Credential Operator][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cloud-credential-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-cloud-credential-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Cluster Version Operator][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-version": "alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-version [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Cluster Version Operator][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-version": "alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-version [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-DNS][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-dns": "alert/KubePodNotReady should not be at or above info in ns/openshift-dns [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-DNS][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-dns-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-dns-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-DNS][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-dns": "alert/KubePodNotReady should not be at or above pending in ns/openshift-dns [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-DNS][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-dns-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-dns-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Etcd][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-etcd": "alert/KubePodNotReady should not be at or above info in ns/openshift-etcd [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Etcd][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-etcd-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-etcd-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Etcd][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-etcd": "alert/KubePodNotReady should not be at or above pending in ns/openshift-etcd [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Etcd][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-etcd-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-etcd-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Image Registry][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-image-registry": "alert/KubePodNotReady should not be at or above info in ns/openshift-image-registry [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Image Registry][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-image-registry": "alert/KubePodNotReady should not be at or above pending in ns/openshift-image-registry [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Machine Config Operator][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-machine-config-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-machine-config-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Machine Config Operator][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-machine-config-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-machine-config-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Management Console][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-console": "alert/KubePodNotReady should not be at or above info in ns/openshift-console [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Management Console][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-console-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-console-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Management Console][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-console": "alert/KubePodNotReady should not be at or above pending in ns/openshift-console [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Management Console][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-console-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-console-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Monitoring][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-monitoring": "alert/KubePodNotReady should not be at or above info in ns/openshift-monitoring [Disabled:Unimplemented]",
+
+	"[Top Level] [sig-arch][bz-Monitoring][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-monitoring": "alert/KubePodNotReady should not be at or above pending in ns/openshift-monitoring [Disabled:Unimplemented]",
+
+	"[Top Level] [sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cloud-network-config-controller": "alert/KubePodNotReady should not be at or above info in ns/openshift-cloud-network-config-controller [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-host-network": "alert/KubePodNotReady should not be at or above info in ns/openshift-host-network [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-multus": "alert/KubePodNotReady should not be at or above info in ns/openshift-multus [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-network-diagnostics": "alert/KubePodNotReady should not be at or above info in ns/openshift-network-diagnostics [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-network-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-network-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-ovn-kubernetes": "alert/KubePodNotReady should not be at or above info in ns/openshift-ovn-kubernetes [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cloud-network-config-controller": "alert/KubePodNotReady should not be at or above pending in ns/openshift-cloud-network-config-controller [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-host-network": "alert/KubePodNotReady should not be at or above pending in ns/openshift-host-network [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-multus": "alert/KubePodNotReady should not be at or above pending in ns/openshift-multus [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-network-diagnostics": "alert/KubePodNotReady should not be at or above pending in ns/openshift-network-diagnostics [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-network-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-network-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-ovn-kubernetes": "alert/KubePodNotReady should not be at or above pending in ns/openshift-ovn-kubernetes [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Node Tuning Operator][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-node-tuning-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-node-tuning-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Node Tuning Operator][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-node-tuning-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-node-tuning-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-OLM][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-marketplace": "alert/KubePodNotReady should not be at or above info in ns/openshift-marketplace [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-OLM][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-operator-lifecycle-manager": "alert/KubePodNotReady should not be at or above info in ns/openshift-operator-lifecycle-manager [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-OLM][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-operators": "alert/KubePodNotReady should not be at or above info in ns/openshift-operators [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-OLM][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-marketplace": "alert/KubePodNotReady should not be at or above pending in ns/openshift-marketplace [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-OLM][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-operator-lifecycle-manager": "alert/KubePodNotReady should not be at or above pending in ns/openshift-operator-lifecycle-manager [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-OLM][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-operators": "alert/KubePodNotReady should not be at or above pending in ns/openshift-operators [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-OLM][Late] Alerts alert/RedhatOperatorsCatalogError should not be at or above info": "alert/RedhatOperatorsCatalogError should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-OLM][Late] Alerts alert/RedhatOperatorsCatalogError should not be at or above pending": "alert/RedhatOperatorsCatalogError should not be at or above pending [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Routing][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-ingress": "alert/KubePodNotReady should not be at or above info in ns/openshift-ingress [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Routing][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-ingress-canary": "alert/KubePodNotReady should not be at or above info in ns/openshift-ingress-canary [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Routing][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-ingress-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-ingress-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Routing][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-ingress": "alert/KubePodNotReady should not be at or above pending in ns/openshift-ingress [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Routing][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-ingress-canary": "alert/KubePodNotReady should not be at or above pending in ns/openshift-ingress-canary [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Routing][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-ingress-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-ingress-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Samples][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-samples-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-samples-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Samples][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-samples-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-samples-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Storage][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-csi-drivers": "alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-csi-drivers [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Storage][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-storage-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-storage-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Storage][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-csi-drivers": "alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-csi-drivers [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Storage][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-storage-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-storage-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in all the other namespaces": "alert/KubePodNotReady should not be at or above info in all the other namespaces [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/default": "alert/KubePodNotReady should not be at or above info in ns/default [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/kube-system": "alert/KubePodNotReady should not be at or above info in ns/kube-system [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift": "alert/KubePodNotReady should not be at or above info in ns/openshift [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-config": "alert/KubePodNotReady should not be at or above info in ns/openshift-config [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-config-managed": "alert/KubePodNotReady should not be at or above info in ns/openshift-config-managed [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-insights": "alert/KubePodNotReady should not be at or above info in ns/openshift-insights [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-kni-infra": "alert/KubePodNotReady should not be at or above info in ns/openshift-kni-infra [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-nutanix-infra": "alert/KubePodNotReady should not be at or above info in ns/openshift-nutanix-infra [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-openstack-infra": "alert/KubePodNotReady should not be at or above info in ns/openshift-openstack-infra [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-ovirt-infra": "alert/KubePodNotReady should not be at or above info in ns/openshift-ovirt-infra [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-user-workload-monitoring": "alert/KubePodNotReady should not be at or above info in ns/openshift-user-workload-monitoring [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-vsphere-infra": "alert/KubePodNotReady should not be at or above info in ns/openshift-vsphere-infra [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in all the other namespaces": "alert/KubePodNotReady should not be at or above pending in all the other namespaces [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/default": "alert/KubePodNotReady should not be at or above pending in ns/default [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/kube-system": "alert/KubePodNotReady should not be at or above pending in ns/kube-system [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift": "alert/KubePodNotReady should not be at or above pending in ns/openshift [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-config": "alert/KubePodNotReady should not be at or above pending in ns/openshift-config [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-config-managed": "alert/KubePodNotReady should not be at or above pending in ns/openshift-config-managed [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-insights": "alert/KubePodNotReady should not be at or above pending in ns/openshift-insights [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-kni-infra": "alert/KubePodNotReady should not be at or above pending in ns/openshift-kni-infra [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-nutanix-infra": "alert/KubePodNotReady should not be at or above pending in ns/openshift-nutanix-infra [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-openstack-infra": "alert/KubePodNotReady should not be at or above pending in ns/openshift-openstack-infra [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-ovirt-infra": "alert/KubePodNotReady should not be at or above pending in ns/openshift-ovirt-infra [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-user-workload-monitoring": "alert/KubePodNotReady should not be at or above pending in ns/openshift-user-workload-monitoring [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-vsphere-infra": "alert/KubePodNotReady should not be at or above pending in ns/openshift-vsphere-infra [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-apiserver-auth][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-authentication": "alert/KubePodNotReady should not be at or above info in ns/openshift-authentication [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-apiserver-auth][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-authentication-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-authentication-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-apiserver-auth][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-authentication": "alert/KubePodNotReady should not be at or above pending in ns/openshift-authentication [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-apiserver-auth][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-authentication-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-authentication-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-config-operator][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-config-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-config-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-config-operator][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-config-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-config-operator [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdGRPCRequestsSlow should not be at or above info": "alert/etcdGRPCRequestsSlow should not be at or above info [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][bz-etcd][Late] Alerts alert/etcdGRPCRequestsSlow should not be at or above pending": "alert/etcdGRPCRequestsSlow should not be at or above pending [Suite:openshift/conformance/parallel]",
@@ -675,6 +867,38 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/KubeClientErrors should not be at or above pending": "alert/KubeClientErrors should not be at or above pending [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-kube-apiserver": "alert/KubePodNotReady should not be at or above info in ns/openshift-kube-apiserver [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-kube-apiserver-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-kube-apiserver-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-apiserver": "alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-apiserver [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-apiserver-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-apiserver-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-controller-manager][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-kube-controller-manager": "alert/KubePodNotReady should not be at or above info in ns/openshift-kube-controller-manager [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-controller-manager][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-kube-controller-manager-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-kube-controller-manager-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-controller-manager][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-controller-manager": "alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-controller-manager [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-controller-manager][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-controller-manager-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-controller-manager-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-scheduler][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-kube-scheduler": "alert/KubePodNotReady should not be at or above info in ns/openshift-kube-scheduler [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-scheduler][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-kube-scheduler-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-kube-scheduler-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-scheduler][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-scheduler": "alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-scheduler [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-scheduler][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-scheduler-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-scheduler-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-storage-version-migrator][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-kube-storage-version-migrator": "alert/KubePodNotReady should not be at or above info in ns/openshift-kube-storage-version-migrator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-storage-version-migrator][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-kube-storage-version-migrator-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-kube-storage-version-migrator-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-storage-version-migrator][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-storage-version-migrator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-storage-version-migrator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-kube-storage-version-migrator][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-storage-version-migrator-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-storage-version-migrator-operator [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-arch][bz-machine config operator][Late] Alerts alert/MCDDrainError should not be at or above info": "alert/MCDDrainError should not be at or above info [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][bz-machine config operator][Late] Alerts alert/MCDDrainError should not be at or above pending": "alert/MCDDrainError should not be at or above pending [Suite:openshift/conformance/parallel]",
@@ -684,6 +908,34 @@ var annotations = map[string]string{
 	"[Top Level] [sig-arch][bz-monitoring][Late] Alerts alert/PrometheusOperatorWatchErrors should not be at or above pending": "alert/PrometheusOperatorWatchErrors should not be at or above pending [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][bz-monitoring][Late] Alerts alert/Watchdog must have no gaps or changes": "alert/Watchdog must have no gaps or changes [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-oauth-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-oauth-apiserver": "alert/KubePodNotReady should not be at or above info in ns/openshift-oauth-apiserver [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-oauth-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-oauth-apiserver": "alert/KubePodNotReady should not be at or above pending in ns/openshift-oauth-apiserver [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-openshift-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-apiserver": "alert/KubePodNotReady should not be at or above info in ns/openshift-apiserver [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-openshift-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-apiserver-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-apiserver-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-openshift-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-apiserver": "alert/KubePodNotReady should not be at or above pending in ns/openshift-apiserver [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-openshift-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-apiserver-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-apiserver-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-openshift-controller-manager][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-controller-manager": "alert/KubePodNotReady should not be at or above info in ns/openshift-controller-manager [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-openshift-controller-manager][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-controller-manager-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-controller-manager-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-openshift-controller-manager][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-controller-manager": "alert/KubePodNotReady should not be at or above pending in ns/openshift-controller-manager [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-openshift-controller-manager][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-controller-manager-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-controller-manager-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-service-ca][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-service-ca": "alert/KubePodNotReady should not be at or above info in ns/openshift-service-ca [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-service-ca][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-service-ca-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-service-ca-operator [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-service-ca][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-service-ca": "alert/KubePodNotReady should not be at or above pending in ns/openshift-service-ca [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-service-ca][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-service-ca-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-service-ca-operator [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][bz-storage][Late] Alerts alert/KubePersistentVolumeErrors should not be at or above info": "alert/KubePersistentVolumeErrors should not be at or above info [Suite:openshift/conformance/parallel]",
 

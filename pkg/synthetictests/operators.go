@@ -44,7 +44,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 	e2eEventIntervals := monitor.E2ETestEventIntervals(events)
 	for _, condition := range conditionTypes {
 		for _, operatorName := range knownOperators.List() {
-			bzComponent := GetBugzillaComponentForOperator(operatorName)
+			bzComponent := platformidentification.GetBugzillaComponentForOperator(operatorName)
 			if bzComponent == "Unknown" {
 				bzComponent = operatorName
 			}
@@ -231,7 +231,7 @@ func testOperatorOSUpdateStartedEventRecorded(events monitorapi.Intervals, clien
 
 func allOperators(events monitorapi.Intervals) sets.String {
 	// start with a list of known values
-	knownOperators := sets.NewString(KnownOperators.List()...)
+	knownOperators := sets.NewString(platformidentification.KnownOperators.List()...)
 
 	// now add all the operators we see in the events.
 	for _, event := range events {
