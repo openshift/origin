@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -40,7 +41,35 @@ const (
 	// BuildCancelledEventMessage is the message associated with the event registered when build is cancelled.
 	BuildCancelledEventMessage        = "Build %s/%s has been cancelled"
 	additionalAllowedRegistriesEnvVar = "ADDITIONAL_ALLOWED_REGISTRIES"
+
+	// buildInUserNSRegexp is a message that the builder will log at level
+	// 2 or higher if it detects that it's not running with a user
+	// namespace whose mappings don't match the node's at large.
+	buildInUserNSRegexp = `Started in kernel user namespace as [0-9]+:[0-9]+ with UID map \[\(0:[^:]*:65536\)] and GID map \[\(0:[^:]*:65536\)]\.`
+
+	// buildInDefaultUserNSRegexp is a message that the builder will log at
+	// level 2 or higher if it detects that it's running in a user
+	// namespace whose ID mappings map every possible UID or GID to itself,
+	// as things are by default on the node
+	buildInDefaultUserNSRegexp = `Started in node \(default\) kernel user namespace as [0-9]+:[0-9]+\.`
+
+	// buildInUserNSEnvVar is the environment variable and value that we
+	// use to tell the build controller to ask the node to run the build
+	// pod with fewer privileges.
+	buildInUserNSEnvVar = "BUILD_PRIVILEGED=false"
 )
+
+func buildInDefaultUserNSPatch(strategyType string, buildLogLevel int) string {
+	return fmt.Sprintf(`{"spec":{"strategy":{"%s":{"env":[{"name":"BUILD_LOGLEVEL","value":"%d"}]}}}}`, strategyType, buildLogLevel)
+}
+
+func buildInUserNSPatch(strategyType string, buildLogLevel int) string {
+	envName, envValue, set := strings.Cut(buildInUserNSEnvVar, "=")
+	if !set {
+		panic(fmt.Sprintf(`environment variable %q is supposed to have a "=" in it to separate the environment variable's name and its value`, buildInUserNSEnvVar))
+	}
+	return fmt.Sprintf(`{"spec":{"strategy":{"%s":{"env":[{"name":"%s","value":"%s"},{"name":"BUILD_LOGLEVEL","value":"%d"}]}}}}`, strategyType, envName, envValue, buildLogLevel)
+}
 
 var (
 	//TODO: Make these externally configurable

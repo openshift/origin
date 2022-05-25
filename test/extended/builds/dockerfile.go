@@ -3,10 +3,12 @@ package builds
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/api/image/docker10"
@@ -33,6 +35,11 @@ USER 1001
 FROM scratch
 USER 1001
 `
+		testDockerfile4 = fmt.Sprintf(`
+FROM %s
+USER 1001
+RUN id
+`, image.ShellImage())
 		dockerfileAddEnv = exutil.FixturePath("testdata", "builds", "docker-add", "docker-add-env")
 	)
 
@@ -158,6 +165,43 @@ USER 1001
 				logs, err := br.Logs()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(logs).ToNot(o.ContainSubstring("/f\": no such file or directory"))
+			})
+
+			g.It("should be able to build an image with fewer node-level privileges [apigroup:build.openshift.io]", func() {
+				g.By("calling oc new-build with Dockerfile")
+				err := oc.Run("new-build").Args("-D", "-", "--to", "dockerfile-unprivileged", "--env", buildInUserNSEnvVar, "--env", "BUILD_LOGLEVEL=2").InputString(testDockerfile4).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("checking the buildconfig contents")
+				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get(context.Background(), "dockerfile-unprivileged", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(bc.Spec.Source.Git).To(o.BeNil())
+				o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile4))
+				o.Expect(bc.Spec.Strategy.DockerStrategy).ToNot(o.BeNil())
+				buildInUserNSEnvVarName, buildInUserNSEnvVarValue, ok := strings.Cut(buildInUserNSEnvVar, "=")
+				o.Expect(ok).To(o.BeTrue())
+				buildInUserNSEnvVarAsCoreEnv := corev1.EnvVar{
+					Name:  buildInUserNSEnvVarName,
+					Value: buildInUserNSEnvVarValue,
+				}
+				o.Expect(bc.Spec.Strategy.DockerStrategy.Env).To(o.ContainElement(buildInUserNSEnvVarAsCoreEnv))
+				o.Expect(bc.Spec.Output.To).ToNot(o.BeNil())
+				o.Expect(bc.Spec.Output.To.Name).To(o.Equal("dockerfile-unprivileged:latest"))
+
+				buildName := "dockerfile-unprivileged-1"
+				g.By("waiting for the automatically triggered unprivileged Dockerfile build to finish")
+				err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), buildName, nil, nil, nil)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("retrieving build logs for the automatically triggered unprivileged Dockerfile build")
+				b, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), buildName, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br := exutil.NewBuildResult(oc, b)
+
+				g.By("verifying that the automatically triggered unprivileged Dockerfile build ran in a user namespace")
+				buildPodLogs, err := br.Logs()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(buildPodLogs).To(o.MatchRegexp(buildInUserNSRegexp))
 			})
 		})
 	})

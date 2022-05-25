@@ -87,6 +87,9 @@
 // test/extended/testdata/builds/custom-build/Dockerfile
 // test/extended/testdata/builds/custom-build/Dockerfile.sample
 // test/extended/testdata/builds/custom-build/build.sh
+// test/extended/testdata/builds/custom-build-anon/Dockerfile
+// test/extended/testdata/builds/custom-build-anon/Dockerfile.sample
+// test/extended/testdata/builds/custom-build-anon/build.sh
 // test/extended/testdata/builds/docker-add/Dockerfile
 // test/extended/testdata/builds/docker-add/docker-add-env/Dockerfile
 // test/extended/testdata/builds/docker-add/docker-add-env/foo
@@ -18324,9 +18327,138 @@ func testExtendedTestdataBuildsCustomBuildDockerfileSample() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsCustomBuildBuildSh = []byte(`#!/bin/sh
+var _testExtendedTestdataBuildsCustomBuildBuildSh = []byte(`#!/bin/bash
 
 set -euo pipefail
+
+# Figure out if we're in a user namespace with non-default ID mappings, and if
+# so, output the same diagnostic that the docker-builder does when its log
+# level is 2 or higher.
+readidmap() {
+	local idmap
+	while read host container size ; do
+		idmap="${idmap:+${idmap},}(${host}:${container}:${size})"
+	done
+	echo ["$idmap"]
+}
+
+UIDMAP=$(readidmap < /proc/self/uid_map)
+GIDMAP=$(readidmap < /proc/self/gid_map)
+if test "${BUILD_LOGLEVEL:-0}" -ge 2; then
+	if test "$UIDMAP" != '[(0:0:4294967295)]' || test "$GIDMAP" != '[(0:0:4294967295)]' ; then
+		echo Started in kernel user namespace as $(id -u):$(id -g) with UID map "$UIDMAP" and GID map "$GIDMAP".
+	else
+		echo "Started in node (default) kernel user namespace as $(id -u):$(id -g)."
+	fi
+fi
+
+# Note that in this case the build inputs are part of the custom builder image, but normally this
+# would be retrieved from an external source.
+cd /tmp/input
+# OUTPUT_REGISTRY and OUTPUT_IMAGE are env variables provided by the custom
+# build framework
+TAG="${OUTPUT_REGISTRY}/${OUTPUT_IMAGE}"
+
+cp -R /var/run/configs/openshift.io/certs/certs.d/* /etc/containers/certs.d/
+
+# buildah requires a slight modification to the push secret provided by the service account in order to use it for pushing the image
+echo "{ \"auths\": $(cat /var/run/secrets/openshift.io/pull/.dockercfg)}" > /tmp/.pull
+echo "{ \"auths\": $(cat /var/run/secrets/openshift.io/push/.dockercfg)}" > /tmp/.push
+
+# performs the build of the new image defined by Dockerfile.sample
+buildah --authfile /tmp/.pull --storage-driver vfs bud --isolation chroot -t ${TAG} .
+# push the new image to the target for the build
+buildah --authfile /tmp/.push --storage-driver vfs push ${TAG}
+`)
+
+func testExtendedTestdataBuildsCustomBuildBuildShBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsCustomBuildBuildSh, nil
+}
+
+func testExtendedTestdataBuildsCustomBuildBuildSh() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsCustomBuildBuildShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/custom-build/build.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsCustomBuildAnonDockerfile = []byte(`# This base image should be comparable to the base image used by the default
+# Dockerfile in ../custom-build, but can be pulled without requiring any
+# credentials.  Otherwise this Dockerfile should look just like that one.
+FROM quay.io/buildah/stable:latest
+# For simplicity, /tmp/build contains the inputs we’ll be building when we
+# run this custom builder image. Normally the custom builder image would
+# fetch this content from some location at build time. (e.g. via git clone).
+ADD Dockerfile.sample /tmp/input/Dockerfile
+ADD build.sh /usr/bin
+RUN chmod a+x /usr/bin/build.sh
+# /tmp/build/build.sh contains the actual custom build logic that will be executed when
+# this custom builder image is executed.
+ENTRYPOINT ["/usr/bin/build.sh"]
+`)
+
+func testExtendedTestdataBuildsCustomBuildAnonDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsCustomBuildAnonDockerfile, nil
+}
+
+func testExtendedTestdataBuildsCustomBuildAnonDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsCustomBuildAnonDockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/custom-build-anon/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsCustomBuildAnonDockerfileSample = []byte(`FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+RUN touch /tmp/built
+`)
+
+func testExtendedTestdataBuildsCustomBuildAnonDockerfileSampleBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsCustomBuildAnonDockerfileSample, nil
+}
+
+func testExtendedTestdataBuildsCustomBuildAnonDockerfileSample() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsCustomBuildAnonDockerfileSampleBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/custom-build-anon/Dockerfile.sample", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsCustomBuildAnonBuildSh = []byte(`#!/bin/bash
+
+set -euo pipefail
+
+# Figure out if we're in a user namespace with non-default ID mappings, and if
+# so, output the same diagnostic that the docker-builder does when its log
+# level is 2 or higher.
+readidmap() {
+	local idmap
+	while read host container size ; do
+		idmap="${idmap:+${idmap},}(${host}:${container}:${size})"
+	done
+	echo ["$idmap"]
+}
+
+UIDMAP=$(readidmap < /proc/self/uid_map)
+GIDMAP=$(readidmap < /proc/self/gid_map)
+if test "${BUILD_LOGLEVEL:-0}" -ge 2; then
+	if test "$UIDMAP" != '[(0:0:4294967295)]' || test "$GIDMAP" != '[(0:0:4294967295)]' ; then
+		echo Started in kernel user namespace as $(id -u):$(id -g) with UID map "$UIDMAP" and GID map "$GIDMAP".
+	else
+		echo "Started in node (default) kernel user namespace as $(id -u):$(id -g)."
+	fi
+fi
 
 # Note that in this case the build inputs are part of the custom builder image, but normally this
 # would be retrieved from an external source.
@@ -18348,17 +18480,17 @@ buildah --authfile /tmp/.push --storage-driver vfs push ${TAG}
 
 `)
 
-func testExtendedTestdataBuildsCustomBuildBuildShBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsCustomBuildBuildSh, nil
+func testExtendedTestdataBuildsCustomBuildAnonBuildShBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsCustomBuildAnonBuildSh, nil
 }
 
-func testExtendedTestdataBuildsCustomBuildBuildSh() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsCustomBuildBuildShBytes()
+func testExtendedTestdataBuildsCustomBuildAnonBuildSh() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsCustomBuildAnonBuildShBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/builds/custom-build/build.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/custom-build-anon/build.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -53981,6 +54113,9 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/custom-build/Dockerfile":                                                  testExtendedTestdataBuildsCustomBuildDockerfile,
 	"test/extended/testdata/builds/custom-build/Dockerfile.sample":                                           testExtendedTestdataBuildsCustomBuildDockerfileSample,
 	"test/extended/testdata/builds/custom-build/build.sh":                                                    testExtendedTestdataBuildsCustomBuildBuildSh,
+	"test/extended/testdata/builds/custom-build-anon/Dockerfile":                                             testExtendedTestdataBuildsCustomBuildAnonDockerfile,
+	"test/extended/testdata/builds/custom-build-anon/Dockerfile.sample":                                      testExtendedTestdataBuildsCustomBuildAnonDockerfileSample,
+	"test/extended/testdata/builds/custom-build-anon/build.sh":                                               testExtendedTestdataBuildsCustomBuildAnonBuildSh,
 	"test/extended/testdata/builds/docker-add/Dockerfile":                                                    testExtendedTestdataBuildsDockerAddDockerfile,
 	"test/extended/testdata/builds/docker-add/docker-add-env/Dockerfile":                                     testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile,
 	"test/extended/testdata/builds/docker-add/docker-add-env/foo":                                            testExtendedTestdataBuildsDockerAddDockerAddEnvFoo,
@@ -54559,6 +54694,11 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"Dockerfile":        {testExtendedTestdataBuildsCustomBuildDockerfile, map[string]*bintree{}},
 						"Dockerfile.sample": {testExtendedTestdataBuildsCustomBuildDockerfileSample, map[string]*bintree{}},
 						"build.sh":          {testExtendedTestdataBuildsCustomBuildBuildSh, map[string]*bintree{}},
+					}},
+					"custom-build-anon": {nil, map[string]*bintree{
+						"Dockerfile":        {testExtendedTestdataBuildsCustomBuildAnonDockerfile, map[string]*bintree{}},
+						"Dockerfile.sample": {testExtendedTestdataBuildsCustomBuildAnonDockerfileSample, map[string]*bintree{}},
+						"build.sh":          {testExtendedTestdataBuildsCustomBuildAnonBuildSh, map[string]*bintree{}},
 					}},
 					"docker-add": {nil, map[string]*bintree{
 						"Dockerfile": {testExtendedTestdataBuildsDockerAddDockerfile, map[string]*bintree{}},

@@ -38,22 +38,42 @@ var _ = g.Describe("[sig-builds][Feature:Builds][pullsecret] docker build using 
 		})
 
 		g.Describe("Building from a template", func() {
-			g.It("should create a docker build that pulls using a secret run it [apigroup:build.openshift.io]", func() {
-
+			testDockerBuild := func(logsMustMatchRegexp string, startBuildAddArgs ...string) {
 				g.By(fmt.Sprintf("calling oc create -f %q", buildFixture))
 				err := oc.Run("create").Args("-f", buildFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("starting a build")
-				br, err := exutil.StartBuildAndWait(oc, "docker-build")
+				br, err := exutil.StartBuildAndWait(oc, append([]string{"docker-build"}, startBuildAddArgs...)...)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				br.AssertSuccess()
+
+				if logsMustMatchRegexp != "" {
+					g.By(fmt.Sprintf("verify that the build log included a message that matched %q", logsMustMatchRegexp))
+					buildPodLogs, err := br.Logs()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(buildPodLogs).To(o.MatchRegexp(logsMustMatchRegexp))
+				}
 
 				g.By("starting a second build that pulls the image from the first build")
-				br, err = exutil.StartBuildAndWait(oc, "docker-build-pull")
+				br, err = exutil.StartBuildAndWait(oc, append([]string{"docker-build-pull"}, startBuildAddArgs...)...)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				br.AssertSuccess()
 
+				if logsMustMatchRegexp != "" {
+					g.By(fmt.Sprintf("verify that the second build log included a message that matched %q", logsMustMatchRegexp))
+					buildPodLogs, err := br.Logs()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(buildPodLogs).To(o.MatchRegexp(logsMustMatchRegexp))
+				}
+			}
+
+			g.It("should create a docker build that pulls using a secret and run it [apigroup:build.openshift.io]", func() {
+				testDockerBuild(buildInDefaultUserNSRegexp)
+			})
+
+			g.It("should create an unprivileged docker build that pulls using a secret and run it [apigroup:build.openshift.io]", func() {
+				testDockerBuild(buildInUserNSRegexp, "--env", buildInUserNSEnvVar)
 			})
 		})
 	})

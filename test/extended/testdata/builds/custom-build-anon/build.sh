@@ -40,3 +40,4 @@ echo "{ \"auths\": $(cat /var/run/secrets/openshift.io/push/.dockercfg)}" > /tmp
 buildah --authfile /tmp/.pull --storage-driver vfs bud --isolation chroot -t ${TAG} .
 # push the new image to the target for the build
 buildah --authfile /tmp/.push --storage-driver vfs push ${TAG}
+

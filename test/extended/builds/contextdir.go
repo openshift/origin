@@ -21,13 +21,11 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds with a context dir
 		appFixture            = exutil.FixturePath("testdata", "builds", "test-context-build.json")
 		oc                    = exutil.NewCLIWithPodSecurityLevel("contextdir", admissionapi.LevelBaseline)
 		s2iBuildConfigName    = "s2icontext"
-		s2iBuildName          = "s2icontext-1"
 		dcName                = "frontend"
 		deploymentName        = "frontend-1"
 		dcLabel               = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", deploymentName))
 		serviceName           = "frontend"
 		dockerBuildConfigName = "dockercontext"
-		dockerBuildName       = "dockercontext-1"
 	)
 
 	g.Context("", func() {
@@ -45,23 +43,34 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds with a context dir
 		})
 
 		g.Describe("s2i context directory build", func() {
-			g.It(fmt.Sprintf("should s2i build an application using a context directory [apigroup:build.openshift.io]"), func() {
-
+			testSourceBuild := func(logsMustMatchRegexp, patch string) {
 				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 				g.By(fmt.Sprintf("calling oc create -f %q", appFixture))
 				err := oc.Run("create").Args("-f", appFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
+				if patch != "" {
+					g.By("applying patch to build config for context directory build")
+					err := oc.Run("patch").Args("bc/"+s2iBuildConfigName, "-p", patch).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}
+
 				g.By("starting a build")
-				err = oc.Run("start-build").Args(s2iBuildConfigName).Execute()
+				br, err := exutil.StartBuildAndWait(oc, s2iBuildConfigName)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for build to finish")
-				err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), s2iBuildName, exutil.CheckBuildSuccess, exutil.CheckBuildFailed, nil)
+				err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), br.BuildName, exutil.CheckBuildSuccess, exutil.CheckBuildFailed, nil)
 				if err != nil {
-					exutil.DumpBuildLogs("s2icontext", oc)
+					exutil.DumpBuildLogs(s2iBuildConfigName, oc)
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
+				if logsMustMatchRegexp != "" {
+					g.By(fmt.Sprintf("verify that the build log included a message that matched %q", logsMustMatchRegexp))
+					buildPodLogs, err := br.Logs()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(buildPodLogs).To(o.MatchRegexp(logsMustMatchRegexp))
+				}
 
 				// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
 				// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
@@ -95,16 +104,22 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds with a context dir
 				out, err := oc.Run("exec").Args(pod.Name, "-c", pod.Spec.Containers[0].Name, "--", "ls", "/opt/app-root/src").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(out).NotTo(o.ContainSubstring("2.3"))
+			}
+			g.It(fmt.Sprintf("should s2i build an application using a context directory [apigroup:build.openshift.io]"), func() {
+				testSourceBuild(buildInDefaultUserNSRegexp, buildInDefaultUserNSPatch("sourceStrategy", 5))
+			})
+			g.It(fmt.Sprintf("should unprivileged s2i build an application using a context directory [apigroup:build.openshift.io]"), func() {
+				testSourceBuild(buildInUserNSRegexp, buildInUserNSPatch("sourceStrategy", 5))
 			})
 		})
 
 		g.Describe("docker context directory build", func() {
-			g.It(fmt.Sprintf("should docker build an application using a context directory [apigroup:build.openshift.io]"), func() {
+			testDockerBuild := func(logsMustMatchRegexp, patch string) {
 				g.By("initializing local repo")
 				repo, err := exutil.NewGitRepo("contextdir")
 				o.Expect(err).NotTo(o.HaveOccurred())
 				defer repo.Remove()
-				err = repo.AddAndCommit("2.3/Dockerfile", fmt.Sprintf("FROM %s", image.ShellImage()))
+				err = repo.AddAndCommit("2.3/Dockerfile", fmt.Sprintf("FROM %s\nRUN pwd", image.ShellImage()))
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
@@ -112,17 +127,35 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds with a context dir
 				err = oc.Run("create").Args("-f", appFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
+				if patch != "" {
+					g.By("applying patch to build config for context directory build")
+					err := oc.Run("patch").Args("bc/"+dockerBuildConfigName, "-p", patch).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}
+
 				g.By("starting a build")
-				err = oc.Run("start-build").Args(dockerBuildConfigName, "--from-repo", repo.RepoPath).Execute()
+				br, err := exutil.StartBuildAndWait(oc, dockerBuildConfigName, "--from-repo", repo.RepoPath)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				// build will fail if we don't use the right context dir because there won't be a dockerfile present.
 				g.By("waiting for build to finish")
-				err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), dockerBuildName, exutil.CheckBuildSuccess, exutil.CheckBuildFailed, nil)
+				err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), br.BuildName, exutil.CheckBuildSuccess, exutil.CheckBuildFailed, nil)
 				if err != nil {
-					exutil.DumpBuildLogs("dockercontext", oc)
+					exutil.DumpBuildLogs(dockerBuildConfigName, oc)
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
+				if logsMustMatchRegexp != "" {
+					g.By(fmt.Sprintf("verify that the build log included a message that matched %q", logsMustMatchRegexp))
+					buildPodLogs, err := br.Logs()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(buildPodLogs).To(o.MatchRegexp(logsMustMatchRegexp))
+				}
+			}
+			g.It(fmt.Sprintf("should docker build an application using a context directory [apigroup:build.openshift.io]"), func() {
+				testDockerBuild(buildInDefaultUserNSRegexp, buildInDefaultUserNSPatch("dockerStrategy", 5))
+			})
+			g.It(fmt.Sprintf("should unprivileged docker build an application using a context directory [apigroup:build.openshift.io]"), func() {
+				testDockerBuild(buildInUserNSRegexp, buildInUserNSPatch("dockerStrategy", 5))
 			})
 		})
 	})

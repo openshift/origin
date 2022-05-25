@@ -383,7 +383,11 @@ var Annotations = map[string]string{
 
 	"[sig-builds][Feature:Builds] buildconfig secret injector should inject secrets to the appropriate buildconfigs [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] custom build with buildah being created from new-build should complete build with custom builder image [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] custom build with buildah being created from new-build should complete build with custom builder image built from base image pulled using node secrets [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
+	"[sig-builds][Feature:Builds] custom build with buildah being created from new-build should complete unprivileged build with custom builder image built from base image pulled anonymously [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-builds][Feature:Builds] custom build with buildah being created from new-build should fail to build the custom builder image without node credentials [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds] imagechangetriggers imagechangetriggers should trigger builds of all types [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
@@ -417,7 +421,11 @@ var Annotations = map[string]string{
 
 	"[sig-builds][Feature:Builds] s2i build with a root user image should create a root build and pass with a privileged SCC [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[sig-builds][Feature:Builds] verify /run filesystem contents are writeable in unprivileged builds using a simple Docker Strategy Build [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-builds][Feature:Builds] verify /run filesystem contents are writeable using a simple Docker Strategy Build [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
+	"[sig-builds][Feature:Builds] verify /run filesystem contents do not have unexpected content in unprivileged builds using a simple Docker Strategy Build [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds] verify /run filesystem contents do not have unexpected content using a simple Docker Strategy Build [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
@@ -446,6 +454,8 @@ var Annotations = map[string]string{
 	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration registries config context should default registry search to docker.io for image pulls": "",
 
 	"[sig-builds][Feature:Builds][Slow] Capabilities should be dropped for s2i builders s2i build with a rootable builder should not be able to switch to root with an assemble script [apigroup:build.openshift.io]": "",
+
+	"[sig-builds][Feature:Builds][Slow] build can have Dockerfile input being created from new-build should be able to build an image with fewer node-level privileges [apigroup:build.openshift.io]": "",
 
 	"[sig-builds][Feature:Builds][Slow] build can have Dockerfile input being created from new-build should be able to start a build from Dockerfile with FROM reference to scratch [apigroup:build.openshift.io]": "",
 
@@ -487,17 +497,31 @@ var Annotations = map[string]string{
 
 	"[sig-builds][Feature:Builds][Slow] builds with a context directory docker context directory build should docker build an application using a context directory [apigroup:build.openshift.io]": "",
 
+	"[sig-builds][Feature:Builds][Slow] builds with a context directory docker context directory build should unprivileged docker build an application using a context directory [apigroup:build.openshift.io]": "",
+
 	"[sig-builds][Feature:Builds][Slow] builds with a context directory s2i context directory build should s2i build an application using a context directory [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] can use build secrets build with secrets and configMaps should contain secrets during the docker strategy build": "",
+	"[sig-builds][Feature:Builds][Slow] builds with a context directory s2i context directory build should unprivileged s2i build an application using a context directory [apigroup:build.openshift.io]": "",
+
+	"[sig-builds][Feature:Builds][Slow] can use build secrets build with secrets and configMaps should contain secrets during the docker strategy build [apigroup:build.openshift.io][apigroup:image.openshift.io]": "",
 
 	"[sig-builds][Feature:Builds][Slow] can use build secrets build with secrets and configMaps should contain secrets during the source strategy build [apigroup:build.openshift.io][apigroup:image.openshift.io]": "",
 
+	"[sig-builds][Feature:Builds][Slow] can use build secrets build with secrets and configMaps should contain secrets during the unprivileged docker strategy build [apigroup:build.openshift.io][apigroup:image.openshift.io]": "",
+
+	"[sig-builds][Feature:Builds][Slow] can use build secrets build with secrets and configMaps should contain secrets during the unprivileged source strategy build [apigroup:build.openshift.io][apigroup:image.openshift.io]": "",
+
 	"[sig-builds][Feature:Builds][Slow] can use private repositories as build input build using an HTTP token should be able to clone source code via an HTTP token [apigroup:build.openshift.io]": "",
+
+	"[sig-builds][Feature:Builds][Slow] can use private repositories as build input build using an HTTP token should be able to clone source code via an HTTP token without privileges [apigroup:build.openshift.io]": "",
 
 	"[sig-builds][Feature:Builds][Slow] can use private repositories as build input build using an ssh private key should be able to clone source code via ssh [apigroup:build.openshift.io]": "",
 
 	"[sig-builds][Feature:Builds][Slow] can use private repositories as build input build using an ssh private key should be able to clone source code via ssh using SCP-style URIs [apigroup:build.openshift.io]": "",
+
+	"[sig-builds][Feature:Builds][Slow] can use private repositories as build input build using an ssh private key should be able to clone source code via ssh using SCP-style URIs without privileges [apigroup:build.openshift.io]": "",
+
+	"[sig-builds][Feature:Builds][Slow] can use private repositories as build input build using an ssh private key should be able to clone source code via ssh without privileges [apigroup:build.openshift.io]": "",
 
 	"[sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status Docker build started with log level >5 should save the image digest when finished [apigroup:build.openshift.io][apigroup:image.openshift.io]": "",
 
@@ -591,13 +615,23 @@ var Annotations = map[string]string{
 
 	"[sig-builds][Feature:Builds][Slow] using pull secrets in a build start-build test context binary builds should be able to run a build that is implicitly pulling from the internal registry [apigroup:build.openshift.io]": "",
 
+	"[sig-builds][Feature:Builds][Slow] using pull secrets in a build start-build test context binary builds should be able to run an unprivileged build that is implicitly pulling from the internal registry [apigroup:build.openshift.io]": "",
+
 	"[sig-builds][Feature:Builds][Slow] using pull secrets in a build start-build test context pulling from an external authenticated registry should be able to use a pull secret in a build [apigroup:build.openshift.io]": "",
+
+	"[sig-builds][Feature:Builds][Slow] using pull secrets in a build start-build test context pulling from an external authenticated registry should be able to use a pull secret in an unprivileged build [apigroup:build.openshift.io]": "",
 
 	"[sig-builds][Feature:Builds][Slow] using pull secrets in a build start-build test context pulling from an external authenticated registry should be able to use a pull secret linked to the builder service account [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][pullsearch] docker build where the registry is not specified Building from a Dockerfile whose FROM image ref does not specify the image registry should create a docker build that has buildah search from our predefined list of image registries and succeed [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][Slow] using pull secrets in a build start-build test context pulling from an external authenticated registry should be able to use a pull secret linked to the builder service account in an unprivileged build [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][pullsecret] docker build using a pull secret Building from a template should create a docker build that pulls using a secret run it [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][pullsearch] docker build where the registry is not specified Building from a Dockerfile whose FROM image ref does not specify the image registry should create a docker build that can search from our predefined list of image registries and succeed [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-builds][Feature:Builds][pullsearch] docker build where the registry is not specified Building from a Dockerfile whose FROM image ref does not specify the image registry should create an unprivileged docker build that can still search our predefined list of image registries and shortnames and succeed [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-builds][Feature:Builds][pullsecret] docker build using a pull secret Building from a template should create a docker build that pulls using a secret and run it [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-builds][Feature:Builds][pullsecret] docker build using a pull secret Building from a template should create an unprivileged docker build that pulls using a secret and run it [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds][timing] capture build stages and durations should record build stages and durations for docker [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
@@ -611,17 +645,29 @@ var Annotations = map[string]string{
 
 	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should successfully resolve valueFrom in s2i build environment variables [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for privileged docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for privileged source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for unprivileged docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for unprivileged source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret into the build pod for unprivileged docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret into the build pod for unprivileged source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret without resource refresh into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret without resource refresh into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret without resource refresh into the build pod for unprivileged docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret without resource refresh into the build pod for unprivileged source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds][webhook] TestWebhook [apigroup:build.openshift.io][apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 

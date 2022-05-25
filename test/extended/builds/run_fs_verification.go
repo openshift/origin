@@ -144,6 +144,58 @@ valid_fields.json
 				br, err := exutil.StartBuildAndWait(oc, "verify-run-fs")
 				o.Expect(err).NotTo(o.HaveOccurred())
 				br.AssertSuccess()
+
+				g.By("veirfy that the build ran in the node's user namespace")
+				logs, err := br.LogsNoTimestamp()
+				o.Expect(logs).To(o.MatchRegexp(buildInDefaultUserNSRegexp))
+			})
+		})
+
+		g.Describe("are writeable in unprivileged builds", func() {
+			g.It("using a simple Docker Strategy Build [apigroup:build.openshift.io]", func() {
+				g.By("calling oc create with yaml")
+				err := oc.Run("create").Args("-f", "-").InputString(testVerityRunFSWriteableBuildConfigYaml).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("start and wait for build")
+				br, err := exutil.StartBuildAndWait(oc, "verify-run-fs", "--env", buildInUserNSEnvVar)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br.AssertSuccess()
+
+				g.By("verify that the build ran in a user namespace")
+				logs, err := br.LogsNoTimestamp()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(logs).To(o.MatchRegexp(buildInUserNSRegexp))
+			})
+		})
+
+		g.Describe("do not have unexpected content in unprivileged builds", func() {
+			g.It("using a simple Docker Strategy Build [apigroup:build.openshift.io]", func() {
+				g.By("calling oc create with yaml")
+				err := oc.Run("create").Args("-f", "-").InputString(testVerifyRunFSContentsBuildConfigYaml).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("start and wait for build")
+				br, err := exutil.StartBuildAndWait(oc, "verify-run-fs", "--env", buildInUserNSEnvVar)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br.AssertSuccess()
+
+				g.By("check build logs for ls -R /run/secrets")
+				logs, err := br.LogsNoTimestamp()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				hasRightListing := false
+				if strings.Contains(logs, lsRSlashRun) ||
+					strings.Contains(logs, lsRSlashRunFIPS) ||
+					strings.Contains(logs, lsRSlashRunOKD) ||
+					strings.Contains(logs, lsRSlashRunRhel7) {
+
+					hasRightListing = true
+				}
+				o.Expect(hasRightListing).To(o.BeTrue())
+
+				g.By("verify that the build ran in a user namespace")
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(logs).To(o.MatchRegexp(buildInUserNSRegexp))
 			})
 		})
 	})

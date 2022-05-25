@@ -2,6 +2,7 @@ package builds
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -61,10 +62,16 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use build secrets", f
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 
-			g.It("should contain secrets during the source strategy build [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() {
+			testSourceBuild := func(logsMustMatchRegexp, patch string) {
 				g.By("creating test build config")
 				err := oc.Run("create").Args("-f", sourceBuildFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
+
+				if patch != "" {
+					g.By("applying patch to build config")
+					err := oc.Run("patch").Args("bc/test", "-p", patch).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}
 
 				g.By("starting the test source build")
 				br, _ := exutil.StartBuildAndWait(oc, "test", "--from-dir", sourceBuildBinDir)
@@ -90,12 +97,32 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use build secrets", f
 					"testconfig2/red=hat",
 					"testconfig2/this=that",
 				})
+
+				if logsMustMatchRegexp != "" {
+					buildPodLogs, err := br.Logs()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(buildPodLogs).To(o.MatchRegexp(logsMustMatchRegexp))
+				}
+			}
+
+			g.It("should contain secrets during the source strategy build [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() {
+				testSourceBuild(buildInDefaultUserNSRegexp, buildInDefaultUserNSPatch("sourceStrategy", 5))
 			})
 
-			g.It("should contain secrets during the docker strategy build", func() {
+			g.It("should contain secrets during the unprivileged source strategy build [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() {
+				testSourceBuild(buildInUserNSRegexp, buildInUserNSPatch("sourceStrategy", 5))
+			})
+
+			testDockerBuild := func(logsMustMatchRegexp, patch string) {
 				g.By("creating test build config")
 				err := oc.Run("create").Args("-f", dockerBuildFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
+
+				if patch != "" {
+					g.By("applying patch to build config")
+					err := oc.Run("patch").Args("bc/test", "-p", patch).Execute()
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}
 
 				g.By("starting the test docker build")
 				br, _ := exutil.StartBuildAndWait(oc, "test", "--from-file", dockerBuildDockerfile)
@@ -113,6 +140,21 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use build secrets", f
 					"foo=bar",
 					"relative-this=that",
 				})
+
+				if logsMustMatchRegexp != "" {
+					g.By(fmt.Sprintf("verify that the build log included a message that matched %q", logsMustMatchRegexp))
+					buildPodLogs, err := br.Logs()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(buildPodLogs).To(o.MatchRegexp(logsMustMatchRegexp))
+				}
+			}
+
+			g.It("should contain secrets during the docker strategy build [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() {
+				testDockerBuild(buildInDefaultUserNSRegexp, buildInDefaultUserNSPatch("dockerStrategy", 2))
+			})
+
+			g.It("should contain secrets during the unprivileged docker strategy build [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() {
+				testDockerBuild(buildInUserNSRegexp, buildInUserNSPatch("dockerStrategy", 2))
 			})
 		})
 	})

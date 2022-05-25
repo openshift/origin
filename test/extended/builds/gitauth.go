@@ -42,17 +42,24 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use private repositor
 			}
 		})
 
-		testGitAuth := func(sourceURL string, sourceSecretName string) {
+		testGitAuth := func(sourceURL string, sourceSecretName string, logsMustMatchRegexp string, startBuildAddArgs ...string) {
 			g.By(fmt.Sprintf("creating a new BuildConfig to clone source via %s", sourceURL))
 			err := oc.Run("new-app").Args("-f", testBuildFixture, "-p", fmt.Sprintf("SOURCE_SECRET=%s", sourceSecretName), "-p", fmt.Sprintf("SOURCE_URL=%s", sourceURL)).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build and waiting for success")
-			br, _ := exutil.StartBuildAndWait(oc, buildConfigName)
+			br, _ := exutil.StartBuildAndWait(oc, append([]string{buildConfigName}, startBuildAddArgs...)...)
 			if !br.BuildSuccess {
 				exutil.DumpBuildLogs(buildConfigName, oc)
 			}
 			br.AssertSuccess()
+
+			if logsMustMatchRegexp != "" {
+				g.By(fmt.Sprintf("verify that the build logs included a message that matched %q", logsMustMatchRegexp))
+				logs, err := br.Logs()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(logs).To(o.MatchRegexp(logsMustMatchRegexp))
+			}
 		}
 
 		g.Describe("build using an HTTP token", func() {
@@ -76,7 +83,11 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use private repositor
 			})
 
 			g.It("should be able to clone source code via an HTTP token [apigroup:build.openshift.io]", func() {
-				testGitAuth("https://github.com/openshift-github-testing/nodejs-ex-private.git", "github-http-token")
+				testGitAuth("https://github.com/openshift-github-testing/nodejs-ex-private.git", "github-http-token", buildInDefaultUserNSRegexp)
+			})
+
+			g.It("should be able to clone source code via an HTTP token without privileges [apigroup:build.openshift.io]", func() {
+				testGitAuth("https://github.com/openshift-github-testing/nodejs-ex-private.git", "github-http-token", buildInUserNSRegexp, "--env", buildInUserNSEnvVar)
 			})
 
 		})
@@ -111,11 +122,19 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use private repositor
 			})
 
 			g.It("should be able to clone source code via ssh [apigroup:build.openshift.io]", func() {
-				testGitAuth("ssh://git@github.com/openshift-github-testing/nodejs-ex-private.git", "github-ssh-privatekey")
+				testGitAuth("ssh://git@github.com/openshift-github-testing/nodejs-ex-private.git", "github-ssh-privatekey", buildInDefaultUserNSRegexp)
 			})
 
 			g.It("should be able to clone source code via ssh using SCP-style URIs [apigroup:build.openshift.io]", func() {
-				testGitAuth("git@github.com:openshift-github-testing/nodejs-ex-private.git", "github-ssh-privatekey")
+				testGitAuth("git@github.com:openshift-github-testing/nodejs-ex-private.git", "github-ssh-privatekey", buildInDefaultUserNSRegexp)
+			})
+
+			g.It("should be able to clone source code via ssh without privileges [apigroup:build.openshift.io]", func() {
+				testGitAuth("ssh://git@github.com/openshift-github-testing/nodejs-ex-private.git", "github-ssh-privatekey", buildInUserNSRegexp, "--env", buildInUserNSEnvVar)
+			})
+
+			g.It("should be able to clone source code via ssh using SCP-style URIs without privileges [apigroup:build.openshift.io]", func() {
+				testGitAuth("git@github.com:openshift-github-testing/nodejs-ex-private.git", "github-ssh-privatekey", buildInUserNSRegexp, "--env", buildInUserNSEnvVar)
 			})
 		})
 	})

@@ -846,7 +846,7 @@ func (t *BuildResult) Logs() (string, error) {
 		return t.LogDumper(t.Oc, t)
 	}
 
-	buildOuput, buildErr, err := t.Oc.Run("logs").Args("-f", t.BuildPath, "--timestamps", "--v", "10").Outputs()
+	buildOuput, buildErr, err := t.Oc.Run("logs").Args("-f", t.BuildPath, "--all-containers=true", "--timestamps", "--v", "10").Outputs()
 	if err != nil {
 		return "", fmt.Errorf("Error retrieving logs for build %q: (%s) %v", t.BuildName, buildErr, err)
 	}
