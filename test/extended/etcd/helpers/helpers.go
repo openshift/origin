@@ -13,12 +13,14 @@ import (
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	machinev1beta1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1"
+	bmhelper "github.com/openshift/origin/test/extended/baremetal"
 	exutil "github.com/openshift/origin/test/extended/util"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/utils/pointer"
@@ -284,12 +286,30 @@ func MachineNameToEtcdMemberName(ctx context.Context, kubeClient kubernetes.Inte
 	return "", fmt.Errorf("unable to find a node for the corresponding %q machine on ProviderID: %v, checked: %v", machineName, machineProviderID, nodeNames)
 }
 
+func InitPlatformSpecificConfiguration(oc *exutil.CLI) func() {
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	// For baremetal platforms, an extra worker must be previously deployed to allow subsequent scaling operations
+	if infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType {
+		dc, err := dynamic.NewForConfig(oc.KubeFramework().ClientConfig())
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		helper := bmhelper.NewBaremetalTestHelper(dc)
+		if helper.CanDeployExtraWorkers() {
+			helper.Setup()
+			helper.DeployExtraWorker(0)
+		}
+		return helper.DeleteAllExtraWorkers
+	}
+	return func() { /*noop*/ }
+}
+
 func SkipIfUnsupportedPlatform(ctx context.Context, oc *exutil.CLI) {
 	machineClientSet, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
 	o.Expect(err).ToNot(o.HaveOccurred())
 	machineClient := machineClientSet.MachineV1beta1().Machines("openshift-machine-api")
 	skipUnlessFunctionalMachineAPI(ctx, machineClient)
-	skipIfBareMetal(oc)
 	skipIfAzure(oc)
 	skipIfSingleNode(oc)
 }
@@ -318,15 +338,6 @@ func skipUnlessFunctionalMachineAPI(ctx context.Context, machineClient machinev1
 	}
 	e2eskipper.Skipf("haven't found a machine in running state, this test can be run on a platform that supports functional MachineAPI")
 	return
-}
-
-func skipIfBareMetal(oc *exutil.CLI) {
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	if infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType {
-		e2eskipper.Skipf("this test is currently broken on the metal platform and needs to be fixed")
-	}
 }
 
 func skipIfAzure(oc *exutil.CLI) {
