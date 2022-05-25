@@ -157,8 +157,169 @@ func getWorkerNodesOrdered(clientset kubernetes.Interface) ([]corev1.Node, error
 	return items, nil
 }
 
+// findPacketSnifferInterface finds the interface that shall be used for packet capturing on all nodes in the list.
+// Return an error if there is no consensus about the interface that shall be used among nodes.
+func findPacketSnifferInterface(oc *exutil.CLI, networkPlugin string, egressIPNodesOrderedNames []string) (string, error) {
+	var intf string
+	var packetSnifferNode, packetSnifferInterface string
+	var err error
+	for _, node := range egressIPNodesOrderedNames {
+		intf, err = findPacketSnifferInterfaceOnNode(oc, networkPlugin, node)
+		if err != nil {
+			return "", err
+		}
+		if packetSnifferInterface == "" {
+			packetSnifferInterface = intf
+			packetSnifferNode = node
+			continue
+		}
+		if packetSnifferInterface != intf {
+			return "", fmt.Errorf("Selected different interfaces for packet capture. Node %s reported '%s' but node %s reports '%s'",
+				packetSnifferNode,
+				packetSnifferInterface,
+				node,
+				intf)
+		}
+	}
+	return packetSnifferInterface, nil
+}
+
+// findPacketSnifferInterfaceOnNode finds the interface that shall be used for packet capturing on this node.
+func findPacketSnifferInterfaceOnNode(oc *exutil.CLI, networkPlugin, nodeName string) (string, error) {
+	if networkPlugin == openshiftSDNPluginName {
+		return findDefaultInterfaceForOpenShiftSDN(oc, nodeName)
+	}
+	if networkPlugin == OVNKubernetesPluginName {
+		return findBridgePhysicalInterface(oc, nodeName, "br-ex")
+	}
+	return "", fmt.Errorf("Invalid network plugin name: '%s'", networkPlugin)
+}
+
+// findDefaultInterfaceForOpenShiftSDN returns the default interface for a node with the OpenShiftSDN plugin.
+func findDefaultInterfaceForOpenShiftSDN(oc *exutil.CLI, nodeName string) (string, error) {
+	var podName string
+	var out string
+	var err error
+
+	type route struct {
+		Dev string
+	}
+	var defaultRoutes []route
+
+	out, err = oc.AsAdmin().Run("get").Args(
+		"pods",
+		"-o", "name",
+		"-n", "openshift-sdn",
+		"--field-selector", fmt.Sprintf("spec.nodeName=%s", nodeName),
+		"-l", "app=sdn").Output()
+	if err != nil {
+		return "", err
+	}
+	outReader := bufio.NewScanner(strings.NewReader(out))
+	re := regexp.MustCompile("^pod/(.*)")
+	for outReader.Scan() {
+		match := re.FindSubmatch([]byte(outReader.Text()))
+		if len(match) != 2 {
+			continue
+		}
+		podName = string(match[1])
+		break
+	}
+	if podName == "" {
+		return "", fmt.Errorf("Could not find a valid sdn pod on node '%s'", nodeName)
+	}
+	out, err = adminExecInPod(oc, "openshift-sdn", podName, "sdn", "ip -j route show default")
+	if err != nil {
+		return "", err
+	}
+	err = json.Unmarshal([]byte(out), &defaultRoutes)
+	if err != nil {
+		return "", err
+	}
+	if len(defaultRoutes) < 1 {
+		return "", fmt.Errorf("Invalid default route configuration for node %s: %s", nodeName, out)
+	}
+	// Return the first default route in the list, ip route show default should correctly order routes
+	// by metric.
+	return defaultRoutes[0].Dev, nil
+}
+
+// findBridgePhysicalInterface returns the name of the physical interface that belogs to <bridgeName> on node <nodeName>.
+func findBridgePhysicalInterface(oc *exutil.CLI, nodeName, bridgeName string) (string, error) {
+	var podName string
+	var out string
+	var err error
+
+	out, err = oc.AsAdmin().Run("get").Args(
+		"pods",
+		"-o", "name",
+		"-n", "openshift-ovn-kubernetes",
+		"--field-selector", fmt.Sprintf("spec.nodeName=%s", nodeName),
+		"-l", "app=ovnkube-node").Output()
+	if err != nil {
+		return "", err
+	}
+	outReader := bufio.NewScanner(strings.NewReader(out))
+	re := regexp.MustCompile("^pod/(.*)")
+	for outReader.Scan() {
+		match := re.FindSubmatch([]byte(outReader.Text()))
+		if len(match) != 2 {
+			continue
+		}
+		podName = string(match[1])
+		break
+	}
+	if podName == "" {
+		return "", fmt.Errorf("Could not find a valid ovnkube-node pod on node '%s'", nodeName)
+	}
+	out, err = adminExecInPod(oc, "openshift-ovn-kubernetes", podName, "ovnkube-node", fmt.Sprintf("ovs-vsctl list-ports %s", bridgeName))
+	if err != nil {
+		return "", fmt.Errorf("failed to get list of ports on bridge %s:, error: %v",
+			bridgeName, err)
+	}
+	for _, port := range strings.Split(out, "\n") {
+		out, err = adminExecInPod(
+			oc, "openshift-ovn-kubernetes", podName, "ovnkube-node",
+			fmt.Sprintf("ovs-vsctl get Port %s Interfaces", port))
+		if err != nil {
+			return "", fmt.Errorf("failed to get port %s on bridge %s: error: %v",
+				bridgeName, port, err)
+
+		}
+		// remove brackets on list of interfaces
+		ifaces := strings.TrimPrefix(strings.TrimSuffix(out, "]"), "[")
+		for _, iface := range strings.Split(ifaces, ",") {
+			out, err = adminExecInPod(
+				oc, "openshift-ovn-kubernetes", podName, "ovnkube-node",
+				fmt.Sprintf("ovs-vsctl get Interface %s Type", strings.TrimSpace(iface)))
+			if err != nil {
+				return "", fmt.Errorf("failed to get Interface %q Type on bridge %q:, error: %v",
+					iface, bridgeName, err)
+
+			}
+			// If system Type we know this is the OVS port is the NIC
+			if out == "system" {
+				return port, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("Could not find a physical interface connected to bridge %s on node %s (pod %s)",
+		bridgeName, nodeName, podName)
+}
+
+// adminExecInPod runs a command as admin in the provides pod inside the provided namespace.
+func adminExecInPod(oc *exutil.CLI, namespace, pod, container, script string) (string, error) {
+	var out string
+	waitErr := wait.PollImmediate(1*time.Second, 3*time.Minute, func() (bool, error) {
+		var err error
+		out, err = oc.AsAdmin().Run("exec").Args(pod, "-n", namespace, "-c", container, "--", "/bin/bash", "-c", script).Output()
+		return true, err
+	})
+	return out, waitErr
+}
+
 // createPacketSnifferDaemonSet creates packet sniffer pods on the hosts specified in scheduleOnHosts.
-func createPacketSnifferDaemonSet(oc *exutil.CLI, namespace string, scheduleOnHosts []string, packetCaptureProtocol string, packetCapturePort int) (*appsv1.DaemonSet, error) {
+func createPacketSnifferDaemonSet(oc *exutil.CLI, namespace string, scheduleOnHosts []string, packetCaptureProtocol string, packetCapturePort int, packetCaptureInterface string) (*appsv1.DaemonSet, error) {
 	f := oc.KubeFramework()
 	clientset := f.ClientSet
 
@@ -176,6 +337,7 @@ func createPacketSnifferDaemonSet(oc *exutil.CLI, namespace string, scheduleOnHo
 		namespace,
 		daemonsetName,
 		scheduleOnHosts,
+		packetCaptureInterface,
 	)
 	if err != nil {
 		return targetDaemonset, err
@@ -212,7 +374,7 @@ const (
 	// The resulting lines will be something like:
 	// 10.128.2.15.36749  /f8f721fa-53c9-444f-bc96-69c7388fcb5a
 	tcpCaptureScript = `#!/bin/bash
-tcpdump -nne -i any -l -s 0  'port %d and tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420' | awk '{print $9 " " $(NF-1)}'
+tcpdump -nne -i %s -l -s 0  'port %d and tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420' | awk '{print $10 " " $(NF-1)}'
 `
 
 	// The udpCaptureScript runs tcpdump with option -xx and then decodes the hexadecimal information.
@@ -232,8 +394,10 @@ import sys
 import select
 import re
 
-# Source IP is at location 8 in the first line
-sourceIPOffset = 8
+# Source IP is at location 9 in the first line if a specific
+# interface is used or at location 8 if the any interface is
+# used
+sourceIPOffset = 9
 # UDP payload starts at around Byte 21
 # We don't care about the offset though, having everything
 # in one line is enough.
@@ -279,14 +443,14 @@ printLine()
 EOF
 chmod +x capture-python.py
 
-tcpdump -nne -i any -l -xx -s0 port %d and udp | ./capture-python.py
+tcpdump -nne -i %s -l -xx -s0 port %d and udp | ./capture-python.py
 `
 )
 
 // createHostNetworkedPacketSnifferDaemonSet creates a host networked pod in namespace <namespace> on
 // node <nodeName>. It will start a packet sniffer and it will log all GET request's source IP and the actual request string.
 func createHostNetworkedPacketSnifferDaemonSet(clientset kubernetes.Interface, networkPacketSnifferImage, packetCaptureProtocol string, packetCapturePort int,
-	namespace, daemonsetName string, scheduleOnHosts []string) (*appsv1.DaemonSet, error) {
+	namespace, daemonsetName string, scheduleOnHosts []string, packetCaptureInterface string) (*appsv1.DaemonSet, error) {
 	if packetCaptureProtocol != "http" && packetCaptureProtocol != "udp" {
 		return nil, fmt.Errorf("createHostNetworkedPacketSnifferDaemonSet supports only 'http' and 'udp' protocols, got: %s", packetCaptureProtocol)
 	}
@@ -298,7 +462,7 @@ func createHostNetworkedPacketSnifferDaemonSet(clientset kubernetes.Interface, n
 	podCommand := []string{
 		"/bin/bash",
 		"-c",
-		fmt.Sprintf(cmd, packetCapturePort),
+		fmt.Sprintf(cmd, packetCaptureInterface, packetCapturePort),
 	}
 	podLabels := map[string]string{
 		"app": daemonsetName,
