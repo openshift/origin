@@ -272,6 +272,9 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1989169: unidling tests are flaky under ovn-kubernetes
 			`Unidling should work with TCP`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=2077167: unidling TCP tests fail in ovn-kubernetes
+			`Unidling should handle many TCP connections`,
 		},
 		"[Skipped:ibmcloud]": {
 			// skip Gluster tests (not supported on ROKS worker nodes)
