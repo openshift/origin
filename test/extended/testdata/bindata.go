@@ -46758,7 +46758,7 @@ data:
     fi
 
     # Start the slapd service
-    exec slapd -h "ldap:///${HOSTNAME} ldapi:/// ldaps:///${HOSTNAME}" -d $OPENLDAP_DEBUG_LEVEL
+    exec slapd -h "ldap:/// ldapi:/// ldaps:///" -d $OPENLDAP_DEBUG_LEVEL
 `)
 
 func testExtendedTestdataLdapLdapserverScriptsCmYamlBytes() ([]byte, error) {
