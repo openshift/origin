@@ -19,7 +19,7 @@ var _ = g.Describe("[sig-etcd][Serial] etcd", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("etcd-scaling").AsAdmin()
 
-	var cleanupPlatformSpecificConfiguration func()
+	cleanupPlatformSpecificConfiguration := func() { /*noop*/ }
 
 	g.BeforeEach(func() {
 		cleanupPlatformSpecificConfiguration = scalingtestinglibrary.InitPlatformSpecificConfiguration(oc)

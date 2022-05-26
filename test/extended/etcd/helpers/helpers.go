@@ -287,6 +287,8 @@ func MachineNameToEtcdMemberName(ctx context.Context, kubeClient kubernetes.Inte
 }
 
 func InitPlatformSpecificConfiguration(oc *exutil.CLI) func() {
+	SkipIfUnsupportedPlatform(context.TODO(), oc)
+
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -312,6 +314,7 @@ func SkipIfUnsupportedPlatform(ctx context.Context, oc *exutil.CLI) {
 	skipUnlessFunctionalMachineAPI(ctx, machineClient)
 	skipIfAzure(oc)
 	skipIfSingleNode(oc)
+	skipIfBareMetal(oc)
 }
 
 func skipUnlessFunctionalMachineAPI(ctx context.Context, machineClient machinev1beta1client.MachineInterface) {
@@ -355,6 +358,15 @@ func skipIfSingleNode(oc *exutil.CLI) {
 
 	if infra.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode {
 		e2eskipper.Skipf("this test can be run only against an HA cluster, skipping it on an SNO env")
+	}
+}
+
+func skipIfBareMetal(oc *exutil.CLI) {
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	if infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType {
+		e2eskipper.Skipf("this test is currently broken on the metal platform and needs to be fixed")
 	}
 }
 
