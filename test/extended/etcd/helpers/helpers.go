@@ -117,15 +117,7 @@ func EnsureMasterMachinesAndCount(ctx context.Context, t TestingT, machineClient
 	return wait.Poll(waitPollInterval, waitPollTimeout, func() (bool, error) {
 		machineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
 		if err != nil {
-			// we tolerate some disruption until https://bugzilla.redhat.com/show_bug.cgi?id=2082778
-			// is fixed and rely on the monitor for reporting (p99).
-			// this is okay since we observe disruption during the upgrade jobs too,
-			// the only difference is that during the upgrade job we don’t access the API except from the monitor.
-			if transientAPIError(err) {
-				t.Logf("ignoring %v for now, the error is considered a transient error (will retry)", err)
-				return false, nil
-			}
-			return false, err
+			return isTransientAPIError(t, err)
 		}
 
 		if len(machineList.Items) != 3 {
@@ -151,28 +143,38 @@ func EnsureMasterMachinesAndCount(ctx context.Context, t TestingT, machineClient
 }
 
 func recoverClusterToInitialStateIfNeeded(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface) error {
-	machineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
-	if err != nil {
-		return err
-	}
+	waitPollInterval := 15 * time.Second
+	waitPollTimeout := 5 * time.Minute
+	t.Logf("Trying up to %s to recover the cluster to its initial state", waitPollTimeout.String())
 
-	var machineNames []string
-	for _, machine := range machineList.Items {
-		machineNames = append(machineNames, machine.Name)
-	}
-
-	t.Logf("checking if there are any excessive machines in the cluster (created by a previous test), expected cluster size is 3, found %v machines: %v", len(machineList.Items), machineNames)
-	for _, machine := range machineList.Items {
-		if strings.HasSuffix(machine.Name, "-clone") {
-			err := machineClient.Delete(ctx, machine.Name, metav1.DeleteOptions{})
-			if err != nil {
-				return fmt.Errorf("failed removing the machine: %q, err: %v", machine.Name, err)
-			}
-			t.Logf("successfully deleted an excessive machine %q from the API (perhaps, created by a previous test)", machine.Name)
+	return wait.Poll(waitPollInterval, waitPollTimeout, func() (bool, error) {
+		machineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
+		if err != nil {
+			return isTransientAPIError(t, err)
 		}
-	}
 
-	return nil
+		var machineNames []string
+		for _, machine := range machineList.Items {
+			machineNames = append(machineNames, machine.Name)
+		}
+
+		t.Logf("checking if there are any excessive machines in the cluster (created by a previous test), expected cluster size is 3, found %v machines: %v", len(machineList.Items), machineNames)
+		for _, machine := range machineList.Items {
+			if strings.HasSuffix(machine.Name, "-clone") {
+				// first forcefully remove the hooks
+				machine.Spec.LifecycleHooks = machinev1beta1.LifecycleHooks{}
+				if _, err := machineClient.Update(ctx, &machine, metav1.UpdateOptions{}); err != nil {
+					return isTransientAPIError(t, err)
+				}
+				// then the machine
+				if err := machineClient.Delete(ctx, machine.Name, metav1.DeleteOptions{}); err != nil {
+					return isTransientAPIError(t, err)
+				}
+				t.Logf("successfully deleted an excessive machine %q from the API (perhaps, created by a previous test)", machine.Name)
+			}
+		}
+		return true, nil
+	})
 }
 
 // EnsureVotingMembersCount counts the number of voting etcd members, it doesn't evaluate health conditions or any other attributes (i.e. name) of individual members
@@ -421,6 +423,18 @@ func transientAPIError(err error) bool {
 	default:
 		return false
 	}
+}
+
+func isTransientAPIError(t TestingT, err error) (bool, error) {
+	// we tolerate some disruption until https://bugzilla.redhat.com/show_bug.cgi?id=2082778
+	// is fixed and rely on the monitor for reporting (p99).
+	// this is okay since we observe disruption during the upgrade jobs too,
+	// the only difference is that during the upgrade job we don’t access the API except from the monitor.
+	if transientAPIError(err) {
+		t.Logf("ignoring %v for now, the error is considered a transient error (will retry)", err)
+		return false, nil
+	}
+	return false, err
 }
 
 func isClientConnectionLost(err error) bool {

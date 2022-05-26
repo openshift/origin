@@ -49,6 +49,18 @@ var _ = g.Describe("[sig-etcd][Serial] etcd", func() {
 		err = scalingtestinglibrary.EnsureInitialClusterState(ctx, g.GinkgoT(), etcdClientFactory, machineClient)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
+		// step 0: ensure clean state after the test
+		defer func() {
+			// since the deletion triggers a new rollout
+			// we need to make sure that the API is stable after the test
+			// so that other e2e test won't hit an API that undergoes a termination (write request might fail)
+			g.GinkgoT().Log("cleaning routine: ensuring initial cluster state and waiting for api servers to stabilize on the same revision")
+			err = scalingtestinglibrary.EnsureInitialClusterState(ctx, g.GinkgoT(), etcdClientFactory, machineClient)
+			o.Expect(err).ToNot(o.HaveOccurred())
+			err = testlibraryapi.WaitForAPIServerToStabilizeOnTheSameRevision(g.GinkgoT(), oc.KubeClient().CoreV1().Pods("openshift-kube-apiserver"))
+			o.Expect(err).ToNot(o.HaveOccurred())
+		}()
+
 		// step 1: add a new master node and wait until it is in Running state
 		machineName, err := scalingtestinglibrary.CreateNewMasterMachine(ctx, g.GinkgoT(), machineClient)
 		o.Expect(err).ToNot(o.HaveOccurred())
@@ -70,14 +82,6 @@ var _ = g.Describe("[sig-etcd][Serial] etcd", func() {
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		// step 3: clean-up: delete the machine and wait until etcd member is removed from the etcd cluster
-		defer func() {
-			// since the deletion triggers a new rollout
-			// we need to make sure that the API is stable after the test
-			// so that other e2e test won't hit an API that undergoes a termination (write request might fail)
-			g.GinkgoT().Log("waiting for api servers to stabilize on the same revision")
-			err = testlibraryapi.WaitForAPIServerToStabilizeOnTheSameRevision(g.GinkgoT(), oc.KubeClient().CoreV1().Pods("openshift-kube-apiserver"))
-			o.Expect(err).ToNot(o.HaveOccurred())
-		}()
 		err = machineClient.Delete(ctx, machineName, metav1.DeleteOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 		framework.Logf("successfully deleted the machine %q from the API", machineName)
