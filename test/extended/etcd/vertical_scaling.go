@@ -41,12 +41,13 @@ var _ = g.Describe("[sig-etcd][Serial] etcd", func() {
 		machineClientSet, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).ToNot(o.HaveOccurred())
 		machineClient := machineClientSet.MachineV1beta1().Machines("openshift-machine-api")
+		kubeClient := oc.KubeClient()
 
 		// make sure it can be run on the current platform
 		scalingtestinglibrary.SkipIfUnsupportedPlatform(ctx, oc)
 
 		// assert the cluster state before we run the test
-		err = scalingtestinglibrary.EnsureInitialClusterState(ctx, g.GinkgoT(), etcdClientFactory, machineClient)
+		err = scalingtestinglibrary.EnsureInitialClusterState(ctx, g.GinkgoT(), etcdClientFactory, machineClient, kubeClient)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		// step 0: ensure clean state after the test
@@ -55,7 +56,7 @@ var _ = g.Describe("[sig-etcd][Serial] etcd", func() {
 			// we need to make sure that the API is stable after the test
 			// so that other e2e test won't hit an API that undergoes a termination (write request might fail)
 			g.GinkgoT().Log("cleaning routine: ensuring initial cluster state and waiting for api servers to stabilize on the same revision")
-			err = scalingtestinglibrary.EnsureInitialClusterState(ctx, g.GinkgoT(), etcdClientFactory, machineClient)
+			err = scalingtestinglibrary.EnsureInitialClusterState(ctx, g.GinkgoT(), etcdClientFactory, machineClient, kubeClient)
 			o.Expect(err).ToNot(o.HaveOccurred())
 			err = testlibraryapi.WaitForAPIServerToStabilizeOnTheSameRevision(g.GinkgoT(), oc.KubeClient().CoreV1().Pods("openshift-kube-apiserver"))
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -71,7 +72,7 @@ var _ = g.Describe("[sig-etcd][Serial] etcd", func() {
 		//         and until all kube-api servers have reached the same revision
 		//         this additional step is the best-effort of ensuring they
 		//         have observed the new member before disruption
-		err = scalingtestinglibrary.EnsureVotingMembersCount(g.GinkgoT(), etcdClientFactory, 4)
+		err = scalingtestinglibrary.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, 4)
 		o.Expect(err).ToNot(o.HaveOccurred())
 		memberName, err := scalingtestinglibrary.MachineNameToEtcdMemberName(ctx, oc.KubeClient(), machineClient, machineName)
 		o.Expect(err).ToNot(o.HaveOccurred())
@@ -85,7 +86,7 @@ var _ = g.Describe("[sig-etcd][Serial] etcd", func() {
 		err = machineClient.Delete(ctx, machineName, metav1.DeleteOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 		framework.Logf("successfully deleted the machine %q from the API", machineName)
-		err = scalingtestinglibrary.EnsureVotingMembersCount(g.GinkgoT(), etcdClientFactory, 3)
+		err = scalingtestinglibrary.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, 3)
 		o.Expect(err).ToNot(o.HaveOccurred())
 		err = scalingtestinglibrary.EnsureMemberRemoved(g.GinkgoT(), etcdClientFactory, memberName)
 		o.Expect(err).ToNot(o.HaveOccurred())

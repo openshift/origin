@@ -98,11 +98,11 @@ func EnsureMasterMachine(ctx context.Context, t TestingT, machineName string, ma
 
 // EnsureInitialClusterState makes sure the cluster state is expected, that is, has only 3 running machines and exactly 3 voting members
 // otherwise it attempts to recover the cluster by removing any excessive machines
-func EnsureInitialClusterState(ctx context.Context, t TestingT, etcdClientFactory EtcdClientCreator, machineClient machinev1beta1client.MachineInterface) error {
+func EnsureInitialClusterState(ctx context.Context, t TestingT, etcdClientFactory EtcdClientCreator, machineClient machinev1beta1client.MachineInterface, kubeClient kubernetes.Interface) error {
 	if err := recoverClusterToInitialStateIfNeeded(ctx, t, machineClient); err != nil {
 		return err
 	}
-	if err := EnsureVotingMembersCount(t, etcdClientFactory, 3); err != nil {
+	if err := EnsureVotingMembersCount(ctx, t, etcdClientFactory, kubeClient, 3); err != nil {
 		return err
 	}
 	return EnsureMasterMachinesAndCount(ctx, t, machineClient)
@@ -179,7 +179,7 @@ func recoverClusterToInitialStateIfNeeded(ctx context.Context, t TestingT, machi
 
 // EnsureVotingMembersCount counts the number of voting etcd members, it doesn't evaluate health conditions or any other attributes (i.e. name) of individual members
 // this method won't fail immediately on errors, this is useful during scaling down operation until the feature can ensure this operation to be graceful
-func EnsureVotingMembersCount(t TestingT, etcdClientFactory EtcdClientCreator, expectedMembersCount int) error {
+func EnsureVotingMembersCount(ctx context.Context, t TestingT, etcdClientFactory EtcdClientCreator, kubeClient kubernetes.Interface, expectedMembersCount int) error {
 	waitPollInterval := 15 * time.Second
 	waitPollTimeout := 10 * time.Minute
 	t.Logf("Waiting up to %s for the cluster to reach the expected member count of %v", waitPollTimeout.String(), expectedMembersCount)
@@ -192,7 +192,7 @@ func EnsureVotingMembersCount(t TestingT, etcdClientFactory EtcdClientCreator, e
 		}
 		defer closeFn()
 
-		ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Second)
+		ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 		defer cancel()
 		memberList, err := etcdClient.MemberList(ctx)
 		if err != nil {
@@ -210,8 +210,21 @@ func EnsureVotingMembersCount(t TestingT, etcdClientFactory EtcdClientCreator, e
 			t.Logf("unexpected number of voting etcd members, expected exactly %d, got: %v, current members are: %v", expectedMembersCount, len(votingMemberNames), votingMemberNames)
 			return false, nil
 		}
-
 		t.Logf("cluster has reached the expected number of %v voting members, the members are: %v", expectedMembersCount, votingMemberNames)
+
+		t.Logf("ensuring that the openshift-etcd/etcd-endpoints cm has the expected number of %v voting members", expectedMembersCount)
+		etcdEndpointsConfigMap, err := kubeClient.CoreV1().ConfigMaps("openshift-etcd").Get(ctx, "etcd-endpoints", metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		currentVotingMemberIPListSet := sets.NewString()
+		for _, votingMemberIP := range etcdEndpointsConfigMap.Data {
+			currentVotingMemberIPListSet.Insert(votingMemberIP)
+		}
+		if currentVotingMemberIPListSet.Len() != expectedMembersCount {
+			t.Logf("unexpected number of voting members in the openshift-etcd/etcd-endpoints cm, expected exactly %d, got: %v, current members are: %v", expectedMembersCount, currentVotingMemberIPListSet.Len(), currentVotingMemberIPListSet.List())
+			return false, nil
+		}
 		return true, nil
 	})
 }
