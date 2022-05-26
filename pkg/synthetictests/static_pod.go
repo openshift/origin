@@ -2,7 +2,6 @@ package synthetictests
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -21,10 +20,11 @@ var staticPodFailureRegex = regexp.MustCompile(
 	`static pod lifecycle failure - static pod: ".*" in namespace: "(.*)" for revision: (\d) on node: "(.*)" didn't show up, waited: .*`)
 
 type staticPodFailure struct {
-	namespace      string
-	node           string
-	revision       int64
-	failureMessage string
+	operatorNamespace string
+	namespace         string
+	node              string
+	revision          int64
+	failureMessage    string
 }
 
 func staticPodFailureFromMessage(message string) (*staticPodFailure, error) {
@@ -91,6 +91,7 @@ func testStaticPodLifecycleFailure(events monitorapi.Intervals, kubeClientConfig
 				failures = append(failures, fmt.Sprintf("%v", err))
 				continue
 			}
+			staticPodFailure.operatorNamespace = ns
 			staticPodFailures = append(staticPodFailures, *staticPodFailure)
 		}
 	}
@@ -98,7 +99,7 @@ func testStaticPodLifecycleFailure(events monitorapi.Intervals, kubeClientConfig
 	// now check each failure to see if we eventually reached the level.  If we eventually reached the level
 	// then don't flag it
 	for _, staticPodFailure := range staticPodFailures {
-		events, err := kubeClient.EventsV1().Events(staticPodFailure.namespace).List(ctx, metav1.ListOptions{})
+		events, err := kubeClient.EventsV1().Events(staticPodFailure.operatorNamespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
 			failures = append(failures, err.Error())
 			continue
@@ -107,46 +108,15 @@ func testStaticPodLifecycleFailure(events monitorapi.Intervals, kubeClientConfig
 		for _, event := range events.Items {
 			isRevisionUpdate := event.Reason == "NodeCurrentRevisionChanged"
 			isForNode := strings.Contains(event.Note, staticPodFailure.node)
+			isForNamespace := strings.Contains(event.Note, staticPodFailure.namespace)
 			matches := regexp.MustCompile("to ([0-9]+) because static pod is ready").FindStringSubmatch(event.Note)
 			if len(matches) == 2 {
 				reachedRevision, _ := strconv.ParseInt(matches[1], 0, 64)
-				if isRevisionUpdate && isForNode && reachedRevision == staticPodFailure.revision {
+				if isRevisionUpdate && isForNode && isForNamespace && reachedRevision == staticPodFailure.revision {
 					// If we reach the level eventually, don't fail the test. We might choose to add an "it's slow" test, but
 					// it hasn't failed. It might be possible to go directly to a later revision, and if we want to account for
 					// that, the above could be changed to >= instead of equality.
 					foundEventForProperRevision = true
-				}
-			}
-		}
-
-		// We are suspecting events API and core API are not returning the same events. Double check here.
-		// For debugging purpose
-		if !foundEventForProperRevision {
-			// Log the events API events
-			eventString, err := json.Marshal(events)
-			if err == nil {
-				fmt.Printf("test %s with failure message '%s' failed: corresponding events from events API %s\n", testName, staticPodFailure.failureMessage, eventString)
-			}
-			coreEvents, err := kubeClient.CoreV1().Events(staticPodFailure.namespace).List(ctx, metav1.ListOptions{})
-			if err == nil {
-				for _, event := range coreEvents.Items {
-					isRevisionUpdate := event.Reason == "NodeCurrentRevisionChanged"
-					isForNode := strings.Contains(event.Message, staticPodFailure.node)
-					matches := regexp.MustCompile("to ([0-9]+) because static pod is ready").FindStringSubmatch(event.Message)
-					if len(matches) == 2 {
-						reachedRevision, _ := strconv.ParseInt(matches[1], 0, 64)
-						if isRevisionUpdate && isForNode && reachedRevision == staticPodFailure.revision {
-							// Found the event in events returned from core API
-							foundEventForProperRevision = true
-							fmt.Printf("test %s with failure message '%s' recovered\n", testName, staticPodFailure.failureMessage)
-
-							// Log the core API events
-							eventString, err = json.Marshal(coreEvents)
-							if err == nil {
-								fmt.Printf("test %s recovered: corresponding events from core API %s\n", testName, eventString)
-							}
-						}
-					}
 				}
 			}
 		}
