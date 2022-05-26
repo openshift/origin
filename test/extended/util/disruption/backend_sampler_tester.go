@@ -40,6 +40,21 @@ func NewBackendDisruptionTest(testName string, backend BackendSampler) *backendD
 	return ret
 }
 
+// NewBackendDisruptionTestWithFixedAllowedDisruption creates a new test with a fixed amount of disruption,
+// rather than historical data.
+// This is only useful in very rare situations and you most likely want the standard NewBackendDisruptionTest.
+func NewBackendDisruptionTestWithFixedAllowedDisruption(testName string, backend BackendSampler,
+	allowedDisruption *time.Duration, disruptionDescription string) *backendDisruptionTest {
+	ret := &backendDisruptionTest{
+		testName: testName,
+		backend:  backend,
+	}
+	ret.getAllowedDisruption = func(f *framework.Framework) (*time.Duration, string, error) {
+		return allowedDisruption, disruptionDescription, nil
+	}
+	return ret
+}
+
 type SetupFunc func(f *framework.Framework, backendSampler BackendSampler) error
 
 func (t *backendDisruptionTest) WithPreSetup(preSetup SetupFunc) *backendDisruptionTest {
