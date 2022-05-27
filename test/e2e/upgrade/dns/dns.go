@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo"
-
 	kappsv1 "k8s.io/api/apps/v1"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
@@ -100,13 +100,22 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 	pods, err := podClient.List(context.Background(), metav1.ListOptions{LabelSelector: selector.String()})
 	framework.ExpectNoError(err)
 
+	waitingPods := sets.String{}
 	ginkgo.By("Retrieving logs from all the Pods belonging to the DaemonSet and asserting no failure")
 	for _, pod := range pods.Items {
 		if len(pod.Status.ContainerStatuses) > 0 && pod.Status.ContainerStatuses[0].State.Waiting != nil {
 			// this container is waiting, so there will be no logs even if we try again later, we won't have logs of interest
+			waitingPods.Insert(fmt.Sprintf("ns/%v pod/%v", pod.Namespace, pod.Name))
 			continue
 		}
 		r, err := podClient.GetLogs(pod.Name, &kapiv1.PodLogOptions{Container: "querier"}).Stream(context.Background())
+		if err != nil && strings.Contains(err.Error(), "waiting to start") {
+			// this container is waiting, so there will be no logs even if we try again later, we won't have logs of interest
+			// the best theory we have for this situation is that the list happened before a pod was restarted and so we don't
+			// have logs for it.  this happens (currently) pretty infrequently.
+			waitingPods.Insert(fmt.Sprintf("ns/%v pod/%v", pod.Namespace, pod.Name))
+			continue
+		}
 		framework.ExpectNoError(err)
 
 		failureCount := 0.0
@@ -127,6 +136,10 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 			err = nil
 		}
 		framework.ExpectNoError(err)
+	}
+
+	if len(waitingPods) > 2 {
+		framework.ExpectNoError(fmt.Errorf("too many pods were waiting: %v", strings.Join(waitingPods.List(), ",")))
 	}
 }
 
