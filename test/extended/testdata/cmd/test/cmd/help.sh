@@ -19,7 +19,7 @@ os::cmd::expect_success_and_text 'oc policy --help' 'add-role-to-user'
 os::cmd::expect_success_and_not_text 'oc policy --help' 'Other Commands'
 os::cmd::expect_success_and_not_text 'oc -h' 'Options'
 os::cmd::expect_success_and_not_text 'oc -h' 'Global Options'
-os::cmd::expect_success_and_text 'oc exec --help' '\-\- COMMAND \[args\.\.\.\]$'
+os::cmd::expect_success_and_text 'oc exec --help' '\-\- COMMAND \[args\.\.\.\]'
 os::cmd::expect_success_and_text 'oc rsh --help' 'COMMAND'
 
 # help for root commands with --help flag must be consistent
