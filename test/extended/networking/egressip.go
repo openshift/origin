@@ -137,8 +137,9 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 		g.By("Determining the target protocol, host and port")
 		targetProtocol, targetHost, targetPort, err = getTargetProtocolHostPort(oc, hasIPv4, hasIPv6, cloudType, networkPlugin)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		framework.Logf("Testing against: CloudType: %s, Protocol %s, TargetHost: %s, TargetPort: %d",
+		framework.Logf("Testing against: CloudType: %s, NetworkPlugin: %s, Protocol %s, TargetHost: %s, TargetPort: %d",
 			cloudType,
+			networkPlugin,
 			targetProtocol,
 			targetHost,
 			targetPort)
