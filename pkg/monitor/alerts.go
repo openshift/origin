@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/sets"
-
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
@@ -62,10 +60,9 @@ func whenWasAlertInState(ctx context.Context, prometheusClient prometheusv1.API,
 	}
 
 	if namespace == platformidentification.NamespaceOther {
-		knownNamespaces := sets.StringKeySet(platformidentification.GetNamespacesToBugzillaComponents())
 		ret = monitorapi.Intervals(ret).Filter(func(eventInterval monitorapi.EventInterval) bool {
 			namespace := monitorapi.NamespaceFromLocator(eventInterval.Locator)
-			return !knownNamespaces.Has(namespace)
+			return !platformidentification.KnownNamespaces.Has(namespace)
 		})
 	}
 

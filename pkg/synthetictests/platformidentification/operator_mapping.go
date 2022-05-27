@@ -120,7 +120,8 @@ var (
 		"storage",
 	)
 
-	NamespaceOther = "all the other namespaces"
+	NamespaceOther  = "all the other namespaces"
+	KnownNamespaces = sets.String{}
 
 	operatorToBugzillaComponent  = map[string]string{}
 	namespaceToBugzillaComponent = map[string]string{}
@@ -229,6 +230,7 @@ func init() {
 	utilruntime.Must(addNamespaceMapping("openshift-user-workload-monitoring", "Unknown"))
 	utilruntime.Must(addNamespaceMapping("openshift-vsphere-infra", "Unknown"))
 
+	KnownNamespaces = sets.StringKeySet(namespaceToBugzillaComponent)
 }
 
 func GetBugzillaComponentForOperator(operator string) string {
