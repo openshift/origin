@@ -485,9 +485,7 @@ func buildTestsFailIfRegexMatch(testName string, matchRE, dontMatchRE *regexp.Re
 		},
 	}
 
-	// Always including a flake for now because we're unsure what the results of this test will be. In future
-	// we hope to drop this.
-	return []*junitapi.JUnitTestCase{failure, success}
+	return []*junitapi.JUnitTestCase{failure}
 }
 
 // Minor Upgrades to 4.11 include a one time update to NTO that might update machine configs during upgrades
