@@ -21,6 +21,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	configv1 "github.com/openshift/api/config/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -414,17 +415,36 @@ var (
 	}
 )
 
+func getCrdTypes(oc *exutil.CLI) []schema.GroupVersionResource {
+	configClient := configclient.NewForConfigOrDie(oc.AdminConfig())
+	clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
+	if err != nil {
+		e2e.Failf("Failed to get cluster version: %v", err)
+	}
+
+	crdTypes := append(baseCRDTypes, mcoTypes...)
+	crdTypes = append(crdTypes, autoscalingTypes...)
+	crdTypes = append(crdTypes, machineTypes...)
+	crdTypes = append(crdTypes, additionalOperatorTypes...)
+
+	// Only add metal3 types when the baremetal capability is enabled
+	for _, capability := range clusterVersion.Status.Capabilities.EnabledCapabilities {
+		if capability == configv1.ClusterVersionCapabilityBaremetal {
+			crdTypes = append(crdTypes, metal3Types...)
+			break
+		}
+	}
+
+	return crdTypes
+}
+
 var _ = g.Describe("[sig-cli] oc explain", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("oc-explain")
 
-	crdTypes := append(baseCRDTypes, mcoTypes...)
-	crdTypes = append(crdTypes, autoscalingTypes...)
-	crdTypes = append(crdTypes, machineTypes...)
-	crdTypes = append(crdTypes, metal3Types...)
-	crdTypes = append(crdTypes, additionalOperatorTypes...)
 	g.It("list uncovered GroupVersionResources", func() {
+		crdTypes := getCrdTypes(oc)
 		resourceMap := make(map[schema.GroupVersionResource]bool)
 		kubeClient := kclientset.NewForConfigOrDie(oc.AdminConfig())
 		_, resourceList, err := kubeClient.Discovery().ServerGroupsAndResources()
@@ -480,8 +500,7 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 
 	g.It("should contain proper spec+status for CRDs", func() {
 		crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
-		crdTypesTest := crdTypes
-
+		crdTypesTest := getCrdTypes(oc)
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// External clusters are not expected to have 'autoscaling' or
