@@ -271,32 +271,53 @@ func (a *basicAlertTest) failOrFlake(ctx context.Context, restConfig *rest.Confi
 	return pass, ""
 }
 
+func monitorEventMatchesNamespace(namespace string) func(event monitorapi.EventInterval) bool {
+	return func(event monitorapi.EventInterval) bool {
+		switch {
+		case len(namespace) == 0:
+			return true
+		case namespace == platformidentification.NamespaceOther:
+			eventNamespace := monitorapi.NamespaceFromLocator(event.Locator)
+			return !platformidentification.KnownNamespaces.Has(eventNamespace)
+		default:
+			eventNamespace := monitorapi.NamespaceFromLocator(event.Locator)
+			return eventNamespace == namespace
+		}
+	}
+}
+
 func (a *basicAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Config, alertIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	pendingIntervals := alertIntervals.Filter(
-		func(eventInterval monitorapi.EventInterval) bool {
-			locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
-			alertName := monitorapi.AlertFrom(locatorParts)
-			if alertName != a.alertName {
+		monitorapi.And(
+			func(eventInterval monitorapi.EventInterval) bool {
+				locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
+				alertName := monitorapi.AlertFrom(locatorParts)
+				if alertName != a.alertName {
+					return false
+				}
+				if strings.Contains(eventInterval.Message, `alertstate="pending"`) {
+					return true
+				}
 				return false
-			}
-			if strings.Contains(eventInterval.Message, `alertstate="pending"`) {
-				return true
-			}
-			return false
-		},
+			},
+			monitorEventMatchesNamespace(a.namespace),
+		),
 	)
 	firingIntervals := alertIntervals.Filter(
-		func(eventInterval monitorapi.EventInterval) bool {
-			locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
-			alertName := monitorapi.AlertFrom(locatorParts)
-			if alertName != a.alertName {
+		monitorapi.And(
+			func(eventInterval monitorapi.EventInterval) bool {
+				locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
+				alertName := monitorapi.AlertFrom(locatorParts)
+				if alertName != a.alertName {
+					return false
+				}
+				if strings.Contains(eventInterval.Message, `alertstate="firing"`) {
+					return true
+				}
 				return false
-			}
-			if strings.Contains(eventInterval.Message, `alertstate="firing"`) {
-				return true
-			}
-			return false
-		},
+			},
+			monitorEventMatchesNamespace(a.namespace),
+		),
 	)
 
 	state, message := a.failOrFlake(ctx, restConfig, firingIntervals, pendingIntervals)
