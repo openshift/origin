@@ -206,12 +206,12 @@ func findDefaultInterfaceForOpenShiftSDN(oc *exutil.CLI, nodeName string) (strin
 	}
 	var defaultRoutes []route
 
-	out, err = oc.AsAdmin().Run("get").Args(
+	out, err = runOcWithRetry(oc.AsAdmin(), "get",
 		"pods",
 		"-o", "name",
 		"-n", "openshift-sdn",
 		"--field-selector", fmt.Sprintf("spec.nodeName=%s", nodeName),
-		"-l", "app=sdn").Output()
+		"-l", "app=sdn")
 	if err != nil {
 		return "", err
 	}
@@ -250,12 +250,12 @@ func findBridgePhysicalInterface(oc *exutil.CLI, nodeName, bridgeName string) (s
 	var out string
 	var err error
 
-	out, err = oc.AsAdmin().Run("get").Args(
+	out, err = runOcWithRetry(oc.AsAdmin(), "get",
 		"pods",
 		"-o", "name",
 		"-n", "openshift-ovn-kubernetes",
 		"--field-selector", fmt.Sprintf("spec.nodeName=%s", nodeName),
-		"-l", "app=ovnkube-node").Output()
+		"-l", "app=ovnkube-node")
 	if err != nil {
 		return "", err
 	}
@@ -312,7 +312,7 @@ func adminExecInPod(oc *exutil.CLI, namespace, pod, container, script string) (s
 	var out string
 	waitErr := wait.PollImmediate(1*time.Second, 3*time.Minute, func() (bool, error) {
 		var err error
-		out, err = oc.AsAdmin().Run("exec").Args(pod, "-n", namespace, "-c", container, "--", "/bin/bash", "-c", script).Output()
+		out, err = runOcWithRetry(oc.AsAdmin(), "exec", pod, "-n", namespace, "-c", container, "--", "/bin/bash", "-c", script)
 		return true, err
 	})
 	return out, waitErr
@@ -957,7 +957,7 @@ func buildReservedEgressIPList(oc *exutil.CLI) ([]string, error) {
 	var reservedIPs []string
 
 	// cloudprivateipconfigs
-	out, err := oc.AsAdmin().Run("get").Args("-o", "name", "cloudprivateipconfigs").Output()
+	out, err := runOcWithRetry(oc.AsAdmin(), "get", "-o", "name", "cloudprivateipconfigs")
 	if err != nil {
 		return nil, err
 	}
@@ -973,7 +973,7 @@ func buildReservedEgressIPList(oc *exutil.CLI) ([]string, error) {
 
 	// egressip for OVNKubernetes - if we receive a failure here, it may simply be because
 	// we are on OpenShiftSDN, so ignore the error.
-	out, err = oc.AsAdmin().Run("get").Args("-o", "name", "egressip").Output()
+	out, err = runOcWithRetry(oc.AsAdmin(), "get", "-o", "name", "egressip")
 	if err == nil {
 		var existingEgressIPs []string
 		outReader = bufio.NewScanner(strings.NewReader(out))
@@ -986,7 +986,7 @@ func buildReservedEgressIPList(oc *exutil.CLI) ([]string, error) {
 			existingEgressIPs = append(existingEgressIPs, string(match[1]))
 		}
 		for _, existingEgressIP := range existingEgressIPs {
-			out, err = oc.AsAdmin().Run("get").Args("egressip", existingEgressIP, "-o", "jsonpath={.spec.egressIPs}").Output()
+			out, err = runOcWithRetry(oc.AsAdmin(), "get", "egressip", existingEgressIP, "-o", "jsonpath={.spec.egressIPs}")
 			if err != nil {
 				return nil, err
 			}
@@ -1242,24 +1242,13 @@ func sendProbesToHostPort(oc *exutil.CLI, proberPod *v1.Pod, url, targetProtocol
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			maxTimeouts := 3
 			time.Sleep(time.Duration(n) * time.Millisecond)
-			for j := 1; j <= maxTimeouts; j++ {
-				output, err := oc.AsAdmin().Run("exec").Args(proberPod.Name, "--", "curl", "-s", request).Output()
-				// No error found. Return.
-				if err == nil {
-					return
-				}
-				// If we hit an i/o timeout, retry for up to maxTimeouts times (however, if this is the last iteration and it still fails, then
-				// report the error).
-				if timeoutError, _ := regexp.Match("^Unable to connect to the server: dial tcp.*i/o timeout$", []byte(output)); timeoutError && j != maxTimeouts {
-					framework.Logf("Query failed. Request: %s, Output: %s, Error: %v", request, output, err)
-					continue
-				}
-				// Any other error, return.
+			output, err := runOcWithRetry(oc.AsAdmin(), "exec", proberPod.Name, "--", "curl", "-s", request)
+			// Report errors.
+			if err != nil {
 				errChan <- fmt.Errorf("Query failed. Request: %s, Output: %s, Error: %v", request, output, err)
-				return
 			}
+			return
 		}()
 	}
 	wg.Wait()
@@ -1594,7 +1583,7 @@ func probeForClientIPs(oc *exutil.CLI, proberPodNamespace, proberPodName, url, t
 	request := fmt.Sprintf("http://%s/dial?host=%s&port=%d&request=/clientip", url, targetIP, targetPort)
 	maxTimeouts := 3
 	for i := 0; i < iterations; i++ {
-		output, err := oc.AsAdmin().Run("exec").Args(proberPod.Name, "--", "curl", "-s", request).Output()
+		output, err := runOcWithRetry(oc.AsAdmin(), "exec", "--", "curl", "-s", request)
 		if err != nil {
 			// if we hit an i/o timeout, retry
 			if timeoutError, _ := regexp.Match("^Unable to connect to the server: dial tcp.*i/o timeout$", []byte(output)); timeoutError && maxTimeouts > 0 {
@@ -1683,7 +1672,7 @@ func getTargetProtocolHostPort(oc *exutil.CLI, hasIPv4, hasIPv6 bool, cloudType 
 // cloudPrivateIpConfigExists returns if a given ip was found as a cloudprivateipconfigs object.
 // TODO: use k8s API instead of CLI.
 func cloudPrivateIpConfigExists(oc *exutil.CLI, ip string) (bool, error) {
-	out, err := oc.AsAdmin().Run("get").Args("-o", "name", "cloudprivateipconfigs", ip).Output()
+	out, err := runOcWithRetry(oc.AsAdmin(), "get", "-o", "name", "cloudprivateipconfigs", ip)
 	if err != nil {
 		if strings.Contains(out, "not found") {
 			return false, nil
@@ -1696,7 +1685,7 @@ func cloudPrivateIpConfigExists(oc *exutil.CLI, ip string) (bool, error) {
 // egressIPStatusHasIP returns if a given ip was found in a given EgressIP object's status field.
 // TODO: use k8s API instead of CLI.
 func egressIPStatusHasIP(oc *exutil.CLI, egressIPObjectName string, ip string) (bool, error) {
-	out, err := oc.AsAdmin().Run("get").Args("-o", "json", "egressip", egressIPObjectName).Output()
+	out, err := runOcWithRetry(oc.AsAdmin(), "get", "-o", "json", "egressip", egressIPObjectName)
 	if err != nil {
 		if strings.Contains(out, "not found") {
 			return false, nil
@@ -1855,4 +1844,31 @@ func sdnHostsubnetFlushEgressCIDRs(oc *exutil.CLI, nodeName string) error {
 		return fmt.Errorf("Update failed: %v", retryErr)
 	}
 	return nil
+}
+
+// runOcWithRetry runs the oc command with up to 5 retries if a timeout error occurred while running the command.
+func runOcWithRetry(oc *exutil.CLI, cmd string, args ...string) (string, error) {
+	var err error
+	var output string
+	maxRetries := 5
+
+	for numRetries := 0; numRetries < maxRetries; numRetries++ {
+		if numRetries > 0 {
+			framework.Logf("Retrying oc command (retry count=%v/%v)", numRetries+1, maxRetries)
+		}
+
+		output, err = oc.Run(cmd).Args(args...).Output()
+		// If an error was found, either return the error, or retry if a timeout error was found.
+		if err != nil {
+			if strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
+				// Retry on "i/o timeout" errors
+				framework.Logf("Warning: oc command encountered i/o timeout.\nerr=%v\n)", err)
+				continue
+			}
+			return output, err
+		}
+		// Break out of loop if no error.
+		break
+	}
+	return output, err
 }
