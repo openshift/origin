@@ -103,7 +103,6 @@ var (
 		{Group: "config.openshift.io", Version: "v1", Resource: "ingresses"},
 		{Group: "config.openshift.io", Version: "v1", Resource: "networks"},
 		{Group: "config.openshift.io", Version: "v1", Resource: "oauths"},
-		{Group: "config.openshift.io", Version: "v1", Resource: "operatorhubs"},
 		{Group: "config.openshift.io", Version: "v1", Resource: "projects"},
 		{Group: "config.openshift.io", Version: "v1", Resource: "proxies"},
 		{Group: "config.openshift.io", Version: "v1", Resource: "schedulers"},
@@ -167,6 +166,10 @@ var (
 		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinehealthchecks"},
 		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machines"},
 		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinesets"},
+	}
+
+	marketplaceTypes = []schema.GroupVersionResource{
+		{Group: "config.openshift.io", Version: "v1", Resource: "operatorhubs"},
 	}
 
 	metal3Types = []schema.GroupVersionResource{
@@ -427,11 +430,13 @@ func getCrdTypes(oc *exutil.CLI) []schema.GroupVersionResource {
 	crdTypes = append(crdTypes, machineTypes...)
 	crdTypes = append(crdTypes, additionalOperatorTypes...)
 
-	// Only add metal3 types when the baremetal capability is enabled
+	// Conditional, capability-specific types
 	for _, capability := range clusterVersion.Status.Capabilities.EnabledCapabilities {
-		if capability == configv1.ClusterVersionCapabilityBaremetal {
+		switch capability {
+		case configv1.ClusterVersionCapabilityMarketplace:
+			crdTypes = append(crdTypes, marketplaceTypes...)
+		case configv1.ClusterVersionCapabilityBaremetal:
 			crdTypes = append(crdTypes, metal3Types...)
-			break
 		}
 	}
 
