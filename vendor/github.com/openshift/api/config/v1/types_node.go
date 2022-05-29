@@ -1,6 +1,10 @@
 package v1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 // +genclient
 // +genclient:nonNamespaced
@@ -10,6 +14,8 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 //
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 // +openshift:compatibility-gen:level=1
+// +kubebuilder:resource:path=nodes,scope=Cluster
+// +kubebuilder:subresource:status
 type Node struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -35,12 +41,9 @@ type NodeSpec struct {
 	WorkerLatencyProfile WorkerLatencyProfileType `json:"workerLatencyProfile,omitempty"`
 }
 
-type NodeStatus struct {
-	// WorkerLatencyProfileStatus provides the current status of WorkerLatencyProfile
-	// +optional
-	WorkerLatencyProfileStatus WorkerLatencyProfileStatus `json:"workerLatencyProfileStatus,omitempty"`
-}
+type NodeStatus struct{}
 
+// +kubebuilder:validation:Enum=v1;v2;""
 type CgroupMode string
 
 const (
@@ -50,6 +53,7 @@ const (
 	CgroupModeDefault CgroupMode = CgroupModeV1
 )
 
+// +kubebuilder:validation:Enum=Default;MediumUpdateAverageReaction;LowUpdateSlowReaction
 type WorkerLatencyProfileType string
 
 const (
@@ -63,82 +67,34 @@ const (
 	DefaultUpdateDefaultReaction WorkerLatencyProfileType = "Default"
 )
 
-// WorkerLatencyProfileStatus provides status information about the WorkerLatencyProfile rollout
-type WorkerLatencyProfileStatus struct {
-	// conditions describes the state of the WorkerLatencyProfile and related components
-	// (Kubelet or Controller Manager or Kube API Server)
-	// +patchMergeKey=type
-	// +patchStrategy=merge
-	// +optional
-	Conditions []WorkerLatencyStatusCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
-}
-
-// WorkerLatencyStatusConditionType is an aspect of WorkerLatencyProfile state.
-type WorkerLatencyStatusConditionType string
-
 const (
-	// Progressing indicates that the updates to component (Kubelet or Controller
-	// Manager or Kube API Server) is actively rolling out, propagating changes to the
-	// respective arguments.
-	WorkerLatencyProfileProgressing WorkerLatencyStatusConditionType = "Progressing"
+	// DefaultNodeStatusUpdateFrequency refers to the "--node-status-update-frequency" of the kubelet in case of DefaultUpdateDefaultReaction WorkerLatencyProfile type
+	DefaultNodeStatusUpdateFrequency = 10 * time.Second
+	// DefaultNodeMonitorGracePeriod refers to the "--node-monitor-grace-period" of the Kube Controller Manager in case of DefaultUpdateDefaultReaction WorkerLatencyProfile type
+	DefaultNodeMonitorGracePeriod = 40 * time.Second
+	// DefaultNotReadyTolerationSeconds refers to the "--default-not-ready-toleration-seconds" of the Kube API Server in case of DefaultUpdateDefaultReaction WorkerLatencyProfile type
+	DefaultNotReadyTolerationSeconds = 300
+	// DefaultUnreachableTolerationSeconds refers to the "--default-unreachable-toleration-seconds" of the Kube API Server in case of DefaultUpdateDefaultReaction WorkerLatencyProfile type
+	DefaultUnreachableTolerationSeconds = 300
 
-	// Complete indicates whether the component (Kubelet or Controller Manager or Kube API Server)
-	// is successfully updated the respective arguments.
-	WorkerLatencyProfileComplete WorkerLatencyStatusConditionType = "Complete"
+	// MediumNodeStatusUpdateFrequency refers to the "--node-status-update-frequency" of the kubelet in case of MediumUpdateAverageReaction WorkerLatencyProfile type
+	MediumNodeStatusUpdateFrequency = 20 * time.Second
+	// MediumNodeMonitorGracePeriod refers to the "--node-monitor-grace-period" of the Kube Controller Manager in case of MediumUpdateAverageReaction WorkerLatencyProfile type
+	MediumNodeMonitorGracePeriod = 2 * time.Minute
+	// MediumNotReadyTolerationSeconds refers to the "--default-not-ready-toleration-seconds" of the Kube API Server in case of MediumUpdateAverageReaction WorkerLatencyProfile type
+	MediumNotReadyTolerationSeconds = 60
+	// MediumUnreachableTolerationSeconds refers to the "--default-unreachable-toleration-seconds" of the Kube API Server in case of MediumUpdateAverageReaction WorkerLatencyProfile type
+	MediumUnreachableTolerationSeconds = 60
 
-	// Degraded indicates that the component (Kubelet or Controller Manager or Kube API Server)
-	// does not reach the state 'Complete' over a period of time
-	// resulting in either a lower quality or absence of service.
-	// If the component enters in this state, "Default" WorkerLatencyProfileType
-	// rollout will be initiated to restore the respective default arguments of all
-	// components.
-	WorkerLatencyProfileDegraded WorkerLatencyStatusConditionType = "Degraded"
+	// LowNodeStatusUpdateFrequency refers to the "--node-status-update-frequency" of the kubelet in case of LowUpdateSlowReaction WorkerLatencyProfile type
+	LowNodeStatusUpdateFrequency = 1 * time.Minute
+	// LowNodeMonitorGracePeriod refers to the "--node-monitor-grace-period" of the Kube Controller Manager in case of LowUpdateSlowReaction WorkerLatencyProfile type
+	LowNodeMonitorGracePeriod = 5 * time.Minute
+	// LowNotReadyTolerationSeconds refers to the "--default-not-ready-toleration-seconds" of the Kube API Server in case of LowUpdateSlowReaction WorkerLatencyProfile type
+	LowNotReadyTolerationSeconds = 60
+	// LowUnreachableTolerationSeconds refers to the "--default-unreachable-toleration-seconds" of the Kube API Server in case of LowUpdateSlowReaction WorkerLatencyProfile type
+	LowUnreachableTolerationSeconds = 60
 )
-
-type WorkerLatencyStatusConditionOwner string
-
-const (
-	// Machine Config Operator will update condition status by setting this as owner
-	MachineConfigOperator WorkerLatencyStatusConditionOwner = "MachineConfigOperator"
-
-	// Kube Controller Manager Operator will update condition status  by setting this as owner
-	KubeControllerManagerOperator WorkerLatencyStatusConditionOwner = "KubeControllerManagerOperator"
-
-	// Kube API Server Operator will update condition status by setting this as owner
-	KubeAPIServerOperator WorkerLatencyStatusConditionOwner = "KubeAPIServerOperator"
-)
-
-type WorkerLatencyStatusCondition struct {
-	// Owner specifies the operator that is updating this condition
-	// +kubebuilder:validation:Required
-	// +required
-	Owner WorkerLatencyStatusConditionOwner `json:"owner"`
-
-	// type specifies the aspect reported by this condition.
-	// +kubebuilder:validation:Required
-	// +required
-	Type WorkerLatencyStatusConditionType `json:"type"`
-
-	// status of the condition, one of True, False, Unknown.
-	// +kubebuilder:validation:Required
-	// +required
-	Status ConditionStatus `json:"status"`
-
-	// lastTransitionTime is the time of the last update to the current status property.
-	// +kubebuilder:validation:Required
-	// +required
-	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
-
-	// reason is the CamelCase reason for the condition's current status.
-	// +optional
-	Reason string `json:"reason,omitempty"`
-
-	// message provides additional information about the current condition.
-	// This is only to be consumed by humans.  It may contain Line Feed
-	// characters (U+000A), which should be rendered as new lines.
-	// +optional
-	Message string `json:"message,omitempty"`
-}
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

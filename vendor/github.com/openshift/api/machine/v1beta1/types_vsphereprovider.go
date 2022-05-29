@@ -114,26 +114,6 @@ type Workspace struct {
 	ResourcePool string `gcfg:"resourcepool-path,omitempty" json:"resourcePool,omitempty"`
 }
 
-// VSphereMachineProviderCondition is a condition in a VSphereMachineProviderStatus.
-type VSphereMachineProviderCondition struct {
-	// Type is the type of the condition.
-	Type ConditionType `json:"type"`
-	// Status is the status of the condition.
-	Status corev1.ConditionStatus `json:"status"`
-	// LastProbeTime is the last time we probed the condition.
-	// +optional
-	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty"`
-	// LastTransitionTime is the last time the condition transitioned from one status to another.
-	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
-	// Reason is a unique, one-word, CamelCase reason for the condition's last transition.
-	// +optional
-	Reason string `json:"reason,omitempty"`
-	// Message is a human-readable message indicating details about last transition.
-	// +optional
-	Message string `json:"message,omitempty"`
-}
-
 // VSphereMachineProviderStatus is the type that will be embedded in a Machine.Status.ProviderStatus field.
 // It contains VSphere-specific status information.
 // Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
@@ -149,7 +129,7 @@ type VSphereMachineProviderStatus struct {
 	InstanceState *string `json:"instanceState,omitempty"`
 	// Conditions is a set of conditions associated with the Machine to indicate
 	// errors or other status
-	Conditions []VSphereMachineProviderCondition `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	// TaskRef is a managed object reference to a Task related to the machine.
 	// This value is set automatically at runtime and should not be set or
 	// modified by users.

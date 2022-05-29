@@ -14,7 +14,7 @@ spec:
     listKind: NodeList
     plural: nodes
     singular: node
-  scope: Namespaced
+  scope: Cluster
   versions:
     - name: v1
       schema:
@@ -39,52 +39,21 @@ spec:
                 cgroupMode:
                   description: CgroupMode determines the cgroups version on the node
                   type: string
+                  enum:
+                    - v1
+                    - v2
+                    - ""
                 workerLatencyProfile:
                   description: WorkerLatencyProfile determins the how fast the kubelet is updating the status and corresponding reaction of the cluster
                   type: string
+                  enum:
+                    - Default
+                    - MediumUpdateAverageReaction
+                    - LowUpdateSlowReaction
             status:
               description: status holds observed values.
               type: object
-              properties:
-                workerLatencyProfileStatus:
-                  description: WorkerLatencyProfileStatus provides the current status of WorkerLatencyProfile
-                  type: object
-                  properties:
-                    conditions:
-                      description: conditions describes the state of the WorkerLatencyProfile and related components (Kubelet or Controller Manager or Kube API Server)
-                      type: array
-                      items:
-                        type: object
-                        required:
-                          - lastTransitionTime
-                          - owner
-                          - status
-                          - type
-                        properties:
-                          lastTransitionTime:
-                            description: lastTransitionTime is the time of the last update to the current status property.
-                            type: string
-                            format: date-time
-                          message:
-                            description: message provides additional information about the current condition. This is only to be consumed by humans.  It may contain Line Feed characters (U+000A), which should be rendered as new lines.
-                            type: string
-                          owner:
-                            description: Owner specifies the operator that is updating this condition
-                            type: string
-                          reason:
-                            description: reason is the CamelCase reason for the condition's current status.
-                            type: string
-                          status:
-                            description: status of the condition, one of True, False, Unknown.
-                            type: string
-                          type:
-                            description: type specifies the aspect reported by this condition.
-                            type: string
       served: true
       storage: true
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
+      subresources:
+        status: {}

@@ -8,35 +8,6 @@ conventions](https://github.com/openshift/enhancements/blob/master/CONVENTIONS.m
 and then follow the instructions below to regenerate CRDs (if necessary) and
 submit a pull request with your new API definitions and generated files.
 
-## pull request process
-
-Pull requests that change API types in this repo that have corresponding "internal" API objects in the 
-[openshift/origin](https://github.com/openshift/origin) repo must be paired with a pull request to
-[openshift/origin](https://github.com/openshift/origin).
-
-To ensure the corresponding origin pull request is ready to merge as soon as the pull request to this repo is merged:
-1. Base your pull request to this repo on latest [openshift/api#master](https://github.com/openshift/api/commits/master) and ensure CI is green
-2. Base your pull request to openshift/origin on latest [openshift/origin#master](https://github.com/openshift/origin/commits/master)
-3. In your openshift/origin pull request:
-   1. Add a TMP commit that points [glide.yaml](https://github.com/openshift/origin/blob/master/glide.yaml#L39-L41) at your fork of openshift/api, and the branch of your pull request:
-
-      ```
-      - package: github.com/openshift/api
-        repo:    https://github.com/<your-username>/api.git
-        version: "<your-openshift-api-branch>"
-      ```
-
-    2. Update your `bump(*)` commit to include the result of running `hack/update-deps.sh`, which will pull in the changes from your openshift/api pull request
-    3. Make sure CI is green on your openshift/origin pull request 
-    4. Get LGTM on your openshift/api pull request (for API changes) and your openshift/origin pull request (for code changes)
-
-Once both pull requests are ready, the openshift/api pull request can be merged.
-
-Then do the following with your openshift/origin pull request:
-1. Drop the TMP commit (pointing glide back at openshift/api#master)
-2. Rerun `hack/update-deps.sh` and update your `bump(*)` commit
-3. It can then be tagged and merged by CI
-
 ## generating CRD schemas
 
 Since Kubernetes 1.16, every CRD created in `apiextensions.k8s.io/v1` is required to have a [structural OpenAPIV3 schema](https://kubernetes.io/blog/2019/06/20/crd-structural-schema/). The schemas provide server-side validation for fields, as well as providing the descriptions for `oc explain`. Moreover, schemas ensure structural consistency of data in etcd. Without it anything can be stored in a resource which can have security implications. As we host many of our CRDs in this repo along with their corresponding Go types we also require them to have schemas. However, the following instructions apply for CRDs that are not hosted here as well.

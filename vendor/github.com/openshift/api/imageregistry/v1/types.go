@@ -107,6 +107,9 @@ type ImageRegistrySpec struct {
 	// affinity is a group of node affinity scheduling rules for the image registry pod(s).
 	// +optional
 	Affinity *corev1.Affinity `json:"affinity,omitempty"`
+	// topologySpreadConstraints specify how to spread matching pods among the given topology.
+	// +optional
+	TopologySpreadConstraints []corev1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
 }
 
 // ImageRegistryStatus reports image registry operational status.

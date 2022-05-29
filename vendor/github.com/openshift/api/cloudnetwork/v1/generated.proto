@@ -10,7 +10,7 @@ import "k8s.io/apimachinery/pkg/runtime/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
 
 // Package-wide variables from generator "generated".
-option go_package = "v1";
+option go_package = "github.com/openshift/api/cloudnetwork/v1";
 
 // CloudPrivateIPConfig performs an assignment of a private IP address to the
 // primary NIC associated with cloud VMs. This is done by specifying the IP and

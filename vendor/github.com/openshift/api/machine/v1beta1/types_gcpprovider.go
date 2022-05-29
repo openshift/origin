@@ -199,25 +199,5 @@ type GCPMachineProviderStatus struct {
 	// Conditions is a set of conditions associated with the Machine to indicate
 	// errors or other status
 	// +optional
-	Conditions []GCPMachineProviderCondition `json:"conditions,omitempty"`
-}
-
-// GCPMachineProviderCondition is a condition in a GCPMachineProviderStatus
-type GCPMachineProviderCondition struct {
-	// Type is the type of the condition.
-	Type ConditionType `json:"type"`
-	// Status is the status of the condition.
-	Status corev1.ConditionStatus `json:"status"`
-	// LastProbeTime is the last time we probed the condition.
-	// +optional
-	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty"`
-	// LastTransitionTime is the last time the condition transitioned from one status to another.
-	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
-	// Reason is a unique, one-word, CamelCase reason for the condition's last transition.
-	// +optional
-	Reason string `json:"reason,omitempty"`
-	// Message is a human-readable message indicating details about last transition.
-	// +optional
-	Message string `json:"message,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }

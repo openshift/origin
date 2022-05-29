@@ -92,6 +92,61 @@ spec:
                     nutanix:
                       description: Nutanix contains settings specific to the Nutanix infrastructure provider.
                       type: object
+                      required:
+                        - prismCentral
+                        - prismElements
+                      properties:
+                        prismCentral:
+                          description: prismCentral holds the endpoint address and port to access the Nutanix Prism Central. When a cluster-wide proxy is installed, by default, this endpoint will be accessed via the proxy. Should you wish for communication with this endpoint not to be proxied, please add the endpoint to the proxy spec.noProxy list.
+                          type: object
+                          required:
+                            - address
+                            - port
+                          properties:
+                            address:
+                              description: address is the endpoint address (DNS name or IP address) of the Nutanix Prism Central or Element (cluster)
+                              type: string
+                              maxLength: 256
+                            port:
+                              description: port is the port number to access the Nutanix Prism Central or Element (cluster)
+                              type: integer
+                              format: int32
+                              maximum: 65535
+                              minimum: 1
+                        prismElements:
+                          description: prismElements holds one or more endpoint address and port data to access the Nutanix Prism Elements (clusters) of the Nutanix Prism Central. Currently we only support one Prism Element (cluster) for an OpenShift cluster, where all the Nutanix resources (VMs, subnets, volumes, etc.) used in the OpenShift cluster are located. In the future, we may support Nutanix resources (VMs, etc.) spread over multiple Prism Elements (clusters) of the Prism Central.
+                          type: array
+                          items:
+                            description: NutanixPrismElementEndpoint holds the name and endpoint data for a Prism Element (cluster)
+                            type: object
+                            required:
+                              - endpoint
+                              - name
+                            properties:
+                              endpoint:
+                                description: endpoint holds the endpoint address and port data of the Prism Element (cluster). When a cluster-wide proxy is installed, by default, this endpoint will be accessed via the proxy. Should you wish for communication with this endpoint not to be proxied, please add the endpoint to the proxy spec.noProxy list.
+                                type: object
+                                required:
+                                  - address
+                                  - port
+                                properties:
+                                  address:
+                                    description: address is the endpoint address (DNS name or IP address) of the Nutanix Prism Central or Element (cluster)
+                                    type: string
+                                    maxLength: 256
+                                  port:
+                                    description: port is the port number to access the Nutanix Prism Central or Element (cluster)
+                                    type: integer
+                                    format: int32
+                                    maximum: 65535
+                                    minimum: 1
+                              name:
+                                description: name is the name of the Prism Element (cluster). This value will correspond with the cluster field configured on other resources (eg Machines, PVCs, etc).
+                                type: string
+                                maxLength: 256
+                          x-kubernetes-list-map-keys:
+                            - name
+                          x-kubernetes-list-type: map
                     openstack:
                       description: OpenStack contains settings specific to the OpenStack infrastructure provider.
                       type: object
