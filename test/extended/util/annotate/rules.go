@@ -206,6 +206,7 @@ var (
 			`\[sig-imageregistry\]\[Feature:ImageTriggers\] Annotation trigger reconciles after the image is overwritten`,
 			`\[sig-imageregistry\]\[Feature:Image\] oc tag should change image reference for internal images`,
 			`\[sig-imageregistry\]\[Feature:Image\] oc tag should work when only imagestreams api is available`,
+			`\[sig-imageregistry\]\[Serial\]\[Suite:openshift/registry/serial\] Image signature workflow can push a signed image to openshift registry and verify it`,
 			`\[sig-instrumentation\] Prometheus when installed on the cluster should have a AlertmanagerReceiversNotConfigured alert in firing state`,
 			`\[sig-instrumentation\] Prometheus when installed on the cluster should have important platform topology metrics`,
 			`\[sig-instrumentation\] Prometheus when installed on the cluster should have non-Pod host cAdvisor metrics`,
