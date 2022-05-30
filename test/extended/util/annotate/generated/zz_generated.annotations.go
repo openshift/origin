@@ -1709,6 +1709,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc expose can ensure the expose command is functioning as expected": "can ensure the expose command is functioning as expected [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc help works as expected": "works as expected [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc label pod": "pod [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc observe works as expected": "works as expected [Suite:openshift/conformance/parallel]",
@@ -1748,8 +1750,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/framework-test.sh": "test/cmd/framework-test.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/get.sh": "test/cmd/get.sh",
-
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/help.sh": "test/cmd/help.sh",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/idle.sh": "test/cmd/idle.sh",
 
