@@ -136,7 +136,7 @@ func newMonitoringStore(
 		for _, obj := range items {
 			currentUID := uidOf(obj)
 			metadata, _ := meta.Accessor(obj)
-			framework.Logf("#### replacing uid/%v pod/%v ns/%v resourceVersion/%v\n", currentUID, metadata.GetName(), metadata.GetNamespace())
+			framework.Logf("#### replacing uid/%v pod/%v ns/%v resourceVersion/%v\n", currentUID, metadata.GetName(), metadata.GetNamespace(), metadata.GetResourceVersion())
 
 			_, oldObjExists := s.cacheOfNow[currentUID]
 			switch {
