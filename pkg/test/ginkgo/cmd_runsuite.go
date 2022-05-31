@@ -15,16 +15,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/intervalcreation"
-
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-
-	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
-
 	"github.com/onsi/ginkgo/config"
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -263,6 +262,10 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	if err != nil {
 		return err
 	}
+	configClient, err := configclient.NewForConfig(restConfig)
+	if err != nil {
+		return err
+	}
 	m, err := monitor.Start(ctx, restConfig,
 		[]monitor.StartEventIntervalRecorderFunc{
 			controlplane.StartAllAPIMonitoring,
@@ -329,6 +332,23 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 			}
 		})
 	}
+
+	// if we are running serial tests, wait for the cluster to be in a stable state before continuing
+	status.AfterTest(func(t *testCase) {
+		if !strings.Contains(t.name, "[Serial]") {
+			return
+		}
+		stabilizationContext, cancel := context.WithTimeout(ctx, 20*time.Minute)
+		defer cancel()
+
+		// wait a few seconds in case a test's last act is to cause an operator to go progressing.
+		time.Sleep(2 * time.Second)
+
+		err := util.WaitForAllOperatorsProgressingFalse(stabilizationContext, configClient)
+		if err != nil {
+			fmt.Fprintf(opt.ErrOut, "Failed waiting for operators to stabilize between tests: %v\n", err)
+		}
+	})
 
 	tests = nil
 

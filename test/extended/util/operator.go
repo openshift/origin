@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"sync"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"k8s.io/apimachinery/pkg/util/wait"
+
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
@@ -76,6 +80,49 @@ func (p *OperatorProgressingStatus) setErr(err error) error {
 	}
 
 	p.rolloutError = err
+	return nil
+}
+
+func WaitForAllOperatorsProgressingFalse(ctx context.Context, configClient configv1client.Interface) error {
+	reasonLock := sync.Mutex{}
+	unstableOperatorsToReason := map[string]string{}
+
+	operatorNames := []string{}
+	clusterOperators, err := configClient.ConfigV1().ClusterOperators().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, curr := range clusterOperators.Items {
+		operatorNames = append(operatorNames, curr.Name)
+	}
+
+	waitGroup := sync.WaitGroup{}
+	for i := range operatorNames {
+		operatorName := operatorNames[i]
+		waitGroup.Add(1)
+		go func(operatorName string) {
+			defer waitGroup.Done()
+
+			notStableReason := WaitForOperatorProgressingFalse(ctx, configClient, operatorName)
+			if notStableReason == nil {
+				return
+			}
+			reasonLock.Lock()
+			defer reasonLock.Unlock()
+			unstableOperatorsToReason[operatorName] = notStableReason.Error()
+		}(operatorName)
+	}
+	waitGroup.Wait()
+
+	if ctx.Err() != nil {
+		return fmt.Errorf("timeout waiting for %v: %w", unstableOperatorsToReason, ctx.Err())
+	}
+	if err == wait.ErrWaitTimeout {
+		return fmt.Errorf("timeout waiting for %v: %w", unstableOperatorsToReason, err)
+	}
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
