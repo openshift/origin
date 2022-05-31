@@ -7,10 +7,8 @@ import (
 	"io"
 	"math/rand"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitor_cmd"
@@ -42,13 +40,14 @@ func main() {
 	// proper mirroring of images referenced by tests. Clear the value and re-exec the
 	// current process to ensure we can verify from a known state.
 	if len(os.Getenv("KUBE_TEST_REPO_LIST")) > 0 {
-		fmt.Fprintln(os.Stderr, "warning: KUBE_TEST_REPO_LIST may not be set when using openshift-tests and will be ignored")
-		os.Setenv("KUBE_TEST_REPO_LIST", "")
+		fmt.Fprintln(os.Stdout, "KUBE_TEST_REPO_LIST has been set to: %s\n", os.Getenv("KUBE_TEST_REPO_LIST"))
+		//fmt.Fprintln(os.Stderr, "warning: KUBE_TEST_REPO_LIST may not be set when using openshift-tests and will be ignored")
+		//os.Setenv("KUBE_TEST_REPO_LIST", "")
 		// resolve the call to execute since Exec() does not do PATH resolution
-		if err := syscall.Exec(exec.Command(os.Args[0]).Path, os.Args, os.Environ()); err != nil {
-			panic(fmt.Sprintf("%s: %v", os.Args[0], err))
-		}
-		return
+		//if err := syscall.Exec(exec.Command(os.Args[0]).Path, os.Args, os.Environ()); err != nil {
+		//	panic(fmt.Sprintf("%s: %v", os.Args[0], err))
+		//}
+		//return
 	}
 
 	logs.InitLogs()
