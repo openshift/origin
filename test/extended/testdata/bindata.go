@@ -204,7 +204,6 @@
 // test/extended/testdata/cmd/test/cmd/env.sh
 // test/extended/testdata/cmd/test/cmd/framework-test.sh
 // test/extended/testdata/cmd/test/cmd/get.sh
-// test/extended/testdata/cmd/test/cmd/help.sh
 // test/extended/testdata/cmd/test/cmd/idle.sh
 // test/extended/testdata/cmd/test/cmd/image-lookup.sh
 // test/extended/testdata/cmd/test/cmd/images.sh
@@ -30172,89 +30171,6 @@ func testExtendedTestdataCmdTestCmdGetSh() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdHelpSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-os::test::junit::declare_suite_start "cmd/help"
-# This test validates the help commands and output text
-
-# verify some default commands
-os::cmd::expect_success 'kubectl'
-os::cmd::expect_success 'oc'
-os::cmd::expect_success 'oc ex'
-os::cmd::expect_failure 'origin'
-
-# help for root commands must be consistent
-os::cmd::expect_success_and_text 'oc' 'OpenShift Client'
-os::cmd::expect_success_and_text 'oc -h' 'Build and Deploy Commands:'
-os::cmd::expect_success_and_text 'oc -h' 'Other Commands:'
-os::cmd::expect_success_and_text 'oc policy --help' 'add-role-to-user'
-os::cmd::expect_success_and_not_text 'oc policy --help' 'Other Commands'
-os::cmd::expect_success_and_not_text 'oc -h' 'Options'
-os::cmd::expect_success_and_not_text 'oc -h' 'Global Options'
-os::cmd::expect_success_and_text 'oc exec --help' '\-\- COMMAND \[args\.\.\.\]'
-os::cmd::expect_success_and_text 'oc rsh --help' 'COMMAND'
-
-# help for root commands with --help flag must be consistent
-os::cmd::expect_success_and_text 'oc --help' 'OpenShift Client'
-os::cmd::expect_success_and_text 'oc login --help' 'Options'
-os::cmd::expect_success_and_not_text 'oc login --help' 'Global Options'
-os::cmd::expect_success_and_text 'oc login --help' 'insecure-skip-tls-verify'
-
-# help for given command with --help flag must be consistent
-os::cmd::expect_success_and_text 'oc get --help' 'Display one or many resources'
-os::cmd::expect_success_and_text 'oc project --help' 'Switch to another project'
-os::cmd::expect_success_and_text 'oc projects --help' 'existing projects'
-os::cmd::expect_success_and_text 'oc get --help' 'oc'
-
-# help for given command through help command must be consistent
-os::cmd::expect_success_and_text 'oc help get' 'Display one or many resources'
-os::cmd::expect_success_and_text 'oc help project' 'Switch to another project'
-os::cmd::expect_success_and_text 'oc help projects' 'current active project and existing projects on the server'
-
-# help tips must be consistent
-os::cmd::expect_success_and_text 'oc --help' 'Use "oc <command> --help" for more information'
-os::cmd::expect_success_and_text 'oc --help' 'Use "oc options" for a list of global'
-os::cmd::expect_success_and_text 'oc help' 'Use "oc <command> --help" for more information'
-os::cmd::expect_success_and_text 'oc help' 'Use "oc options" for a list of global'
-os::cmd::expect_success_and_text 'oc set --help' 'Use "oc set <command> --help" for more information'
-os::cmd::expect_success_and_text 'oc set --help' 'Use "oc options" for a list of global'
-os::cmd::expect_success_and_text 'oc set env --help' 'Use "oc options" for a list of global'
-
-# runnable commands with required flags must error consistently
-os::cmd::expect_failure_and_text 'oc get' 'Required resource not specified'
-
-# commands that expect file paths must validate and error out correctly
-os::cmd::expect_failure_and_text 'oc login --certificate-authority=/path/to/invalid' 'no such file or directory'
-
-# make sure that typoed commands come back with non-zero return codes
-os::cmd::expect_failure 'oc policy TYPO'
-os::cmd::expect_failure 'oc secrets TYPO'
-
-# make sure that LDAP group sync and prune exist under both experimental and ` + "`" + `oc adm` + "`" + `
-os::cmd::expect_success_and_text 'oc adm groups sync --help' 'external provider'
-os::cmd::expect_success_and_text 'oc adm groups prune --help' 'external provider'
-os::cmd::expect_success_and_text 'oc adm prune groups --help' 'external provider'
-
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdHelpShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdHelpSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdHelpSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdHelpShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/help.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdIdleSh = []byte(`#!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
@@ -53163,7 +53079,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/env.sh":                                                             testExtendedTestdataCmdTestCmdEnvSh,
 	"test/extended/testdata/cmd/test/cmd/framework-test.sh":                                                  testExtendedTestdataCmdTestCmdFrameworkTestSh,
 	"test/extended/testdata/cmd/test/cmd/get.sh":                                                             testExtendedTestdataCmdTestCmdGetSh,
-	"test/extended/testdata/cmd/test/cmd/help.sh":                                                            testExtendedTestdataCmdTestCmdHelpSh,
 	"test/extended/testdata/cmd/test/cmd/idle.sh":                                                            testExtendedTestdataCmdTestCmdIdleSh,
 	"test/extended/testdata/cmd/test/cmd/image-lookup.sh":                                                    testExtendedTestdataCmdTestCmdImageLookupSh,
 	"test/extended/testdata/cmd/test/cmd/images.sh":                                                          testExtendedTestdataCmdTestCmdImagesSh,
@@ -53813,7 +53728,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							"env.sh":                {testExtendedTestdataCmdTestCmdEnvSh, map[string]*bintree{}},
 							"framework-test.sh":     {testExtendedTestdataCmdTestCmdFrameworkTestSh, map[string]*bintree{}},
 							"get.sh":                {testExtendedTestdataCmdTestCmdGetSh, map[string]*bintree{}},
-							"help.sh":               {testExtendedTestdataCmdTestCmdHelpSh, map[string]*bintree{}},
 							"idle.sh":               {testExtendedTestdataCmdTestCmdIdleSh, map[string]*bintree{}},
 							"image-lookup.sh":       {testExtendedTestdataCmdTestCmdImageLookupSh, map[string]*bintree{}},
 							"images.sh":             {testExtendedTestdataCmdTestCmdImagesSh, map[string]*bintree{}},
