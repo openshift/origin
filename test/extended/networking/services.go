@@ -104,7 +104,29 @@ var _ = Describe("[sig-network] services", func() {
 			// is created if that is within allowedCIDRs range and service creation
 			// fails if its outside the allowed range.
 			By("update network config with allowed cidr for external ip")
+
+			// get the current version
+			networkPreChange, err := adminConfigClient.ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
+			expectNoError(err)
+
 			modifyNetworkConfig(adminConfigClient, nil, []string{"192.168.132.10/32"}, nil)
+
+			// wait for the version to change
+			// need to add a boundary for how long / how many times we check to verify?
+
+			for {
+				networkPostChange, err := adminConfigClient.ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
+
+				expectNoError(err)
+
+				if networkPreChange.ResourceVersion == networkPostChange.ResourceVersion {
+					time.Sleep(retryInterval)
+					continue
+				}
+
+				break
+			}
+
 			By("check service is within external ip within allowed range")
 			for {
 				serviceName = names.SimpleNameGenerator.GenerateName("svc-with-ext-ip")
