@@ -17,23 +17,17 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-
+	configv1 "github.com/openshift/api/config/v1"
+	osinv1 "github.com/openshift/api/osin/v1"
+	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
-
-	configv1 "github.com/openshift/api/config/v1"
-	osinv1 "github.com/openshift/api/osin/v1"
-	clusteroperatorhelpers "github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
-
-	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 func init() {
@@ -67,7 +61,13 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 		// of this test might flaky. This check ensures that we capture such situation early and
 		// investigate why it wasn't ready before this test.
 		e2e.Logf("Ensuring CAO is available==True, progressing==False, degraded==False")
-		waitForAuthenticationProgressing(oc, configv1.ConditionFalse)
+
+		ctx := context.Background()
+		ctx, cancel := context.WithTimeout(ctx, 20*time.Minute)
+		defer cancel()
+
+		authenticationRollout := exutil.WaitForOperatorToRollout(ctx, oc.AdminConfigClient(), "authentication")
+		<-authenticationRollout.StableBeforeStarting() // wait for the initial state to be stable
 
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -107,6 +107,13 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// clean up after ourselves
 		defer func() {
+			ctx := context.Background()
+			ctx, cancel := context.WithTimeout(ctx, 20*time.Minute)
+			defer cancel()
+
+			authenticationRollout := exutil.WaitForOperatorToRollout(ctx, oc.AdminConfigClient(), "authentication")
+			<-authenticationRollout.StableBeforeStarting() // wait for the initial state to be stable
+
 			userclient := oc.AdminUserClient().UserV1()
 			userclient.Identities().Delete(context.Background(), fmt.Sprintf("%s:%s", idpName, testUserName), metav1.DeleteOptions{})
 			userclient.Users().Delete(context.Background(), testUserName, metav1.DeleteOptions{})
@@ -121,8 +128,12 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 				g.Fail(fmt.Sprintf("Failed to update oauth/cluster, unable to turn it into its original state: %v", err))
 			}
 
-			waitForNewOAuthConfig(oc)
+			<-authenticationRollout.Done()
+			o.Expect(authenticationRollout.Err()).NotTo(o.HaveOccurred())
 		}()
+
+		<-authenticationRollout.Done()
+		o.Expect(authenticationRollout.Err()).NotTo(o.HaveOccurred())
 
 		oauthURL := getOAuthWellKnownData(oc).Issuer
 		goodCert, goodKey := generateCert(caCert, caKey, clientCorrectName, []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth})
@@ -202,8 +213,6 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 			ok := caCerts.AppendCertsFromPEM([]byte(ca))
 			o.Expect(ok).To(o.Equal(true), "adding router certs to the system CA bundle")
 		}
-
-		waitForNewOAuthConfig(oc)
 
 		for _, tc := range testCases {
 			g.By(tc.name, func() {
@@ -408,11 +417,6 @@ func generateCert(caCert *x509.Certificate, caKey *rsa.PrivateKey, cn string, ek
 	return cert, priv
 }
 
-func waitForNewOAuthConfig(oc *exutil.CLI) {
-	waitForAuthenticationProgressing(oc, configv1.ConditionTrue)
-	waitForAuthenticationProgressing(oc, configv1.ConditionFalse)
-}
-
 // oauthHTTPRequestOrFail wraps oauthHTTPRequest and fails the test if the request failed
 func oauthHTTPRequestOrFail(caCerts *x509.CertPool, oauthBaseURL, endpoint, token string, cert *x509.Certificate, key *rsa.PrivateKey) *http.Response {
 	resp, err := oauthHTTPRequest(caCerts, oauthBaseURL, endpoint, token, cert, key)
@@ -503,33 +507,4 @@ func getTokenFromResponse(resp *http.Response) string {
 	}
 
 	return ""
-}
-
-func waitForAuthenticationProgressing(oc *exutil.CLI, expectedProgressing configv1.ConditionStatus) {
-	err := wait.PollImmediate(time.Second, 10*time.Minute, func() (bool, error) {
-		authn, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(context.Background(), "authentication", metav1.GetOptions{})
-		if err != nil {
-			e2e.Logf("Error getting authentication operator: %v", err)
-			return false, err
-		}
-
-		progressing := clusteroperatorhelpers.FindStatusCondition(authn.Status.Conditions, configv1.OperatorProgressing)
-		if progressing == nil || progressing.Status != expectedProgressing {
-			e2e.Logf("Waiting for progressing condition to be %q: %s", expectedProgressing, spew.Sdump(authn.Status.Conditions))
-			return false, nil
-		}
-
-		if expectedProgressing == configv1.ConditionFalse {
-			// make additional checks on availability and degraded status
-			if clusteroperatorhelpers.IsStatusConditionFalse(authn.Status.Conditions, configv1.OperatorAvailable) ||
-				clusteroperatorhelpers.IsStatusConditionTrue(authn.Status.Conditions, configv1.OperatorDegraded) {
-				e2e.Logf("Waiting for available==True, progressing==False, degraded==False: %s", spew.Sdump(authn.Status.Conditions))
-				return false, nil
-			}
-
-		}
-
-		return true, nil
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
 }
