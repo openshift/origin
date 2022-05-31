@@ -10,37 +10,32 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
-
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
 	projectv1 "github.com/openshift/api/project/v1"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	"github.com/openshift/library-go/pkg/network/networkutils"
-	"k8s.io/kubernetes/test/e2e/framework/pod"
-	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
-	utilnet "k8s.io/utils/net"
-
 	exutil "github.com/openshift/origin/test/extended/util"
-
 	corev1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/client-go/dynamic"
+	k8sclient "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
+	"k8s.io/kubernetes/test/e2e/framework/pod"
+	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
-	configv1client "github.com/openshift/client-go/config/clientset/versioned"
-	k8sclient "k8s.io/client-go/kubernetes"
+	utilnet "k8s.io/utils/net"
 )
 
 type NodeType int
@@ -323,8 +318,15 @@ func makeNamespaceScheduleToAllNodes(f *e2e.Framework) {
 }
 
 func modifyNetworkConfig(configClient configv1client.Interface, autoAssignCIDRs, allowedCIDRs, rejectedCIDRs []string) {
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Minute)
+	defer cancel()
+
+	kubeAPIServerRollout := exutil.WaitForOperatorToRollout(ctx, configClient, "kube-apiserver")
+	<-kubeAPIServerRollout.StableBeforeStarting() // wait for the initial state to be stable
+
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		network, err := configClient.ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
+		network, err := configClient.ConfigV1().Networks().Get(ctx, "cluster", metav1.GetOptions{})
 		expectNoError(err)
 		extIPConfig := &configv1.ExternalIPConfig{Policy: &configv1.ExternalIPPolicy{}}
 		if len(allowedCIDRs) != 0 || len(rejectedCIDRs) != 0 || len(autoAssignCIDRs) != 0 {
@@ -332,10 +334,13 @@ func modifyNetworkConfig(configClient configv1client.Interface, autoAssignCIDRs,
 				RejectedCIDRs: rejectedCIDRs}, AutoAssignCIDRs: autoAssignCIDRs}
 		}
 		network.Spec.ExternalIP = extIPConfig
-		_, err = configClient.ConfigV1().Networks().Update(context.Background(), network, metav1.UpdateOptions{})
+		_, err = configClient.ConfigV1().Networks().Update(ctx, network, metav1.UpdateOptions{})
 		return err
 	})
 	expectNoError(err)
+
+	<-kubeAPIServerRollout.Done()
+	expectNoError(kubeAPIServerRollout.Err())
 }
 
 // findAppropriateNodes tries to find a source and destination for a type of node connectivity
