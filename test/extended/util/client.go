@@ -320,6 +320,7 @@ func (c *CLI) SetupProject() string {
 		// Since this would cause unwanted audit log and warning entries, we are setting the same level as for enforcement.
 		ns.Labels[admissionapi.WarnLevelLabel] = string(c.kubeFramework.NamespacePodSecurityEnforceLevel)
 		ns.Labels[admissionapi.AuditLevelLabel] = string(c.kubeFramework.NamespacePodSecurityEnforceLevel)
+		ns.Labels["security.openshift.io/scc.podSecurityLabelSync"] = "false"
 
 		_, err = c.AdminKubeClient().CoreV1().Namespaces().Update(context.Background(), ns, metav1.UpdateOptions{})
 		return err
