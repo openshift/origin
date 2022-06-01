@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -102,10 +103,13 @@ func WaitForAllOperatorsProgressingFalse(ctx context.Context, configClient confi
 	for i := range operatorNames {
 		operatorName := operatorNames[i]
 		waitGroup.Add(1)
+		fmt.Printf("#### %v starting go func for %q\n", time.Now(), operatorName)
 		go func(operatorName string) {
 			defer waitGroup.Done()
 
+			fmt.Printf("#### %v starting to check %q\n", time.Now(), operatorName)
 			notStableReason := WaitForOperatorProgressingFalse(ctx, configClient, operatorName)
+			fmt.Printf("#### %v done checking %q result %q\n", time.Now(), operatorName, notStableReason)
 			if notStableReason == nil {
 				return
 			}
@@ -114,7 +118,10 @@ func WaitForAllOperatorsProgressingFalse(ctx context.Context, configClient confi
 			unstableOperatorsToReason[operatorName] = notStableReason.Error()
 		}(operatorName)
 	}
+	fmt.Printf("#### %v waiting...\n", time.Now())
 	waitGroup.Wait()
+
+	fmt.Printf("#### %v finished: %v and %v!\n", time.Now(), ctx.Err(), unstableOperatorsToReason)
 
 	if ctx.Err() != nil {
 		return fmt.Errorf("timeout waiting for %v: %w", unstableOperatorsToReason, ctx.Err())
@@ -125,6 +132,7 @@ func WaitForAllOperatorsProgressingFalse(ctx context.Context, configClient confi
 	if err != nil {
 		return err
 	}
+	fmt.Printf("#### %v NO ERROR!\n", time.Now())
 	return nil
 }
 
