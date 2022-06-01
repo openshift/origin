@@ -66,12 +66,15 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 
 	g.It("test RequestHeaders IdP", func() {
 
+		g.By("set up environment")
+		g.By("verify operator is not progressing")
 		// In some rare cases, CAO might be damaged when entering this test. If it is - the results
 		// of this test might flaky. This check ensures that we capture such situation early and
 		// investigate why it wasn't ready before this test.
 		e2e.Logf("Ensuring CAO is available==True, progressing==False, degraded==False")
 		waitForAuthenticationProgressing(oc, operatorv1.ConditionFalse)
 
+		g.By("verify topology is not external")
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -79,6 +82,7 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 			e2eskipper.Skipf("External clusters do not allow customization of the Identity Providers for the cluster.")
 		}
 
+		g.By("create clieant CA")
 		caCert, caKey := createClientCA(oc.AdminKubeClient().CoreV1())
 		defer oc.AdminKubeClient().
 			CoreV1().
@@ -89,6 +93,7 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 				metav1.DeleteOptions{},
 			)
 
+		g.By("set up request headers IDP")
 		oauthClusterOrig, err := oc.AdminConfigClient().
 			ConfigV1().
 			OAuths().
@@ -130,6 +135,7 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 			)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		g.By("verify operators not progressing anymore")
 		waitForNewOAuthConfig(oc)
 
 		// clean up after ourselves
@@ -176,7 +182,10 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 			waitForNewOAuthConfig(oc)
 		}()
 
+		g.By("get issuer URL")
 		oauthURL := getOAuthWellKnownData(oc).Issuer
+
+		g.By("generate testing certs")
 		goodCert, goodKey := generateCert(
 			caCert, caKey,
 			clientCorrectName,
@@ -192,7 +201,25 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 		caCert2, caKey2 := generateCA("The Other Testing CA")
 		unknownCACert, unknownCAKey := generateCert(caCert2, caKey2, clientCorrectName, nil)
 
-		testCases := []certAuthTest{
+		g.By("add the route CA cert to the system bundle to trust the OAuth server")
+		caCerts, err := x509.SystemCertPool()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		routerCA, err := oc.AdminKubeClient().CoreV1().
+			ConfigMaps("openshift-config-managed").
+			Get(
+				context.Background(),
+				"default-ingress-cert",
+				metav1.GetOptions{},
+			)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		for _, ca := range routerCA.Data {
+			ok := caCerts.AppendCertsFromPEM([]byte(ca))
+			o.Expect(ok).To(o.Equal(true), "adding router certs to the system CA bundle")
+		}
+
+		for _, tc := range []certAuthTest{
 			{
 				name:     "/healtz - anonymous: anyone should be able to access it",
 				endpoint: "/healthz",
@@ -249,29 +276,7 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 				endpoint:      "/oauth/authorize?client_id=openshift-challenging-client&response_type=token",
 				expectedError: "500 Internal Server Error",
 			},
-		}
-
-		// add the route CA cert to the system bundle to trust the OAuth server
-		caCerts, err := x509.SystemCertPool()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		routerCA, err := oc.AdminKubeClient().CoreV1().
-			ConfigMaps("openshift-config-managed").
-			Get(
-				context.Background(),
-				"default-ingress-cert",
-				metav1.GetOptions{},
-			)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		for _, ca := range routerCA.Data {
-			ok := caCerts.AppendCertsFromPEM([]byte(ca))
-			o.Expect(ok).To(o.Equal(true), "adding router certs to the system CA bundle")
-		}
-
-		// waitForNewOAuthConfig(oc)
-
-		for _, tc := range testCases {
+		} {
 			g.By(tc.name, func() {
 				resp := oauthHTTPRequestOrFail(caCerts, oauthURL, tc.endpoint, "", tc.cert, tc.key)
 				respDump, err := httputil.DumpResponse(resp, true)
