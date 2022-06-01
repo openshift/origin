@@ -8,7 +8,10 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	watchtools "k8s.io/client-go/tools/watch"
@@ -91,7 +94,31 @@ func waitForOperatorProgressingToBe(ctx context.Context, configClient configv1cl
 	_, err := watchtools.UntilWithSync(ctx,
 		cache.NewListWatchFromClient(configClient.ConfigV1().RESTClient(), "clusteroperators", "", fields.Everything()),
 		&configv1.ClusterOperator{},
-		nil,
+		func(store cache.Store) (bool, error) {
+			obj, exists, err := store.Get(&metav1.ObjectMeta{Namespace: "", Name: operatorName})
+			if err != nil {
+				return true, err
+			}
+			if !exists {
+				return false, kerrors.NewNotFound(schema.GroupResource{
+					Group:    "config.openshift.io/v1",
+					Resource: "ClusterOperator",
+				}, operatorName)
+			}
+			operator := obj.(*configv1.ClusterOperator)
+			if desiredProgressing {
+				if v1helpers.IsStatusConditionTrue(operator.Status.Conditions, configv1.OperatorProgressing) {
+					return true, nil
+				}
+				return false, nil
+			}
+
+			if v1helpers.IsStatusConditionFalse(operator.Status.Conditions, configv1.OperatorProgressing) {
+				return true, nil
+			}
+			return false, nil
+		},
+
 		func(event watch.Event) (bool, error) {
 			switch event.Type {
 			case watch.Added, watch.Modified:
