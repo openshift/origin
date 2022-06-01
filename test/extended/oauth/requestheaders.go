@@ -80,9 +80,23 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 		}
 
 		caCert, caKey := createClientCA(oc.AdminKubeClient().CoreV1())
-		defer oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Delete(context.Background(), clientCAName, metav1.DeleteOptions{})
+		defer oc.AdminKubeClient().
+			CoreV1().
+			ConfigMaps("openshift-config").
+			Delete(
+				context.Background(),
+				clientCAName,
+				metav1.DeleteOptions{},
+			)
 
-		oauthClusterOrig, err := oc.AdminConfigClient().ConfigV1().OAuths().Get(context.Background(), "cluster", metav1.GetOptions{})
+		oauthClusterOrig, err := oc.AdminConfigClient().
+			ConfigV1().
+			OAuths().
+			Get(
+				context.Background(),
+				"cluster",
+				metav1.GetOptions{},
+			)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		oauthCluster := oauthClusterOrig.DeepCopy()
@@ -106,15 +120,50 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 				},
 			},
 		}
-		_, err = oc.AdminConfigClient().ConfigV1().OAuths().Update(context.Background(), oauthCluster, metav1.UpdateOptions{})
+		_, err = oc.AdminConfigClient().
+			ConfigV1().
+			OAuths().
+			Update(
+				context.Background(),
+				oauthCluster,
+				metav1.UpdateOptions{},
+			)
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		waitForNewOAuthConfig(oc)
+
 		// clean up after ourselves
 		defer func() {
 			userclient := oc.AdminUserClient().UserV1()
-			userclient.Identities().Delete(context.Background(), fmt.Sprintf("%s:%s", idpName, testUserName), metav1.DeleteOptions{})
-			userclient.Users().Delete(context.Background(), testUserName, metav1.DeleteOptions{})
+			userclient.
+				Identities().
+				Delete(
+					context.Background(),
+					fmt.Sprintf(
+						"%s:%s",
+						idpName,
+						testUserName,
+					),
+					metav1.DeleteOptions{},
+				)
 
-			oauthCluster, err := oc.AdminConfigClient().ConfigV1().OAuths().Get(context.Background(), "cluster", metav1.GetOptions{})
+			userclient.
+				Users().
+				Delete(
+					context.Background(),
+					testUserName,
+					metav1.DeleteOptions{},
+				)
+
+			oauthCluster, err := oc.AdminConfigClient().
+				ConfigV1().
+				OAuths().
+				Get(
+					context.Background(),
+					"cluster",
+					metav1.GetOptions{},
+				)
+
 			if err != nil {
 				g.Fail(fmt.Sprintf("Failed to get oauth/cluster, unable to turn it into its original state: %v", err))
 			}
@@ -128,9 +177,17 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 		}()
 
 		oauthURL := getOAuthWellKnownData(oc).Issuer
-		goodCert, goodKey := generateCert(caCert, caKey, clientCorrectName, []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth})
+		goodCert, goodKey := generateCert(
+			caCert, caKey,
+			clientCorrectName,
+			[]x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+		)
 
-		badNameCert, badNameKey := generateCert(caCert, caKey, clientWrongName, []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth})
+		badNameCert, badNameKey := generateCert(
+			caCert, caKey,
+			clientWrongName,
+			[]x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+		)
 
 		caCert2, caKey2 := generateCA("The Other Testing CA")
 		unknownCACert, unknownCAKey := generateCert(caCert2, caKey2, clientCorrectName, nil)
@@ -198,7 +255,13 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 		caCerts, err := x509.SystemCertPool()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		routerCA, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(context.Background(), "default-ingress-cert", metav1.GetOptions{})
+		routerCA, err := oc.AdminKubeClient().CoreV1().
+			ConfigMaps("openshift-config-managed").
+			Get(
+				context.Background(),
+				"default-ingress-cert",
+				metav1.GetOptions{},
+			)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		for _, ca := range routerCA.Data {
@@ -206,7 +269,7 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 			o.Expect(ok).To(o.Equal(true), "adding router certs to the system CA bundle")
 		}
 
-		waitForNewOAuthConfig(oc)
+		// waitForNewOAuthConfig(oc)
 
 		for _, tc := range testCases {
 			g.By(tc.name, func() {
@@ -571,6 +634,7 @@ func waitForAuthenticationProgressing(
 
 		return true, nil
 	})
+
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
