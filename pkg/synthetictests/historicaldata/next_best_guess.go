@@ -50,6 +50,7 @@ var nextBestGuessers = []NextBestKey{
 	combine(ForTopology("single"), OnSDN),
 	combine(ForTopology("single"), OnSDN, PreviousReleaseUpgrade),
 	combine(ForTopology("single"), OnSDN, PreviousReleaseUpgrade, MicroReleaseUpgrade),
+	combine(ForTopology("single"), OnSDN, PreviousReleaseUpgrade, MicroReleaseUpgrade, MinorReleaseUpgrade),
 }
 
 // NextBestKey returns the next best key in the query_results.json generated from BigQuery and a bool indicating whether this guesser has an opinion.
