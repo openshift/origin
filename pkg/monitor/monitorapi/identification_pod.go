@@ -73,7 +73,7 @@ func (r ContainerReference) ToLocator() string {
 	return fmt.Sprintf("ns/%s pod/%s uid/%s container/%s", r.Pod.Namespace, r.Pod.Name, r.Pod.UID, r.ContainerName)
 }
 
-func ReasonFrom(message string) string {
+func AnnotationsFromMessage(message string) map[string]string {
 	tokens := strings.Split(message, " ")
 	annotations := map[string]string{}
 	for _, curr := range tokens {
@@ -83,7 +83,17 @@ func ReasonFrom(message string) string {
 		annotationTokens := strings.Split(curr, "/")
 		annotations[annotationTokens[0]] = annotationTokens[1]
 	}
+	return annotations
+}
+
+func ReasonFrom(message string) string {
+	annotations := AnnotationsFromMessage(message)
 	return annotations["reason"]
+}
+
+func PhaseFrom(message string) string {
+	annotations := AnnotationsFromMessage(message)
+	return annotations["phase"]
 }
 
 func ReasonedMessage(reason string, message ...string) string {
