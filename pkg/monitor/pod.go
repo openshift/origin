@@ -518,9 +518,9 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 	listWatch := cache.NewListWatchFromClient(client.CoreV1().RESTClient(), "pods", "", fields.Everything())
 	customStore := newMonitoringStore(
 		"pods",
-		toCreateFns(podCreatedFns),
-		toUpdateFns(podChangeFns),
-		toDeleteFns(podDeleteFns),
+		toPodCreateFns(podCreatedFns),
+		toPodUpdateFns(podChangeFns),
+		toPodDeleteFns(podDeleteFns),
 		m,
 		m,
 	)
@@ -535,7 +535,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 
 }
 
-func toCreateFns(podCreateFns []func(pod *corev1.Pod) []monitorapi.Condition) []objCreateFunc {
+func toPodCreateFns(podCreateFns []func(pod *corev1.Pod) []monitorapi.Condition) []objCreateFunc {
 	ret := []objCreateFunc{}
 
 	for i := range podCreateFns {
@@ -548,7 +548,7 @@ func toCreateFns(podCreateFns []func(pod *corev1.Pod) []monitorapi.Condition) []
 	return ret
 }
 
-func toDeleteFns(podDeleteFns []func(pod *corev1.Pod) []monitorapi.Condition) []objDeleteFunc {
+func toPodDeleteFns(podDeleteFns []func(pod *corev1.Pod) []monitorapi.Condition) []objDeleteFunc {
 	ret := []objDeleteFunc{}
 
 	for i := range podDeleteFns {
@@ -561,7 +561,7 @@ func toDeleteFns(podDeleteFns []func(pod *corev1.Pod) []monitorapi.Condition) []
 	return ret
 }
 
-func toUpdateFns(podUpdateFns []func(pod, oldPod *corev1.Pod) []monitorapi.Condition) []objUpdateFunc {
+func toPodUpdateFns(podUpdateFns []func(pod, oldPod *corev1.Pod) []monitorapi.Condition) []objUpdateFunc {
 	ret := []objUpdateFunc{}
 
 	for i := range podUpdateFns {
