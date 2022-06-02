@@ -368,6 +368,18 @@ func testSystemDTimeout(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 
 var errImagePullTimeoutRE = regexp.MustCompile("ErrImagePull.*read: connection timed out")
 var errImagePullGenericRE = regexp.MustCompile("ErrImagePull")
+var invalidImagesRE = []*regexp.Regexp{
+
+	// See this test: "should not be able to pull image from invalid registry [NodeConformance]"
+	regexp.MustCompile("invalid.com"),
+
+	// See this test: "should not be able to pull from private registry without secret [NodeConformance]"
+	regexp.MustCompile("3.7 in gcr.io/authenticated-image-pulling/alpine"),
+
+	// See this test: "deployment should support proportional scaling"
+	// and "Updating deployment %q with a non-existent image" where they use webserver:404
+	regexp.MustCompile("404 in docker.io/library/webserver"),
+}
 
 // namespaceRestriction is an enum for clearly indicating if were only interested in events in openshift- namespaces,
 // or those that are not.
@@ -380,26 +392,26 @@ const (
 
 func testErrImagePullConnTimeoutOpenShiftNamespaces(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] should not encounter ErrImagePull read connection timeout in openshift namespace pods"
-	return buildTestsFailIfRegexMatch(testName, errImagePullTimeoutRE, nil, InOpenShiftNS, events)
+	return buildTestsFailIfRegexMatch(testName, errImagePullTimeoutRE, nil, InOpenShiftNS, []*regexp.Regexp{}, events)
 }
 
 func testErrImagePullConnTimeout(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] should not encounter ErrImagePull read connection timeout in non-openshift namespace pods"
-	return buildTestsFailIfRegexMatch(testName, errImagePullTimeoutRE, nil, NotInOpenshiftNS, events)
+	return buildTestsFailIfRegexMatch(testName, errImagePullTimeoutRE, nil, NotInOpenshiftNS, []*regexp.Regexp{}, events)
 }
 
 func testErrImagePullGenericOpenShiftNamespaces(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] should not encounter ErrImagePull in openshift namespace pods"
-	return buildTestsFailIfRegexMatch(testName, errImagePullGenericRE, errImagePullTimeoutRE, InOpenShiftNS, events)
+	return buildTestsFailIfRegexMatch(testName, errImagePullGenericRE, errImagePullTimeoutRE, InOpenShiftNS, invalidImagesRE, events)
 }
 
 func testErrImagePullGeneric(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] should not encounter ErrImagePull in non-openshift namespace pods"
-	return buildTestsFailIfRegexMatch(testName, errImagePullGenericRE, errImagePullTimeoutRE, NotInOpenshiftNS, events)
+	return buildTestsFailIfRegexMatch(testName, errImagePullGenericRE, errImagePullTimeoutRE, NotInOpenshiftNS, invalidImagesRE, events)
 }
 
 func buildTestsFailIfRegexMatch(testName string, matchRE, dontMatchRE *regexp.Regexp,
-	nsRestriction namespaceRestriction, events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	nsRestriction namespaceRestriction, expectedErrPatterns []*regexp.Regexp, events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 
 	var matchedIntervals monitorapi.Intervals
 	for _, event := range events {
@@ -418,6 +430,21 @@ func buildTestsFailIfRegexMatch(testName string, matchRE, dontMatchRE *regexp.Re
 
 		// Skip if we *do* match the don't match regex:
 		if dontMatchRE != nil && dontMatchRE.MatchString(estr) {
+			continue
+		}
+
+		// Skip if this ErrImagePull problem is part of a negative test (i.e., if any of these
+		// patterns match the event string, it is an expected ErrImagePull failure).
+		found := false
+		for i := 0; i < len(expectedErrPatterns); i++ {
+			if expectedErrPatterns[i].MatchString(estr) {
+				found = true
+				break
+			}
+		}
+		if found {
+			// ErrImagePull was found but also one of the expected error patters was found so don't
+			// count this as an ErrImagePull failure.
 			continue
 		}
 
