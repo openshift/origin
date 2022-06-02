@@ -26,7 +26,7 @@ func NewSpyglassEventIntervalRenderer(name string, filter monitorapi.EventInterv
 	return eventIntervalRenderer{
 		name: name,
 		filenameBaseFn: func(timeSuffix string) string {
-			return fmt.Sprintf("e2e-intervals_%s%s", name, timeSuffix)
+			return fmt.Sprintf("e2e-timelines_%s%s", name, timeSuffix)
 		},
 		filter: filter,
 	}
@@ -36,7 +36,7 @@ func NewNonSpyglassEventIntervalRenderer(name string, filter monitorapi.EventInt
 	return eventIntervalRenderer{
 		name: name,
 		filenameBaseFn: func(timeSuffix string) string {
-			return fmt.Sprintf("e2e-secondary_%s%s", name, timeSuffix)
+			return fmt.Sprintf("e2e-timelines_%s%s", name, timeSuffix)
 		},
 		filter: filter,
 	}
