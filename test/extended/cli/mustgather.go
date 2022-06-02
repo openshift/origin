@@ -48,7 +48,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		defer os.RemoveAll(tempDir)
 		o.Expect(oc.Run("adm", "must-gather").Args("--dest-dir", tempDir).Execute()).To(o.Succeed())
 
-		pluginOutputDir := getPluginOutputDir(tempDir)
+		pluginOutputDir := GetPluginOutputDir(tempDir)
 
 		expectedDirectories := [][]string{
 			{pluginOutputDir, "cluster-scoped-resources", "config.openshift.io"},
@@ -119,7 +119,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			"ls -l > /artifacts/ls.log",
 		}
 		o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
-		expectedFilePath := path.Join(getPluginOutputDir(tempDir), "ls.log")
+		expectedFilePath := path.Join(GetPluginOutputDir(tempDir), "ls.log")
 		o.Expect(expectedFilePath).To(o.BeAnExistingFile())
 		stat, err := os.Stat(expectedFilePath)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -186,7 +186,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		// wait for the contents to show up in the plugin output directory, avoiding EOF errors
 		time.Sleep(10 * time.Second)
 
-		pluginOutputDir := getPluginOutputDir(tempDir)
+		pluginOutputDir := GetPluginOutputDir(tempDir)
 
 		expectedDirectoriesToExpectedCount := map[string]int{
 			path.Join(pluginOutputDir, "audit_logs", "kube-apiserver"):      1000,
@@ -217,18 +217,9 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 					}
 
 					fileName := filepath.Base(path)
-					if (strings.Contains(fileName, "-termination-") && strings.HasSuffix(fileName, ".log.gz")) ||
-						strings.HasSuffix(fileName, "termination.log.gz") ||
-						(strings.Contains(fileName, "-startup-") && strings.HasSuffix(fileName, ".log.gz")) ||
-						strings.HasSuffix(fileName, "startup.log.gz") ||
-						fileName == ".lock" ||
-						fileName == "lock.log" {
-						// these are expected, but have unstructured log format
+					if !IsAuditFile(fileName) {
 						return nil
 					}
-
-					isAuditFile := (strings.Contains(fileName, "-audit-") && strings.HasSuffix(fileName, ".log.gz")) || strings.HasSuffix(fileName, "audit.log.gz")
-					o.Expect(isAuditFile).To(o.BeTrue())
 
 					// at this point, we expect only audit files with json events, one per line
 
@@ -331,7 +322,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 
 				o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
 
-				pluginOutputDir := getPluginOutputDir(tempDir)
+				pluginOutputDir := GetPluginOutputDir(tempDir)
 				expectedAuditSubDirs := []string{"kube-apiserver", "openshift-apiserver", "oauth-apiserver"}
 
 				seen := sets.String{}
@@ -365,13 +356,13 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 	})
 })
 
-// getPluginOutputDir returns the directory containing must-gather assets.
+// GetPluginOutputDir returns the directory containing must-gather assets.
 // Before [1], the assets were placed directly in tempDir.  Since [1],
 // they have been placed in a subdirectory named after the must-gather
 // image.
 //
 // [1]: https://github.com/openshift/oc/pull/84
-func getPluginOutputDir(tempDir string) string {
+func GetPluginOutputDir(tempDir string) string {
 	files, err := os.ReadDir(tempDir)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	dir := ""
@@ -390,4 +381,18 @@ func getPluginOutputDir(tempDir string) string {
 	}
 	e2e.Logf("found a single subdirectory %q, so assuming it is a new-style must-gather", dir)
 	return dir
+}
+
+func IsAuditFile(fileName string) bool {
+	if (strings.Contains(fileName, "-termination-") && strings.HasSuffix(fileName, ".log.gz")) ||
+		strings.HasSuffix(fileName, "termination.log.gz") ||
+		(strings.Contains(fileName, "-startup-") && strings.HasSuffix(fileName, ".log.gz")) ||
+		strings.HasSuffix(fileName, "startup.log.gz") ||
+		fileName == ".lock" ||
+		fileName == "lock.log" {
+		// these are expected, but have unstructured log format
+		return false
+	}
+
+	return (strings.Contains(fileName, "-audit-") && strings.HasSuffix(fileName, ".log.gz")) || strings.HasSuffix(fileName, "audit.log.gz")
 }
