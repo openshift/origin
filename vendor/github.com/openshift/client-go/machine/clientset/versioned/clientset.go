@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	machinev1 "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1"
 	machinev1beta1 "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
@@ -14,6 +15,7 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
+	MachineV1() machinev1.MachineV1Interface
 	MachineV1beta1() machinev1beta1.MachineV1beta1Interface
 }
 
@@ -21,7 +23,13 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
+	machineV1      *machinev1.MachineV1Client
 	machineV1beta1 *machinev1beta1.MachineV1beta1Client
+}
+
+// MachineV1 retrieves the MachineV1Client
+func (c *Clientset) MachineV1() machinev1.MachineV1Interface {
+	return c.machineV1
 }
 
 // MachineV1beta1 retrieves the MachineV1beta1Client
@@ -69,6 +77,10 @@ func NewForConfigAndClient(c *rest.Config, httpClient *http.Client) (*Clientset,
 
 	var cs Clientset
 	var err error
+	cs.machineV1, err = machinev1.NewForConfigAndClient(&configShallowCopy, httpClient)
+	if err != nil {
+		return nil, err
+	}
 	cs.machineV1beta1, err = machinev1beta1.NewForConfigAndClient(&configShallowCopy, httpClient)
 	if err != nil {
 		return nil, err
@@ -94,6 +106,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
+	cs.machineV1 = machinev1.New(c)
 	cs.machineV1beta1 = machinev1beta1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
