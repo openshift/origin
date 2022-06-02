@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
 	"math/rand"
 	"strings"
 	"time"
@@ -39,14 +40,21 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 	gen := names.SimpleNameGenerator
 
 	g.It("node-logs", func() {
-		o.Expect(oc.Run("adm", "node-logs").Args(randomNode(oc)).Execute()).To(o.Succeed())
+		out, err := oc.Run("adm", "node-logs").Args(randomNode(oc)).Output()
+		if err != nil {
+			io.Copy(g.GinkgoWriter, strings.NewReader(out+"\n"))
+		}
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		masters, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 			LabelSelector: "node-role.kubernetes.io/master",
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		out, err := oc.Run("adm", "node-logs").Args("--role=master", "--since=-2m").Output()
+		out, err = oc.Run("adm", "node-logs").Args("--role=master", "--since=-2m").Output()
+		if err != nil {
+			io.Copy(g.GinkgoWriter, strings.NewReader(out+"\n"))
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 		for _, m := range masters.Items {
 			if hostname, ok := m.Labels["kubernetes.io/hostname"]; ok {
@@ -54,18 +62,37 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 			}
 		}
 
-		o.Expect(oc.Run("adm", "node-logs").Args(randomNode(oc), "--boot=0").Execute()).To(o.Succeed())
+		out, err = oc.Run("adm", "node-logs").Args(randomNode(oc), "--boot=0").Output()
+		if err != nil {
+			io.Copy(g.GinkgoWriter, strings.NewReader(out+"\n"))
+		}
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-		o.Expect(oc.Run("adm", "node-logs").Args(randomNode(oc), "--since=-2m", "--until=-1m").Execute()).To(o.Succeed())
+		out, err = oc.Run("adm", "node-logs").Args(randomNode(oc), "--since=-2m", "--until=-1m").Output()
+		if err != nil {
+			io.Copy(g.GinkgoWriter, strings.NewReader(out+"\n"))
+		}
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		since := time.Now().Add(-2 * time.Minute).Format("2006-01-02 15:04:05")
 		out, err = oc.Run("adm", "node-logs").Args(randomNode(oc), fmt.Sprintf("--since=%s", since)).Output()
+		if err != nil {
+			io.Copy(g.GinkgoWriter, strings.NewReader(out+"\n"))
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).NotTo(o.ContainSubstring("Failed to parse timestamp: "))
 
-		o.Expect(oc.Run("adm", "node-logs").Args(randomNode(oc), "--unit=kubelet", "--since=-2m").Execute()).To(o.Succeed())
+		out, err = oc.Run("adm", "node-logs").Args(randomNode(oc), "--unit=kubelet", "--since=-2m").Output()
+		if err != nil {
+			io.Copy(g.GinkgoWriter, strings.NewReader(out+"\n"))
+		}
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-		o.Expect(oc.Run("adm", "node-logs").Args(randomNode(oc), "--tail=5").Execute()).To(o.Succeed())
+		out, err = oc.Run("adm", "node-logs").Args(randomNode(oc), "--tail=5").Output()
+		if err != nil {
+			io.Copy(g.GinkgoWriter, strings.NewReader(out+"\n"))
+		}
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.It("groups", func() {
