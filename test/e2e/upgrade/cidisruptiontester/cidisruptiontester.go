@@ -22,9 +22,9 @@ type ciDisruptionUpgradeTest struct {
 func NewCIDisruptionWithNewConnectionsTest() upgrades.Test {
 	ciDisruptTest := &ciDisruptionUpgradeTest{}
 	backend := backenddisruption.NewSimpleBackend(
-		"https://trt-ci-disruption-tester.dptools.openshift.org",
+		"https://static.redhat.com/test/rhel-networkmanager.txt",
 		"ci-cluster-network-liveness",
-		"/",
+		"",
 		backenddisruption.NewConnectionType)
 	allowed := 1 * time.Second
 	ciDisruptTest.backendDisruptionTest =
@@ -41,9 +41,9 @@ func NewCIDisruptionWithNewConnectionsTest() upgrades.Test {
 func NewCIDisruptionWithReusedConnectionsTest() upgrades.Test {
 	ciDisruptTest := &ciDisruptionUpgradeTest{}
 	backend := backenddisruption.NewSimpleBackend(
-		"https://trt-ci-disruption-tester.dptools.openshift.org",
+		"https://static.redhat.com/test/rhel-networkmanager.txt",
 		"ci-cluster-network-liveness",
-		"/",
+		"",
 		backenddisruption.ReusedConnectionType)
 	allowed := 1 * time.Second
 	ciDisruptTest.backendDisruptionTest =
