@@ -1,0 +1,2351 @@
+[33m2c9b9549[m[33m ([m[1;36mHEAD -> [m[1;32mbump-1.24[m[33m)[m bump(k8s v0.24.0)
+[33m441fe135[m[33m ([m[1;31mupstream/release-4.12[m[33m, [m[1;31mupstream/release-4.11[m[33m, [m[1;31mupstream/master[m[33m, [m[1;32mmaster[m[33m)[m Merge pull request #1159 from Karthik-K-N/add-powervs-api
+[33m6b92d4da[m Add PowerVSMachineProviderConfig
+[33md2198688[m Merge pull request #1185 from wking/all-capabilities-variable
+[33m600005fa[m config/v1/types_cluster_version: Add KnownClusterVersionCapabilities
+[33m5308d3d6[m Merge pull request #1176 from brandisher/fixup-dns-over-tls-godoc
+[33me19f3fa6[m Merge pull request #1166 from nutanix-cloud-native/nutanix_types_change
+[33m143629bf[m Merge pull request #1175 from arjunrn/ingress-host-omitempty
+[33m070bf8b2[m Merge pull request #1178 from njhale/fix/operatorhub-manifest
+[33me5b6fd5f[m Add the default port documentation and remove incorrect CA note
+[33m716dc566[m Allow 0 values for host network IngressControllers
+[33md9055575[m fix: rename operatorhub crd manifest file
+[33m7c9d6528[m Change to NutanixMachineProviderConfig to allow to configure one or more subnets for a Machine VM
+[33m8f38b764[m Merge pull request #1174 from JoelSpeed/pg-management-state
+[33m1eaa01de[m Merge pull request #1173 from JoelSpeed/machine-v1-client-deps
+[33m90f13469[m Add enum validation for Placement Group Management State
+[33m4bbeeb07[m Add Machine v1 client-go dependencies
+[33mc3bb724c[m Merge pull request #1172 from omertuc/snow3
+[33m204b0f5a[m `DefaultPlacement` allow empty enum value and remove default
+[33m498f284e[m Merge pull request #1171 from JoelSpeed/machine-v1-client
+[33m70859b5b[m Machine Providers are raw extension and should not have generated clients
+[33mca994600[m Merge pull request #1170 from JoelSpeed/revert-cpms-api
+[33mc9a0b0bf[m Revert addition of ControlPlaneMachineSet API
+[33m43bbec62[m Merge pull request #1165 from swghosh/config-node-changes
+[33m21639a0e[m config/v1/node: re-introduce crd.yaml which was reverted in openshift/api#1160
+[33m3ffa44f0[m config/node: update wlpStatus condition type to metav1.Condition
+[33m01a2835b[m Merge pull request #1164 from soltysh/drop_newicsp
+[33m74d585ab[m Merge pull request #1156 from lobziik/aws-imdsv2
+[33mf7714c0c[m Rename HttpTokens to Authentication
+[33m62ac349f[m Merge pull request #1158 from nutanix-cloud-native/nutanix-ingress
+[33mb20b562b[m Do not register new ICSP CRDs, yet
+[33m006ea8bc[m Merge pull request #1160 from swghosh/revert-node-crd
+[33mba60c8ee[m config/v1: revert node crd yaml
+[33mb3d3a1c3[m Capitalize constant values
+[33mc689b393[m Merge pull request #1157 from nutanix-cloud-native/nutanix-proxy-comment
+[33mef46def1[m Api changes for adding IMDSv2 support for AWS machines
+[33m073b00de[m Address review comments
+[33ma0334cde[m Merge pull request #1155 from bertinatto/azure-file-ga
+[33m04e1813e[m Merge pull request #1151 from omertuc/snow
+[33mf2b05ccd[m Merge pull request #1110 from brandisher/dns-over-tls-forwardplugin-upstreamresolvers
+[33mb981cd8f[m Add Generated CRDs and Code
+[33m5ccad9be[m Add Nutanix as a platform type in types_ingress.go
+[33m6ff3e35d[m Merge pull request #1097 from arjunrn/ingress-host-bind-ports
+[33mbfc23c1d[m Restore the unexpected change of imageregistry.crd.yaml
+[33m2419b2ee[m Fix the 'proxy' comment for the Prism endpoint fields in the Infrastructure type
+[33m4daaf451[m Azure File CSI Driver Operator is GA in OCP 4.11
+[33mb13165cc[m Add DNS-over-TLS related types
+[33m071e1ca3[m MGMT-9797: Implementation for new Ingress API introduced in Single Node + Workers enhancement
+[33m1a6fa291[m Merge pull request #1153 from omertuc/rm
+[33m38ff5c08[m Delete obsolete openshift/origin README instructions
+[33m19dea104[m Allow ports on host to be specified for HostNetwork Ingresses
+[33m8107b7a3[m Merge pull request #1150 from njhale/marketplace-capability
+[33m647022c7[m Merge pull request #1146 from gcs278/BZ1944851-Clear-Route-Status
+[33m92b7e9bf[m Merge pull request #1135 from RadekManak/refactor_status
+[33m946f9b49[m config/v1: add marketplace capability annotation to operatorhub crd manifest
+[33md8a8db6d[m config/v1/types_cluster_version: add marketplace capability
+[33m0012fcdb[m Merge pull request #1120 from candita/BZ-2039256-componentRoutesHostnameRegex
+[33m3d6a78ae[m Merge pull request #1149 from damdo/machine-azure-data-disks-deletion-policy
+[33m554f2f76[m machine: azureprovider: data disk: add deletion policy
+[33mc20887ac[m Merge pull request #1127 from candita/NE-585-HealthCheckInterval
+[33m1fec4154[m Bug 2039256: kubebuilder validation format hostname is not RFC compliant
+[33maf97225d[m NE-585 Make ROUTER_BACKEND_CHECK_INTERVAL configurable
+[33m43fe4916[m Refactor provider status to use metav1.Condition
+[33m3635738d[m Bug 1944851: Add selectors to ingress controller status for determining state
+[33m9c4998a4[m Merge pull request #1145 from damdo/azure-ultra-disks-capability-rename
+[33m6f79cb01[m Merge pull request #1132 from MaysaMacedo/fix-prepopulation-doc
+[33m4bf515d6[m Merge pull request #1144 from JoelSpeed/verify-with-container
+[33m9fc6d984[m machine: azureprovider: AzureUltraSSDCapability consts renaming
+[33m7e14f50a[m Merge pull request #1052 from flavianmissi/IR-195
+[33mc74a724d[m Merge pull request #1143 from swghosh/node-cr-validation
+[33m723a3620[m Allow consistent verification across platforms with container verify target
+[33m506d4911[m config/v1/node: add validation to workerLatencyProfile, cgroupMode field values
+[33md7c0680a[m 1.Add the machine-provider-nutanix types 2.Add fields to Infrastructure NutanixPlatformSpec (#1124)
+[33ma2ca88c4[m Merge pull request #1140 from swghosh/node-cluster-scope-crd
+[33mfcd2f672[m config/v1/node: tweak CRD yaml to add status as subresource
+[33m9123ce22[m Merge pull request #1136 from sairameshv/OCPNODE-852
+[33mc28f84b4[m Merge pull request #1141 from JoelSpeed/fix-machine-type
+[33md7c10d0b[m Merge pull request #1126 from QiWang19/mirrorset
+[33m10d13b86[m Ensure enumeration of ControlPlaneMachineSetMachineType type alias
+[33m67853604[m Add CRD ImageDigestMirrorSet and ImageTagMirrorSet
+[33m1d1610eb[m Cluster scope for config/v1 node CRD
+[33mabf6417c[m [OCPCLOUD-1422] machine-api: azureprovider: add ultra disk support (#1119)
+[33m706ba9ec[m reworked on review comments
+[33m54131e21[m added frequency constants in accordance with the worker latency profiles
+[33mc21df433[m Merge pull request #1134 from JoelSpeed/fix-optional-subnet
+[33m9f0025ed[m Ensure optional AWSResourceReference can be omitted when marshalled
+[33m94bdffb4[m Merge pull request #1112 from JoelSpeed/control-plane-machine-set
+[33mbf402336[m Add ControlPlaneMachineSet to Machine API group
+[33m654ca07c[m Merge pull request #1131 from JoelSpeed/fix-partition-number-tag
+[33m0835c57b[m Fix enablePortPoolsPrepopulation setting definition
+[33m5170e8de[m Merge pull request #1125 from honza/cbo-capability
+[33m5c128202[m config/v1/types_cluster_version: Add baremetal
+[33m7aa5824a[m Merge pull request #1123 from soltysh/bug2054693
+[33mdc860bc2[m Correct json tag on AWS Placement PartitionNumber
+[33med43532a[m bump(k8s.io/api)
+[33m97d14279[m Bug 2054693: add missing k8s APIs
+[33m24043075[m Merge pull request #1107 from harche/node_object
+[33m6fdb9bb1[m Add node object to config v1
+[33m354aa98a[m Merge pull request #1091 from JoelSpeed/mapi-aws-placement-groups
+[33mdfab1875[m Add Placement Group options to AWS machine provider config
+[33m309b7ebb[m Merge pull request #1121 from bparees/console
+[33m271bd7e1[m Merge pull request #1122 from gcs278/master
+[33mec601fca[m Bug 2041133: Fix "oc explain router.status.ingress.conditions" to reflect the actual type (Admitted)
+[33m2e86c715[m Move console apis to tier 2, per what our docs say
+[33mbc705fe9[m Tolerate console apis as tier 2
+[33maa98df52[m Merge pull request #1109 from bparees/compat
+[33mb632c5fc[m Merge pull request #1115 from bertinatto/god-help-us
+[33m7e3ffb09[m Merge pull request #1106 from wking/capabilities
+[33m5b82635e[m config/v1/types_cluster_version: Add capabilties properties
+[33m77ee4188[m Merge pull request #1104 from bertinatto/csi-drivers-ga
+[33m3ad4150e[m Enable CSI migration for Azure Disk and Cinder
+[33m31ffd77a[m Merge pull request #1090 from JoelSpeed/go-1.17-dockerfile
+[33mc4ca4962[m Merge pull request #1065 from JoelSpeed/aws-network-interface
+[33mbfe251c5[m Merge pull request #1059 from yannickstruyf3/nutanix_platform
+[33m8d0eb9d2[m Fix compatibility/tier level for security apis
+[33ma840e1a8[m Add exceptions to compatibility level rules
+[33mc052fe1f[m Ensure findutils is installed for gofmt check
+[33m9ec7092a[m Update EFA options to match enhancement
+[33mcda5afb9[m Add Network Interface Type to AWS Machine Provider Spec
+[33me9e230bb[m Azure Disk and vSphere CSI drivers are GA
+[33md41048fc[m imageregistry: add topology spread constraint to spec
+[33md7472706[m Merge pull request #1096 from elmiko/alibaba-resource-update
+[33m8e1988f2[m update deepcopy script to include machine:v1
+[33m0a830aea[m Merge pull request #1100 from ingvagabund/drop-removed-feature-gates
+[33mde2aae00[m Delete feature gates removed from k8s.io/kubernetes/pkg/features/kube_features.go
+[33m58db72a4[m Merge pull request #1099 from JoelSpeed/set-list-type-hooks
+[33me83d4881[m Merge pull request #1098 from jhadvig/bz2041605
+[33ma82beb45[m Bug 2041605: Fix plugin proxy path
+[33m441680da[m Set list-type map on Machine Deletion Hooks
+[33m5bc17790[m Merge pull request #1084 from zonggen/helm-258-namespace-crd
+[33m6598a1f2[m update required fields for AlibabaCloudMachineProviderConfig
+[33m2499da51[m Merge pull request #1049 from tremes/remove_io_sca_from_tp
+[33m3af5513c[m Add a Name field to AlibabaResourceReference
+[33m1dc6e457[m update Alibaba resource reference documentation
+[33m075e263c[m refactor ResourceGroup in AlibabaCloudMachineProviderConfig
+[33m824f27ac[m update AlibabaResourceReference to follow a union pattern
+[33m704957ce[m Merge pull request #1067 from jhadvig/CONSOLE-3005
+[33m6db10b22[m CONSOLE-3005: Provide alias for dynamic plugin's proxy
+[33mc3e1e58b[m Remove "InsightsOperatorPullingSCA" from tech preview featureset
+[33m96b33b94[m helm: remove project scoped struct for status and spec
+[33m8fe639fe[m helm: add a new namespaced CRD for helm
+[33m997c316d[m Merge pull request #1092 from jsafrane/disable-csi-migration
+[33mab6fffcd[m Disable CSI migration feature gates by default
+[33m33e5e52a[m Install Go manually at the required version
+[33m3bf13cf5[m Merge pull request #1089 from JoelSpeed/fix-lifecycle-hook-validation
+[33m6a935252[m Update Dockerfile to account for Go 1.17 dependencies
+[33m10fc3231[m Ensure name and owner are required within lifecycle hooks
+[33m8779abfb[m Merge pull request #1088 from kwoodson/fix_field_validation
+[33m3965fb2c[m Alibaba infrastructure config: Updating kube validation on optional string
+[33m7c47a5f6[m Merge pull request #1056 from jkhelil/build-275
+[33m49df2aee[m Merge pull request #1085 from jotak/omitempty-ca-cert
+[33m6d5ab92f[m Bug 2032289 - omit empty fields in ConsolePlugin CR
+[33m76ab2e0a[m add CSI build source volume to build api
+[33m3cf5120f[m Merge pull request #1087 from kwoodson/fix_method
+[33m406602a5[m Fix rename property patch from type to method
+[33m207332eb[m Merge pull request #1082 from kwoodson/alibaba_reg_updates
+[33mc5299f93[m Alibaba Cloud Provider: adding imageregistry api types
+[33mbcf214ed[m Merge pull request #1086 from kwoodson/fix_yaml_patch
+[33m1a67f3bd[m Updating build-machiner-go to fix the yaml_patch error
+[33m6e0b1eb9[m Merge pull request #1081 from kwoodson/alibaba_pattern
+[33m4bfc01b6[m Alibaba cloud platform: Readding kubebuilder validation to infrastructure type.
+[33ma0259eec[m Merge pull request #1080 from BSWANG/patch-1
+[33ma19f3b90[m Merge pull request #1045 from kwoodson/alibaba_machine_types
+[33m9568d6de[m Machine API: adding Alibaba cloud provider types.
+[33mc58d9f69[m Merge pull request #1076 from damemi/rebase-1.23
+[33m5f016b97[m change the `ResourceGroupID` to optional
+[33m88f7870d[m Make update
+[33m4345d1a6[m Bump k8s to 1.23.0
+[33m9b3afd95[m Merge pull request #1061 from ehashman/swap-support
+[33maa83b5f7[m config/v1: Add NodeSwap to TechPreviewNoUpgrade
+[33mfb6f933b[m Merge pull request #1033 from tssurya/add-gm-config-ovnk
+[33md5252bac[m Merge pull request #1078 from jcaamano/master
+[33m69c75674[m Merge pull request #1079 from kwoodson/update_gofmt
+[33mb8f149d8[m Adding updates from update-gofmt for go1.17
+[33ma880d299[m Add GatewayConfig to OVNKubernetesConfig
+[33m5f4a7443[m Merge pull request #1077 from damemi/add-ci-operator
+[33m5da993b9[m Add API for MTU migration
+[33m781d551f[m Fix hack/verify-crds.sh check
+[33m65209482[m Add .ci-operator.yaml
+[33m5a82bae3[m Merge pull request #1054 from Fedosin/ephemeral_azure
+[33md9e90726[m Merge pull request #1075 from shiftstack/mapo-tp-feature-flag
+[33me4a89acc[m [OCPCLOUD-1303]: Add API to support Worker nodes with Ephemeral OS disks on Azure
+[33m34f305c3[m Merge pull request #1053 from sherine-k/cfe-158-1
+[33m90350cb1[m Add upstreamResolvers field to DNSSpec
+[33m64296bcf[m Create a feature gate for MAPO tech preview
+[33me34bc227[m Merge pull request #1073 from ibihim/AUTH-110-revert_audit_profile_change
+[33m40e8071b[m Revert "config/v1/types_oauth: add OAuthAudit"
+[33m30b7580f[m Merge pull request #1070 from dankenigsberg/drop-double-words-words
+[33m4f3c947a[m janitorial: drop repeated words words
+[33ma68b8fc6[m Merge pull request #1025 from Karthik-K-N/powervs-changes
+[33m5fc1f061[m Added ServiceEndpoints to PowerVSPlatformSpec, It will help in overriding the defualt service endpoints with custom values Cluster-Config-Operator will take the resposibilites of validating the spec field and udpating the status filed for furthur consumption to other operators
+[33mb094ceff[m Merge pull request #1063 from relyt0925/upi-iaas-layer
+[33mbc2d3cf6[m Merge pull request #1050 from JoelSpeed/mdh-consts
+[33me7f5ddef[m Add LifecycleHooks to Machine spec
+[33mb1015aab[m add ibmcloud satellite upi provider variable
+[33m313e51ea[m Merge pull request #1044 from SamuelStuchly/gcp-providerconfig
+[33m4e474ed9[m Merge pull request #1057 from patrickdillon/azure-machine-spec
+[33m62d90f19[m Add Image Type to Azure Machine Provider Spec
+[33m00335336[m change AutomaticRestart from bool to RestartPolicy
+[33m20da8467[m Merge pull request #1051 from Miciah/README.md-add-a-reference-for-API-conventions
+[33md2e80cbc[m update types_gcprovider.go
+[33m0024a346[m Add condition constants for reporting status of machine lifecycle hooks
+[33m775f773b[m added Nutanix platform type to +kubebuilder:validation:Enum annotation on the PlatformType type
+[33m89437fa9[m added Nutanix platform to openshift/api
+[33mbe1be0e8[m Merge pull request #976 from lmzuccarelli/BZ1964112
+[33m557720a0[m README.md: Add a reference for API conventions
+[33mcb9596dd[m Merge pull request #1042 from s-urbaniak/pr-1038
+[33mafee15af[m config/v1/types_oauth: add OAuthAudit
+[33m5088c83f[m Merge pull request #1020 from jhadvig/CONSOLE-2892
+[33m1456ef82[m Merge pull request #1047 from brandisher/BZ2013238
+[33m48e7067a[m Add more clarity to the tls.certificate field documentation to avoid confusion around whether a CA can be included.
+[33ma0807454[m Merge pull request #1048 from bertinatto/fix-gate
+[33m963401dd[m Fix CSI migration feature gate name for vSphere
+[33m8981c882[m CONSOLE-2892: Allow dynamic plugins to proxy to services on the cluster
+[33mc4970133[m Merge pull request #1031 from miheer/dns-logging
+[33mb606c856[m Add logLevel and operatorLogLevel APIs for DNS https://issues.redhat.com/browse/NE-367
+[33ma11323cc[m Merge pull request #1041 from alexander-demichev/scheme
+[33m977ca183[m Machine API: add missing types to scheme builder
+[33m16dd969d[m Merge pull request #1037 from sairameshv/CFE-157
+[33m634b0826[m addressed review comment
+[33m9a5ddccc[m Merge pull request #1039 from alexander-demichev/mapiconditions
+[33m0c8d10a5[m Merge pull request #1024 from candita/NE-542-ExposeRouterCompression
+[33m534c4664[m NE-542 Expose router compression
+[33m350da977[m Add remaining constants
+[33m5ca7d968[m added validation for a minimum value of syslog message length
+[33m46688308[m addressed review comments
+[33m9f9abe4c[m api changes to support syslog maximum message length
+[33mb2cbe79f[m Merge pull request #1029 from arjunrn/forwarding-policy
+[33m864d80f7[m Merge pull request #1035 from alexander-demichev/azure
+[33m9675dc56[m Merge pull request #1032 from alexander-demichev/mapiresources
+[33m3a31a036[m Merge pull request #1034 from bertinatto/azure-file
+[33m67731881[m Added log message length
+[33md5f6af7c[m Add deepcopy tags to provider specs
+[33mf51b1044[m Add new field to azure provider spec
+[33m628ca5c8[m Add feature gates for Azure File CSI Driver
+[33mb69c842f[m Added forwarding policy for cluster DNS
+[33mfafe5556[m Add MHC and MachineSet to API
+[33m4436dc8b[m Merge pull request #1005 from alexander-demichev/providerspecs
+[33m7824c8d6[m Merge pull request #1015 from alexander-demichev/mapi-owners
+[33mcb4d3c1b[m Add machine api OWNERS file
+[33mb692084b[m Merge pull request #1023 from coreydaley/change_shared_resources_to_sharedresource
+[33mbe2a7fb8[m Merge pull request #1028 from EmilyM1/atomic-type-bug
+[33m4ce104f5[m add atomic listType
+[33m09998ddf[m Renaming csi.shared-resources.openshift.io to csi.sharedresource.openshift.io
+[33m2e1b88be[m Merge pull request #1026 from coreydaley/fix_patch_merge_tags
+[33mdbc82f2a[m Update patch merge tags in struct to match those in the comment so that we can update openshift-apiserver to k8s 0.22.1
+[33mf2a6f46c[m Merge pull request #1022 from stlaz/groupsync_api
+[33m9e09b569[m make generate-with-container
+[33mb662ec4a[m config: fix list-type for fields of the OpenIDClaims
+[33m0a86bdd4[m config,oauth: add groups to retrievable OpenIDClaims
+[33m22ac8ef3[m Add optional annotation to field with omitempty tag
+[33m4cb30f22[m Merge pull request #1019 from gabemontero/shared-resource-driver-name-fix
+[33m43dbcf1e[m Merge pull request #996 from alebedev87/bz1939435
+[33m6590cc93[m make update
+[33mb0bc582a[m ConfigMapReference -> SharedConfigMapReference
+[33mc4c073c3[m switch to final agreed upon name for shared resource csi driver name
+[33m4ec2bbe5[m Merge pull request #979 from coreydaley/jira_build_284_integrate_shared_resources_operator
+[33m9d91c1f6[m BUILD-284:  Integrate Shared Resources Operator with Cluster Storage Operator
+[33m636513e9[m Merge pull request #1016 from alexander-demichev/ctrl-gen
+[33ma8fe9bc7[m Update controller-gen to v0.7.0
+[33m7bdffc17[m Remove protobuf tags
+[33ma4f69615[m Merge pull request #1007 from gabemontero/bld-csi-vol-mnt-cfg-ocm
+[33m71bd82e8[m Merge pull request #874 from QiWang19/mirror-digest
+[33mcda7121b[m Add ImageContentPolicy to v1
+[33m39d51e92[m Add missing godoc comments
+[33m00988ef8[m Merge pull request #1011 from wking/targeted-edge-blocking
+[33m39ecc131[m config/v1/types_cluster_version: Add conditionalUpdates and friends
+[33mada51a06[m make update
+[33mf7cc8ae5[m expose feature gates in the OCM config
+[33mba555153[m Merge pull request #993 from astoycos/fix-audit-logging
+[33m6f0ce8c5[m Update ovnKubernetesConfig.policyAuditConfig Default
+[33m21ac9e01[m Rename the CNO CRD
+[33m49b82c6d[m Merge pull request #1013 from bertinatto/csi-migration-vsphere-azure-file
+[33m79897262[m Add the 'BuildCSIVolumes' feature gate to the tech preview set. This allows CSI volumes provided by the 'CSIDriverSharedResource' feature gate to be included in DockerBuildStrategy and SourceBuildStrategy Builds in OpenShift.  Currently, this should only be installed on clusters that opt into tech preview features.
+[33m319827aa[m Merge pull request #982 from adambkaplan/gate-build-csi-features
+[33m6ce157df[m Tech Preview Shared Resource CSI Driver
+[33mcc0db111[m Merge pull request #1000 from wking/document-operator-conditions-covering-the-component
+[33m7f23f5c9[m Add feature gates for CSI migration (TP): vSphere and Azure File
+[33m3cd80913[m Merge pull request #1010 from dobsonj/ibm-vpc-clustercsidriver
+[33mf99f4bb2[m config/v1/types_cluster_operator: Explain that conditions cover components
+[33m90871bc7[m Add IBM VPC CSI driver to clustercsidrivers
+[33m8706515f[m Machine API: Add cloud providers' specs
+[33m74913c05[m Merge pull request #995 from wking/tighter-upgradeable-docs
+[33m52ebfafc[m config/v1/types_cluster_operator: Tighten up Upgradeable docs
+[33mb9ab6ddb[m Merge pull request #1006 from jsafrane/add-alibaba-disk
+[33m4809c1ef[m Merge pull request #994 from slaskawi/BZ1986504-update-docs-on-tokens
+[33m85977bee[m Merge pull request #1002 from bertinatto/azure-file-csi
+[33md3b3e3c3[m Add Alibaba Disk CSI driver
+[33mbafd0c40[m Merge pull request #1001 from s-urbaniak/podsecurity-default
+[33mc9d6fcc6[m Merge pull request #1003 from kwoodson/alibaba_api
+[33mc6615eb5[m add listType
+[33m33af3ff5[m Merge pull request #989 from stlaz/oauth_timeouts
+[33m365874e1[m config/v1: add PodSecurity to Default features
+[33mec69b4dc[m make json tags to lower case & add +required tag
+[33m6daf6964[m remove pattern validation from AlibabaCloudResourceTag
+[33m6bd79e4c[m add validation for 'Region' and 'ResourceGroupID'
+[33me57b88cb[m add type to type_ingress.go & make update
+[33m6774fb20[m add validation to the 'Key' and 'Value'
+[33m18076f5d[m change Key&Value to key&value
+[33m46968909[m add zz_generated.deepcopy.go
+[33m6879c801[m make update
+[33m5ac8e2fb[m add AlibabaCloudResourceTag for Alibaba Cloud
+[33m0159e770[m add PlatformSpec & PlatformStatus for Alibaba Cloud
+[33mbfb61459[m add platform type AlibabaCloud
+[33m19d682f9[m Include Azure File CSI Driver in clustercsidrivers
+[33m3611f00b[m Merge pull request #985 from clnperez/upstream-pr
+[33m7f408ec4[m Merge pull request #948 from alexander-demichev/machineapi
+[33mb7057289[m Merge pull request #999 from EmilyM1/oc-must-gather-msg
+[33m0cc3ed2f[m update warning for oc must-gather None profile
+[33mde551a23[m oauth,config: mention that current tokens' timeout does not change on client/global timeout update
+[33mf5d265eb[m CRD Update
+[33m21fe982a[m Clarify token names
+[33md8ed1449[m Merge pull request #983 from tremes/io_pull_sca
+[33m07e75654[m Merge pull request #997 from soltysh/rebase-1.22.1
+[33m64486765[m bump(k8s.io/*): v0.22.1
+[33mf19dced8[m proxy: NoProxy comment updated with IPs
+[33m8b95fa30[m initial Power VS API changes
+[33m67c28690[m Merge pull request #990 from candita/BZ-1993002-Req
+[33m7e88d4e0[m Bug 1993002: domainPatterns is required
+[33m8ff39b77[m Merge pull request #988 from candita/BZ-1993002-M
+[33m92e764e4[m Bug 1993002 - fix errors in kubebuilder directives
+[33md8fab451[m Merge pull request #986 from cynepco3hahue/unittest_infrastructure_status_default
+[33m9fb55de0[m unit-test: verify no default for infrastructure CRD status
+[33m0a73e349[m Add manifest for machine
+[33m6dbf3fdf[m Add machine api to build scripts
+[33m82064e75[m Add machine api types
+[33m85e1d547[m Merge pull request #973 from soltysh/rebase-1.22.0-beta.2
+[33m9f8729fe[m Generated
+[33mbc525fb8[m bump(k8s.io/*): v0.22.0-rc.0
+[33m1fda0480[m Add feature for Insights operator pulling SCA certs
+[33md870cea7[m Merge pull request #980 from jhadvig/bz1986129
+[33me4a0474d[m Add missing 'include.release.openshift.io/single-node-developer' annotation to the ConsolePlugin CRD
+[33m74b56289[m Update route/v1/types.go
+[33m6fcabc00[m Merge pull request #978 from sttts/sttts-statidpod-nodestatus-lastfailedcount-doc
+[33m2574cdff[m make update
+[33m91f40815[m operator/v1: clarify nodeStatus.last{failedCount,fallbackCount}
+[33ma6156965[m Merge pull request #803 from sanchezl/generator
+[33m8e88d131[m make update
+[33me8e3f3ba[m openshift-compatibility-gen: add update/verify scripts
+[33m9304e5a2[m go mod vendor
+[33m79aa094e[m new openshift-compatibility-gen command
+[33mc532dfb0[m add openshift:compatibility-gen:internal tags
+[33m51da0595[m add openshift:compatibility-gen:level tags
+[33m91e26cfb[m Merge pull request #968 from rfredette/ne-412-haproxy-timeout
+[33m282951db[m Add options for tuning connection timeouts in openshift ingress controllers
+[33macb57277[m Merge pull request #729 from Miciah/operator-slash-ingress-add-parameters-for-empty-requests
+[33maa4755e9[m Merge pull request #977 from sttts/sttts-static-pod-node-status-reason
+[33m1903575a[m operator/v1: add ladfailedReason to NodeStatus
+[33mda98432d[m BUG: BZ1964112 - Fix for host name validator error
+[33m96bb0f99[m Merge pull request #961 from Fedosin/external_cloud_provider
+[33m50f57784[m Merge pull request #975 from csrwng/consoleplugin_ibm_cloud
+[33m55d730c8[m Merge pull request #888 from rfredette/dns-managementstate
+[33md8f63347[m Merge pull request #731 from Miciah/operator-slash-ingress-add-client-certificate-parameters
+[33me03e2d30[m Add managementState field to dns operator spec
+[33mc565b150[m IBM cloud managed profile: add consoleplugin CRD
+[33med5c9175[m Merge pull request #958 from candita/NE-310-HSTS
+[33m0d0f8ae6[m operator/ingress: Add client certificate parameters
+[33m6669bbd8[m NE-310 Implement route admission support for HSTS header
+[33m0a6cab75[m Merge pull request #885 from wking/clarify-force-and-verified-docs
+[33m4d4f9897[m config/v1/types_cluster_version: Update force and verified godocs
+[33m977d1574[m Merge pull request #927 from Miciah/operator-slash-ingress-delete-outdated-godoc-re-TLSv1.3
+[33m69c77518[m operator/ingress: Add parameters for empty requests
+[33m6318df75[m Merge pull request #969 from sttts/sttts-build-machinery-versioned-binaries
+[33m0939f6e8[m bump(build-machinery): versioned binaries
+[33mf428c6b5[m Merge pull request #966 from deads2k/more-secure
+[33mb389e20d[m generated
+[33m890ff490[m add field to make service-ca.crt more secure
+[33me5f26793[m Merge pull request #935 from deads2k/clarify-progressing
+[33mb63d499a[m Merge pull request #960 from sttts/sttts-add-audit-policy-groups
+[33mbead7a62[m Updated generated code
+[33m242c3ad4[m apiserver: add audit.customRules
+[33m61995e69[m Add ExternalCloudProvider to TechPreviewNoUpgrade FeatureSet
+[33m3bdb4432[m Merge pull request #941 from hasueki/master
+[33medc45a47[m Merge pull request #952 from gabemontero/add-proj-share-csi-driver-for-cso
+[33m46e2fe04[m Merge pull request #962 from csrwng/limit_external_to_cp
+[33m15a1cae1[m Merge pull request #957 from bertinatto/techpreview-csi-gce-azure
+[33m1048cce5[m add shared resource csi driver operator to the list managed by the CSO
+[33m72346651[m Add feature gates for tech preview CSI drivers: GCE and Azure
+[33m841ec03e[m Merge pull request #949 from sgreene570/dnsrecord-typo
+[33m02b64ca2[m Merge pull request #951 from BobbyRadford/ibmcis
+[33mf92046ec[m Use separate enum validation for control plane and infra topology
+[33mad54d363[m Merge pull request #953 from jsafrane/add-efs-csi-driver
+[33m2cecbce5[m operatoringress: Fix typo in DNSRecord CRD.
+[33mae791138[m Merge pull request #954 from coreydaley/jira_build_87_secret_configmap_volume_mounts_in_builds_2
+[33m6b74d645[m BUILD-87: Add support for build volumes
+[33mbd9e63fb[m Add AWS EFS CSI driver
+[33mb9cfbc75[m Merge pull request #940 from csrwng/external_cp_topology
+[33m9958693a[m Add external topology mode
+[33mf9a38127[m feat(imageregistry): Support IBMCOS storage type
+[33m5dc901e1[m Add CISInstanceCRN to IBMCloudPlatformStatus
+[33m7740bfb9[m Merge pull request #938 from sttts/sttts-controller-gen-v0.6.0
+[33m130b0d67[m make update-codegen-crds
+[33m1e048a49[m Makefile: bump to controller-gen v0.6.0
+[33mc2fc8eed[m operator/v1: remove ineffective MinProperties
+[33m064fc2f7[m Merge pull request #942 from danwinship/update-useexternalovs
+[33mea13be50[m Merge pull request #946 from sttts/sttts-fix-tls-go-mod-chars
+[33m5acbf57f[m Add go.mod to tls dir to avoid invalid char errors on vendoring
+[33m564f304b[m Merge pull request #943 from coreydaley/jira_build_87_fix_type_conversion_gen
+[33m24f065ff[m removing conversion-gen=false for BuildVolumeSource.Type field
+[33m7f2b8edb[m Clarify that useExternalOpenvswitch is deprecated and ignored
+[33m67a5f4cd[m Merge pull request #937 from deads2k/certs
+[33m9f677aa1[m Merge pull request #919 from coreydaley/jira_build_87_secret_configmap_volume_mounts_in_builds
+[33md9c352a1[m updating api for buildVolume and buildVolumeMounts
+[33mfb4df74c[m Merge pull request #860 from patrickdillon/azurestack
+[33m0d1c2dc2[m config: Azure Stack Hub support
+[33m2deea64e[m Merge pull request #926 from wking/expand-upgradeable-scope-to-cluster-state
+[33ma6ac319a[m Merge pull request #929 from bertinatto/policyv1
+[33mf5981f57[m Merge pull request #934 from bpickard22/Bug1960101
+[33m32b95fce[m Corrected ipport kubebuilder validation pattern
+[33m4a076767[m add generated cert docs
+[33m77e250d0[m add readme about how to generate the tls docs
+[33m379093ab[m Merge pull request #933 from gabemontero/bld-arg-godoc
+[33m4a2b80e5[m clarify that Progressing should be true when operators/operands react to changes in cluster state
+[33m6d633878[m make update output
+[33me9f99eb0[m add restriction note for docker strategy build args
+[33m33d847a4[m Merge pull request #922 from stlaz/apiserver_tlsprofiles
+[33me782d76c[m Merge pull request #904 from Miciah/BZ1951853-operator-slash-dns-describe-default-toleration
+[33m79d19609[m operator/dns: Describe default toleration
+[33mefd9d595[m Merge pull request #931 from mfojtik/verify-crds
+[33mb45e44ba[m crds: annotate every CRD with api-approved.openshift.io and initial pull request
+[33m498fcbf8[m verify: add api-approved.openshift.io verification
+[33m14f26e42[m Merge pull request #924 from msherif1234/egress-router
+[33mb0826b84[m Add policyv1 scheme
+[33m1a82848f[m config/v1/types_cluster_operator: Expand upgradeable inputs to cluster scope
+[33me273a339[m Merge pull request #925 from soltysh/k8s_1.21.1
+[33mf7b65b0f[m Bump k8s to 1.21.1
+[33m72fb3181[m Only ip needs to be CIDR and destinations is just an IP and need to fix egress-router-cni
+[33mb325f58d[m Merge pull request #921 from LalatenduMohanty/bz_1947797
+[33m77888c05[m Bug 1947797: Bump CRDs to apiextensions.k8s.io/v1
+[33ma94c663c[m Merge pull request #923 from jhadvig/bz1959696
+[33mefee9960[m Merge pull request #920 from rfredette/bz-1949799-nbthread-max
+[33mbbcdd3f0[m Bug 1959696: Deprecate 'ConsoleConfigRoute' struct in console-operator config
+[33md5334068[m autogenerated
+[33mc0d7eae3[m apiserver.config: add 'Custom' to available TLSSecurityProfiles
+[33md0a89da7[m Merge pull request #915 from drichtarik/OCPBUGSM-440
+[33m28a3e7f6[m Merge pull request #912 from gabemontero/build-186-godoc-cleanup
+[33m6ca127d8[m Explicitly mention 64 thread limit in tuningOptions.threadCount field
+[33m0231818c[m Set maximum for ingresscontroller spec.tuningOptions.threadCount to 64
+[33m0bc6f036[m Bug 1843043 - Config api resource has a terrible description
+[33m25175d9d[m Merge pull request #917 from deads2k/pretty
+[33mbdf0090f[m Merge pull request #918 from sttts/sttts-v1-quota-crd
+[33mfdb0b438[m quota: switch to v1 crd
+[33m9085094f[m operator/ingress: Delete outdated godoc re TLSv1.3
+[33meeaa94b8[m Merge pull request #889 from jerolimov/odc-5416
+[33mfc6d74d6[m fix the oc get output for apirequestcounts
+[33me5fb8104[m Merge pull request #916 from wking/available-degraded-severity
+[33me2b2193e[m config/v1/types_cluster_operator: Clarify Available and Degraded severity
+[33mf951947e[m Merge pull request #911 from dmage/image-crd-v1
+[33m2f6d8b88[m make update output
+[33meadfd0db[m address godoc comments after PR 882 for BuildConfigStatus.ImageChangeTriggers merged
+[33mce61afa3[m Use CRD v1 for images.config and ICSPs
+[33mc3c1163a[m Add AddPage customization object
+[33m156ca80f[m Merge pull request #910 from alexanderConstantinescu/bugfix/1952795
+[33m4e871bf2[m Merge pull request #907 from pedjak/helmchartrepo-crd-v1
+[33mf1407c63[m Base HelmChartRepository CRD v1 API
+[33m567bd311[m Bug 1952795: fix plural name for CloudPrivateIPConfig
+[33md8a48168[m Merge pull request #909 from deads2k/remove-depreatedapicount
+[33m4239ca0a[m remove deprecateapirequests API that was never shipped
+[33ma3c8fa53[m Merge pull request #900 from rcarrillocruz/max_items_netflow_collectors
+[33m02fb0b1f[m Merge pull request #902 from deads2k/not-required
+[33m9e358931[m Merge pull request #896 from kevinrizza/update-config-api-version
+[33m2d2481e0[m Update operatorhub config object to v1
+[33m9948baac[m Merge pull request #903 from p0lyn0mial/fix-api-request-count-status
+[33mea944aad[m APIRequestCountStatus.Conditions makes sure that tags and comments align
+[33m8af28f99[m Merge pull request #901 from p0lyn0mial/fix-tags-on-deprecate-api-request-status
+[33m08f06366[m make removedInRelease setable to empty string
+[33ma86a8c74[m DeprecatedAPIRequestStatus.Conditions: makes sure that tags and comments align
+[33m135dddf3[m Cap netflow/sflow/ipfix collectors to 10
+[33m86964261[m Merge pull request #898 from coreydaley/bugzilla_1947793_deprecated_api_in_use
+[33ma60c0dc0[m Merge pull request #897 from deads2k/apicount
+[33m15c7ae79[m Merge pull request #899 from rcarrillocruz/networks_config_v1
+[33m3344bf6b[m Move networks.config.openshift.io from v1beta1 to v1
+[33mc2278273[m Merge pull request #886 from lihongan/update-node-label
+[33me2b21514[m add APIRequestCount to replace DeprecatedAPIRequest
+[33m3713cbad[m move to v1 since v1beta1 will be removed in 4.9
+[33m38058be7[m Merge pull request #864 from staebler/aws_user_tags
+[33ma1c745f1[m config: add aws resourceTags to infrastructure
+[33m88a128eb[m Merge pull request #895 from qiujian16/verify-crd-follow
+[33mc3f5b30b[m Resolve comments
+[33m4613315b[m add APIRequestCount to replace DeprecatedAPIRequest
+[33m8c78458f[m Merge pull request #893 from sgreene570/ingress-config-crd-v1
+[33m0f557533[m config/v1: Switch Network Edge CRDs to CRD v1
+[33mf71e361e[m Merge pull request #894 from qiujian16/verify-crd
+[33m7ba29272[m Add verify-crd-upgrade script
+[33m79bd8cfb[m Merge pull request #882 from gabemontero/fix-new-bld-lastrigger-status
+[33mf60a0b28[m make update output
+[33mdbb1c23a[m per guidance remove use of ObjectReference type from From field, remove Paused field, in  BuildConfigStatus.ImageChangeTriggers; godoc clarifications for BuildConfigStatus.ImageChangeTriggers
+[33ma9b2fad5[m Merge pull request #891 from jhadvig/bz1947789
+[33m9cfa2000[m Bug 1947789: Switch console releated CRDs to v1
+[33ma99ffa1c[m Merge pull request #892 from alexanderConstantinescu/bugfix/more-cloud-network-fixed
+[33m4baccf24[m Fix: cloud-network-config-controler with genclient marker for client-gen
+[33m1e4a736b[m Merge pull request #890 from alexanderConstantinescu/bugfix/cloud-network-config-cleanup
+[33md8a92844[m Fix minor issues with cloud-network-config-controller API
+[33m460636dd[m Merge pull request #883 from sahil143/odc-5566
+[33mb492babf[m Merge pull request #859 from alexanderConstantinescu/cloud-config-controller
+[33m6279547a[m Adding CRD for CloudPrivateIPConfig
+[33m806bd7a6[m add definition to customize disabled quick starts
+[33m2ed332b2[m Merge pull request #884 from pliurh/migration
+[33m0cd696f9[m Use kubernetes.io/os in the dns/ingress node selector
+[33meab5407a[m Merge pull request #880 from jsafrane/add-migration
+[33m08be6d0b[m Merge pull request #849 from sanchezl/deprecatedapirequest
+[33m7e3021a7[m Add Migration field in network APIs
+[33me172bb12[m deprecatedapirequest: install apiserver.openshift.io group
+[33m7f619a64[m deprecatedapirequest: make update
+[33m172a5946[m deprecatedapirequest: add apiserver/v1 to build scripts
+[33m7a4eb8b8[m deprecatedapirequest: introduce type
+[33m47be5370[m Merge pull request #873 from Miciah/NE-574-route-define-the-ingress-to-route-controller-name
+[33m3062c273[m Merge pull request #843 from miheer/httperrorcodepage
+[33m54ceb5f6[m Merge pull request #878 from Miciah/operator-slash-ingress-add-unsupportedConfigOverrides
+[33m0a1e3ae3[m operator/ingress: Add unsupportedConfigOverrides
+[33m92e9dab5[m Merge pull request #879 from MaysaMacedo/include-mtu-option
+[33m71064b88[m Ability to Customize HAProxy 2.x Error Page
+[33m79ba7163[m Merge pull request #875 from rfredette/ne-302-nbthread
+[33m8d7a7925[m Add caveat to httpHeaderMaxRewriteBytes
+[33m95b22800[m Add more detailed caveats to tuningOptions fields
+[33mdc8e9493[m Combine HTTPHeaderBuffer and Threading structs into one TuningOptions struct
+[33mabd04f14[m route: Define the ingress-to-route controller name
+[33m73d36eb7[m Include MTU option for KuryrConfig
+[33md2ec03ad[m Add CSI migration to TechPreviewNoUpgrade
+[33m3acddb19[m Merge pull request #857 from rottencandy/projectaccess
+[33m6efbeeed[m Add threads per ingress controller pod configuration to IngressController API
+[33m3e31249e[m Merge pull request #866 from soltysh/k8s-1.21
+[33m945e812e[m Add option to customize project access roles
+[33mb54945f3[m Merge pull request #877 from jsafrane/add-csi-features
+[33m97dfec49[m Generated changes
+[33m24474a7f[m bump(k8s.io/*): v0.21.0-rc.0
+[33m1a4d935c[m Add feature gates for tech preview CSI drivers
+[33me37aaed4[m Merge pull request #870 from Miciah/NE-546-operator-slash-dns-add-DNS-pod-placement-API
+[33m4a0c62d6[m operator/dns: Add DNS pod placement API
+[33m7a8a2df7[m Merge pull request #871 from Miciah/NE-573-operator-slash-ingress-add-PROXY-protocol-API
+[33mc6e299cd[m operator/ingress: Add PROXY protocol API
+[33mef3741ad[m Merge pull request #821 from Billy99/billy99-featgate-hugepg
+[33m50b93cbf[m Merge pull request #851 from tssurya/add-egress-router-crd
+[33m830517fd[m Generate swagger and deepcopy files
+[33m4ae46f99[m Add EgressRouter CRD
+[33m517b8a76[m Merge pull request #865 from soltysh/drop_batchv2alpha1
+[33m677cdb16[m Enable DownwardAPIHugePages feature gate
+[33mab6d2da2[m Merge pull request #868 from sgreene570/tunable-buffer-sizes-omit-empty
+[33m53b0e5f3[m operator/ingress: Fix up Tunable Buffer Sizes API
+[33md79acbe2[m Merge pull request #867 from rfredette/bz-1928931-fix-crd-scope
+[33m6efb06d2[m Set DNSRecord scope to Namespaced
+[33mdcbf045a[m Merge pull request #854 from sgreene570/haproxy-buffer-sizes
+[33ma53ad284[m Merge pull request #853 from astoycos/enableacllogging
+[33m92295e16[m Merge pull request #812 from danwinship/sctp-is-ga
+[33mc1ff653f[m Add `kubebuilder` validations
+[33m4040b343[m Update OVN-K config for Audit logging
+[33mf42f8b38[m SCTP is GA, so no longer feature-gated
+[33m7c526599[m operator/ingress: Add Ingress Controller Tunable Header Buffer Sizes
+[33m5723654b[m Drop batch/v2alpha1 which is not being used
+[33mf67d7a61[m Merge pull request #861 from rfredette/bz-1928931-dnsrecord-crd-v1
+[33m4b798154[m Merge pull request #846 from rcarrillocruz/add_export_network_flows_api
+[33mff0ef568[m Merge pull request #863 from bertinatto/vsphere-csi
+[33mf0d34e5f[m Include vSphere CSI Driver in clustercsidrivers
+[33mfb040473[m Add export network flows API options
+[33m1e8c2652[m operator/v1: switch DNSRecord CRD to v1
+[33m7d6cac66[m Merge pull request #852 from awgreene/ingress-route-config
+[33mc53c57f3[m Ingresses.config supports route configuration
+[33m7bc82b95[m Merge pull request #855 from gabemontero/bld-last-trigger-status
+[33m475eac54[m Merge pull request #808 from s1061123/dev/enable-multinetpolicy
+[33m53bc9676[m Add useMultiNetworkPolicy flag to enable multiNetworkPolicy
+[33m28142088[m build lastTriggeredImageID needs to be in status
+[33mbae60f47[m Merge pull request #848 from alvaroaleman/doc-buil
+[33m37e84440[m Buildconfig: Document valid values for spec.triggers.type
+[33m70b287c0[m Merge pull request #831 from adambkaplan/build-mount-cas
+[33mbb81baaf[m Merge pull request #845 from sgreene570/gcp-ibl-global-access
+[33m8de5cee9[m Merge pull request #826 from deads2k/remove-self-link
+[33mc101762f[m Merge pull request #836 from ydayagi/master
+[33m5f65a8ce[m Revert "bring selflinks back for 4.7, they will be removed in 4.8"
+[33m1f0ffbed[m operator/ingress: Add GCP Global Access for LBs
+[33m4aa72aef[m Bug 1895053: Allow builds to mount the proxy CA
+[33m503a3dbc[m Merge pull request #842 from stlaz/remove_managing_oauthapi
+[33m02f7c2f9[m Add Kubevirt CSI Driver to ClusterCSIDriver's enum
+[33md9278543[m Merge pull request #839 from huffmanca/include-azure-csi-driver
+[33m175513fc[m Merge pull request #784 from detiber/metal
+[33m257d10d9[m Merge pull request #841 from jboxman/etcd-description
+[33m960d5a05[m make generate
+[33m490f1b93[m Remove the ManagingOAuthAPIServer field from authentication.operator API
+[33mcf298a72[m Update etcd CRD description
+[33m670ac3fc[m Merge pull request #828 from joelddiaz/cloudcredential-doc
+[33m7c8b5fd4[m Merge pull request #827 from ravidbro/add_ha_mode
+[33m16852a50[m Merge pull request #814 from jboxman/patch-1
+[33m4cb43b2c[m Merge pull request #748 from stlaz/build_dockerfile
+[33me8b1b927[m Include Azure Disk CSI in CSI Cluster Drivers
+[33mf2efabab[m Fix typo in ProjectRequest
+[33ma9e73109[m Merge pull request #838 from bparees/typo
+[33mae76467f[m Fix disgest typo in ICSP api docs
+[33m56a849fd[m Add HighAvailabilityMode field to 'infrastructure' CRD
+[33mbb685730[m Merge pull request #835 from damemi/remove-scheduler-profile-default
+[33m207bcdc2[m Remove default Profile for scheduler
+[33m1959f9b6[m dockerfile: use latest fedora for generating CRDs
+[33mef12c702[m Add EquinixMetal config api types
+[33m5935a5be[m Merge pull request #833 from sttts/sttts-static-pods-last-failed-count-and-time
+[33m7a0781dc[m operator/v1: add time and count for failed static pod revisions
+[33m2be429ec[m Merge pull request #834 from sttts/sttts-infra-v1
+[33m7fb5ea7b[m config/v1: switch infrastructure CRD to v1
+[33m3b72f192[m Merge pull request #830 from candita/BZ-1896977-SharedAnnotation
+[33m790e0a84[m Merge pull request #764 from jhadvig/dynamic_plugins
+[33m3c364ed6[m Bug 1896977: Enhance host name validation - annotation
+[33m44119421[m Dynamic plugins for Console
+[33m1d6e7450[m add some docs for the generated CRDs for the cloudcredentials type
+[33m78a19e96[m Merge pull request #825 from deads2k/keep-self-link
+[33mc8c8f6d0[m bring selflinks back for 4.7, they will be removed in 4.8
+[33m164a2fb6[m Merge pull request #789 from tnozicka/1.20.0-beta.2
+[33mcf1cf8c2[m Update generated
+[33m71d5d692[m Drop k8s.io/api/settings/v1alpha1
+[33me6293688[m bump: kube 1.20.0
+[33m00b94418[m Merge pull request #815 from marun/sa-issuer-docs
+[33m649c9081[m make update
+[33m1da398d9[m Add warning of the consequences of changing bound token issuer
+[33m09f84eef[m Merge pull request #811 from soltysh/fix_jsonpath
+[33m7c4787f6[m Fix additionalPrinterColumns CRDs
+[33m3fdbb93c[m Merge pull request #763 from jerolimov/odc-5020
+[33mc65ccc2a[m Merge pull request #809 from soltysh/bump_crd
+[33m23a9a1ee[m Generated changes
+[33md7c33ea6[m Bump CRDs to apiextensions.k8s.io/v1
+[33m5893d0a3[m Add option to define (and customize) console catalog categories
+[33m93d96141[m Merge pull request #806 from ingvagabund/bump-config-operator-scheduler-crd-to-v1
+[33m9ccfbfe4[m Bump schedulers.config.openshift.io CRD to v1
+[33m4709964f[m Merge pull request #804 from ingvagabund/fix-typo
+[33m9b55d469[m config/v1/scheduling: fix typo in HighNodeUtililzation
+[33m27540614[m Merge pull request #801 from umohnani8/unq-search
+[33ma7ca7afb[m Remove uniqueItems validation from containerRuntimeSearchRegistries
+[33mc6debb38[m Merge pull request #793 from Miciah/operator-slash-ingress-add-HTTP-header-name-case-adjust
+[33m2d95f98b[m Merge pull request #677 from damemi/scheduler-config
+[33m60a5e625[m Add scheduler Profiles field
+[33m8494fe80[m Merge pull request #794 from markdgray/ipsec_change
+[33mfa2d8fd8[m Merge pull request #796 from soltysh/fix_validation
+[33mcd3b7d5e[m operator/ingress: Add HTTP header name case adjust
+[33m2c611ba5[m Add missing optional for BuildSourceType, BuildStrategyType and Identities
+[33m19e3831b[m Merge pull request #792 from rkukura/crc_profile
+[33mbe133974[m Merge pull request #795 from pedjak/helm-disabled-field
+[33mc1778345[m Add `disabled` field to `HelmChartRepository`
+[33m8bf2ace4[m types_network: Change API that enables IPsec
+[33m04abbec6[m Merge pull request #770 from squeed/cno-add-standard-fields
+[33mf45c5965[m Annotate manifests for single-node-developer cluster profile
+[33ma1e2fb8e[m operator/network: add standard OperatorStatus/Spec members
+[33md8862a30[m Merge pull request #790 from rcarrillocruz/add_cno_enable_network_diagnostics_flag
+[33m27fbea96[m Add disableNetworkDiagnostics CNO flag
+[33m072a4cd8[m Merge pull request #780 from alvaroaleman/stop-registering
+[33mf1dea5ee[m Merge pull request #783 from markdgray/ipsec
+[33m303d14bc[m Merge pull request #628 from umohnani8/unq-search
+[33m81f1371a[m Add ContainerRuntimeSearchRegistries under RegistrySources
+[33m5ffd54de[m Merge pull request #788 from stlaz/generate_useraccesstokenclients
+[33me3e45f68[m operator/v1/types_network: IPsec enablement
+[33m859beeff[m Merge pull request #781 from csrwng/roks_profile
+[33mcfba35f8[m Merge pull request #786 from candita/master
+[33me7b81441[m Merge pull request #787 from damemi/deprecate-scheduler-policy
+[33m32a76a75[m Add IBM Cloud managed annotations to CVO manifests
+[33m96cac84d[m Mark scheduler policy API as deprecated
+[33mc5985cbe[m Imageapi: Use distinct type for SecretList
+[33m725145b8[m Bug 1877693 - dnsrecords specify recordTTL as 30 but the value is null in AWS Route 53
+[33mc729dd5d[m add client generation comment for useroauthaccesstokens
+[33m31aac52f[m Merge pull request #750 from jhadvig/qs_crd
+[33m27004eed[m Merge pull request #778 from bparees/sam
+[33md8891559[m Add spadgett as api approver(pillar lead)
+[33m19a289df[m Merge pull request #777 from guillaumerose/samples
+[33m373a33ac[m add current profile annotations to CVO manifests
+[33m9252afb0[m Merge pull request #776 from p0lyn0mial/fix-ingress-controller-capture-union
+[33m64833fe1[m generated
+[33m308f3291[m Merge pull request #774 from stlaz/personal_tokens
+[33ma1e60f6b[m update Dockerfile.build Fedora version
+[33m3f04d69b[m generated changes
+[33m52b70e41[m oauth: add useroauthaccesstoken API
+[33md0822898[m fix IngressControllerCaptureHTTPCookie
+[33m0c1f5bff[m Merge pull request #771 from bertinatto/add-gcp-pd-csi-driver
+[33m08f39611[m Add GCP PD CSI Driver to ClusterCSIDriver's enum
+[33m969b2d30[m Merge pull request #767 from retroflexer/mark-etcd-discovery-domain-optional
+[33m6a9fe65b[m From 4.4 onwards etcdDiscoveryDomain is not used to fetch the SRV records
+[33m628c1edc[m Add Console QuickStart CRD
+[33m2ed1db6e[m Merge pull request #759 from multi-arch/master
+[33m96b75c63[m Merge pull request #769 from dustman9000/apps-domain
+[33ma7289e37[m Add new optional AppsDomain field to Ingress CR
+[33m7756477c[m Merge pull request #765 from guillaumerose/master
+[33mb9920185[m add current profile annotations to CVO manifests
+[33m1e2e1963[m Merge pull request #743 from damemi/verify-all-crds
+[33mc6a5ec25[m Merge pull request #749 from damemi/enable-pruning-networking
+[33m32da0319[m Merge pull request #761 from tnozicka/kube-1.19.2
+[33m8356aa4d[m Merge pull request #762 from wking/clarify-operator-condition-new-lines
+[33m21c07a88[m config/v1/types_cluster_operator: Document newline inclusion
+[33m9d5ee23b[m Bump(*): kube v1.19.2
+[33m16436fa6[m Merge pull request #760 from alvaroaleman/document-termination-types
+[33m7eaf07fc[m Route: Document possible values for spec.tls.termination
+[33mbfece51d[m Merge pull request #713 from danwinship/deprecate-iptables-sync-period
+[33mcc8afab3[m samples: add ARMArchitecture
+[33m821561a7[m Merge pull request #758 from Fedosin/add_cinder
+[33m8746b54c[m Run verify-crds.sh against all CRDs
+[33mcf101155[m Storage: register Cinder CSI driver
+[33m43bf8c1c[m Merge pull request #747 from jhadvig/owners
+[33ma3c7e8a2[m Merge pull request #734 from nirarg/kubevirt-provider
+[33mdb52bc4e[m Merge pull request #756 from Miciah/operator-slash-ingress-restore-scale-subresource
+[33md5294339[m operator/ingress: Restore scale subresource
+[33mc99a4dee[m Merge pull request #751 from deads2k/rangeallocation
+[33mb7210d15[m Merge pull request #755 from sanchezl/pncc-scope
+[33m281f6f0a[m add CRD based internal rangeallocations for SCC uid allocation
+[33m58405d17[m podnetworkconnectivitychecks: set scope
+[33m9a3cfb88[m Merge pull request #754 from sttts/sttts-loglevel-network
+[33mc3027fc0[m Merge pull request #753 from sttts/sttts-loglevel-omitempty
+[33mc82088e6[m operator/network: unify defaulting with OperatorSpec loglevel
+[33mefa6651a[m operator: allow  log levels for old clients and unify OperatorLogLevel
+[33m639d8eb7[m Merge pull request #752 from sttts/sttts-etcd-operator-rename
+[33mf489a06b[m operator: rename etcd CRD to name from repo
+[33mf55dffee[m Merge pull request #736 from ricardomaraschini/loglevel-defaults
+[33m00e4a253[m Validations for LogLevel fields
+[33m2a185268[m Merge pull request #742 from stlaz/service_ca_names
+[33me978ad67[m make update
+[33m2df61820[m bring back service-ca crd names
+[33m4393fbe4[m Merge pull request #735 from rhamilto/bz1877487
+[33m6ad35cf0[m make update-codegen-crds
+[33m979e495f[m Update networking CRDs to v1
+[33m0bb351af[m Bug 1877487: add valid values for ConsoleNotification location
+[33md58bb168[m Update OWNERS
+[33m8c5a4702[m Merge pull request #746 from marun/golang-1.15
+[33m356529f0[m Update vendoring for golang 1.15
+[33m5bc59989[m Merge pull request #741 from sttts/sttts-operatorcontrolplane-structural
+[33mc50dcdb5[m operatorcontrolplane: make structural
+[33m008efd02[m operator/network: update docs on iptablesSyncPeriod
+[33m83f0cb09[m Merge pull request #739 from dmage/pruner-loglevel
+[33mc1e705b8[m Add logLevel to imagepruners.imageregistry.operator.openshift.io
+[33m346618ed[m Merge pull request #737 from dmage/logging-omitempty
+[33mbcc49ced[m Add omitempty to logging
+[33ma4d285f1[m Auto generated files ("make update")
+[33mb1cc5ee7[m Add KubeVirt platform type
+[33m7ac89ba6[m Merge pull request #732 from sttts/sttts-operator-ingress-namespaced
+[33m837202b1[m operator/v1: fix scope of ingresscontrollers to be namespaced
+[33m8a3a835f[m Merge pull request #727 from ricardomaraschini/optional-logging-2
+[33mc05698d1[m Merge pull request #728 from marun/bump-1.19.0
+[33mc45df2e0[m bump(*) to kube 1.19.0
+[33m565e02b2[m Update to klog v2
+[33m2b6731a2[m Making logging parameter optional
+[33m962ddb6a[m Merge pull request #726 from ricardomaraschini/migrate-to-apiextenstions-v1
+[33m7956fb82[m preserveUnknownFields and subresource adjusts
+[33m96ab0794[m Migrating imageregistry to extensions v1
+[33m4f5da8fc[m Merge pull request #724 from deads2k/profile-3
+[33m0867a7d3[m bug 1871890: add current profile annotations to CVO manifests
+[33m86251274[m Merge pull request #640 from ricardomaraschini/operator-log-level-2
+[33mc05ac282[m Add OperatorSpec object to image registry config
+[33m288e45a0[m Merge pull request #723 from deads2k/profile-2
+[33m03c59a53[m bug 1871890: add current profile annotations to CVO manifests
+[33ma7f2798b[m Merge pull request #722 from deads2k/profile
+[33me9dee4dc[m add current profile annotations to CVO manifests
+[33mf9a46184[m Merge pull request #720 from sttts/sttts-loglevel-docs
+[33mca88471a[m Update swagger
+[33m76e9617a[m README.md: document patch mechanisms
+[33ma5675dca[m operator/v1: update CRDs
+[33mab574faf[m operator/v1: switch to yaml-patches
+[33mf6ef9bbb[m bump(build-machinery) – get yaml-patch support
+[33me9036946[m Merge pull request #717 from ricardomaraschini/bz-1833109
+[33m94598580[m Adding ManagementState property to storage
+[33mfdbff4bc[m operator/v1: switch CRDs to v1
+[33me9ece8d3[m operator/v1: document logLevel values and default to Normal
+[33md42cdb99[m Merge pull request #719 from alvaroaleman/clarify
+[33m552904be[m Build: Clarify that the default value for dockerfilePath is Dockerfile
+[33ma2550b3d[m cp: Don't preserve timestamps to fix CI permisison issues
+[33m1ff2075b[m Merge pull request #718 from jsafrane/remove-csidriverconfig
+[33mc547c539[m Remove ClusterCSIDriver.Spec.DriverConfig
+[33mb3c834e5[m Merge pull request #654 from frobware/bz_1827364
+[33mff785384[m Run: make generate-with-container
+[33mff587549[m routes/ingress: run make update
+[33mb0b353ea[m routes/ingress: add documentation for HTTP2 ALPN routes
+[33m87466835[m Merge pull request #709 from bergerhoffer/wording-updates
+[33mfa7e7e58[m Minor wording adjustments
+[33me2188212[m Merge pull request #711 from sttts/sttts-apiserver-v1-crd
+[33md641ec32[m hack/verify-crd.sh: only test for preserveUnknownFields for v1beta1 CRDs
+[33m27cdc932[m crds: switch to controller-gen v0.2.5
+[33m1eac59be[m config: switch apiserver CRD to v1
+[33m71ddc861[m Merge pull request #697 from tssurya/bug-1852112
+[33m811027b6[m Merge pull request #598 from pedjak/helm-console-config-type
+[33mfc1d6756[m Merge pull request #692 from joelddiaz/cco-config
+[33m87eba67f[m create config for cloud-credential-operator
+[33mc9b966e1[m Merge pull request #710 from Miciah/operator-slash-ingress-fix-up-HTTP-cookie-capture
+[33md4a6f492[m operator/ingress: Fix up HTTP cookie capture API
+[33m0bc64a9b[m Merge pull request #708 from dmage/pruner-ignore-invalid-refs
+[33m951d79f2[m IR-119: Add IgnoreInvalidRefs for image pruner
+[33m917b0f3e[m Merge pull request #689 from Miciah/operator-slash-ingress-add-Unique-Id-header-policy
+[33me92a083f[m Merge pull request #687 from Miciah/operator-slash-ingress-add-HTTP-cookie-capture
+[33m3b19d3ca[m set maxLength on HelmChartRepositorySpec.DisplayName, Description and URL field
+[33m0e714032[m operator/ingress: Add HTTP cookie capture
+[33m19a2413f[m operator/ingress: Add Unique-Id header policy
+[33m3ae67545[m Merge pull request #521 from wking/available-release-metadata
+[33m575f8d2f[m config/v1: New Release type for ClusterVersionStatus
+[33m5af197ad[m second round of reviews
+[33m2f8fc618[m Merge pull request #686 from Miciah/operator-slash-ingress-add-HTTP-header-capture
+[33m03c73993[m Merge pull request #700 from danehans/lb_provider_const
+[33m70e8339a[m addressed reviewer comments
+[33ma4be43c2[m Added ability to configure Helm chart repository accessible within cluster
+[33m787191c0[m Merge pull request #706 from gnufied/fix-typo-csi-driver-name
+[33m09b6e7b6[m Fix typo in ebs csi driver name
+[33m89de6887[m Merge pull request #681 from tkashem/audit-config
+[33mc1d95543[m Merge pull request #701 from gnufied/add-cluster-csi-driver-type
+[33m525a7c60[m Add common type for managing all CSI driver operators
+[33mc33fd0aa[m Merge pull request #704 from wking/apiServerInternalURL-default-ports
+[33mc2f7aea5[m config/v1/types_infrastructure: Require 'https' for apiServer*URL
+[33mf120778b[m[33m ([m[1;31morigin/audit-config[m[33m)[m update APIServer to make room for audit profile
+[33maff0e470[m config/v1/types_infrastructure: Default ports for apiServerInternalURL too
+[33m0ba2c365[m Merge pull request #703 from marun/bump-1.19.0-rc.2
+[33m840a4adc[m make update
+[33m1cdc3e73[m Add new ephemeral fs type
+[33me61336d7[m bump(*) to kube 1.19.0-rc.2
+[33mf27447f2[m Adds LB provider constants to operator/ingress API
+[33mb5852d2f[m Bug 1852112: Make hostPrefix optional for the sake of non-(sdn/ovn) plugins
+[33m0c4b3ae5[m Merge pull request #698 from danehans/fix_lb_provider_params
+[33me9303910[m Updates Ingress API providerParameters field to be a pointer
+[33m21b72b2f[m operator/ingress: Add HTTP header capture
+[33m98a21872[m Merge pull request #693 from sanchezl/point-to-point-outage-log
+[33m1b0b5911[m make update
+[33m825d33ea[m podnetworkconnectivitychecks: add logs field to outages
+[33md16e9583[m Merge pull request #695 from vareti/make-api-field-description-more-descriptive
+[33m97f91610[m make update
+[33m99797c0a[m improve description for token inactivity timeout api fields
+[33m8b0e491c[m Merge pull request #688 from Miciah/operator-slash-ingress-add-Forwarded-header-policy
+[33m03d62b98[m operator/ingress: Add Forwarded header policy
+[33ma6715a35[m Merge pull request #672 from danehans/aws_nlb
+[33m3e682c01[m Incorporates feedback from deads2k
+[33mf2c24f20[m Adds AWS Load Balancer Settings to EndpointPublishingStrategy API
+[33m93040c69[m Merge pull request #691 from sanchezl/point-to-point-tls
+[33m59994290[m Merge pull request #646 from garbagego/master
+[33ma9501e15[m make update
+[33m4afaac31[m point-to-point network check: add tls info to podnetworkconnectivitycheck
+[33mb2494ecb[m Merge pull request #690 from damemi/bump-crd-verify
+[33mc55e12bf[m bump(build-machinery-go): Loosen CRD extension check for codegen-verify
+[33m784a0bec[m Merge pull request #684 from dougsland/ovirtapi
+[33maf4dd20a[m Merge pull request #685 from dougsland/fixvalidation
+[33m48619c83[m hack: fix protobuf validation
+[33m78afefea[m ovirt: add a comment about DNS VIP field
+[33mde5b010b[m Merge pull request #678 from JacobTanenbaum/VXLANPort
+[33m7bd1006f[m Merge pull request #680 from vareti/add-omitempty-tag-to-accesstokenmaxageseconds-field
+[33mdf634505[m add omitempty tags to optional fields
+[33md44c9226[m output of autogenerated filed
+[33mc4b6380a[m adding HybridOverlayVXLANPort to HybridOverlayConfig stuct
+[33mbd35d0ab[m Merge pull request #674 from vareti/osin-config-inactivity-timeout
+[33mb8e7bd3e[m make update
+[33mfa2d21af[m add new inactivity timeout field to osin config
+[33m004184bf[m Merge pull request #666 from stlaz/webhook_authenticators
+[33ma55921c5[m make update
+[33m2d04e85a[m config.authentication: deprecate webhook authenticators in favour of a single authenticator
+[33m213ae491[m Merge pull request #675 from coreydaley/update_controlplane_forcepull
+[33mff46ca13[m Updating ForcePull in controlplane to be a pointer
+[33m3fb99e4a[m Merge pull request #673 from coreydaley/jira_build_96_add_forcepull_to_builddefaults_buildoverrides
+[33m668658a1[m Add ForcePull to BuildDefaults and BuildOverrides
+[33m31416f51[m Merge pull request #669 from dmage/registry-azure-gov
+[33mdfe555cc[m Remove protobuf tags from imageregistry types
+[33meb651a5b[m Merge pull request #670 from jsafrane/add-storage-operator
+[33m22f54a54[m Add Storage operator type
+[33m8d12c504[m IR-91: Add Azure cloudName to imageregistry config
+[33m6cafd5cd[m Merge pull request #658 from vareti/inactivity-timeout
+[33m4874cace[m make update
+[33m569c03db[m add a new field to token inactivity timeout that can take time duration
+[33me9562717[m Merge pull request #660 from abhat/snp_range
+[33m8a9a8bed[m Update generated files and CRD
+[33m2b4a9173[m config/network: Add a service node port range parameter to the network spec
+[33m7265f619[m Merge pull request #661 from ricardomaraschini/bz-1833245
+[33md030d476[m Merge pull request #663 from damemi/default-node-selector-description
+[33ma22769f6[m Update defaultNodeSelector description to clarify its behavior with existing nodeSelectors
+[33m036dcf07[m updated apiServerURL details in swagger doc
+[33m2e67ed5c[m Validating duration fields on image registry types
+[33mdca63755[m Merge pull request #638 from danwinship/dual-stack-featureset
+[33mfb2a6ca1[m Merge pull request #639 from sanchezl/point-to-point
+[33md3d48c8c[m Merge pull request #653 from ironcladlou/generate-etcd-crd
+[33m0cc9aa6f[m generate operatorcontrolplane/v1 group artifacts
+[33m27d67b6e[m enable generation for operatorcontrolplane/v1 group
+[33meb3573d1[m add operatorcontrolplane/v1 group
+[33m768b7001[m Merge pull request #655 from danwinship/fix-owners
+[33mc6341789[m udated api doc with CRD
+[33m434543a3[m add approvers to reviewers
+[33m95abe2d2[m Merge pull request #650 from staebler/azure_other_cloud_env
+[33mc8bc9530[m udated api doc with CRD
+[33m34f54f12[m Merge pull request #649 from dmage/keep-younger-than-duration
+[33mf7acd840[m go mod vendor
+[33m07453311[m Add keepYoungerThanDuration and deprecate keepYoungerThan
+[33m17ada6e4[m Merge pull request #644 from Miciah/operatoringress-slash-dnsrecord-add-observedGeneration
+[33m783740a8[m operatoringress/dnsrecord: Add observedGeneration
+[33m2ec380d6[m Generate etcd CRD
+[33m4090b8d6[m Merge pull request #652 from coreydaley/bugzilla_1774616_buildlogoptions
+[33mba244061[m Bug 1774616: BuildLogOptions has drifted from PodLogOptions
+[33m60c47676[m Merge pull request #651 from marun/bump-1.18.3
+[33m2bd66cee[m bump to kube v1.18.3
+[33mf4bb75a9[m config: support for other Azure cloud environments
+[33m1de8998c[m Merge pull request #648 from soltysh/bug1784151
+[33m1b19b0f5[m Bug 1784151: set additionalPrinterColumns for SCC
+[33mafb690a8[m modified port details for APIServerURL
+[33m944c57cb[m Merge pull request #642 from sttts/sttts-apiserver-spec-status-docs
+[33md93d185d[m Update CRDs
+[33m124b41ac[m config/v1: add authentication spec+status descriptions
+[33maa7345a7[m config/v1: add apiserver spec+status descriptions
+[33m65661b48[m config: add an IPv6DualStackNoUpgrade feature set
+[33mb98a784d[m Merge pull request #619 from stlaz/inactivity_timeout
+[33m0422dc17[m Merge pull request #635 from marun/switch-go-bindata
+[33m9e7957d9[m bump(build-machinery-go)
+[33mf24cbf29[m Merge pull request #625 from damemi/update-crd-readme
+[33mfdd1b0c1[m Merge pull request #634 from marun/bump-v1.18.2
+[33m0f7ea195[m bump to kube v1.18.2
+[33m8ea6e115[m Merge pull request #626 from alvaroaleman/builds-empty
+[33m0f159fee[m Merge pull request #621 from abhinavdahiya/status_cloud_config
+[33m2ef3f20b[m Merge pull request #632 from abhinavdahiya/infra-status
+[33mb7121e12[m config/v1: add status subresource for infrstrastructure
+[33m8cfd7913[m Merge pull request #616 from Miciah/NE-284-operator-slash-ingress-add-logging-API
+[33m2dadc742[m config/v1/types_infrastructure.go: update the cloudConfig spec to define the generated one's location
+[33m1fc310b2[m operator/ingress: Add logging API
+[33mc6e8c9b6[m Merge pull request #599 from abhinavdahiya/aws_service_endpoints
+[33m6c25f0fd[m config/v1/types_infrastructure.go: add service endpoints to aws platform spec and status
+[33mf5df9218[m Builds: Make a bunch of fields omitempty
+[33m2cf49d05[m Merge pull request #618 from deads2k/prio-fairness
+[33m722c7a62[m enable priority and fairness for kube-apiserver
+[33m27622da9[m Replace library-go references with build-machinery-go for CRD gen readme
+[33me00fc578[m Merge pull request #617 from marun/fix-service-account-issuer
+[33m556c4b92[m make update
+[33m710ab014[m Fix the default for Authentication.ServiceAccountIssuer
+[33mfe36e035[m make update
+[33m482e9764[m auth: mark AccessTokenInactivityTimeoutSeconds deprecated
+[33m585af27e[m Merge pull request #594 from jhadvig/customURL
+[33m075d5bc9[m Merge pull request #615 from soltysh/missing_optional
+[33md363d3fc[m Update optional tags where needed
+[33m8e259f67[m Merge pull request #607 from danehans/wildcard_routing_ep
+[33m366fdb33[m Adds WildcardPolicy field to IngressController API
+[33m6efe1ee4[m Merge pull request #613 from coreydaley/devexp_566_s3_virtual_hosted_style_path
+[33m1f595939[m Add VirtualHostedStyle to S3 configuration options
+[33m27f27266[m Add Route for consoles custom hostname
+[33mecb9283f[m Merge pull request #612 from mfojtik/add-config-operator
+[33mc028dd2a[m operator: add config operator type
+[33m912866dd[m Merge pull request #610 from soltysh/bump_k8s_1.18
+[33macf858d1[m go mod tidy & go mod vendor
+[33mb6c626c7[m Update go.mod to use v0.18.0
+[33ma2079c87[m Merge pull request #609 from bigkevmcd/route-omitempty
+[33md767ddd3[m Add omitempty tags to Route resources.
+[33m9b3bdf84[m Merge pull request #596 from jmrodri/remove-service-catalog
+[33m987aea5d[m update generated
+[33m5bc421a4[m Use fedora:31 since we require go 1.13
+[33mf91f52ae[m Merge pull request #605 from njhale/fix-gen-tags
+[33mea026483[m fix(codegen): add missing client tag to operatorhub config type
+[33m49cc7219[m mark service catalog types DEPRECATED
+[33mcc711f19[m remove the service catalog crds
+[33me7041f87[m Merge pull request #602 from p0lyn0mial/authorization-operator-revision-support
+[33m0bb4670f[m generated
+[33m0de0d539[m Merge pull request #593 from damemi/rebase-1.18.beta2
+[33m2eb7761c[m Merge pull request #603 from gabemontero/new-bld-init-cont-reasons-msgs
+[33m53ccb04e[m add build status reasons for fetch image source and manage dockerfile failures
+[33m42b07479[m adds OAuthAPIServerStatus that holds status specific only to openshift-apiserver binary
+[33m184bfe77[m Merge pull request #597 from jmrodri/fix-license
+[33m85e16cc5[m Merge pull request #595 from coreydaley/fix_azure_container_name
+[33m6248d484[m Fixes #545: Fix copyright in LICENSE file
+[33m97458d9b[m Add OmitEmpty to all optional fields
+[33mfdf269f9[m Update generated protobuf
+[33m9ba290b1[m go mod tidy & go mod vendor
+[33m60852beb[m Update go.mod to use v0.18.0-beta.2
+[33me5737622[m Merge pull request #591 from coreydaley/jira_DEVEXP_544_add_affinity_to_image_registry
+[33ma39d78eb[m DEVEXP-544: Add Affinity to the image registry CRD
+[33mb4f75e52[m Merge pull request #571 from AndreaM12345/ibm-platform
+[33mcbca0ba7[m Merge pull request #590 from tnozicka/build-machinery
+[33m224bbd5c[m Remove Travis in favour of openshift/release#7411
+[33mf161ef94[m Ignore generated binary
+[33m001335d6[m Bump: github.com/openshift/build-machinery-go
+[33m7295f293[m Migrate to openshift/build-machinery-go
+[33mf224e742[m update platform status with ibmcloud platform
+[33mc99157bc[m Merge pull request #584 from ironcladlou/dns-record
+[33m62288b17[m remove redundant optional tags
+[33mae8fb7f2[m recordTTL doc fixup
+[33m802801bf[m add min validations to strings and arrays
+[33md6a9b968[m flatten ingress operator group package
+[33m8b9591dd[m fix dns record type and add enum validation
+[33mefc87562[m dnsrecord: docs updates
+[33maaa7306c[m operator/ingress: add dnsrecord type
+[33m267354aa[m Merge pull request #589 from ironcladlou/enum-validations
+[33m6c7683d5[m Add missing enum validations
+[33ma0e53e94[m Merge pull request #585 from mfojtik/remove-ipv6dualstack
+[33m2dfe621f[m config: disable IPv6DualStack feature flag
+[33mc562e326[m Merge pull request #576 from rhamilto/bz1794804
+[33m34f0ec8d[m Merge pull request #573 from damemi/document-crd-gen
+[33mc3161eb8[m Merge pull request #583 from adambkaplan/dockerfile-from-doc
+[33m38db8664[m make update
+[33m709bcf89[m Bug 1784532: Clarify `from` behavior in builds
+[33mf2a771e1[m Merge pull request #582 from wking/proxy-trust-details
+[33m60d997e9[m config/v1/types_proxy: Clarify trustedCA semantics
+[33m74333963[m Add CRD generator documentation to Readme
+[33m1772b9d5[m Remove Description from CLI output to improve its display
+[33mffde1bfa[m Merge pull request #574 from gabemontero/deprecate-bld-pipeline-strategy
+[33m0bffa333[m update/verify various generated
+[33mf92f2cd9[m add deprecaction notice for build pipeline strategy
+[33mf263157f[m Merge pull request #527 from abhat/annotate_nw_types
+[33m1108c9ab[m Merge pull request #569 from marun/bound-sa-tokens
+[33m3b42f264[m Merge pull request #570 from adambkaplan/image-config-incl-doc
+[33m8caf6424[m Clarify image config doc
+[33m5e3a31c0[m Updated generated
+[33m5637f56d[m Enable configuration of the issuer of bound service account tokens
+[33me7ccdda6[m Merge pull request #557 from AndreaM12345/ibm-ingress2
+[33m1edb92e6[m create the IBMCLoudPlatform type for use in the ingress operator
+[33m2b89f314[m Call add-crd-gen in the Makefile Address review comments Copy the crd yaml into the network directory
+[33m0e2ff1e2[m Merge pull request #568 from mfojtik/bump-1.17.1
+[33ma458846f[m bump(*): kubernetes-1.17.1
+[33m7afa4f66[m Merge pull request #566 from Miciah/operator-slash-ingress-fix-route-admission-godoc-typos
+[33m491a9cee[m Merge pull request #541 from jcpowermac/vsphere_ipi
+[33mf472aa21[m Merge pull request #567 from p0lyn0mial/cao-managing-oauth-api-server-field
+[33m572ec0c6[m generated
+[33mb464797c[m adds a new ManagingOAuthAPIServer field to authentication's operator status field
+[33mbd36d282[m operator/ingress: Fix route admission godoc typos
+[33m6f8de879[m Merge pull request #565 from ironcladlou/route-admission-api
+[33m4ba5c33b[m Merge pull request #523 from smarterclayton/imagetag
+[33mf0bf029e[m operator/ingress: remove routeAdmission from status
+[33m69b8abb8[m Merge pull request #559 from ironcladlou/route-admission-api
+[33md0d4c74b[m operator/ingress: minor route admission policy docs fixes
+[33m61108cbb[m Merge pull request #563 from adambkaplan/fix-imageregistry-rollout
+[33m14f1b46a[m make update
+[33m389c9615[m Fix image registry's RolloutStrategy param
+[33mc3cf38ec[m Merge pull request #562 from huffmanca/csi-snapshots
+[33m2a80516e[m Included CSISnapshot API Type
+[33m35a64c70[m Merge pull request #561 from coreydaley/update_imagepruner_subresources
+[33m680667db[m Merge pull request #560 from Fedosin/image_registry_rollout
+[33ma1904bf0[m operator/ingress: minor route admission policy docs fixes
+[33ma2732ae4[m adding subresources/status to imagepruner crd
+[33m08df174f[m operator/ingress: add route admission policy API
+[33m7214afad[m Add rolloutStategy parameter to ImageRegistrySpec
+[33m3bf8cd9d[m Update swagger docs
+[33me205a72a[m Update generated files
+[33ma63a88e3[m Bug 1769015: Add kubebuilder annotations to the network types
+[33mb46f4769[m Merge pull request #558 from smarterclayton/enable_dual_stack
+[33m7ab22a2c[m Merge pull request #555 from coreydaley/adding_imagepruner_definitions
+[33m5fc2d349[m Adding imagepruner api definitions
+[33m0122a2d1[m feature: Enable the IPv6DualStack feature gate by default
+[33mc3afcc89[m image: Add the ImageTag type to return more details than ImageStreamTag
+[33m7e36eed0[m Merge pull request #533 from ironcladlou/ingress-nodeport
+[33m378bec23[m Merge pull request #552 from deads2k/features
+[33m5a275511[m Merge pull request #556 from soltysh/protobuf
+[33m28ada181[m Fix protobuf generation
+[33m2f4dddbb[m Merge pull request #553 from deads2k/fix-replace
+[33mcb3203f5[m bump
+[33mb7b1eff0[m stop replacing deps that don't need to be replaced
+[33ma4c2f441[m prevent mismatched featuregates
+[33m52ac50b9[m Merge pull request #550 from karmab/fg_latency
+[33m0636007d[m Allow sctp protocol with LatencySensitive FG
+[33m791af960[m Merge pull request #551 from soltysh/drop_librarygo
+[33m65872f6e[m Drop library-go dependency
+[33m8cc20251[m Merge pull request #548 from mfojtik/gomod
+[33m97b225b7[m fix travis to run go 1.13
+[33m3b58dcbd[m hack: prefix deepcopy with bash
+[33mf708074e[m bump(*): go mod vendor
+[33m27a99432[m go: add go.mod
+[33m8fa8e03e[m go: add dependency magnet
+[33ma7f8f009[m bump(*): remove glide and vendor
+[33m25e6c5c5[m Merge pull request #546 from soltysh/update_preserve
+[33m351fa2c2[m Update CRD verification list
+[33mc8f35a12[m Add missing preserveUnknownFields tags
+[33m3fbf6bcf[m Merge pull request #543 from sttts/sttts-image-optional-markers
+[33m34cf3fb3[m Make {image,project}/v1 status fields optional
+[33me9cda599[m Merge pull request #532 from bparees/buildconditions
+[33mc1898f32[m Merge pull request #506 from marun/refactor-cabundle-injection
+[33ma11e9355[m Update generated
+[33m50010cc5[m service ca: Remove unnecessary configuration types
+[33m43ea6aa2[m Add vSphere platform status
+[33m89a61d28[m add conditions to builds
+[33m9ffd03c1[m Merge pull request #537 from ricardomaraschini/azure-container-name-validation
+[33m992bc3a4[m Merge pull request #511 from soltysh/missing_tags
+[33m9fc4efe0[m Generated changes
+[33m52ffecf2[m Add missing optional tags
+[33m6bf0e230[m Adding missing Azure container name validation.
+[33m377b5e2d[m Merge pull request #535 from tkashem/pin-kube-1.17
+[33m9eba4cde[m[33m ([m[1;31morigin/pin-kube-1.17[m[33m)[m update generated files
+[33m45d73db5[m bump(*): kubernetes-1.17.0-rc.2
+[33m5f126bd1[m more naming updated
+[33m4c0185a3[m update NodePortService naming for consistency
+[33m26e48847[m operator/ingress: Add NodePort publishing strategy
+[33m9f834e33[m[33m ([m[1;31morigin/release-4.5[m[33m, [m[1;31morigin/release-4.4[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m Merge pull request #524 from smarterclayton/improve_godoc
+[33md4eabe2e[m image: Improve godoc for image types
+[33m0272a9e1[m Merge pull request #529 from mfojtik/fix-spec-status-desc
+[33ma15df159[m update generated
+[33ma65417b2[m operator: add description for spec and status
+[33m2ea89d20[m Merge pull request #499 from wking/cluster-operator-spec-hold-typo
+[33m722e7cb2[m Merge pull request #510 from wking/cluster-operator-status-condition-copy-edits
+[33m8d715d65[m Merge pull request #519 from ricardomaraschini/migrating-image-registry
+[33mf0feeb9e[m Migrating imageregistry api definitions.
+[33m082f8e2a[m Merge pull request #520 from mfojtik/fix-patch-rtpe
+[33m64600f66[m samples: add pathMergeKey and pathStrategy tags
+[33m1271508f[m Merge pull request #517 from gabemontero/samples-subresource-status
+[33ma7b5ab68[m Merge pull request #518 from mfojtik/fix-oas-crd
+[33me50c0a38[m operator: fix description for openshift apiserver spec and status
+[33m4efd1a50[m Merge pull request #504 from dougbtv/sctp-feature-gate
+[33maebcc3e0[m The SCTP feature gate should be enabled.
+[33m865b9f7f[m add status subresource to samples config crd
+[33m86def77f[m Merge pull request #513 from gabemontero/add-samples-operator
+[33m3139ff9c[m generate CRD yaml
+[33ma27ff30e[m Merge pull request #516 from danehans/remove_tls_featuregate
+[33md7b28b5a[m Removes TLSSecurityProfile from feature gate
+[33ma1ed7a4b[m Merge pull request #515 from rphillips/fixes/remove_experimental_critical_pod
+[33mcf2b2c9c[m Remove ExperimentalCriticalPodAnnotation from featureflags
+[33m65fc747a[m move samples CRD to openshift api
+[33m6feaabc7[m Merge pull request #512 from damemi/verify-crds-test
+[33m443697b0[m Add CRDs to update and verify targets
+[33mc6fbb2d4[m config/v1/types_cluster_operator: Fix "spec hold the" typo
+[33m6ffedc3b[m config/v1/types_cluster_operator: Fix "Degraded indicated" -> "Degraded indicates"
+[33m21e87c8d[m Merge pull request #501 from wking/cluster-operator-status-condition-copy-edits
+[33m98fa823d[m Merge pull request #500 from wking/expand-kube-abbreviation
+[33m610e47be[m Merge pull request #441 from danehans/dns_fwd
+[33md3d78e06[m Merge pull request #508 from stlaz/modern_ciphers
+[33md6de8638[m generated
+[33m0d648ddf[m apiserver: make note of the supported tls profiles
+[33m2c9249ce[m Adds Server type to dnses.operator.openshift.io API
+[33m9c7826d7[m Merge pull request #509 from spadgett/snippet
+[33m1884d963[m generated
+[33m0f27671a[m Bug 1768542: Add `snippet` flag to ConsoleYAMLSample CRD
+[33md428681b[m Merge pull request #507 from benjaminapetersen/bug/1767926/console/extension/console-yaml-sample/target-resource-missing
+[33mf888cc42[m Fix missing targetResource for consoleyamlsample, regen CRDs
+[33m86cb5b75[m Merge pull request #482 from marun/add-intermediate-cert-file
+[33mbac53ab1[m Merge pull request #483 from dulek/new-kuryr-settings
+[33m6f02ed76[m Add useful Kuryr settings
+[33m11eee842[m Merge pull request #505 from soltysh/fix_tags
+[33mdea3eef0[m Update generated
+[33mc02368c4[m Add IntermediateCertFile to ServiceServingCertSignerConfig
+[33mbce56171[m Set x-kubernetes-int-or-string
+[33mde0cf99e[m Rename +kubebuilder:validation:PreserveUnknownFields to +kubebuilder:pruning:PreserveUnknownFields
+[33mec2999d7[m Merge pull request #474 from jhadvig/selector
+[33m2937253c[m Add label selector to namespace-scoped links
+[33md752785a[m Merge pull request #503 from sanchezl/crd
+[33m88023794[m add KubeStorageVersionMigrator crd.yaml
+[33m40c55f80[m config/v1/types_cluster_operator: ClusterOperatorStatus doc wordsmithing
+[33m08413877[m config/v1/types_cluster_operator: "the kube ecosystem" -> "the Kubernetes ecosystem"
+[33mabf28f93[m Merge pull request #498 from damemi/verify-pruning
+[33mcf4348fd[m Fix error in hack/verify-crds to check preserveUnknownFields
+[33mc556078b[m Merge pull request #497 from sttts/sttts-config-clusteroperator
+[33m329416a5[m config/v1: enable pruning for ClusterOperator
+[33m39519d43[m config/v1: generate ClusterOperator CRD
+[33m50fba576[m config/v1: fix ClusterVersion condition
+[33m12ad4469[m config/v1: mark ClusterOperator fields required
+[33m1cd06438[m config/v1: copy ClusterOperator CRD from CVO
+[33m0c4d3847[m Merge pull request #495 from sttts/sttts-config-v1-clusterversions-crd
+[33m259956fc[m Merge pull request #493 from stlaz/bring_ciphers_back
+[33me4cf4daf[m config/v1: enable pruning for clusterversions
+[33m1f77fb6e[m make update-codegen-crds
+[33m0699f342[m config/v1: mark non-optional field required in clusterversions
+[33mbe0ab76b[m config/v1: move clusterversions from cvo
+[33me7fa4b87[m Merge pull request #496 from soltysh/fix_preserveUnknownField
+[33m02719869[m Fix preserveUnknownField typo
+[33me89ff1fd[m Merge pull request #492 from benjaminapetersen/crd/console-operator-validation
+[33m48277d60[m Add validation patterns to operator structs to reflect in generated operator CRD
+[33mba862ac6[m generated
+[33me0cb4173[m Bring back cipher suites removed earlier
+[33mde6d5d3f[m Merge pull request #488 from Miciah/BZ1763639-operator-slash-ingress-note-minimum-TLS-version-is-1.1
+[33m05fa477c[m operator/ingress: Only TLS 1.1 or 1.2 can be used
+[33mbace76a8[m Merge pull request #486 from benjaminapetersen/crd/console-operator
+[33m59d6ba01[m Merge pull request #491 from damemi/verify-pruning
+[33mb0a13758[m Set spec.preserveUnknownField=false in console yaml sample crd
+[33m3edff4a8[m Add check that pruning is enabled in CRDs
+[33m862dd2fe[m Add console-operator CRD and generate from types
+[33m48e39eee[m Merge pull request #490 from soltysh/fix_pruning
+[33m2cb8a952[m Merge pull request #489 from sttts/sttts-openshift-apiserver-revision-status
+[33md6f46cca[m Add missing preserveUnknownField marker for pruning
+[33ma9a17592[m operator/v1: add latestAvailableRevision to OpenShiftAPIServerStatus
+[33m468faf51[m Merge pull request #487 from ironcladlou/ingresscontroller-crd
+[33m866e76b2[m operator/ingress: regenerate CRD
+[33m0f36f834[m operator/ingress: add ingresscontroller CRD
+[33m82b963da[m Merge pull request #485 from jhadvig/cli_regexp
+[33m7d6a7321[m Merge pull request #475 from soltysh/operator_configs
+[33m96f1ce40[m Update ConsoleCLIDownloads Href validation regexp
+[33mefb5c0f8[m Generated changes
+[33me2aa2fc5[m Add patches where CRDs have differnt validation than generated
+[33mac3a17c9[m Force pruning of object fields which are not specified in the OpenAPI schema
+[33m84ad80e6[m Add operator crds
+[33m8c074bd7[m Merge pull request #449 from JacobTanenbaum/windows-networking
+[33mc95b469a[m Merge pull request #481 from benjaminapetersen/console/crd/extensions/rename
+[33m84c66654[m Rename console extension CRDs
+[33m01c88887[m api changes for ovn-kubernetes windows extension
+[33mb216bf51[m Merge pull request #484 from damemi/verify-metadata-description
+[33m7ad6ff76[m Add check to verify no metadata descriptions in CRDs
+[33md0b31d70[m Merge pull request #478 from soltysh/object-meta
+[33m49d7ac85[m Generated changes
+[33m1d1d70d9[m Use pre-built version of controller-gen
+[33m7390aa3b[m Add PreserveUnknownFields marker
+[33ma87aa388[m Fix pattern validator value
+[33mdb65909e[m Force pruning of object fields which are not specified in the OpenAPI schema
+[33m44106669[m Remove ListMeta's and TypeMeta's description
+[33mb5f967e0[m Merge pull request #464 from knobunc/fix/typo-addressed-addresses
+[33mab25a925[m Fixed a typo 'addressed -> addresses'
+[33m12f2193c[m Merge pull request #479 from benjaminapetersen/console/crd/generate/consoleyamlsample
+[33mf6d93336[m Generate consoleyamlsamples.console.openshift.io CRD
+[33mae428322[m Merge pull request #476 from stlaz/cipher_profiles_fixups
+[33m9415cc56[m Merge pull request #477 from damemi/add-missing-crds
+[33m903dacbe[m Run make update-codegen-crds
+[33m28bfc6d5[m Add CRQ yaml merge patch
+[33m290a21f2[m generated
+[33m941e49c6[m Merge pull request #473 from sanchezl/add-operator-ksvm
+[33m70056df3[m tlssecurityprofile: modify tls version strings, remove ECDHE-RSA-AES256-SHA384
+[33m4e0a90d1[m Merge pull request #472 from Miciah/NE-150-operator-slash-ingress-add-observedGeneration
+[33m598efb22[m Merge pull request #471 from enj/enj/r/remove_owners
+[33md92c1197[m add operator config for kube-storage-version-migrator operator
+[33m3f47c9a8[m NE-150: operator/ingress: Add observedGeneration
+[33m4ebf7c54[m Update OWNERS
+[33m538f3e8c[m Merge pull request #465 from jhadvig/yaml-sample
+[33m405f9858[m Add ConsoleYAMLSample CRD type
+[33m081c4d62[m Merge pull request #319 from benjaminapetersen/console/webconsole-3.x-removal
+[33m6baa9402[m Remove webconsole 3.x config
+[33m1a226cb9[m Merge pull request #470 from damemi/tnozicka-update-crds
+[33m55a6da6d[m Fix gofmt
+[33mb51da719[m Raise travis to go 1.12 but it should be really removed and tests moved to openshift/release
+[33me46e7c98[m Add security.openshift.io from cluster-config-operator
+[33m26510375[m Add quota.openshift.io from cluster-config-operator
+[33m700fd891[m Add operator.openshift.io from cluster-config-operator
+[33mef3082e0[m Add console.openshift.io from cluster-config-operator
+[33m50c873e9[m Add authorization.openshift.io from cluster-config-operator
+[33m9084ddf9[m Add config.openshift.io from cluster-config-operator
+[33mf3317122[m Fix tags to pass go vet
+[33mfe5f72a4[m Migrate Makefile to use alpha-build-machinery
+[33m1fbba8b8[m Bring only alpha-build-machinery manually to avoid dependency on library-go
+[33mb9365caf[m Merge pull request #460 from Miciah/operator-slash-ingress-fix-upstream-service-docs-URL
+[33m67105939[m Merge pull request #378 from russellb/bm-net-docs
+[33mc9253efc[m Merge pull request #462 from rphillips/fixes/bz1758434
+[33m95287ea4[m Bug 1758434: reenable LocalStorageCapacityIsolation
+[33m4a25d6f2[m Merge pull request #467 from smarterclayton/gates
+[33m95fb1d31[m featuregates: Disable legacy node role exclusion for masters
+[33m25b923cd[m Merge pull request #468 from benjaminapetersen/console/api/fix-kubebuilder-pattern-location
+[33m4f285daa[m kubebuilder tag needs to be on the type itself
+[33m9c66d377[m Merge pull request #463 from abhinavdahiya/azure_n_rg
+[33mb9acfeb3[m config/v1: add networkResourceGroupName for azure platform
+[33mb3cee430[m Merge pull request #466 from spadgett/log-link-namespace-uid
+[33mf4097a9d[m make generate
+[33mc4cb7b57[m Add `resourceNamespaceUID` variable replacement to `ConsoleExternalLogLink`
+[33m881ce6bc[m Merge pull request #451 from rgolangh/ovirt
+[33mef84ea86[m Merge pull request #454 from ironcladlou/ingress-security
+[33m9c3d92fb[m Merge pull request #457 from benjaminapetersen/console/crd/cli-download/text-prop-drift
+[33ma3e424cb[m ingress: remove cluster ingress security config
+[33m733149b6[m operator/ingress: update docs
+[33mc1b5553e[m operator/ingress: update docs
+[33m1c9f58ba[m operator/ingress: update docs
+[33m490ebb8d[m ingress: add cluster ingress tls config
+[33m827c1cf5[m operator/ingress: fix ingresscontroller tls status field type
+[33m7fad04fa[m operator/ingress: introduce tlsSecurityProfile field
+[33me4fd2119[m Merge pull request #458 from stlaz/cipher_profiles_updated
+[33mccf69d54[m operator/ingress: Fix upstream service docs URL
+[33m86d2abd3[m Fix missing validation patterns for console extension CRD objects
+[33ma1f4db14[m generated
+[33me89149c0[m update cipher profiles to respect Go/Kube options
+[33md9278948[m Merge pull request #436 from pecameron/sdn494
+[33m7ddba311[m OVN - add geneve port assignment
+[33mbb291c9d[m Merge pull request #455 from ironcladlou/dns-openapi-fixes
+[33m3e942560[m operator/dns: fix openapi spec for required fields
+[33m8033e226[m Merge pull request #452 from stlaz/cipher_profiles
+[33md35a8e0f[m Merge pull request #453 from sttts/sttts-encryption-openapi
+[33m738bd79c[m config: specifiy apiserver EncryptionType
+[33m3a4e8d59[m generated
+[33mc58aedbd[m tlssecurityprofile: update ciphers to latest recommendations
+[33m18fa7fda[m add values for TLSProfiles
+[33ma846ae61[m add cipher profiles for serverS
+[33mb57ff736[m remove cipher suite configuration from ingress
+[33ma04fa03a[m Updates naming based on @smarterclayton feedback
+[33m15f83bdc[m Refactors security profile api to config api group
+[33m5be783c5[m operator/ingress: Add SecuritySpec API
+[33mf63e5a75[m Merge pull request #403 from rphillips/fixes/enable_custom_no_upgrade
+[33m426779a5[m Merge pull request #429 from enj/enj/f/enc_config
+[33mfefc3175[m add CustomNoUpgrade and LatencySensitive to FeatureSets
+[33mf5977250[m Add encryption config to APIServer
+[33m41448ee8[m Merge pull request #450 from stlaz/oauclients_deny
+[33m111543d3[m Add oVirt platform status
+[33m86c3b775[m Merge pull request #446 from ironcladlou/ingress-scope-fix-4.3
+[33m52b7de86[m make generate
+[33m2251e19a[m oauthclients: remove mention of the "deny" GrantHandler
+[33m9c9a7b14[m Bug 1756132: Remove incorrect optional tag from new ingress field
+[33me39b0dc4[m Merge pull request #442 from ironcladlou/ingress-required-fix
+[33mac32a080[m operator/ingress: make .spec.endpointPublishingStrategy.type required
+[33m8d7f7ebf[m Add a link to baremetal networking architecture.
+[33mf6c477b8[m Merge pull request #412 from danwinship/network-config-validation
+[33m26a429ae[m Merge pull request #398 from Miciah/operator-slash-ingress-fix-godoc-re-DNS-on-Azure-and-GCP
+[33m943650ea[m Merge pull request #299 from wking/represent-from-a-typo
+[33m97311a7b[m Merge pull request #440 from Miciah/operator-slash-ingress-delete-plus-optional-marker-on-type
+[33m15b45728[m operator/ingress: Delete +optional marker on type
+[33mb2a15509[m Merge pull request #438 from ironcladlou/ingress-marker-fixes
+[33m95d3c021[m operator/ingress: remove unnecessary +nullable markers
+[33m2cc6ad17[m Merge pull request #431 from jhadvig/namespaceDashboard
+[33m32369d4d[m Merge pull request #437 from mfojtik/add-project-conditions
+[33me070ca22[m project: add project status conditions
+[33mecbc0192[m Merge pull request #434 from deads2k/kube1.16
+[33md486885a[m generate
+[33me044cdb1[m bump
+[33m15bbc3e2[m update glide.yaml
+[33m5d09125f[m Add project dashboard link to console api
+[33mcdbe64fb[m Merge pull request #411 from chlunde/route-subdomain-omitempty
+[33mc4807bb1[m Merge pull request #430 from squeed/external-ip-doc
+[33m930a783e[m config/network: update docs to reflect externalip default-deny
+[33m9f80b780[m Merge pull request #425 from Miciah/operator-slash-ingress-fix-scale-kubebuilder-marker
+[33m763878ba[m Merge pull request #422 from sleshchenko/addConsoleLinkList
+[33m729600a6[m Add registering List types for Console API
+[33m6a5168cf[m Add missing deepcopy and swagger doc for ConsoleExternalLogLinkList
+[33m81e1a0ee[m Add missing list type for ConsoleExternalLogLinkList
+[33me6c3eeae[m operator/ingress: Fix scale kubebuilder marker
+[33ma25bb2ad[m Merge pull request #424 from bparees/docs
+[33m922d3694[m Merge pull request #423 from ricardomaraschini/update-image-config-doc
+[33m2bbece42[m include builds in list of image pulls impacted by image config resource
+[33m37c8f8f5[m Properly documenting purpose of Image config.
+[33m58aab288[m Merge pull request #381 from alexanderConstantinescu/master
+[33m1c603a42[m Merge pull request #401 from dulek/add-kuryr-openstack-svc-net
+[33m8aa328d2[m Merge pull request #406 from adambkaplan/config-build-desc
+[33m61ed9695[m Fix generated protobuf
+[33m1a1d37ef[m Bug 1732144: Fix description of cluster build config
+[33ma2d894eb[m Updating the explaination for Network type
+[33m8622a28c[m Add KuryrConfig.OpenStackServiceNetwork for CNO
+[33m14ed9ec6[m add kubebuilder annotations for network types
+[33ma94e9149[m Merge pull request #402 from ironcladlou/ingress-docs
+[33mb5570061[m Merge pull request #409 from aravindhp/operatorhub-disable-all
+[33meeefa3cc[m config/v1: add disable all option to operatorhub
+[33ma45959f9[m route/v1: add omitempty to subdomain struct tag
+[33m27fb1690[m Merge pull request #408 from danehans/proxy_ca_fix2
+[33maf7bae29[m Updates godocs for trustedCA field of proxy api type
+[33m8f800d23[m Merge pull request #405 from aravindhp/operatorhub-changes
+[33m45983f15[m config/v1: operatorhub API improvements
+[33m60bc774d[m config/ingress: clarify domain use and immutability
+[33mb76189cc[m Merge pull request #399 from damemi/scheduler-config-desc
+[33m80df6421[m Bug 1738401: config/ingress: clean up docs
+[33md2972510[m Merge pull request #400 from danehans/proxy_ca_fix
+[33m81e91a5d[m Updates proxy type trustedCA configmap reference
+[33me3adc223[m Update Scheduler config description
+[33m9ef0612c[m Merge pull request #388 from aravindhp/operatorhub
+[33mdd1abd3d[m operator/ingress: Fix godoc re DNS on Azure and GCP
+[33m080ca736[m config/v1: Introduce operatorhub API
+[33m0922aa5a[m Merge pull request #391 from ironcladlou/dns-docs
+[33ma33d022e[m Merge pull request #395 from stlaz/authz_optional
+[33m8744eb4c[m Make authorization/v1 package default to optional in kubebuilder
+[33mfbd0b90a[m Merge pull request #390 from damemi/config-optional
+[33m406574a7[m Merge pull request #394 from sttts/sttts-config-reference-name-required
+[33me714d549[m Make Secret/ConfigNameReference.name required
+[33mb7d4eb0f[m Merge pull request #392 from damemi/auth-spec-optional
+[33m3435de7e[m Set Authentication.config spec.type to optional
+[33m56ecd94e[m docs/config: clean up
+[33mdfd248dd[m Make config/v1 package default to optional in kubebuilder
+[33macaf712b[m Merge pull request #389 from ironcladlou/dns-docs
+[33ma75ceeb1[m config/dns: clarify immutable status of DNS configuration
+[33md75a161a[m Merge pull request #387 from spadgett/console-description
+[33m13111cc0[m make generate
+[33m88d4bad8[m console: update config resource description
+[33mdcf064e2[m Merge pull request #386 from sttts/sttts-config-apiserver-description
+[33m97c23e61[m DEBUG
+[33md1ad8078[m config/v1: improve Authentication description
+[33med9973a5[m config/v1: improve APIServer description
+[33m2aa5d743[m Merge pull request #377 from danehans/proxy_ca
+[33m1c057346[m Add Trusted CA to Proxy API type
+[33m9525304a[m Merge pull request #384 from mtrmac/icsp-explicit-source
+[33m86a969f3[m Merge pull request #385 from jhadvig/podlinks-followup
+[33m3fb33486[m Merge pull request #357 from squeed/network-operator-idling
+[33m6d02f77e[m operator/network: add EnableUnidling flag.
+[33m7076b89b[m Modify ImageContentSourcePolicy to distinguish between sources (pull specs) and mirrors
+[33m3656ba94[m Update NamespaceFilter description in the ConsoleExternalLogLink
+[33m0390d1e7[m Merge pull request #380 from jhadvig/podlinks
+[33m6335d751[m Add ConsoleLogLink type
+[33m9e8bd7c2[m Merge pull request #382 from benjaminapetersen/console/link/image-url-optional
+[33m0329660d[m Make imageURL property of console link optional
+[33m25a4eebe[m Merge pull request #383 from damemi/project-request-opt
+[33m1603b6c3[m Make ProjectRequestMessage optional
+[33md752fe3c[m Merge pull request #374 from tomassedovic/openstack-platform-status
+[33m6d71b028[m config/v1: add platform status for OpenStack
+[33mbd36f2b7[m Merge pull request #321 from s1061123/dev/macvlan-new
+[33mfbf616ed[m Merge pull request #379 from deads2k/projectconst
+[33m3cbab91e[m add project annotation API
+[33mf1512070[m Merge pull request #373 from danehans/ne_206
+[33m930b75f2[m Merge pull request #348 from bcrochet/baremetal-status
+[33m236890a4[m config/v1/types_infrastructure: Add BareMetal status for BareMetal platform
+[33m35c8395f[m Merge pull request #370 from deads2k/customfeatures
+[33mcf189d34[m Merge pull request #365 from bertinatto/remove_csiblock_tech_preview
+[33ma9983838[m Merge pull request #376 from damemi/fix-requireds
+[33mb1bcdbc3[m Change old +required tags to +kubebuilder:validation:Required
+[33m1aeb73c5[m allow a custom set of feature gates to be specified
+[33m98d140e3[m Merge pull request #372 from deads2k/remove-dead
+[33ma7241ecf[m Add ReadinessEndpoints to Proxy API
+[33m0a705005[m Merge pull request #360 from jhadvig/section
+[33m3f0f8495[m remove broken default serving cert setting
+[33m236ba20a[m Add 'section' property to ConsoleLinkSpec
+[33m569fe5d7[m Support static ip ipam in network-operator
+[33m6bda98a7[m Incorporate with PR comments
+[33m29b879c2[m Macvlan support in network-operator
+[33m1fc81597[m Merge pull request #366 from ravisantoshgudimetla/add-masterSchedulable
+[33m7d8974d2[m Generated files
+[33m62280ddc[m Make masters schedulable
+[33md671fbae[m Merge pull request #363 from damemi/fix-proxy-args
+[33m076caf20[m Merge pull request #368 from sttts/sttts-eu-owners
+[33m06fefbf8[m Merge pull request #367 from stlaz/cors_fix
+[33m03848f47[m Add EU based owners
+[33mcb872518[m make generate
+[33me5d1162c[m APIServer: fix first-letter case of AdditionalCORSAllowedOrigins
+[33me7337c08[m Remove CSIBlockVolume from tech preview for 4.2
+[33m49f610c1[m Merge pull request #361 from stlaz/extra_cors
+[33m5c4f8a8f[m generated update
+[33m6575b70b[m config: Add ExtraCORSAllowedOrigins to APIServer type
+[33mbe0c8741[m Merge pull request #364 from damemi/operator-api-optional
+[33ma2298dee[m Merge pull request #314 from rgolangh/master
+[33m89195ee5[m Add Ovirt platform type
+[33m67640ca5[m Set Operator API to default Optional
+[33m66ee141b[m Make update
+[33m1366f546[m Define ProxyArgumentList type
+[33m44f2eba9[m Merge pull request #359 from abhinavdahiya/add_gcp_status
+[33m1ac86cae[m config/v1: update the generated code
+[33m21798913[m config/v1: add platform status for Azure, GCP
+[33mde5ca909[m Merge pull request #356 from umohnani8/mirrors
+[33m87efd41e[m Add ImageContentSourcePolicy to register.go
+[33mda8f8747[m Merge pull request #354 from umohnani8/mirrors
+[33m36cf2f0a[m Add ImageContentSource to operator/v1alpha1
+[33m64d243ed[m Merge pull request #347 from squeed/network-external-ips
+[33m73ac3caf[m config/network: add ExternalIPs field.
+[33me6261f37[m Merge pull request #341 from benjaminapetersen/console/documentation-update
+[33ma77179bc[m Merge pull request #346 from patrickdillon/remove-wildcard-proxy
+[33m37678ff7[m Merge pull request #312 from Miciah/NE-186-operator-slash-ingress-add-load-balancer-type
+[33m2024105d[m operator/ingress: Add load balancer scope
+[33m5fe27def[m Merge pull request #352 from mfojtik/scope-key
+[33m75014541[m auth: add scopes key
+[33m5114e14c[m Merge pull request #351 from mfojtik/add-auth-kinds
+[33mf36001e1[m auth: add UserKind and GroupKind consts
+[33m9c4ae3cf[m Merge pull request #349 from danehans/revert_ingress_ciphers
+[33m5657f074[m Reverts PR #322: Adds SecuritySpec API
+[33mfa9befef[m Merge pull request #322 from danehans/ingress_ciphers
+[33mdcde785e[m Remove wildcard comments from proxy.
+[33m403f0b6b[m Merge pull request #345 from deads2k/image-const
+[33mdbf060fb[m add image signature constant
+[33m03f675a8[m Merge pull request #344 from deads2k/more-build-surface-area
+[33m5d299741[m Refactors cypher/tls api
+[33m6b443a4b[m add more of the build API surface area
+[33mb9300ec6[m operator/ingress: Add bind ciphers and security protocol types
+[33m3ca714bc[m Merge pull request #318 from benjaminapetersen/console/extensions
+[33mc92b52cf[m Merge pull request #342 from danwinship/mtu
+[33m2bb057a8[m Merge pull request #336 from ironcladlou/dns-kubebuilder
+[33m39d399bc[m operator/dns: add kubebuilder tags
+[33m5a5e76da[m Merge pull request #335 from patrickdillon/add-proxy-status
+[33m35317083[m Merge pull request #343 from deads2k/more-build-consts
+[33me88219d1[m add more build constants that are API
+[33m64bac70b[m Add MTU to network.ClusterNetwork
+[33m9eab42c9[m Add api types for console extension resources and console server config
+[33mf2e25f30[m Update comments/docs on console resources
+[33ma54c087b[m Merge pull request #340 from soltysh/build_const
+[33m2162e8d3[m Merge pull request #339 from soltysh/project_const
+[33mad67c828[m Add build annotations used by controller and oc
+[33m2d945db5[m Add project annotation used by scheduler, apiserver and oc
+[33m43c075c3[m Merge pull request #337 from deads2k/add-annotations
+[33m94cb9c9a[m add constants for image annotations
+[33m680ebe23[m Add ProxyStatus to config/v1/types_project.
+[33mbd3468b1[m Merge pull request #334 from deads2k/lets-not-talk-about-it
+[33m0f1ff587[m typo fix
+[33mdd97c0ab[m Merge pull request #332 from deads2k/various-annotations
+[33m6004886a[m Merge pull request #333 from deads2k/scc-api
+[33m1260223d[m add annotations uses by oas and ocm to communicate about scc
+[33mda421a97[m add unidling APIs
+[33m92fb9378[m Merge pull request #316 from Miciah/operator-slash-ingress-default-GCP-to-LoadBalancerService
+[33m9a61cdf9[m Merge pull request #329 from ironcladlou/operatorspec-kubebuilder-markers
+[33m3f4f2208[m Merge pull request #328 from ironcladlou/ingress-kubebuilder-markers
+[33m023e328e[m operator: fix kubebuilder validation marker location
+[33m0b6b948d[m operator/ingress: add kubebuilder markers
+[33mdafd2647[m Merge pull request #320 from jhadvig/console-statuspage
+[33m1dd9f1ff[m Merge pull request #327 from deads2k/sessionsecret
+[33m01170a31[m add session secrets used by oauthserver
+[33m779f2eb9[m Update console api with statuspage.io ID option
+[33m2963b4d8[m Merge pull request #284 from dulek/kuryr-config
+[33md66633ef[m Add Kuryr-Kubernetes options and network type
+[33med2bab04[m Merge pull request #323 from adambkaplan/fix-insecure-registries
+[33m8478e527[m config: Fix Image InsecureRegistries Doc
+[33m92434302[m Merge pull request #304 from zherman0/api-custom-branding
+[33m4e535292[m Add Custom product name and logo to api
+[33m72b17fc3[m operator/ingress: Default GCP to LoadBalancer
+[33md5b34b95[m Merge pull request #315 from mfojtik/reason
+[33m94e0b393[m Merge pull request #311 from Miciah/NE-185-operator-slash-ingress-default-Azure-to-LoadBalancerService
+[33m30790569[m Merge pull request #310 from laurafitzgerald/route-weight-default
+[33mfa3e6fa9[m Merge pull request #313 from soltysh/rebase_1.14.0
+[33md73d5fba[m operator/ingress: Default Azure to LoadBalancer
+[33ma915c951[m operator/v1: add latestAvailableRevisionReason
+[33m266c42ac[m add csi FS type
+[33mbca03210[m bump
+[33md7bfde12[m prebase remove missing packages
+[33mb140bba7[m update to kube 1.14.0
+[33m3a197960[m update weight default in route to service
+[33m81d064c1[m[33m ([m[1;31mupstream/release-4.0[m[33m, [m[1;31morigin/release-4.0[m[33m)[m Merge pull request #271 from adambkaplan/fix-build-retention-doc
+[33mf514da71[m Bug 1693685: Fixing build retention API doc
+[33mf41c2eb0[m Merge pull request #302 from damemi/fixup-api-tags
+[33md1118343[m Merge pull request #309 from LorbusChris/f29
+[33me5a5ceda[m Merge pull request #307 from bparees/owner
+[33m8c71d432[m Merge pull request #300 from wking/record-aws-region
+[33m78e39eba[m generated
+[33mdedfb47b[m config/v1/types_infrastructure: Add AWS Region
+[33mbb9124a1[m hack/update-protobuf.sh: Fail on wrong protoc version
+[33mac067b62[m Update Dockerfile base image to fedora:29
+[33m10f647f6[m Merge pull request #308 from wking/external-api-uri
+[33mfdc055ce[m generated
+[33m3f6de982[m config/v1/types_infrastructure: Split apiServerInternalURL from apiServerURL
+[33mad8db3e3[m Add missing kubebuilder tag to SecurityContextConstraints
+[33ma9287397[m make bparees an api approver
+[33me8b4038c[m Merge pull request #306 from sallyom/add-nullable-rbr
+[33mc7275754[m generated: RBR nullable
+[33m543ba908[m Add nullable tags to RBR
+[33m168fd4e3[m Merge pull request #303 from sallyom/scc-need-more-nullable
+[33m412b5fb4[m add more nullable tags for SCCs take 3
+[33m09657642[m config/v1/types_cluster_version: Fix "represent from a" -> "represent a" typo
+[33m77b8897e[m Merge pull request #294 from dcbw/additional-network-namespace
+[33madc6b876[m Merge pull request #295 from sallyom/add-sccs-nullable
+[33m645db92b[m generated protobuf
+[33md8d3ec9c[m Add nullable tags for SCCs, take 2
+[33mf9c19755[m Merge pull request #296 from sallyom/switch-comment-order
+[33mf969221e[m Merge pull request #297 from smarterclayton/dupliacte
+[33m7453e93a[m ForceRedeploymentReason is now duplicated, causes openapi failure
+[33m042e9a60[m fix order of comments in serviceca operator type
+[33m515b3561[m Merge pull request #293 from smarterclayton/verified
+[33mea784d1a[m network: add 'Namespace' field for AdditionalNetworks
+[33mab4ff93d[m Update ClusterVersion to have a 'force' update flag and track verified
+[33me939c41e[m Merge pull request #291 from smarterclayton/route
+[33maae63d5f[m Merge pull request #292 from deads2k/revertfeatures
+[33me66b1438[m Revert "Remove unnecessary scheduling features"
+[33mc1b62650[m Revert "Enable taint nodes by condition"
+[33m4f00b7c1[m Merge pull request #290 from ravisantoshgudimetla/enable-taintNodesByCondition
+[33m18b9f988[m Merge pull request #288 from eparis/more-failing-rename
+[33m52b90890[m Restore "Add route.spec.subdomain to support implicit hostnames""
+[33mfc0ef2d8[m Enable taint nodes by condition
+[33m55a3077b[m Merge pull request #289 from sallyom/add-nullable-sccs
+[33m12691ea1[m add nullable tags to SCCs
+[33md5032a3b[m Merge pull request #282 from ravisantoshgudimetla/remove-scheduler-features
+[33m60584d16[m remove failing entirely
+[33m13b403bf[m Merge pull request #248 from rphillips/add_generator
+[33m354408ed[m Merge pull request #286 from derekwaynecarr/degraded-condition
+[33m7924f910[m Merge pull request #287 from eparis/fail_to_degrade
+[33ma9fb3b16[m Remove ClusterStatusConditionType Failing
+[33m8e476cb7[m Create a new ClusterStatusCondition Degraded
+[33m0f522af5[m Merge pull request #281 from soltysh/go1.11
+[33m985a25ac[m Switch openshift/api to go1.11
+[33m23db5c8f[m introduce degraded condition
+[33m59105645[m Merge pull request #283 from sallyom/rbr-api-add-nullable
+[33m8f991bdc[m Merge pull request #285 from deads2k/operator-reality
+[33ma8cf1d79[m update operator spec to match where we are
+[33m17b8ec2c[m generated
+[33mb968e281[m Remove unnecessary scheduling features
+[33mafa1ad6c[m add nullable fields for RoleBindingRestriction
+[33m87f97e6c[m Merge pull request #276 from sallyom/add-operator-descriptions-spec-status
+[33m275768af[m Merge pull request #274 from russellb/baremetal-platform
+[33m6d14d1b5[m Merge pull request #278 from j-griffith/add_csi_block_volume
+[33m6f2133e6[m Merge pull request #279 from deads2k/static-pod-log
+[33m7557bc68[m add log level for operator
+[33m6a702b54[m Enable BlockVolume support tech preview for 4.1
+[33m4706c46d[m Merge pull request #269 from ironcladlou/ingress-tolerations
+[33m0e7eb23a[m operator/ingress: add tolerations
+[33m37226b32[m Add "BareMetal" platform type.
+[33m1065f586[m Merge pull request #277 from danwinship/sdn-vs-edge
+[33md2f01e7b[m Merge pull request #273 from deads2k/rebase-master
+[33m3bbda7f6[m generated
+[33md4f84993[m bump
+[33mb9d3a68a[m remove glog to avoid fatal
+[33m5c0f54d9[m update dependencies
+[33ma62f0f36[m Merge pull request #275 from deads2k/revert
+[33mbd5d2b56[m fix route/OWNERS
+[33meb9e88c3[m add spec and status commets/description for serviceca operator type
+[33m6579faa0[m Revert "Add route.spec.subdomain to support implicit hostnames"
+[33me8532c51[m Merge pull request #266 from dgoodwin/infraname
+[33m5d776332[m Merge pull request #250 from smarterclayton/route
+[33m6a2df10e[m Merge pull request #267 from mfojtik/quota-nullable
+[33m7da723d8[m quota: make namespaces and labelselector optional and nullable
+[33mad6339a9[m Merge pull request #263 from pravisankar/use-existing-operatorcondition
+[33mdb56c6dc[m Merge pull request #245 from derekwaynecarr/cloud-conf
+[33m07f28f59[m config: InfrastructureSpec reference cloud provider configuration
+[33m9826df0e[m Drop controversial arbitrary AWS tags.
+[33m1e536453[m Merge pull request #265 from enj/enj/i/tighten_oauth
+[33m5d161524[m Generated
+[33m3924b1da[m Add issuer to OpenIDIdentityProvider
+[33mf88bf8ae[m Infer challenge and login based on IDP
+[33mbc6c395d[m Merge pull request #264 from sttts/sttts-fix-pattern
+[33me2138dd2[m operator/v1: fix amangementState regex
+[33mcb601a1b[m Use OperatorCondition instead of custom DNSCondition.
+[33m71fdeba1[m Merge pull request #253 from deads2k/update-feature-gates-2
+[33m963e1402[m Merge pull request #259 from gnufied/enable-local-storage
+[33m2d280f23[m Remove Local storage from disabled features
+[33m6820a28f[m Merge pull request #258 from sttts/sttts-remove-top-level-admissionPluginConfig
+[33m65ac4352[m config: remove unused top-level admissionPluginConfig
+[33m690ffbe1[m Merge pull request #221 from pravisankar/add-clusterdns-api
+[33mf4dbc789[m Added Cluster DNS operator/v1 api
+[33m19e76f65[m Merge pull request #251 from ironcladlou/ingress-publishing-default
+[33mf937b46e[m Merge pull request #255 from adambkaplan/build-eviction-reason
+[33mb8cfc3ca[m Bug 1689061: Add BuildPodEvicted Status Reason
+[33m756349b2[m Merge pull request #218 from ravisantoshgudimetla/add-default-project-nodeselector
+[33m0c089023[m Generated
+[33m296a3b40[m Adding default node selector to kubescheduler config type
+[33mbfb0ed87[m Merge pull request #254 from sttts/sttts-operator-status
+[33mcd592762[m operator/v1: mark all status fields omitempty and optional
+[33m5381d532[m Merge pull request #249 from zherman0/logoutcheck
+[33m48503215[m operator/ingress: change default publishing strategy for unknown platforms
+[33m044292b2[m supportpodpidslimit in features
+[33md934e5cf[m Merge pull request #252 from Miciah/operator-slash-ingress-default-Libvirt-to-HostNetwork
+[33m55192328[m operator/ingress: default Libvirt to HostNetwork
+[33m5e45fff0[m Merge pull request #247 from rphillips/fixes/fix_pluralization_feature
+[33m878eea8b[m makefile: add generator using a container
+[33m2f62ae36[m Add route.spec.subdomain to support implicit hostnames
+[33md521b844[m Add pattern check for ConsoleAuthentication
+[33mee961910[m features: rename to FeatureGate
+[33m7fa446eb[m Merge pull request #222 from benjaminapetersen/console/brand/azure
+[33mfb5c7e9a[m Merge pull request #215 from squeed/network-operator
+[33m853a7faf[m Merge pull request #241 from ironcladlou/ingress-controller-status
+[33mfe0c0ad0[m Merge pull request #244 from deads2k/update-feature-gates
+[33m32e5296d[m update feature gates to match desired values
+[33mdd7e62b7[m operator/ingress: add condition types
+[33mc95c5aaa[m Merge pull request #238 from ironcladlou/endpoint-fixes
+[33m600a5519[m Merge pull request #239 from danwinship/network-status-empty
+[33mffdec64c[m Operator: add Network type.
+[33mcfceec02[m Make config.NetworkStatus fields omitempty
+[33mc9b4e5b2[m Adds platform-specific specs to Infrastructure in config.openshift.io
+[33m4037fbf1[m operator/ingress: fix endpoint publishing strategy optionality
+[33mf044dc43[m Merge pull request #237 from sttts/sttts-nullable
+[33m3387a913[m config: add nullable to NetworkStatus
+[33mc2248829[m Merge pull request #232 from mfojtik/management-state-optional
+[33mc9d17fcc[m operator/v1: remove optional from managementState
+[33mc379c215[m Merge pull request #219 from ironcladlou/clusteringress
+[33mdb78dc7e[m Merge pull request #233 from damemi/opspec-pattern
+[33mf07bad52[m Add pattern validation to operatorspec managementstate
+[33md0b3e281[m Update references to other fields
+[33mf9bc4a76[m Update references to other fields
+[33mb8efb56f[m Add Azure to brand options for console
+[33meea75165[m regenerate
+[33mde521daf[m typo
+[33m774f49c4[m More fixes
+[33m5636b4a0[m generate
+[33m5d3c744d[m Typos and reshuffling
+[33m0f547083[m Rename highAvailability to endpointPublishingStrategy
+[33mad60feaa[m Merge pull request #228 from sttts/sttts-operator-omitempty-3
+[33md01706c2[m config/v1: avoid null values
+[33m01e15758[m Merge pull request #227 from sttts/sttts-operator-omitempty-2
+[33mf52722b3[m config+operators: make spec required, status optional
+[33me01266d5[m config/v1: avoid null values
+[33me8e70741[m config/operator: fix omitempty, +optional, +nullable without behaviour change
+[33m567fb5f0[m operator/v1: add ingresscontroller
+[33mb75f8002[m Merge pull request #230 from deads2k/sjenning
+[33m21690b81[m generated
+[33ma05eb3d1[m rename Scheduling type to Scheduler
+[33m22e49ec6[m Merge pull request #226 from sttts/sttts-operator-omitempty
+[33med190190[m operator/v1: fix omitempty, +optional, +nullable
+[33m5eb2215f[m Merge pull request #224 from rphillips/feat/add_map_to_features
+[33m645f70de[m add blurb for upgrades
+[33m57a13377[m doc, default, and pointer fix
+[33m883da523[m create a map of FeatureSets
+[33mc58918e2[m Merge pull request #220 from sallyom/update-optional-operator-fields
+[33m59c1dd0b[m Make operator fields optional
+[33mcec62698[m Merge pull request #212 from benjaminapetersen/console/config/public-url
+[33m1d5f79e4[m Generated
+[33m19077cb8[m Update Console Status PublicHostname to PublicURL
+[33m296f4c42[m Merge pull request #208 from adambkaplan/rm-build-registries
+[33m8dcbbe84[m Merge pull request #213 from mfojtik/fix-type
+[33mf8546e4d[m config/v1: fix typo in DefaultDisabledKubeFeatures comment
+[33mf4164af9[m Merge pull request #211 from deads2k/features-mark-2
+[33mcb88df0a[m update features API to reduce changes
+[33maf79befc[m Merge pull request #206 from deads2k/upgradeable
+[33mf1796006[m add clusteroperator Upgradeable conditions
+[33m58462523[m Merge pull request #210 from deads2k/schedulerapi
+[33m1bc10396[m update the scheduler API for static pods
+[33mea5d0540[m Merge pull request #209 from jboyd01/svcat-operator-types
+[33m2b679d4c[m new types for ServiceCatalogAPIServer & ServiceCatalogControllerManager operators
+[33m2472661f[m generated
+[33m45ad3f83[m Remove RegistriesConfig from builds
+[33me6677f05[m Merge pull request #207 from bparees/imagecas
+[33m3f205284[m move container runtime registries config under the image api
+[33mabd19412[m Merge pull request #202 from abhinavdahiya/config_dns
+[33ma46dadea[m Merge pull request #192 from adambkaplan/rm-build-search
+[33m2d436216[m config/v1: update generated content
+[33m2b898e05[m config/v1: add public and private zones to DNSSpec
+[33m8c839bc7[m Merge pull request #204 from umohnani8/registries
+[33m9526b742[m Merge pull request #205 from deads2k/admission-01-force
+[33mf9e94f7f[m add explicit option for enabling admission plugins
+[33m1bf2fe98[m Add API changes for registries CRD
+[33m15e510bd[m Generated
+[33m21e40de4[m Merge pull request #203 from mrogers950/service_ca_op_v1
+[33me71a1d0e[m Add service-ca operator config
+[33ma2de4d01[m Merge pull request #201 from enj/enj/i/osin_cli
+[33m1616042f[m Add OsinServerConfig
+[33md67473e7[m Merge pull request #196 from ravisantoshgudimetla/scheduler-types
+[33m8449de79[m Generated files
+[33mfe54dc12[m Add scheduler operator types
+[33m5cb14cba[m Merge pull request #195 from deads2k/remove-oapi
+[33m4396430e[m Merge pull request #188 from deads2k/feature-gates
+[33m5be760b1[m remove option for enabling oapi
+[33m8e1fdb34[m add features api for feature gates
+[33m9eadf36e[m generated
+[33mdbfeecf7[m Merge pull request #194 from sallyom/kubeapiserver-fixup-swagger
+[33m6a07be48[m Merge pull request #193 from sallyom/add-operator-v1-authentication
+[33m13246b36[m fixup kubeapiserver swagger
+[33m67c064dd[m migrate authentication operator config
+[33mc2620a0c[m Remove search registries for builds
+[33m4912e102[m Merge pull request #191 from deads2k/etcdoperator
+[33meac604b0[m generated:
+[33m921ade51[m add etcd operator
+[33mf0c444ba[m Merge pull request #190 from benjaminapetersen/operator/config/console
+[33md4b58791[m Add console operator config
+[33m0e93a752[m Merge pull request #189 from abhinavdahiya/infra_mco
+[33m373f1131[m update generated code
+[33m573fabd0[m config/v1: add `etcd discovery domain` and `apiserver url` to Infrastructure status.
+[33m31ed6168[m Merge pull request #182 from smarterclayton/more_constants
+[33mfe2e87b1[m Merge pull request #183 from bparees/move_controller
+[33mab2e8641[m add types for openshift controller manager operator
+[33mbbc4289c[m Merge pull request #187 from deads2k/consts
+[33m42f533bd[m move annotation constants into api
+[33m67715304[m Merge pull request #159 from benjaminapetersen/console/update-config
+[33m1fdbd810[m Expand Console global config
+[33m130a85ac[m Merge pull request #186 from deads2k/bump2
+[33mf0444f41[m generated
+[33me1bad6a6[m react
+[33m17557b24[m bump
+[33m0807c1e7[m set new levels
+[33mae9a3391[m Merge pull request #185 from smarterclayton/rename_observed_generation
+[33m48f829bc[m clusterversion: Change to status.observedGeneration to be consistent
+[33ma67af6b6[m Merge pull request #178 from sanchezl/new_apiserver_type
+[33ma6de599c[m add APIServer CRD to the config.openshift.io group
+[33m2469ee9d[m Merge pull request #184 from deads2k/staticpodspec
+[33mdde49aa8[m resync with the local API
+[33m8d1c1c52[m Merge pull request #181 from ravisantoshgudimetla/add-scheduler-api
+[33m07f7095c[m config: add scheduler configmap api
+[33ma0697cdf[m infra: Add more constants for platforms and update godoc
+[33m74cf0253[m Merge pull request #175 from smarterclayton/rename_payload
+[33ma77c9497[m Merge pull request #177 from enj/enj/i/strip_upgrade_3.11
+[33m606c49c6[m Merge pull request #180 from deads2k/versions
+[33m46fa22c3[m require operator version reported
+[33m4ec3bbc4[m Merge pull request #179 from deads2k/apiserver-explicit
+[33mb319f00f[m add explicit configuration for aggregator front proxy
+[33mcefbd60f[m clusterversion: Rename 'Payload' to 'Image'
+[33m4fd524da[m Remove useUsernameIdentity from KeystoneIdentityProvider
+[33mb4c87b23[m Merge pull request #176 from deads2k/version-01
+[33m22d42ad0[m update the clusteroperator version
+[33m4d49b575[m Merge pull request #174 from deads2k/operator-types
+[33m647d9a31[m generated
+[33m1ef4c4fb[m add types for controlplane operators
+[33mc3ef7090[m Merge pull request #171 from damemi/staticpodoperatorspec
+[33mad66aca3[m Add StaticPodOperatorSpec to operator/v1
+[33m11fc6649[m Merge pull request #173 from mfojtik/project-config-api-fix
+[33m5444d869[m project: remove pointer from project request template ref
+[33m7e08e1ff[m Merge pull request #172 from mfojtik/project-config-api
+[33m7259236f[m config: add project config api
+[33m5b54c056[m Merge pull request #169 from bparees/caref
+[33m7775ff80[m Merge pull request #170 from enj/enj/i/embed_provider_config
+[33mf43be701[m Correctly embed ProviderConfig in IdentityProvider
+[33mc75f5d85[m Merge pull request #166 from bparees/selector
+[33me28b3f3c[m switch image ca ref to configmap ref only (no key)
+[33md11ad92a[m Merge pull request #168 from bparees/caref
+[33me643dde3[m switch build ca ref to configmap ref only (no key)
+[33ma71dc7d8[m generated
+[33m8385d47f[m switch build nodeselector config to use map[string]string
+[33m1615e287[m Merge pull request #164 from deads2k/op-03-logging-2
+[33m6c7a6912[m Merge pull request #144 from adambkaplan/build-reg-conf
+[33m801fe09d[m add coarse grained logging desires to operator API
+[33m41441486[m Merge pull request #160 from deads2k/remove-difficult-logging
+[33mec905d49[m Merge pull request #163 from deads2k/apiserver-01-oapi
+[33m02eebd5e[m add option to enable oapi if needed
+[33mec43dc98[m Registry Configuration for Builds
+[33m1ef60444[m Merge pull request #161 from deads2k/references
+[33m4f28c742[m add relatedObjects to the cluster operator status
+[33m283ba08f[m remove detailed logging options
+[33md20e225e[m Merge pull request #150 from enj/enj/i/top_level_auth_fixes
+[33meb7cec7c[m Generated
+[33md22df4f5[m Update OAuth and Authentication top level configs
+[33m84404551[m Merge pull request #156 from deads2k/proxy-01-global
+[33m36ba0ed5[m add global proxy configuration
+[33m996ccb49[m Merge pull request #157 from smarterclayton/fix_swagger
+[33m99440133[m generate: Swagger gen using new pattern
+[33m739932c3[m Swagger gen should generate types*.go, not just types.go
+[33mae39ae99[m Merge pull request #158 from mrogers950/confmap_key
+[33me76aec3a[m generate
+[33me544020b[m Fix the ConfigMapReference key json
+[33maab033ba[m Merge pull request #149 from ironcladlou/cloud-provider-refactor
+[33m14e4f9c0[m Merge pull request #153 from smarterclayton/update_cluster_version
+[33mcae4137f[m Update ClusterVersion with a desired field and a history field
+[33mc40f8e9e[m Merge pull request #155 from deads2k/build-proxy
+[33m410d9946[m Rename Infrastructure.CloudProvider to Platform
+[33m053f8e37[m tighten build proxy configuration
+[33mbf3bcbe7[m Merge pull request #152 from enj/eni/i/no_type_meta_controller_config
+[33mfba8d0ab[m Merge pull request #148 from adambkaplan/build-proxy-api
+[33mcefc9d76[m Remove embedded TypeMeta from GenericControllerConfig
+[33m1a0ca444[m Merge pull request #126 from bparees/externalhost
+[33m1c1f8ee7[m config/build: First-Class Proxy Config
+[33m4703f3e7[m Merge pull request #147 from enj/enj/f/master_auth_config
+[33m4f1226c8[m Generated
+[33md2cbdf7c[m Add oauthMetadata and webhookTokenAuthenticators to auth config
+[33mcfbaa982[m Merge pull request #141 from squeed/network-status
+[33mf578b4af[m config: add Network type
+[33m797a09d3[m Merge pull request #145 from ironcladlou/cloud-provider
+[33ma8f58df5[m Add cloud provider name to infra config
+[33m10e06e71[m Merge pull request #129 from ericavonb/auth-config
+[33mcc545f63[m doc(config): generate swagger docs for localsecretreference type
+[33ma233f914[m feat(config/v1/types_oauth): discriminate between idp types
+[33m8241b16b[m Merge pull request #146 from ironcladlou/basedomain
+[33me3f96409[m Improve the BaseDomain docs
+[33m3bf73326[m Add base domain to DNS config
+[33mdfeec45d[m feat(config/types_oauth.go): add oauth server config types
+[33m83b2fe56[m Merge pull request #142 from adambkaplan/rm-cm-namespace
+[33md80ac939[m Remove Namespace for Config References
+[33me7dc9065[m Merge pull request #140 from enj/enj/r/alfred_new_status
+[33m3fb7357e[m Generated
+[33mbf4ef7eb[m Move service cert signer to operator v1 spec and status
+[33m6a375c5b[m Merge pull request #139 from Miciah/add-ingress-domain
+[33m2ba77238[m Add ingress domain
+[33mffac7eec[m Merge pull request #137 from deads2k/generation
+[33m903c57fe[m add observed generation to operator v1
+[33m94c26c55[m include a generated externalregistryhostname field
+[33m7019e797[m Merge pull request #136 from jwforres/update-owners
+[33m4d2eb0b8[m Update owners file for current review team
+[33m6ccc7954[m Merge pull request #135 from deads2k/to-revision
+[33m1142d5eb[m rename static pod deployment to revision for clarity
+[33m8dce450a[m Merge pull request #132 from bparees/externalhost_config
+[33m8a3880e9[m Merge pull request #134 from bparees/clusteroperator
+[33m366abade[m align godoc and field
+[33m18e77327[m Merge pull request #133 from smarterclayton/conditions
+[33m109a7180[m Fix openapi for cluster operator
+[33mac92e49a[m add externalregistryhost slice to cluster config
+[33md37540d8[m Merge pull request #125 from deads2k/operator-v1
+[33m0c228270[m Added detail to some comments and marked the open TODOs
+[33ma9f17172[m Merge pull request #131 from smarterclayton/fix_namespace
+[33m3a146df7[m config: ClusterOperator not detected as cluster scoped
+[33m539360d2[m Merge pull request #127 from smarterclayton/add_cluster_op_version
+[33m8453618a[m provide a basic operator v1 API
+[33m602ca280[m generated
+[33m898d7e3b[m api: Move ClusterVersion/ClusterOperator into config.openshift.io
+[33mc3b47bfe[m Merge pull request #124 from deads2k/config-10-best-guess
+[33ma82fcd50[m stub in a best guess at cluster level configuration
+[33m8c036bbd[m generated
+[33mfd594d07[m Merge pull request #123 from deads2k/config-list
+[33m4214a22c[m add metav1 to config to allow working client
+[33m22c4ad19[m Merge pull request #122 from deads2k/build
+[33m110ecdd3[m switch build config format back to old style selector
+[33mdcf20c60[m Merge pull request #119 from bparees/registryhostname
+[33md25f237a[m Merge pull request #121 from bparees/meta
+[33mf5ff1e05[m generated
+[33m184d5804[m fix buildlist meta
+[33mb8a02d14[m generated
+[33mbbbce317[m add internal registry hostname to serviceaccount controller config
+[33m2699ad42[m Merge pull request #113 from adambkaplan/buildconfig
+[33m6d171bb8[m Build Controller CA Bundles
+[33mc68ae01e[m Merge pull request #116 from deads2k/static-status
+[33mf3f77b8d[m add static pod operator status
+[33m57f423fb[m Merge pull request #117 from bparees/docker
+[33m48d24fd5[m Remove references to Docker when they are not needed
+[33mf4db9e2d[m Merge pull request #112 from danwinship/vxlanPort
+[33mab94c17d[m Merge pull request #111 from bparees/imageconfig
+[33mef5eb634[m add ImageConfig
+[33m8544a092[m generated
+[33me815500c[m Fix capitalization of vxlanPort
+[33ma4602983[m Merge pull request #110 from deads2k/status-01
+[33m86d02736[m add status conditions to match CVO ClusterOperator
+[33m8c94a0d0[m Merge pull request #109 from mfojtik/image-pull-policy
+[33m6f9aa5aa[m operator: add imagePullPolicy to allow override the operator image pull policy
+[33mfac417a1[m Merge pull request #106 from deads2k/prototags
+[33mc58d4f35[m remove config proto tags
+[33mb3641e9b[m Merge pull request #103 from wongma7/availability
+[33mc9d033a0[m Merge pull request #104 from enj/enj/i/remove_simo_owners
+[33mac3d11cf[m Remove Simo Sorce from OWNERS
+[33m03a285f2[m Rename VersionAvailablity to VersionAvailability
+[33mcc577cdc[m Merge pull request #102 from deads2k/config-08-generat
+[33maf19f1d8[m generated
+[33md2649035[m remove proto for non-proto-able resources
+[33mcd2684fb[m Merge pull request #101 from deads2k/kubecm-types
+[33mcd7e7031[m generated
+[33m6229c3d0[m add types for kube controller manager
+[33m739bd301[m Merge pull request #100 from deads2k/kube-install
+[33m432765fc[m add method for install kube types
+[33m4507dcb6[m Merge pull request #99 from deads2k/config-07-openshift-controller
+[33m44e75f1c[m add controller types
+[33ma9bdcb39[m generated
+[33m59a17884[m Merge pull request #98 from deads2k/config-06-openshift
+[33m0320f793[m generated
+[33m431f737e[m add openshift apiserver config types
+[33m4b29afba[m Merge pull request #96 from deads2k/config-04-console-redirect
+[33m52ad3ef5[m accept console URL for kube-apiserver redirect
+[33m0b3bd79a[m Merge pull request #94 from deads2k/config-01-initial
+[33m104b07dd[m generated
+[33m4b329f35[m add config types for kubeapiserver
+[33m587c4469[m Merge pull request #95 from deads2k/config-02-legacy
+[33m5cb12044[m move legacy types to configapi
+[33m315f3733[m generated
+[33m5ad8479f[m Merge pull request #91 from liggitt/owners
+[33m6dc9c183[m Merge pull request #89 from mfojtik/add-template-annotations
+[33mbab084e1[m apps: add missing consts and vars
+[33mdb56591b[m clean up owners
+[33mbccfa651[m Merge pull request #77 from deads2k/install-02-oops
+[33maa551efb[m pick up missing groups to install found when using in oc:
+[33m5f96eb84[m Merge pull request #87 from mfojtik/add-template-annotations
+[33m7e64feb3[m add missing template annotation consts
+[33mcb68976b[m Merge pull request #86 from soltysh/image_types
+[33m582a6a15[m Merge pull request #85 from deads2k/build-02-ref
+[33m5e61905c[m Add missing image API types
+[33m8897b467[m generated
+[33md4b52fa3[m make external gitinfo match internal
+[33m072d1972[m Merge pull request #79 from smarterclayton/correct_image_layer_name
+[33m1ba94e5a[m Add an imageMissing field to the blob references
+[33m6ae239a9[m Images are themselves manifests, and reference a config blob
+[33mf424ae81[m Merge pull request #84 from deads2k/network-01-consts
+[33m25c1fd48[m add network annotation constants
+[33m0241137f[m Merge pull request #76 from spadgett/console-url
+[33m4879e7ba[m Merge pull request #57 from JacobTanenbaum/vxlan
+[33m0c2b2747[m auto generate files
+[33mf0b43a9f[m adding vxlanPort the the ClusterNetwork Object
+[33mfc4c02c9[m Merge pull request #75 from liggitt/1.11.1
+[33me4469067[m bump(*)
+[33mf0839957[m update to 1.11.1
+[33mdeb367a7[m Merge pull request #60 from stlaz/unsafe_sysctls
+[33m79e4236f[m `make generate` for SCC sysctl additions
+[33m6422002d[m SCC: add {AllowedUnsafe,Forbidden}Sysctls
+[33mda58561f[m Merge pull request #64 from danwinship/egress-cidrs
+[33mb659d682[m generated
+[33m05ffb7db[m Add admin console public URL to webconsole config
+[33m331c73cb[m Merge pull request #74 from openshift/revert-73-op-01-typefixes
+[33me204f328[m[33m ([m[1;31mupstream/revert-73-op-01-typefixes[m[33m, [m[1;31morigin/revert-73-op-01-typefixes[m[33m)[m Revert " change operator alpha types based on SSCS experience"
+[33m33c99c45[m Merge pull request #73 from deads2k/op-01-typefixes
+[33m8054b822[m generated
+[33m811e3447[m change operator alpha types based on SSCS experience
+[33m12a230f9[m Merge pull request #72 from liggitt/pr-process
+[33m4c9ec4c5[m describe PR process for coordinating API changes
+[33md4dd70ee[m regenerate
+[33m91038f14[m add HostSubnet.EgressCIDRs
+[33mf8215ce5[m Merge pull request #71 from wozniakjan/bug-1596440/surface_oomkilled_in_build
+[33md38fb28f[m add OutOfMemoryKilled failure reason to build
+[33m04a26bf3[m Merge pull request #69 from deads2k/fixes
+[33m402026b3[m minor fixes for generator and package name
+[33m0d5017f0[m Merge pull request #56 from smarterclayton/layers
+[33mb772cc93[m Add an ImageStreamLayers object for returning layers of a stream
+[33m95626b02[m Merge pull request #67 from deads2k/install-01
+[33m2f6f4d85[m create install functions based on new runtime.Scheme
+[33md905f56a[m generated
+[33maaea23fe[m Merge pull request #66 from deads2k/sscs-08-injection
+[33mb630e978[m generated
+[33m211c01bb[m add config types for other SCS controllers
+[33m31a7bbd2[m Merge pull request #65 from deads2k/rebase-to-11-ga
+[33me5865f54[m bump(*)
+[33ma40dd121[m switch to use kube 1.11 GA
+[33ma93a22bd[m Merge pull request #63 from deads2k/template-register
+[33m457fe97d[m fix type registration for templates
+[33m22698db5[m Merge pull request #38 from php-coder/scc_allow_privilege_escalation_option
+[33m6b91241c[m Run make generate.
+[33mb6097315[m SCC: add {Default,}AllowPrivilegeEscalation options for controlling no-new-privs flag.
+[33m64db63cc[m Merge pull request #44 from wozniakjan/feature/imagechangetrigger
+[33m73d66ef6[m Add 'Paused' to ImageChangeTrigger for BuildConfig
+[33m0ce1df2d[m Merge pull request #43 from adambkaplan/feature/build-source-configs
+[33mff4ab597[m Merge pull request #59 from deads2k/rebase-02-imagetag
+[33m21b6606c[m list doesn't make sense for subresources
+[33mfb83d185[m Merge pull request #58 from deads2k/rebase-01
+[33ma7bc7400[m bump(*)
+[33mb9636d35[m update deps for 1.11
+[33m6ef6704e[m Merge pull request #51 from soltysh/gitattributes
+[33m7c345a55[m Merge pull request #55 from deads2k/sscs-06-client
+[33mea22305e[m fix registration for served API
+[33m1adcd4e8[m Merge pull request #54 from deads2k/sscs-05-list
+[33ma623a1cc[m generated
+[33m860a9d94[m add list
+[33m813808ae[m Merge pull request #53 from deads2k/sscs-04-operator-2
+[33mcc20304c[m generated
+[33m6425dcd6[m fix up operator types
+[33m5214a21b[m Merge pull request #52 from php-coder/fix_allow_flex_volumes
+[33m8cb56d73[m Run make generate.
+[33mdcc8c103[m SCC: mark AllowedFlexVolumes as optional field.
+[33m0cb4131a[m Merge pull request #49 from deads2k/sscs-01-config
+[33mc996e912[m package fix
+[33med8c8543[m generated
+[33m1e46ae93[m add SSCS config
+[33maae9688e[m add leader election config
+[33m61b27683[m Merge pull request #48 from deads2k/operator
+[33maa099f85[m Make github hide generated files in diffs
+[33m2d0649e2[m generated
+[33m57eb1879[m add alpha common operator types
+[33m54917e0a[m Merge pull request #46 from simo5/RIP_policy_objects
+[33mdb404b1e[m Merge pull request #45 from deads2k/add-config-01
+[33mfe60953d[m Adding ConfigMap build sources to api
+[33m221b49e6[m Merge pull request #47 from liggitt/rebase-1.10.2
+[33m76102594[m bump to 1.10.2
+[33m534fa424[m R.I.P. Policy Objects
+[33m20c5bae7[m generated
+[33mcf6aa9c5[m add config API group for common config
+[33m80a1e2bf[m Merge pull request #40 from deads2k/uidallocation
+[33m0b124e96[m generated
+[33m34d61c15[m add types for security uid allocation
+[33m0e40c78c[m Merge pull request #39 from deads2k/istag-list
+[33me7398031[m update istag to generate a list
+[33mf8f73102[m Merge pull request #41 from liggitt/rebase-1.10.0
+[33m50332d8d[m make generate
+[33m0d43fa05[m fix generate proto script
+[33m5a17ca98[m bump(*): make update-deps
+[33m09a4e3d5[m update glide.yaml
+[33mdca24d19[m Merge pull request #34 from smarterclayton/add_as
+[33m07eba67e[m Add the 'as' field to ImageSource to allow multi-stage builds
+[33m0d921e36[m[33m ([m[1;33mtag: v3.9.0[m[33m)[m Merge pull request #32 from spadgett/cro
+[33m3155368e[m generated
+[33m8e06b8e9[m Add ClusterResourceOverridesEnabled to console config
+[33m3477075c[m Merge pull request #31 from spadgett/console-config
+[33m9a402b6c[m make generate
+[33mfae8f148[m Update WebConsoleConfiguration
+[33m7ed662e6[m Merge pull request #30 from deads2k/pin
+[33md2f8999e[m bump(*)
+[33ma340fc09[m pin to the kube tag
+[33mfca5e622[m Merge pull request #29 from deads2k/console-01-config
+[33ma367e911[m generated
+[33m195666c2[m add webconsole config types
+[33m7f5fc719[m Merge pull request #28 from tnozicka/fix-insecure-edge-termination-policy-enum
+[33m0d7eb674[m Route: Fix InsecureEdgeTerminationPolicy enum
+[33m3d85da17[m Merge pull request #25 from bparees/aliases
+[33m896b6c61[m Merge pull request #23 from soltysh/glide_check
+[33m24033c51[m clarify restrictions on imagestream tag aliases
+[33m02f89006[m Check glide version
+[33m8af7eb60[m Merge pull request #22 from soltysh/deep_copy_fail
+[33m4bfaf068[m Add DeepCopy fail test
+[33m737f4df9[m Merge pull request #21 from deads2k/deepcopy
+[33m0f68815c[m bump(*)
+[33ma81ea612[m update makefile
+[33m46a43c07[m Add deepcopy tests
+[33m3922a260[m Merge pull request #15 from simo5/tokentimeout
+[33m66b2fbbd[m Merge pull request #19 from bparees/buildapi_consts
+[33mbaf10d6a[m copy build constants to external api
+[33mfa998aac[m Merge pull request #16 from soltysh/verify_codegen
+[33m80eef124[m Add verification scripts
+[33m5e9e3af3[m API changes for origin PR#17640
+[33m3e1c0e8e[m Merge pull request #18 from deads2k/use-official
+[33m65441534[m generated
+[33m4b4430e0[m bump(*)
+[33m1860d948[m update to official forks
+[33m420fe685[m Merge pull request #17 from deads2k/rbac-fix
+[33m43cfcdc4[m generated
+[33m0bb592e8[m allow round tripping of new rbac fields
+[33m1ece25cd[m Merge pull request #14 from deads2k/bump
+[33mf5a55b46[m generated
+[33m6ecab81f[m bump(*)
+[33m5bad94b9[m update glide.yaml to forks because we don't have a real one
+[33ma6905405[m Merge pull request #11 from jim-minter/scc-docs
+[33mf4057b62[m add OWNERS
+[33me27edf81[m Merge pull request #10 from bparees/webhook_secrets
+[33m52b46cd3[m update documentation on SCCs
+[33mbfc72445[m add _output/bin to PATH temporarily in update-protobuf.sh
+[33m1d38d422[m add a secret ref for webhook secrets
+[33me9879b89[m[33m ([m[1;31mupstream/release-3.8[m[33m, [m[1;31morigin/release-3.8[m[33m)[m Update README.md
+[33m2f04533c[m UPSTREAM: openshift/origin: missed tags
+[33mf71a8229[m Merge pull request #8 from deads2k/api-changes
+[33m8eb98a7d[m UPSTREAM: openshift/origin: 17185: SCC can't be patched via JSONPatch because users is nil
+[33me3730176[m UPSTREAM: openshift/origin: 17035: DeploymentConfig replicas should be optional, other fields too
+[33m81c20b34[m UPSTREAM: openshift/origin: 17091: merge imagestreamtag list on patch
+[33m28f53565[m Merge pull request #7 from deads2k/deep-copy-alias
+[33maedc76b5[m update generation script
+[33m0266ffb1[m UPSTREAM: k8s.io/gengo: 73: deepcopy: add alias support
+[33m30c94fd7[m UPSTREAM: code-generator: 00000: Fix protobuf generator for aliases to repeated types
+[33m4ef508bf[m bump(*)
+[33m08e635c7[m add nested codec stuff
+[33m65916170[m generated
+[33m1ea48a0d[m fix protobuf generator
+[33m397a57e2[m update deep copies
+[33m3713da6d[m Merge pull request #6 from deads2k/fix-refs
+[33m28e78b12[m update types for k8s.io/api
+[33m729b1de9[m Merge pull request #5 from deads2k/fixup
+[33m1b73fb67[m generate
+[33mc27c0a23[m UPSTREAM: code-generator: 00000: Fix protobuf generator for aliases to repeated types
+[33m62f0f190[m update image deep copy generation
+[33ma4c5b123[m Merge pull request #4 from deads2k/swagger
+[33m1e8ac6bb[m generated
+[33m98aa221b[m add swagger generator
+[33m31b04a3d[m Merge pull request #3 from deads2k/prime-prime
+[33m97a8fe23[m code gen for types
+[33m0518cd9c[m update API types for new dependencies on k8s.io/api
+[33m951bdbd0[m generated deps
+[33m77ca47e7[m scripts and stuff
+[33mb6e55a22[m add back readme and license
+[33me1cb1a2c[m prep for api
+[33m5ae6a432[m refactor for api
+[33m326f68d0[m remove experimental extended builds api
+[33m786496ff[m remove tech preview label from jenkins strategy
+[33me5ea7ede[m Misc auto egress IP fixes
+[33mcfb9158f[m fix LSAR client
+[33m961ff0a4[m add NetNamespace.EgressIPs and HostSubnet.EgressIPs
+[33mdeee49e7[m fix generated clients
+[33mfab559ee[m Allowing multiple CIDR addresses for allocation of Nodes
+[33m5d07da6c[m update imagestreammappingclient to work
+[33m73828cff[m build: register PodProxyOptions to build schema
+[33mb5c34d58[m build: remove generated instantiateBinary method cause it has unsupoported signature
+[33mfa12c3e7[m project: add client for projectRequests
+[33ma48ddbdb[m Enable deepcopy-gen in packages where needed
+[33m70c7b37d[m Add +k8s:deepcopy-gen:interfaces tags to runtime.Object impls
+[33mcf22111f[m remove dependency on github.com/fsouza/go-dockerclient from imageapi
+[33m4e3b8d99[m Per-client access token expiration
+[33m19a2343e[m update field selectors for all resources
+[33mbd8acd04[m update route field selectors
+[33maa916faf[m build: generate missing client methods
+[33m85ac529c[m deprecate imagestream dockerImageRepository field
+[33med655600[m Rename pkg/deploy -> pkg/apps
+[33mc0f9b695[m generate rollback client
+[33mf16913cc[m SecurityContextConstraints: add AllowedFlexVolumes field.
+[33m2a3790ab[m Adding --incremental and --no-cache to start-build
+[33m08697b1e[m image: add image stream secrets client
+[33m44b73611[m apps: add Instantiate, GetScale and UpdateScale client method for deployment config
+[33mf3c40e63[m Rename pkg/sdn to pkg/network, for consistency with its API
+[33ma0e179c7[m add tags for client generation
+[33m3f228dab[m Use groups/extra information for authorization in template service broker
+[33m33a31fd8[m add legacy field selector for names
+[33m811af269[m Generate clients for ImageStreamImport
+[33md81c6f84[m Set default for DeploymentConfigSpec.RevisionHistoryLimit in apps/v1 to 10. Fix tests now that we are really not doing cascade delete for legacy API. (Brings group API into tests.)
+[33m4aee6417[m add missing oauth client tags
+[33mf7e62619[m remove extraneous field selector conversions
+[33m61fceb6d[m Use oc adm instead of oadm which might not exist in various installations.
+[33m2efadc49[m populate Status.Objects in templateInstance
+[33mbd80148d[m add clients
+[33m8587910c[m generate more image clients and fix users clientset
+[33m40b6358d[m Add public pull spec field to image stream status
+[33mae1b371d[m SecurityContextConstraints: update description of the Priority field.
+[33ma53fce8e[m Make A/B deployment proportional to service weight
+[33m8a161d24[m update types to follow new upstream genclient syntax
+[33md53706a6[m Move CapabilityAll from k8s types and rename it to AllowAllCapabilities.
+[33m21725489[m add FSStorageOS to SCC
+[33me9aa65ee[m minor API updates to allow generation
+[33m40ad547c[m boring: simple method moves
+[33m352d328d[m tail build logs into build object
+[33m80750d11[m Update documentation for DC conditions
+[33m16b2daef[m make templateinstance secret optional
+[33m1200ef28[m move API groups to canonical locations
+[33m5e6174ba[m pick 14625: Allow setting volumes:[none] to disallow all volume types in SCC
+[33mca704a11[m move SCC types to openshift
+[33m38267363[m (WIP) Support valueFrom syntax for build env vars (#14143)
+[33m0aad2352[m Eliminate nil/empty distinction for new v1 field
+[33md3e07ae0[m Add lookupPolicy.local to ImageStream and ImageStreamTag
+[33m489119ac[m Add a new generic image trigger controller
+[33m96768181[m api: Allow instantiate to exclude some triggers
+[33ma86e9ec9[m (WIP) Cleanup policy for builds
+[33md4e97e94[m add generated code for policy objects
+[33m9de1bcf5[m add client for buildconfig
+[33mbcac3360[m add clients for roles and rolebindings
+[33m528cbd00[m Support router reencrypt using the serving cert CA
+[33m359d954c[m Mark image types that should have generated clients
+[33m1d8b4c3b[m fix: build type changes
+[33mda6bb93a[m TO REVERT: fix SAR serialization
+[33md1884c6f[m apigroups: remove meta kinds
+[33mbc51b9c8[m Rewrites
+[33m3e1c53a1[m add build substatus
+[33mb68ee00a[m Added 'DNSname' field to EgressNetworkPolicyPeer object
+[33mb3ca134b[m explain dir copy behavior for image sourcepath
+[33ma2b00ff0[m Enumerated the possible build phase states in the comment
+[33m404291b3[m support for gitlab and bitbucket webhooks
+[33m40d65261[m rename requestor to requester
+[33m9009db4d[m use kapiv1 in pkg/template/api/v1/register.go, enables correct serialisation of (for example) DeleteOptions
+[33m922bde8c[m mark Image type +nonNamespaced=true
+[33m84384e7d[m Template service broker API
+[33m63bb9091[m generated clients
+[33m746c7306[m enable generation of normal clientsets
+[33m75142184[m Add image optimization policy API to builds
+[33m11a1c52a[m api: register and enable Origin API groups
+[33m744de9cf[m Bug 1420976 - Support passing reference-policy in import-image command
+[33mfb7a18ec[m Added types to support Docker build-args
+[33m7437527c[m Add validation to SDN objects with invalid name funcs
+[33meef7a00c[m add env vars to pipeline strategy
+[33m0a338d43[m build API: mark fields related to extended builds as deprecated
+[33me49cf925[m allow namespace specification via parameter in templates
+[33md3d3ada5[m Add Path and IsNonResourceURL to SAR (like upstream)
+[33m0762064f[m Add replace patch strategy for DockerImageMetadata and cmd tests for oc edit istag
+[33md7e7da62[m Deprecate User.groups field
+[33m3c446b76[m Router sets its host name in admitted routes
+[33mc426636a[m Store built image digest in the build status
+[33ma02ce701[m deploy: add ready replicas to DeploymentConfig
+[33m795ef060[m Remove omitEmpty from DeploymentConfigStatus int fields so it will emit them even if 0
+[33m2d8f239c[m Use generated defaulters
+[33m46725909[m Regenerate generated files
+[33m37d683c5[m Add defaulter-gen comments
+[33mbdd3076f[m Support a new image stream tag reference policy
+[33m3306374a[m deploy: generated changes for configurable activeDeadlineSeconds
+[33mdb164a3c[m deploy: make activeDeadlineSeconds configurable for deployer pods
+[33m24114671[m Introduce RestrictUsersAdmission admission plugin
+[33m6a9eda7a[m deploy: update doc for maxUnavailable
+[33mf23a59b3[m deploy: generated changes for lastUpdateTime
+[33m5cacea2d[m deploy: bring deployment config conditions on par with upstream
+[33me385495c[m Fix typos
+[33m791abc00[m Fixes as per @liggitt review comments:   o Fix generated route protobuf file   o Default Route.Spec.WildcardPolicy to None   o Add WildcardPolicy to RouteIngress in RouteStatus (defaulting to None)   o Record admitted wildcard policy when recording route status   o Reject wildcard routes when wildcards are disabled   o Change admission functions to just return errors (no bool) and update     checks for policy to use a switch in lieu of a if statement   o Simpilify RouteLessThan api helper function   o Make Route.Spec.WildcardPolicy immutable (in update validation)   o Log details about conflicting routes, but don't leak info to the user   o Change error to "HostAlreadyClaimed"   o Add checks for defaults on Spec and Ingress WildcardPolicy in conversion tests.
+[33mdcd860b2[m    o Split out cert list and use commit from PR 11217    o Allow wildcard (currently only *.) routes to be created and add tests.    o Add a host admission controller and allow/deny list of domains and control      the admission/blockage of wildcard routes.    o Fix test cases and expection.    o Add helper to generate valid wildcard regular expressions.    o Add wildcard domain map + regex based rules and use the rules for wildcard      routes.    o Bug fixes and add tests.    o Add generated completions and docs.    o Changes as per @marun, @rajatchopra, @smarterclayton review comments    o Rework as per api changes to use wildcard policy with routes    o Add defaults and update generated files.
+[33m2f309562[m add nodeselector and annotation build pod overrides and defaulters
+[33m5b3d7972[m Implement route based annotations for service accounts
+[33mc5071ebf[m Update role binding docs
+[33mc6d2cd83[m Extend Builds with list of labels applied to image
+[33mda0adfff[m deploy: api types refactoring
+[33mf9944f93[m Upgrade note and swagger for restoring automatic=false behavior in 1.4
+[33m6059832a[m deploy: generated code for deployment conditions
+[33m81516f0c[m deploy: api for deploymentconfig Conditions
+[33m3f16b719[m add validation
+[33m8ce4a22a[m add other user rules review
+[33mba767c11[m introduce no proxy setting for git cloning, with defaulter
+[33md1257a3c[m deploy: generated protobuf for instantiate
+[33m8d13f2e7[m deploy: instantiate deploymentconfigs
+[33m4c1912fa[m Update descriptions on all resources and remove definitions
+[33mc3882401[m Remove deprecated updatePercent field from deployment configs
+[33m1ed97e64[m Add PKCE support
+[33m44dd7407[m regenerate clientsets for v1_3
+[33m9c3c5038[m make projects non-namespaced
+[33m4a8e94cd[m Protobuf stringers disabled for OptionalNames
+[33m4cdce7e5[m Switch to new SchemeBuilder registration
+[33m6ac4e58d[m Update API types with proper generator tags
+[33me3540b38[m Ensure CLI and web console clients are public OAuth clients, pass token url to web console
+[33mba29d5e2[m Improve the SDN API docs a little bit
+[33m4be699cb[m mark extended builds experimental
+[33m9e5d8b6f[m add extended builds functionality
+[33mf9256a46[m Add EgressNetworkPolicy
+[33m2e5c009d[m update PSP review APIS
+[33mbd53eb58[m handle authorization evaluation error for SAR
+[33mdabe400b[m BuildSource: mark secrets field as omitempty.
+[33m3cf74491[m support for defaulting s2i incremental field at the cluster level
+[33m71e51281[m Make authorization conversions efficient
+[33mb7691822[m Rename AuthorizationAttributes -> Action
+[33m6bfc5c87[m Fix issues running protobuf from clients
+[33mf50709f9[m Templates should use NestedObject* with Unstructured scheme
+[33me22772f9[m Added REST storage for imagesignatures resource
+[33m52e16341[m generate: Protobuf types and updates
+[33m895803b1[m Give build fields proto safe names
+[33m785d0ca1[m deploy: add minReadySeconds for deploymentconfigs
+[33mae932997[m deploy: update revisionHistoryLimit to int32
+[33mfe2a339a[m expose evaluation errors for RAR
+[33mb7080e14[m Added a clean-up policy for deployments
+[33mfe774241[m add project annotation selectors to cluster quota
+[33m3a0b842c[m Add option to handle OAuth grants at a per-client granularity
+[33m6628ee92[m SDN types should used fixed width integers
+[33m519189f6[m Adding a field to templates to allow them to deliver a user message with parameters substituted
+[33mf210eb4a[m Make conversion and encoding handle nested runtime.Objects
+[33m28916946[m add clusterquota projection for associated projects
+[33m4f00b5dc[m ab testing
+[33m7ac3eaf5[m Add +genclient=true comment to allow client generation
+[33m7e2717f2[m Use docker/distribution v2.4.0+
+[33m90771dac[m add cluster quota APIs
+[33ma9d68bf2[m deploy: enhance status for deploymentconfigs
+[33mba30691e[m deploy: add new endpoint for rolling back deploymentconfigs
+[33mb8c33df3[m Build LastVersion should be int64
+[33m159b74c5[m Use ClusterNetworkDefault for referring to 'default' cluster network
+[33mbec319c7[m Added pluginName field to ClusterNetwork resource
+[33m7508dd8f[m add clusterquota types
+[33mc0992359[m React to int -> intXX changes in the code
+[33me5469e0b[m Convert all int types to int32 or int64
+[33mf53db971[m Interesting changes
+[33mea72b49a[m defaulting changes
+[33mc33d48d0[m boring changes
+[33mff54b0f1[m Revert "remove lastModified from policy and policybinding"
+[33m3632115e[m remove lastModified from policy and policybinding
+[33m7762a529[m respect scopes for rules review
+[33mddcf9ff5[m Added Signatures field to Image object
+[33m7f4bac56[m deploy: add pausing for deploymentconfigs
+[33mea55aca5[m SCC check: API and validation
+[33mae654544[m Import app.json to OpenShift applications
+[33md17021e5[m Fix misspells reported by goreportcard.com
+[33m4a618f1a[m add build trigger information and separate buildconfig data
+[33mbe7dac3e[m allow SAR to specify scopes
+[33m1f19ef30[m deployapi: fix automatic description
+[33m57f31f57[m default to letting oauth clients request all scopes from users
+[33mae237cf2[m add AdditionalSecrets to oauthclients
+[33mac228822[m add scope restrictions to oauth clients
+[33m7b56f98b[m deployapi: add separate call for updating DC status
+[33mea59596b[m deployapi: add generation numbers
+[33md5a5b54e[m Exclude type fields from conversion
+[33mb181529c[m add what-can-i-do endpoint
+[33m6ee8312f[m Allow to specify the run policy for builds
+[33m1f58d8f9[m Add JenkinsPipeline build strategy
+[33m326b7a71[m Allow parameters on generic webhook build trigger call
+[33m914a1b9c[m Add openshift.io/deployer-pod.type label
+[33m336ee420[m allow for no build config source input (defer assemble script or custom builder)
+[33me3b122de[m Make hand written conversions public
+[33m857fb7b0[m Update the postCommit hook godoc to reflect API
+[33m5315f273[m Fixing typos
+[33mfa9c2cc1[m Remove description field from types
+[33m98e2f70c[m Support API group and version in SAR/RAR
+[33m0fe54ba6[m check covers for role changes
+[33mb8dc2bcb[m Run post build hook with `/bin/sh -ic`
+[33m5a4e5768[m added Godoc to api types where Godoc was missing
+[33me1310a3d[m Run user-provided command as part of build flow
+[33mb9253570[m Add a TagImages hook type to lifecycle hooks
+[33m39520ed9[m Support create on update of imagestreamtags
+[33m744efb1c[m Have routers take ownership of routes
+[33mae8ad106[m API registration changes
+[33m04386e4d[m Support readiness checking on recreate strategy
+[33m3cb9b96d[m Implement a mid hook for recreate deployments
+[33m53a21a9d[m Support test deployments
+[33mfd555d00[m Initial build http proxy admission control plugin
+[33ma24b007a[m Replace NamedTagReference with TagReference
+[33mf5474c11[m Allow different version encoding for custom builds
+[33m010c35a8[m oc: support `logs -p` for builds and deployments
+[33m26e63a2d[m API types for addition of scheduled to image streams
+[33mf78cb5d2[m API registration
+[33mcbfc85fc[m Boring rebase changes
+[33m9702f3d1[m deployapi: remove obsolete templateRef reference
+[33mf25e5693[m Implement authenticated image import
+[33m5b4e7338[m new-build support for image source
+[33ma66422e7[m deployapi: make dc selector optional
+[33m16fb7b98[m Allow to specify secrets used for the build in source
+[33m5b068143[m Require tls termination in route tls configuration
+[33mf9db2e85[m mark image input source as experimental
+[33m779b2616[m deployapi: Refactor internal objects to match versioned
+[33m3e6984e5[m Allow using an image as source for a build
+[33maccc0f1f[m custom Dockerfile path for the docker build
+[33md9d12a07[m Typo fixes
+[33mea1aa2b0[m Allow to override environment and build log level in oc start-build
+[33m9ee3bbb7[m Add labels and annotations to DeploymentStrategy.
+[33m5a11d24f[m Add and test field label conversions
+[33m813ac15e[m logs: View logs from older deployments/builds with --version
+[33m22c7dc08[m fixes as per @smarterclayton review comments.
+[33m6cd6036a[m Fixes as per @smarterclayton and @liggit review comments.
+[33m2f0b76b3[m add istag list, update
+[33m18e6aa5e[m Add openshift.io/build-config.name label to builds.
+[33m6f85d768[m logs: Support all flags for builds and deployments
+[33m2cc1a00a[m   o Add support to expose/redirect/disable insecure schemes (http) for     edge secured routes.   o Add changes to template, haproxy and f5 router implementations.   o Add generated* files.
+[33mc74709e3[m platformmanagement_public_514 - Allow importing tags from ImageStreams pointing to external registries.
+[33m911b7053[m Enable binary build endpoint and CLI via start-build
+[33m93ee7a78[m Set build.status.reason on error
+[33mfc7b6536[m api changes for deployment logs
+[33m8fb8778a[m refactors
+[33m94c8efed[m Add build timeout, by setting ActiveDeadlineSeconds on a build pod
+[33m891bc39a[m Cleanup godocs of build types
+[33me6435d07[m Support deployment hook volume inheritance
+[33mc1ce30a7[m api group support for authorizer
+[33mf0302ef4[m Set Build.Status.Pushspec to resolved pushspec
+[33me807de13[m Routes should be able to specify which port they desire
+[33mb6f9ff6b[m Add an e2e test for Dockerfile and review comments
+[33m7fa7f3b5[m Build from a Dockerfile directly
+[33mc1266b9d[m Port upstream rolling updater enhancements
+[33m241a9f0b[m Allow field labels to work for routes
+[33m90f66af4[m Use route.Spec internally
+[33m4f601853[m Triggers should not be omit empty
+[33m8fa5a741[m Add additional secrets to custom builds
+[33mfa28a03f[m Add ServiceNetwork field to ClusterNetwork struct
+[33mbc684460[m Add 'displayName' to Template
+[33mdda440e2[m change internal representation of rolebindings to use subjects
+[33m72de1a9e[m add namespace to cluster SAR
+[33m089fc4ff[m fixed structtags errors
+[33m60c2c638[m Add BuildConfig change trigger for initial build trigger
+[33m55da3fa2[m Trigger SDN node event when node ip changes
+[33m9d76e0ac[m handle kube package refactors
+[33maa2c54a8[m update comments to accurately reflect validation
+[33m7dcba850[m multitenant sdn support; bump openshift-sdn/ovssubnet(74738c359b670c6e12435c1af10ee2802a4b0b64) vagrant instance updated to consume 2G
+[33m4dbc1d95[m Allow additional image stream build triggers on BuildConfig
+[33mc3be9823[m add required field to parameters
+[33m0f2fb5b6[m customForcePull:  changes to allow force pull of customer build strategy, including updates based on review with Ben; address gofmt issues
+[33m65a39008[m add Group kind
+[33m011aa0e9[m Rolling updater enhancements
+[33m34e4448c[m issue1875: make the force pull option configurable in the sti build strategy definition; various upstream documentation clarifications / enhancements; comments around reqs for coding/testing changes that run in the builder pod; fixes after merging (changes lost); incorporate comments from Ben
+[33mb7e69bf1[m Issue 3502 - removing label propagation to build pods in build controller.
+[33m240a229c[m refactor internal build api to match v1
+[33m5f7b5d18[m boring refactors
+[33mf56706a2[m allow http proxy env variables to be set in privileged sti container
+[33m7da67e5f[m require required fields in build objects
+[33md2dd60f6[m Fix typos in the repo
+[33md42be540[m Correct Docker image Config type
+[33m3ac41158[m Mostly golinting
+[33mdab0a1f1[m Improve consistency of build trigger types
+[33m65a7403b[m add api description unit test
+[33m7f3738b4[m Image API cleanup
+[33mb50816d9[m Add v1 descriptions to oauth
+[33m86e5089e[m Adding 'openshift.io/' namespace to 'displayName', 'description' annotations. Added annotations to api/types.go and updated references.
+[33m3cd183a6[m Add v1 descriptions to image api
+[33m1c089400[m Add v1 descriptions to user api
+[33m5647de5a[m Add v1 descriptions to external template api
+[33m0e5a25f7[m Add v1 descriptions to sdn api
+[33m6ccb8c54[m Add v1 descriptions to route api
+[33m57d4f2de[m Add missing description to v1 project api
+[33mfd485a5f[m Project node selector fixes
+[33m252cf0c6[m Add v1 descriptions to all build fields
+[33m9449077b[m Add descriptions to v1 policy api, remove deprecated field
+[33m8377c1d1[m Make the TriggeredByImage field ObjectReference
+[33m96e66379[m Fixed typo in BuildRequest field name
+[33m0367a782[m Rename BuildRequest.Image to TriggedByImage
+[33mad7489b6[m Support cancelling deployment hooks (etc)
+[33me4e32c7d[m Add more description for the BuildRequest Image field
+[33m8d848e29[m Fix build image change race
+[33me4882bc6[m Provide default PushSecret and PullSecret using Service Account
+[33ma79e40dc[m Ensure OpenShift content creation results in namespace finalizer
+[33m1d8c6770[m Support rolling deployment hooks
+[33mbd16ecfe[m Omit internal field when empty
+[33m1451bcc7[m Replace secrets in BuildConfig with LocalObjectReference
+[33mf32972c7[m Initial commit of v1 api
+[33ma589325c[m Add Labels field into DockerConfig type
+[33mfa0eb5bc[m Update internal to v1beta3 for parity with Kube
+[33m287f2a74[m Add round trip tests for images
+[33m39541e8a[m First cut of resources without significant changes
+[33me7abc358[m Initial v1beta2 (experimental) cut
+[33ma4283736[m Various image updates
+[33mf4f84e6b[m Various idiomatic fixes throughout the repo
+[33m42d3845b[m Remove yaml from all object types
+[33m2801e58a[m Properly version Docker image metadata sent to the API

@@ -292,7 +292,8 @@ github.com/go-bindata/go-bindata
 github.com/go-bindata/go-bindata/go-bindata
 # github.com/go-errors/errors v1.0.1
 github.com/go-errors/errors
-# github.com/go-logr/logr v1.2.0
+# github.com/go-logr/logr v1.2.3
+## explicit
 github.com/go-logr/logr
 # github.com/go-openapi/jsonpointer v0.19.5
 github.com/go-openapi/jsonpointer
@@ -399,7 +400,7 @@ github.com/google/cel-go/interpreter
 github.com/google/cel-go/interpreter/functions
 github.com/google/cel-go/parser
 github.com/google/cel-go/parser/gen
-# github.com/google/go-cmp v0.5.5
+# github.com/google/go-cmp v0.5.8
 ## explicit
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/cmpopts
@@ -407,8 +408,10 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/gofuzz v1.1.0
+# github.com/google/gofuzz v1.2.0
+## explicit
 github.com/google/gofuzz
+github.com/google/gofuzz/bytesource
 # github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 github.com/google/shlex
 # github.com/google/uuid v1.1.2
@@ -667,7 +670,7 @@ github.com/opencontainers/runtime-spec/specs-go
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
-# github.com/openshift/api v0.0.0-20220315184754-d7c10d0b647e
+# github.com/openshift/api v0.0.0-20220525145417-ee5b62754c68
 ## explicit
 github.com/openshift/api
 github.com/openshift/api/annotations
@@ -699,6 +702,8 @@ github.com/openshift/api/kubecontrolplane/v1
 github.com/openshift/api/legacyconfig/v1
 github.com/openshift/api/machine
 github.com/openshift/api/machine/v1beta1
+github.com/openshift/api/monitoring
+github.com/openshift/api/monitoring/v1alpha1
 github.com/openshift/api/network
 github.com/openshift/api/network/v1
 github.com/openshift/api/networkoperator
@@ -1210,7 +1215,7 @@ go.uber.org/zap/internal/ztest
 go.uber.org/zap/zapcore
 go.uber.org/zap/zapgrpc
 go.uber.org/zap/zaptest
-# golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
+# golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 ## explicit
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
@@ -1222,6 +1227,7 @@ golang.org/x/crypto/curve25519
 golang.org/x/crypto/curve25519/internal/field
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
+golang.org/x/crypto/internal/poly1305
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/nacl/secretbox
 golang.org/x/crypto/openpgp
@@ -1233,13 +1239,12 @@ golang.org/x/crypto/openpgp/s2k
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/pkcs12
 golang.org/x/crypto/pkcs12/internal/rc2
-golang.org/x/crypto/poly1305
 golang.org/x/crypto/salsa20/salsa
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
-# golang.org/x/net v0.0.0-20211209124913-491a49abca63
+# golang.org/x/net v0.0.0-20220526153639-5463443f8c37
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/context
@@ -1267,7 +1272,7 @@ golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.0.0-20210831042530-f4d43177bf5e
+# golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader
@@ -1276,7 +1281,7 @@ golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
 golang.org/x/sys/windows/svc
-# golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b
+# golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 golang.org/x/term
 # golang.org/x/text v0.3.7
 golang.org/x/text/encoding
@@ -1302,7 +1307,7 @@ golang.org/x/text/unicode/norm
 golang.org/x/text/width
 # golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
 golang.org/x/time/rate
-# golang.org/x/tools v0.1.6-0.20210820212750-d4cc65f0b2ff
+# golang.org/x/tools v0.1.10-0.20220218145154-897bd77cd717
 golang.org/x/tools/container/intsets
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
@@ -1514,7 +1519,7 @@ gopkg.in/warnings.v0
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 gopkg.in/yaml.v3
-# k8s.io/api v0.23.0 => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20220405131139-37c5e75b4e1e
+# k8s.io/api v0.24.1 => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20220405131139-37c5e75b4e1e
 ## explicit
 k8s.io/api/admission/v1
 k8s.io/api/admission/v1beta1
@@ -1611,7 +1616,7 @@ k8s.io/apiextensions-apiserver/pkg/registry/customresourcedefinition
 k8s.io/apiextensions-apiserver/test/integration
 k8s.io/apiextensions-apiserver/test/integration/fixtures
 k8s.io/apiextensions-apiserver/third_party/forked/celopenapi/model
-# k8s.io/apimachinery v0.23.0 => github.com/openshift/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20220405131139-37c5e75b4e1e
+# k8s.io/apimachinery v0.24.1 => github.com/openshift/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20220405131139-37c5e75b4e1e
 ## explicit
 k8s.io/apimachinery/pkg/api/apitesting
 k8s.io/apimachinery/pkg/api/equality
@@ -2193,9 +2198,13 @@ k8s.io/cri-api/pkg/errors
 # k8s.io/csi-translation-lib v0.0.0 => github.com/openshift/kubernetes/staging/src/k8s.io/csi-translation-lib v0.0.0-20220405131139-37c5e75b4e1e
 k8s.io/csi-translation-lib
 k8s.io/csi-translation-lib/plugins
-# k8s.io/klog/v2 v2.30.0
+# k8s.io/klog/v2 v2.60.1
 ## explicit
 k8s.io/klog/v2
+k8s.io/klog/v2/internal/buffer
+k8s.io/klog/v2/internal/clock
+k8s.io/klog/v2/internal/serialize
+k8s.io/klog/v2/internal/severity
 # k8s.io/kube-aggregator v0.23.0 => github.com/openshift/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20220405131139-37c5e75b4e1e
 ## explicit
 k8s.io/kube-aggregator/pkg/apis/apiregistration
@@ -3122,7 +3131,7 @@ k8s.io/pod-security-admission/policy
 # k8s.io/sample-apiserver v0.0.0 => github.com/openshift/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20220405131139-37c5e75b4e1e
 k8s.io/sample-apiserver/pkg/apis/wardle
 k8s.io/sample-apiserver/pkg/apis/wardle/v1alpha1
-# k8s.io/utils v0.0.0-20211208161948-7d6a63dca704
+# k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
 ## explicit
 k8s.io/utils/buffer
 k8s.io/utils/clock
@@ -3146,7 +3155,8 @@ k8s.io/utils/trace
 # sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.27
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/proto/client
-# sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6
+# sigs.k8s.io/json v0.0.0-20220525155127-227cbc7cc124
+## explicit
 sigs.k8s.io/json
 sigs.k8s.io/json/internal/golang/encoding/json
 # sigs.k8s.io/kube-storage-version-migrator v0.0.4
