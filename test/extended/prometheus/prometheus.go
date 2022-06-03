@@ -61,85 +61,11 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules", func(
 		"RedhatMarketplaceCatalogError",
 		"RedhatOperatorsCatalogError",
 
-		// Repo: openshift/cloud-credential-operator
-		// https://bugzilla.redhat.com/show_bug.cgi?id=2010341
-		"CloudCredentialOperatorDeprovisioningFailed",
-		"CloudCredentialOperatorInsufficientCloudCreds",
-		"CloudCredentialOperatorProvisioningFailed",
-		"CloudCredentialOperatorTargetNamespaceMissing",
-		"CloudCredentialOperatorStaleCredentials",
-
 		// Repo: operator-framework/operator-lifecycle-manager
 		// https://bugzilla.redhat.com/show_bug.cgi?id=2010373
 		"CsvAbnormalFailedOver2Min",
 		"CsvAbnormalOver30Min",
 		"InstallPlanStepAppliedWithWarnings",
-
-		// Repo: openshift/cluster-ingress-operator
-		// https://bugzilla.redhat.com/show_bug.cgi?id=2010376
-		"HAProxyDown",
-		"HAProxyReloadFail",
-		"IngressControllerDegraded",
-		"IngressControllerUnavailable",
-
-		// Repo: openshift/cluster-image-registry-operator
-		// https://bugzilla.redhat.com/show_bug.cgi?id=2010347
-		// https://bugzilla.redhat.com/show_bug.cgi?id=1992553
-		"ImageRegistryStorageReconfigured",
-
-		// Repo: openshift/cluster-kube-scheduler-operator
-		// https://bugzilla.redhat.com/show_bug.cgi?id=2010354
-		"KubeSchedulerDown",
-		"SchedulerLegacyPolicySet",
-
-		// Repo: openshift/machine-config-operator
-		// https://bugzilla.redhat.com/show_bug.cgi?id=2010371
-		"KubeletHealthState",
-		"MCDDrainError",
-		"MCDPivotError",
-		"MCDRebootError",
-		"MasterNodesHighMemoryUsage",
-		"SystemMemoryExceedsReservation",
-
-		// Repo: openshift/machine-api-operator
-		// https://bugzilla.redhat.com/show_bug.cgi?id=2010368
-		"MachineAPIOperatorMetricsCollectionFailing",
-		"MachineHealthCheckUnterminatedShortCircuit",
-		"MachineNotYetDeleted",
-		"MachineWithNoRunningPhase",
-		"MachineWithoutValidNode",
-
-		// Repo: openshift/cluster-machine-approver
-		//https://bugzilla.redhat.com/show_bug.cgi?id=2010359
-		"MachineApproverMaxPendingCSRsReached",
-
-		// Repo: openshift/cluster-kube-controller-manager-operator
-		// https://bugzilla.redhat.com/show_bug.cgi?id=2010352
-		"KubeControllerManagerDown",
-		"PodDisruptionBudgetAtLimit",
-		"PodDisruptionBudgetLimit",
-
-		// Repo: openshift/cluster-samples-operator
-		// https://bugzilla.redhat.com/show_bug.cgi?id=2010364
-		"SamplesDegraded",
-		"SamplesImagestreamImportFailing",
-		"SamplesInvalidConfig",
-		"SamplesMissingSecret",
-		"SamplesMissingTBRCredential",
-		"SamplesRetriesMissingOnImagestreamImportFailing",
-		"SamplesTBRInaccessibleOnBoot",
-
-		// Repo: openshift/cluster-etcd-operator
-		// https://bugzilla.redhat.com/show_bug.cgi?id=2010346
-		"etcdBackendQuotaLowSpace",
-		"etcdExcessiveDatabaseGrowth",
-		"etcdHighFsyncDurations",
-
-		// Repo: openshift/cluster-storage-operator (vSphere)
-		// https://bugzilla.redhat.com/show_bug.cgi?id=2010310
-		// https://github.com/openshift/cluster-storage-operator/pull/220
-		"VSphereOpenshiftClusterHealthFail",
-		"VSphereOpenshiftNodeHealthFail",
 	)
 
 	var alertingRules map[string][]promv1.AlertingRule
