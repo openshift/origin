@@ -3,15 +3,15 @@ package pods
 import (
 	"context"
 	"fmt"
-	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
-
-	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	"github.com/openshift/origin/pkg/test/ginkgo/result"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = Describe("[sig-arch] Managed cluster should", func() {
@@ -37,6 +37,7 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 			"migrator":             "https://bugzilla.redhat.com/show_bug.cgi?id=1954868",
 			"downloads":            "https://bugzilla.redhat.com/show_bug.cgi?id=1954866",
 			"pod-identity-webhook": "https://bugzilla.redhat.com/show_bug.cgi?id=1954865",
+			"must-gather":          "https://bugzilla.redhat.com/show_bug.cgi?id=2093046",
 		}
 		// list of pods that use images not in the release payload
 		invalidPodPriority := sets.NewString()
