@@ -19,6 +19,19 @@ type ciDisruptionUpgradeTest struct {
 	backendDisruptionTest disruption.BackendDisruptionUpgradeTest
 }
 
+const (
+	// allowedExternalDisruption is the amount of time we'll allow to flake in a CI run.
+	// At present we do not have confidence that we can consistently hit an external service
+	// and we do not know where the issue lies yet. Allowing 10 minutes means this test will
+	// effectively never fail, but will flake if we experience ANY disruption. We can use this
+	// to gather data, and correlate with real disruption in graphs.
+	allowedExternalDisruption = 600 * time.Second
+
+	externalDisruptionDescription = `CI cluster where tests are running may have network issues with new ` +
+		`connections (not the cluster under test). Use intervals charts to correlate this disruption ` +
+		`against observed cluster disruption and determine if we're seeing real disruption or not.`
+)
+
 func NewCIDisruptionWithNewConnectionsTest() upgrades.Test {
 	ciDisruptTest := &ciDisruptionUpgradeTest{}
 	backend := backenddisruption.NewSimpleBackend(
@@ -26,13 +39,13 @@ func NewCIDisruptionWithNewConnectionsTest() upgrades.Test {
 		"ci-cluster-network-liveness",
 		"",
 		backenddisruption.NewConnectionType)
-	allowed := 1 * time.Second
+	allowed := allowedExternalDisruption
 	ciDisruptTest.backendDisruptionTest =
 		disruption.NewBackendDisruptionTestWithFixedAllowedDisruption(
 			"[sig-trt] CI cluster remains able to communicate with an external service with new connections",
 			backend,
-			&allowed, // We'll let one second slide without reporting a problem
-			"CI cluster where tests are running may have network issues (not the cluster under test)",
+			&allowed,
+			externalDisruptionDescription,
 		)
 
 	return ciDisruptTest
@@ -45,13 +58,13 @@ func NewCIDisruptionWithReusedConnectionsTest() upgrades.Test {
 		"ci-cluster-network-liveness",
 		"",
 		backenddisruption.ReusedConnectionType)
-	allowed := 1 * time.Second
+	allowed := allowedExternalDisruption
 	ciDisruptTest.backendDisruptionTest =
 		disruption.NewBackendDisruptionTestWithFixedAllowedDisruption(
 			"[sig-trt] CI cluster remains able to communicate with an external service with reused connections",
 			backend,
-			&allowed, // We'll let one second slide without reporting a problem
-			"CI cluster where tests are running may have network issues (not the cluster under test)",
+			&allowed,
+			externalDisruptionDescription,
 		)
 
 	return ciDisruptTest
