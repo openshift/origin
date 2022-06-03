@@ -256,6 +256,7 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 				continue
 			}
 
+			fmt.Printf(event.Message)
 			images := imageRe.FindStringSubmatch(event.Message)
 			// the images will contain full match and two group matches, see above
 			// for the regexp definition, so we skip the first in the below for-loop
