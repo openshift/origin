@@ -53198,6 +53198,13 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
             crossorigin="anonymous"></script>
 </head>
 <body>
+
+<div id="search" class="form-control-lg">
+    <form>
+        <input class="form-control" type="text" id="filterInput" placeholder="RegExp Filter">
+    </form>
+</div>
+
 <div id="chart"></div>
 
 <div class="modal" id="myModal" tabindex="-1" role="dialog">
@@ -53224,6 +53231,23 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 </script>
 
 <script>
+    // Re-render the chart with input as a regexp. Timeout for event debouncing.
+    $('#filterInput').on('input', (e) => {
+        var $this = $(this);
+        clearTimeout($this.data('timeout'));
+        $this.data('timeout', setTimeout(() => {
+            document.getElementById("chart").innerHTML = "";
+            renderChart(new RegExp(e.target.value))
+        }, 250));
+    });
+
+    // Prevent page refresh from pressing enter in input box
+    $('#filterInput').keypress((e) => {
+        if (event.which == '13') {
+            event.preventDefault();
+        }
+    });
+
     function isOperatorAvailable(eventInterval) {
         if (eventInterval.locator.startsWith("clusteroperator/") && eventInterval.message.includes("condition/Available") && eventInterval.message.includes("status/False")) {
             return true
@@ -53343,7 +53367,22 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return [item.locator, "", "AlertCritical"]
     }
 
-    function createTimelineData(timelineVal, timelineData, rawEventIntervals, preconditionFunc) {
+    function getDurationString(durationSeconds) {
+        const seconds = durationSeconds % 60;
+        const minutes = Math.floor(durationSeconds/60);
+        var durationString = "[";
+        if (minutes !== 0) {
+            durationString += minutes + "m"
+        }
+        durationString += seconds + "s]";
+        return durationString;
+    }
+
+    function defaultToolTip(item) {
+        return item.message + " " + getDurationString(((new Date(item.to)).getTime() - (new Date(item.from).getTime()))/1000);
+    }
+
+    function createTimelineData(timelineVal, timelineData, rawEventIntervals, preconditionFunc, regex) {
         const data = {}
         var now = new Date();
         var earliest = rawEventIntervals.items.reduce(
@@ -53390,98 +53429,119 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         for (const label in data) {
             const section = data[label]
             for (const sub in section) {
-                timelineData.push({label: label+sub, data: section[sub]})
+                if (regex == null || (regex != null && regex.test(label))) {
+                    const data = section[sub];
+                    const totalDurationSeconds = data.reduce(
+                        (prev, curr) => prev + (curr.timeRange[1].getTime() - curr.timeRange[0].getTime())/1000,
+                        0);
+
+                    timelineData.push({label: label + sub + " " + getDurationString(totalDurationSeconds), data: data})
+                }
             }
         }
     }
 
-    var loc = window.location.href;
+    function renderChart(regex) {
+        var loc = window.location.href;
 
-    var timelineGroups = []
-    timelineGroups.push({group: "operator-unavailable", data: []})
-    createTimelineData("OperatorUnavailable", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorAvailable)
+        var timelineGroups = []
+        timelineGroups.push({group: "operator-unavailable", data: []})
+        createTimelineData("OperatorUnavailable", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorAvailable, regex)
 
-    timelineGroups.push({group: "operator-degraded", data: []})
-    createTimelineData("OperatorDegraded", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorDegraded)
+        timelineGroups.push({group: "operator-degraded", data: []})
+        createTimelineData("OperatorDegraded", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorDegraded, regex)
 
-    timelineGroups.push({group: "operator-progressing", data: []})
-    createTimelineData("OperatorProgressing", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorProgressing)
+        timelineGroups.push({group: "operator-progressing", data: []})
+        createTimelineData("OperatorProgressing", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorProgressing, regex)
 
-    timelineGroups.push({group: "alerts", data: []})
-    createTimelineData(alertSeverity, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAlert)
-    // leaving this for posterity so future me (or someone else) can try it, but I think ordering by name makes the
-    // patterns shown by timing hide and timing appears more relevant to my eyes.
-    // sort alerts alphabetically for display purposes, but keep the json itself ordered by time.
-    // timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
-    //     if (e1.label.includes("alert") && e2.label.includes("alert")) {
-    //         return e1.label < e2.label ? -1 : e1.label > e2.label;
-    //     }
-    //     return 0
-    // })
-
-    timelineGroups.push({group: "node-state", data: []})
-    createTimelineData(nodeStateValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isNodeState)
-    timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
-        if (e1.label.includes("master") && e2.label.includes("worker")) {
-            return -1
-        }
-        return 0
-    })
-
-    timelineGroups.push({group: "endpoint-availability", data: []})
-    createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity)
-
-    timelineGroups.push({group: "e2e-test-failed", data: []})
-    createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFailed)
-
-    timelineGroups.push({group: "e2e-test-flaked", data: []})
-    createTimelineData("Flaked", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFlaked)
-
-    timelineGroups.push({group: "e2e-test-passed", data: []})
-    createTimelineData("Passed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EPassed)
-
-    var segmentFunc = function (segment) {
-        // for (var i in data) {
-        //     if (data[i].group == segment.group) {
-        //         var groupdata = data[i].data
-        //         for (var j in groupdata) {
-        //             if (groupdata[j].label == segment.label) {
-        //                 labeldata = groupdata[j].data
-        //                 for (var k in labeldata) {
-        //                     var startDate = new Date(labeldata[k].timeRange[0])
-        //                     var endDate = new Date(labeldata[k].timeRange[1])
-        //                     if (startDate.getTime() == segment.timeRange[0].getTime() &&
-        //                         endDate.getTime() == segment.timeRange[1].getTime()) {
-        //                         $('#myModalContent').text(labeldata[k].extended)
-        //                         $('#myModal').modal()
-        //                     }
-        //                 }
-        //             }
-        //         }
+        timelineGroups.push({group: "alerts", data: []})
+        createTimelineData(alertSeverity, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAlert, regex)
+        // leaving this for posterity so future me (or someone else) can try it, but I think ordering by name makes the
+        // patterns shown by timing hide and timing appears more relevant to my eyes.
+        // sort alerts alphabetically for display purposes, but keep the json itself ordered by time.
+        // timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
+        //     if (e1.label.includes("alert") && e2.label.includes("alert")) {
+        //         return e1.label < e2.label ? -1 : e1.label > e2.label;
         //     }
-        // }
+        //     return 0
+        // })
+
+        timelineGroups.push({group: "node-state", data: []})
+        createTimelineData(nodeStateValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isNodeState, regex)
+        timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
+            if (e1.label.includes("master") && e2.label.includes("worker")) {
+                return -1
+            }
+            return 0
+        })
+
+        timelineGroups.push({group: "endpoint-availability", data: []})
+        createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
+
+        timelineGroups.push({group: "e2e-test-failed", data: []})
+        createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFailed, regex)
+
+        timelineGroups.push({group: "e2e-test-flaked", data: []})
+        createTimelineData("Flaked", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFlaked, regex)
+
+        timelineGroups.push({group: "e2e-test-passed", data: []})
+        createTimelineData("Passed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EPassed, regex)
+
+        var segmentFunc = function (segment) {
+            // for (var i in data) {
+            //     if (data[i].group == segment.group) {
+            //         var groupdata = data[i].data
+            //         for (var j in groupdata) {
+            //             if (groupdata[j].label == segment.label) {
+            //                 labeldata = groupdata[j].data
+            //                 for (var k in labeldata) {
+            //                     var startDate = new Date(labeldata[k].timeRange[0])
+            //                     var endDate = new Date(labeldata[k].timeRange[1])
+            //                     if (startDate.getTime() == segment.timeRange[0].getTime() &&
+            //                         endDate.getTime() == segment.timeRange[1].getTime()) {
+            //                         $('#myModalContent').text(labeldata[k].extended)
+            //                         $('#myModal').modal()
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
+        }
+
+        const el = document.querySelector('#chart');
+        const myChart = TimelinesChart();
+        var ordinalScale = d3.scaleOrdinal()
+            .domain([
+                'AlertInfo', 'AlertPending', 'AlertWarning', 'AlertCritical', // alerts
+                'OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', // operators
+                'Update', 'Drain', 'Reboot', 'OperatingSystemUpdate', 'NodeNotReady', // nodes
+                'Passed', 'Skipped', 'Flaked', 'Failed',  // tests
+                'Degraded', 'Upgradeable', 'False', 'Unknown'])
+            .range([
+                '#fada5e','#fada5e','#ffa500','#d0312d',  // alerts
+                '#d0312d', '#ffa500', '#fada5e', // operators
+                '#1e7bd9', '#4294e6', '#6aaef2', '#96cbff', '#fada5e', // nodes
+                '#3cb043', '#ceba76', '#ffa500', '#d0312d', // tests
+                '#b65049', '#32b8b6', '#ffffff', '#bbbbbb']);
+        myChart.
+        data(timelineGroups).
+        zQualitative(true).
+        enableAnimations(false).
+        leftMargin(240).
+        rightMargin(550).
+        maxLineHeight(20).
+        maxHeight(10000).
+        zColorScale(ordinalScale).
+        zoomX([new Date(eventIntervals.items[0].from), new Date(eventIntervals.items[eventIntervals.items.length - 1].to)]).
+        onSegmentClick(segmentFunc)
+        (el);
+
+        // force a minimum width for smaller devices (which otherwise get an unusable display)
+        setTimeout(() => { if (myChart.width() < 1300) { myChart.width(1300) }}, 1)
     }
 
-    const el = document.querySelector('#chart');
-    const myChart = TimelinesChart();
-    var ordinalScale = d3.scaleOrdinal()
-        .domain([
-            'AlertInfo', 'AlertPending', 'AlertWarning', 'AlertCritical', // alerts
-            'OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', // operators
-            'Update', 'Drain', 'Reboot', 'OperatingSystemUpdate', 'NodeNotReady', // nodes
-            'Passed', 'Skipped', 'Flaked', 'Failed',  // tests
-            'Degraded', 'Upgradeable', 'False', 'Unknown'])
-        .range([
-            '#fada5e','#fada5e','#ffa500','#d0312d',  // alerts
-            '#d0312d', '#ffa500', '#fada5e', // operators
-            '#1e7bd9', '#4294e6', '#6aaef2', '#96cbff', '#fada5e', // nodes
-            '#3cb043', '#ceba76', '#ffa500', '#d0312d', // tests
-            '#b65049', '#32b8b6', '#ffffff', '#bbbbbb']);
-    myChart.data(timelineGroups).zQualitative(true).enableAnimations(false).leftMargin(240).rightMargin(550).maxLineHeight(20).maxHeight(10000).zColorScale(ordinalScale).onSegmentClick(segmentFunc)
-    (el);
-
-    // force a minimum width for smaller devices (which otherwise get an unusable display)
-    setTimeout(() => { if (myChart.width() < 1300) { myChart.width(1300) }}, 1)
+    renderChart(null)
 </script>
 </body>
 </html>
