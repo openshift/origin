@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -104,12 +105,15 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 		})
 
 		g.By("retrieving node interface name to create sysctl pod with interface of the same name")
-		nodeInterfaceNames, err := oc.AsAdmin().Run("exec").Args(nodePod.Name, "--", "ls", "/host/net").Output()
+		linkInfo, err := oc.AsAdmin().Run("exec").Args(nodePod.Name, "--", "bash", "-c", "ip -o link show | grep -v LOOPBACK | head -1").Output()
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to get interface names")
-		nodeInterfaceName := strings.Fields(nodeInterfaceNames)[0]
-		if nodeInterfaceName == "lo" {
-			nodeInterfaceName = strings.Fields(nodeInterfaceNames)[1]
-		}
+		fields := strings.Split(linkInfo, ": ")
+		o.Expect(len(fields)).To(o.BeNumerically(">", 2), "unexpected ip link output")
+		ifindex, err := strconv.ParseInt(fields[0], 10, 32)
+		o.Expect(err).NotTo(o.HaveOccurred(), "unable to parse interface ifindex")
+		o.Expect(ifindex).To(o.BeNumerically(">", 1), "invalid ifindex")
+		nodeInterfaceName := fields[1]
+		o.Expect(nodeInterfaceName).NotTo(o.BeEmpty(), "unable to find interface name")
 
 		g.By("getting the value of the node sysctl")
 		nodeSysctlValue, err := oc.AsAdmin().Run("exec").Args(nodePod.Name, "--", "cat", "/host"+fmt.Sprintf(sysctlPath, nodeInterfaceName)).Output()
