@@ -207,6 +207,10 @@ func pulledInvalidImages(fromRepository string) ginkgo.JUnitForEventsFunc {
 		// TODO: will not work for a disconnected test environment and should be emulated by launching
 		//   an authenticated registry in a pod on cluster
 		"registry.redhat.io/ubi8/nodejs-14:latest",
+
+		// TODO: temporarily allow pulling to facilitate rebase
+		//  https://bugzilla.redhat.com/show_bug.cgi?id=2093339
+		"k8s.gcr.io/sig-storage/hello-populator:v1.0.1",
 	)
 	if len(fromRepository) > 0 {
 		allowedPrefixes.Insert(fromRepository)
