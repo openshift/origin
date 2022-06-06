@@ -1,6 +1,6 @@
 package extended
 
-//go:generate go run -mod vendor ./util/annotate -- ./util/annotate/generated/zz_generated.annotations.go
+//go:generate go run -mod vendor ./util/annotate ./util/annotate/generated/zz_generated.annotations.go ./util/annotate/generated/timeout/zz_generated.timeout
 
 import (
 	// openshift/kubernetes defines the set of kube tests that should be included
