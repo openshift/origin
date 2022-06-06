@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -18,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	clihelpers "github.com/openshift/origin/test/extended/cli"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -143,83 +145,108 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 	})
 
 	g.It("API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients", func() {
-		// set up
-		results := map[string]int{}
-		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		defer os.RemoveAll(tempDir)
-		args := []string{"--dest-dir", tempDir, "--", "/usr/bin/gather_audit_logs"}
 
-		// download the audit logs from the cluster
-		o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
+		// set up
+		// apiserverName -> reader
+		logReaders := map[string]io.Reader{}
+		results := map[string]int{}
 
-		// act
-		expectedDirectoriesToExpectedCount := []string{path.Join(clihelpers.GetPluginOutputDir(tempDir), "audit_logs", "kube-apiserver")}
-		for _, auditDirectory := range expectedDirectoriesToExpectedCount {
-			err := filepath.Walk(auditDirectory, func(path string, info os.FileInfo, err error) error {
-				g.By(path)
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			mgmtClusterOC := exutil.NewHypershiftManagementCLI("default").AsAdmin().WithoutNamespace()
+			pods, err := mgmtClusterOC.KubeClient().CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{LabelSelector: "hypershift.openshift.io/control-plane-component=kube-apiserver"})
+			o.Expect(err).To(o.BeNil())
+			for _, pod := range pods.Items {
+				fileName, err := mgmtClusterOC.Run("logs", "-n", pod.Namespace, pod.Name, "-c", "audit-logs").OutputToFile(pod.Name + "-audit.log")
 				o.Expect(err).NotTo(o.HaveOccurred())
-
-				if info.IsDir() {
-					return nil
-				}
-				fileName := filepath.Base(path)
-				if !clihelpers.IsAuditFile(fileName) {
-					return nil
-				}
-
-				file, err := os.Open(path)
+				reader, err := os.Open(fileName)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				defer file.Close()
-				fi, err := file.Stat()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				if fi.Size() == 0 {
-					return nil
-				}
-
-				gzipReader, err := gzip.NewReader(file)
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				apiServerName := extractAPIServerNameFromAuditFile(fileName)
-				o.Expect(apiServerName).ToNot(o.BeEmpty())
-				lateRequestCounter := 0
-				readFile := false
-
-				scanner := bufio.NewScanner(gzipReader)
-				for scanner.Scan() {
-					text := scanner.Text()
-					if !strings.HasSuffix(text, "}") {
-						continue // ignore truncated data
-					}
-					o.Expect(text).To(o.HavePrefix(`{"kind":"Event",`))
-
-					if strings.Contains(text, "openshift.io/during-graceful") && strings.Contains(text, "openshift-origin-external-backend-sampler") {
-						lateRequestCounter++
-					}
-					readFile = true
-				}
-				o.Expect(readFile).To(o.BeTrue())
-
-				if lateRequestCounter > 0 {
-					previousLateRequestCounter, _ := results[apiServerName]
-					results[apiServerName] = previousLateRequestCounter + lateRequestCounter
-				}
-
-				return nil
-			})
+				defer reader.Close()
+				logReaders[pod.Namespace+"-"+pod.Name] = reader
+			}
+		} else {
+			tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
 			o.Expect(err).NotTo(o.HaveOccurred())
+			defer os.RemoveAll(tempDir)
+			args := []string{"--dest-dir", tempDir, "--", "/usr/bin/gather_audit_logs"}
 
-			var finalMessageBuilder strings.Builder
-			for apiServerName, lateRequestCounter := range results {
-				// tolerate a few late request
-				if lateRequestCounter > 10 {
-					finalMessageBuilder.WriteString(fmt.Sprintf("\n %v observed %v late requests", apiServerName, lateRequestCounter))
+			// download the audit logs from the cluster
+			o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
+
+			// act
+			expectedDirectoriesToExpectedCount := []string{path.Join(clihelpers.GetPluginOutputDir(tempDir), "audit_logs", "kube-apiserver")}
+			for _, auditDirectory := range expectedDirectoriesToExpectedCount {
+				err := filepath.Walk(auditDirectory, func(path string, info os.FileInfo, err error) error {
+					g.By(path)
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					if info.IsDir() {
+						return nil
+					}
+					fileName := filepath.Base(path)
+					if !clihelpers.IsAuditFile(fileName) {
+						return nil
+					}
+
+					file, err := os.Open(path)
+					o.Expect(err).NotTo(o.HaveOccurred())
+					defer file.Close()
+					fi, err := file.Stat()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					if fi.Size() == 0 {
+						return nil
+					}
+
+					gzipReader, err := gzip.NewReader(file)
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					apiServerName := extractAPIServerNameFromAuditFile(fileName)
+					o.Expect(apiServerName).ToNot(o.BeEmpty())
+
+					logReaders[apiServerName] = gzipReader
+
+					return nil
+				})
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+		}
+
+		for apiServerName, reader := range logReaders {
+			lateRequestCounter := 0
+			readFile := false
+
+			scanner := bufio.NewScanner(reader)
+			for scanner.Scan() {
+				text := scanner.Text()
+				if !strings.HasSuffix(text, "}") {
+					continue // ignore truncated data
 				}
+				o.Expect(text).To(o.HavePrefix(`{"kind":"Event",`))
+
+				if strings.Contains(text, "openshift.io/during-graceful") && strings.Contains(text, "openshift-origin-external-backend-sampler") {
+					lateRequestCounter++
+				}
+				readFile = true
 			}
-			// for now, we will report it as flaky, change it to fail once it proves itself
-			if len(finalMessageBuilder.String()) > 0 {
-				result.Flakef("the following API Servers observed late requests: %v", finalMessageBuilder.String())
+			o.Expect(readFile).To(o.BeTrue())
+
+			if lateRequestCounter > 0 {
+				previousLateRequestCounter, _ := results[apiServerName]
+				results[apiServerName] = previousLateRequestCounter + lateRequestCounter
 			}
+		}
+
+		var finalMessageBuilder strings.Builder
+		for apiServerName, lateRequestCounter := range results {
+			// tolerate a few late request
+			if lateRequestCounter > 10 {
+				finalMessageBuilder.WriteString(fmt.Sprintf("\n %v observed %v late requests", apiServerName, lateRequestCounter))
+			}
+		}
+		// for now, we will report it as flaky, change it to fail once it proves itself
+		if len(finalMessageBuilder.String()) > 0 {
+			result.Flakef("the following API Servers observed late requests: %v", finalMessageBuilder.String())
 		}
 	})
 })
