@@ -92,12 +92,16 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 	// kube-apiserver guard probe failing due to kube-apiserver operands getting rolled out
 	// multiple times during the bootstrapping phase of a cluster installation
 	regexp.MustCompile("ns/openshift-kube-apiserver pod/kube-apiserver-guard.*ProbeError Readiness probe error"),
-	regexp.MustCompile("ns/openshift-kube-apiserver pod/kube-apiserver-guard.*Unhealthy Readiness probe failed"),
 	// the same thing happens for kube-controller-manager and kube-scheduler
 	regexp.MustCompile("ns/openshift-kube-controller-manager pod/kube-controller-manager-guard.*ProbeError Readiness probe error"),
-	regexp.MustCompile("ns/openshift-kube-controller-manager pod/kube-controller-manager-guard.*Unhealthy Readiness probe failed"),
 	regexp.MustCompile("ns/openshift-kube-scheduler pod/kube-scheduler-guard.*ProbeError Readiness probe error"),
-	regexp.MustCompile("ns/openshift-kube-scheduler pod/kube-scheduler-guard.*Unhealthy Readiness probe failed"),
+
+	// this is the less specific even sent by the kubelet when a probe was executed successfully but returned false
+	// we ignore this event because openshift has a patch in patch_prober that sends a more specific event about
+	// readiness failures in openshift-* namespaces.  We will catch the more specific ProbeError events.
+	regexp.MustCompile("Unhealthy Readiness probe failed"),
+	// readiness probe errors during pod termination are expected, so we do not fail on them.
+	regexp.MustCompile("TerminatingPodProbeError"),
 
 	// we have a separate test for this
 	regexp.MustCompile(ovnReadinessRegExpStr),
