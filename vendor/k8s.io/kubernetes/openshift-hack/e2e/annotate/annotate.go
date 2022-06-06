@@ -18,10 +18,14 @@ var reHasSig = regexp.MustCompile(`\[sig-[\w-]+\]`)
 // Run generates tests annotations for the targeted package.
 func Run() {
 	if len(os.Args) != 2 && len(os.Args) != 3 {
-		fmt.Fprintf(os.Stderr, "error: requires exactly one argument\n")
+		fmt.Fprintf(os.Stderr, "error: requires one or two arguments, got %#v\n", os.Args)
 		os.Exit(1)
 	}
-	filename := os.Args[len(os.Args)-1]
+	filename := os.Args[1]
+	timeoutFilename := ""
+	if len(os.Args) == 3 {
+		timeoutFilename = os.Args[2]
+	}
 
 	generator := newGenerator()
 	ginkgo.WalkTests(generator.generateRename)
@@ -99,6 +103,20 @@ func init() {
 	if _, err := exec.Command("gofmt", "-s", "-w", filename).Output(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v", err)
 		os.Exit(1)
+	}
+	if len(timeoutFilename) > 0 {
+		re := regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
+		var pairs []string
+		for from, to := range generator.output {
+			if match := re.FindStringSubmatch(from); match != nil {
+				pairs = append(pairs, fmt.Sprintf("%q: %q", from, to))
+			}
+		}
+		sort.Strings(pairs)
+		if err := ioutil.WriteFile(timeoutFilename, []byte(strings.Join(pairs, "\n")), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v", err)
+			os.Exit(1)
+		}
 	}
 }
 
