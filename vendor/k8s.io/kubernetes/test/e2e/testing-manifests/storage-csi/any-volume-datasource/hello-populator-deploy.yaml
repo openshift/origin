@@ -60,7 +60,6 @@ spec:
           imagePullPolicy: IfNotPresent
           args:
             - --mode=controller
-            - --image-name=k8s.gcr.io/sig-storage/hello-populator:v1.0.1
             - --http-endpoint=:8080
           ports:
             - containerPort: 8080
