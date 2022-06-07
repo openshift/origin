@@ -3,6 +3,7 @@ package legacycvomonitortests
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -25,6 +26,11 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals) []*junitap
 }
 func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType) []*junitapi.JUnitTestCase {
 	ret := []*junitapi.JUnitTestCase{}
+
+	// map from allowed interval regexps to exceptions
+	exceptions := map[*regexp.Regexp]string{
+		regexp.MustCompile(".*condition/Degraded.*"): "We are not worried about Degraded=True blips yet.",
+	}
 
 	var start, stop time.Time
 	for _, event := range events {
@@ -56,18 +62,53 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 			}
 
 			failures := testOperatorState(condition, operatorEvents, e2eEventIntervals)
-			if len(failures) > 0 {
-				ret = append(ret, &junitapi.JUnitTestCase{
-					Name:      testName,
-					Duration:  duration,
-					SystemOut: strings.Join(failures, "\n"),
-					FailureOutput: &junitapi.FailureOutput{
-						Output: fmt.Sprintf("%d unexpected clusteroperator state transitions during e2e test run \n\n%v", len(failures), strings.Join(failures, "\n")),
-					},
-				})
+			if len(failures) == 0 {
+				continue
 			}
-			// always add a success so we flake and not fail
-			ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
+
+			excepted := []string{}
+			fatal := []string{}
+			for _, failure := range failures {
+				exception := ""
+				for regexp, e := range exceptions {
+					if regexp.MatchString(failure) {
+						exception = e
+						break
+					}
+				}
+				if exception == "" {
+					fatal = append(fatal, failure)
+				} else {
+					excepted = append(excepted, fmt.Sprintf("%s (exception: %s)", failure, exception))
+				}
+			}
+
+			output := fmt.Sprintf("%d unexpected clusteroperator state transitions during e2e test run", len(fatal))
+			if len(fatal) > 0 {
+				output = fmt.Sprintf("%s.  These did not match any known exceptions, so they cause this test-case to fail:\n\n%v\n", output, strings.Join(fatal, "\n"))
+			} else {
+				output = fmt.Sprintf("%s, as desired.", output)
+			}
+			output = fmt.Sprintf("%s\n%d unwelcome but acceptable clusteroperator state transitions during e2e test run", output, len(excepted))
+			if len(excepted) > 0 {
+				output = fmt.Sprintf("%s.  These should not happen, but because they are tied to exceptions, the fact that they did happen is not sufficient to cause this test-case to fail:\n\n%v\n", output, strings.Join(excepted, "\n"))
+			} else {
+				output = fmt.Sprintf("%s, as desired.", output)
+			}
+
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name:      testName,
+				Duration:  duration,
+				SystemOut: strings.Join(failures, "\n"),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: output,
+				},
+			})
+
+			if len(fatal) == 0 {
+				// add a success so we flake and don't fail
+				ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
+			}
 		}
 	}
 
