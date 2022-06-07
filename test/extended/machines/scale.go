@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/ghodss/yaml"
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
@@ -67,6 +68,10 @@ func getNodesFromMachineSet(c *kubernetes.Clientset, mc machineclientset.Interfa
 		return nil, fmt.Errorf("failed to get machines from machineset: %v", err)
 	}
 
+	if err := printMachines(machines.Items); err != nil {
+		return nil, fmt.Errorf("failed to print machines to log: %v", err)
+	}
+
 	// fetch nodes
 	allWorkerNodes, err := c.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 		LabelSelector: nodeLabelSelectorWorker,
@@ -75,7 +80,10 @@ func getNodesFromMachineSet(c *kubernetes.Clientset, mc machineclientset.Interfa
 		return nil, fmt.Errorf("failed to list worker nodes: %v", err)
 	}
 
-	e2e.Logf("Machines found %v, nodes found: %v", machines, allWorkerNodes.Items)
+	if err := printNodes(allWorkerNodes.Items); err != nil {
+		return nil, fmt.Errorf("failed to print nodes to log: %v", err)
+	}
+
 	machineToNodes, match := mapMachineNameToNodeName(machines.Items, allWorkerNodes.Items)
 	if !match {
 		return nil, fmt.Errorf("not all machines have a node reference: %v", machineToNodes)
@@ -90,6 +98,38 @@ func getNodesFromMachineSet(c *kubernetes.Clientset, mc machineclientset.Interfa
 	}
 
 	return nodes, nil
+}
+
+func printMachines(machines []machinev1beta1.Machine) error {
+	for _, machine := range machines {
+		// Clear fields that pollute the output.
+		machine.ObjectMeta.ManagedFields = nil
+
+		machineYAML, err := yaml.Marshal(machine)
+		if err != nil {
+			return fmt.Errorf("could not convert machine to yaml: %v", err)
+		}
+
+		e2e.Logf("Found Machine %s in phase %s:\n%s", machine.GetName(), pointer.StringDeref(machine.Status.Phase, ""), string(machineYAML))
+	}
+
+	return nil
+}
+
+func printNodes(nodes []corev1.Node) error {
+	for _, node := range nodes {
+		// Clear fields that pollute the output.
+		node.ObjectMeta.ManagedFields = nil
+
+		nodeYAML, err := yaml.Marshal(node)
+		if err != nil {
+			return fmt.Errorf("could not convert machine to yaml: %v", err)
+		}
+
+		e2e.Logf("Found Node %s:\n%s", node.GetName(), string(nodeYAML))
+	}
+
+	return nil
 }
 
 // getMachinesFromMachineSet returns an array of machines owned by a given machineSet
