@@ -64,9 +64,6 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1996128
 			`\[sig-network\] \[Feature:IPv6DualStack\] should have ipv4 and ipv6 node podCIDRs`,
 
-			// https://bugzilla.redhat.com/show_bug.cgi?id=2004074
-			`\[sig-network-edge\]\[Feature:Idling\] Unidling should work with TCP \(while idling\)`,
-
 			// https://bugzilla.redhat.com/show_bug.cgi?id=2070929
 			`\[sig-network\]\[Feature:EgressIP\]\[apigroup:config.openshift.io\] \[internal-targets\]`,
 
@@ -302,10 +299,6 @@ var (
 
 			// ovn-kubernetes does not support named ports
 			`NetworkPolicy.*named port`,
-
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1989169: unidling tests are flaky under ovn-kubernetes
-			`Unidling should work with TCP`,
-			`Unidling should handle many TCP connections`,
 		},
 		"[Skipped:ibmroks]": {
 			// skip Gluster tests (not supported on ROKS worker nodes)
