@@ -62,13 +62,13 @@ func listWorkerMachineSets(mc machineclientset.Interface) ([]machinev1beta1.Mach
 }
 
 // getNodesFromMachineSet returns an array of nodes backed by machines owned by a given machineSet
-func getNodesFromMachineSet(c *kubernetes.Clientset, mc machineclientset.Interface, machineSetName string) ([]*corev1.Node, error) {
+func getNodesFromMachineSet(c *kubernetes.Clientset, mc machineclientset.Interface, machineSetName string, logger BufferedLogger) ([]*corev1.Node, error) {
 	machines, err := getMachinesFromMachineSet(mc, machineSetName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get machines from machineset: %v", err)
 	}
 
-	if err := printMachines(machines.Items); err != nil {
+	if err := printMachines(machines.Items, logger); err != nil {
 		return nil, fmt.Errorf("failed to print machines to log: %v", err)
 	}
 
@@ -80,7 +80,7 @@ func getNodesFromMachineSet(c *kubernetes.Clientset, mc machineclientset.Interfa
 		return nil, fmt.Errorf("failed to list worker nodes: %v", err)
 	}
 
-	if err := printNodes(allWorkerNodes.Items); err != nil {
+	if err := printNodes(allWorkerNodes.Items, logger); err != nil {
 		return nil, fmt.Errorf("failed to print nodes to log: %v", err)
 	}
 
@@ -100,7 +100,7 @@ func getNodesFromMachineSet(c *kubernetes.Clientset, mc machineclientset.Interfa
 	return nodes, nil
 }
 
-func printMachines(machines []machinev1beta1.Machine) error {
+func printMachines(machines []machinev1beta1.Machine, logger BufferedLogger) error {
 	for _, machine := range machines {
 		// Clear fields that pollute the output.
 		machine.ObjectMeta.ManagedFields = nil
@@ -110,13 +110,13 @@ func printMachines(machines []machinev1beta1.Machine) error {
 			return fmt.Errorf("could not convert machine to yaml: %v", err)
 		}
 
-		e2e.Logf("Found Machine %s in phase %s:\n%s", machine.GetName(), pointer.StringDeref(machine.Status.Phase, ""), string(machineYAML))
+		logger.Logf("Found Machine %s in phase %s:\n%s", machine.GetName(), pointer.StringDeref(machine.Status.Phase, ""), string(machineYAML))
 	}
 
 	return nil
 }
 
-func printNodes(nodes []corev1.Node) error {
+func printNodes(nodes []corev1.Node, logger BufferedLogger) error {
 	for _, node := range nodes {
 		// Clear fields that pollute the output.
 		node.ObjectMeta.ManagedFields = nil
@@ -126,7 +126,7 @@ func printNodes(nodes []corev1.Node) error {
 			return fmt.Errorf("could not convert machine to yaml: %v", err)
 		}
 
-		e2e.Logf("Found Node %s:\n%s", node.GetName(), string(nodeYAML))
+		logger.Logf("Found Node %s:\n%s", node.GetName(), string(nodeYAML))
 	}
 
 	return nil
@@ -227,14 +227,14 @@ func scaleMachineSet(name string, replicas int32) error {
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cluster should", func() {
 
 	var (
-		c      *kubernetes.Clientset
-		dc     dynamic.Interface
-		mc     machineclientset.Interface
-		helper *bmhelper.BaremetalTestHelper
+		c             *kubernetes.Clientset
+		dc            dynamic.Interface
+		mc            machineclientset.Interface
+		helper        *bmhelper.BaremetalTestHelper
+		machineLogger BufferedLogger
 	)
 
 	g.BeforeEach(func() {
-
 		cfg, err := e2e.LoadConfig()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		c, err = e2e.LoadClientset()
@@ -243,6 +243,8 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 		o.Expect(err).NotTo(o.HaveOccurred())
 		dc, err = dynamic.NewForConfig(cfg)
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		machineLogger = NewBufferedLogger(g.GinkgoWriter)
 
 		// For baremetal platforms, an extra worker must be previously
 		// deployed to allow subsequent scaling operations
@@ -254,6 +256,8 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 	})
 
 	g.AfterEach(func() {
+		machineLogger.Flush()
+
 		helper.DeleteAllExtraWorkers()
 	})
 
@@ -265,7 +269,10 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 	g.It("grow and decrease when scaling different machineSets simultaneously [Timeout:30m]", func() {
 		// expect new nodes to come up for machineSet
 		verifyNodeScalingFunc := func(c *kubernetes.Clientset, mc machineclientset.Interface, expectedScaleOut int32, machineSet machinev1beta1.MachineSet) bool {
-			nodes, err := getNodesFromMachineSet(c, mc, machineSet.GetName())
+			// This function is called repeatedly, we only want to keep the output of the last iteration.
+			machineLogger.Reset()
+
+			nodes, err := getNodesFromMachineSet(c, mc, machineSet.GetName(), machineLogger)
 			if err != nil {
 				e2e.Logf("Error getting nodes from machineSet: %v", err)
 				return false
