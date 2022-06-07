@@ -297,7 +297,6 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 		gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "flowschemas"),
 		gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "prioritylevelconfigurations"),
 		gvr("internal.apiserver.k8s.io", "v1alpha1", "storageversions"),
-		gvr("node.k8s.io", "v1alpha1", "runtimeclasses"),
 		gvr("storage.k8s.io", "v1alpha1", "csistoragecapacities"),
 	)
 
