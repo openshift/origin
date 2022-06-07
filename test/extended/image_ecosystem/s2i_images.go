@@ -125,6 +125,13 @@ var s2iImages = map[string][]tc{
 	},
 	"perl": {
 		{
+			Version:  "532",
+			Cmd:      "perl --version",
+			Expected: "v5.32",
+			Tag:      "5.32-ubi8",
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
+		{
 			Version:  "530",
 			Cmd:      "perl --version",
 			Expected: "v5.30",
@@ -147,6 +154,13 @@ var s2iImages = map[string][]tc{
 		},
 	},
 	"php": {
+		{
+			Version:  "80",
+			Cmd:      "php --version",
+			Expected: "8.0",
+			Tag:      "8.0-ubi8",
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
 		{
 			Version:  "74",
 			Cmd:      "php --version",
