@@ -10,14 +10,13 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	"github.com/stretchr/objx"
 
+	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
+	machineclientset "github.com/openshift/client-go/machine/clientset/versioned"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/dynamic"
 	coreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
@@ -35,12 +34,12 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 		o.Expect(err).NotTo(o.HaveOccurred())
 		c, err := e2e.LoadClientset()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		dc, err := dynamic.NewForConfig(cfg)
+		mc, err := machineclientset.NewForConfig(cfg)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("checking for the openshift machine api operator")
 		// TODO: skip if platform != aws
-		skipUnlessMachineAPIOperator(dc, c.CoreV1().Namespaces())
+		skipUnlessMachineAPIOperator(mc, c.CoreV1().Namespaces())
 
 		g.By("ensuring every node is linked to a machine api resource")
 		allNodes, err := c.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
@@ -56,22 +55,20 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 			e2e.Failf("Missing nodes on the cluster")
 		}
 
-		machineClient := dc.Resource(schema.GroupVersionResource{Group: "machine.openshift.io", Resource: "machines", Version: "v1beta1"})
-		var lastMachines []objx.Map
+		var lastMachines []machinev1beta1.Machine
 		if err := wait.PollImmediate(3*time.Second, operatorWait, func() (bool, error) {
-			obj, err := machineClient.List(context.Background(), metav1.ListOptions{})
+			machines, err := listMachines(mc, "")
 			if err != nil {
 				e2e.Logf("Unable to check for machines: %v", err)
 				return false, nil
 			}
-			machines := objx.Map(obj.UnstructuredContent())
-			items := objects(machines.Get("items"))
-			lastMachines = items
-			if len(items) == 0 {
+
+			lastMachines = machines.Items
+			if len(machines.Items) == 0 {
 				e2e.Logf("No machine objects found")
 				return true, nil
 			}
-			for _, machine := range items {
+			for _, machine := range machines.Items {
 				nodeName := nodeNameFromNodeRef(machine)
 				nodeNames.Delete(nodeName)
 			}
@@ -86,8 +83,8 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 			w := tabwriter.NewWriter(buf, 0, 4, 1, ' ', 0)
 			fmt.Fprintf(w, "NAMESPACE\tNAME\tNODE NAME\n")
 			for _, machine := range lastMachines {
-				ns := machine.Get("metadata.namespace").String()
-				name := machine.Get("metadata.name").String()
+				ns := machine.GetNamespace()
+				name := machine.GetName()
 				nodeName := nodeNameFromNodeRef(machine)
 				fmt.Fprintf(w, "%s\t%s\t%s\n",
 					ns,
@@ -110,13 +107,12 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 // If machines are not installed it skips the test case.
 // It then checks to see if the `openshift-machine-api` namespace is installed.
 // If the namespace is not present it skips the test case.
-func skipUnlessMachineAPIOperator(dc dynamic.Interface, c coreclient.NamespaceInterface) {
-	machineClient := dc.Resource(schema.GroupVersionResource{Group: "machine.openshift.io", Resource: "machines", Version: "v1beta1"})
-
+func skipUnlessMachineAPIOperator(mci machineclientset.Interface, c coreclient.NamespaceInterface) {
+	mc := machineClient(mci)
 	err := wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
 		// Listing the resource will return an IsNotFound error when the CRD has not been installed.
 		// Otherwise it would return an empty list.
-		_, err := machineClient.List(context.Background(), metav1.ListOptions{})
+		_, err := mc.List(context.Background(), metav1.ListOptions{})
 		if err == nil {
 			return true, nil
 		}
@@ -142,21 +138,9 @@ func skipUnlessMachineAPIOperator(dc dynamic.Interface, c coreclient.NamespaceIn
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-func objects(from *objx.Value) []objx.Map {
-	var values []objx.Map
-	switch {
-	case from.IsObjxMapSlice():
-		return from.ObjxMapSlice()
-	case from.IsInterSlice():
-		for _, i := range from.InterSlice() {
-			if msi, ok := i.(map[string]interface{}); ok {
-				values = append(values, objx.Map(msi))
-			}
-		}
+func nodeNameFromNodeRef(item machinev1beta1.Machine) string {
+	if item.Status.NodeRef != nil {
+		return item.Status.NodeRef.Name
 	}
-	return values
-}
-
-func nodeNameFromNodeRef(item objx.Map) string {
-	return item.Get("status.nodeRef.name").String()
+	return ""
 }

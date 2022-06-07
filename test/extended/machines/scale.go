@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"strconv"
 	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
+	machineclientset "github.com/openshift/client-go/machine/clientset/versioned"
+	machinev1beta1clientset "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1"
 	bmhelper "github.com/openshift/origin/test/extended/baremetal"
-	"github.com/stretchr/objx"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -21,6 +22,7 @@ import (
 	"k8s.io/client-go/scale"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+	"k8s.io/utils/pointer"
 )
 
 const (
@@ -31,40 +33,36 @@ const (
 )
 
 // machineSetClient returns a client for machines scoped to the proper namespace
-func machineSetClient(dc dynamic.Interface) dynamic.ResourceInterface {
-	machineSetClient := dc.Resource(schema.GroupVersionResource{Group: machineAPIGroup, Resource: "machinesets", Version: "v1beta1"})
-	return machineSetClient.Namespace(machineAPINamespace)
+func machineSetClient(mc machineclientset.Interface) machinev1beta1clientset.MachineSetInterface {
+	return mc.MachineV1beta1().MachineSets(machineAPINamespace)
 }
 
 // listWorkerMachineSets list all worker machineSets
-func listWorkerMachineSets(dc dynamic.Interface) ([]objx.Map, error) {
-	mc := machineSetClient(dc)
-	obj, err := mc.List(context.Background(), metav1.ListOptions{})
+func listWorkerMachineSets(mc machineclientset.Interface) ([]machinev1beta1.MachineSet, error) {
+	c := machineSetClient(mc)
+	machineSets, err := c.List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	machineSets := []objx.Map{}
-	for _, ms := range objects(objx.Map(obj.UnstructuredContent()).Get("items")) {
-		e2e.Logf("Labels %v", ms.Get("spec.template.metadata.labels"))
-		labels := (*ms.Get("spec.template.metadata.labels")).Data().(map[string]interface{})
+
+	out := []machinev1beta1.MachineSet{}
+	for _, ms := range machineSets.Items {
+		labels := ms.Spec.Template.ObjectMeta.Labels
+		e2e.Logf("Labels %v", labels)
+
 		if val, ok := labels[machineLabelRole]; ok {
 			if val == "worker" {
-				machineSets = append(machineSets, ms)
+				out = append(out, ms)
 				continue
 			}
 		}
 	}
-	return machineSets, nil
-}
-
-func getMachineSetReplicaNumber(item objx.Map) int {
-	replicas, _ := strconv.Atoi(item.Get("spec.replicas").String())
-	return replicas
+	return out, nil
 }
 
 // getNodesFromMachineSet returns an array of nodes backed by machines owned by a given machineSet
-func getNodesFromMachineSet(c *kubernetes.Clientset, dc dynamic.Interface, machineSetName string) ([]*corev1.Node, error) {
-	machines, err := getMachinesFromMachineSet(dc, machineSetName)
+func getNodesFromMachineSet(c *kubernetes.Clientset, mc machineclientset.Interface, machineSetName string) ([]*corev1.Node, error) {
+	machines, err := getMachinesFromMachineSet(mc, machineSetName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get machines from machineset: %v", err)
 	}
@@ -78,7 +76,7 @@ func getNodesFromMachineSet(c *kubernetes.Clientset, dc dynamic.Interface, machi
 	}
 
 	e2e.Logf("Machines found %v, nodes found: %v", machines, allWorkerNodes.Items)
-	machineToNodes, match := mapMachineNameToNodeName(machines, allWorkerNodes.Items)
+	machineToNodes, match := mapMachineNameToNodeName(machines.Items, allWorkerNodes.Items)
 	if !match {
 		return nil, fmt.Errorf("not all machines have a node reference: %v", machineToNodes)
 	}
@@ -95,8 +93,8 @@ func getNodesFromMachineSet(c *kubernetes.Clientset, dc dynamic.Interface, machi
 }
 
 // getMachinesFromMachineSet returns an array of machines owned by a given machineSet
-func getMachinesFromMachineSet(dc dynamic.Interface, machineSetName string) ([]objx.Map, error) {
-	machines, err := listMachines(dc, fmt.Sprintf("%s=%s", machineSetOwningLabel, machineSetName))
+func getMachinesFromMachineSet(mc machineclientset.Interface, machineSetName string) (*machinev1beta1.MachineList, error) {
+	machines, err := listMachines(mc, fmt.Sprintf("%s=%s", machineSetOwningLabel, machineSetName))
 	if err != nil {
 		return nil, fmt.Errorf("failed to list machines: %v", err)
 	}
@@ -104,25 +102,25 @@ func getMachinesFromMachineSet(dc dynamic.Interface, machineSetName string) ([]o
 }
 
 // getNewestMachineNameFromMachineSet returns the name of the newest machine from the give machineSet
-func getNewestMachineNameFromMachineSet(dc dynamic.Interface, machineSetName string) (string, error) {
-	machines, err := getMachinesFromMachineSet(dc, machineSetName)
+func getNewestMachineNameFromMachineSet(mc machineclientset.Interface, machineSetName string) (string, error) {
+	machines, err := getMachinesFromMachineSet(mc, machineSetName)
 	if err != nil {
 		return "", fmt.Errorf("failed to get machines from machineset: %v", err)
 	}
 
 	// Sort slice by descending timestamp to bring the newest to the first element
-	sort.Slice(machines, func(i, j int) bool {
-		return creationTimestamp(machines[i]).After(creationTimestamp(machines[j]))
+	sort.Slice(machines.Items, func(i, j int) bool {
+		return machines.Items[i].GetCreationTimestamp().After(machines.Items[j].GetCreationTimestamp().Time)
 	})
 
-	return machineName(machines[0]), nil
+	return machines.Items[0].GetName(), nil
 }
 
 // markMachineForScaleDown marks the named machine as a priority in the next machineSet
 // scale down operation.
-func markMachineForScaleDown(dc dynamic.Interface, machineName string) error {
-	mc := machineClient(dc)
-	machine, err := mc.Get(context.Background(), machineName, metav1.GetOptions{})
+func markMachineForScaleDown(mc machineclientset.Interface, machineName string) error {
+	c := machineClient(mc)
+	machine, err := c.Get(context.Background(), machineName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get machine %q: %v", machineName, err)
 	}
@@ -134,7 +132,7 @@ func markMachineForScaleDown(dc dynamic.Interface, machineName string) error {
 	annotations[machineSetDeleteNodeAnnotaiton] = "true"
 	machine.SetAnnotations(annotations)
 
-	if _, err := mc.Update(context.Background(), machine, metav1.UpdateOptions{}); err != nil {
+	if _, err := c.Update(context.Background(), machine, metav1.UpdateOptions{}); err != nil {
 		return fmt.Errorf("failed to update machine %q: %v", machineName, err)
 	}
 	return nil
@@ -166,7 +164,7 @@ func getScaleClient() (scale.ScalesGetter, error) {
 }
 
 // scaleMachineSet scales a machineSet with a given name to the given number of replicas
-func scaleMachineSet(name string, replicas int) error {
+func scaleMachineSet(name string, replicas int32) error {
 	scaleClient, err := getScaleClient()
 	if err != nil {
 		return fmt.Errorf("error calling getScaleClient: %v", err)
@@ -178,7 +176,7 @@ func scaleMachineSet(name string, replicas int) error {
 	}
 
 	scaleUpdate := scale.DeepCopy()
-	scaleUpdate.Spec.Replicas = int32(replicas)
+	scaleUpdate.Spec.Replicas = replicas
 	_, err = scaleClient.Scales(machineAPINamespace).Update(context.Background(), schema.GroupResource{Group: machineAPIGroup, Resource: "MachineSet"}, scaleUpdate, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("error calling scaleClient.Scales update while setting replicas to %d: %v", err, replicas)
@@ -191,6 +189,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 	var (
 		c      *kubernetes.Clientset
 		dc     dynamic.Interface
+		mc     machineclientset.Interface
 		helper *bmhelper.BaremetalTestHelper
 	)
 
@@ -199,6 +198,8 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 		cfg, err := e2e.LoadConfig()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		c, err = e2e.LoadClientset()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		mc, err = machineclientset.NewForConfig(cfg)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		dc, err = dynamic.NewForConfig(cfg)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -223,8 +224,8 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 	// environments.
 	g.It("grow and decrease when scaling different machineSets simultaneously [Timeout:30m]", func() {
 		// expect new nodes to come up for machineSet
-		verifyNodeScalingFunc := func(c *kubernetes.Clientset, dc dynamic.Interface, expectedScaleOut int, machineSet objx.Map) bool {
-			nodes, err := getNodesFromMachineSet(c, dc, machineName(machineSet))
+		verifyNodeScalingFunc := func(c *kubernetes.Clientset, mc machineclientset.Interface, expectedScaleOut int32, machineSet machinev1beta1.MachineSet) bool {
+			nodes, err := getNodesFromMachineSet(c, mc, machineSet.GetName())
 			if err != nil {
 				e2e.Logf("Error getting nodes from machineSet: %v", err)
 				return false
@@ -238,15 +239,15 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 					notReady = true
 				}
 			}
-			return !notReady && len(nodes) == expectedScaleOut
+			return !notReady && len(nodes) == int(expectedScaleOut)
 		}
 
 		g.By("checking for the openshift machine api operator")
 		// TODO: skip if platform != aws
-		skipUnlessMachineAPIOperator(dc, c.CoreV1().Namespaces())
+		skipUnlessMachineAPIOperator(mc, c.CoreV1().Namespaces())
 
 		g.By("fetching worker machineSets")
-		machineSets, err := listWorkerMachineSets(dc)
+		machineSets, err := listWorkerMachineSets(mc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if len(machineSets) == 0 {
 			e2eskipper.Skipf("Expects at least one worker machineset. Found none!!!")
@@ -261,22 +262,22 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 		initialNumberOfWorkers := len(nodeList.Items)
 		g.By(fmt.Sprintf("initial cluster workers size is %v", initialNumberOfWorkers))
 
-		initialReplicasMachineSets := map[string]int{}
+		initialReplicasMachineSets := map[string]int32{}
 
 		for _, machineSet := range machineSets {
-			initialReplicasMachineSet := getMachineSetReplicaNumber(machineSet)
-			expectedScaleOut := initialReplicasMachineSet + 1
-			initialReplicasMachineSets[machineName(machineSet)] = initialReplicasMachineSet
-			g.By(fmt.Sprintf("scaling %q from %d to %d replicas", machineName(machineSet), initialReplicasMachineSet, expectedScaleOut))
-			err = scaleMachineSet(machineName(machineSet), expectedScaleOut)
+			initialReplicasMachineSet := pointer.Int32Deref(machineSet.Spec.Replicas, 0)
+			var expectedScaleOut int32 = initialReplicasMachineSet + 1
+			initialReplicasMachineSets[machineSet.GetName()] = initialReplicasMachineSet
+			g.By(fmt.Sprintf("scaling %q from %d to %d replicas", machineSet.GetName(), initialReplicasMachineSet, expectedScaleOut))
+			err = scaleMachineSet(machineSet.GetName(), expectedScaleOut)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
 		g.By("checking scaled up worker nodes are ready")
 		for _, machineSet := range machineSets {
-			expectedScaleOut := initialReplicasMachineSets[machineName(machineSet)] + 1
+			expectedScaleOut := initialReplicasMachineSets[machineSet.GetName()] + 1
 			o.Eventually(func() bool {
-				return verifyNodeScalingFunc(c, dc, expectedScaleOut, machineSet)
+				return verifyNodeScalingFunc(c, mc, expectedScaleOut, machineSet)
 			}, scalingTime, 5*time.Second).Should(o.BeTrue())
 		}
 
@@ -285,17 +286,17 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 		// the newly created machine in each machineset as it should
 		// have the fewest running workloads.
 		for _, machineSet := range machineSets {
-			newestMachine, err := getNewestMachineNameFromMachineSet(dc, machineName(machineSet))
+			newestMachine, err := getNewestMachineNameFromMachineSet(mc, machineSet.GetName())
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = markMachineForScaleDown(dc, newestMachine)
+			err = markMachineForScaleDown(mc, newestMachine)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
 		g.By("scaling the machinesets back to their original size")
 		for _, machineSet := range machineSets {
-			scaledReplicasMachineSet := initialReplicasMachineSets[machineName(machineSet)] + 1
-			g.By(fmt.Sprintf("scaling %q from %d to %d replicas", machineName(machineSet), scaledReplicasMachineSet, initialReplicasMachineSets[machineName(machineSet)]))
-			err = scaleMachineSet(machineName(machineSet), initialReplicasMachineSets[machineName(machineSet)])
+			scaledReplicasMachineSet := initialReplicasMachineSets[machineSet.GetName()] + 1
+			g.By(fmt.Sprintf("scaling %q from %d to %d replicas", machineSet.GetName(), scaledReplicasMachineSet, initialReplicasMachineSets[machineSet.GetName()]))
+			err = scaleMachineSet(machineSet.GetName(), initialReplicasMachineSets[machineSet.GetName()])
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
