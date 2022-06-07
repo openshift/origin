@@ -33,6 +33,11 @@ var _ = g.Describe("[sig-arch] [Conformance] sysctl", func() {
 			o.Expect(err).NotTo(o.HaveOccurred(), "unable to check sysctl value")
 			previousPodSysctlValue, err = oc.AsAdmin().Run("exec").Args(preexistingPod.Name, "--", "cat", path).Output()
 			o.Expect(err).NotTo(o.HaveOccurred(), "unable to check sysctl value")
+
+			// Retrieve created pod so we can use the same NodeName
+			preexistingPod, err = f.ClientSet.CoreV1().Pods(preexistingPod.Namespace).Get(context.TODO(), preexistingPod.Name, metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), "unable get running pod")
+			o.Expect(preexistingPod.Spec.NodeName).NotTo(o.BeEmpty(), "expected scheduled pod but found empty Spec.NodeName")
 		})
 
 		g.By("creating a pod with a sysctl", func() {
