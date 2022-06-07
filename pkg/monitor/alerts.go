@@ -84,12 +84,12 @@ func FetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Confi
 		return nil, err
 	}
 
-	// Ensure that Thanos queriers are connected to both Prometheus sidecars
+	// Ensure that all Thanos queriers are connected to all Prometheus sidecars
 	// before fetching the alerts. This avoids retrieving partial data
-	// (possibly with gaps) when after an upgrade, one of the Promehteus
+	// (possibly with gaps) when after an upgrade, one of the Prometheus
 	// sidecars hasn't been reconnected yet to the Thanos queriers.
 	if err = wait.PollImmediateWithContext(ctx, time.Second, 2*time.Minute, func(context.Context) (bool, error) {
-		v, warningsForQuery, err := prometheusClient.Query(ctx, `min(count by(pod) (thanos_store_nodes_grpc_connections{store_type="sidecar"})) == 2`, time.Time{})
+		v, warningsForQuery, err := prometheusClient.Query(ctx, `min(count by(pod) (thanos_store_nodes_grpc_connections{store_type="sidecar"})) == min(kube_statefulset_replicas{statefulset="prometheus-k8s"})`, time.Time{})
 		if err != nil {
 			return false, err
 		}
