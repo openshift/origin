@@ -352,6 +352,13 @@ var (
 		"[SkippedUntil:06182022:blocker-bz/2081021]": {
 			`\[sig-api-machinery\] API data in etcd should be stored at the correct location and version for all resources`,
 		},
+
+		// TODO: these CSI tests are disabled until June June 18 since Pods
+		//  created by these tests pull image directly:
+		//  https://bugzilla.redhat.com/show_bug.cgi?id=2093339
+		"[SkippedUntil:06182022:blocker-bz/2093339]": {
+			`provisioning should provision storage with any volume data source`,
+		},
 	}
 
 	// labelExcludes temporarily block tests out of a specific suite
