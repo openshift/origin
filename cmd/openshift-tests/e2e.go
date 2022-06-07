@@ -14,6 +14,11 @@ import (
 	_ "github.com/openshift/origin/test/extended/util/annotate/generated"
 )
 
+func isCSIDisabled(name string) bool {
+	// https://bugzilla.redhat.com/show_bug.cgi?id=2093339
+	return strings.Contains(`provisioning should provision storage with any volume data source`, name)
+}
+
 func isDisabled(name string) bool {
 	if strings.Contains(name, "[Disabled") {
 		return true
@@ -332,7 +337,7 @@ var staticSuites = testSuites{
 		See https://github.com/kubernetes/kubernetes/blob/master/test/e2e/storage/external/README.md for required format of the file.
 		`),
 			Matches: func(name string) bool {
-				if isDisabled(name) {
+				if isCSIDisabled(name) {
 					return false
 				}
 				return strings.Contains(name, "External Storage [Driver:") && !strings.Contains(name, "[Disruptive]")
