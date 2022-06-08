@@ -13,6 +13,7 @@ import (
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	machinev1beta1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1"
+
 	bmhelper "github.com/openshift/origin/test/extended/baremetal"
 	exutil "github.com/openshift/origin/test/extended/util"
 
@@ -362,6 +363,7 @@ func SkipIfUnsupportedPlatform(ctx context.Context, oc *exutil.CLI) {
 	skipIfAzure(oc)
 	skipIfSingleNode(oc)
 	skipIfBareMetal(oc)
+	skipIfVsphere(oc)
 }
 
 func skipUnlessFunctionalMachineAPI(ctx context.Context, machineClient machinev1beta1client.MachineInterface) {
@@ -414,6 +416,15 @@ func skipIfBareMetal(oc *exutil.CLI) {
 
 	if infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType {
 		e2eskipper.Skipf("this test is currently broken on the metal platform and needs to be fixed")
+	}
+}
+
+func skipIfVsphere(oc *exutil.CLI) {
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	if infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType {
+		e2eskipper.Skipf("this test is currently broken on the vsphere platform and needs to be fixed (BZ2094919)")
 	}
 }
 
