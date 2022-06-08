@@ -60,19 +60,10 @@ type serializationsCache map[runtime.Identifier]*serializationResult
 // so that each of those is computed exactly once.
 //
 // cachingObject implements the metav1.Object interface (accessors for
-// all metadata fields).
+// all metadata fields). However, setters for all fields except from
+// SelfLink (which is set lately in the path) are ignored.
 type cachingObject struct {
 	lock sync.RWMutex
-
-	// deepCopied defines whether the object below has already been
-	// deep copied. The operation is performed lazily on the first
-	// setXxx operation.
-	//
-	// The lazy deep-copy make is useful, as effectively the only
-	// case when we are setting some fields are ResourceVersion for
-	// DELETE events, so in all other cases we can effectively avoid
-	// performing any deep copies.
-	deepCopied bool
 
 	// Object for which serializations are cached.
 	object metaRuntimeInterface
@@ -89,10 +80,7 @@ type cachingObject struct {
 // metav1.Object type.
 func newCachingObject(object runtime.Object) (*cachingObject, error) {
 	if obj, ok := object.(metaRuntimeInterface); ok {
-		result := &cachingObject{
-			object:     obj,
-			deepCopied: false,
-		}
+		result := &cachingObject{object: obj.DeepCopyObject().(metaRuntimeInterface)}
 		result.serializations.Store(make(serializationsCache))
 		return result, nil
 	}
@@ -137,10 +125,6 @@ func (o *cachingObject) CacheEncode(id runtime.Identifier, encode func(runtime.O
 	result := o.getSerializationResult(id)
 	result.once.Do(func() {
 		buffer := bytes.NewBuffer(nil)
-		// TODO(wojtek-t): This is currently making a copy to avoid races
-		//   in cases where encoding is making subtle object modifications,
-		//   e.g. #82497
-		//   Figure out if we can somehow avoid this under some conditions.
 		result.err = encode(o.GetObject(), buffer)
 		result.raw = buffer.Bytes()
 	})
@@ -173,9 +157,7 @@ func (o *cachingObject) DeepCopyObject() runtime.Object {
 	// DeepCopyObject on cachingObject is not expected to be called anywhere.
 	// However, to be on the safe-side, we implement it, though given the
 	// cache is only an optimization we ignore copying it.
-	result := &cachingObject{
-		deepCopied: true,
-	}
+	result := &cachingObject{}
 	result.serializations.Store(make(serializationsCache))
 
 	o.lock.RLock()
@@ -232,10 +214,6 @@ func (o *cachingObject) conditionalSet(isNoop func() bool, set func()) {
 	defer o.lock.Unlock()
 	if isNoop() {
 		return
-	}
-	if !o.deepCopied {
-		o.object = o.object.DeepCopyObject().(metaRuntimeInterface)
-		o.deepCopied = true
 	}
 	o.invalidateCacheLocked()
 	set()
@@ -395,15 +373,15 @@ func (o *cachingObject) SetOwnerReferences(references []metav1.OwnerReference) {
 		func() { o.object.SetOwnerReferences(references) },
 	)
 }
-func (o *cachingObject) GetZZZ_DeprecatedClusterName() string {
+func (o *cachingObject) GetClusterName() string {
 	o.lock.RLock()
 	defer o.lock.RUnlock()
-	return o.object.GetZZZ_DeprecatedClusterName()
+	return o.object.GetClusterName()
 }
-func (o *cachingObject) SetZZZ_DeprecatedClusterName(clusterName string) {
+func (o *cachingObject) SetClusterName(clusterName string) {
 	o.conditionalSet(
-		func() bool { return o.object.GetZZZ_DeprecatedClusterName() == clusterName },
-		func() { o.object.SetZZZ_DeprecatedClusterName(clusterName) },
+		func() bool { return o.object.GetClusterName() == clusterName },
+		func() { o.object.SetClusterName(clusterName) },
 	)
 }
 func (o *cachingObject) GetManagedFields() []metav1.ManagedFieldsEntry {

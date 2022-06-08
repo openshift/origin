@@ -8,7 +8,6 @@ package(
 go_library(
     name = "go_default_library",
     srcs = [
-        "cost.go",
         "error.go",
         "errors.go",
         "location.go",

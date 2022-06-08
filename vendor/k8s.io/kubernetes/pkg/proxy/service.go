@@ -52,8 +52,8 @@ type BaseServiceInfo struct {
 	externalIPs              []string
 	loadBalancerSourceRanges []string
 	healthCheckNodePort      int
-	externalPolicyLocal      bool
-	internalPolicyLocal      bool
+	nodeLocalExternal        bool
+	nodeLocalInternal        bool
 	internalTrafficPolicy    *v1.ServiceInternalTrafficPolicyType
 	hintsAnnotation          string
 }
@@ -119,14 +119,14 @@ func (info *BaseServiceInfo) LoadBalancerIPStrings() []string {
 	return ips
 }
 
-// ExternalPolicyLocal is part of ServicePort interface.
-func (info *BaseServiceInfo) ExternalPolicyLocal() bool {
-	return info.externalPolicyLocal
+// NodeLocalExternal is part of ServicePort interface.
+func (info *BaseServiceInfo) NodeLocalExternal() bool {
+	return info.nodeLocalExternal
 }
 
-// InternalPolicyLocal is part of ServicePort interface
-func (info *BaseServiceInfo) InternalPolicyLocal() bool {
-	return info.internalPolicyLocal
+// NodeLocalInternal is part of ServicePort interface
+func (info *BaseServiceInfo) NodeLocalInternal() bool {
+	return info.nodeLocalInternal
 }
 
 // InternalTrafficPolicy is part of ServicePort interface
@@ -139,32 +139,14 @@ func (info *BaseServiceInfo) HintsAnnotation() string {
 	return info.hintsAnnotation
 }
 
-// ExternallyAccessible is part of ServicePort interface.
-func (info *BaseServiceInfo) ExternallyAccessible() bool {
-	return info.nodePort != 0 || len(info.loadBalancerStatus.Ingress) != 0 || len(info.externalIPs) != 0
-}
-
-// UsesClusterEndpoints is part of ServicePort interface.
-func (info *BaseServiceInfo) UsesClusterEndpoints() bool {
-	// The service port uses Cluster endpoints if the internal traffic policy is "Cluster",
-	// or if it accepts external traffic at all. (Even if the external traffic policy is
-	// "Local", we need Cluster endpoints to implement short circuiting.)
-	return !info.internalPolicyLocal || info.ExternallyAccessible()
-}
-
-// UsesLocalEndpoints is part of ServicePort interface.
-func (info *BaseServiceInfo) UsesLocalEndpoints() bool {
-	return info.internalPolicyLocal || (info.externalPolicyLocal && info.ExternallyAccessible())
-}
-
 func (sct *ServiceChangeTracker) newBaseServiceInfo(port *v1.ServicePort, service *v1.Service) *BaseServiceInfo {
-	externalPolicyLocal := false
-	if apiservice.ExternalPolicyLocal(service) {
-		externalPolicyLocal = true
+	nodeLocalExternal := false
+	if apiservice.RequestsOnlyLocalTraffic(service) {
+		nodeLocalExternal = true
 	}
-	internalPolicyLocal := false
+	nodeLocalInternal := false
 	if utilfeature.DefaultFeatureGate.Enabled(features.ServiceInternalTrafficPolicy) {
-		internalPolicyLocal = apiservice.InternalPolicyLocal(service)
+		nodeLocalInternal = apiservice.RequestsOnlyLocalTrafficForInternal(service)
 	}
 	var stickyMaxAgeSeconds int
 	if service.Spec.SessionAffinity == v1.ServiceAffinityClientIP {
@@ -180,8 +162,8 @@ func (sct *ServiceChangeTracker) newBaseServiceInfo(port *v1.ServicePort, servic
 		nodePort:              int(port.NodePort),
 		sessionAffinityType:   service.Spec.SessionAffinity,
 		stickyMaxAgeSeconds:   stickyMaxAgeSeconds,
-		externalPolicyLocal:   externalPolicyLocal,
-		internalPolicyLocal:   internalPolicyLocal,
+		nodeLocalExternal:     nodeLocalExternal,
+		nodeLocalInternal:     nodeLocalInternal,
 		internalTrafficPolicy: service.Spec.InternalTrafficPolicy,
 		hintsAnnotation:       service.Annotations[v1.AnnotationTopologyAwareHints],
 	}

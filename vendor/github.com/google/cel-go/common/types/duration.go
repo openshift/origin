@@ -135,7 +135,10 @@ func (d Duration) ConvertToType(typeVal ref.Type) ref.Val {
 // Equal implements ref.Val.Equal.
 func (d Duration) Equal(other ref.Val) ref.Val {
 	otherDur, ok := other.(Duration)
-	return Bool(ok && d.Duration == otherDur.Duration)
+	if !ok {
+		return MaybeNoSuchOverloadErr(other)
+	}
+	return Bool(d.Duration == otherDur.Duration)
 }
 
 // Negate implements traits.Negater.Negate.

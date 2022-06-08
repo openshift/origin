@@ -83,7 +83,10 @@ func (n Null) ConvertToType(typeVal ref.Type) ref.Val {
 
 // Equal implements ref.Val.Equal.
 func (n Null) Equal(other ref.Val) ref.Val {
-	return Bool(NullType == other.Type())
+	if NullType != other.Type() {
+		return ValOrErr(other, "no such overload")
+	}
+	return True
 }
 
 // Type implements ref.Val.Type.

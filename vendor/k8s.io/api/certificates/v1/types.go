@@ -103,6 +103,8 @@ type CertificateSigningRequestSpec struct {
 	//
 	// The minimum valid value for expirationSeconds is 600, i.e. 10 minutes.
 	//
+	// As of v1.22, this field is beta and is controlled via the CSRDuration feature gate.
+	//
 	// +optional
 	ExpirationSeconds *int32 `json:"expirationSeconds,omitempty" protobuf:"varint,8,opt,name=expirationSeconds"`
 
@@ -212,6 +214,7 @@ type CertificateSigningRequestStatus struct {
 }
 
 // RequestConditionType is the type of a CertificateSigningRequestCondition
+// +enum
 type RequestConditionType string
 
 // Well-known condition types for certificate requests.

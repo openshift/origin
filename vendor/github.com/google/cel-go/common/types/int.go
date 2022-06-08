@@ -16,7 +16,6 @@ package types
 
 import (
 	"fmt"
-	"math"
 	"reflect"
 	"strconv"
 	"time"
@@ -73,19 +72,17 @@ func (i Int) Add(other ref.Val) ref.Val {
 
 // Compare implements traits.Comparer.Compare.
 func (i Int) Compare(other ref.Val) ref.Val {
-	switch ov := other.(type) {
-	case Double:
-		if math.IsNaN(float64(ov)) {
-			return NewErr("NaN values cannot be ordered")
-		}
-		return compareIntDouble(i, ov)
-	case Int:
-		return compareInt(i, ov)
-	case Uint:
-		return compareIntUint(i, ov)
-	default:
+	otherInt, ok := other.(Int)
+	if !ok {
 		return MaybeNoSuchOverloadErr(other)
 	}
+	if i < otherInt {
+		return IntNegOne
+	}
+	if i > otherInt {
+		return IntOne
+	}
+	return IntZero
 }
 
 // ConvertToNative implements ref.Val.ConvertToNative.
@@ -211,19 +208,11 @@ func (i Int) Divide(other ref.Val) ref.Val {
 
 // Equal implements ref.Val.Equal.
 func (i Int) Equal(other ref.Val) ref.Val {
-	switch ov := other.(type) {
-	case Double:
-		if math.IsNaN(float64(ov)) {
-			return False
-		}
-		return Bool(compareIntDouble(i, ov) == 0)
-	case Int:
-		return Bool(i == ov)
-	case Uint:
-		return Bool(compareIntUint(i, ov) == 0)
-	default:
-		return False
+	otherInt, ok := other.(Int)
+	if !ok {
+		return MaybeNoSuchOverloadErr(other)
 	}
+	return Bool(i == otherInt)
 }
 
 // Modulo implements traits.Modder.Modulo.

@@ -137,7 +137,7 @@ func (r *remoteImageService) listImagesV1(ctx context.Context, filter *runtimeap
 }
 
 // ImageStatus returns the status of the image.
-func (r *remoteImageService) ImageStatus(image *runtimeapi.ImageSpec, verbose bool) (*runtimeapi.ImageStatusResponse, error) {
+func (r *remoteImageService) ImageStatus(image *runtimeapi.ImageSpec) (*runtimeapi.Image, error) {
 	ctx, cancel := getContextWithTimeout(r.timeout)
 	defer cancel()
 
@@ -146,16 +146,15 @@ func (r *remoteImageService) ImageStatus(image *runtimeapi.ImageSpec, verbose bo
 	// https://github.com/kubernetes/kubernetes/pull/104575/files#r705600987
 	// https://github.com/kubernetes/kubernetes/pull/104575/files#r696793706
 	if r.useV1API() {
-		return r.imageStatusV1(ctx, image, verbose)
+		return r.imageStatusV1(ctx, image)
 	}
 
-	return r.imageStatusV1alpha2(ctx, image, verbose)
+	return r.imageStatusV1alpha2(ctx, image)
 }
 
-func (r *remoteImageService) imageStatusV1alpha2(ctx context.Context, image *runtimeapi.ImageSpec, verbose bool) (*runtimeapi.ImageStatusResponse, error) {
+func (r *remoteImageService) imageStatusV1alpha2(ctx context.Context, image *runtimeapi.ImageSpec) (*runtimeapi.Image, error) {
 	resp, err := r.imageClientV1alpha2.ImageStatus(ctx, &runtimeapiV1alpha2.ImageStatusRequest{
-		Image:   v1alpha2ImageSpec(image),
-		Verbose: verbose,
+		Image: v1alpha2ImageSpec(image),
 	})
 	if err != nil {
 		klog.ErrorS(err, "Get ImageStatus from image service failed", "image", image.Image)
@@ -171,13 +170,12 @@ func (r *remoteImageService) imageStatusV1alpha2(ctx context.Context, image *run
 		}
 	}
 
-	return fromV1alpha2ImageStatusResponse(resp), nil
+	return fromV1alpha2Image(resp.Image), nil
 }
 
-func (r *remoteImageService) imageStatusV1(ctx context.Context, image *runtimeapi.ImageSpec, verbose bool) (*runtimeapi.ImageStatusResponse, error) {
+func (r *remoteImageService) imageStatusV1(ctx context.Context, image *runtimeapi.ImageSpec) (*runtimeapi.Image, error) {
 	resp, err := r.imageClient.ImageStatus(ctx, &runtimeapi.ImageStatusRequest{
-		Image:   image,
-		Verbose: verbose,
+		Image: image,
 	})
 	if err != nil {
 		klog.ErrorS(err, "Get ImageStatus from image service failed", "image", image.Image)
@@ -193,7 +191,7 @@ func (r *remoteImageService) imageStatusV1(ctx context.Context, image *runtimeap
 		}
 	}
 
-	return resp, nil
+	return resp.Image, nil
 }
 
 // PullImage pulls an image with authentication config.

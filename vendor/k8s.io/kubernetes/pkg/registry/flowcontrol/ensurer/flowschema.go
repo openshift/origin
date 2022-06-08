@@ -24,11 +24,9 @@ import (
 	flowcontrolv1beta2 "k8s.io/api/flowcontrol/v1beta2"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	flowcontrolclient "k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2"
-	flowcontrollisters "k8s.io/client-go/listers/flowcontrol/v1beta2"
 	flowcontrolapisv1beta2 "k8s.io/kubernetes/pkg/apis/flowcontrol/v1beta2"
 )
 
@@ -41,22 +39,16 @@ type FlowSchemaEnsurer interface {
 	Ensure([]*flowcontrolv1beta2.FlowSchema) error
 }
 
-// FlowSchemaRemover is the interface that wraps the
-// RemoveAutoUpdateEnabledObjects method.
-//
-// RemoveAutoUpdateEnabledObjects removes a set of bootstrap FlowSchema
-// objects specified via their names. The function removes an object
-// only if automatic update of the spec is enabled for it.
+// FlowSchemaRemover removes the specified bootstrap configuration objects
 type FlowSchemaRemover interface {
-	RemoveAutoUpdateEnabledObjects([]string) error
+	Remove([]string) error
 }
 
 // NewSuggestedFlowSchemaEnsurer returns a FlowSchemaEnsurer instance that
 // can be used to ensure a set of suggested FlowSchema configuration objects.
-func NewSuggestedFlowSchemaEnsurer(client flowcontrolclient.FlowSchemaInterface, lister flowcontrollisters.FlowSchemaLister) FlowSchemaEnsurer {
+func NewSuggestedFlowSchemaEnsurer(client flowcontrolclient.FlowSchemaInterface) FlowSchemaEnsurer {
 	wrapper := &flowSchemaWrapper{
 		client: client,
-		lister: lister,
 	}
 	return &fsEnsurer{
 		strategy: newSuggestedEnsureStrategy(wrapper),
@@ -66,10 +58,9 @@ func NewSuggestedFlowSchemaEnsurer(client flowcontrolclient.FlowSchemaInterface,
 
 // NewMandatoryFlowSchemaEnsurer returns a FlowSchemaEnsurer instance that
 // can be used to ensure a set of mandatory FlowSchema configuration objects.
-func NewMandatoryFlowSchemaEnsurer(client flowcontrolclient.FlowSchemaInterface, lister flowcontrollisters.FlowSchemaLister) FlowSchemaEnsurer {
+func NewMandatoryFlowSchemaEnsurer(client flowcontrolclient.FlowSchemaInterface) FlowSchemaEnsurer {
 	wrapper := &flowSchemaWrapper{
 		client: client,
-		lister: lister,
 	}
 	return &fsEnsurer{
 		strategy: newMandatoryEnsureStrategy(wrapper),
@@ -79,21 +70,21 @@ func NewMandatoryFlowSchemaEnsurer(client flowcontrolclient.FlowSchemaInterface,
 
 // NewFlowSchemaRemover returns a FlowSchemaRemover instance that
 // can be used to remove a set of FlowSchema configuration objects.
-func NewFlowSchemaRemover(client flowcontrolclient.FlowSchemaInterface, lister flowcontrollisters.FlowSchemaLister) FlowSchemaRemover {
+func NewFlowSchemaRemover(client flowcontrolclient.FlowSchemaInterface) FlowSchemaRemover {
 	return &fsEnsurer{
 		wrapper: &flowSchemaWrapper{
 			client: client,
-			lister: lister,
 		},
 	}
 }
 
-// GetFlowSchemaRemoveCandidates returns a list of FlowSchema object
+// GetFlowSchemaRemoveCandidate returns a list of FlowSchema object
 // names that are candidates for deletion from the cluster.
 // bootstrap: a set of hard coded FlowSchema configuration objects
 // kube-apiserver maintains in-memory.
-func GetFlowSchemaRemoveCandidates(lister flowcontrollisters.FlowSchemaLister, bootstrap []*flowcontrolv1beta2.FlowSchema) ([]string, error) {
-	fsList, err := lister.List(labels.Everything())
+func GetFlowSchemaRemoveCandidate(client flowcontrolclient.FlowSchemaInterface, bootstrap []*flowcontrolv1beta2.FlowSchema) ([]string, error) {
+	// TODO(101667): Use a lister here to avoid periodic LIST calls
+	fsList, err := client.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list FlowSchema - %w", err)
 	}
@@ -103,12 +94,12 @@ func GetFlowSchemaRemoveCandidates(lister flowcontrollisters.FlowSchemaLister, b
 		bootstrapNames.Insert(bootstrap[i].GetName())
 	}
 
-	currentObjects := make([]metav1.Object, len(fsList))
-	for i := range fsList {
-		currentObjects[i] = fsList[i]
+	currentObjects := make([]metav1.Object, len(fsList.Items))
+	for i := range fsList.Items {
+		currentObjects[i] = &fsList.Items[i]
 	}
 
-	return getDanglingBootstrapObjectNames(bootstrapNames, currentObjects), nil
+	return getRemoveCandidate(bootstrapNames, currentObjects), nil
 }
 
 type fsEnsurer struct {
@@ -126,9 +117,9 @@ func (e *fsEnsurer) Ensure(flowSchemas []*flowcontrolv1beta2.FlowSchema) error {
 	return nil
 }
 
-func (e *fsEnsurer) RemoveAutoUpdateEnabledObjects(flowSchemas []string) error {
+func (e *fsEnsurer) Remove(flowSchemas []string) error {
 	for _, flowSchema := range flowSchemas {
-		if err := removeAutoUpdateEnabledConfiguration(e.wrapper, flowSchema); err != nil {
+		if err := removeConfiguration(e.wrapper, flowSchema); err != nil {
 			return err
 		}
 	}
@@ -140,7 +131,6 @@ func (e *fsEnsurer) RemoveAutoUpdateEnabledObjects(flowSchemas []string) error {
 // we can manage all boiler plate code in one place.
 type flowSchemaWrapper struct {
 	client flowcontrolclient.FlowSchemaInterface
-	lister flowcontrollisters.FlowSchemaLister
 }
 
 func (fs *flowSchemaWrapper) TypeName() string {
@@ -166,7 +156,7 @@ func (fs *flowSchemaWrapper) Update(object runtime.Object) (runtime.Object, erro
 }
 
 func (fs *flowSchemaWrapper) Get(name string) (configurationObject, error) {
-	return fs.lister.Get(name)
+	return fs.client.Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 func (fs *flowSchemaWrapper) Delete(name string) error {

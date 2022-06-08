@@ -17,6 +17,7 @@ package validate
 import (
 	"reflect"
 	"regexp"
+	"strings"
 
 	"k8s.io/kube-openapi/pkg/validation/errors"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -50,16 +51,31 @@ func (o *objectValidator) Applies(source interface{}, kind reflect.Kind) bool {
 	return r
 }
 
+func (o *objectValidator) isProperties() bool {
+	p := strings.Split(o.Path, ".")
+	return len(p) > 1 && p[len(p)-1] == jsonProperties && p[len(p)-2] != jsonProperties
+}
+
+func (o *objectValidator) isDefault() bool {
+	p := strings.Split(o.Path, ".")
+	return len(p) > 1 && p[len(p)-1] == jsonDefault && p[len(p)-2] != jsonDefault
+}
+
+func (o *objectValidator) isExample() bool {
+	p := strings.Split(o.Path, ".")
+	return len(p) > 1 && (p[len(p)-1] == swaggerExample || p[len(p)-1] == swaggerExamples) && p[len(p)-2] != swaggerExample
+}
+
 func (o *objectValidator) Validate(data interface{}) *Result {
 	val := data.(map[string]interface{})
 	// TODO: guard against nil data
 	numKeys := int64(len(val))
 
 	if o.MinProperties != nil && numKeys < *o.MinProperties {
-		return errorHelp.sErr(errors.TooFewProperties(o.Path, o.In, *o.MinProperties, numKeys))
+		return errorHelp.sErr(errors.TooFewProperties(o.Path, o.In, *o.MinProperties))
 	}
 	if o.MaxProperties != nil && numKeys > *o.MaxProperties {
-		return errorHelp.sErr(errors.TooManyProperties(o.Path, o.In, *o.MaxProperties, numKeys))
+		return errorHelp.sErr(errors.TooManyProperties(o.Path, o.In, *o.MaxProperties))
 	}
 
 	res := new(Result)

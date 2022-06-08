@@ -30,7 +30,7 @@ const (
 	eventAdditionalDuration = 5 * time.Millisecond
 	// TODO(wojtekt): Remove it once we tune the algorithm to not fail
 	// scalability tests.
-	enableMutatingWorkEstimator = true
+	enableMutatingWorkEstimator = false
 )
 
 func newMutatingWorkEstimator(countFn watchCountGetterFunc) WorkEstimatorFunc {

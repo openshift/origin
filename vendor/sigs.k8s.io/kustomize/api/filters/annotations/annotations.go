@@ -19,17 +19,9 @@ type Filter struct {
 
 	// FsSlice contains the FieldSpecs to locate the namespace field
 	FsSlice types.FsSlice
-
-	trackableSetter filtersutil.TrackableSetter
 }
 
 var _ kio.Filter = Filter{}
-var _ kio.TrackableFilter = &Filter{}
-
-// WithMutationTracker registers a callback which will be invoked each time a field is mutated
-func (f *Filter) WithMutationTracker(callback func(key, value, tag string, node *yaml.RNode)) {
-	f.trackableSetter.WithMutationTracker(callback)
-}
 
 func (f Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	keys := yaml.SortedMapKeys(f.Annotations)
@@ -38,7 +30,7 @@ func (f Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 			for _, k := range keys {
 				if err := node.PipeE(fsslice.Filter{
 					FsSlice: f.FsSlice,
-					SetValue: f.trackableSetter.SetEntry(
+					SetValue: filtersutil.SetEntry(
 						k, f.Annotations[k], yaml.NodeTagString),
 					CreateKind: yaml.MappingNode, // Annotations are MappingNodes.
 					CreateTag:  yaml.NodeTagMap,

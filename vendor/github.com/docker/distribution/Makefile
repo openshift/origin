@@ -50,7 +50,7 @@ version/version.go:
 
 check: ## run all linters (TODO: enable "unused", "varcheck", "ineffassign", "unconvert", "staticheck", "goimports", "structcheck")
 	@echo "$(WHALE) $@"
-	golangci-lint run
+	gometalinter --config .gometalinter.json ./...
 
 test: ## run tests, except integration test with test.short
 	@echo "$(WHALE) $@"

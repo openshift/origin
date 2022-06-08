@@ -18,7 +18,6 @@ package identity
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 
 	"k8s.io/apiserver/pkg/storage/value"
@@ -35,17 +34,17 @@ func NewEncryptCheckTransformer() value.Transformer {
 }
 
 // TransformFromStorage returns the input bytes if the data is not encrypted
-func (identityTransformer) TransformFromStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, bool, error) {
+func (identityTransformer) TransformFromStorage(b []byte, context value.Context) ([]byte, bool, error) {
 	// identityTransformer has to return an error if the data is encoded using another transformer.
 	// JSON data starts with '{'. Protobuf data has a prefix 'k8s[\x00-\xFF]'.
 	// Prefix 'k8s:enc:' is reserved for encrypted data on disk.
-	if bytes.HasPrefix(data, []byte("k8s:enc:")) {
+	if bytes.HasPrefix(b, []byte("k8s:enc:")) {
 		return []byte{}, false, fmt.Errorf("identity transformer tried to read encrypted data")
 	}
-	return data, false, nil
+	return b, false, nil
 }
 
 // TransformToStorage implements the Transformer interface for identityTransformer
-func (identityTransformer) TransformToStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, error) {
-	return data, nil
+func (identityTransformer) TransformToStorage(b []byte, context value.Context) ([]byte, error) {
+	return b, nil
 }

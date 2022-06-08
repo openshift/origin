@@ -2,10 +2,12 @@
 
 reviewers:
   - thockin
-approvers:
-  - thockin
-labels:
-  - sig/network
-emeritus_approvers:
   - brendandburns
   - m1093782566
+  - islinwb
+approvers:
+  - thockin
+  - brendandburns
+  - m1093782566
+labels:
+- sig/network

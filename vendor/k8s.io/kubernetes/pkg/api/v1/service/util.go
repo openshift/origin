@@ -67,8 +67,8 @@ func GetLoadBalancerSourceRanges(service *v1.Service) (utilnet.IPNetSet, error) 
 	return ipnets, nil
 }
 
-// ExternalPolicyLocal checks if service has ETP = Local.
-func ExternalPolicyLocal(service *v1.Service) bool {
+// RequestsOnlyLocalTraffic checks if service requests OnlyLocal traffic.
+func RequestsOnlyLocalTraffic(service *v1.Service) bool {
 	if service.Spec.Type != v1.ServiceTypeLoadBalancer &&
 		service.Spec.Type != v1.ServiceTypeNodePort {
 		return false
@@ -76,8 +76,9 @@ func ExternalPolicyLocal(service *v1.Service) bool {
 	return service.Spec.ExternalTrafficPolicy == v1.ServiceExternalTrafficPolicyTypeLocal
 }
 
-// InternalPolicyLocal checks if service has ITP = Local.
-func InternalPolicyLocal(service *v1.Service) bool {
+// RequestsOnlyLocalTrafficForInternal checks if service prefers Node Local
+// endpoints for internal traffic
+func RequestsOnlyLocalTrafficForInternal(service *v1.Service) bool {
 	if service.Spec.InternalTrafficPolicy == nil {
 		return false
 	}
@@ -89,7 +90,7 @@ func NeedsHealthCheck(service *v1.Service) bool {
 	if service.Spec.Type != v1.ServiceTypeLoadBalancer {
 		return false
 	}
-	return ExternalPolicyLocal(service)
+	return RequestsOnlyLocalTraffic(service)
 }
 
 // GetServiceHealthCheckPathPort returns the path and nodePort programmed into the Cloud LB Health Check

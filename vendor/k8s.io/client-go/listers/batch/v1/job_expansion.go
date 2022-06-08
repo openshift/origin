@@ -51,11 +51,7 @@ func (l *jobLister) GetPodJobs(pod *v1.Pod) (jobs []batch.Job, err error) {
 		return
 	}
 	for _, job := range list {
-		selector, err := metav1.LabelSelectorAsSelector(job.Spec.Selector)
-		if err != nil {
-			// This object has an invalid selector, it does not match the pod
-			continue
-		}
+		selector, _ := metav1.LabelSelectorAsSelector(job.Spec.Selector)
 		if !selector.Matches(labels.Set(pod.Labels)) {
 			continue
 		}

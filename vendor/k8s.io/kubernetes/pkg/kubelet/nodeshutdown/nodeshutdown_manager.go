@@ -46,7 +46,6 @@ type Config struct {
 	ShutdownGracePeriodRequested     time.Duration
 	ShutdownGracePeriodCriticalPods  time.Duration
 	ShutdownGracePeriodByPodPriority []kubeletconfig.ShutdownGracePeriodByPodPriority
-	StateDirectory                   string
 	Clock                            clock.Clock
 }
 

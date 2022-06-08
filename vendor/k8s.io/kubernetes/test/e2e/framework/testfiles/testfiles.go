@@ -29,6 +29,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -81,12 +82,12 @@ func Read(filePath string) ([]byte, error) {
 	}
 	// Here we try to generate an error that points test authors
 	// or users in the right direction for resolving the problem.
-	err := fmt.Sprintf("Test file %q was not found.\n", filePath)
+	error := fmt.Sprintf("Test file %q was not found.\n", filePath)
 	for _, filesource := range filesources {
-		err += filesource.DescribeFiles()
-		err += "\n"
+		error += filesource.DescribeFiles()
+		error += "\n"
 	}
-	return nil, errors.New(err)
+	return nil, errors.New(error)
 }
 
 // Exists checks whether a file could be read. Unexpected errors
@@ -121,7 +122,7 @@ func (r RootFileSource) ReadTestFile(filePath string) ([]byte, error) {
 	} else {
 		fullPath = filepath.Join(r.Root, filePath)
 	}
-	data, err := os.ReadFile(fullPath)
+	data, err := ioutil.ReadFile(fullPath)
 	if os.IsNotExist(err) {
 		// Not an error (yet), some other provider may have the file.
 		return nil, nil

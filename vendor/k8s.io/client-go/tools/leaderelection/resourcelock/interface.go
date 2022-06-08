@@ -31,77 +31,11 @@ import (
 
 const (
 	LeaderElectionRecordAnnotationKey = "control-plane.alpha.kubernetes.io/leader"
-	endpointsResourceLock             = "endpoints"
-	configMapsResourceLock            = "configmaps"
+	EndpointsResourceLock             = "endpoints"
+	ConfigMapsResourceLock            = "configmaps"
 	LeasesResourceLock                = "leases"
-	// When using EndpointsLeasesResourceLock, you need to ensure that
-	// API Priority & Fairness is configured with non-default flow-schema
-	// that will catch the necessary operations on leader-election related
-	// endpoint objects.
-	//
-	// The example of such flow scheme could look like this:
-	//   apiVersion: flowcontrol.apiserver.k8s.io/v1beta2
-	//   kind: FlowSchema
-	//   metadata:
-	//     name: my-leader-election
-	//   spec:
-	//     distinguisherMethod:
-	//       type: ByUser
-	//     matchingPrecedence: 200
-	//     priorityLevelConfiguration:
-	//       name: leader-election   # reference the <leader-election> PL
-	//     rules:
-	//     - resourceRules:
-	//       - apiGroups:
-	//         - ""
-	//         namespaces:
-	//         - '*'
-	//         resources:
-	//         - endpoints
-	//         verbs:
-	//         - get
-	//         - create
-	//         - update
-	//       subjects:
-	//       - kind: ServiceAccount
-	//         serviceAccount:
-	//           name: '*'
-	//           namespace: kube-system
-	EndpointsLeasesResourceLock = "endpointsleases"
-	// When using EndpointsLeasesResourceLock, you need to ensure that
-	// API Priority & Fairness is configured with non-default flow-schema
-	// that will catch the necessary operations on leader-election related
-	// configmap objects.
-	//
-	// The example of such flow scheme could look like this:
-	//   apiVersion: flowcontrol.apiserver.k8s.io/v1beta2
-	//   kind: FlowSchema
-	//   metadata:
-	//     name: my-leader-election
-	//   spec:
-	//     distinguisherMethod:
-	//       type: ByUser
-	//     matchingPrecedence: 200
-	//     priorityLevelConfiguration:
-	//       name: leader-election   # reference the <leader-election> PL
-	//     rules:
-	//     - resourceRules:
-	//       - apiGroups:
-	//         - ""
-	//         namespaces:
-	//         - '*'
-	//         resources:
-	//         - configmaps
-	//         verbs:
-	//         - get
-	//         - create
-	//         - update
-	//       subjects:
-	//       - kind: ServiceAccount
-	//         serviceAccount:
-	//           name: '*'
-	//           namespace: kube-system
-	ConfigMapsLeasesResourceLock = "configmapsleases"
+	EndpointsLeasesResourceLock       = "endpointsleases"
+	ConfigMapsLeasesResourceLock      = "configmapsleases"
 )
 
 // LeaderElectionRecord is the record that is stored in the leader election annotation.
@@ -164,7 +98,7 @@ type Interface interface {
 
 // Manufacture will create a lock of a given type according to the input parameters
 func New(lockType string, ns string, name string, coreClient corev1.CoreV1Interface, coordinationClient coordinationv1.CoordinationV1Interface, rlc ResourceLockConfig) (Interface, error) {
-	endpointsLock := &endpointsLock{
+	endpointsLock := &EndpointsLock{
 		EndpointsMeta: metav1.ObjectMeta{
 			Namespace: ns,
 			Name:      name,
@@ -172,7 +106,7 @@ func New(lockType string, ns string, name string, coreClient corev1.CoreV1Interf
 		Client:     coreClient,
 		LockConfig: rlc,
 	}
-	configmapLock := &configMapLock{
+	configmapLock := &ConfigMapLock{
 		ConfigMapMeta: metav1.ObjectMeta{
 			Namespace: ns,
 			Name:      name,
@@ -189,10 +123,10 @@ func New(lockType string, ns string, name string, coreClient corev1.CoreV1Interf
 		LockConfig: rlc,
 	}
 	switch lockType {
-	case endpointsResourceLock:
-		return nil, fmt.Errorf("endpoints lock is removed, migrate to %s", EndpointsLeasesResourceLock)
-	case configMapsResourceLock:
-		return nil, fmt.Errorf("configmaps lock is removed, migrate to %s", ConfigMapsLeasesResourceLock)
+	case EndpointsResourceLock:
+		return endpointsLock, nil
+	case ConfigMapsResourceLock:
+		return configmapLock, nil
 	case LeasesResourceLock:
 		return leaseLock, nil
 	case EndpointsLeasesResourceLock:

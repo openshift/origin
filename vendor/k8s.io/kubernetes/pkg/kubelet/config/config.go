@@ -17,7 +17,6 @@ limitations under the License.
 package config
 
 import (
-	"context"
 	"fmt"
 	"reflect"
 	"sync"
@@ -82,11 +81,11 @@ func NewPodConfig(mode PodConfigNotificationMode, recorder record.EventRecorder)
 
 // Channel creates or returns a config source channel.  The channel
 // only accepts PodUpdates
-func (c *PodConfig) Channel(ctx context.Context, source string) chan<- interface{} {
+func (c *PodConfig) Channel(source string) chan<- interface{} {
 	c.sourcesLock.Lock()
 	defer c.sourcesLock.Unlock()
 	c.sources.Insert(source)
-	return c.mux.ChannelWithContext(ctx, source)
+	return c.mux.Channel(source)
 }
 
 // SeenAllSources returns true if seenSources contains all sources in the

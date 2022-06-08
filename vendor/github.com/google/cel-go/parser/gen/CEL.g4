@@ -83,9 +83,9 @@ literal
     | sign=MINUS? tok=NUM_FLOAT # Double
     | tok=STRING    # String
     | tok=BYTES     # Bytes
-    | tok=CEL_TRUE   # BoolTrue
-    | tok=CEL_FALSE  # BoolFalse
-    | tok=NUL        # Null
+    | tok='true'    # BoolTrue
+    | tok='false'   # BoolFalse
+    | tok='null'    # Null
     ;
 
 // Lexer Rules
@@ -117,9 +117,9 @@ PLUS : '+';
 STAR : '*';
 SLASH : '/';
 PERCENT : '%';
-CEL_TRUE : 'true';
-CEL_FALSE : 'false';
-NUL : 'null';
+TRUE : 'true';
+FALSE : 'false';
+NULL : 'null';
 
 fragment BACKSLASH : '\\';
 fragment LETTER : 'A'..'Z' | 'a'..'z' ;

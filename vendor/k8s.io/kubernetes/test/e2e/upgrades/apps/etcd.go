@@ -20,7 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"path/filepath"
 	"sync"
@@ -118,7 +118,7 @@ func (t *EtcdUpgradeTest) listUsers() ([]string, error) {
 	}
 	defer r.Body.Close()
 	if r.StatusCode != http.StatusOK {
-		b, err := io.ReadAll(r.Body)
+		b, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -139,7 +139,7 @@ func (t *EtcdUpgradeTest) addUser(name string) error {
 	}
 	defer r.Body.Close()
 	if r.StatusCode != http.StatusOK {
-		b, err := io.ReadAll(r.Body)
+		b, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			return err
 		}

@@ -134,8 +134,10 @@ func (t Timestamp) ConvertToType(typeVal ref.Type) ref.Val {
 
 // Equal implements ref.Val.Equal.
 func (t Timestamp) Equal(other ref.Val) ref.Val {
-	otherTime, ok := other.(Timestamp)
-	return Bool(ok && t.Time.Equal(otherTime.Time))
+	if TimestampType != other.Type() {
+		return MaybeNoSuchOverloadErr(other)
+	}
+	return Bool(t.Time.Equal(other.(Timestamp).Time))
 }
 
 // Receive implements traits.Reciever.Receive.

@@ -1,10 +1,8 @@
-//go:build linux
 // +build linux
 
 package system
 
 import (
-	"os"
 	"os/exec"
 	"unsafe"
 
@@ -44,9 +42,17 @@ func Exec(cmd string, args []string, env []string) error {
 	for {
 		err := unix.Exec(cmd, args, env)
 		if err != unix.EINTR { //nolint:errorlint // unix errors are bare
-			return &os.PathError{Op: "exec", Path: cmd, Err: err}
+			return err
 		}
 	}
+}
+
+func Prlimit(pid, resource int, limit unix.Rlimit) error {
+	_, _, err := unix.RawSyscall6(unix.SYS_PRLIMIT64, uintptr(pid), uintptr(resource), uintptr(unsafe.Pointer(&limit)), uintptr(unsafe.Pointer(&limit)), 0, 0)
+	if err != 0 {
+		return err
+	}
+	return nil
 }
 
 func SetParentDeathSignal(sig uintptr) error {

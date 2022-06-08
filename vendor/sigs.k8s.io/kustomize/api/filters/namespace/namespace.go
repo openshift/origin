@@ -18,17 +18,9 @@ type Filter struct {
 
 	// FsSlice contains the FieldSpecs to locate the namespace field
 	FsSlice types.FsSlice `json:"fieldSpecs,omitempty" yaml:"fieldSpecs,omitempty"`
-
-	trackableSetter filtersutil.TrackableSetter
 }
 
 var _ kio.Filter = Filter{}
-var _ kio.TrackableFilter = &Filter{}
-
-// WithMutationTracker registers a callback which will be invoked each time a field is mutated
-func (ns *Filter) WithMutationTracker(callback func(key, value, tag string, node *yaml.RNode)) {
-	ns.trackableSetter.WithMutationTracker(callback)
-}
 
 func (ns Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	return kio.FilterAll(yaml.FilterFunc(ns.run)).Filter(nodes)
@@ -52,7 +44,7 @@ func (ns Filter) run(node *yaml.RNode) (*yaml.RNode, error) {
 	// transformations based on data -- :)
 	err := node.PipeE(fsslice.Filter{
 		FsSlice:    ns.FsSlice,
-		SetValue:   ns.trackableSetter.SetEntry("", ns.Namespace, yaml.NodeTagString),
+		SetValue:   filtersutil.SetScalar(ns.Namespace),
 		CreateKind: yaml.ScalarNode, // Namespace is a ScalarNode
 		CreateTag:  yaml.NodeTagString,
 	})
@@ -85,7 +77,7 @@ func (ns Filter) metaNamespaceHack(obj *yaml.RNode, gvk resid.Gvk) error {
 		FsSlice: []types.FieldSpec{
 			{Path: types.MetadataNamespacePath, CreateIfNotPresent: true},
 		},
-		SetValue:   ns.trackableSetter.SetEntry("", ns.Namespace, yaml.NodeTagString),
+		SetValue:   filtersutil.SetScalar(ns.Namespace),
 		CreateKind: yaml.ScalarNode, // Namespace is a ScalarNode
 	}
 	_, err := f.Filter(obj)
@@ -131,15 +123,11 @@ func (ns Filter) roleBindingHack(obj *yaml.RNode, gvk resid.Gvk) error {
 		}
 
 		// set the namespace for the default account
-		node, err := o.Pipe(
+		v := yaml.NewScalarRNode(ns.Namespace)
+		return o.PipeE(
 			yaml.LookupCreate(yaml.ScalarNode, "namespace"),
+			yaml.FieldSetter{Value: v},
 		)
-		if err != nil {
-			return err
-		}
-
-		return ns.trackableSetter.SetEntry("", ns.Namespace, yaml.NodeTagString)(node)
-
 	})
 
 	return err

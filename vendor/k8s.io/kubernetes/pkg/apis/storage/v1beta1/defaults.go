@@ -49,7 +49,7 @@ func SetDefaults_CSIDriver(obj *storagev1beta1.CSIDriver) {
 		obj.Spec.PodInfoOnMount = new(bool)
 		*(obj.Spec.PodInfoOnMount) = false
 	}
-	if obj.Spec.StorageCapacity == nil {
+	if obj.Spec.StorageCapacity == nil && utilfeature.DefaultFeatureGate.Enabled(features.CSIStorageCapacity) {
 		obj.Spec.StorageCapacity = new(bool)
 		*(obj.Spec.StorageCapacity) = false
 	}

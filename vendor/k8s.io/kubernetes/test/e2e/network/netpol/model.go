@@ -42,7 +42,7 @@ type Model struct {
 
 // NewWindowsModel returns a model specific to windows testing.
 func NewWindowsModel(namespaces []string, podNames []string, ports []int32, dnsDomain string) *Model {
-	return NewModel(namespaces, podNames, ports, []v1.Protocol{v1.ProtocolTCP, v1.ProtocolUDP}, dnsDomain)
+	return NewModel(namespaces, podNames, ports, []v1.Protocol{v1.ProtocolTCP}, dnsDomain)
 }
 
 // NewModel instantiates a model based on:
@@ -97,9 +97,13 @@ func (m *Model) GetProbeTimeoutSeconds() int {
 	return timeoutSeconds
 }
 
-// GetWorkers returns the number of workers suggested to run when testing.
+// GetWorkers returns the number of workers suggested to run when testing, taking windows heuristics into account, where parallel probing is flakier.
 func (m *Model) GetWorkers() int {
-	return 3
+	numberOfWorkers := 3
+	if framework.NodeOSDistroIs("windows") {
+		numberOfWorkers = 1 // See https://github.com/kubernetes/kubernetes/pull/97690
+	}
+	return numberOfWorkers
 }
 
 // NewReachability instantiates a default-true reachability from the model's pods

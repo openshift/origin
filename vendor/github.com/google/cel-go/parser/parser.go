@@ -142,7 +142,14 @@ var reservedIds = map[string]struct{}{
 //
 // Deprecated: Use NewParser().Parse() instead.
 func Parse(source common.Source) (*exprpb.ParsedExpr, *common.Errors) {
-	return mustNewParser(Macros(AllMacros...)).Parse(source)
+	return ParseWithMacros(source, AllMacros)
+}
+
+// ParseWithMacros converts a source input and macros set to a parsed expression.
+//
+// Deprecated: Use NewParser().Parse() instead.
+func ParseWithMacros(source common.Source, macros []Macro) (*exprpb.ParsedExpr, *common.Errors) {
+	return mustNewParser(Macros(macros...)).Parse(source)
 }
 
 type recursionError struct {
@@ -297,7 +304,6 @@ var (
 )
 
 func (p *parser) parse(expr runes.Buffer, desc string) *exprpb.Expr {
-	// TODO: get rid of these pools once https://github.com/antlr/antlr4/pull/3571 is in a release
 	lexer := lexerPool.Get().(*gen.CELLexer)
 	prsr := parserPool.Get().(*gen.CELParser)
 

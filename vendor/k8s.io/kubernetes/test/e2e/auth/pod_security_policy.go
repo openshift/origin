@@ -170,6 +170,15 @@ func testPrivilegedPods(tester func(pod *v1.Pod)) {
 		tester(hostipc)
 	})
 
+	if isAppArmorSupported() && framework.TestContext.ContainerRuntime == "docker" {
+		ginkgo.By("Running a custom AppArmor profile pod", func() {
+			aa := restrictedPod("apparmor")
+			// Every node is expected to have the docker-default profile.
+			aa.Annotations[v1.AppArmorBetaContainerAnnotationKeyPrefix+"pause"] = "localhost/docker-default"
+			tester(aa)
+		})
+	}
+
 	ginkgo.By("Running an unconfined Seccomp pod", func() {
 		unconfined := restrictedPod("seccomp")
 		unconfined.Annotations[v1.SeccompPodAnnotationKey] = "unconfined"
@@ -364,4 +373,9 @@ func restrictedPSP(name string) *policyv1beta1.PodSecurityPolicy {
 
 func boolPtr(b bool) *bool {
 	return &b
+}
+
+// isAppArmorSupported checks whether the AppArmor is supported by the node OS distro.
+func isAppArmorSupported() bool {
+	return framework.NodeOSDistroIs(e2eskipper.AppArmorDistros...)
 }

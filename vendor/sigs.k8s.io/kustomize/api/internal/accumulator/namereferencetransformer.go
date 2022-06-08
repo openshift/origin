@@ -52,10 +52,7 @@ func (t *nameReferenceTransformer) Transform(m resmap.ResMap) error {
 	fMap := t.determineFilters(m.Resources())
 	debug(fMap)
 	for r, fList := range fMap {
-		c, err := m.SubsetThatCouldBeReferencedByResource(r)
-		if err != nil {
-			return err
-		}
+		c := m.SubsetThatCouldBeReferencedByResource(r)
 		for _, f := range fList {
 			f.Referrer = r
 			f.ReferralCandidates = c

@@ -19,7 +19,7 @@ package node
 import (
 	"context"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"path"
 	"time"
 
@@ -170,7 +170,10 @@ while true; do sleep 1; done
 				gomega.Expect(c.Delete()).To(gomega.Succeed())
 			}
 
-			ginkgo.It("should report termination message if TerminationMessagePath is set [NodeConformance]", func() {
+			ginkgo.It("should report termination message if TerminationMessagePath is set [Excluded:WindowsDocker] [NodeConformance]", func() {
+				// Cannot mount files in Windows Containers created by Docker.
+				// TODO(claudiub): Remove [Excluded:WindowsDocker] tag if Containerd becomes the only
+				// container runtime on Windows.
 				container := v1.Container{
 					Image:                  framework.BusyBoxImage,
 					Command:                []string{"/bin/sh", "-c"},
@@ -190,8 +193,11 @@ while true; do sleep 1; done
 				Release: v1.15
 				Testname: Container Runtime, TerminationMessagePath, non-root user and non-default path
 				Description: Create a pod with a container to run it as a non-root user with a custom TerminationMessagePath set. Pod redirects the output to the provided path successfully. When the container is terminated, the termination message MUST match the expected output logged in the provided custom path.
+				[LinuxOnly]: Tagged LinuxOnly due to use of 'uid' and unable to mount files in Windows Containers.
 			*/
-			framework.ConformanceIt("should report termination message if TerminationMessagePath is set as non-root user and at a non-default path [NodeConformance]", func() {
+			framework.ConformanceIt("should report termination message [LinuxOnly] if TerminationMessagePath is set as non-root user and at a non-default path [NodeConformance]", func() {
+				// TODO(claudiub): Remove [LinuxOnly] tag once Containerd becomes the default
+				// container runtime on Windows
 				container := v1.Container{
 					Image:                  framework.BusyBoxImage,
 					Command:                []string{"/bin/sh", "-c"},
@@ -211,8 +217,9 @@ while true; do sleep 1; done
 				Release: v1.15
 				Testname: Container Runtime, TerminationMessage, from container's log output of failing container
 				Description: Create a pod with an container. Container's output is recorded in log and container exits with an error. When container is terminated, termination message MUST match the expected output recorded from container's log.
+				[Excluded:WindowsDocker]: Cannot mount files in Windows Containers created by Docker.
 			*/
-			framework.ConformanceIt("should report termination message from log output if TerminationMessagePolicy FallbackToLogsOnError is set [NodeConformance]", func() {
+			framework.ConformanceIt("should report termination message from log output if TerminationMessagePolicy FallbackToLogsOnError is set [Excluded:WindowsDocker] [NodeConformance]", func() {
 				container := v1.Container{
 					Image:                    framework.BusyBoxImage,
 					Command:                  []string{"/bin/sh", "-c"},
@@ -227,8 +234,9 @@ while true; do sleep 1; done
 				Release: v1.15
 				Testname: Container Runtime, TerminationMessage, from log output of succeeding container
 				Description: Create a pod with an container. Container's output is recorded in log and container exits successfully without an error. When container is terminated, terminationMessage MUST have no content as container succeed.
+				[Excluded:WindowsDocker]: Cannot mount files in Windows Containers created by Docker.
 			*/
-			framework.ConformanceIt("should report termination message as empty when pod succeeds and TerminationMessagePolicy FallbackToLogsOnError is set [NodeConformance]", func() {
+			framework.ConformanceIt("should report termination message as empty when pod succeeds and TerminationMessagePolicy FallbackToLogsOnError is set [Excluded:WindowsDocker] [NodeConformance]", func() {
 				container := v1.Container{
 					Image:                    framework.BusyBoxImage,
 					Command:                  []string{"/bin/sh", "-c"},
@@ -243,8 +251,9 @@ while true; do sleep 1; done
 				Release: v1.15
 				Testname: Container Runtime, TerminationMessage, from file of succeeding container
 				Description: Create a pod with an container. Container's output is recorded in a file and the container exits successfully without an error. When container is terminated, terminationMessage MUST match with the content from file.
+				[Excluded:WindowsDocker]: Cannot mount files in Windows Containers created by Docker.
 			*/
-			framework.ConformanceIt("should report termination message from file when pod succeeds and TerminationMessagePolicy FallbackToLogsOnError is set [NodeConformance]", func() {
+			framework.ConformanceIt("should report termination message from file when pod succeeds and TerminationMessagePolicy FallbackToLogsOnError is set [Excluded:WindowsDocker] [NodeConformance]", func() {
 				container := v1.Container{
 					Image:                    framework.BusyBoxImage,
 					Command:                  []string{"/bin/sh", "-c"},
@@ -290,7 +299,7 @@ while true; do sleep 1; done
 }`
 					// we might be told to use a different docker config JSON.
 					if framework.TestContext.DockerConfigFile != "" {
-						contents, err := os.ReadFile(framework.TestContext.DockerConfigFile)
+						contents, err := ioutil.ReadFile(framework.TestContext.DockerConfigFile)
 						framework.ExpectNoError(err)
 						auth = string(contents)
 					}

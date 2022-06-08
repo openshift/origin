@@ -119,38 +119,17 @@ func applyToNode(node *yaml.RNode, value *yaml.RNode, target *types.TargetSelect
 		if target.Options != nil && target.Options.Create {
 			t, err = node.Pipe(yaml.LookupCreate(value.YNode().Kind, fieldPath...))
 		} else {
-			t, err = node.Pipe(&yaml.PathMatcher{Path: fieldPath})
+			t, err = node.Pipe(yaml.Lookup(fieldPath...))
 		}
 		if err != nil {
 			return err
 		}
 		if t != nil {
-			if err = applyToOneNode(target.Options, t, value); err != nil {
+			if err = setTargetValue(target.Options, t, value); err != nil {
 				return err
 			}
 		}
 	}
-	return nil
-}
-
-func applyToOneNode(options *types.FieldOptions, t *yaml.RNode, value *yaml.RNode) error {
-	if len(t.YNode().Content) == 0 {
-		if err := setTargetValue(options, t, value); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	for _, scalarNode := range t.YNode().Content {
-		if options != nil && options.Create {
-			return fmt.Errorf("cannot use create option in a multi-value target")
-		}
-		rn := yaml.NewRNode(scalarNode)
-		if err := setTargetValue(options, rn, value); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -173,14 +152,7 @@ func setTargetValue(options *types.FieldOptions, t *yaml.RNode, value *yaml.RNod
 		}
 		value.YNode().Value = strings.Join(tv, options.Delimiter)
 	}
-
-	if t.YNode().Kind == yaml.ScalarNode {
-		// For scalar, only copy the value (leave any type intact to auto-convert int->string or string->int)
-		t.YNode().Value = value.YNode().Value
-	} else {
-		t.SetYNode(value.YNode())
-	}
-
+	t.SetYNode(value.YNode())
 	return nil
 }
 
@@ -200,7 +172,7 @@ func getReplacement(nodes []*yaml.RNode, r *types.Replacement) (*yaml.RNode, err
 		return nil, err
 	}
 	if rn.IsNilOrEmpty() {
-		return nil, fmt.Errorf("fieldPath `%s` is missing for replacement source %s", r.Source.FieldPath, r.Source.ResId)
+		return nil, fmt.Errorf("fieldPath `%s` is missing for replacement source %s", r.Source.FieldPath, r.Source)
 	}
 
 	return getRefinedValue(r.Source.Options, rn)

@@ -40,5 +40,3 @@ type Snapshottable interface {
 }
 
 type AllocatorFactory func(max int, rangeSpec string) (Interface, error)
-
-type AllocatorWithOffsetFactory func(max int, rangeSpec string, offset int) (Interface, error)

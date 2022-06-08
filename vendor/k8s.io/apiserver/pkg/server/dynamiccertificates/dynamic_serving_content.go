@@ -17,7 +17,6 @@ limitations under the License.
 package dynamiccertificates
 
 import (
-	"context"
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
@@ -120,12 +119,12 @@ func (c *DynamicCertKeyPairContent) loadCertKeyPair() error {
 }
 
 // RunOnce runs a single sync loop
-func (c *DynamicCertKeyPairContent) RunOnce(ctx context.Context) error {
+func (c *DynamicCertKeyPairContent) RunOnce() error {
 	return c.loadCertKeyPair()
 }
 
-// Run starts the controller and blocks until context is killed.
-func (c *DynamicCertKeyPairContent) Run(ctx context.Context, workers int) {
+// Run starts the controller and blocks until stopCh is closed.
+func (c *DynamicCertKeyPairContent) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
@@ -133,16 +132,16 @@ func (c *DynamicCertKeyPairContent) Run(ctx context.Context, workers int) {
 	defer klog.InfoS("Shutting down controller", "name", c.name)
 
 	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, ctx.Done())
+	go wait.Until(c.runWorker, time.Second, stopCh)
 
 	// start the loop that watches the cert and key files until stopCh is closed.
 	go wait.Until(func() {
-		if err := c.watchCertKeyFile(ctx.Done()); err != nil {
+		if err := c.watchCertKeyFile(stopCh); err != nil {
 			klog.ErrorS(err, "Failed to watch cert and key file, will retry later")
 		}
-	}, time.Minute, ctx.Done())
+	}, time.Minute, stopCh)
 
-	<-ctx.Done()
+	<-stopCh
 }
 
 func (c *DynamicCertKeyPairContent) watchCertKeyFile(stopCh <-chan struct{}) error {

@@ -47,6 +47,7 @@ var _ = SIGDescribe("Multi-AZ Clusters", func() {
 	var err error
 	var cleanUp func()
 	ginkgo.BeforeEach(func() {
+		e2eskipper.SkipUnlessProviderIs("gce", "gke", "aws")
 		if zoneCount <= 0 {
 			zoneCount, err = getZoneCount(f.ClientSet)
 			framework.ExpectNoError(err)

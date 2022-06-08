@@ -18,7 +18,7 @@ package manifest
 
 import (
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -28,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes/scheme"
-	commonutils "k8s.io/kubernetes/test/e2e/common"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2etestfiles "k8s.io/kubernetes/test/e2e/framework/testfiles"
 )
@@ -76,8 +75,8 @@ func StatefulSetFromManifest(fileName, ns string) (*appsv1.StatefulSet, error) {
 	if err != nil {
 		return nil, err
 	}
-	statefulsetYaml := commonutils.SubstituteImageName(string(data))
-	json, err := utilyaml.ToJSON([]byte(statefulsetYaml))
+
+	json, err := utilyaml.ToJSON(data)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +115,7 @@ func DaemonSetFromURL(url string) (*appsv1.DaemonSet, error) {
 	}
 	defer response.Body.Close()
 
-	data, err := io.ReadAll(response.Body)
+	data, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read html response body: %v", err)
 	}

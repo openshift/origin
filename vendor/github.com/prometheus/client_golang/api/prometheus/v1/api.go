@@ -139,7 +139,6 @@ const (
 	epBuildinfo       = apiPrefix + "/status/buildinfo"
 	epRuntimeinfo     = apiPrefix + "/status/runtimeinfo"
 	epTSDB            = apiPrefix + "/status/tsdb"
-	epWalReplay       = apiPrefix + "/status/walreplay"
 )
 
 // AlertState models the state of an alert.
@@ -262,8 +261,6 @@ type API interface {
 	Metadata(ctx context.Context, metric string, limit string) (map[string][]Metadata, error)
 	// TSDB returns the cardinality statistics.
 	TSDB(ctx context.Context) (TSDBResult, error)
-	// WalReplay returns the current replay status of the wal.
-	WalReplay(ctx context.Context) (WalReplayStatus, error)
 }
 
 // AlertsResult contains the result from querying the alerts endpoint.
@@ -306,6 +303,8 @@ type RuntimeinfoResult struct {
 	CWD                 string    `json:"CWD"`
 	ReloadConfigSuccess bool      `json:"reloadConfigSuccess"`
 	LastConfigTime      time.Time `json:"lastConfigTime"`
+	ChunkCount          int       `json:"chunkCount"`
+	TimeSeriesCount     int       `json:"timeSeriesCount"`
 	CorruptionCount     int       `json:"corruptionCount"`
 	GoroutineCount      int       `json:"goroutineCount"`
 	GOMAXPROCS          int       `json:"GOMAXPROCS"`
@@ -432,27 +431,10 @@ type queryResult struct {
 
 // TSDBResult contains the result from querying the tsdb endpoint.
 type TSDBResult struct {
-	HeadStats                   TSDBHeadStats `json:"headStats"`
-	SeriesCountByMetricName     []Stat        `json:"seriesCountByMetricName"`
-	LabelValueCountByLabelName  []Stat        `json:"labelValueCountByLabelName"`
-	MemoryInBytesByLabelName    []Stat        `json:"memoryInBytesByLabelName"`
-	SeriesCountByLabelValuePair []Stat        `json:"seriesCountByLabelValuePair"`
-}
-
-// TSDBHeadStats contains TSDB stats
-type TSDBHeadStats struct {
-	NumSeries     int `json:"numSeries"`
-	NumLabelPairs int `json:"numLabelPairs"`
-	ChunkCount    int `json:"chunkCount"`
-	MinTime       int `json:"minTime"`
-	MaxTime       int `json:"maxTime"`
-}
-
-// WalReplayStatus represents the wal replay status.
-type WalReplayStatus struct {
-	Min     int `json:"min"`
-	Max     int `json:"max"`
-	Current int `json:"current"`
+	SeriesCountByMetricName     []Stat `json:"seriesCountByMetricName"`
+	LabelValueCountByLabelName  []Stat `json:"labelValueCountByLabelName"`
+	MemoryInBytesByLabelName    []Stat `json:"memoryInBytesByLabelName"`
+	SeriesCountByLabelValuePair []Stat `json:"seriesCountByLabelValuePair"`
 }
 
 // Stat models information about statistic value.
@@ -999,23 +981,6 @@ func (h *httpAPI) TSDB(ctx context.Context) (TSDBResult, error) {
 	}
 
 	var res TSDBResult
-	return res, json.Unmarshal(body, &res)
-}
-
-func (h *httpAPI) WalReplay(ctx context.Context) (WalReplayStatus, error) {
-	u := h.client.URL(epWalReplay, nil)
-
-	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
-	if err != nil {
-		return WalReplayStatus{}, err
-	}
-
-	_, body, _, err := h.client.Do(ctx, req)
-	if err != nil {
-		return WalReplayStatus{}, err
-	}
-
-	var res WalReplayStatus
 	return res, json.Unmarshal(body, &res)
 }
 

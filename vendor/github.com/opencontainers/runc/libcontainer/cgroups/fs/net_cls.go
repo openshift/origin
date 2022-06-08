@@ -1,3 +1,5 @@
+// +build linux
+
 package fs
 
 import (
@@ -13,8 +15,8 @@ func (s *NetClsGroup) Name() string {
 	return "net_cls"
 }
 
-func (s *NetClsGroup) Apply(path string, _ *configs.Resources, pid int) error {
-	return apply(path, pid)
+func (s *NetClsGroup) Apply(path string, d *cgroupData) error {
+	return join(path, d.pid)
 }
 
 func (s *NetClsGroup) Set(path string, r *configs.Resources) error {

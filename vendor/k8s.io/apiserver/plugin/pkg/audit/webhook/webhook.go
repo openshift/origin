@@ -63,12 +63,8 @@ func retryOnError(err error) bool {
 }
 
 func loadWebhook(configFile string, groupVersion schema.GroupVersion, retryBackoff wait.Backoff, customDial utilnet.DialFunc) (*webhook.GenericWebhook, error) {
-	clientConfig, err := webhook.LoadKubeconfig(configFile, customDial)
-	if err != nil {
-		return nil, err
-	}
-	w, err := webhook.NewGenericWebhook(audit.Scheme, audit.Codecs, clientConfig,
-		[]schema.GroupVersion{groupVersion}, retryBackoff)
+	w, err := webhook.NewGenericWebhook(audit.Scheme, audit.Codecs, configFile,
+		[]schema.GroupVersion{groupVersion}, retryBackoff, customDial)
 	if err != nil {
 		return nil, err
 	}

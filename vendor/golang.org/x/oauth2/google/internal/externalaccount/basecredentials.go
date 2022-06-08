@@ -53,11 +53,6 @@ type Config struct {
 	QuotaProjectID string
 	// Scopes contains the desired scopes for the returned access token.
 	Scopes []string
-	// The optional workforce pool user project number when the credential
-	// corresponds to a workforce pool and not a workload identity pool.
-	// The underlying principal must still have serviceusage.services.use IAM
-	// permission to use the project for billing/quota.
-	WorkforcePoolUserProject string
 }
 
 // Each element consists of a list of patterns.  validateURLs checks for matches
@@ -78,7 +73,6 @@ var (
 		regexp.MustCompile(`^iamcredentials\.[^\.\s\/\\]+\.googleapis\.com$`),
 		regexp.MustCompile(`^[^\.\s\/\\]+-iamcredentials\.googleapis\.com$`),
 	}
-	validWorkforceAudiencePattern *regexp.Regexp = regexp.MustCompile(`//iam\.googleapis\.com/locations/[^/]+/workforcePools/`)
 )
 
 func validateURL(input string, patterns []*regexp.Regexp, scheme string) bool {
@@ -92,15 +86,12 @@ func validateURL(input string, patterns []*regexp.Regexp, scheme string) bool {
 	toTest := parsed.Host
 
 	for _, pattern := range patterns {
-		if pattern.MatchString(toTest) {
+
+		if valid := pattern.MatchString(toTest); valid {
 			return true
 		}
 	}
 	return false
-}
-
-func validateWorkforceAudience(input string) bool {
-	return validWorkforceAudiencePattern.MatchString(input)
 }
 
 // TokenSource Returns an external account TokenSource struct. This is to be called by package google to construct a google.Credentials.
@@ -124,13 +115,6 @@ func (c *Config) tokenSource(ctx context.Context, tokenURLValidPats []*regexp.Re
 		}
 	}
 
-	if c.WorkforcePoolUserProject != "" {
-		valid := validateWorkforceAudience(c.Audience)
-		if !valid {
-			return nil, fmt.Errorf("oauth2/google: workforce_pool_user_project should not be set for non-workforce pool credentials")
-		}
-	}
-
 	ts := tokenSource{
 		ctx:  ctx,
 		conf: c,
@@ -140,11 +124,11 @@ func (c *Config) tokenSource(ctx context.Context, tokenURLValidPats []*regexp.Re
 	}
 	scopes := c.Scopes
 	ts.conf.Scopes = []string{"https://www.googleapis.com/auth/cloud-platform"}
-	imp := ImpersonateTokenSource{
-		Ctx:    ctx,
-		URL:    c.ServiceAccountImpersonationURL,
-		Scopes: scopes,
-		Ts:     oauth2.ReuseTokenSource(nil, ts),
+	imp := impersonateTokenSource{
+		ctx:    ctx,
+		url:    c.ServiceAccountImpersonationURL,
+		scopes: scopes,
+		ts:     oauth2.ReuseTokenSource(nil, ts),
 	}
 	return oauth2.ReuseTokenSource(nil, imp), nil
 }
@@ -175,7 +159,6 @@ type CredentialSource struct {
 	RegionURL                   string `json:"region_url"`
 	RegionalCredVerificationURL string `json:"regional_cred_verification_url"`
 	CredVerificationURL         string `json:"cred_verification_url"`
-	IMDSv2SessionTokenURL       string `json:"imdsv2_session_token_url"`
 	Format                      format `json:"format"`
 }
 
@@ -186,20 +169,14 @@ func (c *Config) parse(ctx context.Context) (baseCredentialSource, error) {
 			if awsVersion != 1 {
 				return nil, fmt.Errorf("oauth2/google: aws version '%d' is not supported in the current build", awsVersion)
 			}
-
-			awsCredSource := awsCredentialSource{
+			return awsCredentialSource{
 				EnvironmentID:               c.CredentialSource.EnvironmentID,
 				RegionURL:                   c.CredentialSource.RegionURL,
 				RegionalCredVerificationURL: c.CredentialSource.RegionalCredVerificationURL,
 				CredVerificationURL:         c.CredentialSource.URL,
 				TargetResource:              c.Audience,
 				ctx:                         ctx,
-			}
-			if c.CredentialSource.IMDSv2SessionTokenURL != "" {
-				awsCredSource.IMDSv2SessionTokenURL = c.CredentialSource.IMDSv2SessionTokenURL
-			}
-
-			return awsCredSource, nil
+			}, nil
 		}
 	} else if c.CredentialSource.File != "" {
 		return fileCredentialSource{File: c.CredentialSource.File, Format: c.CredentialSource.Format}, nil
@@ -247,15 +224,7 @@ func (ts tokenSource) Token() (*oauth2.Token, error) {
 		ClientID:     conf.ClientID,
 		ClientSecret: conf.ClientSecret,
 	}
-	var options map[string]interface{}
-	// Do not pass workforce_pool_user_project when client authentication is used.
-	// The client ID is sufficient for determining the user project.
-	if conf.WorkforcePoolUserProject != "" && conf.ClientID == "" {
-		options = map[string]interface{}{
-			"userProject": conf.WorkforcePoolUserProject,
-		}
-	}
-	stsResp, err := exchangeToken(ts.ctx, conf.TokenURL, &stsRequest, clientAuth, header, options)
+	stsResp, err := exchangeToken(ts.ctx, conf.TokenURL, &stsRequest, clientAuth, header, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -120,11 +120,10 @@ func (m *kubeGenericRuntimeManager) sandboxToKubeContainer(s *runtimeapi.PodSand
 // getImageUser gets uid or user name that will run the command(s) from image. The function
 // guarantees that only one of them is set.
 func (m *kubeGenericRuntimeManager) getImageUser(image string) (*int64, string, error) {
-	resp, err := m.imageService.ImageStatus(&runtimeapi.ImageSpec{Image: image}, false)
+	imageStatus, err := m.imageService.ImageStatus(&runtimeapi.ImageSpec{Image: image})
 	if err != nil {
 		return nil, "", err
 	}
-	imageStatus := resp.GetImage()
 
 	if imageStatus != nil {
 		if imageStatus.Uid != nil {

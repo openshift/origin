@@ -520,23 +520,17 @@ var _ = SIGDescribe("ConfigMap", func() {
 		// Ensure data can't be changed now.
 		currentConfigMap.Data["data-5"] = "value-5"
 		_, err = f.ClientSet.CoreV1().ConfigMaps(f.Namespace.Name).Update(context.TODO(), currentConfigMap, metav1.UpdateOptions{})
-		if !apierrors.IsInvalid(err) {
-			framework.Failf("expected 'invalid' as error, got instead: %v", err)
-		}
+		framework.ExpectEqual(apierrors.IsInvalid(err), true)
 
 		// Ensure config map can't be switched from immutable to mutable.
 		currentConfigMap, err = f.ClientSet.CoreV1().ConfigMaps(f.Namespace.Name).Get(context.TODO(), name, metav1.GetOptions{})
 		framework.ExpectNoError(err, "Failed to get config map %q in namespace %q", configMap.Name, configMap.Namespace)
-		if !*currentConfigMap.Immutable {
-			framework.Failf("currentConfigMap %s can be switched from immutable to mutable", currentConfigMap.Name)
-		}
+		framework.ExpectEqual(*currentConfigMap.Immutable, true)
 
 		falseVal := false
 		currentConfigMap.Immutable = &falseVal
 		_, err = f.ClientSet.CoreV1().ConfigMaps(f.Namespace.Name).Update(context.TODO(), currentConfigMap, metav1.UpdateOptions{})
-		if !apierrors.IsInvalid(err) {
-			framework.Failf("expected 'invalid' as error, got instead: %v", err)
-		}
+		framework.ExpectEqual(apierrors.IsInvalid(err), true)
 
 		// Ensure that metadata can be changed.
 		currentConfigMap, err = f.ClientSet.CoreV1().ConfigMaps(f.Namespace.Name).Get(context.TODO(), name, metav1.GetOptions{})

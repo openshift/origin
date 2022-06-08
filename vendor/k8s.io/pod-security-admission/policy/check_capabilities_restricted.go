@@ -62,9 +62,8 @@ func CheckCapabilitiesRestricted() Check {
 		Level: api.LevelRestricted,
 		Versions: []VersionedCheck{
 			{
-				MinimumVersion:   api.MajorMinorVersion(1, 22),
-				CheckPod:         capabilitiesRestricted_1_22,
-				OverrideCheckIDs: []CheckID{checkCapabilitiesBaselineID},
+				MinimumVersion: api.MajorMinorVersion(1, 22),
+				CheckPod:       capabilitiesRestricted_1_22,
 			},
 		},
 	}

@@ -343,22 +343,16 @@ func (e *Store) ListPredicate(ctx context.Context, p storage.SelectionPredicate,
 	p.Continue = options.Continue
 	list := e.NewListFunc()
 	qualifiedResource := e.qualifiedResourceFromContext(ctx)
-	storageOpts := storage.ListOptions{
-		ResourceVersion:      options.ResourceVersion,
-		ResourceVersionMatch: options.ResourceVersionMatch,
-		Predicate:            p,
-		Recursive:            true,
-	}
+	storageOpts := storage.ListOptions{ResourceVersion: options.ResourceVersion, ResourceVersionMatch: options.ResourceVersionMatch, Predicate: p}
 	if name, ok := p.MatchesSingle(); ok {
 		if key, err := e.KeyFunc(ctx, name); err == nil {
-			storageOpts.Recursive = false
-			err := e.Storage.GetList(ctx, key, storageOpts, list)
+			err := e.Storage.GetToList(ctx, key, storageOpts, list)
 			return list, storeerr.InterpretListError(err, qualifiedResource)
 		}
 		// if we cannot extract a key based on the current context, the optimization is skipped
 	}
 
-	err := e.Storage.GetList(ctx, e.KeyRootFunc(ctx), storageOpts, list)
+	err := e.Storage.List(ctx, e.KeyRootFunc(ctx), storageOpts, list)
 	return list, storeerr.InterpretListError(err, qualifiedResource)
 }
 
@@ -1246,19 +1240,23 @@ func (e *Store) Watch(ctx context.Context, options *metainternalversion.ListOpti
 
 // WatchPredicate starts a watch for the items that matches.
 func (e *Store) WatchPredicate(ctx context.Context, p storage.SelectionPredicate, resourceVersion string) (watch.Interface, error) {
-	storageOpts := storage.ListOptions{ResourceVersion: resourceVersion, Predicate: p, Recursive: true}
-
-	key := e.KeyRootFunc(ctx)
+	storageOpts := storage.ListOptions{ResourceVersion: resourceVersion, Predicate: p}
 	if name, ok := p.MatchesSingle(); ok {
-		if k, err := e.KeyFunc(ctx, name); err == nil {
-			key = k
-			storageOpts.Recursive = false
+		if key, err := e.KeyFunc(ctx, name); err == nil {
+			w, err := e.Storage.Watch(ctx, key, storageOpts)
+			if err != nil {
+				return nil, err
+			}
+			if e.Decorator != nil {
+				return newDecoratedWatcher(ctx, w, e.Decorator), nil
+			}
+			return w, nil
 		}
 		// if we cannot extract a key based on the current context, the
 		// optimization is skipped
 	}
 
-	w, err := e.Storage.Watch(ctx, key, storageOpts)
+	w, err := e.Storage.WatchList(ctx, e.KeyRootFunc(ctx), storageOpts)
 	if err != nil {
 		return nil, err
 	}

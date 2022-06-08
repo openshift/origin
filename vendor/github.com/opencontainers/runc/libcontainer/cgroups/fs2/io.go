@@ -1,3 +1,5 @@
+// +build linux
+
 package fs2
 
 import (
@@ -115,14 +117,13 @@ func readCgroup2MapFile(dirPath string, name string) (map[string][]string, error
 		ret[parts[0]] = parts[1:]
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, &parseError{Path: dirPath, File: name, Err: err}
+		return nil, err
 	}
 	return ret, nil
 }
 
 func statIo(dirPath string, stats *cgroups.Stats) error {
-	const file = "io.stat"
-	values, err := readCgroup2MapFile(dirPath, file)
+	values, err := readCgroup2MapFile(dirPath, "io.stat")
 	if err != nil {
 		return err
 	}
@@ -135,11 +136,11 @@ func statIo(dirPath string, stats *cgroups.Stats) error {
 		}
 		major, err := strconv.ParseUint(d[0], 10, 64)
 		if err != nil {
-			return &parseError{Path: dirPath, File: file, Err: err}
+			return err
 		}
 		minor, err := strconv.ParseUint(d[1], 10, 64)
 		if err != nil {
-			return &parseError{Path: dirPath, File: file, Err: err}
+			return err
 		}
 
 		for _, item := range v {
@@ -176,7 +177,7 @@ func statIo(dirPath string, stats *cgroups.Stats) error {
 
 			value, err := strconv.ParseUint(d[1], 10, 64)
 			if err != nil {
-				return &parseError{Path: dirPath, File: file, Err: err}
+				return err
 			}
 
 			entry := cgroups.BlkioStatEntry{

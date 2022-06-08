@@ -19,6 +19,8 @@ package node
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -117,9 +119,9 @@ func SetPodTerminationReason(ctx context.Context, kubeClient clientset.Interface
 // MarkPodsNotReady updates ready status of given pods running on
 // given node from master return true if success
 func MarkPodsNotReady(ctx context.Context, kubeClient clientset.Interface, recorder record.EventRecorder, pods []*v1.Pod, nodeName string) error {
-	klog.V(2).InfoS("Update ready status of pods on node", "node", klog.KRef("", nodeName))
+	klog.V(2).InfoS("Update ready status of pods on node", "node", nodeName)
 
-	errs := []error{}
+	errMsg := []string{}
 	for i := range pods {
 		// Defensive check, also needed for tests.
 		if pods[i].Spec.NodeName != nodeName {
@@ -144,7 +146,7 @@ func MarkPodsNotReady(ctx context.Context, kubeClient clientset.Interface, recor
 						continue
 					}
 					klog.InfoS("Failed to update status for pod", "pod", klog.KObj(pod), "err", err)
-					errs = append(errs, err)
+					errMsg = append(errMsg, fmt.Sprintf("%v", err))
 				}
 				// record NodeNotReady event after updateStatus to make sure pod still exists
 				recorder.Event(pod, v1.EventTypeWarning, "NodeNotReady", "Node is not ready")
@@ -152,8 +154,10 @@ func MarkPodsNotReady(ctx context.Context, kubeClient clientset.Interface, recor
 			}
 		}
 	}
-
-	return utilerrors.NewAggregate(errs)
+	if len(errMsg) == 0 {
+		return nil
+	}
+	return fmt.Errorf("%v", strings.Join(errMsg, "; "))
 }
 
 // RecordNodeEvent records a event related to a node.
@@ -165,7 +169,7 @@ func RecordNodeEvent(recorder record.EventRecorder, nodeName, nodeUID, eventtype
 		UID:        types.UID(nodeUID),
 		Namespace:  "",
 	}
-	klog.V(2).InfoS("Recording event message for node", "event", event, "node", klog.KRef("", nodeName))
+	klog.V(2).InfoS("Recording event message for node", "event", event, "node", nodeName)
 	recorder.Eventf(ref, eventtype, reason, "Node %s event: %s", nodeName, event)
 }
 

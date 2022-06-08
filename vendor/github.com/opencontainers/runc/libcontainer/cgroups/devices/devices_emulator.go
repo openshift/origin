@@ -1,3 +1,5 @@
+// +build linux
+
 // SPDX-License-Identifier: Apache-2.0
 /*
  * Copyright (C) 2020 Aleksa Sarai <cyphar@cyphar.com>
@@ -20,13 +22,14 @@ package devices
 
 import (
 	"bufio"
-	"fmt"
 	"io"
+	"regexp"
 	"sort"
 	"strconv"
-	"strings"
 
 	"github.com/opencontainers/runc/libcontainer/devices"
+
+	"github.com/pkg/errors"
 )
 
 // deviceMeta is a Rule without the Allow or Permissions fields, and no
@@ -76,21 +79,19 @@ func (e *Emulator) IsAllowAll() bool {
 	return e.IsBlacklist() && len(e.rules) == 0
 }
 
-func parseLine(line string) (*deviceRule, error) {
-	// Input: node major:minor perms.
-	fields := strings.FieldsFunc(line, func(r rune) bool {
-		return r == ' ' || r == ':'
-	})
-	if len(fields) != 4 {
-		return nil, fmt.Errorf("malformed devices.list rule %s", line)
-	}
+var devicesListRegexp = regexp.MustCompile(`^([abc])\s+(\d+|\*):(\d+|\*)\s+([rwm]+)$`)
 
+func parseLine(line string) (*deviceRule, error) {
+	matches := devicesListRegexp.FindStringSubmatch(line)
+	if matches == nil {
+		return nil, errors.Errorf("line doesn't match devices.list format")
+	}
 	var (
 		rule  deviceRule
-		node  = fields[0]
-		major = fields[1]
-		minor = fields[2]
-		perms = fields[3]
+		node  = matches[1]
+		major = matches[2]
+		minor = matches[3]
+		perms = matches[4]
 	)
 
 	// Parse the node type.
@@ -106,7 +107,8 @@ func parseLine(line string) (*deviceRule, error) {
 	case "c":
 		rule.meta.node = devices.CharDevice
 	default:
-		return nil, fmt.Errorf("unknown device type %q", node)
+		// Should never happen!
+		return nil, errors.Errorf("unknown device type %q", node)
 	}
 
 	// Parse the major number.
@@ -115,7 +117,7 @@ func parseLine(line string) (*deviceRule, error) {
 	} else {
 		val, err := strconv.ParseUint(major, 10, 32)
 		if err != nil {
-			return nil, fmt.Errorf("invalid major number: %w", err)
+			return nil, errors.Wrap(err, "parse major number")
 		}
 		rule.meta.major = int64(val)
 	}
@@ -126,7 +128,7 @@ func parseLine(line string) (*deviceRule, error) {
 	} else {
 		val, err := strconv.ParseUint(minor, 10, 32)
 		if err != nil {
-			return nil, fmt.Errorf("invalid minor number: %w", err)
+			return nil, errors.Wrap(err, "parse minor number")
 		}
 		rule.meta.minor = int64(val)
 	}
@@ -134,12 +136,13 @@ func parseLine(line string) (*deviceRule, error) {
 	// Parse the access permissions.
 	rule.perms = devices.Permissions(perms)
 	if !rule.perms.IsValid() || rule.perms.IsEmpty() {
-		return nil, fmt.Errorf("parse access mode: contained unknown modes or is empty: %q", perms)
+		// Should never happen!
+		return nil, errors.Errorf("parse access mode: contained unknown modes or is empty: %q", perms)
 	}
 	return &rule, nil
 }
 
-func (e *Emulator) addRule(rule deviceRule) error { //nolint:unparam
+func (e *Emulator) addRule(rule deviceRule) error {
 	if e.rules == nil {
 		e.rules = make(map[deviceMeta]devices.Permissions)
 	}
@@ -177,7 +180,7 @@ func (e *Emulator) rmRule(rule deviceRule) error {
 		// Only give an error if the set of permissions overlap.
 		partialPerms := e.rules[partialMeta]
 		if !partialPerms.Intersection(rule.perms).IsEmpty() {
-			return fmt.Errorf("requested rule [%v %v] not supported by devices cgroupv1 (cannot punch hole in existing wildcard rule [%v %v])", rule.meta, rule.perms, partialMeta, partialPerms)
+			return errors.Errorf("requested rule [%v %v] not supported by devices cgroupv1 (cannot punch hole in existing wildcard rule [%v %v])", rule.meta, rule.perms, partialMeta, partialPerms)
 		}
 	}
 
@@ -209,9 +212,9 @@ func (e *Emulator) allow(rule *deviceRule) error {
 
 	var err error
 	if e.defaultAllow {
-		err = wrapErr(e.rmRule(*rule), "unable to remove 'deny' exception")
+		err = errors.Wrap(e.rmRule(*rule), "remove 'deny' exception")
 	} else {
-		err = wrapErr(e.addRule(*rule), "unable to add 'allow' exception")
+		err = errors.Wrap(e.addRule(*rule), "add 'allow' exception")
 	}
 	return err
 }
@@ -229,16 +232,16 @@ func (e *Emulator) deny(rule *deviceRule) error {
 
 	var err error
 	if e.defaultAllow {
-		err = wrapErr(e.addRule(*rule), "unable to add 'deny' exception")
+		err = errors.Wrap(e.addRule(*rule), "add 'deny' exception")
 	} else {
-		err = wrapErr(e.rmRule(*rule), "unable to remove 'allow' exception")
+		err = errors.Wrap(e.rmRule(*rule), "remove 'allow' exception")
 	}
 	return err
 }
 
 func (e *Emulator) Apply(rule devices.Rule) error {
 	if !rule.Type.CanCgroup() {
-		return fmt.Errorf("cannot add rule [%#v] with non-cgroup type %q", rule, rule.Type)
+		return errors.Errorf("cannot add rule [%#v] with non-cgroup type %q", rule, rule.Type)
 	}
 
 	innerRule := &deviceRule{
@@ -280,17 +283,17 @@ func EmulatorFromList(list io.Reader) (*Emulator, error) {
 		line := s.Text()
 		deviceRule, err := parseLine(line)
 		if err != nil {
-			return nil, fmt.Errorf("error parsing line %q: %w", line, err)
+			return nil, errors.Wrapf(err, "parsing line %q", line)
 		}
 		// "devices.list" is an allow list. Note that this means that in
 		// black-list mode, we have no idea what rules are in play. As a
 		// result, we need to be very careful in Transition().
 		if err := e.allow(deviceRule); err != nil {
-			return nil, fmt.Errorf("error adding devices.list rule: %w", err)
+			return nil, errors.Wrapf(err, "adding devices.list rule")
 		}
 	}
 	if err := s.Err(); err != nil {
-		return nil, fmt.Errorf("error reading devices.list lines: %w", err)
+		return nil, errors.Wrap(err, "reading devices.list lines")
 	}
 	return e, nil
 }
@@ -302,7 +305,7 @@ func EmulatorFromList(list io.Reader) (*Emulator, error) {
 // necessary.
 //
 // This function is the sole reason for all of Emulator -- to allow us
-// to figure out how to update a containers' cgroups without causing spurious
+// to figure out how to update a containers' cgroups without causing spurrious
 // device errors (if possible).
 func (source *Emulator) Transition(target *Emulator) ([]*devices.Rule, error) {
 	var transitionRules []*devices.Rule
@@ -376,11 +379,4 @@ func (source *Emulator) Transition(target *Emulator) ([]*devices.Rule, error) {
 func (e *Emulator) Rules() ([]*devices.Rule, error) {
 	defaultCgroup := &Emulator{defaultAllow: false}
 	return defaultCgroup.Transition(e)
-}
-
-func wrapErr(err error, text string) error {
-	if err == nil {
-		return nil
-	}
-	return fmt.Errorf(text+": %w", err)
 }

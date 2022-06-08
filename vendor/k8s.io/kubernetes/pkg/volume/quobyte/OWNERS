@@ -1,11 +1,12 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
 approvers:
-  - saad-ali
+- rootfs
+- saad-ali
 reviewers:
-  - saad-ali
-  - jsafrane
-  - jingxu97
-  - msau42
-emeritus_approvers:
-  - rootfs
+- johscheuer
+- saad-ali
+- jsafrane
+- rootfs
+- jingxu97
+- msau42

@@ -1,7 +1,9 @@
+// +build linux
+
 package libcontainer
 
 import (
-	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 
@@ -29,7 +31,7 @@ type restoredProcess struct {
 }
 
 func (p *restoredProcess) start() error {
-	return errors.New("restored process cannot be started")
+	return newGenericError(fmt.Errorf("restored process cannot be started"), SystemError)
 }
 
 func (p *restoredProcess) pid() int {
@@ -49,8 +51,7 @@ func (p *restoredProcess) wait() (*os.ProcessState, error) {
 	// maybe use --exec-cmd in criu
 	err := p.cmd.Wait()
 	if err != nil {
-		var exitErr *exec.ExitError
-		if !errors.As(err, &exitErr) {
+		if _, ok := err.(*exec.ExitError); !ok {
 			return nil, err
 		}
 	}
@@ -88,7 +89,7 @@ type nonChildProcess struct {
 }
 
 func (p *nonChildProcess) start() error {
-	return errors.New("restored process cannot be started")
+	return newGenericError(fmt.Errorf("restored process cannot be started"), SystemError)
 }
 
 func (p *nonChildProcess) pid() int {
@@ -96,11 +97,11 @@ func (p *nonChildProcess) pid() int {
 }
 
 func (p *nonChildProcess) terminate() error {
-	return errors.New("restored process cannot be terminated")
+	return newGenericError(fmt.Errorf("restored process cannot be terminated"), SystemError)
 }
 
 func (p *nonChildProcess) wait() (*os.ProcessState, error) {
-	return nil, errors.New("restored process cannot be waited on")
+	return nil, newGenericError(fmt.Errorf("restored process cannot be waited on"), SystemError)
 }
 
 func (p *nonChildProcess) startTime() (uint64, error) {

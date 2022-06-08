@@ -504,10 +504,17 @@ var _ volume.Mounter = &localVolumeMounter{}
 
 func (m *localVolumeMounter) GetAttributes() volume.Attributes {
 	return volume.Attributes{
-		ReadOnly:       m.readOnly,
-		Managed:        !m.readOnly,
-		SELinuxRelabel: true,
+		ReadOnly:        m.readOnly,
+		Managed:         !m.readOnly,
+		SupportsSELinux: true,
 	}
+}
+
+// CanMount checks prior to mount operations to verify that the required components (binaries, etc.)
+// to mount the volume are available on the underlying node.
+// If not, it returns an error
+func (m *localVolumeMounter) CanMount() error {
+	return nil
 }
 
 // SetUp bind mounts the directory to the volume path

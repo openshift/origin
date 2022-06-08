@@ -1,9 +1,10 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
 approvers:
-  - saad-ali
+- lpabon
+- saad-ali
+- rootfs
 reviewers:
-  - saad-ali
-emeritus_approvers:
-  - lpabon
-  - rootfs
+- lpabon
+- saad-ali
+- rootfs

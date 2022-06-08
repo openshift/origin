@@ -9,11 +9,11 @@ ifeq (, $(shell which richgo))
 $(warning "could not find richgo in $(PATH), run: go get github.com/kyoh86/richgo")
 endif
 
-.PHONY: fmt lint test install_deps clean
+.PHONY: fmt lint test cobra_generator install_deps clean
 
 default: all
 
-all: fmt test
+all: fmt test cobra_generator
 
 fmt:
 	$(info ******************** checking formatting ********************)
@@ -23,9 +23,14 @@ lint:
 	$(info ******************** running lint tools ********************)
 	golangci-lint run -v
 
-test: install_deps
+test: install_deps lint
 	$(info ******************** running tests ********************)
 	richgo test -v ./...
+
+cobra_generator: install_deps
+	$(info ******************** building generator ********************)
+	mkdir -p $(BIN)
+	make -C cobra all
 
 install_deps:
 	$(info ******************** downloading dependencies ********************)

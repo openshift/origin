@@ -862,9 +862,6 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: io.k8s.api.apps.v1.RollingUpdateStatefulSetStrategy
   map:
     fields:
-    - name: maxUnavailable
-      type:
-        namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
     - name: partition
       type:
         scalar: numeric
@@ -1165,9 +1162,6 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: io.k8s.api.apps.v1beta1.RollingUpdateStatefulSetStrategy
   map:
     fields:
-    - name: maxUnavailable
-      type:
-        namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
     - name: partition
       type:
         scalar: numeric
@@ -1666,9 +1660,6 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: io.k8s.api.apps.v1beta2.RollingUpdateStatefulSetStrategy
   map:
     fields:
-    - name: maxUnavailable
-      type:
-        namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
     - name: partition
       type:
         scalar: numeric
@@ -2956,9 +2947,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: suspend
       type:
         scalar: boolean
-    - name: timeZone
-      type:
-        scalar: string
 - name: io.k8s.api.batch.v1.CronJobStatus
   map:
     fields:
@@ -3160,9 +3148,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: suspend
       type:
         scalar: boolean
-    - name: timeZone
-      type:
-        scalar: string
 - name: io.k8s.api.batch.v1beta1.CronJobStatus
   map:
     fields:
@@ -6859,9 +6844,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: numeric
       default: 0
-    - name: minDomains
-      type:
-        scalar: numeric
     - name: topologyKey
       type:
         scalar: string
@@ -7853,10 +7835,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: io.k8s.api.extensions.v1beta1.NetworkPolicySpec
       default: {}
-    - name: status
-      type:
-        namedType: io.k8s.api.extensions.v1beta1.NetworkPolicyStatus
-      default: {}
 - name: io.k8s.api.extensions.v1beta1.NetworkPolicyEgressRule
   map:
     fields:
@@ -7936,17 +7914,6 @@ var schemaYAML = typed.YAMLObject(`types:
           elementType:
             scalar: string
           elementRelationship: atomic
-- name: io.k8s.api.extensions.v1beta1.NetworkPolicyStatus
-  map:
-    fields:
-    - name: conditions
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
-          elementRelationship: associative
-          keys:
-          - type
 - name: io.k8s.api.extensions.v1beta1.PodSecurityPolicy
   map:
     fields:
@@ -9416,10 +9383,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: io.k8s.api.networking.v1.NetworkPolicySpec
       default: {}
-    - name: status
-      type:
-        namedType: io.k8s.api.networking.v1.NetworkPolicyStatus
-      default: {}
 - name: io.k8s.api.networking.v1.NetworkPolicyEgressRule
   map:
     fields:
@@ -9499,17 +9462,6 @@ var schemaYAML = typed.YAMLObject(`types:
           elementType:
             scalar: string
           elementRelationship: atomic
-- name: io.k8s.api.networking.v1.NetworkPolicyStatus
-  map:
-    fields:
-    - name: conditions
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
-          elementRelationship: associative
-          keys:
-          - type
 - name: io.k8s.api.networking.v1.ServiceBackendPort
   map:
     fields:
@@ -10887,32 +10839,6 @@ var schemaYAML = typed.YAMLObject(`types:
           elementRelationship: associative
           keys:
           - name
-- name: io.k8s.api.storage.v1.CSIStorageCapacity
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: capacity
-      type:
-        namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
-    - name: kind
-      type:
-        scalar: string
-    - name: maximumVolumeSize
-      type:
-        namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: nodeTopology
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
-    - name: storageClassName
-      type:
-        scalar: string
-      default: ""
 - name: io.k8s.api.storage.v1.StorageClass
   map:
     fields:

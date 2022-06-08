@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -39,7 +40,7 @@ import (
 	"time"
 
 	"github.com/elazarl/goproxy"
-	openapi_v2 "github.com/google/gnostic/openapiv2"
+	openapi_v2 "github.com/googleapis/gnostic/openapiv2"
 
 	"sigs.k8s.io/yaml"
 
@@ -281,7 +282,7 @@ var _ = SIGDescribe("Kubectl client", func() {
 			}
 			framework.Logf("%s modified at %s (current time: %s)", path, info.ModTime(), time.Now())
 
-			data, readError := os.ReadFile(path)
+			data, readError := ioutil.ReadFile(path)
 			if readError != nil {
 				framework.Logf("%s error: %v", path, readError)
 			} else {
@@ -692,11 +693,11 @@ var _ = SIGDescribe("Kubectl client", func() {
 
 			// Build a kubeconfig file that will make use of the injected ca and token,
 			// but point at the DNS host and the default namespace
-			tmpDir, err := os.MkdirTemp("", "icc-override")
+			tmpDir, err := ioutil.TempDir("", "icc-override")
 			overrideKubeconfigName := "icc-override.kubeconfig"
 			framework.ExpectNoError(err)
 			defer func() { os.Remove(tmpDir) }()
-			framework.ExpectNoError(os.WriteFile(filepath.Join(tmpDir, overrideKubeconfigName), []byte(`
+			framework.ExpectNoError(ioutil.WriteFile(filepath.Join(tmpDir, overrideKubeconfigName), []byte(`
 kind: Config
 apiVersion: v1
 clusters:
@@ -720,14 +721,14 @@ users:
 			framework.Logf("copying override kubeconfig to the %s pod", simplePodName)
 			framework.RunKubectlOrDie(ns, "cp", filepath.Join(tmpDir, overrideKubeconfigName), ns+"/"+simplePodName+":/tmp/")
 
-			framework.ExpectNoError(os.WriteFile(filepath.Join(tmpDir, "invalid-configmap-with-namespace.yaml"), []byte(`
+			framework.ExpectNoError(ioutil.WriteFile(filepath.Join(tmpDir, "invalid-configmap-with-namespace.yaml"), []byte(`
 kind: ConfigMap
 apiVersion: v1
 metadata:
   name: "configmap with namespace and invalid name"
   namespace: configmap-namespace
 `), os.FileMode(0755)))
-			framework.ExpectNoError(os.WriteFile(filepath.Join(tmpDir, "invalid-configmap-without-namespace.yaml"), []byte(`
+			framework.ExpectNoError(ioutil.WriteFile(filepath.Join(tmpDir, "invalid-configmap-without-namespace.yaml"), []byte(`
 kind: ConfigMap
 apiVersion: v1
 metadata:
@@ -1003,7 +1004,7 @@ metadata:
 		return nil
 	}
 
-	ginkgo.Describe("Kubectl validation", func() {
+	ginkgo.Describe("Kubectl client-side validation", func() {
 		ginkgo.It("should create/apply a CR with unknown fields for CRD with no validation schema", func() {
 			ginkgo.By("create CRD with no validation schema")
 			crd, err := crd.CreateTestCRD(f)
@@ -1073,9 +1074,7 @@ metadata:
 			framework.ExpectNotEqual(schema, nil, "retrieving a schema for the crd")
 
 			meta := fmt.Sprintf(metaPattern, crd.Crd.Spec.Names.Kind, crd.Crd.Spec.Group, crd.Crd.Spec.Versions[0].Name, "test-cr")
-
-			// unknown fields on the root are considered valid
-			validArbitraryCR := fmt.Sprintf(`{%s,"spec":{"bars":[{"name":"test-bar"}]},"extraProperty":"arbitrary-value"}`, meta)
+			validArbitraryCR := fmt.Sprintf(`{%s,"spec":{"bars":[{"name":"test-bar"}],"extraProperty":"arbitrary-value"}}`, meta)
 			err = createApplyCustomResource(validArbitraryCR, f.Namespace.Name, "test-cr", crd)
 			framework.ExpectNoError(err, "creating custom resource")
 		})
@@ -1388,7 +1387,7 @@ metadata:
 		ginkgo.It("should copy a file from a running Pod", func() {
 			remoteContents := "foobar\n"
 			podSource := fmt.Sprintf("%s:/root/foo/bar/foo.bar", busyboxPodName)
-			tempDestination, err := os.CreateTemp(os.TempDir(), "copy-foobar")
+			tempDestination, err := ioutil.TempFile(os.TempDir(), "copy-foobar")
 			if err != nil {
 				framework.Failf("Failed creating temporary destination file: %v", err)
 			}
@@ -1396,7 +1395,7 @@ metadata:
 			ginkgo.By("specifying a remote filepath " + podSource + " on the pod")
 			framework.RunKubectlOrDie(ns, "cp", podSource, tempDestination.Name())
 			ginkgo.By("verifying that the contents of the remote file " + podSource + " have been copied to a local file " + tempDestination.Name())
-			localData, err := io.ReadAll(tempDestination)
+			localData, err := ioutil.ReadAll(tempDestination)
 			if err != nil {
 				framework.Failf("Failed reading temporary local file: %v", err)
 			}
@@ -1651,7 +1650,7 @@ metadata:
 		*/
 		framework.ConformanceIt("should support --unix-socket=/path ", func() {
 			ginkgo.By("Starting the proxy")
-			tmpdir, err := os.MkdirTemp("", "kubectl-proxy-unix")
+			tmpdir, err := ioutil.TempDir("", "kubectl-proxy-unix")
 			if err != nil {
 				framework.Failf("Failed to create temporary directory: %v", err)
 			}
@@ -1961,7 +1960,7 @@ func curlTransport(url string, transport *http.Transport) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -2153,7 +2152,7 @@ func startLocalProxy() (srv *httptest.Server, logs *bytes.Buffer) {
 }
 
 // createApplyCustomResource asserts that given CustomResource be created and applied
-// without being rejected by kubectl validation
+// without being rejected by client-side validation
 func createApplyCustomResource(resource, namespace, name string, crd *crd.TestCrd) error {
 	ginkgo.By("successfully create CR")
 	if _, err := framework.RunKubectlInput(namespace, resource, "create", "--validate=true", "-f", "-"); err != nil {

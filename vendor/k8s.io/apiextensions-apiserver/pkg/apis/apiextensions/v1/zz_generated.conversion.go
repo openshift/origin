@@ -242,11 +242,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*apiextensions.ValidationRules)(nil), (*ValidationRules)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_apiextensions_ValidationRules_To_v1_ValidationRules(a.(*apiextensions.ValidationRules), b.(*ValidationRules), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddConversionFunc((*CustomResourceConversion)(nil), (*apiextensions.CustomResourceConversion)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1_CustomResourceConversion_To_apiextensions_CustomResourceConversion(a.(*CustomResourceConversion), b.(*apiextensions.CustomResourceConversion), scope)
 	}); err != nil {

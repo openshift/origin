@@ -705,13 +705,24 @@ func mapToUnstructured(sv, dv reflect.Value) error {
 	}
 	if dt.Kind() == reflect.Interface && dv.NumMethod() == 0 {
 		if st.Key().Kind() == reflect.String {
-			dv.Set(reflect.MakeMap(mapStringInterfaceType))
-			dv = dv.Elem()
-			dt = dv.Type()
+			switch st.Elem().Kind() {
+			// TODO It should be possible to reuse the slice for primitive types.
+			// However, it is panicing in the following form.
+			// case reflect.String, reflect.Bool,
+			// 	reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			// 	reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			// 	sv.Set(sv)
+			// 	return nil
+			default:
+				// We need to do a proper conversion.
+			}
 		}
+		dv.Set(reflect.MakeMap(mapStringInterfaceType))
+		dv = dv.Elem()
+		dt = dv.Type()
 	}
 	if dt.Kind() != reflect.Map {
-		return fmt.Errorf("cannot convert map to: %v", dt.Kind())
+		return fmt.Errorf("cannot convert struct to: %v", dt.Kind())
 	}
 
 	if !st.Key().AssignableTo(dt.Key()) && !st.Key().ConvertibleTo(dt.Key()) {
@@ -752,9 +763,20 @@ func sliceToUnstructured(sv, dv reflect.Value) error {
 		return nil
 	}
 	if dt.Kind() == reflect.Interface && dv.NumMethod() == 0 {
-		dv.Set(reflect.MakeSlice(reflect.SliceOf(dt), sv.Len(), sv.Cap()))
-		dv = dv.Elem()
-		dt = dv.Type()
+		switch st.Elem().Kind() {
+		// TODO It should be possible to reuse the slice for primitive types.
+		// However, it is panicing in the following form.
+		// case reflect.String, reflect.Bool,
+		// 	reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		// 	reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		// 	sv.Set(sv)
+		// 	return nil
+		default:
+			// We need to do a proper conversion.
+			dv.Set(reflect.MakeSlice(reflect.SliceOf(dt), sv.Len(), sv.Cap()))
+			dv = dv.Elem()
+			dt = dv.Type()
+		}
 	}
 	if dt.Kind() != reflect.Slice {
 		return fmt.Errorf("cannot convert slice to: %v", dt.Kind())

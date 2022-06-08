@@ -83,15 +83,9 @@ func setImmutable(
 		return nil
 	}
 	if opts.Immutable {
-		n := &yaml.Node{
-			Kind:  yaml.ScalarNode,
-			Value: "true",
-			Tag:   yaml.NodeTagBool,
-		}
-		if _, err := rn.Pipe(yaml.FieldSetter{Name: "immutable", Value: yaml.NewRNode(n)}); err != nil {
+		if _, err := rn.Pipe(yaml.SetField("immutable", yaml.NewScalarRNode("true"))); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }

@@ -29,10 +29,10 @@ func main() {
 
 ## Using the Cobra Generator
 
-Cobra-CLI is its own program that will create your application and add any
+Cobra provides its own program that will create your application and add any
 commands you want. It's the easiest way to incorporate Cobra into your application.
 
-For complete details on using the Cobra generator, please refer to [The Cobra-CLI Generator README](https://github.com/spf13/cobra-cli/blob/master/README.md)
+[Here](https://github.com/spf13/cobra/blob/master/cobra/README.md) you can find more information about it.
 
 ## Using the Cobra Library
 
@@ -86,7 +86,7 @@ var (
 	userLicense string
 
 	rootCmd = &cobra.Command{
-		Use:   "cobra-cli",
+		Use:   "cobra",
 		Short: "A generator for Cobra based Applications",
 		Long: `Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
@@ -281,7 +281,7 @@ func init() {
 
 In this example, the persistent flag `author` is bound with `viper`.
 **Note**: the variable `author` will not be set to the value from config,
-when the `--author` flag is provided by user.
+when the `--author` flag is not provided by user.
 
 More in [viper documentation](https://github.com/spf13/viper#working-with-flags).
 
@@ -315,7 +315,6 @@ The following validators are built in:
 - `ExactArgs(int)` - the command will report an error if there are not exactly N positional args.
 - `ExactValidArgs(int)` - the command will report an error if there are not exactly N positional args OR if there are any positional args that are not in the `ValidArgs` field of `Command`
 - `RangeArgs(min, max)` - the command will report an error if the number of args is not between the minimum and maximum number of expected args.
-- `MatchAll(pargs ...PositionalArgs)` - enables combining existing checks with arbitrary other checks (e.g. you want to check the ExactArgs length along with other qualities).
 
 An example of setting the custom validator:
 

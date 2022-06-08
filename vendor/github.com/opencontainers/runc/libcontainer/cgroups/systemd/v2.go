@@ -1,8 +1,8 @@
+// +build linux
+
 package systemd
 
 import (
-	"bufio"
-	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -13,39 +13,29 @@ import (
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	securejoin "github.com/cyphar/filepath-securejoin"
-	"github.com/sirupsen/logrus"
-
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
 	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type unifiedManager struct {
 	mu      sync.Mutex
 	cgroups *configs.Cgroup
 	// path is like "/sys/fs/cgroup/user.slice/user-1001.slice/session-1.scope"
-	path  string
-	dbus  *dbusConnManager
-	fsMgr cgroups.Manager
+	path     string
+	rootless bool
+	dbus     *dbusConnManager
 }
 
-func NewUnifiedManager(config *configs.Cgroup, path string) (cgroups.Manager, error) {
-	m := &unifiedManager{
-		cgroups: config,
-		path:    path,
-		dbus:    newDbusConnManager(config.Rootless),
+func NewUnifiedManager(config *configs.Cgroup, path string, rootless bool) cgroups.Manager {
+	return &unifiedManager{
+		cgroups:  config,
+		path:     path,
+		rootless: rootless,
+		dbus:     newDbusConnManager(rootless),
 	}
-	if err := m.initPath(); err != nil {
-		return nil, err
-	}
-
-	fsMgr, err := fs2.NewManager(config, m.path)
-	if err != nil {
-		return nil, err
-	}
-	m.fsMgr = fsMgr
-
-	return m, nil
 }
 
 // unifiedResToSystemdProps tries to convert from Cgroup.Resources.Unified
@@ -244,8 +234,12 @@ func (m *unifiedManager) Apply(pid int) error {
 		properties []systemdDbus.Property
 	)
 
+	if c.Paths != nil {
+		return cgroups.WriteCgroupProc(m.path, pid)
+	}
+
 	slice := "system.slice"
-	if m.cgroups.Rootless {
+	if m.rootless {
 		slice = "user.slice"
 	}
 	if c.Parent != "" {
@@ -254,19 +248,23 @@ func (m *unifiedManager) Apply(pid int) error {
 
 	properties = append(properties, systemdDbus.PropDescription("libcontainer container "+c.Name))
 
+	// if we create a slice, the parent is defined via a Wants=
 	if strings.HasSuffix(unitName, ".slice") {
-		// If we create a slice, the parent is defined via a Wants=.
 		properties = append(properties, systemdDbus.PropWants(slice))
 	} else {
-		// Otherwise it's a scope, which we put into a Slice=.
+		// otherwise, we use Slice=
 		properties = append(properties, systemdDbus.PropSlice(slice))
-		// Assume scopes always support delegation (supported since systemd v218).
-		properties = append(properties, newProp("Delegate", true))
 	}
 
 	// only add pid if its valid, -1 is used w/ general slice creation.
 	if pid != -1 {
 		properties = append(properties, newProp("PIDs", []uint32{uint32(pid)}))
+	}
+
+	// Check if we can delegate. This is only supported on systemd versions 218 and above.
+	if !strings.HasSuffix(unitName, ".slice") {
+		// Assume scopes always support delegation.
+		properties = append(properties, newProp("Delegate", true))
 	}
 
 	// Always enable accounting, this gets us the same behaviour as the fs implementation,
@@ -285,62 +283,22 @@ func (m *unifiedManager) Apply(pid int) error {
 	properties = append(properties, c.SystemdProps...)
 
 	if err := startUnit(m.dbus, unitName, properties); err != nil {
-		return fmt.Errorf("unable to start unit %q (properties %+v): %w", unitName, properties, err)
+		return errors.Wrapf(err, "error while starting unit %q with properties %+v", unitName, properties)
 	}
 
+	if err := m.initPath(); err != nil {
+		return err
+	}
 	if err := fs2.CreateCgroupPath(m.path, m.cgroups); err != nil {
 		return err
 	}
-
-	if c.OwnerUID != nil {
-		// The directory itself must be chowned.
-		err := os.Chown(m.path, *c.OwnerUID, -1)
-		if err != nil {
-			return err
-		}
-
-		filesToChown, err := cgroupFilesToChown()
-		if err != nil {
-			return err
-		}
-
-		for _, v := range filesToChown {
-			err := os.Chown(m.path+"/"+v, *c.OwnerUID, -1)
-			// Some files might not be present.
-			if err != nil && !errors.Is(err, os.ErrNotExist) {
-				return err
-			}
-		}
-	}
-
 	return nil
 }
 
-// The kernel exposes a list of files that should be chowned to the delegate
-// uid in /sys/kernel/cgroup/delegate.  If the file is not present
-// (Linux < 4.15), use the initial values mentioned in cgroups(7).
-func cgroupFilesToChown() ([]string, error) {
-	const cgroupDelegateFile = "/sys/kernel/cgroup/delegate"
-
-	f, err := os.Open(cgroupDelegateFile)
-	if err != nil {
-		return []string{"cgroup.procs", "cgroup.subtree_control", "cgroup.threads"}, nil
-	}
-	defer f.Close()
-
-	filesToChown := []string{}
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		filesToChown = append(filesToChown, scanner.Text())
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error reading %s: %w", cgroupDelegateFile, err)
-	}
-
-	return filesToChown, nil
-}
-
 func (m *unifiedManager) Destroy() error {
+	if m.cgroups.Paths != nil {
+		return nil
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -349,10 +307,9 @@ func (m *unifiedManager) Destroy() error {
 		return err
 	}
 
-	// systemd 239 do not remove sub-cgroups.
-	err := m.fsMgr.Destroy()
-	// fsMgr.Destroy has handled ErrNotExist
-	if err != nil {
+	// XXX this is probably not needed, systemd should handle it
+	err := os.Remove(m.path)
+	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 
@@ -360,6 +317,7 @@ func (m *unifiedManager) Destroy() error {
 }
 
 func (m *unifiedManager) Path(_ string) string {
+	_ = m.initPath()
 	return m.path
 }
 
@@ -368,7 +326,7 @@ func (m *unifiedManager) Path(_ string) string {
 func (m *unifiedManager) getSliceFull() (string, error) {
 	c := m.cgroups
 	slice := "system.slice"
-	if c.Rootless {
+	if m.rootless {
 		slice = "user.slice"
 	}
 	if c.Parent != "" {
@@ -379,7 +337,7 @@ func (m *unifiedManager) getSliceFull() (string, error) {
 		}
 	}
 
-	if c.Rootless {
+	if m.rootless {
 		// managerCG is typically "/user.slice/user-${uid}.slice/user@${uid}.service".
 		managerCG, err := getManagerProperty(m.dbus, "ControlGroup")
 		if err != nil {
@@ -417,36 +375,58 @@ func (m *unifiedManager) initPath() error {
 	return nil
 }
 
+func (m *unifiedManager) fsManager() (cgroups.Manager, error) {
+	if err := m.initPath(); err != nil {
+		return nil, err
+	}
+	return fs2.NewManager(m.cgroups, m.path, m.rootless)
+}
+
 func (m *unifiedManager) Freeze(state configs.FreezerState) error {
-	return m.fsMgr.Freeze(state)
+	fsMgr, err := m.fsManager()
+	if err != nil {
+		return err
+	}
+	return fsMgr.Freeze(state)
 }
 
 func (m *unifiedManager) GetPids() ([]int, error) {
+	if err := m.initPath(); err != nil {
+		return nil, err
+	}
 	return cgroups.GetPids(m.path)
 }
 
 func (m *unifiedManager) GetAllPids() ([]int, error) {
+	if err := m.initPath(); err != nil {
+		return nil, err
+	}
 	return cgroups.GetAllPids(m.path)
 }
 
 func (m *unifiedManager) GetStats() (*cgroups.Stats, error) {
-	return m.fsMgr.GetStats()
+	fsMgr, err := m.fsManager()
+	if err != nil {
+		return nil, err
+	}
+	return fsMgr.GetStats()
 }
 
 func (m *unifiedManager) Set(r *configs.Resources) error {
-	if r == nil {
-		return nil
-	}
 	properties, err := genV2ResourcesProperties(r, m.dbus)
 	if err != nil {
 		return err
 	}
 
 	if err := setUnitProperties(m.dbus, getUnitName(m.cgroups), properties...); err != nil {
-		return fmt.Errorf("unable to set unit properties: %w", err)
+		return errors.Wrap(err, "error while setting unit properties")
 	}
 
-	return m.fsMgr.Set(r)
+	fsMgr, err := m.fsManager()
+	if err != nil {
+		return err
+	}
+	return fsMgr.Set(r)
 }
 
 func (m *unifiedManager) GetPaths() map[string]string {
@@ -460,7 +440,11 @@ func (m *unifiedManager) GetCgroups() (*configs.Cgroup, error) {
 }
 
 func (m *unifiedManager) GetFreezerState() (configs.FreezerState, error) {
-	return m.fsMgr.GetFreezerState()
+	fsMgr, err := m.fsManager()
+	if err != nil {
+		return configs.Undefined, err
+	}
+	return fsMgr.GetFreezerState()
 }
 
 func (m *unifiedManager) Exists() bool {
@@ -468,5 +452,9 @@ func (m *unifiedManager) Exists() bool {
 }
 
 func (m *unifiedManager) OOMKillCount() (uint64, error) {
-	return m.fsMgr.OOMKillCount()
+	fsMgr, err := m.fsManager()
+	if err != nil {
+		return 0, err
+	}
+	return fsMgr.OOMKillCount()
 }

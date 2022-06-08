@@ -25,7 +25,6 @@ import (
 	restful "github.com/emicklei/go-restful"
 
 	"k8s.io/kube-openapi/pkg/common"
-	"k8s.io/kube-openapi/pkg/common/restfuladapter"
 	"k8s.io/kube-openapi/pkg/util"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
@@ -41,17 +40,10 @@ type openAPI struct {
 	definitions  map[string]common.OpenAPIDefinition
 }
 
-// BuildOpenAPISpec builds OpenAPI spec given a list of route containers and common.Config to customize it.
-//
-// Deprecated: BuildOpenAPISpecFromRoutes should be used instead.
-func BuildOpenAPISpec(routeContainers []*restful.WebService, config *common.Config) (*spec.Swagger, error) {
-	return BuildOpenAPISpecFromRoutes(restfuladapter.AdaptWebServices(routeContainers), config)
-}
-
-// BuildOpenAPISpecFromRoutes builds OpenAPI spec given a list of route containers and common.Config to customize it.
-func BuildOpenAPISpecFromRoutes(routeContainers []common.RouteContainer, config *common.Config) (*spec.Swagger, error) {
+// BuildOpenAPISpec builds OpenAPI spec given a list of webservices (containing routes) and common.Config to customize it.
+func BuildOpenAPISpec(webServices []*restful.WebService, config *common.Config) (*spec.Swagger, error) {
 	o := newOpenAPI(config)
-	err := o.buildPaths(routeContainers)
+	err := o.buildPaths(webServices)
 	if err != nil {
 		return nil, err
 	}
@@ -103,25 +95,11 @@ func newOpenAPI(config *common.Config) openAPI {
 			},
 		},
 	}
-
-	if o.config.GetOperationIDAndTagsFromRoute == nil {
-		// Map the deprecated handler to the common interface, if provided.
-		if o.config.GetOperationIDAndTags != nil {
-			o.config.GetOperationIDAndTagsFromRoute = func(r common.Route) (string, []string, error) {
-				restfulRouteAdapter, ok := r.(*restfuladapter.RouteAdapter)
-				if !ok {
-					return "", nil, fmt.Errorf("config.GetOperationIDAndTags specified but route is not a restful v1 Route")
-				}
-
-				return o.config.GetOperationIDAndTags(restfulRouteAdapter.Route)
-			}
-		} else {
-			o.config.GetOperationIDAndTagsFromRoute = func(r common.Route) (string, []string, error) {
-				return r.OperationName(), nil, nil
-			}
+	if o.config.GetOperationIDAndTags == nil {
+		o.config.GetOperationIDAndTags = func(r *restful.Route) (string, []string, error) {
+			return r.Operation, nil, nil
 		}
 	}
-
 	if o.config.GetDefinitionName == nil {
 		o.config.GetDefinitionName = func(name string) (string, spec.Extensions) {
 			return name[strings.LastIndex(name, "/")+1:], nil
@@ -203,10 +181,10 @@ func (o *openAPI) buildDefinitionForType(name string) (string, error) {
 }
 
 // buildPaths builds OpenAPI paths using go-restful's web services.
-func (o *openAPI) buildPaths(routeContainers []common.RouteContainer) error {
+func (o *openAPI) buildPaths(webServices []*restful.WebService) error {
 	pathsToIgnore := util.NewTrie(o.config.IgnorePrefixes)
 	duplicateOpId := make(map[string]string)
-	for _, w := range routeContainers {
+	for _, w := range webServices {
 		rootPath := w.RootPath()
 		if pathsToIgnore.HasPrefix(rootPath) {
 			continue
@@ -256,7 +234,7 @@ func (o *openAPI) buildPaths(routeContainers []common.RouteContainer) error {
 				} else {
 					duplicateOpId[op.ID] = path
 				}
-				switch strings.ToUpper(route.Method()) {
+				switch strings.ToUpper(route.Method) {
 				case "GET":
 					pathItem.Get = op
 				case "POST":
@@ -280,12 +258,12 @@ func (o *openAPI) buildPaths(routeContainers []common.RouteContainer) error {
 }
 
 // buildOperations builds operations for each webservice path
-func (o *openAPI) buildOperations(route common.Route, inPathCommonParamsMap map[interface{}]spec.Parameter) (ret *spec.Operation, err error) {
+func (o *openAPI) buildOperations(route restful.Route, inPathCommonParamsMap map[interface{}]spec.Parameter) (ret *spec.Operation, err error) {
 	ret = &spec.Operation{
 		OperationProps: spec.OperationProps{
-			Description: route.Description(),
-			Consumes:    route.Consumes(),
-			Produces:    route.Produces(),
+			Description: route.Doc,
+			Consumes:    route.Consumes,
+			Produces:    route.Produces,
 			Schemes:     o.config.ProtocolList,
 			Responses: &spec.Responses{
 				ResponsesProps: spec.ResponsesProps{
@@ -294,7 +272,7 @@ func (o *openAPI) buildOperations(route common.Route, inPathCommonParamsMap map[
 			},
 		},
 	}
-	for k, v := range route.Metadata() {
+	for k, v := range route.Metadata {
 		if strings.HasPrefix(k, common.ExtensionPrefix) {
 			if ret.Extensions == nil {
 				ret.Extensions = spec.Extensions{}
@@ -302,20 +280,20 @@ func (o *openAPI) buildOperations(route common.Route, inPathCommonParamsMap map[
 			ret.Extensions.Add(k, v)
 		}
 	}
-	if ret.ID, ret.Tags, err = o.config.GetOperationIDAndTagsFromRoute(route); err != nil {
+	if ret.ID, ret.Tags, err = o.config.GetOperationIDAndTags(&route); err != nil {
 		return ret, err
 	}
 
 	// Build responses
-	for _, resp := range route.StatusCodeResponses() {
-		ret.Responses.StatusCodeResponses[resp.Code()], err = o.buildResponse(resp.Model(), resp.Message())
+	for _, resp := range route.ResponseErrors {
+		ret.Responses.StatusCodeResponses[resp.Code], err = o.buildResponse(resp.Model, resp.Message)
 		if err != nil {
 			return ret, err
 		}
 	}
 	// If there is no response but a write sample, assume that write sample is an http.StatusOK response.
-	if len(ret.Responses.StatusCodeResponses) == 0 && route.ResponsePayloadSample() != nil {
-		ret.Responses.StatusCodeResponses[http.StatusOK], err = o.buildResponse(route.ResponsePayloadSample(), "OK")
+	if len(ret.Responses.StatusCodeResponses) == 0 && route.WriteSample != nil {
+		ret.Responses.StatusCodeResponses[http.StatusOK], err = o.buildResponse(route.WriteSample, "OK")
 		if err != nil {
 			return ret, err
 		}
@@ -332,9 +310,9 @@ func (o *openAPI) buildOperations(route common.Route, inPathCommonParamsMap map[
 
 	// Build non-common Parameters
 	ret.Parameters = make([]spec.Parameter, 0)
-	for _, param := range route.Parameters() {
+	for _, param := range route.ParameterDocs {
 		if _, isCommon := inPathCommonParamsMap[mapKeyFromParam(param)]; !isCommon {
-			openAPIParam, err := o.buildParameter(param, route.RequestPayloadSample())
+			openAPIParam, err := o.buildParameter(param.Data(), route.ReadSample)
 			if err != nil {
 				return ret, err
 			}
@@ -357,30 +335,29 @@ func (o *openAPI) buildResponse(model interface{}, description string) (spec.Res
 	}, nil
 }
 
-func (o *openAPI) findCommonParameters(routes []common.Route) (map[interface{}]spec.Parameter, error) {
+func (o *openAPI) findCommonParameters(routes []restful.Route) (map[interface{}]spec.Parameter, error) {
 	commonParamsMap := make(map[interface{}]spec.Parameter, 0)
 	paramOpsCountByName := make(map[interface{}]int, 0)
-	paramNameKindToDataMap := make(map[interface{}]common.Parameter, 0)
+	paramNameKindToDataMap := make(map[interface{}]restful.ParameterData, 0)
 	for _, route := range routes {
 		routeParamDuplicateMap := make(map[interface{}]bool)
 		s := ""
-		params := route.Parameters()
-		for _, param := range params {
-			m, _ := json.Marshal(param)
+		for _, param := range route.ParameterDocs {
+			m, _ := json.Marshal(param.Data())
 			s += string(m) + "\n"
 			key := mapKeyFromParam(param)
 			if routeParamDuplicateMap[key] {
-				msg, _ := json.Marshal(params)
-				return commonParamsMap, fmt.Errorf("duplicate parameter %v for route %v, %v", param.Name(), string(msg), s)
+				msg, _ := json.Marshal(route.ParameterDocs)
+				return commonParamsMap, fmt.Errorf("duplicate parameter %v for route %v, %v", param.Data().Name, string(msg), s)
 			}
 			routeParamDuplicateMap[key] = true
 			paramOpsCountByName[key]++
-			paramNameKindToDataMap[key] = param
+			paramNameKindToDataMap[key] = param.Data()
 		}
 	}
 	for key, count := range paramOpsCountByName {
 		paramData := paramNameKindToDataMap[key]
-		if count == len(routes) && paramData.Kind() != common.BodyParameterKind {
+		if count == len(routes) && paramData.Kind != restful.BodyParameterKind {
 			openAPIParam, err := o.buildParameter(paramData, nil)
 			if err != nil {
 				return commonParamsMap, err
@@ -412,16 +389,16 @@ func (o *openAPI) toSchema(name string) (_ *spec.Schema, err error) {
 	}
 }
 
-func (o *openAPI) buildParameter(restParam common.Parameter, bodySample interface{}) (ret spec.Parameter, err error) {
+func (o *openAPI) buildParameter(restParam restful.ParameterData, bodySample interface{}) (ret spec.Parameter, err error) {
 	ret = spec.Parameter{
 		ParamProps: spec.ParamProps{
-			Name:        restParam.Name(),
-			Description: restParam.Description(),
-			Required:    restParam.Required(),
+			Name:        restParam.Name,
+			Description: restParam.Description,
+			Required:    restParam.Required,
 		},
 	}
-	switch restParam.Kind() {
-	case common.BodyParameterKind:
+	switch restParam.Kind {
+	case restful.BodyParameterKind:
 		if bodySample != nil {
 			ret.In = "body"
 			ret.Schema, err = o.toSchema(util.GetCanonicalTypeName(bodySample))
@@ -430,36 +407,36 @@ func (o *openAPI) buildParameter(restParam common.Parameter, bodySample interfac
 			// There is not enough information in the body parameter to build the definition.
 			// Body parameter has a data type that is a short name but we need full package name
 			// of the type to create a definition.
-			return ret, fmt.Errorf("restful body parameters are not supported: %v", restParam.DataType())
+			return ret, fmt.Errorf("restful body parameters are not supported: %v", restParam.DataType)
 		}
-	case common.PathParameterKind:
+	case restful.PathParameterKind:
 		ret.In = "path"
-		if !restParam.Required() {
+		if !restParam.Required {
 			return ret, fmt.Errorf("path parameters should be marked at required for parameter %v", restParam)
 		}
-	case common.QueryParameterKind:
+	case restful.QueryParameterKind:
 		ret.In = "query"
-	case common.HeaderParameterKind:
+	case restful.HeaderParameterKind:
 		ret.In = "header"
-	case common.FormParameterKind:
+	case restful.FormParameterKind:
 		ret.In = "formData"
 	default:
-		return ret, fmt.Errorf("unknown restful operation kind : %v", restParam.Kind())
+		return ret, fmt.Errorf("unknown restful operation kind : %v", restParam.Kind)
 	}
-	openAPIType, openAPIFormat := common.OpenAPITypeFormat(restParam.DataType())
+	openAPIType, openAPIFormat := common.OpenAPITypeFormat(restParam.DataType)
 	if openAPIType == "" {
-		return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got : %v", restParam.DataType())
+		return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got : %v", restParam.DataType)
 	}
 	ret.Type = openAPIType
 	ret.Format = openAPIFormat
-	ret.UniqueItems = !restParam.AllowMultiple()
+	ret.UniqueItems = !restParam.AllowMultiple
 	return ret, nil
 }
 
-func (o *openAPI) buildParameters(restParam []common.Parameter) (ret []spec.Parameter, err error) {
+func (o *openAPI) buildParameters(restParam []*restful.Parameter) (ret []spec.Parameter, err error) {
 	ret = make([]spec.Parameter, len(restParam))
 	for i, v := range restParam {
-		ret[i], err = o.buildParameter(v, nil)
+		ret[i], err = o.buildParameter(v.Data(), nil)
 		if err != nil {
 			return ret, err
 		}

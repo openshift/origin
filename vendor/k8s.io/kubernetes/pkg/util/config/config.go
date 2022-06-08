@@ -17,7 +17,6 @@ limitations under the License.
 package config
 
 import (
-	"context"
 	"sync"
 
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -58,12 +57,12 @@ func NewMux(merger Merger) *Mux {
 	return mux
 }
 
-// ChannelWithContext returns a channel where a configuration source
+// Channel returns a channel where a configuration source
 // can send updates of new configurations. Multiple calls with the same
 // source will return the same channel. This allows change and state based sources
 // to use the same channel. Different source names however will be treated as a
 // union.
-func (m *Mux) ChannelWithContext(ctx context.Context, source string) chan interface{} {
+func (m *Mux) Channel(source string) chan interface{} {
 	if len(source) == 0 {
 		panic("Channel given an empty name")
 	}
@@ -75,8 +74,7 @@ func (m *Mux) ChannelWithContext(ctx context.Context, source string) chan interf
 	}
 	newChannel := make(chan interface{})
 	m.sources[source] = newChannel
-
-	go wait.Until(func() { m.listen(source, newChannel) }, 0, ctx.Done())
+	go wait.Until(func() { m.listen(source, newChannel) }, 0, wait.NeverStop)
 	return newChannel
 }
 

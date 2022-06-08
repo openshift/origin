@@ -4,7 +4,6 @@
 package imagetag
 
 import (
-	"sigs.k8s.io/kustomize/api/filters/filtersutil"
 	"sigs.k8s.io/kustomize/api/image"
 	"sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
@@ -14,53 +13,31 @@ import (
 // that will update the value of the yaml node based on the provided
 // ImageTag if the current value matches the format of an image reference.
 type imageTagUpdater struct {
-	Kind            string      `yaml:"kind,omitempty"`
-	ImageTag        types.Image `yaml:"imageTag,omitempty"`
-	trackableSetter filtersutil.TrackableSetter
+	Kind     string      `yaml:"kind,omitempty"`
+	ImageTag types.Image `yaml:"imageTag,omitempty"`
 }
 
-func (u imageTagUpdater) SetImageValue(rn *yaml.RNode) error {
+func (u imageTagUpdater) Filter(rn *yaml.RNode) (*yaml.RNode, error) {
 	if err := yaml.ErrorIfInvalid(rn, yaml.ScalarNode); err != nil {
-		return err
+		return nil, err
 	}
 
 	value := rn.YNode().Value
 
 	if !image.IsImageMatched(value, u.ImageTag.Name) {
-		return nil
+		return rn, nil
 	}
 
-	name, tag, digest := image.Split(value)
+	name, tag := image.Split(value)
 	if u.ImageTag.NewName != "" {
 		name = u.ImageTag.NewName
 	}
-
-	// overriding tag or digest will replace both original tag and digest values
-	if u.ImageTag.NewTag != "" && u.ImageTag.Digest != "" {
-		tag = u.ImageTag.NewTag
-		digest = u.ImageTag.Digest
-	} else if u.ImageTag.NewTag != "" {
-		tag = u.ImageTag.NewTag
-		digest = ""
-	} else if u.ImageTag.Digest != "" {
-		tag = ""
-		digest = u.ImageTag.Digest
+	if u.ImageTag.NewTag != "" {
+		tag = ":" + u.ImageTag.NewTag
+	}
+	if u.ImageTag.Digest != "" {
+		tag = "@" + u.ImageTag.Digest
 	}
 
-	// build final image name
-	if tag != "" {
-		name += ":" + tag
-	}
-	if digest != "" {
-		name += "@" + digest
-	}
-
-	return u.trackableSetter.SetScalar(name)(rn)
-}
-
-func (u imageTagUpdater) Filter(rn *yaml.RNode) (*yaml.RNode, error) {
-	if err := u.SetImageValue(rn); err != nil {
-		return nil, err
-	}
-	return rn, nil
+	return rn.Pipe(yaml.FieldSetter{StringValue: name + tag})
 }
