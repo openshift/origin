@@ -26,7 +26,7 @@
             "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
             "message": "constructed/true reason/Scheduled node/ci-op-ckiwry67-db044-lzjpd-master-0",
             "from": "2022-03-22T22:02:53Z",
-            "to": "2022-03-22T22:29:36Z"
+            "to": "2022-03-22T22:29:35Z"
         },
         {
             "level": "Info",
@@ -34,6 +34,13 @@
             "message": "constructed/true reason/Ready ",
             "from": "2022-03-22T22:02:53Z",
             "to": "2022-03-22T22:29:35Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
+            "message": "constructed/true reason/GracefulDelete duration/30s",
+            "from": "2022-03-22T22:29:35Z",
+            "to": "2022-03-22T22:29:36Z"
         },
         {
             "level": "Info",

@@ -113,11 +113,13 @@ const (
 	PodReasonDeleted               = "Deleted"
 	PodReasonScheduled             = "Scheduled"
 
-	ContainerReasonContainerExit  = "ContainerExit"
-	ContainerReasonContainerStart = "ContainerStart"
-	ContainerReasonContainerWait  = "ContainerWait"
-	ContainerReasonReady          = "Ready"
-	ContainerReasonNotReady       = "NotReady"
+	ContainerReasonContainerExit    = "ContainerExit"
+	ContainerReasonContainerStart   = "ContainerStart"
+	ContainerReasonContainerWait    = "ContainerWait"
+	ContainerReasonReadinessFailed  = "ReadinessFailed"
+	ContainerReasonReadinessErrored = "ReadinessErrored"
+	ContainerReasonReady            = "Ready"
+	ContainerReasonNotReady         = "NotReady"
 
 	PodReasonDeletedBeforeScheduling = "DeletedBeforeScheduling"
 	PodReasonDeletedAfterCompletion  = "DeletedAfterCompletion"

@@ -109,18 +109,23 @@ func (o *MonitorEventsOptions) End(ctx context.Context, restConfig *rest.Config,
 	var err error
 	fromTime, endTime := time.Time{}, time.Time{}
 	events := o.monitor.Intervals(fromTime, endTime)
+	fmt.Printf("#### 1a %v events total\n", len(events))
 	// this happens before calculation because events collected here could be used to drive later calculations
 	events, err = intervalcreation.InsertIntervalsFromCluster(ctx, restConfig, events, o.recordedResources, fromTime, endTime)
 	if err != nil {
 		return fmt.Errorf("InsertIntervalsFromClusterError: %w", err)
 	}
+	fmt.Printf("#### 1b %v events total\n", len(events))
 	// add events from alerts so we can create the intervals
 	alertEventIntervals, err := monitor.FetchEventIntervalsForAllAlerts(ctx, restConfig, *o.startTime)
 	if err != nil {
 		return fmt.Errorf("AlertErr: %w", err)
 	}
+	fmt.Printf("#### 1c %v events total\n", len(events))
 	events = append(events, alertEventIntervals...)
+	fmt.Printf("#### 1d %v events total\n", len(events))
 	events = intervalcreation.InsertCalculatedIntervals(events, o.recordedResources, fromTime, endTime)
+	fmt.Printf("#### 1e %v events total\n", len(events))
 
 	// read events from other test processes (individual tests for instance) that happened during this run.
 	// this happens during upgrade tests to pass information back to the main monitor.
@@ -144,11 +149,13 @@ func (o *MonitorEventsOptions) End(ctx context.Context, restConfig *rest.Config,
 			events = append(events, additionalEvents.Cut(*o.startTime, *o.endTime)...)
 		}
 	}
+	fmt.Printf("#### 1f %v events total\n", len(events))
 
 	sort.Sort(events)
 	events.Clamp(*o.startTime, *o.endTime)
 
 	o.recordedEvents = events
+	fmt.Printf("#### found %v events after end\n", len(o.recordedEvents))
 
 	return nil
 }
@@ -159,7 +166,7 @@ func (o *MonitorEventsOptions) GetEvents() monitorapi.Intervals {
 
 // WriteRunDataToArtifactsDir attempts to write useful run data to the specified directory.
 func (o *MonitorEventsOptions) WriteRunDataToArtifactsDir(artifactDir string) error {
-	if o.endTime != nil {
+	if o.endTime == nil {
 		return fmt.Errorf("not ended")
 	}
 	timeSuffix := fmt.Sprintf("_%s", o.startTime.UTC().Format("20060102-150405"))
