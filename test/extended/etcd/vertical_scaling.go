@@ -34,7 +34,7 @@ var _ = g.Describe("[sig-etcd][Serial] etcd", func() {
 	// next it validates the size of etcd cluster and makes sure the new member is healthy.
 	// The test ends by removing the newly added machine and validating the size of the cluster
 	// and asserting the member was removed from the etcd cluster by contacting MemberList API.
-	g.It("is able to vertically scale up and down with a single node", func() {
+	g.It("is able to vertically scale up and down with a single node [Timeout:60m]", func() {
 		// set up
 		ctx := context.TODO()
 		etcdClientFactory := scalingtestinglibrary.NewEtcdClientFactory(oc.KubeClient())
