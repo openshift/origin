@@ -1,3 +1,5 @@
+// +build linux
+
 package fs2
 
 import (
@@ -47,8 +49,7 @@ func setCpu(dirPath string, r *configs.Resources) error {
 }
 
 func statCpu(dirPath string, stats *cgroups.Stats) error {
-	const file = "cpu.stat"
-	f, err := cgroups.OpenFile(dirPath, file, os.O_RDONLY)
+	f, err := cgroups.OpenFile(dirPath, "cpu.stat", os.O_RDONLY)
 	if err != nil {
 		return err
 	}
@@ -58,7 +59,7 @@ func statCpu(dirPath string, stats *cgroups.Stats) error {
 	for sc.Scan() {
 		t, v, err := fscommon.ParseKeyValue(sc.Text())
 		if err != nil {
-			return &parseError{Path: dirPath, File: file, Err: err}
+			return err
 		}
 		switch t {
 		case "usage_usec":
@@ -79,9 +80,6 @@ func statCpu(dirPath string, stats *cgroups.Stats) error {
 		case "throttled_usec":
 			stats.CpuStats.ThrottlingData.ThrottledTime = v * 1000
 		}
-	}
-	if err := sc.Err(); err != nil {
-		return &parseError{Path: dirPath, File: file, Err: err}
 	}
 	return nil
 }

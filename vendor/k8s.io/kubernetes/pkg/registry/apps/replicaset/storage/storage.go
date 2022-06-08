@@ -81,6 +81,7 @@ func NewStorage(optsGetter generic.RESTOptionsGetter) (ReplicaSetStorage, error)
 // REST implements a RESTStorage for ReplicaSet.
 type REST struct {
 	*genericregistry.Store
+	categories []string
 }
 
 // NewREST returns a RESTStorage object that will work against ReplicaSet.
@@ -107,7 +108,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, error) {
 	statusStore.UpdateStrategy = replicaset.StatusStrategy
 	statusStore.ResetFieldsStrategy = replicaset.StatusStrategy
 
-	return &REST{store}, &StatusREST{store: &statusStore}, nil
+	return &REST{store, []string{"all"}}, &StatusREST{store: &statusStore}, nil
 }
 
 // Implement ShortNamesProvider
@@ -123,7 +124,13 @@ var _ rest.CategoriesProvider = &REST{}
 
 // Categories implements the CategoriesProvider interface. Returns a list of categories a resource is part of.
 func (r *REST) Categories() []string {
-	return []string{"all"}
+	return r.categories
+}
+
+// WithCategories sets categories for REST.
+func (r *REST) WithCategories(categories []string) *REST {
+	r.categories = categories
+	return r
 }
 
 // StatusREST implements the REST endpoint for changing the status of a ReplicaSet
@@ -151,10 +158,6 @@ func (r *StatusREST) Update(ctx context.Context, name string, objInfo rest.Updat
 // GetResetFields implements rest.ResetFieldsStrategy
 func (r *StatusREST) GetResetFields() map[fieldpath.APIVersion]*fieldpath.Set {
 	return r.store.GetResetFields()
-}
-
-func (r *StatusREST) ConvertToTable(ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
-	return r.store.ConvertToTable(ctx, object, tableOptions)
 }
 
 // ScaleREST implements a Scale for ReplicaSet.
@@ -219,10 +222,6 @@ func (r *ScaleREST) Update(ctx context.Context, name string, objInfo rest.Update
 		return nil, false, errors.NewBadRequest(fmt.Sprintf("%v", err))
 	}
 	return newScale, false, err
-}
-
-func (r *ScaleREST) ConvertToTable(ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
-	return r.store.ConvertToTable(ctx, object, tableOptions)
 }
 
 func toScaleCreateValidation(f rest.ValidateObjectFunc) rest.ValidateObjectFunc {
@@ -300,7 +299,7 @@ func (i *scaleUpdatedObjectInfo) UpdatedObject(ctx context.Context, oldObj runti
 		if _, ok := replicasPathInReplicaSet[requestGroupVersion.String()]; ok {
 			groupVersion = requestGroupVersion
 		} else {
-			klog.Fatalf("Unrecognized group/version in request info %q", requestGroupVersion.String())
+			klog.Fatal("Unrecognized group/version in request info %q", requestGroupVersion.String())
 		}
 	}
 

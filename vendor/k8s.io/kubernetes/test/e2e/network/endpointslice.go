@@ -382,9 +382,7 @@ var _ = common.SIGDescribe("EndpointSlice", func() {
 					}
 				}
 			}
-			if !found {
-				framework.Failf("expected discovery API group/version, got %#v", discoveryGroups.Groups)
-			}
+			framework.ExpectEqual(found, true, fmt.Sprintf("expected discovery API group/version, got %#v", discoveryGroups.Groups))
 		}
 
 		ginkgo.By("getting /apis/discovery.k8s.io")
@@ -399,9 +397,7 @@ var _ = common.SIGDescribe("EndpointSlice", func() {
 					break
 				}
 			}
-			if !found {
-				framework.Failf("expected discovery API version, got %#v", group.Versions)
-			}
+			framework.ExpectEqual(found, true, fmt.Sprintf("expected discovery API version, got %#v", group.Versions))
 		}
 
 		ginkgo.By("getting /apis/discovery.k8s.io" + epsVersion)
@@ -415,9 +411,7 @@ var _ = common.SIGDescribe("EndpointSlice", func() {
 					foundEPS = true
 				}
 			}
-			if !foundEPS {
-				framework.Failf("expected endpointslices, got %#v", resources.APIResources)
-			}
+			framework.ExpectEqual(foundEPS, true, fmt.Sprintf("expected endpointslices, got %#v", resources.APIResources))
 		}
 
 		// EndpointSlice resource create/read/update/watch verbs
@@ -479,14 +473,10 @@ var _ = common.SIGDescribe("EndpointSlice", func() {
 		for sawAnnotations := false; !sawAnnotations; {
 			select {
 			case evt, ok := <-epsWatch.ResultChan():
-				if !ok {
-					framework.Fail("watch channel should not close")
-				}
+				framework.ExpectEqual(ok, true, "watch channel should not close")
 				framework.ExpectEqual(evt.Type, watch.Modified)
 				watchedEPS, isEPS := evt.Object.(*discoveryv1.EndpointSlice)
-				if !isEPS {
-					framework.Failf("expected EndpointSlice, got %T", evt.Object)
-				}
+				framework.ExpectEqual(isEPS, true, fmt.Sprintf("expected EndpointSlice, got %T", evt.Object))
 				if watchedEPS.Annotations["patched"] == "true" {
 					framework.Logf("saw patched and updated annotations")
 					sawAnnotations = true
@@ -504,9 +494,7 @@ var _ = common.SIGDescribe("EndpointSlice", func() {
 		err = epsClient.Delete(context.TODO(), createdEPS.Name, metav1.DeleteOptions{})
 		framework.ExpectNoError(err)
 		_, err = epsClient.Get(context.TODO(), createdEPS.Name, metav1.GetOptions{})
-		if !apierrors.IsNotFound(err) {
-			framework.Failf("expected 404, got %v", err)
-		}
+		framework.ExpectEqual(apierrors.IsNotFound(err), true, fmt.Sprintf("expected 404, got %v", err))
 		epsList, err = epsClient.List(context.TODO(), metav1.ListOptions{LabelSelector: "special-label=" + f.UniqueName})
 		framework.ExpectNoError(err)
 		framework.ExpectEqual(len(epsList.Items), 2, "filtered list should have 2 items")

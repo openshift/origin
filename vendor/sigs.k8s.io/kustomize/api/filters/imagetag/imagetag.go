@@ -23,17 +23,9 @@ type Filter struct {
 	// FsSlice contains the FieldSpecs to locate an image field,
 	// e.g. Path: "spec/myContainers[]/image"
 	FsSlice types.FsSlice `json:"fieldSpecs,omitempty" yaml:"fieldSpecs,omitempty"`
-
-	trackableSetter filtersutil.TrackableSetter
 }
 
 var _ kio.Filter = Filter{}
-var _ kio.TrackableFilter = &Filter{}
-
-// WithMutationTracker registers a callback which will be invoked each time a field is mutated
-func (f *Filter) WithMutationTracker(callback func(key, value, tag string, node *yaml.RNode)) {
-	f.trackableSetter.WithMutationTracker(callback)
-}
 
 func (f Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	_, err := kio.FilterAll(yaml.FilterFunc(f.filter)).Filter(nodes)
@@ -48,11 +40,8 @@ func (f Filter) filter(node *yaml.RNode) (*yaml.RNode, error) {
 		return node, nil
 	}
 	if err := node.PipeE(fsslice.Filter{
-		FsSlice: f.FsSlice,
-		SetValue: imageTagUpdater{
-			ImageTag:        f.ImageTag,
-			trackableSetter: f.trackableSetter,
-		}.SetImageValue,
+		FsSlice:  f.FsSlice,
+		SetValue: updateImageTagFn(f.ImageTag),
 	}); err != nil {
 		return nil, err
 	}
@@ -69,4 +58,12 @@ func (f Filter) isOnDenyList(node *yaml.RNode) bool {
 	// Ignore CRDs
 	// https://github.com/kubernetes-sigs/kustomize/issues/890
 	return meta.Kind == `CustomResourceDefinition`
+}
+
+func updateImageTagFn(imageTag types.Image) filtersutil.SetFn {
+	return func(node *yaml.RNode) error {
+		return node.PipeE(imageTagUpdater{
+			ImageTag: imageTag,
+		})
+	}
 }

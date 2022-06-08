@@ -22,10 +22,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/klog/v2"
 	apiservice "k8s.io/kubernetes/pkg/api/service"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
+	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
 	"k8s.io/kubernetes/pkg/registry/core/service/portallocator"
 	netutils "k8s.io/utils/net"
@@ -938,7 +940,10 @@ func shouldAllocateNodePorts(service *api.Service) bool {
 		return true
 	}
 	if service.Spec.Type == api.ServiceTypeLoadBalancer {
-		return *service.Spec.AllocateLoadBalancerNodePorts
+		if utilfeature.DefaultFeatureGate.Enabled(features.ServiceLBNodePortControl) {
+			return *service.Spec.AllocateLoadBalancerNodePorts
+		}
+		return true
 	}
 	return false
 }

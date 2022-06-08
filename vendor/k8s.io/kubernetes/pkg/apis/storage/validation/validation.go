@@ -469,7 +469,7 @@ func validatePodInfoOnMount(podInfoOnMount *bool, fldPath *field.Path) field.Err
 // validateStorageCapacity tests if storageCapacity is set for CSIDriver.
 func validateStorageCapacity(storageCapacity *bool, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	if storageCapacity == nil {
+	if storageCapacity == nil && utilfeature.DefaultFeatureGate.Enabled(features.CSIStorageCapacity) {
 		allErrs = append(allErrs, field.Required(fldPath, ""))
 	}
 

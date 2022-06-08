@@ -20,7 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"regexp"
@@ -116,7 +116,7 @@ func (d *Dialer) DialContainerPort(ctx context.Context, addr Addr) (conn net.Con
 	}
 	errorStream.Close()
 	go func() {
-		message, err := io.ReadAll(errorStream)
+		message, err := ioutil.ReadAll(errorStream)
 		switch {
 		case err != nil:
 			klog.ErrorS(err, "error reading from error stream")

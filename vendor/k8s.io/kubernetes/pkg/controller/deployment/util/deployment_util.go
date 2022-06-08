@@ -900,8 +900,7 @@ func GetDeploymentsForReplicaSet(deploymentLister appslisters.DeploymentLister, 
 	for _, d := range dList {
 		selector, err := metav1.LabelSelectorAsSelector(d.Spec.Selector)
 		if err != nil {
-			// This object has an invalid selector, it does not match the replicaset
-			continue
+			return nil, fmt.Errorf("invalid label selector: %v", err)
 		}
 		// If a deployment with a nil or empty selector creeps in, it should match nothing, not everything.
 		if selector.Empty() || !selector.Matches(labels.Set(rs.Labels)) {

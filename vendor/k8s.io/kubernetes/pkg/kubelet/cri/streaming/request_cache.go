@@ -56,7 +56,7 @@ type requestCache struct {
 type request interface{}
 
 type cacheEntry struct {
-	token      string `datapolicy:"token"`
+	token      string
 	req        request
 	expireTime time.Time
 }

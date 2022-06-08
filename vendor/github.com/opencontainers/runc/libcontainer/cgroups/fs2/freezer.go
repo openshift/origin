@@ -1,17 +1,19 @@
+// +build linux
+
 package fs2
 
 import (
 	"bufio"
-	"errors"
+	stdErrors "errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
-	"golang.org/x/sys/unix"
-
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/pkg/errors"
+	"golang.org/x/sys/unix"
 )
 
 func setFreezer(dirPath string, state configs.FreezerState) error {
@@ -24,7 +26,7 @@ func setFreezer(dirPath string, state configs.FreezerState) error {
 	case configs.Thawed:
 		stateStr = "0"
 	default:
-		return fmt.Errorf("invalid freezer state %q requested", state)
+		return errors.Errorf("invalid freezer state %q requested", state)
 	}
 
 	fd, err := cgroups.OpenFile(dirPath, "cgroup.freeze", unix.O_RDWR)
@@ -35,7 +37,7 @@ func setFreezer(dirPath string, state configs.FreezerState) error {
 		if state != configs.Frozen {
 			return nil
 		}
-		return fmt.Errorf("freezer not supported: %w", err)
+		return errors.Wrap(err, "freezer not supported")
 	}
 	defer fd.Close()
 
@@ -46,7 +48,7 @@ func setFreezer(dirPath string, state configs.FreezerState) error {
 	if actualState, err := readFreezer(dirPath, fd); err != nil {
 		return err
 	} else if actualState != state {
-		return fmt.Errorf(`expected "cgroup.freeze" to be in state %q but was in %q`, state, actualState)
+		return errors.Errorf(`expected "cgroup.freeze" to be in state %q but was in %q`, state, actualState)
 	}
 	return nil
 }
@@ -56,7 +58,7 @@ func getFreezer(dirPath string) (configs.FreezerState, error) {
 	if err != nil {
 		// If the kernel is too old, then we just treat the freezer as being in
 		// an "undefined" state.
-		if os.IsNotExist(err) || errors.Is(err, unix.ENODEV) {
+		if os.IsNotExist(err) || stdErrors.Is(err, unix.ENODEV) {
 			err = nil
 		}
 		return configs.Undefined, err
@@ -80,7 +82,7 @@ func readFreezer(dirPath string, fd *os.File) (configs.FreezerState, error) {
 	case "1\n":
 		return waitFrozen(dirPath)
 	default:
-		return configs.Undefined, fmt.Errorf(`unknown "cgroup.freeze" state: %q`, state)
+		return configs.Undefined, errors.Errorf(`unknown "cgroup.freeze" state: %q`, state)
 	}
 }
 

@@ -21,23 +21,9 @@ type Transformer interface {
 	Transform(m ResMap) error
 }
 
-// A TransformerWithProperties contains a Transformer and stores
-// some of its properties
-type TransformerWithProperties struct {
-	Transformer
-	Origin *resource.Origin
-}
-
 // A Generator creates an instance of ResMap.
 type Generator interface {
 	Generate() (ResMap, error)
-}
-
-// A GeneratorWithProperties contains a Generator and stores
-// some of its properties
-type GeneratorWithProperties struct {
-	Generator
-	Origin *resource.Origin
 }
 
 // Something that's configurable accepts an
@@ -150,25 +136,6 @@ type ResMap interface {
 	// self, then its behavior _cannot_ be merge or replace.
 	AbsorbAll(ResMap) error
 
-	// AddOriginAnnotation will add the provided origin as
-	// an origin annotation to all resources in the ResMap, if
-	// the origin is not nil.
-	AddOriginAnnotation(origin *resource.Origin) error
-
-	// RemoveOriginAnnotation will remove the origin annotation
-	// from all resources in the ResMap
-	RemoveOriginAnnotations() error
-
-	// AddTransformerAnnotation will add the provided origin as
-	// an origin annotation if the resource doesn't have one; a
-	// transformer annotation otherwise; to all resources in
-	// ResMap
-	AddTransformerAnnotation(origin *resource.Origin) error
-
-	// RemoveTransformerAnnotation will remove the transformer annotation
-	// from all resources in the ResMap
-	RemoveTransformerAnnotations() error
-
 	// AnnotateAll annotates all resources in the ResMap with
 	// the provided key value pair.
 	AnnotateAll(key string, value string) error
@@ -245,7 +212,7 @@ type ResMap interface {
 	// This is a filter; it excludes things that cannot be
 	// referenced by the resource, e.g. objects in other
 	// namespaces. Cluster wide objects are never excluded.
-	SubsetThatCouldBeReferencedByResource(*resource.Resource) (ResMap, error)
+	SubsetThatCouldBeReferencedByResource(*resource.Resource) ResMap
 
 	// DeAnchor replaces YAML aliases with structured data copied from anchors.
 	// This cannot be undone; if desired, call DeepCopy first.

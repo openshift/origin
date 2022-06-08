@@ -76,7 +76,7 @@ func NewCPUSet(cpus ...int) CPUSet {
 	return b.Result()
 }
 
-// NewCPUSetInt64 returns a new CPUSet containing the supplied elements, as slice of int64.
+// NewCPUSet returns a new CPUSet containing the supplied elements, as slice of int64.
 func NewCPUSetInt64(cpus ...int64) CPUSet {
 	b := NewBuilder()
 	for _, c := range cpus {

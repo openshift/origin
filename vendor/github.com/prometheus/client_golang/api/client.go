@@ -15,8 +15,8 @@
 package api
 
 import (
-	"bytes"
 	"context"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -111,9 +111,7 @@ func (c *httpClient) Do(ctx context.Context, req *http.Request) (*http.Response,
 	var body []byte
 	done := make(chan struct{})
 	go func() {
-		var buf bytes.Buffer
-		_, err = buf.ReadFrom(resp.Body)
-		body = buf.Bytes()
+		body, err = ioutil.ReadAll(resp.Body)
 		close(done)
 	}()
 

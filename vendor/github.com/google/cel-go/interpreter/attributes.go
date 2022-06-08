@@ -15,6 +15,7 @@
 package interpreter
 
 import (
+	"errors"
 	"fmt"
 	"math"
 
@@ -486,7 +487,9 @@ func (a *maybeAttribute) AddQualifier(qual Qualifier) (Attribute, error) {
 		}
 	}
 	// Next, ensure the most specific variable / type reference is searched first.
-	a.attrs = append([]NamespacedAttribute{a.fac.AbsoluteAttribute(qual.ID(), augmentedNames...)}, a.attrs...)
+	a.attrs = append([]NamespacedAttribute{
+		a.fac.AbsoluteAttribute(qual.ID(), augmentedNames...),
+	}, a.attrs...)
 	return a, nil
 }
 
@@ -625,10 +628,6 @@ func newQualifier(adapter ref.TypeAdapter, id int64, v interface{}) (Qualifier, 
 		qual = &uintQualifier{id: id, value: val, celValue: types.Uint(val), adapter: adapter}
 	case bool:
 		qual = &boolQualifier{id: id, value: val, celValue: types.Bool(val), adapter: adapter}
-	case float32:
-		qual = &doubleQualifier{id: id, value: float64(val), celValue: types.Double(val), adapter: adapter}
-	case float64:
-		qual = &doubleQualifier{id: id, value: val, celValue: types.Double(val), adapter: adapter}
 	case types.String:
 		qual = &stringQualifier{id: id, value: string(val), celValue: val, adapter: adapter}
 	case types.Int:
@@ -714,6 +713,9 @@ func (q *stringQualifier) Qualify(vars Activation, obj interface{}) (interface{}
 		elem, err := refResolve(q.adapter, q.celValue, obj)
 		if err != nil {
 			return nil, err
+		}
+		if types.IsUnknown(elem) {
+			return elem, nil
 		}
 		return elem, nil
 	}
@@ -827,6 +829,9 @@ func (q *intQualifier) Qualify(vars Activation, obj interface{}) (interface{}, e
 		if err != nil {
 			return nil, err
 		}
+		if types.IsUnknown(elem) {
+			return elem, nil
+		}
 		return elem, nil
 	}
 	if isMap && !isKey {
@@ -886,6 +891,9 @@ func (q *uintQualifier) Qualify(vars Activation, obj interface{}) (interface{}, 
 		if err != nil {
 			return nil, err
 		}
+		if types.IsUnknown(elem) {
+			return elem, nil
+		}
 		return elem, nil
 	}
 	if isMap && !isKey {
@@ -933,6 +941,9 @@ func (q *boolQualifier) Qualify(vars Activation, obj interface{}) (interface{}, 
 		elem, err := refResolve(q.adapter, q.celValue, obj)
 		if err != nil {
 			return nil, err
+		}
+		if types.IsUnknown(elem) {
+			return elem, nil
 		}
 		return elem, nil
 	}
@@ -985,37 +996,6 @@ func (q *fieldQualifier) Cost() (min, max int64) {
 	return 0, 0
 }
 
-// doubleQualifier qualifies a CEL object, map, or list using a double value.
-//
-// This qualifier is used for working with dynamic data like JSON or protobuf.Any where the value
-// type may not be known ahead of time and may not conform to the standard types supported as valid
-// protobuf map key types.
-type doubleQualifier struct {
-	id       int64
-	value    float64
-	celValue ref.Val
-	adapter  ref.TypeAdapter
-}
-
-// ID is an implementation of the Qualifier interface method.
-func (q *doubleQualifier) ID() int64 {
-	return q.id
-}
-
-// Qualify implements the Qualifier interface method.
-func (q *doubleQualifier) Qualify(vars Activation, obj interface{}) (interface{}, error) {
-	switch o := obj.(type) {
-	case types.Unknown:
-		return o, nil
-	default:
-		elem, err := refResolve(q.adapter, q.celValue, obj)
-		if err != nil {
-			return nil, err
-		}
-		return elem, nil
-	}
-}
-
 // refResolve attempts to convert the value to a CEL value and then uses reflection methods
 // to try and resolve the qualifier.
 func refResolve(adapter ref.TypeAdapter, idx ref.Val, obj interface{}) (ref.Val, error) {
@@ -1025,6 +1005,9 @@ func refResolve(adapter ref.TypeAdapter, idx ref.Val, obj interface{}) (ref.Val,
 		elem, found := mapper.Find(idx)
 		if !found {
 			return nil, fmt.Errorf("no such key: %v", idx)
+		}
+		if types.IsError(elem) {
+			return nil, elem.(*types.Err)
 		}
 		return elem, nil
 	}
@@ -1045,5 +1028,5 @@ func refResolve(adapter ref.TypeAdapter, idx ref.Val, obj interface{}) (ref.Val,
 	if types.IsError(celVal) {
 		return nil, celVal.(*types.Err)
 	}
-	return nil, fmt.Errorf("no such key: %v", idx)
+	return nil, errors.New("no such overload")
 }

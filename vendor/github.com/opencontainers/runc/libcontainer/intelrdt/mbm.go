@@ -1,3 +1,5 @@
+// +build linux
+
 package intelrdt
 
 // The flag to indicate if Intel RDT/MBM is enabled

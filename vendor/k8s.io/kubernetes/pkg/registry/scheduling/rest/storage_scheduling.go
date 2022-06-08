@@ -44,28 +44,26 @@ type RESTStorageProvider struct{}
 
 var _ genericapiserver.PostStartHookProvider = RESTStorageProvider{}
 
-func (p RESTStorageProvider) NewRESTStorage(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) (genericapiserver.APIGroupInfo, error) {
+func (p RESTStorageProvider) NewRESTStorage(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) (genericapiserver.APIGroupInfo, bool, error) {
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(scheduling.GroupName, legacyscheme.Scheme, legacyscheme.ParameterCodec, legacyscheme.Codecs)
 
-	if storageMap, err := p.v1Storage(apiResourceConfigSource, restOptionsGetter); err != nil {
-		return genericapiserver.APIGroupInfo{}, err
-	} else if len(storageMap) > 0 {
-		apiGroupInfo.VersionedResourcesStorageMap[schedulingapiv1.SchemeGroupVersion.Version] = storageMap
+	if apiResourceConfigSource.VersionEnabled(schedulingapiv1.SchemeGroupVersion) {
+		if storage, err := p.v1Storage(apiResourceConfigSource, restOptionsGetter); err != nil {
+			return genericapiserver.APIGroupInfo{}, false, err
+		} else {
+			apiGroupInfo.VersionedResourcesStorageMap[schedulingapiv1.SchemeGroupVersion.Version] = storage
+		}
 	}
-
-	return apiGroupInfo, nil
+	return apiGroupInfo, true, nil
 }
 
 func (p RESTStorageProvider) v1Storage(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) (map[string]rest.Storage, error) {
 	storage := map[string]rest.Storage{}
-
 	// priorityclasses
-	if resource := "priorityclasses"; apiResourceConfigSource.ResourceEnabled(schedulingapiv1.SchemeGroupVersion.WithResource(resource)) {
-		if priorityClassStorage, err := priorityclassstore.NewREST(restOptionsGetter); err != nil {
-			return nil, err
-		} else {
-			storage[resource] = priorityClassStorage
-		}
+	if priorityClassStorage, err := priorityclassstore.NewREST(restOptionsGetter); err != nil {
+		return nil, err
+	} else {
+		storage["priorityclasses"] = priorityClassStorage
 	}
 
 	return storage, nil

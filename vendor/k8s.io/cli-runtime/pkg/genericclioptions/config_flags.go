@@ -33,7 +33,6 @@ import (
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-	utilpointer "k8s.io/utils/pointer"
 )
 
 const (
@@ -285,7 +284,7 @@ func (f *ConfigFlags) toDiscoveryClient() (discovery.CachedDiscoveryInterface, e
 	httpCacheDir := filepath.Join(cacheDir, "http")
 	discoveryCacheDir := computeDiscoverCacheDir(filepath.Join(cacheDir, "discovery"), config.Host)
 
-	return diskcached.NewCachedDiscoveryClientForConfig(config, discoveryCacheDir, httpCacheDir, time.Duration(6*time.Hour))
+	return diskcached.NewCachedDiscoveryClientForConfig(config, discoveryCacheDir, httpCacheDir, time.Duration(10*time.Minute))
 }
 
 // ToRESTMapper returns a mapper.
@@ -387,8 +386,8 @@ func (f *ConfigFlags) AddFlags(flags *pflag.FlagSet) {
 
 // WithDeprecatedPasswordFlag enables the username and password config flags
 func (f *ConfigFlags) WithDeprecatedPasswordFlag() *ConfigFlags {
-	f.Username = utilpointer.String("")
-	f.Password = utilpointer.String("")
+	f.Username = stringptr("")
+	f.Password = stringptr("")
 	return f
 }
 
@@ -398,7 +397,7 @@ func (f *ConfigFlags) WithDiscoveryBurst(discoveryBurst int) *ConfigFlags {
 	return f
 }
 
-// WithDiscoveryQPS sets the RESTClient QPS for discovery.
+// WithDiscoveryBurst sets the RESTClient burst for discovery.
 func (f *ConfigFlags) WithDiscoveryQPS(discoveryQPS float32) *ConfigFlags {
 	f.discoveryQPS = discoveryQPS
 	return f
@@ -417,22 +416,22 @@ func NewConfigFlags(usePersistentConfig bool) *ConfigFlags {
 
 	return &ConfigFlags{
 		Insecure:   &insecure,
-		Timeout:    utilpointer.String("0"),
-		KubeConfig: utilpointer.String(""),
+		Timeout:    stringptr("0"),
+		KubeConfig: stringptr(""),
 
-		CacheDir:         utilpointer.String(defaultCacheDir),
-		ClusterName:      utilpointer.String(""),
-		AuthInfoName:     utilpointer.String(""),
-		Context:          utilpointer.String(""),
-		Namespace:        utilpointer.String(""),
-		APIServer:        utilpointer.String(""),
-		TLSServerName:    utilpointer.String(""),
-		CertFile:         utilpointer.String(""),
-		KeyFile:          utilpointer.String(""),
-		CAFile:           utilpointer.String(""),
-		BearerToken:      utilpointer.String(""),
-		Impersonate:      utilpointer.String(""),
-		ImpersonateUID:   utilpointer.String(""),
+		CacheDir:         stringptr(defaultCacheDir),
+		ClusterName:      stringptr(""),
+		AuthInfoName:     stringptr(""),
+		Context:          stringptr(""),
+		Namespace:        stringptr(""),
+		APIServer:        stringptr(""),
+		TLSServerName:    stringptr(""),
+		CertFile:         stringptr(""),
+		KeyFile:          stringptr(""),
+		CAFile:           stringptr(""),
+		BearerToken:      stringptr(""),
+		Impersonate:      stringptr(""),
+		ImpersonateUID:   stringptr(""),
 		ImpersonateGroup: &impersonateGroup,
 
 		usePersistentConfig: usePersistentConfig,
@@ -441,6 +440,10 @@ func NewConfigFlags(usePersistentConfig bool) *ConfigFlags {
 		// double it just so we don't end up here again for a while.  This config is only used for discovery.
 		discoveryBurst: 100,
 	}
+}
+
+func stringptr(val string) *string {
+	return &val
 }
 
 // overlyCautiousIllegalFileCharacters matches characters that *might* not be supported.  Windows is really restrictive, so this is really restrictive

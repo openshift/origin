@@ -93,23 +93,14 @@ type KubeSchedulerConfiguration struct {
 
 // DecodeNestedObjects decodes plugin args for known types.
 func (c *KubeSchedulerConfiguration) DecodeNestedObjects(d runtime.Decoder) error {
-	var strictDecodingErrs []error
 	for i := range c.Profiles {
 		prof := &c.Profiles[i]
 		for j := range prof.PluginConfig {
 			err := prof.PluginConfig[j].decodeNestedObjects(d)
 			if err != nil {
-				decodingErr := fmt.Errorf("decoding .profiles[%d].pluginConfig[%d]: %w", i, j, err)
-				if runtime.IsStrictDecodingError(err) {
-					strictDecodingErrs = append(strictDecodingErrs, decodingErr)
-				} else {
-					return decodingErr
-				}
+				return fmt.Errorf("decoding .profiles[%d].pluginConfig[%d]: %w", i, j, err)
 			}
 		}
-	}
-	if len(strictDecodingErrs) > 0 {
-		return runtime.NewStrictDecodingError(strictDecodingErrs)
 	}
 	return nil
 }
@@ -254,21 +245,15 @@ func (c *PluginConfig) decodeNestedObjects(d runtime.Decoder) error {
 		return nil
 	}
 
-	var strictDecodingErr error
 	obj, parsedGvk, err := d.Decode(c.Args.Raw, &gvk, nil)
 	if err != nil {
-		decodingArgsErr := fmt.Errorf("decoding args for plugin %s: %w", c.Name, err)
-		if obj != nil && runtime.IsStrictDecodingError(err) {
-			strictDecodingErr = runtime.NewStrictDecodingError([]error{decodingArgsErr})
-		} else {
-			return decodingArgsErr
-		}
+		return fmt.Errorf("decoding args for plugin %s: %w", c.Name, err)
 	}
 	if parsedGvk.GroupKind() != gvk.GroupKind() {
 		return fmt.Errorf("args for plugin %s were not of type %s, got %s", c.Name, gvk.GroupKind(), parsedGvk.GroupKind())
 	}
 	c.Args.Object = obj
-	return strictDecodingErr
+	return nil
 }
 
 func (c *PluginConfig) encodeNestedObjects(e runtime.Encoder) error {

@@ -18,7 +18,6 @@ package dynamiccertificates
 
 import (
 	"bytes"
-	"context"
 	"crypto/x509"
 	"fmt"
 	"sync/atomic"
@@ -187,7 +186,7 @@ func (c *ConfigMapCAController) hasCAChanged(caBundle []byte) bool {
 }
 
 // RunOnce runs a single sync loop
-func (c *ConfigMapCAController) RunOnce(ctx context.Context) error {
+func (c *ConfigMapCAController) RunOnce() error {
 	// Ignore the error when running once because when using a dynamically loaded ca file, because we think it's better to have nothing for
 	// a brief time than completely crash.  If crashing is necessary, higher order logic like a healthcheck and cause failures.
 	_ = c.loadCABundle()
@@ -195,7 +194,7 @@ func (c *ConfigMapCAController) RunOnce(ctx context.Context) error {
 }
 
 // Run starts the kube-apiserver and blocks until stopCh is closed.
-func (c *ConfigMapCAController) Run(ctx context.Context, workers int) {
+func (c *ConfigMapCAController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
@@ -203,23 +202,23 @@ func (c *ConfigMapCAController) Run(ctx context.Context, workers int) {
 	defer klog.InfoS("Shutting down controller", "name", c.name)
 
 	// we have a personal informer that is narrowly scoped, start it.
-	go c.configMapInformer.Run(ctx.Done())
+	go c.configMapInformer.Run(stopCh)
 
 	// wait for your secondary caches to fill before starting your work
-	if !cache.WaitForNamedCacheSync(c.name, ctx.Done(), c.preRunCaches...) {
+	if !cache.WaitForNamedCacheSync(c.name, stopCh, c.preRunCaches...) {
 		return
 	}
 
 	// doesn't matter what workers say, only start one.
-	go wait.Until(c.runWorker, time.Second, ctx.Done())
+	go wait.Until(c.runWorker, time.Second, stopCh)
 
 	// start timer that rechecks every minute, just in case.  this also serves to prime the controller quickly.
 	go wait.PollImmediateUntil(FileRefreshDuration, func() (bool, error) {
 		c.queue.Add(workItemKey)
 		return false, nil
-	}, ctx.Done())
+	}, stopCh)
 
-	<-ctx.Done()
+	<-stopCh
 }
 
 func (c *ConfigMapCAController) runWorker() {

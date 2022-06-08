@@ -113,7 +113,10 @@ func (b Bytes) ConvertToType(typeVal ref.Type) ref.Val {
 // Equal implements the ref.Val interface method.
 func (b Bytes) Equal(other ref.Val) ref.Val {
 	otherBytes, ok := other.(Bytes)
-	return Bool(ok && bytes.Equal(b, otherBytes))
+	if !ok {
+		return ValOrErr(other, "no such overload")
+	}
+	return Bool(bytes.Equal(b, otherBytes))
 }
 
 // Size implements the traits.Sizer interface method.

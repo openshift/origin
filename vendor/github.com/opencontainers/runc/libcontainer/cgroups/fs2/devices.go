@@ -1,15 +1,16 @@
+// +build linux
+
 package fs2
 
 import (
-	"fmt"
-
-	"golang.org/x/sys/unix"
-
 	"github.com/opencontainers/runc/libcontainer/cgroups/ebpf"
 	"github.com/opencontainers/runc/libcontainer/cgroups/ebpf/devicefilter"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	"github.com/opencontainers/runc/libcontainer/userns"
+
+	"github.com/pkg/errors"
+	"golang.org/x/sys/unix"
 )
 
 func isRWM(perms devices.Permissions) bool {
@@ -63,7 +64,7 @@ func setDevices(dirPath string, r *configs.Resources) error {
 	}
 	dirFD, err := unix.Open(dirPath, unix.O_DIRECTORY|unix.O_RDONLY, 0o600)
 	if err != nil {
-		return fmt.Errorf("cannot get dir FD for %s", dirPath)
+		return errors.Errorf("cannot get dir FD for %s", dirPath)
 	}
 	defer unix.Close(dirFD)
 	if _, err := ebpf.LoadAttachCgroupDeviceFilter(insts, license, dirFD); err != nil {

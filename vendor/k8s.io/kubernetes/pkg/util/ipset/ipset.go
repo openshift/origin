@@ -92,33 +92,35 @@ type IPSet struct {
 }
 
 // Validate checks if a given ipset is valid or not.
-func (set *IPSet) Validate() error {
+func (set *IPSet) Validate() bool {
 	// Check if protocol is valid for `HashIPPort`, `HashIPPortIP` and `HashIPPortNet` type set.
 	if set.SetType == HashIPPort || set.SetType == HashIPPortIP || set.SetType == HashIPPortNet {
-		if err := validateHashFamily(set.HashFamily); err != nil {
-			return err
+		if valid := validateHashFamily(set.HashFamily); !valid {
+			return false
 		}
 	}
 	// check set type
-	if err := validateIPSetType(set.SetType); err != nil {
-		return err
+	if valid := validateIPSetType(set.SetType); !valid {
+		return false
 	}
 	// check port range for bitmap type set
 	if set.SetType == BitmapPort {
-		if err := validatePortRange(set.PortRange); err != nil {
-			return err
+		if valid := validatePortRange(set.PortRange); !valid {
+			return false
 		}
 	}
 	// check hash size value of ipset
 	if set.HashSize <= 0 {
-		return fmt.Errorf("invalid HashSize: %d", set.HashSize)
+		klog.Errorf("Invalid hashsize value %d, should be >0", set.HashSize)
+		return false
 	}
 	// check max elem value of ipset
 	if set.MaxElem <= 0 {
-		return fmt.Errorf("invalid MaxElem %d", set.MaxElem)
+		klog.Errorf("Invalid maxelem value %d, should be >0", set.MaxElem)
+		return false
 	}
 
-	return nil
+	return true
 }
 
 //setIPSetDefaults sets some IPSet fields if not present to their default values.
@@ -273,8 +275,9 @@ func (runner *runner) CreateSet(set *IPSet, ignoreExistErr bool) error {
 	set.setIPSetDefaults()
 
 	// Validate ipset before creating
-	if err := set.Validate(); err != nil {
-		return err
+	valid := set.Validate()
+	if !valid {
+		return fmt.Errorf("error creating ipset since it's invalid")
 	}
 	return runner.createSet(set, ignoreExistErr)
 }
@@ -310,16 +313,16 @@ func (runner *runner) AddEntry(entry string, set *IPSet, ignoreExistErr bool) er
 	if ignoreExistErr {
 		args = append(args, "-exist")
 	}
-	if out, err := runner.exec.Command(IPSetCmd, args...).CombinedOutput(); err != nil {
-		return fmt.Errorf("error adding entry %s, error: %v (%s)", entry, err, out)
+	if _, err := runner.exec.Command(IPSetCmd, args...).CombinedOutput(); err != nil {
+		return fmt.Errorf("error adding entry %s, error: %v", entry, err)
 	}
 	return nil
 }
 
 // DelEntry is used to delete the specified entry from the set.
 func (runner *runner) DelEntry(entry string, set string) error {
-	if out, err := runner.exec.Command(IPSetCmd, "del", set, entry).CombinedOutput(); err != nil {
-		return fmt.Errorf("error deleting entry %s: from set: %s, error: %v (%s)", entry, set, err, out)
+	if _, err := runner.exec.Command(IPSetCmd, "del", set, entry).CombinedOutput(); err != nil {
+		return fmt.Errorf("error deleting entry %s: from set: %s, error: %v", entry, set, err)
 	}
 	return nil
 }
@@ -418,39 +421,44 @@ func getIPSetVersionString(exec utilexec.Interface) (string, error) {
 
 // checks if port range is valid. The begin port number is not necessarily less than
 // end port number - ipset util can accept it.  It means both 1-100 and 100-1 are valid.
-func validatePortRange(portRange string) error {
+func validatePortRange(portRange string) bool {
 	strs := strings.Split(portRange, "-")
 	if len(strs) != 2 {
-		return fmt.Errorf("invalid PortRange: %q", portRange)
+		klog.Errorf("port range should be in the format of `a-b`")
+		return false
 	}
 	for i := range strs {
 		num, err := strconv.Atoi(strs[i])
 		if err != nil {
-			return fmt.Errorf("invalid PortRange: %q", portRange)
+			klog.Errorf("Failed to parse %s, error: %v", strs[i], err)
+			return false
 		}
 		if num < 0 {
-			return fmt.Errorf("invalid PortRange: %q", portRange)
+			klog.Errorf("port number %d should be >=0", num)
+			return false
 		}
 	}
-	return nil
+	return true
 }
 
 // checks if the given ipset type is valid.
-func validateIPSetType(set Type) error {
+func validateIPSetType(set Type) bool {
 	for _, valid := range ValidIPSetTypes {
 		if set == valid {
-			return nil
+			return true
 		}
 	}
-	return fmt.Errorf("unsupported SetType: %q", set)
+	klog.Errorf("Currently supported ipset types are: %v, %s is not supported", ValidIPSetTypes, set)
+	return false
 }
 
 // checks if given hash family is supported in ipset
-func validateHashFamily(family string) error {
+func validateHashFamily(family string) bool {
 	if family == ProtocolFamilyIPV4 || family == ProtocolFamilyIPV6 {
-		return nil
+		return true
 	}
-	return fmt.Errorf("unsupported HashFamily %q", family)
+	klog.Errorf("Currently supported ip set hash families are: [%s, %s], %s is not supported", ProtocolFamilyIPV4, ProtocolFamilyIPV6, family)
+	return false
 }
 
 // IsNotFoundError returns true if the error indicates "not found".  It parses

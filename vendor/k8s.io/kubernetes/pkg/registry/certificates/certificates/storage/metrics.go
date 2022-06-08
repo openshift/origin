@@ -28,11 +28,13 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/util/dryrun"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/certificate/csr"
 	"k8s.io/component-base/metrics"
 	"k8s.io/component-base/metrics/legacyregistry"
 	"k8s.io/kubernetes/pkg/apis/certificates"
+	"k8s.io/kubernetes/pkg/features"
 )
 
 const (
@@ -88,6 +90,10 @@ func countCSRDurationMetric(requested, honored counterVecMetric) genericregistry
 
 			if dryrun.IsDryRun(options.DryRun) {
 				return // ignore things that would not get persisted
+			}
+
+			if !utilfeature.DefaultFeatureGate.Enabled(features.CSRDuration) {
+				return
 			}
 
 			oldCSR, ok := old.(*certificates.CertificateSigningRequest)

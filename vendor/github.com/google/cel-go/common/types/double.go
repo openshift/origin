@@ -16,7 +16,6 @@ package types
 
 import (
 	"fmt"
-	"math"
 	"reflect"
 
 	"github.com/google/cel-go/common/types/ref"
@@ -59,22 +58,17 @@ func (d Double) Add(other ref.Val) ref.Val {
 
 // Compare implements traits.Comparer.Compare.
 func (d Double) Compare(other ref.Val) ref.Val {
-	if math.IsNaN(float64(d)) {
-		return NewErr("NaN values cannot be ordered")
-	}
-	switch ov := other.(type) {
-	case Double:
-		if math.IsNaN(float64(ov)) {
-			return NewErr("NaN values cannot be ordered")
-		}
-		return compareDouble(d, ov)
-	case Int:
-		return compareDoubleInt(d, ov)
-	case Uint:
-		return compareDoubleUint(d, ov)
-	default:
+	otherDouble, ok := other.(Double)
+	if !ok {
 		return MaybeNoSuchOverloadErr(other)
 	}
+	if d < otherDouble {
+		return IntNegOne
+	}
+	if d > otherDouble {
+		return IntOne
+	}
+	return IntZero
 }
 
 // ConvertToNative implements ref.Val.ConvertToNative.
@@ -164,22 +158,12 @@ func (d Double) Divide(other ref.Val) ref.Val {
 
 // Equal implements ref.Val.Equal.
 func (d Double) Equal(other ref.Val) ref.Val {
-	if math.IsNaN(float64(d)) {
-		return False
+	otherDouble, ok := other.(Double)
+	if !ok {
+		return MaybeNoSuchOverloadErr(other)
 	}
-	switch ov := other.(type) {
-	case Double:
-		if math.IsNaN(float64(ov)) {
-			return False
-		}
-		return Bool(d == ov)
-	case Int:
-		return Bool(compareDoubleInt(d, ov) == 0)
-	case Uint:
-		return Bool(compareDoubleUint(d, ov) == 0)
-	default:
-		return False
-	}
+	// TODO: Handle NaNs properly.
+	return Bool(d == otherDouble)
 }
 
 // Multiply implements traits.Multiplier.Multiply.

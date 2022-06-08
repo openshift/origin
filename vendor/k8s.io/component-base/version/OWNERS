@@ -6,11 +6,12 @@
 # each release.
 
 approvers:
-  - sig-api-machinery-api-approvers
-  - release-engineering-approvers
+- sig-api-machinery-api-approvers
+- release-engineering-approvers
 reviewers:
-  - sig-api-machinery-api-reviewers
-  - release-managers
+- sig-api-machinery-api-reviewers
+- release-managers
+
 labels:
-  - sig/api-machinery
-  - sig/release
+- sig/api-machinery
+- sig/release

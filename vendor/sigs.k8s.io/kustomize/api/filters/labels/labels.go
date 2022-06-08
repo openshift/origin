@@ -20,17 +20,9 @@ type Filter struct {
 
 	// FsSlice identifies the label fields.
 	FsSlice types.FsSlice
-
-	trackableSetter filtersutil.TrackableSetter
 }
 
 var _ kio.Filter = Filter{}
-var _ kio.TrackableFilter = &Filter{}
-
-// WithMutationTracker registers a callback which will be invoked each time a field is mutated
-func (f *Filter) WithMutationTracker(callback func(key, value, tag string, node *yaml.RNode)) {
-	f.trackableSetter.WithMutationTracker(callback)
-}
 
 func (f Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	keys := yaml.SortedMapKeys(f.Labels)
@@ -39,7 +31,7 @@ func (f Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 			for _, k := range keys {
 				if err := node.PipeE(fsslice.Filter{
 					FsSlice: f.FsSlice,
-					SetValue: f.trackableSetter.SetEntry(
+					SetValue: filtersutil.SetEntry(
 						k, f.Labels[k], yaml.NodeTagString),
 					CreateKind: yaml.MappingNode, // Labels are MappingNodes.
 					CreateTag:  yaml.NodeTagMap,

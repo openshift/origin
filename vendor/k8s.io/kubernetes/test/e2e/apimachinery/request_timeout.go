@@ -17,7 +17,7 @@ limitations under the License.
 package apimachinery
 
 import (
-	"io"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -102,7 +102,7 @@ func newRequest(f *framework.Framework, timeout string) *http.Request {
 }
 
 func readBody(response *http.Response) string {
-	raw, err := io.ReadAll(response.Body)
+	raw, err := ioutil.ReadAll(response.Body)
 	framework.ExpectNoError(err)
 
 	return string(raw)

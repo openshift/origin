@@ -59,8 +59,7 @@ func (s *statefulSetLister) GetPodStatefulSets(pod *v1.Pod) ([]*apps.StatefulSet
 		}
 		selector, err = metav1.LabelSelectorAsSelector(ps.Spec.Selector)
 		if err != nil {
-			// This object has an invalid selector, it does not match the pod
-			continue
+			return nil, fmt.Errorf("invalid selector: %v", err)
 		}
 
 		// If a StatefulSet with a nil or empty selector creeps in, it should match nothing, not everything.

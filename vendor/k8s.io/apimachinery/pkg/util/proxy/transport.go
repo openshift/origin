@@ -83,7 +83,7 @@ type Transport struct {
 // RoundTrip implements the http.RoundTripper interface
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Add reverse proxy headers.
-	forwardedURI := path.Join(t.PathPrepend, req.URL.EscapedPath())
+	forwardedURI := path.Join(t.PathPrepend, req.URL.Path)
 	if strings.HasSuffix(req.URL.Path, "/") {
 		forwardedURI = forwardedURI + "/"
 	}
@@ -106,11 +106,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	if redirect := resp.Header.Get("Location"); redirect != "" {
-		targetURL, err := url.Parse(redirect)
-		if err != nil {
-			return nil, errors.NewInternalError(fmt.Errorf("error trying to parse Location header: %v", err))
-		}
-		resp.Header.Set("Location", t.rewriteURL(targetURL, req.URL, req.Host))
+		resp.Header.Set("Location", t.rewriteURL(redirect, req.URL, req.Host))
 		return resp, nil
 	}
 
@@ -132,8 +128,14 @@ func (rt *Transport) WrappedRoundTripper() http.RoundTripper {
 
 // rewriteURL rewrites a single URL to go through the proxy, if the URL refers
 // to the same host as sourceURL, which is the page on which the target URL
-// occurred, or if the URL matches the sourceRequestHost.
-func (t *Transport) rewriteURL(url *url.URL, sourceURL *url.URL, sourceRequestHost string) string {
+// occurred, or if the URL matches the sourceRequestHost. If any error occurs (e.g.
+// parsing), it returns targetURL.
+func (t *Transport) rewriteURL(targetURL string, sourceURL *url.URL, sourceRequestHost string) string {
+	url, err := url.Parse(targetURL)
+	if err != nil {
+		return targetURL
+	}
+
 	// Example:
 	//      When API server processes a proxy request to a service (e.g. /api/v1/namespace/foo/service/bar/proxy/),
 	//      the sourceURL.Host (i.e. req.URL.Host) is the endpoint IP address of the service. The
@@ -149,7 +151,7 @@ func (t *Transport) rewriteURL(url *url.URL, sourceURL *url.URL, sourceRequestHo
 	isDifferentHost := url.Host != "" && url.Host != sourceURL.Host && url.Host != sourceRequestHost
 	isRelative := !strings.HasPrefix(url.Path, "/")
 	if isDifferentHost || isRelative {
-		return url.String()
+		return targetURL
 	}
 
 	// Do not rewrite scheme and host if the Transport has empty scheme and host
@@ -176,7 +178,7 @@ func (t *Transport) rewriteURL(url *url.URL, sourceURL *url.URL, sourceRequestHo
 // rewriteHTML scans the HTML for tags with url-valued attributes, and updates
 // those values with the urlRewriter function. The updated HTML is output to the
 // writer.
-func rewriteHTML(reader io.Reader, writer io.Writer, urlRewriter func(*url.URL) string) error {
+func rewriteHTML(reader io.Reader, writer io.Writer, urlRewriter func(string) string) error {
 	// Note: This assumes the content is UTF-8.
 	tokenizer := html.NewTokenizer(reader)
 
@@ -191,14 +193,7 @@ func rewriteHTML(reader io.Reader, writer io.Writer, urlRewriter func(*url.URL) 
 			if urlAttrs, ok := atomsToAttrs[token.DataAtom]; ok {
 				for i, attr := range token.Attr {
 					if urlAttrs.Has(attr.Key) {
-						url, err := url.Parse(attr.Val)
-						if err != nil {
-							// Do not rewrite the URL if it isn't valid.  It is intended not
-							// to error here to prevent the inability to understand the
-							// content of the body to cause a fatal error.
-							continue
-						}
-						token.Attr[i].Val = urlRewriter(url)
+						token.Attr[i].Val = urlRewriter(attr.Val)
 					}
 				}
 			}
@@ -253,7 +248,7 @@ func (t *Transport) rewriteResponse(req *http.Request, resp *http.Response) (*ht
 		return resp, nil
 	}
 
-	urlRewriter := func(targetUrl *url.URL) string {
+	urlRewriter := func(targetUrl string) string {
 		return t.rewriteURL(targetUrl, req.URL, req.Host)
 	}
 	err := rewriteHTML(reader, writer, urlRewriter)

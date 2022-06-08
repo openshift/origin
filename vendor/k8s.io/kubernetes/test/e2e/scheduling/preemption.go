@@ -96,9 +96,7 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 		var err error
 		for _, pair := range priorityPairs {
 			_, err := f.ClientSet.SchedulingV1().PriorityClasses().Create(context.TODO(), &schedulingv1.PriorityClass{ObjectMeta: metav1.ObjectMeta{Name: pair.name}, Value: pair.value}, metav1.CreateOptions{})
-			if err != nil && !apierrors.IsAlreadyExists(err) {
-				framework.Failf("expected 'alreadyExists' as error, got instead: %v", err)
-			}
+			framework.ExpectEqual(err == nil || apierrors.IsAlreadyExists(err), true)
 		}
 
 		e2enode.WaitForTotalHealthy(cs, time.Minute)
@@ -198,14 +196,13 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 		preemptedPod, err := cs.CoreV1().Pods(pods[0].Namespace).Get(context.TODO(), pods[0].Name, metav1.GetOptions{})
 		podPreempted := (err != nil && apierrors.IsNotFound(err)) ||
 			(err == nil && preemptedPod.DeletionTimestamp != nil)
-		if !podPreempted {
-			framework.Failf("expected pod to be preempted, instead got pod %+v and error %v", preemptedPod, err)
-		}
 		for i := 1; i < len(pods); i++ {
 			livePod, err := cs.CoreV1().Pods(pods[i].Namespace).Get(context.TODO(), pods[i].Name, metav1.GetOptions{})
 			framework.ExpectNoError(err)
 			gomega.Expect(livePod.DeletionTimestamp).To(gomega.BeNil())
 		}
+
+		framework.ExpectEqual(podPreempted, true)
 	})
 
 	/*
@@ -308,9 +305,7 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 			gomega.Expect(livePod.DeletionTimestamp).To(gomega.BeNil())
 		}
 
-		if !podPreempted {
-			framework.Failf("expected pod to be preempted, instead got pod %+v and error %v", preemptedPod, err)
-		}
+		framework.ExpectEqual(podPreempted, true)
 	})
 
 	ginkgo.Context("PodTopologySpread Preemption", func() {
@@ -529,9 +524,7 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 				if err != nil {
 					framework.Logf("Failed to create priority '%v/%v'. Reason: %v. Msg: %v", priorityName, priorityVal, apierrors.ReasonForError(err), err)
 				}
-				if err != nil && !apierrors.IsAlreadyExists(err) {
-					framework.Failf("expected 'alreadyExists' as error, got instead: %v", err)
-				}
+				framework.ExpectEqual(err == nil || apierrors.IsAlreadyExists(err), true)
 			}
 		})
 
@@ -696,9 +689,7 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 				if err != nil {
 					framework.Logf("Failed to create priority '%v/%v'. Reason: %v. Msg: %v", name, val, apierrors.ReasonForError(err), err)
 				}
-				if err != nil && !apierrors.IsAlreadyExists(err) {
-					framework.Failf("expected 'alreadyExists' as error, got instead: %v", err)
-				}
+				framework.ExpectEqual(err == nil || apierrors.IsAlreadyExists(err), true)
 				pcs = append(pcs, pc)
 			}
 		})

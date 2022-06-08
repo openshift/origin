@@ -617,7 +617,6 @@ func (p *planner) planComprehension(expr *exprpb.Expr) (Interpretable, error) {
 		cond:      cond,
 		step:      step,
 		result:    result,
-		adapter:   p.adapter,
 	}, nil
 }
 

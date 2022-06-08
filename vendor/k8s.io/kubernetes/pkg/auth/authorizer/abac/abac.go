@@ -164,7 +164,6 @@ func subjectMatches(p abac.Policy, user user.Info) bool {
 			for _, group := range groups {
 				if p.Spec.Group == group {
 					matched = true
-					break
 				}
 			}
 			if !matched {

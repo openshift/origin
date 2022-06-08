@@ -30,8 +30,11 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	schedulingv1listers "k8s.io/client-go/listers/scheduling/v1"
+	"k8s.io/component-base/featuregate"
 	"k8s.io/kubernetes/pkg/apis/core"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/scheduling"
+	"k8s.io/kubernetes/pkg/features"
 )
 
 const (
@@ -49,12 +52,14 @@ func Register(plugins *admission.Plugins) {
 // Plugin is an implementation of admission.Interface.
 type Plugin struct {
 	*admission.Handler
-	client kubernetes.Interface
-	lister schedulingv1listers.PriorityClassLister
+	client                kubernetes.Interface
+	lister                schedulingv1listers.PriorityClassLister
+	nonPreemptingPriority bool
 }
 
 var _ admission.MutationInterface = &Plugin{}
 var _ admission.ValidationInterface = &Plugin{}
+var _ genericadmissioninitializers.WantsFeatures = &Plugin{}
 var _ = genericadmissioninitializers.WantsExternalKubeInformerFactory(&Plugin{})
 var _ = genericadmissioninitializers.WantsExternalKubeClientSet(&Plugin{})
 
@@ -76,6 +81,11 @@ func (p *Plugin) ValidateInitialization() error {
 	return nil
 }
 
+// InspectFeatureGates allows setting bools without taking a dep on a global variable
+func (p *Plugin) InspectFeatureGates(featureGates featuregate.FeatureGate) {
+	p.nonPreemptingPriority = featureGates.Enabled(features.NonPreemptingPriority)
+}
+
 // SetExternalKubeClientSet implements the WantsInternalKubeClientSet interface.
 func (p *Plugin) SetExternalKubeClientSet(client kubernetes.Interface) {
 	p.client = client
@@ -89,7 +99,7 @@ func (p *Plugin) SetExternalKubeInformerFactory(f informers.SharedInformerFactor
 }
 
 var (
-	podResource           = core.Resource("pods")
+	podResource           = api.Resource("pods")
 	priorityClassResource = scheduling.Resource("priorityclasses")
 )
 
@@ -136,13 +146,13 @@ func (p *Plugin) Validate(ctx context.Context, a admission.Attributes, o admissi
 // admitPod makes sure a new pod does not set spec.Priority field. It also makes sure that the PriorityClassName exists if it is provided and resolves the pod priority from the PriorityClassName.
 func (p *Plugin) admitPod(a admission.Attributes) error {
 	operation := a.GetOperation()
-	pod, ok := a.GetObject().(*core.Pod)
+	pod, ok := a.GetObject().(*api.Pod)
 	if !ok {
 		return errors.NewBadRequest("resource was marked with kind Pod but was unable to be converted")
 	}
 
 	if operation == admission.Update {
-		oldPod, ok := a.GetOldObject().(*core.Pod)
+		oldPod, ok := a.GetOldObject().(*api.Pod)
 		if !ok {
 			return errors.NewBadRequest("resource was marked with kind Pod but was unable to be converted")
 		}
@@ -190,13 +200,15 @@ func (p *Plugin) admitPod(a admission.Attributes) error {
 		}
 		pod.Spec.Priority = &priority
 
-		var corePolicy core.PreemptionPolicy
-		if preemptionPolicy != nil {
-			corePolicy = core.PreemptionPolicy(*preemptionPolicy)
-			if pod.Spec.PreemptionPolicy != nil && *pod.Spec.PreemptionPolicy != corePolicy {
-				return admission.NewForbidden(a, fmt.Errorf("the string value of PreemptionPolicy (%s) must not be provided in pod spec; priority admission controller computed %s from the given PriorityClass name", *pod.Spec.PreemptionPolicy, corePolicy))
+		if p.nonPreemptingPriority {
+			var corePolicy core.PreemptionPolicy
+			if preemptionPolicy != nil {
+				corePolicy = core.PreemptionPolicy(*preemptionPolicy)
+				if pod.Spec.PreemptionPolicy != nil && *pod.Spec.PreemptionPolicy != corePolicy {
+					return admission.NewForbidden(a, fmt.Errorf("the string value of PreemptionPolicy (%s) must not be provided in pod spec; priority admission controller computed %s from the given PriorityClass name", *pod.Spec.PreemptionPolicy, corePolicy))
+				}
+				pod.Spec.PreemptionPolicy = &corePolicy
 			}
-			pod.Spec.PreemptionPolicy = &corePolicy
 		}
 	}
 	return nil

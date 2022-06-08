@@ -116,7 +116,6 @@ type AdmissionMetrics struct {
 	controller       *metricSet
 	webhook          *metricSet
 	webhookRejection *metrics.CounterVec
-	webhookFailOpen  *metrics.CounterVec
 	webhookRequest   *metrics.CounterVec
 }
 
@@ -197,16 +196,6 @@ func newAdmissionMetrics() *AdmissionMetrics {
 		},
 		[]string{"name", "type", "operation", "error_type", "rejection_code"})
 
-	webhookFailOpen := metrics.NewCounterVec(
-		&metrics.CounterOpts{
-			Namespace:      namespace,
-			Subsystem:      subsystem,
-			Name:           "webhook_fail_open_count",
-			Help:           "Admission webhook fail open count, identified by name and broken out for each admission type (validating or mutating).",
-			StabilityLevel: metrics.ALPHA,
-		},
-		[]string{"name", "type"})
-
 	webhookRequest := metrics.NewCounterVec(
 		&metrics.CounterOpts{
 			Namespace:      namespace,
@@ -221,9 +210,8 @@ func newAdmissionMetrics() *AdmissionMetrics {
 	controller.mustRegister()
 	webhook.mustRegister()
 	legacyregistry.MustRegister(webhookRejection)
-	legacyregistry.MustRegister(webhookFailOpen)
 	legacyregistry.MustRegister(webhookRequest)
-	return &AdmissionMetrics{step: step, controller: controller, webhook: webhook, webhookRejection: webhookRejection, webhookFailOpen: webhookFailOpen, webhookRequest: webhookRequest}
+	return &AdmissionMetrics{step: step, controller: controller, webhook: webhook, webhookRejection: webhookRejection, webhookRequest: webhookRequest}
 }
 
 func (m *AdmissionMetrics) reset() {
@@ -260,11 +248,6 @@ func (m *AdmissionMetrics) ObserveWebhookRejection(ctx context.Context, name, st
 		rejectionCode = 600
 	}
 	m.webhookRejection.WithContext(ctx).WithLabelValues(name, stepType, operation, string(errorType), strconv.Itoa(rejectionCode)).Inc()
-}
-
-// ObserveWebhookFailOpen records validating or mutating webhook that fail open.
-func (m *AdmissionMetrics) ObserveWebhookFailOpen(ctx context.Context, name, stepType string) {
-	m.webhookFailOpen.WithContext(ctx).WithLabelValues(name, stepType).Inc()
 }
 
 type metricSet struct {

@@ -28,18 +28,12 @@ type Interface interface {
 	Images() ImageInformer
 	// ImageContentPolicies returns a ImageContentPolicyInformer.
 	ImageContentPolicies() ImageContentPolicyInformer
-	// ImageDigestMirrorSets returns a ImageDigestMirrorSetInformer.
-	ImageDigestMirrorSets() ImageDigestMirrorSetInformer
-	// ImageTagMirrorSets returns a ImageTagMirrorSetInformer.
-	ImageTagMirrorSets() ImageTagMirrorSetInformer
 	// Infrastructures returns a InfrastructureInformer.
 	Infrastructures() InfrastructureInformer
 	// Ingresses returns a IngressInformer.
 	Ingresses() IngressInformer
 	// Networks returns a NetworkInformer.
 	Networks() NetworkInformer
-	// Nodes returns a NodeInformer.
-	Nodes() NodeInformer
 	// OAuths returns a OAuthInformer.
 	OAuths() OAuthInformer
 	// OperatorHubs returns a OperatorHubInformer.
@@ -113,16 +107,6 @@ func (v *version) ImageContentPolicies() ImageContentPolicyInformer {
 	return &imageContentPolicyInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// ImageDigestMirrorSets returns a ImageDigestMirrorSetInformer.
-func (v *version) ImageDigestMirrorSets() ImageDigestMirrorSetInformer {
-	return &imageDigestMirrorSetInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
-}
-
-// ImageTagMirrorSets returns a ImageTagMirrorSetInformer.
-func (v *version) ImageTagMirrorSets() ImageTagMirrorSetInformer {
-	return &imageTagMirrorSetInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
-}
-
 // Infrastructures returns a InfrastructureInformer.
 func (v *version) Infrastructures() InfrastructureInformer {
 	return &infrastructureInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
@@ -136,11 +120,6 @@ func (v *version) Ingresses() IngressInformer {
 // Networks returns a NetworkInformer.
 func (v *version) Networks() NetworkInformer {
 	return &networkInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
-}
-
-// Nodes returns a NodeInformer.
-func (v *version) Nodes() NodeInformer {
-	return &nodeInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // OAuths returns a OAuthInformer.

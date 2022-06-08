@@ -23,7 +23,6 @@ import (
 
 	"google.golang.org/grpc"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	servermetrics "k8s.io/kubernetes/pkg/kubelet/server/metrics"
 	"k8s.io/kubernetes/pkg/volume"
 	volumeutil "k8s.io/kubernetes/pkg/volume/util"
 )
@@ -52,8 +51,6 @@ func NewMetricsCsi(volumeID string, targetPath string, driverName csiDriverName)
 }
 
 func (mc *metricsCsi) GetMetrics() (*volume.Metrics, error) {
-	startTime := time.Now()
-	defer servermetrics.CollectVolumeStatCalDuration(string(mc.csiClientGetter.driverName), startTime)
 	currentTime := metav1.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), csiTimeout)
 	defer cancel()

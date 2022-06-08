@@ -214,10 +214,17 @@ type flockerVolumeMounter struct {
 
 func (b *flockerVolumeMounter) GetAttributes() volume.Attributes {
 	return volume.Attributes{
-		ReadOnly:       b.readOnly,
-		Managed:        false,
-		SELinuxRelabel: false,
+		ReadOnly:        b.readOnly,
+		Managed:         false,
+		SupportsSELinux: false,
 	}
+}
+
+// Checks prior to mount operations to verify that the required components (binaries, etc.)
+// to mount the volume are available on the underlying node.
+// If not, it returns an error
+func (b *flockerVolumeMounter) CanMount() error {
+	return nil
 }
 
 func (b *flockerVolumeMounter) GetPath() string {

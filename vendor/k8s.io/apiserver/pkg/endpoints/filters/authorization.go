@@ -49,6 +49,7 @@ func WithAuthorization(handler http.Handler, a authorizer.Authorizer, s runtime.
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
+		ae := audit.AuditEventFrom(ctx)
 
 		attributes, err := GetAuthorizerAttributes(ctx)
 		if err != nil {
@@ -58,22 +59,20 @@ func WithAuthorization(handler http.Handler, a authorizer.Authorizer, s runtime.
 		authorized, reason, err := a.Authorize(ctx, attributes)
 		// an authorizer like RBAC could encounter evaluation errors and still allow the request, so authorizer decision is checked before error here.
 		if authorized == authorizer.DecisionAllow {
-			audit.AddAuditAnnotations(ctx,
-				decisionAnnotationKey, decisionAllow,
-				reasonAnnotationKey, reason)
+			audit.LogAnnotation(ae, decisionAnnotationKey, decisionAllow)
+			audit.LogAnnotation(ae, reasonAnnotationKey, reason)
 			handler.ServeHTTP(w, req)
 			return
 		}
 		if err != nil {
-			audit.AddAuditAnnotation(ctx, reasonAnnotationKey, reasonError)
+			audit.LogAnnotation(ae, reasonAnnotationKey, reasonError)
 			responsewriters.InternalError(w, req, err)
 			return
 		}
 
 		klog.V(4).InfoS("Forbidden", "URI", req.RequestURI, "Reason", reason)
-		audit.AddAuditAnnotations(ctx,
-			decisionAnnotationKey, decisionForbid,
-			reasonAnnotationKey, reason)
+		audit.LogAnnotation(ae, decisionAnnotationKey, decisionForbid)
+		audit.LogAnnotation(ae, reasonAnnotationKey, reason)
 		responsewriters.Forbidden(ctx, attributes, w, req, reason, s)
 	})
 }

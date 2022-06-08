@@ -151,7 +151,10 @@ func (s String) ConvertToType(typeVal ref.Type) ref.Val {
 // Equal implements ref.Val.Equal.
 func (s String) Equal(other ref.Val) ref.Val {
 	otherString, ok := other.(String)
-	return Bool(ok && s == otherString)
+	if !ok {
+		return MaybeNoSuchOverloadErr(other)
+	}
+	return Bool(s == otherString)
 }
 
 // Match implements traits.Matcher.Match.

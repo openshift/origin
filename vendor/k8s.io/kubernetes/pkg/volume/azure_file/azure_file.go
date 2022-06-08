@@ -239,10 +239,17 @@ var _ volume.Mounter = &azureFileMounter{}
 
 func (b *azureFileMounter) GetAttributes() volume.Attributes {
 	return volume.Attributes{
-		ReadOnly:       b.readOnly,
-		Managed:        !b.readOnly,
-		SELinuxRelabel: false,
+		ReadOnly:        b.readOnly,
+		Managed:         !b.readOnly,
+		SupportsSELinux: false,
 	}
+}
+
+// Checks prior to mount operations to verify that the required components (binaries, etc.)
+// to mount the volume are available on the underlying node.
+// If not, it returns an error
+func (b *azureFileMounter) CanMount() error {
+	return nil
 }
 
 // SetUp attaches the disk and bind mounts to the volume path.

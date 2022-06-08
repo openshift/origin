@@ -19,12 +19,10 @@ package customresource
 import (
 	"context"
 
-	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
-
-	"k8s.io/apiextensions-apiserver/pkg/apiserver/schema/cel"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
 )
 
 type statusStrategy struct {
@@ -86,24 +84,13 @@ func (a statusStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Obj
 	var errs field.ErrorList
 	errs = append(errs, a.customResourceStrategy.validator.ValidateStatusUpdate(ctx, obj, old, a.scale)...)
 
-	uNew, ok := obj.(*unstructured.Unstructured)
-	if !ok {
-		return errs
-	}
-	uOld, ok := old.(*unstructured.Unstructured)
-	if !ok {
-		uOld = nil // as a safety precaution, continue with validation if uOld self cannot be cast
-	}
+	// validate embedded resources
+	if u, ok := obj.(*unstructured.Unstructured); ok {
+		v := obj.GetObjectKind().GroupVersionKind().Version
 
-	v := obj.GetObjectKind().GroupVersionKind().Version
-
-	// validate x-kubernetes-validations rules
-	if celValidator, ok := a.customResourceStrategy.celValidators[v]; ok {
-		if has, err := hasBlockingErr(errs); has {
-			errs = append(errs, err)
-		} else {
-			err, _ := celValidator.Validate(ctx, nil, a.customResourceStrategy.structuralSchemas[v], uNew.Object, uOld.Object, cel.RuntimeCELCostBudget)
-			errs = append(errs, err...)
+		// validate x-kubernetes-validations rules
+		if celValidator, ok := a.customResourceStrategy.celValidators[v]; ok {
+			errs = append(errs, celValidator.Validate(nil, a.customResourceStrategy.structuralSchemas[v], u.Object)...)
 		}
 	}
 	return errs

@@ -87,6 +87,7 @@ func NewStorage(optsGetter generic.RESTOptionsGetter) (DeploymentStorage, error)
 // REST implements a RESTStorage for Deployments.
 type REST struct {
 	*genericregistry.Store
+	categories []string
 }
 
 // NewREST returns a RESTStorage object that will work against deployments.
@@ -111,7 +112,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, *Rollbac
 	statusStore := *store
 	statusStore.UpdateStrategy = deployment.StatusStrategy
 	statusStore.ResetFieldsStrategy = deployment.StatusStrategy
-	return &REST{store}, &StatusREST{store: &statusStore}, &RollbackREST{store: store}, nil
+	return &REST{store, []string{"all"}}, &StatusREST{store: &statusStore}, &RollbackREST{store: store}, nil
 }
 
 // Implement ShortNamesProvider
@@ -127,7 +128,13 @@ var _ rest.CategoriesProvider = &REST{}
 
 // Categories implements the CategoriesProvider interface. Returns a list of categories a resource is part of.
 func (r *REST) Categories() []string {
-	return []string{"all"}
+	return r.categories
+}
+
+// WithCategories sets categories for REST.
+func (r *REST) WithCategories(categories []string) *REST {
+	r.categories = categories
+	return r
 }
 
 // StatusREST implements the REST endpoint for changing the status of a deployment
@@ -155,10 +162,6 @@ func (r *StatusREST) Update(ctx context.Context, name string, objInfo rest.Updat
 // GetResetFields implements rest.ResetFieldsStrategy
 func (r *StatusREST) GetResetFields() map[fieldpath.APIVersion]*fieldpath.Set {
 	return r.store.GetResetFields()
-}
-
-func (r *StatusREST) ConvertToTable(ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
-	return r.store.ConvertToTable(ctx, object, tableOptions)
 }
 
 // RollbackREST implements the REST endpoint for initiating the rollback of a deployment
@@ -319,10 +322,6 @@ func (r *ScaleREST) Update(ctx context.Context, name string, objInfo rest.Update
 	return newScale, false, nil
 }
 
-func (r *ScaleREST) ConvertToTable(ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
-	return r.store.ConvertToTable(ctx, object, tableOptions)
-}
-
 func toScaleCreateValidation(f rest.ValidateObjectFunc) rest.ValidateObjectFunc {
 	return func(ctx context.Context, obj runtime.Object) error {
 		scale, err := scaleFromDeployment(obj.(*apps.Deployment))
@@ -399,7 +398,7 @@ func (i *scaleUpdatedObjectInfo) UpdatedObject(ctx context.Context, oldObj runti
 		if _, ok := replicasPathInDeployment[requestGroupVersion.String()]; ok {
 			groupVersion = requestGroupVersion
 		} else {
-			klog.Fatalf("Unrecognized group/version in request info %q", requestGroupVersion.String())
+			klog.Fatal("Unrecognized group/version in request info %q", requestGroupVersion.String())
 		}
 	}
 

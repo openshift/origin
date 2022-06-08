@@ -49,7 +49,7 @@ func ParseGroupVersion(apiVersion string) (group, version string) {
 // GvkFromString makes a Gvk from the output of Gvk.String().
 func GvkFromString(s string) Gvk {
 	values := strings.Split(s, fieldSep)
-	if len(values) < 3 {
+	if len(values) != 3 {
 		// ...then the string didn't come from Gvk.String().
 		return Gvk{
 			Group:   noGroup,
@@ -57,27 +57,27 @@ func GvkFromString(s string) Gvk {
 			Kind:    noKind,
 		}
 	}
-	k := values[0]
-	if k == noKind {
-		k = ""
+	g := values[0]
+	if g == noGroup {
+		g = ""
 	}
 	v := values[1]
 	if v == noVersion {
 		v = ""
 	}
-	g := strings.Join(values[2:], fieldSep)
-	if g == noGroup {
-		g = ""
+	k := values[2]
+	if k == noKind {
+		k = ""
 	}
 	return NewGvk(g, v, k)
 }
 
 // Values that are brief but meaningful in logs.
 const (
-	noGroup   = "[noGrp]"
-	noVersion = "[noVer]"
-	noKind    = "[noKind]"
-	fieldSep  = "."
+	noGroup   = "~G"
+	noVersion = "~V"
+	noKind    = "~K"
+	fieldSep  = "_"
 )
 
 // String returns a string representation of the GVK.
@@ -94,30 +94,7 @@ func (x Gvk) String() string {
 	if k == "" {
 		k = noKind
 	}
-	return strings.Join([]string{k, v, g}, fieldSep)
-}
-
-// legacySortString returns an older version of String() that LegacyOrderTransformer depends on
-// to keep its ordering stable across Kustomize versions
-func (x Gvk) legacySortString() string {
-	legacyNoGroup := "~G"
-	legacyNoVersion := "~V"
-	legacyNoKind := "~K"
-	legacyFieldSeparator := "_"
-
-	g := x.Group
-	if g == "" {
-		g = legacyNoGroup
-	}
-	v := x.Version
-	if v == "" {
-		v = legacyNoVersion
-	}
-	k := x.Kind
-	if k == "" {
-		k = legacyNoKind
-	}
-	return strings.Join([]string{g, v, k}, legacyFieldSeparator)
+	return strings.Join([]string{g, v, k}, fieldSep)
 }
 
 // ApiVersion returns the combination of Group and Version
@@ -132,8 +109,7 @@ func (x Gvk) ApiVersion() string {
 }
 
 // StringWoEmptyField returns a string representation of the GVK. Non-exist
-// fields will be omitted. This is called when generating a filename for the
-// resource.
+// fields will be omitted.
 func (x Gvk) StringWoEmptyField() string {
 	var s []string
 	if x.Group != "" {
@@ -145,7 +121,7 @@ func (x Gvk) StringWoEmptyField() string {
 	if x.Kind != "" {
 		s = append(s, x.Kind)
 	}
-	return strings.Join(s, "_")
+	return strings.Join(s, fieldSep)
 }
 
 // Equals returns true if the Gvk's have equal fields.
@@ -203,7 +179,7 @@ func (x Gvk) IsLessThan(o Gvk) bool {
 	if indexI != indexJ {
 		return indexI < indexJ
 	}
-	return x.legacySortString() < o.legacySortString()
+	return x.String() < o.String()
 }
 
 // IsSelected returns true if `selector` selects `x`; otherwise, false.

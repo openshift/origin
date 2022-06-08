@@ -93,7 +93,3 @@ var FoldedStyle yaml.Style = yaml.FoldedStyle
 var LiteralStyle yaml.Style = yaml.LiteralStyle
 var SingleQuotedStyle yaml.Style = yaml.SingleQuotedStyle
 var TaggedStyle yaml.Style = yaml.TaggedStyle
-
-const (
-	MergeTag = "!!merge"
-)

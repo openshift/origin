@@ -18,6 +18,7 @@ package network
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -219,9 +220,7 @@ var _ = common.SIGDescribe("IngressClass API", func() {
 					}
 				}
 			}
-			if !found {
-				framework.Failf("expected networking API group/version, got %#v", discoveryGroups.Groups)
-			}
+			framework.ExpectEqual(found, true, fmt.Sprintf("expected networking API group/version, got %#v", discoveryGroups.Groups))
 		}
 		ginkgo.By("getting /apis/networking.k8s.io")
 		{
@@ -235,9 +234,7 @@ var _ = common.SIGDescribe("IngressClass API", func() {
 					break
 				}
 			}
-			if !found {
-				framework.Failf("expected networking API version, got %#v", group.Versions)
-			}
+			framework.ExpectEqual(found, true, fmt.Sprintf("expected networking API version, got %#v", group.Versions))
 		}
 
 		ginkgo.By("getting /apis/networking.k8s.io" + icVersion)
@@ -251,9 +248,7 @@ var _ = common.SIGDescribe("IngressClass API", func() {
 					foundIC = true
 				}
 			}
-			if !foundIC {
-				framework.Failf("expected ingressclasses, got %#v", resources.APIResources)
-			}
+			framework.ExpectEqual(foundIC, true, fmt.Sprintf("expected ingressclasses, got %#v", resources.APIResources))
 		}
 
 		// IngressClass resource create/read/update/watch verbs
@@ -297,14 +292,10 @@ var _ = common.SIGDescribe("IngressClass API", func() {
 		for sawAnnotations := false; !sawAnnotations; {
 			select {
 			case evt, ok := <-icWatch.ResultChan():
-				if !ok {
-					framework.Fail("watch channel should not close")
-				}
+				framework.ExpectEqual(ok, true, "watch channel should not close")
 				framework.ExpectEqual(evt.Type, watch.Modified)
 				watchedIngress, isIngress := evt.Object.(*networkingv1.IngressClass)
-				if !isIngress {
-					framework.Failf("expected Ingress, got %T", evt.Object)
-				}
+				framework.ExpectEqual(isIngress, true, fmt.Sprintf("expected Ingress, got %T", evt.Object))
 				if watchedIngress.Annotations["patched"] == "true" {
 					framework.Logf("saw patched and updated annotations")
 					sawAnnotations = true
@@ -322,9 +313,7 @@ var _ = common.SIGDescribe("IngressClass API", func() {
 		err = icClient.Delete(context.TODO(), ingressClass1.Name, metav1.DeleteOptions{})
 		framework.ExpectNoError(err)
 		_, err = icClient.Get(context.TODO(), ingressClass1.Name, metav1.GetOptions{})
-		if !apierrors.IsNotFound(err) {
-			framework.Failf("expected 404, got %#v", err)
-		}
+		framework.ExpectEqual(apierrors.IsNotFound(err), true, fmt.Sprintf("expected 404, got %#v", err))
 		ics, err = icClient.List(context.TODO(), metav1.ListOptions{LabelSelector: "ingressclass=" + f.UniqueName})
 		framework.ExpectNoError(err)
 		framework.ExpectEqual(len(ics.Items), 2, "filtered list should have 2 items")

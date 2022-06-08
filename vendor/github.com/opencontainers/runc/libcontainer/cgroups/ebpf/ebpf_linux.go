@@ -1,7 +1,6 @@
 package ebpf
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -11,6 +10,7 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/asm"
 	"github.com/cilium/ebpf/link"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -134,7 +134,7 @@ func haveBpfProgReplace() bool {
 			// not supported
 			return
 		}
-		// attach_flags test succeeded.
+		// attach_flags test succeded.
 		if !errors.Is(err, unix.EBADF) {
 			logrus.Debugf("checking for BPF_F_REPLACE: got unexpected (not EBADF or EINVAL) error: %v", err)
 		}

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/blang/semver/v4"
+	"github.com/blang/semver"
 
 	apimachineryversion "k8s.io/apimachinery/pkg/version"
 )

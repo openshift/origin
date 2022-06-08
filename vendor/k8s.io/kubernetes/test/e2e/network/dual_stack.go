@@ -66,9 +66,7 @@ var _ = common.SIGDescribe("[Feature:IPv6DualStack]", func() {
 
 			framework.ExpectEqual(len(internalIPs), 2)
 			// assert 2 ips belong to different families
-			if netutils.IsIPv4String(internalIPs[0]) == netutils.IsIPv4String(internalIPs[1]) {
-				framework.Failf("both internalIPs %s and %s belong to the same families", internalIPs[0], internalIPs[1])
-			}
+			framework.ExpectEqual(netutils.IsIPv4String(internalIPs[0]) != netutils.IsIPv4String(internalIPs[1]), true)
 		}
 	})
 
@@ -101,9 +99,7 @@ var _ = common.SIGDescribe("[Feature:IPv6DualStack]", func() {
 		// validate first ip in PodIPs is same as PodIP
 		framework.ExpectEqual(p.Status.PodIP, p.Status.PodIPs[0].IP)
 		// assert 2 pod ips belong to different families
-		if netutils.IsIPv4String(p.Status.PodIPs[0].IP) == netutils.IsIPv4String(p.Status.PodIPs[1].IP) {
-			framework.Failf("both internalIPs %s and %s belong to the same families", p.Status.PodIPs[0].IP, p.Status.PodIPs[1].IP)
-		}
+		framework.ExpectEqual(netutils.IsIPv4String(p.Status.PodIPs[0].IP) != netutils.IsIPv4String(p.Status.PodIPs[1].IP), true)
 
 		ginkgo.By("deleting the pod")
 		err := podClient.Delete(context.TODO(), pod.Name, *metav1.NewDeleteOptions(30))

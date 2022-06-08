@@ -1,3 +1,5 @@
+// +build linux
+
 package intelrdt
 
 type L3CacheInfo struct {
@@ -52,6 +54,6 @@ type Stats struct {
 	CMTStats *[]CMTNumaNodeStats `json:"cmt_stats,omitempty"`
 }
 
-func newStats() *Stats {
+func NewStats() *Stats {
 	return &Stats{}
 }

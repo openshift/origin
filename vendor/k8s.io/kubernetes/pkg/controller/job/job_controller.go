@@ -59,7 +59,7 @@ import (
 
 // podUpdateBatchPeriod is the batch period to hold pod updates before syncing
 // a Job. It is used if the feature gate JobReadyPods is enabled.
-const podUpdateBatchPeriod = time.Second
+const podUpdateBatchPeriod = 500 * time.Millisecond
 
 // controllerKind contains the schema.GroupVersionKind for this controller type.
 var controllerKind = batch.SchemeGroupVersion.WithKind("Job")
@@ -151,7 +151,9 @@ func NewController(podInformer coreinformers.PodInformer, jobInformer batchinfor
 			jm.enqueueController(obj, true)
 		},
 		UpdateFunc: jm.updateJob,
-		DeleteFunc: jm.deleteJob,
+		DeleteFunc: func(obj interface{}) {
+			jm.enqueueController(obj, true)
+		},
 	})
 	jm.jobLister = jobInformer.Lister()
 	jm.jobStoreSynced = jobInformer.Informer().HasSynced
@@ -236,7 +238,7 @@ func (jm *Controller) resolveControllerRef(namespace string, controllerRef *meta
 	return job
 }
 
-// When a pod is created, enqueue the controller that manages it and update its expectations.
+// When a pod is created, enqueue the controller that manages it and update it's expectations.
 func (jm *Controller) addPod(obj interface{}) {
 	pod := obj.(*v1.Pod)
 	if pod.DeletionTimestamp != nil {
@@ -261,12 +263,7 @@ func (jm *Controller) addPod(obj interface{}) {
 		return
 	}
 
-	// Otherwise, it's an orphan.
-	// Clean the finalizer.
-	if hasJobTrackingFinalizer(pod) {
-		jm.enqueueOrphanPod(pod)
-	}
-	// Get a list of all matching controllers and sync
+	// Otherwise, it's an orphan. Get a list of all matching controllers and sync
 	// them to see if anyone wants to adopt it.
 	// DO NOT observe creation because no controller should be waiting for an
 	// orphan.
@@ -336,12 +333,7 @@ func (jm *Controller) updatePod(old, cur interface{}) {
 		return
 	}
 
-	// Otherwise, it's an orphan.
-	// Clean the finalizer.
-	if hasJobTrackingFinalizer(curPod) {
-		jm.enqueueOrphanPod(curPod)
-	}
-	// If anything changed, sync matching controllers
+	// Otherwise, it's an orphan. If anything changed, sync matching controllers
 	// to see if anyone wants to adopt it now.
 	labelChanged := !reflect.DeepEqual(curPod.Labels, oldPod.Labels)
 	if labelChanged || controllerRefChanged {
@@ -374,18 +366,13 @@ func (jm *Controller) deletePod(obj interface{}, final bool) {
 	}
 
 	controllerRef := metav1.GetControllerOf(pod)
-	hasFinalizer := hasJobTrackingFinalizer(pod)
 	if controllerRef == nil {
 		// No controller should care about orphans being deleted.
-		// But this pod might have belonged to a Job and the GC removed the reference.
-		if hasFinalizer {
-			jm.enqueueOrphanPod(pod)
-		}
 		return
 	}
 	job := jm.resolveControllerRef(pod.Namespace, controllerRef)
 	if job == nil {
-		if hasFinalizer {
+		if hasJobTrackingFinalizer(pod) {
 			jm.enqueueOrphanPod(pod)
 		}
 		return
@@ -398,7 +385,7 @@ func (jm *Controller) deletePod(obj interface{}, final bool) {
 
 	// Consider the finalizer removed if this is the final delete. Otherwise,
 	// it's an update for the deletion timestamp, then check finalizer.
-	if final || !hasFinalizer {
+	if final || !hasJobTrackingFinalizer(pod) {
 		jm.finalizerExpectations.finalizerRemovalObserved(jobKey, string(pod.UID))
 	}
 
@@ -430,37 +417,6 @@ func (jm *Controller) updateJob(old, cur interface{}) {
 			// AddAfter will handle total < passed
 			jm.queue.AddAfter(key, total-passed)
 			klog.V(4).Infof("job %q ActiveDeadlineSeconds updated, will rsync after %d seconds", key, total-passed)
-		}
-	}
-}
-
-// deleteJob enqueues the job and all the pods associated with it that still
-// have a finalizer.
-func (jm *Controller) deleteJob(obj interface{}) {
-	jm.enqueueController(obj, true)
-	jobObj, ok := obj.(*batch.Job)
-	if !ok {
-		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
-		if !ok {
-			utilruntime.HandleError(fmt.Errorf("couldn't get object from tombstone %+v", obj))
-			return
-		}
-		jobObj, ok = tombstone.Obj.(*batch.Job)
-		if !ok {
-			utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not a job %+v", obj))
-			return
-		}
-	}
-	// Listing pods shouldn't really fail, as we are just querying the informer cache.
-	selector, err := metav1.LabelSelectorAsSelector(jobObj.Spec.Selector)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("parsing deleted job selector: %v", err))
-		return
-	}
-	pods, _ := jm.podStore.Pods(jobObj.Namespace).List(selector)
-	for _, pod := range pods {
-		if metav1.IsControlledBy(pod, jobObj) && hasJobTrackingFinalizer(pod) {
-			jm.enqueueOrphanPod(pod)
 		}
 	}
 }
@@ -582,14 +538,6 @@ func (jm Controller) syncOrphanPod(ctx context.Context, key string) error {
 		}
 		return err
 	}
-	// Make sure the pod is still orphaned.
-	if controllerRef := metav1.GetControllerOf(sharedPod); controllerRef != nil {
-		job := jm.resolveControllerRef(sharedPod.Namespace, controllerRef)
-		if job != nil {
-			// The pod was adopted. Do not remove finalizer.
-			return nil
-		}
-	}
 	if patch := removeTrackingFinalizerPatch(sharedPod); patch != nil {
 		if err := jm.podControl.PatchPod(ctx, ns, name, patch); err != nil && !apierrors.IsNotFound(err) {
 			return err
@@ -686,6 +634,11 @@ func (jm *Controller) syncJob(ctx context.Context, key string) (forget bool, rEr
 		return true, nil
 	}
 
+	// Cannot create Pods if this is an Indexed Job and the feature is disabled.
+	if !feature.DefaultFeatureGate.Enabled(features.IndexedJob) && isIndexedJob(&job) {
+		jm.recorder.Event(&job, v1.EventTypeWarning, "IndexedJobDisabled", "Skipped Indexed Job sync because feature is disabled.")
+		return false, nil
+	}
 	if job.Spec.CompletionMode != nil && *job.Spec.CompletionMode != batch.NonIndexedCompletion && *job.Spec.CompletionMode != batch.IndexedCompletion {
 		jm.recorder.Event(&job, v1.EventTypeWarning, "UnknownCompletionMode", "Skipped Job sync because completion mode is unknown")
 		return false, nil
@@ -814,7 +767,7 @@ func (jm *Controller) syncJob(ctx context.Context, key string) (forget bool, rEr
 		}
 		if complete {
 			finishedCondition = newCondition(batch.JobComplete, v1.ConditionTrue, "", "")
-		} else if manageJobCalled {
+		} else if feature.DefaultFeatureGate.Enabled(features.SuspendJob) && manageJobCalled {
 			// Update the conditions / emit events only if manageJob was called in
 			// this syncJob. Otherwise wait for the right syncJob call to make
 			// updates.
@@ -1304,7 +1257,7 @@ func getStatus(job *batch.Job, pods []*v1.Pod, uncounted *uncountedTerminatedPod
 // jobSuspended returns whether a Job is suspended while taking the feature
 // gate into account.
 func jobSuspended(job *batch.Job) bool {
-	return job.Spec.Suspend != nil && *job.Spec.Suspend
+	return feature.DefaultFeatureGate.Enabled(features.SuspendJob) && job.Spec.Suspend != nil && *job.Spec.Suspend
 }
 
 // manageJob is the core method responsible for managing the number of running

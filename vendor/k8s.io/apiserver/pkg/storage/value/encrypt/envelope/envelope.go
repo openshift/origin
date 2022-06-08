@@ -18,7 +18,6 @@ limitations under the License.
 package envelope
 
 import (
-	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -80,7 +79,7 @@ func NewEnvelopeTransformer(envelopeService Service, cacheSize int, baseTransfor
 }
 
 // TransformFromStorage decrypts data encrypted by this transformer using envelope encryption.
-func (t *envelopeTransformer) TransformFromStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, bool, error) {
+func (t *envelopeTransformer) TransformFromStorage(data []byte, context value.Context) ([]byte, bool, error) {
 	recordArrival(fromStorageLabel, time.Now())
 
 	// Read the 16 bit length-of-DEK encoded at the start of the encrypted DEK. 16 bits can
@@ -114,11 +113,11 @@ func (t *envelopeTransformer) TransformFromStorage(ctx context.Context, data []b
 		}
 	}
 
-	return transformer.TransformFromStorage(ctx, encData, dataCtx)
+	return transformer.TransformFromStorage(encData, context)
 }
 
 // TransformToStorage encrypts data to be written to disk using envelope encryption.
-func (t *envelopeTransformer) TransformToStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, error) {
+func (t *envelopeTransformer) TransformToStorage(data []byte, context value.Context) ([]byte, error) {
 	recordArrival(toStorageLabel, time.Now())
 	newKey, err := generateKey(32)
 	if err != nil {
@@ -138,7 +137,7 @@ func (t *envelopeTransformer) TransformToStorage(ctx context.Context, data []byt
 		return nil, err
 	}
 
-	result, err := transformer.TransformToStorage(ctx, data, dataCtx)
+	result, err := transformer.TransformToStorage(data, context)
 	if err != nil {
 		return nil, err
 	}

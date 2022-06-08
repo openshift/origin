@@ -189,9 +189,6 @@ type watchCache struct {
 
 	// cacher's objectType.
 	objectType reflect.Type
-
-	// For testing cache interval invalidation.
-	indexValidator indexValidator
 }
 
 func newWatchCache(
@@ -222,8 +219,6 @@ func newWatchCache(
 	objType := objectType.String()
 	watchCacheCapacity.WithLabelValues(objType).Set(float64(wc.capacity))
 	wc.cond = sync.NewCond(wc.RLocker())
-	wc.indexValidator = wc.isIndexValidLocked
-
 	return wc
 }
 
@@ -573,21 +568,7 @@ func (w *watchCache) SetOnReplace(onReplace func()) {
 	w.onReplace = onReplace
 }
 
-func (w *watchCache) Resync() error {
-	// Nothing to do
-	return nil
-}
-
-// isIndexValidLocked checks if a given index is still valid.
-// This assumes that the lock is held.
-func (w *watchCache) isIndexValidLocked(index int) bool {
-	return index >= w.startIndex
-}
-
-// getAllEventsSinceLocked returns a watchCacheInterval that can be used to
-// retrieve events since a certain resourceVersion. This function assumes to
-// be called under the watchCache lock.
-func (w *watchCache) getAllEventsSinceLocked(resourceVersion uint64) (*watchCacheInterval, error) {
+func (w *watchCache) GetAllEventsSinceThreadUnsafe(resourceVersion uint64) ([]*watchCacheEvent, error) {
 	size := w.endIndex - w.startIndex
 	var oldest uint64
 	switch {
@@ -613,11 +594,27 @@ func (w *watchCache) getAllEventsSinceLocked(resourceVersion uint64) (*watchCach
 		// current state and only then start watching from that point.
 		//
 		// TODO: In v2 api, we should stop returning the current state - #13969.
-		ci, err := newCacheIntervalFromStore(w.resourceVersion, w.store, w.getAttrsFunc)
-		if err != nil {
-			return nil, err
+		allItems := w.store.List()
+		result := make([]*watchCacheEvent, len(allItems))
+		for i, item := range allItems {
+			elem, ok := item.(*storeElement)
+			if !ok {
+				return nil, fmt.Errorf("not a storeElement: %v", elem)
+			}
+			objLabels, objFields, err := w.getAttrsFunc(elem.Object)
+			if err != nil {
+				return nil, err
+			}
+			result[i] = &watchCacheEvent{
+				Type:            watch.Added,
+				Object:          elem.Object,
+				ObjLabels:       objLabels,
+				ObjFields:       objFields,
+				Key:             elem.Key,
+				ResourceVersion: w.resourceVersion,
+			}
 		}
-		return ci, nil
+		return result, nil
 	}
 	if resourceVersion < oldest-1 {
 		return nil, errors.NewResourceExpired(fmt.Sprintf("too old resource version: %d (%d)", resourceVersion, oldest-1))
@@ -628,9 +625,14 @@ func (w *watchCache) getAllEventsSinceLocked(resourceVersion uint64) (*watchCach
 		return w.cache[(w.startIndex+i)%w.capacity].ResourceVersion > resourceVersion
 	}
 	first := sort.Search(size, f)
-	indexerFunc := func(i int) *watchCacheEvent {
-		return w.cache[i%w.capacity]
+	result := make([]*watchCacheEvent, size-first)
+	for i := 0; i < size-first; i++ {
+		result[i] = w.cache[(w.startIndex+first+i)%w.capacity]
 	}
-	ci := newCacheInterval(w.startIndex+first, w.endIndex, indexerFunc, w.indexValidator, &w.RWMutex)
-	return ci, nil
+	return result, nil
+}
+
+func (w *watchCache) Resync() error {
+	// Nothing to do
+	return nil
 }

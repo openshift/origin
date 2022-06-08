@@ -1,11 +1,12 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
 approvers:
-  - mikedanese
+- mikedanese
+- timothysc
 reviewers:
-  - wojtek-t
-  - deads2k
-  - mikedanese
-  - ingvagabund
-emeritus_approvers:
-  - timothysc
+- wojtek-t
+- deads2k
+- mikedanese
+- timothysc
+- ingvagabund
+- resouer

@@ -16,12 +16,10 @@ If you do not wish to use the default `completion` command, you can choose to
 provide your own, which will take precedence over the default one. (This also provides
 backwards-compatibility with programs that already have their own `completion` command.)
 
-If you are using the `cobra-cli` generator,
-which can be found at [spf13/cobra-cli](https://github.com/spf13/cobra-cli),
-you can create a completion command by running
+If you are using the generator, you can create a completion command by running
 
 ```bash
-cobra-cli add completion
+cobra add completion
 ```
 and then modifying the generated `cmd/completion.go` file to look something like this
 (writing the shell script to stdout allows the most flexible use):
@@ -30,17 +28,17 @@ and then modifying the generated `cmd/completion.go` file to look something like
 var completionCmd = &cobra.Command{
 	Use:   "completion [bash|zsh|fish|powershell]",
 	Short: "Generate completion script",
-	Long: fmt.Sprintf(`To load completions:
+	Long: `To load completions:
 
 Bash:
 
-  $ source <(%[1]s completion bash)
+  $ source <(yourprogram completion bash)
 
   # To load completions for each session, execute once:
   # Linux:
-  $ %[1]s completion bash > /etc/bash_completion.d/%[1]s
+  $ yourprogram completion bash > /etc/bash_completion.d/yourprogram
   # macOS:
-  $ %[1]s completion bash > /usr/local/etc/bash_completion.d/%[1]s
+  $ yourprogram completion bash > /usr/local/etc/bash_completion.d/yourprogram
 
 Zsh:
 
@@ -50,25 +48,25 @@ Zsh:
   $ echo "autoload -U compinit; compinit" >> ~/.zshrc
 
   # To load completions for each session, execute once:
-  $ %[1]s completion zsh > "${fpath[1]}/_%[1]s"
+  $ yourprogram completion zsh > "${fpath[1]}/_yourprogram"
 
   # You will need to start a new shell for this setup to take effect.
 
 fish:
 
-  $ %[1]s completion fish | source
+  $ yourprogram completion fish | source
 
   # To load completions for each session, execute once:
-  $ %[1]s completion fish > ~/.config/fish/completions/%[1]s.fish
+  $ yourprogram completion fish > ~/.config/fish/completions/yourprogram.fish
 
 PowerShell:
 
-  PS> %[1]s completion powershell | Out-String | Invoke-Expression
+  PS> yourprogram completion powershell | Out-String | Invoke-Expression
 
   # To load completions for every new session, run:
-  PS> %[1]s completion powershell > %[1]s.ps1
+  PS> yourprogram completion powershell > yourprogram.ps1
   # and source this file from your PowerShell profile.
-`,cmd.Root().Name()),
+`,
 	DisableFlagsInUseLine: true,
 	ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
 	Args:                  cobra.ExactValidArgs(1),

@@ -24,7 +24,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/discovery"
@@ -142,14 +141,8 @@ func (f *factoryImpl) UnstructuredClientForMapping(mapping *meta.RESTMapping) (r
 	return restclient.RESTClientFor(cfg)
 }
 
-func (f *factoryImpl) Validator(validationDirective string, verifier *resource.QueryParamVerifier) (validation.Schema, error) {
-	// client-side schema validation is only performed
-	// when the validationDirective is strict.
-	// If the directive is warn, we rely on the ParamVerifyingSchema
-	// to ignore the client-side validation and provide a warning
-	// to the user that attempting warn validation when SS validation
-	// is unsupported is inert.
-	if validationDirective == metav1.FieldValidationIgnore {
+func (f *factoryImpl) Validator(validate bool) (validation.Schema, error) {
+	if !validate {
 		return validation.NullSchema{}, nil
 	}
 
@@ -158,11 +151,10 @@ func (f *factoryImpl) Validator(validationDirective string, verifier *resource.Q
 		return nil, err
 	}
 
-	schema := validation.ConjunctiveSchema{
+	return validation.ConjunctiveSchema{
 		openapivalidation.NewSchemaValidation(resources),
 		validation.NoDoubleKeySchema{},
-	}
-	return validation.NewParamVerifyingSchema(schema, verifier, string(validationDirective)), nil
+	}, nil
 }
 
 // OpenAPISchema returns metadata and structural information about

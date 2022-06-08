@@ -4,7 +4,7 @@
 package builtinhelpers
 
 import (
-	"sigs.k8s.io/kustomize/api/internal/builtins"
+	"sigs.k8s.io/kustomize/api/builtins"
 	"sigs.k8s.io/kustomize/api/resmap"
 )
 
@@ -25,8 +25,6 @@ const (
 	PatchStrategicMergeTransformer
 	PatchTransformer
 	PrefixSuffixTransformer
-	PrefixTransformer
-	SuffixTransformer
 	ReplicaCountTransformer
 	SecretGenerator
 	ValueAddTransformer
@@ -66,35 +64,6 @@ var GeneratorFactories = map[BuiltinPluginType]func() resmap.GeneratorPlugin{
 	HelmChartInflationGenerator: builtins.NewHelmChartInflationGeneratorPlugin,
 }
 
-type MultiTransformer struct {
-	transformers []resmap.TransformerPlugin
-}
-
-func (t *MultiTransformer) Transform(m resmap.ResMap) error {
-	for _, transformer := range t.transformers {
-		if err := transformer.Transform(m); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (t *MultiTransformer) Config(h *resmap.PluginHelpers, b []byte) error {
-	for _, transformer := range t.transformers {
-		if err := transformer.Config(h, b); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func NewMultiTransformer() resmap.TransformerPlugin {
-	return &MultiTransformer{[]resmap.TransformerPlugin{
-		builtins.NewPrefixTransformerPlugin(),
-		builtins.NewSuffixTransformerPlugin(),
-	}}
-}
-
 var TransformerFactories = map[BuiltinPluginType]func() resmap.TransformerPlugin{
 	AnnotationsTransformer:         builtins.NewAnnotationsTransformerPlugin,
 	HashTransformer:                builtins.NewHashTransformerPlugin,
@@ -105,9 +74,7 @@ var TransformerFactories = map[BuiltinPluginType]func() resmap.TransformerPlugin
 	PatchJson6902Transformer:       builtins.NewPatchJson6902TransformerPlugin,
 	PatchStrategicMergeTransformer: builtins.NewPatchStrategicMergeTransformerPlugin,
 	PatchTransformer:               builtins.NewPatchTransformerPlugin,
-	PrefixSuffixTransformer:        NewMultiTransformer,
-	PrefixTransformer:              builtins.NewPrefixTransformerPlugin,
-	SuffixTransformer:              builtins.NewSuffixTransformerPlugin,
+	PrefixSuffixTransformer:        builtins.NewPrefixSuffixTransformerPlugin,
 	ReplacementTransformer:         builtins.NewReplacementTransformerPlugin,
 	ReplicaCountTransformer:        builtins.NewReplicaCountTransformerPlugin,
 	ValueAddTransformer:            builtins.NewValueAddTransformerPlugin,

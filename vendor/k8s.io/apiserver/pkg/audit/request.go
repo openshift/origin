@@ -87,7 +87,9 @@ func NewEventFromRequest(req *http.Request, requestReceivedTimestamp time.Time, 
 		}
 	}
 
-	addAuditAnnotationsFrom(req.Context(), ev)
+	for _, kv := range auditAnnotationsFrom(req.Context()) {
+		LogAnnotation(ev, kv.key, kv.value)
+	}
 
 	return ev, nil
 }
@@ -194,11 +196,9 @@ func LogResponseObject(ctx context.Context, obj runtime.Object, gv schema.GroupV
 	if status, ok := obj.(*metav1.Status); ok {
 		// selectively copy the bounded fields.
 		ae.ResponseStatus = &metav1.Status{
-			Status:  status.Status,
-			Message: status.Message,
-			Reason:  status.Reason,
-			Details: status.Details,
-			Code:    status.Code,
+			Status: status.Status,
+			Reason: status.Reason,
+			Code:   status.Code,
 		}
 	}
 
@@ -241,6 +241,21 @@ func encodeObject(obj runtime.Object, gv schema.GroupVersion, serializer runtime
 		Raw:         buf.Bytes(),
 		ContentType: runtime.ContentTypeJSON,
 	}, nil
+}
+
+// LogAnnotation fills in the Annotations according to the key value pair.
+func LogAnnotation(ae *auditinternal.Event, key, value string) {
+	if ae == nil || ae.Level.Less(auditinternal.LevelMetadata) {
+		return
+	}
+	if ae.Annotations == nil {
+		ae.Annotations = make(map[string]string)
+	}
+	if v, ok := ae.Annotations[key]; ok && v != value {
+		klog.Warningf("Failed to set annotations[%q] to %q for audit:%q, it has already been set to %q", key, value, ae.AuditID, ae.Annotations[key])
+		return
+	}
+	ae.Annotations[key] = value
 }
 
 // truncate User-Agent if too long, otherwise return it directly.

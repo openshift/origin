@@ -16,7 +16,6 @@ package cel
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/google/cel-go/checker"
@@ -90,17 +89,13 @@ type Env struct {
 	adapter      ref.TypeAdapter
 	provider     ref.TypeProvider
 	features     map[int]bool
-
-	// Internal parser representation
-	prsr *parser.Parser
+	// program options tied to the environment.
+	progOpts []ProgramOption
 
 	// Internal checker representation
-	chk     *checker.Env
-	chkErr  error
-	chkOnce sync.Once
-
-	// Program options tied to the environment
-	progOpts []ProgramOption
+	chk    *checker.Env
+	chkErr error
+	once   sync.Once
 }
 
 // NewEnv creates a program environment configured with the standard library of CEL functions and
@@ -152,22 +147,18 @@ func (e *Env) Check(ast *Ast) (*Ast, *Issues) {
 	pe, _ := AstToParsedExpr(ast)
 
 	// Construct the internal checker env, erroring if there is an issue adding the declarations.
-	e.chkOnce.Do(func() {
-		ce, err := checker.NewEnv(e.Container, e.provider,
-			checker.HomogeneousAggregateLiterals(
-				e.HasFeature(featureDisableDynamicAggregateLiterals)),
-			checker.CrossTypeNumericComparisons(
-				e.HasFeature(featureCrossTypeNumericComparisons)))
+	e.once.Do(func() {
+		ce := checker.NewEnv(e.Container, e.provider)
+		ce.EnableDynamicAggregateLiterals(true)
+		if e.HasFeature(FeatureDisableDynamicAggregateLiterals) {
+			ce.EnableDynamicAggregateLiterals(false)
+		}
+		err := ce.Add(e.declarations...)
 		if err != nil {
 			e.chkErr = err
-			return
+		} else {
+			e.chk = ce
 		}
-		err = ce.Add(e.declarations...)
-		if err != nil {
-			e.chkErr = err
-			return
-		}
-		e.chk = ce
 	})
 	// The once call will ensure that this value is set or nil for all invocations.
 	if e.chkErr != nil {
@@ -216,10 +207,11 @@ func (e *Env) CompileSource(src common.Source) (*Ast, *Issues) {
 		return nil, iss
 	}
 	checked, iss2 := e.Check(ast)
-	if iss2.Err() != nil {
-		return nil, iss2
+	iss = iss.Append(iss2)
+	if iss.Err() != nil {
+		return nil, iss
 	}
-	return checked, iss2
+	return checked, iss
 }
 
 // Extend the current environment with additional options to produce a new Env.
@@ -288,8 +280,8 @@ func (e *Env) Extend(opts ...EnvOption) (*Env, error) {
 // HasFeature checks whether the environment enables the given feature
 // flag, as enumerated in options.go.
 func (e *Env) HasFeature(flag int) bool {
-	enabled, has := e.features[flag]
-	return has && enabled
+	_, has := e.features[flag]
+	return has
 }
 
 // Parse parses the input expression value `txt` to a Ast and/or a set of Issues.
@@ -309,7 +301,7 @@ func (e *Env) Parse(txt string) (*Ast, *Issues) {
 // It is possible to have both non-nil Ast and Issues values returned from this call; however,
 // the mere presence of an Ast does not imply that it is valid for use.
 func (e *Env) ParseSource(src common.Source) (*Ast, *Issues) {
-	res, errs := e.prsr.Parse(src)
+	res, errs := parser.ParseWithMacros(src, e.macros)
 	if len(errs.GetErrors()) > 0 {
 		return nil, &Issues{errs: errs}
 	}
@@ -331,6 +323,11 @@ func (e *Env) Program(ast *Ast, opts ...ProgramOption) (Program, error) {
 		optSet = mergedOpts
 	}
 	return newProgram(e, ast, optSet)
+}
+
+// SetFeature sets the given feature flag, as enumerated in options.go.
+func (e *Env) SetFeature(flag int) {
+	e.features[flag] = true
 }
 
 // TypeAdapter returns the `ref.TypeAdapter` configured for the environment.
@@ -405,16 +402,6 @@ func (e *Env) ResidualAst(a *Ast, details *EvalDetails) (*Ast, error) {
 	return checked, nil
 }
 
-// EstimateCost estimates the cost of a type checked CEL expression using the length estimates of input data and
-// extension functions provided by estimator.
-func (e *Env) EstimateCost(ast *Ast, estimator checker.CostEstimator) (checker.CostEstimate, error) {
-	checked, err := AstToCheckedExpr(ast)
-	if err != nil {
-		return checker.CostEstimate{}, fmt.Errorf("EsimateCost could not inspect Ast: %v", err)
-	}
-	return checker.Cost(checked, estimator), nil
-}
-
 // configure applies a series of EnvOptions to the current environment.
 func (e *Env) configure(opts []EnvOption) (*Env, error) {
 	// Customized the environment using the provided EnvOption values. If an error is
@@ -425,14 +412,6 @@ func (e *Env) configure(opts []EnvOption) (*Env, error) {
 		if err != nil {
 			return nil, err
 		}
-	}
-	prsrOpts := []parser.Option{parser.Macros(e.macros...)}
-	if e.HasFeature(featureEnableMacroCallTracking) {
-		prsrOpts = append(prsrOpts, parser.PopulateMacroCalls(true))
-	}
-	e.prsr, err = parser.NewParser(prsrOpts...)
-	if err != nil {
-		return nil, err
 	}
 	return e, nil
 }
@@ -474,9 +453,6 @@ func (i *Issues) Errors() []common.Error {
 func (i *Issues) Append(other *Issues) *Issues {
 	if i == nil {
 		return other
-	}
-	if other == nil {
-		return i
 	}
 	return NewIssues(i.errs.Append(other.errs.GetErrors()))
 }

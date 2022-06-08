@@ -1265,7 +1265,7 @@ func (dsc *DaemonSetsController) syncDaemonSet(ctx context.Context, key string) 
 	return dsc.updateDaemonSetStatus(ctx, ds, nodeList, hash, true)
 }
 
-// NodeShouldRunDaemonPod checks a set of preconditions against a (node,daemonset) and returns a
+// nodeShouldRunDaemonPod checks a set of preconditions against a (node,daemonset) and returns a
 // summary. Returned booleans are:
 // * shouldRun:
 //     Returns true when a daemonset should run on the node if a daemonset pod is not already
@@ -1273,7 +1273,7 @@ func (dsc *DaemonSetsController) syncDaemonSet(ctx context.Context, key string) 
 // * shouldContinueRunning:
 //     Returns true when a daemonset should continue running on a node if a daemonset pod is already
 //     running on that node.
-func NodeShouldRunDaemonPod(node *v1.Node, ds *apps.DaemonSet) (bool, bool) {
+func (dsc *DaemonSetsController) nodeShouldRunDaemonPod(node *v1.Node, ds *apps.DaemonSet) (bool, bool) {
 	pod := NewPod(ds, node.Name)
 
 	// If the daemon set specifies a node name, check that it matches with node.Name.
@@ -1282,7 +1282,7 @@ func NodeShouldRunDaemonPod(node *v1.Node, ds *apps.DaemonSet) (bool, bool) {
 	}
 
 	taints := node.Spec.Taints
-	fitsNodeName, fitsNodeAffinity, fitsTaints := predicates(pod, node, taints)
+	fitsNodeName, fitsNodeAffinity, fitsTaints := Predicates(pod, node, taints)
 	if !fitsNodeName || !fitsNodeAffinity {
 		return false, false
 	}
@@ -1295,11 +1295,15 @@ func NodeShouldRunDaemonPod(node *v1.Node, ds *apps.DaemonSet) (bool, bool) {
 		return false, !hasUntoleratedTaint
 	}
 
+	if matches, matchErr := dsc.namespaceNodeSelectorMatches(node, ds); !matches || matchErr != nil {
+		return false, false
+	}
+
 	return true, true
 }
 
-// predicates checks if a DaemonSet's pod can run on a node.
-func predicates(pod *v1.Pod, node *v1.Node, taints []v1.Taint) (fitsNodeName, fitsNodeAffinity, fitsTaints bool) {
+// Predicates checks if a DaemonSet's pod can run on a node.
+func Predicates(pod *v1.Pod, node *v1.Node, taints []v1.Taint) (fitsNodeName, fitsNodeAffinity, fitsTaints bool) {
 	fitsNodeName = len(pod.Spec.NodeName) == 0 || pod.Spec.NodeName == node.Name
 	// Ignore parsing errors for backwards compatibility.
 	fitsNodeAffinity, _ = nodeaffinity.GetRequiredNodeAffinity(pod).Match(node)

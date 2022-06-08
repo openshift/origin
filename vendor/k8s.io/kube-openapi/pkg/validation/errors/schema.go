@@ -156,33 +156,31 @@ func PropertyNotAllowed(name, in, key string) *Validation {
 }
 
 // TooFewProperties an error for an object with too few properties
-func TooFewProperties(name, in string, minProperties, size int64) *Validation {
-	msg := fmt.Sprintf(tooFewProperties, name, in, minProperties)
+func TooFewProperties(name, in string, n int64) *Validation {
+	msg := fmt.Sprintf(tooFewProperties, name, in, n)
 	if in == "" {
-		msg = fmt.Sprintf(tooFewPropertiesNoIn, name, minProperties)
+		msg = fmt.Sprintf(tooFewPropertiesNoIn, name, n)
 	}
 	return &Validation{
 		code:    TooFewPropertiesCode,
 		Name:    name,
 		In:      in,
-		Value:   size,
-		Valid:   minProperties,
+		Value:   n,
 		message: msg,
 	}
 }
 
 // TooManyProperties an error for an object with too many properties
-func TooManyProperties(name, in string, maxProperties, size int64) *Validation {
-	msg := fmt.Sprintf(tooManyProperties, name, in, maxProperties)
+func TooManyProperties(name, in string, n int64) *Validation {
+	msg := fmt.Sprintf(tooManyProperties, name, in, n)
 	if in == "" {
-		msg = fmt.Sprintf(tooManyPropertiesNoIn, name, maxProperties)
+		msg = fmt.Sprintf(tooManyPropertiesNoIn, name, n)
 	}
 	return &Validation{
 		code:    TooManyPropertiesCode,
 		Name:    name,
 		In:      in,
-		Value:   size,
-		Valid:   maxProperties,
+		Value:   n,
 		message: msg,
 	}
 }
@@ -281,7 +279,6 @@ func TooManyItems(name, in string, max int64, value interface{}) *Validation {
 		Name:    name,
 		In:      in,
 		Value:   value,
-		Valid:   max,
 		message: msg,
 	}
 }
@@ -297,7 +294,6 @@ func TooFewItems(name, in string, min int64, value interface{}) *Validation {
 		Name:    name,
 		In:      in,
 		Value:   value,
-		Valid:   min,
 		message: msg,
 	}
 }
@@ -517,7 +513,6 @@ func TooLong(name, in string, max int64, value interface{}) *Validation {
 		Name:    name,
 		In:      in,
 		Value:   value,
-		Valid:   max,
 		message: msg,
 	}
 }
@@ -536,7 +531,6 @@ func TooShort(name, in string, min int64, value interface{}) *Validation {
 		Name:    name,
 		In:      in,
 		Value:   value,
-		Valid:   min,
 		message: msg,
 	}
 }

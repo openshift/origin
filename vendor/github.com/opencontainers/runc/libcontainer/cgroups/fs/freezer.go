@@ -1,3 +1,5 @@
+// +build linux
+
 package fs
 
 import (
@@ -19,8 +21,8 @@ func (s *FreezerGroup) Name() string {
 	return "freezer"
 }
 
-func (s *FreezerGroup) Apply(path string, _ *configs.Resources, pid int) error {
-	return apply(path, pid)
+func (s *FreezerGroup) Apply(path string, d *cgroupData) error {
+	return join(path, d.pid)
 }
 
 func (s *FreezerGroup) Set(path string, r *configs.Resources) (Err error) {

@@ -16,7 +16,6 @@ package model
 
 import (
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/google/cel-go/cel"
@@ -31,28 +30,22 @@ import (
 	"k8s.io/apiextensions-apiserver/pkg/apiserver/schema"
 )
 
-const (
-	noMaxLength = math.MaxInt
-)
-
 // NewListType returns a parameterized list type with a specified element type.
-func NewListType(elem *DeclType, maxItems int64) *DeclType {
+func NewListType(elem *DeclType) *DeclType {
 	return &DeclType{
 		name:         "list",
 		ElemType:     elem,
-		MaxElements:  maxItems,
 		exprType:     decls.NewListType(elem.ExprType()),
 		defaultValue: NewListValue(),
 	}
 }
 
 // NewMapType returns a parameterized map type with the given key and element types.
-func NewMapType(key, elem *DeclType, maxProperties int64) *DeclType {
+func NewMapType(key, elem *DeclType) *DeclType {
 	return &DeclType{
 		name:         "map",
 		KeyType:      key,
 		ElemType:     elem,
-		MaxElements:  maxProperties,
 		exprType:     decls.NewMapType(key.ExprType(), elem.ExprType()),
 		defaultValue: NewMapValue(),
 	}
@@ -104,13 +97,12 @@ func newSimpleType(name string, exprType *exprpb.Type, zeroVal ref.Val) *DeclTyp
 type DeclType struct {
 	fmt.Stringer
 
-	name        string
-	Fields      map[string]*DeclField
-	KeyType     *DeclType
-	ElemType    *DeclType
-	TypeParam   bool
-	Metadata    map[string]string
-	MaxElements int64
+	name      string
+	Fields    map[string]*DeclField
+	KeyType   *DeclType
+	ElemType  *DeclType
+	TypeParam bool
+	Metadata  map[string]string
 
 	exprType     *exprpb.Type
 	traitMask    int
@@ -168,7 +160,7 @@ func (t *DeclType) MaybeAssignTypeName(name string) *DeclType {
 		if updated == t.ElemType {
 			return t
 		}
-		return NewMapType(t.KeyType, updated, t.MaxElements)
+		return NewMapType(t.KeyType, updated)
 	}
 	if t.IsList() {
 		elemTypeName := fmt.Sprintf("%s.@idx", name)
@@ -176,7 +168,7 @@ func (t *DeclType) MaybeAssignTypeName(name string) *DeclType {
 		if updated == t.ElemType {
 			return t
 		}
-		return NewListType(updated, t.MaxElements)
+		return NewListType(updated)
 	}
 	return t
 }
@@ -555,8 +547,8 @@ var (
 	UintType = newSimpleType("uint", decls.Uint, types.Uint(0))
 
 	// ListType is equivalent to the CEL 'list' type.
-	ListType = NewListType(AnyType, noMaxLength)
+	ListType = NewListType(AnyType)
 
 	// MapType is equivalent to the CEL 'map' type.
-	MapType = NewMapType(AnyType, AnyType, noMaxLength)
+	MapType = NewMapType(AnyType, AnyType)
 )

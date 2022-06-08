@@ -12,9 +12,8 @@ func hasPort(s string) bool { return strings.LastIndex(s, ":") > strings.LastInd
 
 // FROM: http://golang.org/src/net/http/transport.go
 var portMap = map[string]string{
-	"http":   "80",
-	"https":  "443",
-	"socks5": "1080",
+	"http":  "80",
+	"https": "443",
 }
 
 // FROM: http://golang.org/src/net/http/transport.go
