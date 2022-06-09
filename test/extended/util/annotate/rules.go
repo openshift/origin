@@ -307,6 +307,16 @@ var (
 			`Unidling should work with TCP`,
 			`Unidling should handle many TCP connections`,
 		},
+		// OCP also certifies Cilium as the third-party container network solution, so we run
+		// e2e tests with having cilium as the networking backend.
+		// This section is used for skipping the tests which are not supported by Cilium.
+		"[Skipped:Network/Cilium]": {
+			// Cilium does not support services with internal traffic local policy
+			// The corresponding cilium issue https://github.com/cilium/cilium/issues/17796
+			// and its corresponding fix https://github.com/cilium/cilium/pull/17828 which
+			// skips running the test.
+			`internalTrafficPolicy=Local`,
+		},
 		"[Skipped:ibmroks]": {
 			// skip Gluster tests (not supported on ROKS worker nodes)
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1825009 - e2e: skip Glusterfs-related tests upstream for rhel7 worker nodes
