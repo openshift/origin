@@ -177,7 +177,10 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			ns := oc.KubeFramework().Namespace.Name
-			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
+
+			execPodName := "execpod"
+			e2e.Logf("Creating new execpod %s in namespace: %s", execPodName, ns)
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, execPodName)
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()

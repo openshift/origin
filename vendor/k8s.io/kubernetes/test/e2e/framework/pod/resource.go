@@ -558,13 +558,13 @@ func newExecPodSpec(ns, generateName string) *v1.Pod {
 // CreateExecPodOrFail creates a agnhost pause pod used as a vessel for kubectl exec commands.
 // Pod name is uniquely generated.
 func CreateExecPodOrFail(client clientset.Interface, ns, generateName string, tweak func(*v1.Pod)) *v1.Pod {
-	e2elog.Logf("Creating new exec pod %s in namespace: %s", generateName, ns)
+	e2elog.Logf("Creating new exec pod")
 	pod := newExecPodSpec(ns, generateName)
 	if tweak != nil {
 		tweak(pod)
 	}
 	execPod, err := client.CoreV1().Pods(ns).Create(context.TODO(), pod, metav1.CreateOptions{})
-	expectNoError(err, "failed to create new exec pod %s in namespace: %s", generateName, ns)
+	expectNoError(err, "failed to create new exec pod in namespace: %s", ns)
 	err = wait.PollImmediate(poll, 5*time.Minute, func() (bool, error) {
 		retrievedPod, err := client.CoreV1().Pods(execPod.Namespace).Get(context.TODO(), execPod.Name, metav1.GetOptions{})
 		if err != nil {
@@ -572,7 +572,7 @@ func CreateExecPodOrFail(client clientset.Interface, ns, generateName string, tw
 		}
 		return retrievedPod.Status.Phase == v1.PodRunning, nil
 	})
-	expectNoError(err, "failed to finish poll on new exec pod %s in namespace: %s", generateName, ns)
+	expectNoError(err, "failed to create new exec pod in namespace: %s", ns)
 	return execPod
 }
 
