@@ -39,7 +39,7 @@ func (d *etcdRevisionChangeAllowance) FailAfter(alertName string, jobType platfo
 	// in the future, we could make this function more dynamic
 	// we will leave it simple for now
 	if d.numberOfRevisionDuringTest > 2 {
-		return time.Duration(d.numberOfRevisionDuringTest) * 10 * time.Minute, nil
+		return time.Duration(d.numberOfRevisionDuringTest) * 15 * time.Minute, nil
 
 	}
 	allowed, _, _ := getClosestPercentilesValues(alertName, jobType)
