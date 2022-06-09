@@ -196,7 +196,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	g.By("Waiting for upgrade to finish before checking for alerts")
 	<-done
 
-	// Additonal delay after upgrade completion to allow pending alerts to settle
+	// Additional delay after upgrade completion to allow pending alerts to settle
 	g.By("Waiting before checking for alerts")
 	time.Sleep(1 * time.Minute)
 
@@ -212,7 +212,7 @@ count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to check firing alerts during upgrade")
 	for _, series := range result.Data.Result {
 		labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
-		violation := fmt.Sprintf("alert %s fired for %s seconds with labels: %s", series.Metric["alertname"], series.Value, helper.LabelsAsSelector(labels))
+		violation := fmt.Sprintf("alert %s fired for %s seconds at %s with labels: %s", series.Metric["alertname"], series.Value, series.Timestamp, helper.LabelsAsSelector(labels))
 		if cause := allowedFiringAlerts.Matches(series); cause != nil {
 			debug.Insert(fmt.Sprintf("%s (allowed: %s)", violation, cause.Text))
 			continue
