@@ -9,6 +9,8 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"strings"
@@ -41,6 +43,14 @@ var whitelistedSysctls = []SysctlVariant{
 	// uncomment the following two lines once the bug is fixed.
 	// {Sysctl: "net.ipv6.neigh.IFNAME.base_reachable_time_ms", Value: "30010", Path: "/proc/sys/net/ipv6/neigh/net1/base_reachable_time_ms"},
 	// {Sysctl: "net.ipv6.neigh.IFNAME.retrans_time_ms", Value: "1010", Path: "/proc/sys/net/ipv6/neigh/net1/retrans_time_ms"},
+}
+
+// getPodNodeName returns the name of the node the pod is scheduled on
+func getPodNodeName(client clientset.Interface, namespace, name string) string {
+	pod, err := client.CoreV1().Pods(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "unable get running pod")
+	o.Expect(pod.Spec.NodeName).NotTo(o.BeEmpty(), "expected scheduled pod but found empty Spec.NodeName")
+	return pod.Spec.NodeName
 }
 
 var _ = g.Describe("[sig-network][Feature:tuning]", func() {
@@ -93,7 +103,7 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 
 	g.It("pod sysctls should not affect node", func() {
 		namespace := f.Namespace.Name
-		g.By("creating a preexisting pod to check node sysctl")
+		g.By("creating a preexisting pod to check host sysctl")
 		nodePod := frameworkpod.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, "nodeaccess-pod-", func(pod *kapiv1.Pod) {
 			pod.Spec.Volumes = []kapiv1.Volume{
 				{Name: "sysvolume", VolumeSource: kapiv1.VolumeSource{HostPath: &kapiv1.HostPathVolumeSource{Path: "/sys/class/net"}}},
@@ -102,41 +112,50 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 			pod.Spec.Containers[0].VolumeMounts = []kapiv1.VolumeMount{{Name: "sysvolume", MountPath: "/host/net"}, {Name: "procvolume", MountPath: "/host/proc"}}
 			pod.Spec.HostNetwork = true
 		})
+		testNodeName := getPodNodeName(f.ClientSet, nodePod.Namespace, nodePod.Name)
 
-		g.By("retrieving node interface name to create sysctl pod with interface of the same name")
-		nodeInterfaceNames, err := oc.AsAdmin().Run("exec").Args(nodePod.Name, "--", "ls", "/host/net").Output()
-		o.Expect(err).NotTo(o.HaveOccurred(), "unable to get interface names")
-		nodeInterfaceName := strings.Fields(nodeInterfaceNames)[0]
-		if nodeInterfaceName == "lo" {
-			nodeInterfaceName = strings.Fields(nodeInterfaceNames)[1]
-		}
+		const baseNADName string = "basenad"
+		const basePodName string = "basepod"
+		hostIfName := strings.ReplaceAll(string(uuid.NewUUID()), "-", "")[:14]
 
-		g.By("getting the value of the node sysctl")
-		nodeSysctlValue, err := oc.AsAdmin().Run("exec").Args(nodePod.Name, "--", "cat", "/host"+fmt.Sprintf(sysctlPath, nodeInterfaceName)).Output()
+		g.By("creating a first network-attachment-definition with a unique host interface name")
+		err := createTuningNADWithBridgeName(oc.AdminConfig(), namespace, baseNADName, hostIfName, nil)
+		o.Expect(err).NotTo(o.HaveOccurred(), "unable to create first network-attachment-definition")
+
+		g.By("creating a pod using the first network-attachment-definition to ensure the host interface exists")
+		exutil.CreateExecPodOrFail(f.ClientSet, namespace, basePodName, func(pod *kapiv1.Pod) {
+			pod.ObjectMeta.Annotations = map[string]string{"k8s.v1.cni.cncf.io/networks": fmt.Sprintf("%s/%s", namespace, baseNADName)}
+			pod.Spec.NodeName = testNodeName
+		})
+
+		g.By("getting the value of the host interface sysctl")
+		hostSysctlValue, err := oc.AsAdmin().Run("exec").Args(nodePod.Name, "--", "cat", "/host"+fmt.Sprintf(sysctlPath, hostIfName)).Output()
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to check sysctl")
 		sysctlValue := "1"
-		if sysctlValue == nodeSysctlValue {
+		if sysctlValue == hostSysctlValue {
 			sysctlValue = "0"
 		}
-		g.By("creating a network-attachment-definition with sysctl of value other than the node sysctl value")
-		err = createTuningNAD(oc.AdminConfig(), namespace, tuningNADName, map[string]string{sysctlKey: sysctlValue})
-		o.Expect(err).NotTo(o.HaveOccurred(), "unable to create network-attachment-definition")
 
-		g.By("creating a pod with a sysctl set")
+		g.By("creating a second network-attachment-definition with sysctl of value other than the host sysctl value")
+		testIfName := strings.ReplaceAll(string(uuid.NewUUID()), "-", "")[:14]
+		err = createTuningNADWithBridgeName(oc.AdminConfig(), namespace, tuningNADName, testIfName, map[string]string{sysctlKey: sysctlValue})
+		o.Expect(err).NotTo(o.HaveOccurred(), "unable to create second network-attachment-definition")
+
+		g.By("creating a pod with the same interface name as the host with a sysctl set")
 		exutil.CreateExecPodOrFail(f.ClientSet, namespace, podName, func(pod *kapiv1.Pod) {
-			pod.ObjectMeta.Annotations = map[string]string{"k8s.v1.cni.cncf.io/networks": fmt.Sprintf("%s/%s@%s", namespace, tuningNADName, nodeInterfaceName)}
-			pod.Spec.NodeName = nodePod.Spec.NodeName
+			pod.ObjectMeta.Annotations = map[string]string{"k8s.v1.cni.cncf.io/networks": fmt.Sprintf("%s/%s@%s", namespace, tuningNADName, hostIfName)}
+			pod.Spec.NodeName = testNodeName
 		})
 
 		g.By("checking the value of the sysctl on the pod is that specified in the network-attachment-defintion")
-		result, err := oc.AsAdmin().Run("exec").Args(podName, "-n", namespace, "--", "cat", fmt.Sprintf(sysctlPath, nodeInterfaceName)).Output()
+		result, err := oc.AsAdmin().Run("exec").Args(podName, "-n", namespace, "--", "cat", fmt.Sprintf(sysctlPath, hostIfName)).Output()
 		o.Expect(err).NotTo(o.HaveOccurred(), "error checking pod sysctls")
 		o.Expect(result).To(o.Equal(sysctlValue), "incorrect sysctl value")
 
 		g.By("checking that the value of the node sysctl did not change")
-		nodeSysctlValue2, err := oc.AsAdmin().Run("exec").Args(nodePod.Name, "--", "cat", "/host"+fmt.Sprintf(sysctlPath, nodeInterfaceName)).Output()
+		hostSysctlValue2, err := oc.AsAdmin().Run("exec").Args(nodePod.Name, "--", "cat", "/host"+fmt.Sprintf(sysctlPath, hostIfName)).Output()
 		o.Expect(err).NotTo(o.HaveOccurred(), "error checking pod sysctls")
-		o.Expect(nodeSysctlValue).Should(o.Equal(nodeSysctlValue2))
+		o.Expect(hostSysctlValue).Should(o.Equal(hostSysctlValue2))
 	})
 
 	g.It("pod sysctl should not affect existing pods", func() {
@@ -148,6 +167,8 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 		previousPod := frameworkpod.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, "previous-pod-", func(pod *kapiv1.Pod) {
 			pod.ObjectMeta.Annotations = map[string]string{"k8s.v1.cni.cncf.io/networks": fmt.Sprintf("%s/%s", namespace, baseNAD)}
 		})
+		testNodeName := getPodNodeName(f.ClientSet, previousPod.Namespace, previousPod.Name)
+
 		podOutputBeforeSysctlAplied, err := oc.AsAdmin().Run("exec").Args(previousPod.Name, "--", "cat", path).Output()
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to check sysctl value")
 		sysctlValue := "1"
@@ -159,7 +180,7 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 
 		exutil.CreateExecPodOrFail(f.ClientSet, namespace, podName, func(pod *kapiv1.Pod) {
 			pod.ObjectMeta.Annotations = map[string]string{"k8s.v1.cni.cncf.io/networks": fmt.Sprintf("%s/%s", namespace, tuningNADName)}
-			pod.Spec.NodeName = previousPod.Spec.NodeName
+			pod.Spec.NodeName = testNodeName
 		})
 		podOutputAfterSysctlAplied, err := oc.AsAdmin().Run("exec").Args(previousPod.Name, "--", "cat", path).Output()
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to check sysctl value")
@@ -176,6 +197,8 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 		previousPod := frameworkpod.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, "sysctl-pod-", func(pod *kapiv1.Pod) {
 			pod.ObjectMeta.Annotations = map[string]string{"k8s.v1.cni.cncf.io/networks": fmt.Sprintf("%s/%s", namespace, baseNAD)}
 		})
+		testNodeName := getPodNodeName(f.ClientSet, previousPod.Namespace, previousPod.Name)
+
 		podOutputBeforeSysctlAplied, err := oc.AsAdmin().Run("exec").Args(previousPod.Name, "--", "cat", path).Output()
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to check sysctl value")
 		sysctlValue := "1"
@@ -187,7 +210,7 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 
 		exutil.CreateExecPodOrFail(f.ClientSet, namespace, podName, func(pod *kapiv1.Pod) {
 			pod.ObjectMeta.Annotations = map[string]string{"k8s.v1.cni.cncf.io/networks": fmt.Sprintf("%s/%s", namespace, tuningNADName)}
-			pod.Spec.NodeName = previousPod.Spec.NodeName
+			pod.Spec.NodeName = testNodeName
 
 		})
 		podOutputAfterSysctlAplied, err := oc.AsAdmin().Run("exec").Args(previousPod.Name, "--", "cat", path).Output()
@@ -195,9 +218,8 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 		o.Expect(podOutputBeforeSysctlAplied).Should(o.Equal(podOutputAfterSysctlAplied))
 
 		nextPod := frameworkpod.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, "sysctl-pod-", func(pod *kapiv1.Pod) {
-			pod.Spec.NodeName = previousPod.Spec.NodeName
 			pod.ObjectMeta.Annotations = map[string]string{"k8s.v1.cni.cncf.io/networks": fmt.Sprintf("%s/%s", namespace, baseNAD)}
-
+			pod.Spec.NodeName = testNodeName
 		})
 		podOutput, err := oc.AsAdmin().Run("exec").Args(nextPod.Name, "--", "cat", path).Output()
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to check sysctl value")
@@ -207,11 +229,14 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 })
 
 func createNAD(config *rest.Config, namespace string, nadName string) error {
-	nadConfig := fmt.Sprintf(`{"cniVersion":"0.4.0","name":"%s","plugins":[{"type":"bridge","bridge":"tunbr","ipam":{"type":"static","addresses":[{"address":"10.10.0.1/24"}]}}]}`, nadName)
-	return createNetworkAttachmentDefinition(config, namespace, nadName, nadConfig)
+	return createTuningNAD(config, namespace, nadName, nil)
 }
 
-func createTuningNAD(config *rest.Config, namespace string, nadName string, sysctls map[string]string) error {
+func createTuningNAD(config *rest.Config, namespace, nadName string, sysctls map[string]string) error {
+	return createTuningNADWithBridgeName(config, namespace, nadName, "tunbr", sysctls)
+}
+
+func createTuningNADWithBridgeName(config *rest.Config, namespace, nadName, bridgeName string, sysctls map[string]string) error {
 	sysctlString := ""
 	for sysctl, value := range sysctls {
 		if len(sysctlString) > 0 {
@@ -219,6 +244,9 @@ func createTuningNAD(config *rest.Config, namespace string, nadName string, sysc
 		}
 		sysctlString = sysctlString + fmt.Sprintf("\"%s\":\"%s\"", sysctl, value)
 	}
-	nadConfig := fmt.Sprintf(`{"cniVersion":"0.4.0","name":"%s","plugins":[{"type":"bridge","bridge":"tunbr","ipam":{"type":"static","addresses":[{"address":"10.10.0.1/24"}]}},{"type":"tuning","sysctl":{%s}}]}`, nadName, sysctlString)
+	if len(sysctlString) > 0 {
+		sysctlString = fmt.Sprintf(`,{"type":"tuning","sysctl":{%s}}`, sysctlString)
+	}
+	nadConfig := fmt.Sprintf(`{"cniVersion":"0.4.0","name":"%s","plugins":[{"type":"bridge","bridge":"%s","ipam":{"type":"static","addresses":[{"address":"10.10.0.1/24"}]}}%s]}`, nadName, bridgeName, sysctlString)
 	return createNetworkAttachmentDefinition(config, namespace, nadName, nadConfig)
 }
