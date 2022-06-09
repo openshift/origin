@@ -94,6 +94,7 @@ func main() {
 		return root.Execute()
 	}(); err != nil {
 		if ex, ok := err.(testginkgo.ExitError); ok {
+			fmt.Fprintf(os.Stderr, "Ginkgo exit error %d: %v\n", ex.Code, err)
 			os.Exit(ex.Code)
 		}
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
