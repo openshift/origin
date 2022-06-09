@@ -3069,12 +3069,12 @@ func createPodOrFail(f *framework.Framework, ns, name string, labels map[string]
 // launchHostExecPod launches a hostexec pod in the given namespace and waits
 // until it's Running
 func launchHostExecPod(client clientset.Interface, ns, name string) *v1.Pod {
-	framework.Logf("Creating new host exec pod")
+	framework.Logf("Creating new host exec pod %s in namespace: %s", name, ns)
 	hostExecPod := e2epod.NewExecPodSpec(ns, name, true)
 	pod, err := client.CoreV1().Pods(ns).Create(context.TODO(), hostExecPod, metav1.CreateOptions{})
 	framework.ExpectNoError(err)
 	err = e2epod.WaitTimeoutForPodReadyInNamespace(client, name, ns, framework.PodStartTimeout)
-	framework.ExpectNoError(err)
+	framework.ExpectNoError(err, "Failure in pod readiness host exec pod %s in namespace: %s", name, ns)
 	return pod
 }
 

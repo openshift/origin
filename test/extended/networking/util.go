@@ -607,9 +607,10 @@ func getIPFamilyForCluster(f *e2e.Framework) IPFamily {
 
 func createPod(client k8sclient.Interface, ns, generateName string) ([]corev1.PodIP, error) {
 	pod := frameworkpod.NewAgnhostPod(ns, "", nil, nil, nil)
+	e2e.Logf("Creating new pod %s in namespace: %s", generateName, ns)
 	pod.ObjectMeta.GenerateName = generateName
 	execPod, err := client.CoreV1().Pods(ns).Create(context.TODO(), pod, metav1.CreateOptions{})
-	expectNoError(err, "failed to create new pod in namespace: %s", ns)
+	expectNoError(err, "failed to create new pod %s in namespace: %s", generateName, ns)
 	var podIPs []corev1.PodIP
 	err = wait.PollImmediate(poll, 2*time.Minute, func() (bool, error) {
 		retrievedPod, err := client.CoreV1().Pods(execPod.Namespace).Get(context.TODO(), execPod.Name, metav1.GetOptions{})
