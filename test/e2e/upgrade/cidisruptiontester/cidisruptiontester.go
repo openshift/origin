@@ -35,7 +35,7 @@ const (
 func NewCIDisruptionWithNewConnectionsTest() upgrades.Test {
 	ciDisruptTest := &ciDisruptionUpgradeTest{}
 	backend := backenddisruption.NewSimpleBackend(
-		"https://static.redhat.com/test/rhel-networkmanager.txt",
+		"http://static.redhat.com/test/rhel-networkmanager.txt",
 		"ci-cluster-network-liveness",
 		"",
 		backenddisruption.NewConnectionType)
@@ -54,7 +54,7 @@ func NewCIDisruptionWithNewConnectionsTest() upgrades.Test {
 func NewCIDisruptionWithReusedConnectionsTest() upgrades.Test {
 	ciDisruptTest := &ciDisruptionUpgradeTest{}
 	backend := backenddisruption.NewSimpleBackend(
-		"https://static.redhat.com/test/rhel-networkmanager.txt",
+		"http://static.redhat.com/test/rhel-networkmanager.txt",
 		"ci-cluster-network-liveness",
 		"",
 		backenddisruption.ReusedConnectionType)
