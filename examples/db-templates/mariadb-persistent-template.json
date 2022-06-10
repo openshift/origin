@@ -283,6 +283,7 @@
 		}
 	],
 	"labels": {
+		"app.openshift.io/runtime": "mariadb",
 		"template": "mariadb-persistent-template"
 	}
 }

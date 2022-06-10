@@ -111,6 +111,10 @@
 									{
 										"name": "CASC_JENKINS_CONFIG",
 										"value": "/var/lib/jenkins/proxy.yaml"
+									},
+									{
+										"name": "JAVA_FIPS_OPTIONS",
+										"value": "${JAVA_FIPS_OPTIONS}"
 									}
 								],
 								"image": " ",
@@ -312,6 +316,12 @@
 			"displayName": "Disable memory intensive administrative monitors",
 			"description": "Whether to perform memory intensive, possibly slow, synchronization with the Jenkins Update Center on start.  If true, the Jenkins core update monitor and site warnings monitor are disabled.",
 			"value": "false"
+		},
+		{
+			"name": "JAVA_FIPS_OPTIONS",
+			"displayName": "Allows control over how the JVM interacts with FIPS on startup.",
+			"description": "See https://access.redhat.com/documentation/en-us/openjdk/11/html-single/configuring_openjdk_11_on_rhel_with_fips/index#config-fips-in-openjdk for the available command line properties to facilitate the JVM running on FIPS nodes.",
+			"value": "-Dcom.redhat.fips=false"
 		},
 		{
 			"name": "JENKINS_IMAGE_STREAM_TAG",

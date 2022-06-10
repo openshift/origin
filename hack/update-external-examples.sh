@@ -17,7 +17,7 @@ IMAGESTREAMS_DIR="${OS_ROOT}/examples/image-streams"
   # look for the first content in ()s on that line, which will be the actual url of the file,
   # then use curl to pull that file down.
   curl -# $(grep -E '\(https://raw.githubusercontent.com.*centos.*\)' README.md | sed -E 's/.*\((.*)\)/\1 -O/')
-  jq . -s *.json | jq '. | {"kind": "ImageStreamList","apiVersion": "v1", "items": .}' > images-centos.tmp
+  jq . -s *.json | jq '. | {"kind": "List","apiVersion": "v1", "items": .}' > images-centos.tmp
   rm -vf *.{json,yaml,yml}
 
 #  curl -# $(grep -E '\(https://raw.githubusercontent.com.*rhel.*\)' README.md | sed -E 's/.*\((.*)\)/\1 -O/')

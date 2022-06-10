@@ -802,6 +802,7 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
 		}
 	],
 	"labels": {
+		"app.openshift.io/runtime": "mariadb",
 		"template": "mariadb-ephemeral-template"
 	}
 }`)
@@ -1106,6 +1107,7 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
 		}
 	],
 	"labels": {
+		"app.openshift.io/runtime": "mariadb",
 		"template": "mariadb-persistent-template"
 	}
 }`)
@@ -2890,52 +2892,6 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             }
           },
           {
-            "name": "5.0-ubi8",
-            "annotations": {
-              "description": "Build and run .NET 5 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/5.0/build/README.md.",
-              "iconClass": "icon-dotnet",
-              "openshift.io/display-name": ".NET 5 (UBI 8)",
-              "sampleContextDir": "app",
-              "sampleRef": "dotnet-5.0",
-              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex",
-              "supports": "dotnet:5.0,dotnet",
-              "tags": "builder,.net,dotnet,dotnetcore,dotnet50",
-              "version": "5.0"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.access.redhat.com/ubi8/dotnet-50:5.0"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "5.0",
-            "annotations": {
-              "description": "Build and run .NET 5 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/5.0/build/README.md.",
-              "iconClass": "icon-dotnet",
-              "openshift.io/display-name": ".NET 5 (UBI 8)",
-              "sampleContextDir": "app",
-              "sampleRef": "dotnetcore-5.0",
-              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex",
-              "supports": "dotnet:5.0,dotnet",
-              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet50,hidden",
-              "version": "5.0"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.access.redhat.com/ubi8/dotnet-50:5.0"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
             "name": "3.1-ubi8",
             "annotations": {
               "description": "Build and run .NET Core 3.1 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/3.1/build/README.md.",
@@ -3038,7 +2994,51 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "2.4-el8"
+              "name": "2.4-ubi8"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "2.4-ubi9",
+            "annotations": {
+              "description": "Build and serve static content via Apache HTTP Server (httpd) 2.4 on UBI 9. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.",
+              "iconClass": "icon-apache",
+              "openshift.io/display-name": "Apache HTTP Server 2.4 (UBI 9)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/httpd-ex.git",
+              "supports": "httpd",
+              "tags": "builder,httpd",
+              "version": "2.4"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi9/httpd-24:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "2.4-ubi8",
+            "annotations": {
+              "description": "Build and serve static content via Apache HTTP Server (httpd) 2.4 on RHEL 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.",
+              "iconClass": "icon-apache",
+              "openshift.io/display-name": "Apache HTTP Server 2.4 (UBI 8)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/httpd-ex.git",
+              "supports": "httpd",
+              "tags": "builder,httpd",
+              "version": "2.4"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi8/httpd-24:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -3055,7 +3055,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/sclorg/httpd-ex.git",
               "supports": "httpd",
-              "tags": "builder,httpd",
+              "tags": "builder,httpd,hidden",
               "version": "2.4"
             },
             "from": {
@@ -3153,6 +3153,25 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             }
           },
           {
+            "name": "ocp-upgrade-redeploy",
+            "annotations": {
+              "description": "Provides a Jenkins 2.X server from quay.io. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md. This tag will will redeploy the Jenkins DeploymentConfig on an upgrade in OCP versions if the Jenkins image reference has changed.",
+              "iconClass": "icon-jenkins",
+              "openshift.io/display-name": "Jenkins (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "jenkins"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "2"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
             "name": "2",
             "annotations": {
               "description": "Provides a Jenkins v2.x server on CentOS. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.",
@@ -3164,10 +3183,52 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/openshift/origin-jenkins:v4.0"
+              "name": "quay.io/openshift/origin-jenkins:4.11"
             },
             "generation": null,
             "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "user-maintained-upgrade-redeploy",
+            "annotations": {
+              "description": "Provides a Jenkins 2.X server from quay.io. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md. This tag will will redeploy the Jenkins DeploymentConfig on an upgrade in OKD versions if the Jenkins image reference has changed. A user must invoke 'oc import-image jenkins:user-maintained-upgrade-redeploy -n openshift' in order for the ImageStream controller to pull the latest digest for the image tag, and if a new digest exists, any running Jenkins DeploymentConfig will redeploy.",
+              "iconClass": "icon-jenkins",
+              "openshift.io/display-name": "Jenkins 2.X",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "jenkins",
+              "version": "2.x"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "quay.io/openshift/origin-jenkins:4.11"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "scheduled-upgrade-redeploy",
+            "annotations": {
+              "description": "Provides a Jenkins 2.X server from quay.io. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md. OpenShift will periodically check to ensure that the latest digest for this image tag is imported. If an update occurs, any running Jenkins DeploymentConfig will redeploy.",
+              "iconClass": "icon-jenkins",
+              "openshift.io/display-name": "Jenkins 2.X",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "jenkins",
+              "version": "2.x"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "quay.io/openshift/origin-jenkins:4.11"
+            },
+            "generation": null,
+            "importPolicy": {
+              "scheduled": true
+            },
             "referencePolicy": {
               "type": "Local"
             }
@@ -3435,6 +3496,28 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             }
           },
           {
+            "name": "1.20-ubi9",
+            "annotations": {
+              "description": "Build and serve static content via Nginx HTTP server and a reverse proxy (nginx) on RHEL 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/nginx-container/blob/master/1.20/README.md.",
+              "iconClass": "icon-nginx",
+              "openshift.io/display-name": "Nginx HTTP server and a reverse proxy 1.20 (UBI 9)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nginx-ex.git",
+              "supports": "nginx",
+              "tags": "builder,nginx",
+              "version": "1.20"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi9/nginx-120:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
             "name": "1.20-ubi8",
             "annotations": {
               "description": "Build and serve static content via Nginx HTTP server and a reverse proxy (nginx) on RHEL 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/nginx-container/blob/master/1.20/README.md.",
@@ -3557,6 +3640,48 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "name": "16-ubi8"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "16-ubi9",
+            "annotations": {
+              "description": "Build and run Node.js 16 applications on UBI 9. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/16/README.md.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 16 (UBI 9)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "tags": "builder,nodejs",
+              "version": "16"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi9/nodejs-16:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "16-ubi9-minimal",
+            "annotations": {
+              "description": "Build and run Node.js 16 applications on UBI 9 Minimal. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/16-minimal/README.md.",
+              "iconClass": "icon-nodejs",
+              "openshift.io/display-name": "Node.js 16 (UBI 9 Minimal)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/nodejs-ex.git",
+              "tags": "builder,nodejs",
+              "version": "16"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi9/nodejs-16-minimal:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -3693,7 +3818,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Perl applications on UBI. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.30-mod_fcgid/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Perl available on OpenShift, including major version updates.",
+              "description": "Build and run Perl applications on UBI. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.32/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Perl available on OpenShift, including major version updates.",
               "iconClass": "icon-perl",
               "openshift.io/display-name": "Perl (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -3703,7 +3828,51 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "5.30-ubi8"
+              "name": "5.32-ubi8"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "5.32-ubi9",
+            "annotations": {
+              "description": "Build and run Perl 5.32 applications on UBI 9. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.32/README.md.",
+              "iconClass": "icon-perl",
+              "openshift.io/display-name": "Perl 5.32 (UBI 9)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
+              "supports": "perl:5.32,perl",
+              "tags": "builder,perl",
+              "version": "5.32"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi9/perl-532:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "5.32-ubi8",
+            "annotations": {
+              "description": "Build and run Perl 5.32 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.32/README.md.",
+              "iconClass": "icon-perl",
+              "openshift.io/display-name": "Perl 5.32 (UBI 8)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
+              "supports": "perl:5.32,perl",
+              "tags": "builder,perl",
+              "version": "5.32"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi8/perl-532:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -3823,7 +3992,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run PHP applications on UBI. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/7.4/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of PHP available on OpenShift, including major version updates.",
+              "description": "Build and run PHP applications on UBI. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/8.0/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of PHP available on OpenShift, including major version updates.",
               "iconClass": "icon-php",
               "openshift.io/display-name": "PHP (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
@@ -3833,7 +4002,51 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "7.4-ubi8"
+              "name": "8.0-ubi8"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "8.0-ubi9",
+            "annotations": {
+              "description": "Build and run PHP 8.0 applications on UBI 9. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/8.0/README.md.",
+              "iconClass": "icon-php",
+              "openshift.io/display-name": "PHP 8.0 (UBI 9)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
+              "supports": "php:8.0,php",
+              "tags": "builder,php",
+              "version": "8.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi9/php-80:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "8.0-ubi8",
+            "annotations": {
+              "description": "Build and run PHP 8.0 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/8.0/README.md.",
+              "iconClass": "icon-php",
+              "openshift.io/display-name": "PHP 8.0 (UBI 8)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/cakephp-ex.git",
+              "supports": "php:8.0,php",
+              "tags": "builder,php",
+              "version": "8.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi8/php-80:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -4150,6 +4363,28 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             }
           },
           {
+            "name": "3.9-ubi9",
+            "annotations": {
+              "description": "Build and run Python 3.9 applications on UBI 9. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.9/README.md.",
+              "iconClass": "icon-python",
+              "openshift.io/display-name": "Python 3.9 (UBI 9)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/django-ex.git",
+              "supports": "python:3.9,python",
+              "tags": "builder,python",
+              "version": "3.9"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi9/python-39:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
             "name": "3.9-ubi8",
             "annotations": {
               "description": "Build and run Python 3.9 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.9/README.md.",
@@ -4252,50 +4487,6 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/ubi8/python-27:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "2.7-ubi7",
-            "annotations": {
-              "description": "Build and run Python 2.7 applications on UBI 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/2.7/README.md.",
-              "iconClass": "icon-python",
-              "openshift.io/display-name": "Python 2.7 (UBI 7)",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/django-ex.git",
-              "supports": "python:2.7,python",
-              "tags": "builder,python",
-              "version": "2.7"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.access.redhat.com/ubi7/python-27:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "2.7",
-            "annotations": {
-              "description": "Build and run Python 2.7 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/2.7/README.md.",
-              "iconClass": "icon-python",
-              "openshift.io/display-name": "Python 2.7",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/django-ex.git",
-              "supports": "python:2.7,python",
-              "tags": "builder,python,hidden",
-              "version": "2.7"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "quay.io/centos7/python-27-centos7:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -4446,6 +4637,28 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             }
           },
           {
+            "name": "3.0-ubi9",
+            "annotations": {
+              "description": "Build and run Ruby 3.0 applications on UBI 9. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/3.0/README.md.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby 3.0 (UBI 9)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby:3.0,ruby",
+              "tags": "builder,ruby",
+              "version": "3.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi9/ruby-30:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
             "name": "3.0-ubi8",
             "annotations": {
               "description": "Build and run Ruby 3.0 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/3.0/README.md.",
@@ -4547,72 +4760,6 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "quay.io/centos7/ruby-27-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "2.6-ubi8",
-            "annotations": {
-              "description": "Build and run Ruby 2.6 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.6/README.md.",
-              "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 2.6 (UBI 8)",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:2.6,ruby",
-              "tags": "builder,ruby",
-              "version": "2.6"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.access.redhat.com/ubi8/ruby-26:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "2.6-ubi7",
-            "annotations": {
-              "description": "Build and run Ruby 2.6 applications on UBI 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.6/README.md.",
-              "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 2.6 (UBI 7)",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:2.6,ruby",
-              "tags": "builder,ruby",
-              "version": "2.6"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.access.redhat.com/ubi7/ruby-26:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "2.6",
-            "annotations": {
-              "description": "Build and run Ruby 2.6 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.6/README.md.",
-              "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 2.6",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:2.6,ruby",
-              "tags": "builder,ruby,hidden",
-              "version": "2.6"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "quay.io/centos7/ruby-26-centos7:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -5117,6 +5264,28 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "quay.io/wildfly/wildfly-centos7:26.0"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "26.1",
+            "annotations": {
+              "description": "Build and run WildFly 26 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/wildfly/wildfly-s2i/blob/current/README.md.",
+              "iconClass": "icon-wildfly",
+              "openshift.io/display-name": "WildFly 26",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
+              "supports": "wildfly:26,jee,java",
+              "tags": "builder,wildfly,java",
+              "version": "26.1"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "quay.io/wildfly/wildfly-centos7:26.1"
             },
             "generation": null,
             "importPolicy": {},
@@ -6927,7 +7096,7 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
 			}
 		},
 		{
-			"apiVersion": "apps.openshift.io/v1v1",
+			"apiVersion": "apps.openshift.io/v1",
 			"kind": "DeploymentConfig",
 			"metadata": {
 				"annotations": {
@@ -13731,6 +13900,10 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
 									{
 										"name": "CASC_JENKINS_CONFIG",
 										"value": "/var/lib/jenkins/proxy.yaml"
+									},
+									{
+										"name": "JAVA_FIPS_OPTIONS",
+										"value": "${JAVA_FIPS_OPTIONS}"
 									}
 								],
 								"image": " ",
@@ -13934,6 +14107,12 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
 			"value": "false"
 		},
 		{
+			"name": "JAVA_FIPS_OPTIONS",
+			"displayName": "Allows control over how the JVM interacts with FIPS on startup.",
+			"description": "See https://access.redhat.com/documentation/en-us/openjdk/11/html-single/configuring_openjdk_11_on_rhel_with_fips/index#config-fips-in-openjdk for the available command line properties to facilitate the JVM running on FIPS nodes.",
+			"value": "-Dcom.redhat.fips=false"
+		},
+		{
 			"name": "JENKINS_IMAGE_STREAM_TAG",
 			"displayName": "Jenkins ImageStreamTag",
 			"description": "Name of the ImageStreamTag to be used for the Jenkins image.",
@@ -14119,6 +14298,10 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
 									{
 										"name": "CASC_JENKINS_CONFIG",
 										"value": "/var/lib/jenkins/proxy.yaml"
+									},
+									{
+										"name": "JAVA_FIPS_OPTIONS",
+										"value": "${JAVA_FIPS_OPTIONS}"
 									}
 								],
 								"image": " ",
@@ -14327,6 +14510,12 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
 			"displayName": "Disable memory intensive administrative monitors",
 			"description": "Whether to perform memory intensive, possibly slow, synchronization with the Jenkins Update Center on start.  If true, the Jenkins core update monitor and site warnings monitor are disabled.",
 			"value": "false"
+		},
+		{
+			"name": "JAVA_FIPS_OPTIONS",
+			"displayName": "Allows control over how the JVM interacts with FIPS on startup.",
+			"description": "See https://access.redhat.com/documentation/en-us/openjdk/11/html-single/configuring_openjdk_11_on_rhel_with_fips/index#config-fips-in-openjdk for the available command line properties to facilitate the JVM running on FIPS nodes.",
+			"value": "-Dcom.redhat.fips=false"
 		},
 		{
 			"name": "JENKINS_IMAGE_STREAM_TAG",
