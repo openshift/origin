@@ -21,12 +21,14 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	networkv1 "github.com/openshift/api/network/v1"
 	routev1 "github.com/openshift/api/route/v1"
+	cloudnetwork "github.com/openshift/client-go/cloudnetwork/clientset/versioned"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -887,10 +889,7 @@ type capacity struct {
 // depend on the current cloud type, on the currenctly used cloudprivateipconfigs, and on an internal reservation
 // manager. Find <egressIPsPerNode> number of IPs per node.
 // TODO: Create the internal reservation manager, if needed.
-func findNodeEgressIPs(oc *exutil.CLI, nodeNames []string, cloudType configv1.PlatformType, egressIPsPerNode int) (map[string][]string, error) {
-	f := oc.KubeFramework()
-	clientset := f.ClientSet
-
+func findNodeEgressIPs(oc *exutil.CLI, clientset kubernetes.Interface, cloudNetworkClientset cloudnetwork.Interface, nodeNames []string, cloudType configv1.PlatformType, egressIPsPerNode int) (map[string][]string, error) {
 	// Get the node API objects corresponding to the node names.
 	var nodeList []*v1.Node
 	for _, nodeName := range nodeNames {
@@ -904,7 +903,7 @@ func findNodeEgressIPs(oc *exutil.CLI, nodeNames []string, cloudType configv1.Pl
 	// Build the list of reserved IPs. To do so, look at the currently used cloudprivateipconfigs
 	// and egressips as well as nodes.
 	var reservedIPs []string
-	reservedIPs, err := buildReservedEgressIPList(oc)
+	reservedIPs, err := buildReservedEgressIPList(oc, clientset, cloudNetworkClientset)
 	if err != nil {
 		return nil, err
 	}
@@ -950,34 +949,25 @@ func findNodeEgressIPs(oc *exutil.CLI, nodeNames []string, cloudType configv1.Pl
 // concurrent tests.
 // TODO: replace with actual library to access cloudprivateipconfigs and egressips - possibly
 // add to the networkclient
-func buildReservedEgressIPList(oc *exutil.CLI) ([]string, error) {
-	f := oc.KubeFramework()
-	clientset := f.ClientSet
-
+func buildReservedEgressIPList(oc *exutil.CLI, clientset kubernetes.Interface, cloudNetworkClientset cloudnetwork.Interface) ([]string, error) {
 	var reservedIPs []string
 
 	// cloudprivateipconfigs
-	out, err := runOcWithRetry(oc.AsAdmin(), "get", "-o", "name", "cloudprivateipconfigs")
+	cloudPrivateIPConfigs, err := cloudNetworkClientset.CloudV1().CloudPrivateIPConfigs().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	outReader := bufio.NewScanner(strings.NewReader(out))
-	re := regexp.MustCompile("^cloudprivateipconfig.cloud.network.openshift.io/(.*)")
-	for outReader.Scan() {
-		match := re.FindSubmatch([]byte(outReader.Text()))
-		if len(match) != 2 {
-			continue
-		}
-		reservedIPs = append(reservedIPs, string(match[1]))
+	for _, cloudPrivateIPConfig := range cloudPrivateIPConfigs.Items {
+		reservedIPs = append(reservedIPs, cloudPrivateIPConfig.Name)
 	}
 
 	// egressip for OVNKubernetes - if we receive a failure here, it may simply be because
 	// we are on OpenShiftSDN, so ignore the error.
-	out, err = runOcWithRetry(oc.AsAdmin(), "get", "-o", "name", "egressip")
+	out, err := runOcWithRetry(oc.AsAdmin(), "get", "-o", "name", "egressip")
 	if err == nil {
 		var existingEgressIPs []string
-		outReader = bufio.NewScanner(strings.NewReader(out))
-		re = regexp.MustCompile("^egressip.k8s.ovn.org/(.*)")
+		outReader := bufio.NewScanner(strings.NewReader(out))
+		re := regexp.MustCompile("^egressip.k8s.ovn.org/(.*)")
 		for outReader.Scan() {
 			match := re.FindSubmatch([]byte(outReader.Text()))
 			if len(match) != 2 {
@@ -1670,14 +1660,13 @@ func getTargetProtocolHostPort(oc *exutil.CLI, hasIPv4, hasIPv6 bool, cloudType 
 }
 
 // cloudPrivateIpConfigExists returns if a given ip was found as a cloudprivateipconfigs object.
-// TODO: use k8s API instead of CLI.
-func cloudPrivateIpConfigExists(oc *exutil.CLI, ip string) (bool, error) {
-	out, err := runOcWithRetry(oc.AsAdmin(), "get", "-o", "name", "cloudprivateipconfigs", ip)
+func cloudPrivateIpConfigExists(oc *exutil.CLI, cloudNetworkClientset cloudnetwork.Interface, ip string) (bool, error) {
+	_, err := cloudNetworkClientset.CloudV1().CloudPrivateIPConfigs().Get(context.Background(), ip, metav1.GetOptions{})
 	if err != nil {
-		if strings.Contains(out, "not found") {
+		if errors.IsNotFound(err) {
 			return false, nil
 		}
-		return false, fmt.Errorf("Error looking up cloudprivateipconfigs %s: out: %s, err: %v", ip, out, err)
+		return false, fmt.Errorf("Error looking up cloudprivateipconfigs %s, err: %v", ip, err)
 	}
 	return true, nil
 }

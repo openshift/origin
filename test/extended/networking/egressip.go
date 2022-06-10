@@ -12,6 +12,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
+	cloudnetwork "github.com/openshift/client-go/cloudnetwork/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -45,8 +46,9 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 	var (
 		networkPlugin string
 
-		clientset      kubernetes.Interface
-		tmpDirEgressIP string
+		clientset             kubernetes.Interface
+		cloudNetworkClientset cloudnetwork.Interface
+		tmpDirEgressIP        string
 
 		workerNodesOrdered        []corev1.Node
 		workerNodesOrderedNames   []string
@@ -82,9 +84,13 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 		tmpDirEgressIP, err = ioutil.TempDir("", "egressip-e2e")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("Getting the clientset")
+		g.By("Getting the kubernetes clientset")
 		f := oc.KubeFramework()
 		clientset = f.ClientSet
+
+		g.By("Getting the cloudnetwork clientset")
+		cloudNetworkClientset, err = cloudnetwork.NewForConfig(oc.AdminConfig())
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Determining the cloud infrastructure type")
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
@@ -272,7 +278,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 			// will pick the actual node.
 			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
 			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, egressIPNodeStr, cloudType, egressIPsPerNode)
+			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodeStr, cloudType, egressIPsPerNode)
 			framework.Logf("%v", nodeEgressIPMap)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -366,7 +372,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 			// will pick the actual node.
 			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
 			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
+			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
 			framework.Logf("%v", nodeEgressIPMap)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -392,10 +398,10 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 					ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
 
 					g.By("Applying the EgressIP object for OVN Kubernetes")
-					applyEgressIPObject(oc, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
+					applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
 				} else {
 					g.By("Adding EgressIPs to netnamespace and hostsubnet for OpenShiftSDN")
-					openshiftSDNAssignEgressIPsManually(oc, egressIPNamespace, egressIPSet, egressUpdateTimeout)
+					openshiftSDNAssignEgressIPsManually(oc, cloudNetworkClientset, egressIPNamespace, egressIPSet, egressUpdateTimeout)
 				}
 
 				g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
@@ -418,7 +424,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 
 				// Azure often fails on this step here - BZ https://bugzilla.redhat.com/show_bug.cgi?id=2073045
 				g.By(fmt.Sprintf("Waiting for maximum %d seconds for the CloudPrivateIPConfig objects to vanish", egressUpdateTimeout))
-				waitForCloudPrivateIPConfigsDeletion(oc, egressIPSet, egressUpdateTimeout)
+				waitForCloudPrivateIPConfigsDeletion(oc, cloudNetworkClientset, egressIPSet, egressUpdateTimeout)
 
 				g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", 0, egressIPSet))
 				spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, egressIPSet)
@@ -453,7 +459,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 			// EgressIP on different nodes. And we also test that pods can be moved between nodes.
 			g.By(fmt.Sprintf("Finding potential Egress IPs for node %s", leftNode[0]))
 			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, leftNode, cloudType, egressIPsPerNode)
+			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, leftNode, cloudType, egressIPsPerNode)
 			framework.Logf("%v", nodeEgressIPMap)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -474,10 +480,10 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 				ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
 
 				g.By("Applying the EgressIP object for OVN Kubernetes")
-				applyEgressIPObject(oc, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
+				applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
 			} else {
 				g.By("Patching the netnamespace and hostsubnet for OpenShiftSDN")
-				openshiftSDNAssignEgressIPsManually(oc, egressIPNamespace, egressIPSet, egressUpdateTimeout)
+				openshiftSDNAssignEgressIPsManually(oc, cloudNetworkClientset, egressIPNamespace, egressIPSet, egressUpdateTimeout)
 			}
 
 			numberOfRequestsToSend := 10
@@ -512,7 +518,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 			// will pick the actual node.
 			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
 			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
+			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
 			framework.Logf("%v", nodeEgressIPMap)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -531,7 +537,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 			ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, fmt.Sprintf("app: %s", deployment0Name), egressIPSet)
 
 			g.By("Applying the EgressIP object for OVN Kubernetes")
-			applyEgressIPObject(oc, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
+			applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
 
 			numberOfRequestsToSend := 10
 			if targetHost == "self" {
@@ -560,7 +566,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 			// will pick the actual node.
 			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
 			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
+			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
 			framework.Logf("%v", nodeEgressIPMap)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -595,7 +601,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 				ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
 
 				g.By("Applying the EgressIP object for OVN Kubernetes")
-				applyEgressIPObject(oc, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
+				applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
 
 				g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
 				spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
@@ -631,7 +637,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 			// For this test, get a single EgressIP per node.
 			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
 			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
+			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
 			framework.Logf("%v", nodeEgressIPMap)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -739,7 +745,7 @@ func ovnKubernetesCreateEgressIPObject(oc *exutil.CLI, egressIPYamlPath, egressI
 // applyEgressIPObject is a wrapper that applies the EgressIP object in file <egressIPYamlPath> with name <egressIPObjectName>
 // The propagation from a created EgressIP object to CloudPrivateIPConfig can take quite some time on Azure, hence also add a
 // check that waits for the CloudPrivateIPConfigs to be created.
-func applyEgressIPObject(oc *exutil.CLI, egressIPYamlPath, egressIPObjectName string, egressIPSet map[string]string, timeout int) {
+func applyEgressIPObject(oc *exutil.CLI, cloudNetworkClientset cloudnetwork.Interface, egressIPYamlPath, egressIPObjectName string, egressIPSet map[string]string, timeout int) {
 	framework.Logf("Applying the EgressIP object %s", egressIPObjectName)
 	_, err := runOcWithRetry(oc.AsAdmin(), "apply", "-f", egressIPYamlPath)
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -748,7 +754,7 @@ func applyEgressIPObject(oc *exutil.CLI, egressIPYamlPath, egressIPObjectName st
 	var exists bool
 	o.Eventually(func() bool {
 		for eip := range egressIPSet {
-			exists, err = cloudPrivateIpConfigExists(oc, eip)
+			exists, err = cloudPrivateIpConfigExists(oc, cloudNetworkClientset, eip)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if !exists {
 				framework.Logf("CloudPrivateIPConfig for %s not found.", eip)
@@ -777,13 +783,13 @@ func applyEgressIPObject(oc *exutil.CLI, egressIPYamlPath, egressIPObjectName st
 
 // waitForCloudPrivateIPConfigsDeletion will wait for all cloudprivateipconfig objects for the given IPs
 // to vanish.
-func waitForCloudPrivateIPConfigsDeletion(oc *exutil.CLI, egressIPSet map[string]string, timeout int) {
+func waitForCloudPrivateIPConfigsDeletion(oc *exutil.CLI, cloudNetworkClientset cloudnetwork.Interface, egressIPSet map[string]string, timeout int) {
 	var exists bool
 	var err error
 
 	o.Eventually(func() bool {
 		for eip := range egressIPSet {
-			exists, err = cloudPrivateIpConfigExists(oc, eip)
+			exists, err = cloudPrivateIpConfigExists(oc, cloudNetworkClientset, eip)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if exists {
 				framework.Logf("CloudPrivateIPConfig for %s found.", eip)
@@ -796,7 +802,7 @@ func waitForCloudPrivateIPConfigsDeletion(oc *exutil.CLI, egressIPSet map[string
 }
 
 // openshiftSDNAssignEgressIPsManually adds EgressIPs to hostsubnet and netnamespace.
-func openshiftSDNAssignEgressIPsManually(oc *exutil.CLI, egressIPNamespace string, egressIPSet map[string]string, timeout int) {
+func openshiftSDNAssignEgressIPsManually(oc *exutil.CLI, cloudNetworkClientset cloudnetwork.Interface, egressIPNamespace string, egressIPSet map[string]string, timeout int) {
 	var err error
 	for eip, nodeName := range egressIPSet {
 		framework.Logf("Adding EgressIP %s to hostnamespace %s", eip, egressIPNamespace)
@@ -811,7 +817,7 @@ func openshiftSDNAssignEgressIPsManually(oc *exutil.CLI, egressIPNamespace strin
 	var exists bool
 	o.Eventually(func() bool {
 		for eip := range egressIPSet {
-			exists, err = cloudPrivateIpConfigExists(oc, eip)
+			exists, err = cloudPrivateIpConfigExists(oc, cloudNetworkClientset, eip)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if !exists {
 				framework.Logf("CloudPrivateIPConfig for %s not found.", eip)
