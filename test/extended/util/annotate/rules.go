@@ -343,6 +343,12 @@ var (
 		"[SkippedUntil:06182022:blocker-bz/2093339]": {
 			`provisioning should provision storage with any volume data source`,
 		},
+
+		// TODO: azure-file storage tests are failing,
+		//  https://bugzilla.redhat.com/show_bug.cgi?id=2095623
+		"[Skipped:azure-file]": {
+			`\[Driver: azure-file\]`,
+		},
 	}
 
 	// labelExcludes temporarily block tests out of a specific suite
