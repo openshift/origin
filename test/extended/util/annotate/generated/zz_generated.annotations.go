@@ -1615,6 +1615,14 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] Kubectl client kubectl wait should ignore not found error with --for=delete": "should ignore not found error with --for=delete [Disabled:Broken] [Suite:k8s]",
 
+	"[Top Level] [sig-cli] [Serial] oc adm must-gather runs successfully for audit logs": "runs successfully for audit logs [Suite:openshift/conformance/serial]",
+
+	"[Top Level] [sig-cli] [Serial] oc adm must-gather runs successfully with options": "runs successfully with options [Suite:openshift/conformance/serial]",
+
+	"[Top Level] [sig-cli] [Serial] oc adm must-gather runs successfully": "runs successfully [Suite:openshift/conformance/serial]",
+
+	"[Top Level] [sig-cli] [Serial] oc adm must-gather when looking at the audit logs [sig-node] kubelet runs apiserver processes strictly sequentially in order to not risk audit log corruption": "runs apiserver processes strictly sequentially in order to not risk audit log corruption [Suite:openshift/conformance/serial]",
+
 	"[Top Level] [sig-cli] oc --request-timeout works as expected": "works as expected [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc adm build-chain": "build-chain [Suite:openshift/conformance/parallel]",
@@ -1624,14 +1632,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli] oc adm groups": "groups [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc adm images": "images [Suite:openshift/conformance/parallel]",
-
-	"[Top Level] [sig-cli] oc adm must-gather runs successfully for audit logs": "runs successfully for audit logs [Suite:openshift/conformance/parallel]",
-
-	"[Top Level] [sig-cli] oc adm must-gather runs successfully with options": "runs successfully with options [Suite:openshift/conformance/parallel]",
-
-	"[Top Level] [sig-cli] oc adm must-gather runs successfully": "runs successfully [Suite:openshift/conformance/parallel]",
-
-	"[Top Level] [sig-cli] oc adm must-gather when looking at the audit logs [sig-node] kubelet runs apiserver processes strictly sequentially in order to not risk audit log corruption": "runs apiserver processes strictly sequentially in order to not risk audit log corruption [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc adm new-project": "new-project [Suite:openshift/conformance/parallel]",
 

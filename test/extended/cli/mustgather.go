@@ -25,7 +25,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
-var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
+var _ = g.Describe("[sig-cli] [Serial] oc adm must-gather", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("oc-adm-must-gather").AsAdmin()
