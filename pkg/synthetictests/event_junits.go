@@ -76,6 +76,7 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testBackoffStartingFailedContainerForE2ENamespaces(events)...)
 	tests = append(tests, testAPIQuotaEvents(events)...)
 	tests = append(tests, testMultipleSingleSecondAvailabilityFailure(events)...)
+	tests = append(tests, testNoDNSLookupErrorsInDisruptionSamplers(events)...)
 
 	return tests
 }
