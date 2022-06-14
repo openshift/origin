@@ -96,7 +96,11 @@ var (
 		"[Serial:Self]": {
 			`\[sig-network\] HostPort validates that there is no conflict between pods with same hostPort but different hostIP and protocol`,
 		},
-		"[Skipped:azure]": {},
+		"[Skipped:azure]": {
+			// TODO: azure-file storage tests are failing,
+			//  https://bugzilla.redhat.com/show_bug.cgi?id=2095623
+			`\[Driver: azure-file\]`,
+		},
 		"[Skipped:ovirt]": {},
 		"[Skipped:gce]":   {},
 
@@ -352,7 +356,6 @@ var (
 		"[SkippedUntil:06182022:blocker-bz/2081021]": {
 			`\[sig-api-machinery\] API data in etcd should be stored at the correct location and version for all resources`,
 		},
-
 
 		// TODO: these CSI tests are disabled until June June 18 since Pods
 		//  created by these tests pull image directly:
