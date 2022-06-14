@@ -303,17 +303,23 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		return strings.Contains(t.name, "[sig-storage]")
 	})
 
+	mustGatherTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
+	})
+
 	// If user specifies a count, duplicate the kube and openshift tests that many times.
 	expectedTestCount := len(early) + len(late)
 	if count != -1 {
 		originalKube := kubeTests
 		originalOpenshift := openshiftTests
 		originalStorage := storageTests
+		originalMustGather := mustGatherTests
 
 		for i := 1; i < count; i++ {
 			kubeTests = append(kubeTests, copyTests(originalKube)...)
 			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
 			storageTests = append(storageTests, copyTests(originalStorage)...)
+			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
 		}
 	}
 	expectedTestCount += len(openshiftTests) + len(kubeTests)
@@ -340,7 +346,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	// TODO: will move to the monitor
 	pc.SetEvents([]string{upgradeEvent})
 
-	// Run kube & openshift tests. If user specified a count of -1,
+	// Run kube, storage, openshift, and must-gather tests. If user specified a count of -1,
 	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
 		kubeTestsCopy := copyTests(kubeTests)
@@ -355,6 +361,11 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		openshiftTestsCopy := copyTests(openshiftTests)
 		q.Execute(testCtx, openshiftTestsCopy, parallelism, status.Run)
 		tests = append(tests, openshiftTestsCopy...)
+
+		// run the must-gather tests after parallel tests to reduce resource contention
+		mustGatherTestsCopy := copyTests(mustGatherTests)
+		q.Execute(testCtx, mustGatherTestsCopy, parallelism, status.Run)
+		tests = append(tests, mustGatherTestsCopy...)
 	}
 
 	// TODO: will move to the monitor
