@@ -21367,6 +21367,10 @@ items:
           app: imagesourceapp
           deploymentconfig: imagesourceapp
       spec:
+        securityContext:
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
         containers:
         - image:
           imagePullPolicy: Always
@@ -21380,9 +21384,14 @@ items:
           - containerPort: 8888
             protocol: TCP
           terminationMessagePath: /dev/termination-log
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
         dnsPolicy: ClusterFirst
         restartPolicy: Always
-        securityContext: {}
     triggers:
     - imageChangeParams:
         automatic: true
@@ -21411,6 +21420,10 @@ items:
           app: imagedockerapp
           deploymentconfig: imagedockerapp
       spec:
+        securityContext:
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
         containers:
         - image:
           imagePullPolicy: Always
@@ -21423,10 +21436,15 @@ items:
             protocol: TCP
           - containerPort: 8888
             protocol: TCP
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
           terminationMessagePath: /dev/termination-log
         dnsPolicy: ClusterFirst
         restartPolicy: Always
-        securityContext: {}
     triggers:
     - imageChangeParams:
         automatic: true
