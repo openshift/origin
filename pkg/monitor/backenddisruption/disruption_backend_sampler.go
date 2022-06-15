@@ -562,13 +562,13 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, interval time.Du
 			}
 
 			// start a new interval with the new error
-			message := DisruptionBeganMessage(b.backendSampler.GetLocator(), b.backendSampler.GetConnectionType(), currentError)
+			message, eventReason, level := DisruptionBegan(b.backendSampler.GetLocator(), b.backendSampler.GetConnectionType(), currentError)
 			framework.Logf(message)
 			eventRecorder.Eventf(
 				&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: b.backendSampler.GetDisruptionBackendName()}, nil,
-				v1.EventTypeWarning, "DisruptionBegan", "detected", message)
+				v1.EventTypeWarning, eventReason, "detected", message)
 			currCondition := monitorapi.Condition{
-				Level:   monitorapi.Error,
+				Level:   level,
 				Locator: b.backendSampler.GetLocator(),
 				Message: message,
 			}
@@ -598,13 +598,13 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, interval time.Du
 				monitorRecorder.EndInterval(previousIntervalID, currSample.startTime)
 			}
 
-			message := DisruptionBeganMessage(b.backendSampler.GetLocator(), b.backendSampler.GetConnectionType(), currentError)
+			message, eventReason, level := DisruptionBegan(b.backendSampler.GetLocator(), b.backendSampler.GetConnectionType(), currentError)
 			framework.Logf(message)
 			eventRecorder.Eventf(
 				&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: b.backendSampler.GetDisruptionBackendName()}, nil,
-				v1.EventTypeWarning, "DisruptionBegan", "detected", message)
+				v1.EventTypeWarning, eventReason, "detected", message)
 			currCondition := monitorapi.Condition{
-				Level:   monitorapi.Error,
+				Level:   level,
 				Locator: b.backendSampler.GetLocator(),
 				Message: message,
 			}

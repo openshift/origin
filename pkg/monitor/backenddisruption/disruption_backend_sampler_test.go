@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/stretchr/testify/assert"
 
 	"k8s.io/client-go/tools/events"
 )
@@ -287,6 +288,43 @@ func Test_disruptionSampler_consumeSamples(t *testing.T) {
 				if !strings.Contains(eventIntervals[1].Message, "late") {
 					t.Error(eventIntervals[1])
 				}
+				return nil
+			},
+		},
+		{
+			// Disruption with a message of "dial tcp: lookup [hostname]: i/o timeout" should not be considered real disruption
+			name:          "dial-tcp-lookup-warn-not-error",
+			estimatedTime: 1 * time.Second,
+			produceSamples: func(ctx context.Context, backendSampler *disruptionSampler) {
+				now := time.Now()
+				firstSample := backendSampler.newSample(ctx)
+				firstSample.startTime = now
+				firstSample.setSampleError(nil)
+
+				secondSample := backendSampler.newSample(ctx)
+				secondSample.startTime = firstSample.startTime.Add(1 * time.Second)
+				secondSample.setSampleError(fmt.Errorf("dial tcp: lookup static.redhat.com: i/o timeout"))
+
+				thirdSample := backendSampler.newSample(ctx)
+				thirdSample.startTime = secondSample.startTime.Add(1 * time.Second)
+				thirdSample.setSampleError(nil)
+
+				close(secondSample.finished)
+				close(firstSample.finished)
+				close(thirdSample.finished)
+			},
+			validateSamples: func(t *testing.T, eventIntervals []monitorapi.EventInterval) error {
+
+				if !assert.Equal(t, 3, len(eventIntervals)) {
+					return nil
+				}
+
+				assert.Equal(t, 1*time.Second, eventIntervals[0].To.Sub(eventIntervals[0].From))
+				assert.Equal(t, 1*time.Second, eventIntervals[1].To.Sub(eventIntervals[1].From))
+				assert.Equal(t, monitorapi.Warning, eventIntervals[1].Level,
+					"DNS lookup i/o timeout should be warning level, not error")
+				assert.Contains(t, eventIntervals[1].Message, "DNS lookup timeouts began")
+				assert.Contains(t, eventIntervals[1].Message, "i/o timeout") // make sure the orig message is also preserved
 				return nil
 			},
 		},

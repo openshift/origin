@@ -68,7 +68,12 @@ func computeDisruptionData(eventIntervals monitorapi.Intervals) *BackendDisrupti
 	}
 
 	allBackendLocators := sets.String{}
-	allDisruptionEventsIntervals := eventIntervals.Filter(monitorapi.IsDisruptionEvent)
+	allDisruptionEventsIntervals := eventIntervals.Filter(
+		monitorapi.And(
+			monitorapi.IsDisruptionEvent,
+			monitorapi.IsErrorEvent, // ignore Warning events, we use these for disruption we don't actually think was from the cluster under test (i.e. DNS)
+		),
+	)
 	for _, eventInterval := range allDisruptionEventsIntervals {
 		allBackendLocators.Insert(eventInterval.Locator)
 	}

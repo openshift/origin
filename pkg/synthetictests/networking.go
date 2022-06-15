@@ -8,6 +8,7 @@ import (
 	"time"
 
 	v1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -294,6 +295,41 @@ func testPodIPReuse(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 				Output: strings.Join(failures, "\n"),
 			},
 			SystemOut: strings.Join(failures, "\n"),
+		},
+	}
+}
+
+func testNoDNSLookupErrorsInDisruptionSamplers(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-trt] no DNS lookup errors should be encountered in disruption samplers"
+
+	failures := []string{}
+	for _, event := range events {
+		if reason := monitorapi.ReasonFrom(event.Message); reason != backenddisruption.DisruptionSamplerOutageBeganEventReason {
+			continue
+		}
+		failures = append(failures, event.From.Format(time.RFC3339)+" "+event.Message)
+	}
+
+	if len(failures) == 0 {
+		return []*junitapi.JUnitTestCase{
+			{Name: testName},
+		}
+	}
+
+	output := strings.Join(failures, "\n") +
+		"\nThese failures imply DNS was lost in the CI cluster running the tests, not the cluster under test."
+	return []*junitapi.JUnitTestCase{
+		{
+			Name: testName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: output,
+			},
+			SystemOut: strings.Join(failures, "\n"),
+		},
+		{
+			// This is a flake for now, known problem in the build clusters. Investigation in
+			// https://issues.redhat.com/browse/DPTP-2921
+			Name: testName,
 		},
 	}
 }
