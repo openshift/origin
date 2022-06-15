@@ -1079,6 +1079,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization][Serial] authorization  TestAuthorizationResourceAccessReview should succeed": "should succeed [Suite:openshift/conformance/serial]",
 
+	"[Top Level] [sig-auth][Feature:PodSecurity] restricted-v2 SCC should mutate empty securityContext to match restricted PSa profile": "restricted-v2 SCC should mutate empty securityContext to match restricted PSa profile [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestInvalidRoleRefs should succeed": "should succeed [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestProjectIsNamespace should succeed": "should succeed [Suite:openshift/conformance/parallel]",
