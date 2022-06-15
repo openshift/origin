@@ -406,7 +406,7 @@ func (b *BackendSampler) RunEndpointMonitoring(ctx context.Context, monitorRecor
 		eventRecorder = fakeEventRecorder
 	}
 
-	interval := 1 * time.Second
+	interval := 5 * time.Second
 	disruptionSampler := newDisruptionSampler(b)
 	go disruptionSampler.produceSamples(producerContext, interval)
 	go disruptionSampler.consumeSamples(consumerContext, interval, monitorRecorder, eventRecorder)
