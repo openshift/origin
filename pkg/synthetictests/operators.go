@@ -94,44 +94,73 @@ func testOperatorOSUpdateStaged(events monitorapi.Intervals, clientConfig *rest.
 	failThreshold := 10 * time.Minute
 
 	// Scan all OSUpdateStarted and OSUpdateStaged events, sort by node.
-	nodeOSUpdateTimes := map[string]*startedStaged{}
+	nodeNameToOSUpdateTimes := map[string]*startedStaged{}
 	for _, e := range events {
-		if strings.Contains(e.Message, "reason/OSUpdateStarted") {
-			// locator will be of the form: node/ci-op-j34hmfqt-253f3-cq852-master-1
-			_, ok := nodeOSUpdateTimes[e.Locator]
-			if !ok {
-				nodeOSUpdateTimes[e.Locator] = &startedStaged{}
-			}
-			// for this type of event, the from/to time are identical as this is a point in time event.
-			ss := nodeOSUpdateTimes[e.Locator]
-			ss.OSUpdateStarted = e.To
-		} else if strings.Contains(e.Message, "reason/OSUpdateStaged") {
-			// locator will be of the form: node/ci-op-j34hmfqt-253f3-cq852-master-1
-			_, ok := nodeOSUpdateTimes[e.Locator]
-			if !ok {
-				nodeOSUpdateTimes[e.Locator] = &startedStaged{}
-			}
-			// for this type of event, the from/to time are identical as this is a point in time event.
-			ss := nodeOSUpdateTimes[e.Locator]
-			ss.OSUpdateStaged = e.To
+		nodeName, _ := monitorapi.NodeFromLocator(e.Locator)
+		if len(nodeName) == 0 {
+			continue
 		}
+
+		reason := monitorapi.ReasonFrom(e.Message)
+		phase := monitorapi.PhaseFrom(e.Message)
+		switch {
+		case reason == "OSUpdateStarted":
+			_, ok := nodeNameToOSUpdateTimes[nodeName]
+			if !ok {
+				nodeNameToOSUpdateTimes[nodeName] = &startedStaged{}
+			}
+			// for this type of event, the from/to time are identical as this is a point in time event.
+			ss := nodeNameToOSUpdateTimes[nodeName]
+			ss.OSUpdateStarted = e.To
+
+		case reason == "OSUpdateStaged":
+			_, ok := nodeNameToOSUpdateTimes[nodeName]
+			if !ok {
+				nodeNameToOSUpdateTimes[nodeName] = &startedStaged{}
+			}
+			// for this type of event, the from/to time are identical as this is a point in time event.
+			ss := nodeNameToOSUpdateTimes[nodeName]
+			// this value takes priority over the backstop set based on the node update completion, so there's no reason
+			// to perform a check, just directly overwrite.
+			ss.OSUpdateStaged = e.To
+
+		case phase == "Update":
+			_, ok := nodeNameToOSUpdateTimes[nodeName]
+			if !ok {
+				nodeNameToOSUpdateTimes[nodeName] = &startedStaged{}
+			}
+			// This type of event indicates that an update completed. If an update completed  (which indicates we did
+			// not receive it likely due to kube API/client issues), then we know that the latest
+			// possible time that it could have OSUpdateStaged is when the update is finished.  If we have not yet observed
+			// an OSUpdateStaged event, record this time as the final time.
+			// Events are best effort, so if a process ends before an event is sent, it is never seen.
+			// Ultimately, depending on, "I see everything as it happens and never miss anything" doesn't age well and
+			// a change like this prevents failures due to, "something we don't really care about isn't absolutely perfect"
+			// versus failures that really matter.  Without this, we're getting noise that we aren't going to devote time
+			// to addressing.
+			ss := nodeNameToOSUpdateTimes[nodeName]
+			if ss.OSUpdateStaged.IsZero() {
+				ss.OSUpdateStaged = e.To
+			}
+		}
+
 	}
 
 	// Iterate the data we assembled looking for any nodes with an excessive time between Started/Staged, or those
 	// missing a Staged
 	slowStageMessages := []string{}
 	var failTest bool // set true if we see anything over 10 minutes, our failure threshold
-	for node, ss := range nodeOSUpdateTimes {
+	for node, ss := range nodeNameToOSUpdateTimes {
 		if ss.OSUpdateStarted.IsZero() {
 			// This case is handled by a separate test below.
 			continue
 		} else if ss.OSUpdateStaged.IsZero() || ss.OSUpdateStarted.After(ss.OSUpdateStaged) {
 			// Watch that we don't do multiple started->staged transitions, if we see started > staged, we must have
 			// failed to make it to staged on a later update:
-			slowStageMessages = append(slowStageMessages, fmt.Sprintf("%s OSUpdateStarted at %s, did not make it to OSUpdateStaged", node, ss.OSUpdateStarted.Format(time.RFC3339)))
+			slowStageMessages = append(slowStageMessages, fmt.Sprintf("node/%s OSUpdateStarted at %s, did not make it to OSUpdateStaged", node, ss.OSUpdateStarted.Format(time.RFC3339)))
 			failTest = true
 		} else if ss.OSUpdateStaged.Sub(ss.OSUpdateStarted) > flakeThreshold {
-			slowStageMessages = append(slowStageMessages, fmt.Sprintf("%s OSUpdateStarted at %s, OSUpdateStaged at %s: %s", node,
+			slowStageMessages = append(slowStageMessages, fmt.Sprintf("node/%s OSUpdateStarted at %s, OSUpdateStaged at %s: %s", node,
 				ss.OSUpdateStarted.Format(time.RFC3339), ss.OSUpdateStaged.Format(time.RFC3339), ss.OSUpdateStaged.Sub(ss.OSUpdateStarted)))
 
 			if ss.OSUpdateStaged.Sub(ss.OSUpdateStarted) > failThreshold {
