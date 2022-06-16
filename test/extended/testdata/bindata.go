@@ -52743,7 +52743,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     }
 
     function isEndpointConnectivity(eventInterval) {
-        if (!eventInterval.message.includes("stopped responding to GET requests")){
+        if (!eventInterval.message.includes("reason/DisruptionBegan") && !eventInterval.message.includes("reason/DisruptionSamplerOutageBegan")){
             return false
         }
         if (eventInterval.locator.includes("disruption/")) {
