@@ -392,7 +392,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			switch infra.Status.PlatformStatus.Type {
 			// Timeout was previously 2min, bumped for metal/openstack while work underway on https://bugzilla.redhat.com/show_bug.cgi?id=2071998
 			case configv1.BareMetalPlatformType:
-				cvoAckTimeout = 4 * time.Minute
+				cvoAckTimeout = 10 * time.Minute
 			case configv1.OpenStackPlatformType:
 				cvoAckTimeout = 4 * time.Minute
 			default:
