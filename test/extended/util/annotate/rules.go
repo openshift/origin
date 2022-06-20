@@ -69,6 +69,9 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=2070929
 			`\[sig-network\]\[Feature:EgressIP\] \[internal-targets\]`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=2093339
+			`\[sig-storage\].* provisioning should provision storage with any volume data source`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
@@ -339,13 +342,6 @@ var (
 			// Currently ibm-master-proxy-static and imbcloud-block-storage-plugin tolerate all taints
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1825027
 			`\[Feature:Platform\] Managed cluster should ensure control plane operators do not make themselves unevictable`,
-		},
-
-		// TODO: these CSI tests are disabled until June June 18 since Pods
-		//  created by these tests pull image directly:
-		//  https://bugzilla.redhat.com/show_bug.cgi?id=2093339
-		"[SkippedUntil:06182022:blocker-bz/2093339]": {
-			`provisioning should provision storage with any volume data source`,
 		},
 	}
 
