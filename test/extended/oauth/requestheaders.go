@@ -56,14 +56,7 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 	var oc = exutil.NewCLI("request-headers")
 
 	g.It("test RequestHeaders IdP", func() {
-
-		// In some rare cases, CAO might be damaged when entering this test. If it is - the results
-		// of this test might flaky. This check ensures that we capture such situation early and
-		// investigate why it wasn't ready before this test.
-		e2e.Logf("Ensuring CAO is available==True, progressing==False, degraded==False")
-
-		ctx := context.Background()
-		ctx, cancel := context.WithTimeout(ctx, 20*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
 		defer cancel()
 
 		authenticationRollout := exutil.WaitForOperatorToRollout(ctx, oc.AdminConfigClient(), "authentication")
@@ -107,8 +100,7 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// clean up after ourselves
 		defer func() {
-			ctx := context.Background()
-			ctx, cancel := context.WithTimeout(ctx, 20*time.Minute)
+			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
 			defer cancel()
 
 			authenticationRollout := exutil.WaitForOperatorToRollout(ctx, oc.AdminConfigClient(), "authentication")
