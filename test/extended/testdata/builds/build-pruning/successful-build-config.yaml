@@ -17,3 +17,6 @@ spec:
       env:
       - name: "BUILD_LOGLEVEL"
         value: "2"
+  resources:
+    limits:
+      cpu: 1

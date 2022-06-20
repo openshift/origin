@@ -24,7 +24,9 @@ items:
         from:
           kind: DockerImage
           name: quay.io/redhat-developer/test-build-simples2i:1.2
-    resources: {}
+      resources:
+    limits:
+      cpu: 1
     postCommit: {}
     nodeSelector: null
   status:

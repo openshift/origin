@@ -42,6 +42,8 @@ spec:
             defaultMode: 420
             name: my-configmap
           type: ConfigMap
-  resources: {}
+    resources:
+    limits:
+      cpu: 1
   nodeSelector: null
 status: {}

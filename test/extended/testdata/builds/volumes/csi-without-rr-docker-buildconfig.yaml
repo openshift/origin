@@ -34,6 +34,8 @@ spec:
               sharedSecret: my-share
               refreshResource: "false"
           type: CSI
-  resources: {}
+    resources:
+    limits:
+      cpu: 1
   nodeSelector: null
 status: {}

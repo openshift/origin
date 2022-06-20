@@ -38,7 +38,9 @@ spec:
     imageLabels:
       - name: user-specified-label
         value: arbitrary-value
-  resources: {}
+  resources:
+    limits:
+      cpu: 1
   postCommit: {}
   nodeSelector: null
 status:

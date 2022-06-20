@@ -17286,7 +17286,9 @@ items:
         env:
           - name: BUILD_LOGLEVEL
             value: "5"
-    resources: {}
+      resources:
+    limits:
+      cpu: 1
     postCommit:
       command: ["touch"]
       args: ["/tmp/postCommit"]
@@ -17408,7 +17410,9 @@ items:
         from:
           kind: DockerImage
           name: quay.io/redhat-developer/test-build-simples2i:1.2
-    resources: {}
+      resources:
+    limits:
+      cpu: 1
     postCommit: {}
     nodeSelector: null
   status:
@@ -17680,6 +17684,9 @@ spec:
       env:
       - name: "BUILD_LOGLEVEL"
         value: "2"
+  resources:
+    limits:
+      cpu: 1
 `)
 
 func testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYamlBytes() ([]byte, error) {
@@ -20018,7 +20025,9 @@ items:
         from:
           kind: DockerImage
           name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
-    resources: {}
+  resources:
+    limits:
+      cpu: 1
   status:
     lastVersion: 0
 - kind: BuildConfig
@@ -20047,7 +20056,9 @@ items:
         from:
           kind: DockerImage
           name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
-    resources: {}
+  resources:
+    limits:
+      cpu: 1
   status:
     lastVersion: 0
 - kind: BuildConfig
@@ -20075,7 +20086,9 @@ items:
         from:
           kind: DockerImage
           name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
-    resources: {}
+      resources:
+    limits:
+      cpu: 1
   status:
     lastVersion: 0
 - kind: BuildConfig
@@ -20104,7 +20117,9 @@ items:
         from:
           kind: DockerImage
           name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
-    resources: {}
+      resources:
+    limits:
+      cpu: 1
   status:
     lastVersion: 0
 - kind: BuildConfig
@@ -20132,7 +20147,9 @@ items:
         from:
           kind: DockerImage
           name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
-    resources: {}
+      resources:
+    limits:
+      cpu: 1
     nodeSelector:
       nodelabelkey: nodelabelvalue
   status:
@@ -20161,7 +20178,9 @@ items:
         from:
           kind: DockerImage
           name: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
-    resources: {}
+      resources:
+    limits:
+      cpu: 1
     postCommit: {}
     nodeSelector:
   status:
@@ -20193,7 +20212,9 @@ items:
         buildArgs:
         - name: foofoo
           value: default
-    resources: {}
+      resources:
+    limits:
+      cpu: 1
     postCommit: {}
     nodeSelector:
   status:
@@ -21783,7 +21804,9 @@ spec:
     imageLabels:
       - name: user-specified-label
         value: arbitrary-value
-  resources: {}
+  resources:
+    limits:
+      cpu: 1
   postCommit: {}
   nodeSelector: null
 status:
@@ -21848,7 +21871,9 @@ spec:
     imageLabels:
       - name: user-specified-label
         value: arbitrary-value
-  resources: {}
+  resources:
+    limits:
+      cpu: 1
   postCommit: {}
   nodeSelector: null
 status:
@@ -21918,7 +21943,9 @@ spec:
     imageLabels:
       - name: user-specified-label
         value: arbitrary-value
-  resources: {}
+  resources:
+    limits:
+      cpu: 1
   postCommit: {}
   nodeSelector: null
 status:
@@ -21991,7 +22018,9 @@ spec:
     imageLabels:
       - name: user-specified-label
         value: arbitrary-value
-  resources: {}
+  resources:
+    limits:
+      cpu: 1
   postCommit: {}
   nodeSelector: null
 status:
@@ -22143,7 +22172,9 @@ spec:
             volumeAttributes:
               sharedSecret: my-share
           type: CSI
-  resources: {}
+    resources:
+    limits:
+      cpu: 1
   nodeSelector: null
 status: {}`)
 
@@ -22200,7 +22231,9 @@ spec:
             volumeAttributes:
               sharedSecret: my-share
           type: CSI
-  resources: {}
+  resources:
+    limits:
+      cpu: 1
   nodeSelector: null
 status: {}`)
 
@@ -22352,7 +22385,9 @@ spec:
               sharedSecret: my-share
               refreshResource: "false"
           type: CSI
-  resources: {}
+    resources:
+    limits:
+      cpu: 1
   nodeSelector: null
 status: {}`)
 
@@ -22410,7 +22445,9 @@ spec:
               sharedSecret: my-share
               refreshResource: "false"
           type: CSI
-  resources: {}
+    resources:
+    limits:
+      cpu: 1
   nodeSelector: null
 status: {}`)
 
@@ -22470,7 +22507,9 @@ spec:
             defaultMode: 420
             name: my-configmap
           type: ConfigMap
-  resources: {}
+    resources:
+    limits:
+      cpu: 1
   nodeSelector: null
 status: {}`)
 
@@ -22605,7 +22644,9 @@ spec:
             defaultMode: 420
             name: my-configmap
           type: ConfigMap
-  resources: {}
+    resources:
+    limits:
+      cpu: 1
   nodeSelector: null
 status: {}`)
 
