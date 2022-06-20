@@ -56,6 +56,7 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 	var oc = exutil.NewCLI("request-headers")
 
 	g.It("test RequestHeaders IdP", func() {
+		g.By("before setup - check control plane topology")
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -63,12 +64,13 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 			e2eskipper.Skipf("External clusters do not allow customization of the Identity Providers for the cluster.")
 		}
 
+		g.By("before setup - wait for stability")
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
 		defer cancel()
-
 		authenticationRollout := exutil.WaitForOperatorToRollout(ctx, oc.AdminConfigClient(), "authentication")
 		<-authenticationRollout.StableBeforeStarting() // wait for the initial state to be stable
 
+		g.By("setup - set test environment")
 		caCert, caKey := createClientCA(oc.AdminKubeClient().CoreV1())
 		defer oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Delete(context.Background(), clientCAName, metav1.DeleteOptions{})
 
@@ -100,12 +102,13 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// clean up after ourselves
 		defer func() {
+			g.By("clean up - wait for stability")
 			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
 			defer cancel()
-
 			authenticationRollout := exutil.WaitForOperatorToRollout(ctx, oc.AdminConfigClient(), "authentication")
 			<-authenticationRollout.StableBeforeStarting() // wait for the initial state to be stable
 
+			g.By("clean up - remove test environment")
 			userclient := oc.AdminUserClient().UserV1()
 			userclient.Identities().Delete(context.Background(), fmt.Sprintf("%s:%s", idpName, testUserName), metav1.DeleteOptions{})
 			userclient.Users().Delete(context.Background(), testUserName, metav1.DeleteOptions{})
@@ -120,13 +123,16 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 				g.Fail(fmt.Sprintf("Failed to update oauth/cluster, unable to turn it into its original state: %v", err))
 			}
 
+			g.By("clean up - wait for clean up to be done")
 			<-authenticationRollout.Done()
 			o.Expect(authenticationRollout.Err()).NotTo(o.HaveOccurred())
 		}()
 
+		g.By("setup  - wait for setup to be done")
 		<-authenticationRollout.Done()
 		o.Expect(authenticationRollout.Err()).NotTo(o.HaveOccurred())
 
+		g.By("after setup - generate test data")
 		oauthURL := getOAuthWellKnownData(oc).Issuer
 		goodCert, goodKey := generateCert(caCert, caKey, clientCorrectName, []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth})
 
