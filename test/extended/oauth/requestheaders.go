@@ -56,18 +56,18 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 	var oc = exutil.NewCLI("request-headers")
 
 	g.It("test RequestHeaders IdP", func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
-		defer cancel()
-
-		authenticationRollout := exutil.WaitForOperatorToRollout(ctx, oc.AdminConfigClient(), "authentication")
-		<-authenticationRollout.StableBeforeStarting() // wait for the initial state to be stable
-
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {
 			e2eskipper.Skipf("External clusters do not allow customization of the Identity Providers for the cluster.")
 		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
+		defer cancel()
+
+		authenticationRollout := exutil.WaitForOperatorToRollout(ctx, oc.AdminConfigClient(), "authentication")
+		<-authenticationRollout.StableBeforeStarting() // wait for the initial state to be stable
 
 		caCert, caKey := createClientCA(oc.AdminKubeClient().CoreV1())
 		defer oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Delete(context.Background(), clientCAName, metav1.DeleteOptions{})
@@ -135,7 +135,19 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 		caCert2, caKey2 := generateCA("The Other Testing CA")
 		unknownCACert, unknownCAKey := generateCert(caCert2, caKey2, clientCorrectName, nil)
 
-		testCases := []certAuthTest{
+		// add the route CA cert to the system bundle to trust the OAuth server
+		caCerts, err := x509.SystemCertPool()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		routerCA, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(context.Background(), "default-ingress-cert", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		for _, ca := range routerCA.Data {
+			ok := caCerts.AppendCertsFromPEM([]byte(ca))
+			o.Expect(ok).To(o.Equal(true), "adding router certs to the system CA bundle")
+		}
+
+		for _, tc := range []certAuthTest{
 			{
 				name:     "/healtz - anonymous: anyone should be able to access it",
 				endpoint: "/healthz",
@@ -192,21 +204,7 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 				endpoint:      "/oauth/authorize?client_id=openshift-challenging-client&response_type=token",
 				expectedError: "500 Internal Server Error",
 			},
-		}
-
-		// add the route CA cert to the system bundle to trust the OAuth server
-		caCerts, err := x509.SystemCertPool()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		routerCA, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(context.Background(), "default-ingress-cert", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		for _, ca := range routerCA.Data {
-			ok := caCerts.AppendCertsFromPEM([]byte(ca))
-			o.Expect(ok).To(o.Equal(true), "adding router certs to the system CA bundle")
-		}
-
-		for _, tc := range testCases {
+		} {
 			g.By(tc.name, func() {
 				resp := oauthHTTPRequestOrFail(caCerts, oauthURL, tc.endpoint, "", tc.cert, tc.key)
 				respDump, err := httputil.DumpResponse(resp, true)
