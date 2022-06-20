@@ -939,7 +939,7 @@ func findNodeEgressIPs(oc *exutil.CLI, clientset kubernetes.Interface, cloudNetw
 		}
 		nodeEgressIPs[node.Name] = freeIPs
 		// Most cloud environments such as GCP report a single, common CIDR for
-		// EgressiIPs. Therefore, just add the IPs for this node to the reservedPool.
+		// EgressIPs. Therefore, just add the IPs for this node to the reservedPool.
 		for _, freeIP := range freeIPs {
 			reservedIPs[freeIP] = struct{}{}
 		}
@@ -1551,60 +1551,42 @@ func getDaemonSetPodIPs(clientset kubernetes.Interface, namespace, daemonsetName
 // probeForClientIPs spawns a prober pod inside the prober namespace. It then runs curl against http://%s/dial?host=%s&port=%d&request=/clientip
 // for the specified number of iterations and returns a set of the clientIP addresses that were returned.
 // At the end of the test, the prober pod is deleted again.
-func probeForClientIPs(oc *exutil.CLI, proberPodNamespace, proberPodName, url, targetIP string, targetPort, iterations int) (map[string]struct{}, error) {
+func probeForClientIPs(oc *exutil.CLI, proberPodNamespace, proberPodName, url, targetIP string, targetPort, iterations int) (map[string]int, []error, error) {
 	if oc == nil {
-		return nil, fmt.Errorf("Nil pointer to exutil.CLI oc was provided in SendProbesToHostPort.")
+		return nil, nil, fmt.Errorf("Nil pointer to exutil.CLI oc was provided in SendProbesToHostPort.")
 	}
 
-	f := oc.KubeFramework()
-	clientset := f.ClientSet
+	clientIpSet := make(map[string]int)
 
-	clientIpSet := make(map[string]struct{})
-
-	proberPod := frameworkpod.CreateExecPodOrFail(clientset, proberPodNamespace, probePodName, func(pod *corev1.Pod) {
-		// pod.ObjectMeta.Annotations = annotation
-	})
 	request := fmt.Sprintf("http://%s/dial?host=%s&port=%d&request=/clientip", url, targetIP, targetPort)
-	maxTimeouts := 3
+	var warnings []error
 	for i := 0; i < iterations; i++ {
-		output, err := runOcWithRetry(oc.AsAdmin(), "exec", "--", "curl", "-s", request)
+		output, err := runOcWithRetry(oc.AsAdmin(), "exec", "-n", proberPodNamespace, proberPodName, "--", "curl", "-s", request)
 		if err != nil {
-			// if we hit an i/o timeout, retry
-			if timeoutError, _ := regexp.Match("^Unable to connect to the server: dial tcp.*i/o timeout$", []byte(output)); timeoutError && maxTimeouts > 0 {
-				framework.Logf("Query failed. Request: %s, Output: %s, Error: %v", request, output, err)
-				iterations++
-				maxTimeouts--
-				continue
-			}
-			return nil, fmt.Errorf("Query failed. Request: %s, Output: %s, Error: %v", request, output, err)
+			return nil, warnings, fmt.Errorf("Query failed. Request: %s, Output: %s, Error: %v", request, output, err)
 		}
 		dialResponse := &struct {
 			Responses []string
 		}{}
 		err = json.Unmarshal([]byte(output), dialResponse)
 		if err != nil {
+			warnings = append(warnings, err)
 			continue
 		}
 		if len(dialResponse.Responses) != 1 {
+			warnings = append(warnings, fmt.Errorf("Received invalid dial responses: %s", output))
 			continue
 		}
 		clientIpPort := strings.Split(dialResponse.Responses[0], ":")
 		if len(clientIpPort) != 2 {
+			warnings = append(warnings, fmt.Errorf("Received an invalid value for clientIP and port in dial responses: %s", output))
 			continue
 		}
 		clientIp := clientIpPort[0]
-		clientIpSet[clientIp] = struct{}{}
+		clientIpSet[clientIp]++
 	}
 
-	// delete the exec pod again - in foreground, so that it blocks
-	deletePolicy := metav1.DeletePropagationForeground
-	if err := clientset.CoreV1().Pods(proberPod.Namespace).Delete(context.TODO(), proberPod.Name, metav1.DeleteOptions{
-		PropagationPolicy: &deletePolicy,
-	}); err != nil {
-		return nil, err
-	}
-
-	return clientIpSet, nil
+	return clientIpSet, warnings, nil
 }
 
 // getTargetProtocolHostPort gets targetProtocol, targetHost, targetPort.

@@ -67,9 +67,6 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=2004074
 			`\[sig-network-edge\]\[Feature:Idling\] Unidling should work with TCP \(while idling\)`,
 
-			// https://bugzilla.redhat.com/show_bug.cgi?id=2070929
-			`\[sig-network\]\[Feature:EgressIP\] \[internal-targets\]`,
-
 			// https://bugzilla.redhat.com/show_bug.cgi?id=2093339
 			`\[sig-storage\].* provisioning should provision storage with any volume data source`,
 		},
