@@ -1659,16 +1659,24 @@ func getTargetProtocolHostPort(oc *exutil.CLI, hasIPv4, hasIPv6 bool, cloudType 
 	return targetProtocol, targetHost, targetPort, nil
 }
 
-// cloudPrivateIpConfigExists returns if a given ip was found as a cloudprivateipconfigs object.
-func cloudPrivateIpConfigExists(oc *exutil.CLI, cloudNetworkClientset cloudnetwork.Interface, ip string) (bool, error) {
-	_, err := cloudNetworkClientset.CloudV1().CloudPrivateIPConfigs().Get(context.Background(), ip, metav1.GetOptions{})
+// cloudPrivateIpConfigExists returns if a given ip was found as a cloudprivateipconfigs object
+// and if it was assigned to a node as a separate value.
+// Returns the following: exists bool, isAssigned bool, err error.
+func cloudPrivateIpConfigExists(oc *exutil.CLI, cloudNetworkClientset cloudnetwork.Interface, ip string) (bool, bool, error) {
+	cpic, err := cloudNetworkClientset.CloudV1().CloudPrivateIPConfigs().Get(context.Background(), ip, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return false, nil
+			return false, false, nil
 		}
-		return false, fmt.Errorf("Error looking up cloudprivateipconfigs %s, err: %v", ip, err)
+		return false, false, fmt.Errorf("Error looking up cloudprivateipconfigs %s, err: %v", ip, err)
 	}
-	return true, nil
+	for _, c := range cpic.Status.Conditions {
+		if c.Type == "Assigned" && c.Status == metav1.ConditionTrue {
+			return true, true, nil
+		}
+	}
+
+	return true, false, nil
 }
 
 // egressIPStatusHasIP returns if a given ip was found in a given EgressIP object's status field.

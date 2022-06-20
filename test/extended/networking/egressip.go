@@ -752,12 +752,17 @@ func applyEgressIPObject(oc *exutil.CLI, cloudNetworkClientset cloudnetwork.Inte
 
 	framework.Logf(fmt.Sprintf("Waiting for CloudPrivateIPConfig creation for a maximum of %d seconds", timeout))
 	var exists bool
+	var isAssigned bool
 	o.Eventually(func() bool {
 		for eip := range egressIPSet {
-			exists, err = cloudPrivateIpConfigExists(oc, cloudNetworkClientset, eip)
+			exists, isAssigned, err = cloudPrivateIpConfigExists(oc, cloudNetworkClientset, eip)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if !exists {
 				framework.Logf("CloudPrivateIPConfig for %s not found.", eip)
+				return false
+			}
+			if !isAssigned {
+				framework.Logf("CloudPrivateIPConfig for %s not assigned.", eip)
 				return false
 			}
 		}
@@ -789,7 +794,7 @@ func waitForCloudPrivateIPConfigsDeletion(oc *exutil.CLI, cloudNetworkClientset 
 
 	o.Eventually(func() bool {
 		for eip := range egressIPSet {
-			exists, err = cloudPrivateIpConfigExists(oc, cloudNetworkClientset, eip)
+			exists, _, err = cloudPrivateIpConfigExists(oc, cloudNetworkClientset, eip)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if exists {
 				framework.Logf("CloudPrivateIPConfig for %s found.", eip)
@@ -815,12 +820,17 @@ func openshiftSDNAssignEgressIPsManually(oc *exutil.CLI, cloudNetworkClientset c
 
 	framework.Logf(fmt.Sprintf("Waiting for CloudPrivateIPConfig creation for a maximum of %d seconds", timeout))
 	var exists bool
+	var isAssigned bool
 	o.Eventually(func() bool {
 		for eip := range egressIPSet {
-			exists, err = cloudPrivateIpConfigExists(oc, cloudNetworkClientset, eip)
+			exists, isAssigned, err = cloudPrivateIpConfigExists(oc, cloudNetworkClientset, eip)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if !exists {
 				framework.Logf("CloudPrivateIPConfig for %s not found.", eip)
+				return false
+			}
+			if !isAssigned {
+				framework.Logf("CloudPrivateIPConfig for %s not assigned.", eip)
 				return false
 			}
 		}
