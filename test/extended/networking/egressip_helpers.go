@@ -911,7 +911,6 @@ func findNodeEgressIPs(oc *exutil.CLI, clientset kubernetes.Interface, cloudNetw
 
 	// Build the list of reserved IPs. To do so, look at the currently used cloudprivateipconfigs
 	// and egressips as well as nodes.
-	var reservedIPs []string
 	reservedIPs, err := buildReservedEgressIPList(oc, clientset, cloudNetworkClientset)
 	if err != nil {
 		return nil, err
@@ -940,24 +939,19 @@ func findNodeEgressIPs(oc *exutil.CLI, clientset kubernetes.Interface, cloudNetw
 		}
 		nodeEgressIPs[node.Name] = freeIPs
 		// Most cloud environments such as GCP report a single, common CIDR for
-		// EgresiIPs. Therefore, just add the IPs for this node to the reservedPool.
+		// EgressiIPs. Therefore, just add the IPs for this node to the reservedPool.
 		for _, freeIP := range freeIPs {
-			reservedIPs = append(reservedIPs, freeIP)
+			reservedIPs[freeIP] = struct{}{}
 		}
 	}
 
 	return nodeEgressIPs, nil
 }
 
-// buildReservedEgressIPList builds the list of reserved IPs. To do so, look at the currently used cloudprivateipconfigs
-// and egressips as well as the node IP addresses.
-// Warning: Some cloud environments have a common CIDR for EgressIPs. In those environments, it is not possible to attribute
-// a specific EgressIP to a specific node so this is just a "best effort" allocation and should be kept in mind when writing
-// tests.
-// TODO: add an internal reservation system based on a singleton to avoid race conditions during
-// concurrent tests.
-func buildReservedEgressIPList(oc *exutil.CLI, clientset kubernetes.Interface, cloudNetworkClientset cloudnetwork.Interface) ([]string, error) {
-	var reservedIPs []string
+// buildReservedEgressIPList builds the list of reserved IPs. To do so, look at the currently used cloudprivateipconfigs, egressips,
+// hostsubnets, netnamespaces as well as the node IP addresses.
+func buildReservedEgressIPList(oc *exutil.CLI, clientset kubernetes.Interface, cloudNetworkClientset cloudnetwork.Interface) (map[string]struct{}, error) {
+	reservedIPs := make(map[string]struct{})
 
 	// cloudprivateipconfigs
 	cloudPrivateIPConfigs, err := cloudNetworkClientset.CloudV1().CloudPrivateIPConfigs().List(context.Background(), metav1.ListOptions{})
@@ -965,7 +959,7 @@ func buildReservedEgressIPList(oc *exutil.CLI, clientset kubernetes.Interface, c
 		return nil, err
 	}
 	for _, cloudPrivateIPConfig := range cloudPrivateIPConfigs.Items {
-		reservedIPs = append(reservedIPs, cloudPrivateIPConfig.Name)
+		reservedIPs[cloudPrivateIPConfig.Name] = struct{}{}
 	}
 
 	// egressip for OVNKubernetes - if we receive a failure here, it may simply be because
@@ -974,10 +968,11 @@ func buildReservedEgressIPList(oc *exutil.CLI, clientset kubernetes.Interface, c
 	if err == nil {
 		for _, egressip := range egressipList.Items {
 			for _, ip := range egressip.Spec.EgressIPs {
-				reservedIPs = append(reservedIPs, ip)
+				reservedIPs[ip] = struct{}{}
 			}
 		}
 	}
+	// Find EgressIP in HostSubnet configuration.
 	// egressip for OpenShiftSDN - if we receive a failure here, it may simply be because
 	// we are on OVNKubernetes, so ignore the error.
 	networkClient := networkclient.NewForConfigOrDie(oc.AdminConfig())
@@ -985,7 +980,18 @@ func buildReservedEgressIPList(oc *exutil.CLI, clientset kubernetes.Interface, c
 	if err == nil {
 		for _, hostSubnet := range hostSubnets.Items {
 			for _, eip := range hostSubnet.EgressIPs {
-				reservedIPs = append(reservedIPs, string(eip))
+				reservedIPs[string(eip)] = struct{}{}
+			}
+		}
+	}
+	// Find EgressIPs in NetNamespace configuration.
+	// egressip for OpenShiftSDN - if we receive a failure here, it may simply be because
+	// we are on OVNKubernetes, so ignore the error.
+	netNamespaces, err := networkClient.NetNamespaces().List(context.Background(), metav1.ListOptions{})
+	if err == nil {
+		for _, netNamespace := range netNamespaces.Items {
+			for _, eip := range netNamespace.EgressIPs {
+				reservedIPs[string(eip)] = struct{}{}
 			}
 		}
 	}
@@ -1000,7 +1006,7 @@ func buildReservedEgressIPList(oc *exutil.CLI, clientset kubernetes.Interface, c
 	for _, node := range nodes.Items {
 		for _, addr := range node.Status.Addresses {
 			if addr.Type == corev1.NodeInternalIP {
-				reservedIPs = append(reservedIPs, addr.Address)
+				reservedIPs[addr.Address] = struct{}{}
 			}
 		}
 	}
@@ -1010,7 +1016,7 @@ func buildReservedEgressIPList(oc *exutil.CLI, clientset kubernetes.Interface, c
 
 // getFirstFreeIPs returns the first available IP addresses from the IP network (CIDR notation). reservedIPs are
 // eliminated from the choice and the cloudType is taken into account.
-func getFirstFreeIPs(ipnetStr string, reservedIPs []string, cloudType configv1.PlatformType, egressIPsPerNode int) ([]string, error) {
+func getFirstFreeIPs(ipnetStr string, reservedIPs map[string]struct{}, cloudType configv1.PlatformType, egressIPsPerNode int) ([]string, error) {
 	// Parse the CIDR notation and enumerate all IPs inside the subnet.
 	_, ipnet, err := net.ParseCIDR(ipnetStr)
 	if err != nil {
@@ -1051,7 +1057,7 @@ func getFirstFreeIPs(ipnetStr string, reservedIPs []string, cloudType configv1.P
 	var freeIPList []string
 outer:
 	for _, ip := range ipList {
-		for _, rip := range reservedIPs {
+		for rip := range reservedIPs {
 			if ip.String() == rip {
 				continue outer
 			}
