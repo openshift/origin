@@ -15,11 +15,14 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"regexp"
+	"sort"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
@@ -287,6 +290,57 @@ func gatherPostMortem(oc *exutil.CLI) {
 			e2e.Logf("get logs from %s in %s: %w", pod.Name, oauthServerNamespace, err)
 		}
 		e2e.Logf("log from %s in %s: %s", pod.Name, oauthServerNamespace, logs)
+	}
+
+	operator, err := oc.AdminOperatorClient().
+		OperatorV1().
+		Authentications().
+		Get(
+			context.Background(),
+			"cluster",
+			metav1.GetOptions{},
+		)
+	if err != nil {
+		e2e.Logf("get authentication operator from %s: %w", "cluster", err)
+	}
+
+	conditionTypeSet := make(map[string][]operatorv1.OperatorCondition)
+
+	for _, condition := range operator.Status.Conditions {
+		for _, statusType := range []string{
+			operatorv1.OperatorStatusTypeAvailable,
+			operatorv1.OperatorStatusTypeDegraded,
+			operatorv1.OperatorStatusTypeProgressing,
+			operatorv1.OperatorStatusTypeUpgradeable,
+			operatorv1.OperatorStatusTypePrereqsSatisfied,
+		} {
+			if strings.HasSuffix(condition.Type, statusType) {
+				statusTypeConditions := conditionTypeSet[statusType]
+				conditionTypeSet[statusType] = append(statusTypeConditions, condition)
+				break
+			}
+		}
+	}
+
+	for conditionType, conditions := range conditionTypeSet {
+		sort.Slice(conditions, func(i, j int) bool {
+			a := conditions[i]
+			b := conditions[j]
+
+			if a.Status == b.Status {
+				return a.LastTransitionTime.Before(&b.LastTransitionTime)
+			}
+
+			return a.Type < b.Type
+		})
+
+		var conditionOutput strings.Builder
+		for _, condition := range conditions {
+			conditionOutput.WriteString("\t")
+			conditionOutput.WriteString(fmt.Sprintf("%v", condition))
+			conditionOutput.WriteString("\n")
+		}
+		e2e.Logf("authentication operator status condition %s:\n%s", conditionType, conditionOutput.String())
 	}
 }
 
