@@ -1,7 +1,6 @@
 package networking
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -172,10 +171,6 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 
 	// Do not check for errors in g.AfterEach as the other cleanup steps will fail, otherwise.
 	g.AfterEach(func() {
-		// Print some useful output on failure.
-		if g.CurrentGinkgoTestDescription().Failed {
-			printEgressIPState(oc)
-		}
 		if networkPluginName() == OVNKubernetesPluginName {
 			g.By("Deleting the EgressIP object if it exists for OVN Kubernetes")
 			egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
@@ -826,18 +821,4 @@ func openshiftSDNAssignEgressIPsManually(oc *exutil.CLI, egressIPNamespace strin
 		framework.Logf("CloudPrivateIPConfigs for %v found.", egressIPSet)
 		return true
 	}, time.Duration(timeout)*time.Second, 5*time.Second).Should(o.BeTrue())
-}
-
-// printEgressIPState allows getting a quick overview of the current state of EgressIP objects.
-func printEgressIPState(oc *exutil.CLI) {
-	for _, object := range []string{"host", "egressip", "hostsubnet", "netnamespace", "cloudprivateipconfigs"} {
-		out, err := runOcWithRetry(oc.AsAdmin(), "get", "-A", "-o", "wide", object)
-		if err != nil {
-			continue
-		}
-		outReader := bufio.NewScanner(strings.NewReader(out))
-		for outReader.Scan() {
-			framework.Logf(outReader.Text())
-		}
-	}
 }
