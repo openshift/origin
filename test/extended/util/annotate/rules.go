@@ -99,11 +99,7 @@ var (
 		"[Serial:Self]": {
 			`\[sig-network\] HostPort validates that there is no conflict between pods with same hostPort but different hostIP and protocol`,
 		},
-		"[Skipped:azure]": {
-			// TODO: azure-file storage tests are failing,
-			//  https://bugzilla.redhat.com/show_bug.cgi?id=2095623
-			`\[Driver: azure-file\]`,
-		},
+		"[Skipped:azure]": {},
 		"[Skipped:ovirt]": {},
 		"[Skipped:gce]":   {},
 
