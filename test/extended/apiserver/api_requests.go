@@ -212,7 +212,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 				"console-operator":                       166.0,
 				"csi-snapshot-controller-operator":       82.0,
 				"dns-operator":                           69.0,
-				"etcd-operator":                          203.0,
+				"etcd-operator":                          220.0,
 				"ingress-operator":                       440.0,
 				"kube-apiserver-operator":                315.0,
 				"kube-controller-manager-operator":       220.0,
