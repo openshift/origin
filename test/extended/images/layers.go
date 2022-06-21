@@ -10,6 +10,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -175,6 +176,11 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 					},
 					Output: buildv1.BuildOutput{
 						To: &corev1.ObjectReference{Kind: "ImageStreamTag", Name: "output:latest"},
+					},
+					Resources: corev1.ResourceRequirements{
+						Limits: map[corev1.ResourceName]resource.Quantity{
+							"cpu": resource.MustParse("1"),
+						},
 					},
 				},
 			},

@@ -9,6 +9,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -63,6 +64,11 @@ USER 1001
 										Value: "2",
 									},
 								},
+							},
+						},
+						Resources: corev1.ResourceRequirements{
+							Limits: map[corev1.ResourceName]resource.Quantity{
+								"cpu": resource.MustParse("1"),
 							},
 						},
 					},
