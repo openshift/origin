@@ -36,6 +36,6 @@ spec:
           type: CSI
     resources:
     limits:
-      cpu: 1
+      cpu: 200m
   nodeSelector: null
 status: {}

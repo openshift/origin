@@ -76,7 +76,7 @@ COPY --from=%[2]s /bin/ping /test/
 					},
 					Resources: corev1.ResourceRequirements{
 						Limits: map[corev1.ResourceName]resource.Quantity{
-							"cpu": resource.MustParse("1"),
+							"cpu": resource.MustParse("200m"),
 						},
 					},
 				},

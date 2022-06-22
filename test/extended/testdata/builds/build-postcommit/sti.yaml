@@ -26,7 +26,7 @@ items:
           name: quay.io/redhat-developer/test-build-simples2i:1.2
       resources:
     limits:
-      cpu: 1
+      cpu: 200m
     postCommit: {}
     nodeSelector: null
   status:

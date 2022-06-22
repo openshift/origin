@@ -179,7 +179,7 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 					},
 					Resources: corev1.ResourceRequirements{
 						Limits: map[corev1.ResourceName]resource.Quantity{
-							"cpu": resource.MustParse("1"),
+							"cpu": resource.MustParse("200m"),
 						},
 					},
 				},

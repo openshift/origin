@@ -51,7 +51,7 @@ items:
           name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
   resources:
     limits:
-      cpu: 1
+      cpu: 200m
   status:
     lastVersion: 0
 - kind: BuildConfig
@@ -82,7 +82,7 @@ items:
           name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
   resources:
     limits:
-      cpu: 1
+      cpu: 200m
   status:
     lastVersion: 0
 - kind: BuildConfig
@@ -112,7 +112,7 @@ items:
           name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
       resources:
     limits:
-      cpu: 1
+      cpu: 200m
   status:
     lastVersion: 0
 - kind: BuildConfig
@@ -143,7 +143,7 @@ items:
           name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
       resources:
     limits:
-      cpu: 1
+      cpu: 200m
   status:
     lastVersion: 0
 - kind: BuildConfig
@@ -173,7 +173,7 @@ items:
           name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
       resources:
     limits:
-      cpu: 1
+      cpu: 200m
     nodeSelector:
       nodelabelkey: nodelabelvalue
   status:
@@ -204,7 +204,7 @@ items:
           name: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       resources:
     limits:
-      cpu: 1
+      cpu: 200m
     postCommit: {}
     nodeSelector:
   status:
@@ -238,7 +238,7 @@ items:
           value: default
       resources:
     limits:
-      cpu: 1
+      cpu: 200m
     postCommit: {}
     nodeSelector:
   status:

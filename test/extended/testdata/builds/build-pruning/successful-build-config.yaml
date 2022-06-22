@@ -19,4 +19,4 @@ spec:
         value: "2"
   resources:
     limits:
-      cpu: 1
+      cpu: 200m

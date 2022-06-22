@@ -43,7 +43,7 @@ spec:
         value: arbitrary-value
   resources:
     limits:
-      cpu: 1
+      cpu: 200m
   postCommit: {}
   nodeSelector: null
 status:

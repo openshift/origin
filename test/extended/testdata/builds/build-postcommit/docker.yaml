@@ -22,7 +22,7 @@ items:
             value: "5"
       resources:
     limits:
-      cpu: 1
+      cpu: 200m
     postCommit:
       command: ["touch"]
       args: ["/tmp/postCommit"]
