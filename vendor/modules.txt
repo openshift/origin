@@ -759,6 +759,9 @@ github.com/openshift/client-go/authorization/clientset/versioned/typed/authoriza
 github.com/openshift/client-go/build/clientset/versioned
 github.com/openshift/client-go/build/clientset/versioned/scheme
 github.com/openshift/client-go/build/clientset/versioned/typed/build/v1
+github.com/openshift/client-go/cloudnetwork/clientset/versioned
+github.com/openshift/client-go/cloudnetwork/clientset/versioned/scheme
+github.com/openshift/client-go/cloudnetwork/clientset/versioned/typed/cloudnetwork/v1
 github.com/openshift/client-go/config/clientset/versioned
 github.com/openshift/client-go/config/clientset/versioned/scheme
 github.com/openshift/client-go/config/clientset/versioned/typed/config/v1

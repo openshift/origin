@@ -21,14 +21,18 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	networkv1 "github.com/openshift/api/network/v1"
 	routev1 "github.com/openshift/api/route/v1"
+	cloudnetwork "github.com/openshift/client-go/cloudnetwork/clientset/versioned"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -100,6 +104,13 @@ type EgressIPList struct {
 }
 
 var (
+	// GroupVersionResource of EgressIP
+	egressIPGvr = schema.GroupVersionResource{
+		Group:    "k8s.ovn.org",
+		Version:  "v1",
+		Resource: "egressips",
+	}
+
 	egressIPYamlTemplatePodAndNamespaceSelector = `apiVersion: k8s.ovn.org/v1
 kind: EgressIP
 metadata:
@@ -887,10 +898,7 @@ type capacity struct {
 // depend on the current cloud type, on the currenctly used cloudprivateipconfigs, and on an internal reservation
 // manager. Find <egressIPsPerNode> number of IPs per node.
 // TODO: Create the internal reservation manager, if needed.
-func findNodeEgressIPs(oc *exutil.CLI, nodeNames []string, cloudType configv1.PlatformType, egressIPsPerNode int) (map[string][]string, error) {
-	f := oc.KubeFramework()
-	clientset := f.ClientSet
-
+func findNodeEgressIPs(oc *exutil.CLI, clientset kubernetes.Interface, cloudNetworkClientset cloudnetwork.Interface, nodeNames []string, cloudType configv1.PlatformType, egressIPsPerNode int) (map[string][]string, error) {
 	// Get the node API objects corresponding to the node names.
 	var nodeList []*v1.Node
 	for _, nodeName := range nodeNames {
@@ -904,7 +912,7 @@ func findNodeEgressIPs(oc *exutil.CLI, nodeNames []string, cloudType configv1.Pl
 	// Build the list of reserved IPs. To do so, look at the currently used cloudprivateipconfigs
 	// and egressips as well as nodes.
 	var reservedIPs []string
-	reservedIPs, err := buildReservedEgressIPList(oc)
+	reservedIPs, err := buildReservedEgressIPList(oc, clientset, cloudNetworkClientset)
 	if err != nil {
 		return nil, err
 	}
@@ -948,54 +956,24 @@ func findNodeEgressIPs(oc *exutil.CLI, nodeNames []string, cloudType configv1.Pl
 // tests.
 // TODO: add an internal reservation system based on a singleton to avoid race conditions during
 // concurrent tests.
-// TODO: replace with actual library to access cloudprivateipconfigs and egressips - possibly
-// add to the networkclient
-func buildReservedEgressIPList(oc *exutil.CLI) ([]string, error) {
-	f := oc.KubeFramework()
-	clientset := f.ClientSet
-
+func buildReservedEgressIPList(oc *exutil.CLI, clientset kubernetes.Interface, cloudNetworkClientset cloudnetwork.Interface) ([]string, error) {
 	var reservedIPs []string
 
 	// cloudprivateipconfigs
-	out, err := runOcWithRetry(oc.AsAdmin(), "get", "-o", "name", "cloudprivateipconfigs")
+	cloudPrivateIPConfigs, err := cloudNetworkClientset.CloudV1().CloudPrivateIPConfigs().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	outReader := bufio.NewScanner(strings.NewReader(out))
-	re := regexp.MustCompile("^cloudprivateipconfig.cloud.network.openshift.io/(.*)")
-	for outReader.Scan() {
-		match := re.FindSubmatch([]byte(outReader.Text()))
-		if len(match) != 2 {
-			continue
-		}
-		reservedIPs = append(reservedIPs, string(match[1]))
+	for _, cloudPrivateIPConfig := range cloudPrivateIPConfigs.Items {
+		reservedIPs = append(reservedIPs, cloudPrivateIPConfig.Name)
 	}
 
 	// egressip for OVNKubernetes - if we receive a failure here, it may simply be because
 	// we are on OpenShiftSDN, so ignore the error.
-	out, err = runOcWithRetry(oc.AsAdmin(), "get", "-o", "name", "egressip")
+	egressipList, err := listEgressIPs(oc)
 	if err == nil {
-		var existingEgressIPs []string
-		outReader = bufio.NewScanner(strings.NewReader(out))
-		re = regexp.MustCompile("^egressip.k8s.ovn.org/(.*)")
-		for outReader.Scan() {
-			match := re.FindSubmatch([]byte(outReader.Text()))
-			if len(match) != 2 {
-				continue
-			}
-			existingEgressIPs = append(existingEgressIPs, string(match[1]))
-		}
-		for _, existingEgressIP := range existingEgressIPs {
-			out, err = runOcWithRetry(oc.AsAdmin(), "get", "egressip", existingEgressIP, "-o", "jsonpath={.spec.egressIPs}")
-			if err != nil {
-				return nil, err
-			}
-			var existingEgressIPList []string
-			err = json.Unmarshal([]byte(out), &existingEgressIPList)
-			if err != nil {
-				return nil, err
-			}
-			for _, ip := range existingEgressIPList {
+		for _, egressip := range egressipList.Items {
+			for _, ip := range egressip.Spec.EgressIPs {
 				reservedIPs = append(reservedIPs, ip)
 			}
 		}
@@ -1669,35 +1647,36 @@ func getTargetProtocolHostPort(oc *exutil.CLI, hasIPv4, hasIPv6 bool, cloudType 
 	return targetProtocol, targetHost, targetPort, nil
 }
 
-// cloudPrivateIpConfigExists returns if a given ip was found as a cloudprivateipconfigs object.
-// TODO: use k8s API instead of CLI.
-func cloudPrivateIpConfigExists(oc *exutil.CLI, ip string) (bool, error) {
-	out, err := runOcWithRetry(oc.AsAdmin(), "get", "-o", "name", "cloudprivateipconfigs", ip)
+// cloudPrivateIpConfigExists returns if a given ip was found as a cloudprivateipconfigs object
+// and if it was assigned to a node as a separate value.
+// Returns the following: exists bool, isAssigned bool, err error.
+func cloudPrivateIpConfigExists(oc *exutil.CLI, cloudNetworkClientset cloudnetwork.Interface, ip string) (bool, bool, error) {
+	cpic, err := cloudNetworkClientset.CloudV1().CloudPrivateIPConfigs().Get(context.Background(), ip, metav1.GetOptions{})
 	if err != nil {
-		if strings.Contains(out, "not found") {
-			return false, nil
+		if errors.IsNotFound(err) {
+			return false, false, nil
 		}
-		return false, fmt.Errorf("Error looking up cloudprivateipconfigs %s: out: %s, err: %v", ip, out, err)
+		return false, false, fmt.Errorf("Error looking up cloudprivateipconfigs %s, err: %v", ip, err)
 	}
-	return true, nil
+	for _, c := range cpic.Status.Conditions {
+		if c.Type == "Assigned" && c.Status == metav1.ConditionTrue {
+			return true, true, nil
+		}
+	}
+
+	return true, false, nil
 }
 
 // egressIPStatusHasIP returns if a given ip was found in a given EgressIP object's status field.
-// TODO: use k8s API instead of CLI.
 func egressIPStatusHasIP(oc *exutil.CLI, egressIPObjectName string, ip string) (bool, error) {
-	out, err := runOcWithRetry(oc.AsAdmin(), "get", "-o", "json", "egressip", egressIPObjectName)
+	eip, err := getEgressIP(oc, egressIPObjectName)
 	if err != nil {
-		if strings.Contains(out, "not found") {
+		if errors.IsNotFound(err) {
 			return false, nil
 		}
-		return false, fmt.Errorf("Error looking up EgressIP %s: out: %s, err: %v", egressIPObjectName, out, err)
+		return false, fmt.Errorf("Error looking up EgressIP %s, err: %v", egressIPObjectName, err)
 	}
-	parsedEgressIP := EgressIP{}
-	err = json.Unmarshal([]byte(out), &parsedEgressIP)
-	if err != nil {
-		return false, err
-	}
-	for _, egressIPStatusItem := range parsedEgressIP.Status.Items {
+	for _, egressIPStatusItem := range eip.Status.Items {
 		if egressIPStatusItem.EgressIP == ip {
 			return true, nil
 		}
@@ -1871,4 +1850,36 @@ func runOcWithRetry(oc *exutil.CLI, cmd string, args ...string) (string, error) 
 		break
 	}
 	return output, err
+}
+
+// listEgressIPs uses the dynamic admin client to return a pointer to
+// a list of existing EgressIPs, or error.
+func listEgressIPs(oc *exutil.CLI) (*EgressIPList, error) {
+	dynamic := oc.AdminDynamicClient()
+	unstructured, err := dynamic.Resource(egressIPGvr).Namespace("").List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	egressipList := &EgressIPList{}
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured.UnstructuredContent(), egressipList)
+	if err != nil {
+		return nil, err
+	}
+	return egressipList, nil
+}
+
+// getEgressIP uses the dynamic admin client to return a pointer to
+// an existing EgressIP, or error.
+func getEgressIP(oc *exutil.CLI, name string) (*EgressIP, error) {
+	dynamic := oc.AdminDynamicClient()
+	unstructured, err := dynamic.Resource(egressIPGvr).Namespace("").Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	egressip := &EgressIP{}
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured.UnstructuredContent(), egressip)
+	if err != nil {
+		return nil, err
+	}
+	return egressip, nil
 }
