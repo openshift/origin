@@ -18,6 +18,7 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
+	projectv1 "github.com/openshift/api/project/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
@@ -181,8 +182,12 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		newNamespace := oc.CreateProject()
-		ns = append(ns)
+		newNamespace := fmt.Sprintf("%s-another", oc.Namespace())
+		_, err = oc.ProjectClient().ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
+			ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
+		}, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		ns = append(ns, newNamespace)
 
 		g.By("waiting for the build to finish")
 		err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), "output", nil, nil, nil)
