@@ -37,5 +37,6 @@ spec:
     resources:
     limits:
       cpu: 200m
+      memory: 512M
   nodeSelector: null
 status: {}

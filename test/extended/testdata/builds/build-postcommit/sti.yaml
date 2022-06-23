@@ -27,6 +27,7 @@ items:
       resources:
     limits:
       cpu: 200m
+      memory: 512M
     postCommit: {}
     nodeSelector: null
   status:

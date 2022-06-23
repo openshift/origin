@@ -23,6 +23,7 @@ items:
       resources:
     limits:
       cpu: 200m
+      memory: 512M
     postCommit:
       command: ["touch"]
       args: ["/tmp/postCommit"]

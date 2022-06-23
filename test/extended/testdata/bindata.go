@@ -17288,7 +17288,8 @@ items:
             value: "5"
       resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
     postCommit:
       command: ["touch"]
       args: ["/tmp/postCommit"]
@@ -17412,7 +17413,8 @@ items:
           name: quay.io/redhat-developer/test-build-simples2i:1.2
       resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
     postCommit: {}
     nodeSelector: null
   status:
@@ -17686,7 +17688,8 @@ spec:
         value: "2"
   resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
 `)
 
 func testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYamlBytes() ([]byte, error) {
@@ -20027,7 +20030,8 @@ items:
           name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
   resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
   status:
     lastVersion: 0
 - kind: BuildConfig
@@ -20058,7 +20062,8 @@ items:
           name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
   resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
   status:
     lastVersion: 0
 - kind: BuildConfig
@@ -20088,7 +20093,8 @@ items:
           name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
       resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
   status:
     lastVersion: 0
 - kind: BuildConfig
@@ -20119,7 +20125,8 @@ items:
           name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
       resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
   status:
     lastVersion: 0
 - kind: BuildConfig
@@ -20149,7 +20156,8 @@ items:
           name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
       resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
     nodeSelector:
       nodelabelkey: nodelabelvalue
   status:
@@ -20180,7 +20188,8 @@ items:
           name: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
     postCommit: {}
     nodeSelector:
   status:
@@ -20214,7 +20223,8 @@ items:
           value: default
       resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
     postCommit: {}
     nodeSelector:
   status:
@@ -21806,7 +21816,8 @@ spec:
         value: arbitrary-value
   resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
   postCommit: {}
   nodeSelector: null
 status:
@@ -21873,7 +21884,8 @@ spec:
         value: arbitrary-value
   resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
   postCommit: {}
   nodeSelector: null
 status:
@@ -21945,7 +21957,7 @@ spec:
         value: arbitrary-value
   resources:
     limits:
-      cpu: 1
+      cpu: 200m
   postCommit: {}
   nodeSelector: null
 status:
@@ -22020,7 +22032,8 @@ spec:
         value: arbitrary-value
   resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
   postCommit: {}
   nodeSelector: null
 status:
@@ -22174,7 +22187,8 @@ spec:
           type: CSI
     resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
   nodeSelector: null
 status: {}`)
 
@@ -22233,7 +22247,8 @@ spec:
           type: CSI
   resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
   nodeSelector: null
 status: {}`)
 
@@ -22387,7 +22402,8 @@ spec:
           type: CSI
     resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
   nodeSelector: null
 status: {}`)
 
@@ -22447,7 +22463,8 @@ spec:
           type: CSI
     resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
   nodeSelector: null
 status: {}`)
 
@@ -22509,7 +22526,8 @@ spec:
           type: ConfigMap
     resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
   nodeSelector: null
 status: {}`)
 
@@ -22646,7 +22664,8 @@ spec:
           type: ConfigMap
     resources:
     limits:
-      cpu: 1
+      cpu: 200m
+      memory: 512M
   nodeSelector: null
 status: {}`)
 
