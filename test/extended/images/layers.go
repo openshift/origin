@@ -14,11 +14,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	k8simage "k8s.io/kubernetes/test/utils/image"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 )
@@ -37,7 +39,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 		}
 	})
 
-	oc = exutil.NewCLI("image-layers")
+	oc = exutil.NewCLIWithPodSecurityLevel("image-layers", admissionapi.LevelBaseline)
 
 	g.It("should identify a deleted image as missing", func() {
 		client := imagev1client.NewForConfigOrDie(oc.AdminConfig()).ImageV1()

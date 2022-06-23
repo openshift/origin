@@ -11,8 +11,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	buildv1 "github.com/openshift/api/build/v1"
+
 	eximages "github.com/openshift/origin/test/extended/images"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
@@ -21,7 +23,7 @@ import (
 var _ = g.Describe("[sig-builds][Feature:Builds] Multi-stage image builds", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc             = exutil.NewCLI("build-multistage")
+		oc             = exutil.NewCLIWithPodSecurityLevel("build-multistage", admissionapi.LevelBaseline)
 		testDockerfile = fmt.Sprintf(`
 FROM scratch as test
 USER 1001

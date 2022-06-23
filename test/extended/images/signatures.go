@@ -8,6 +8,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -16,7 +17,7 @@ var _ = g.Describe("[sig-imageregistry][Serial][Suite:openshift/registry/serial]
 	defer g.GinkgoRecover()
 
 	var (
-		oc                 = exutil.NewCLI("registry-signing")
+		oc                 = exutil.NewCLIWithPodSecurityLevel("registry-signing", admissionapi.LevelBaseline)
 		signerBuildFixture = exutil.FixturePath("testdata", "signer-buildconfig.yaml")
 	)
 

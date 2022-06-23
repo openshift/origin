@@ -8,6 +8,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -16,7 +17,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] build with empty source", func(
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-nosrc-build.json")
-		oc           = exutil.NewCLI("cli-build-nosrc")
+		oc           = exutil.NewCLIWithPodSecurityLevel("cli-build-nosrc", admissionapi.LevelBaseline)
 		exampleBuild = exutil.FixturePath("testdata", "builds", "test-build-app")
 	)
 

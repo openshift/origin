@@ -8,9 +8,11 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	configv1 "github.com/openshift/api/config/v1"
@@ -21,7 +23,7 @@ import (
 
 var _ = g.Describe("[sig-builds][Feature:Builds][volumes] build volumes", func() {
 	var (
-		oc                     = exutil.NewCLI("build-volumes")
+		oc                     = exutil.NewCLIWithPodSecurityLevel("build-volumes", admissionapi.LevelBaseline)
 		baseDir                = exutil.FixturePath("testdata", "builds", "volumes")
 		secret                 = filepath.Join(baseDir, "secret.yaml")
 		configmap              = filepath.Join(baseDir, "configmap.yaml")
@@ -211,7 +213,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                     = exutil.NewCLI("build-volumes-csi")
+		oc                     = exutil.NewCLIWithPodSecurityLevel("build-volumes-csi", admissionapi.LevelBaseline)
 		baseDir                = exutil.FixturePath("testdata", "builds", "volumes")
 		secret                 = filepath.Join(baseDir, "secret.yaml")
 		s2iDeploymentConfig    = filepath.Join(baseDir, "s2i-deploymentconfig.yaml")

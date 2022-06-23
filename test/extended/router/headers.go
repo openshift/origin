@@ -16,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	configv1 "github.com/openshift/api/config/v1"
 
@@ -26,7 +27,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
 		configPath = exutil.FixturePath("testdata", "router", "router-http-echo-server.yaml")
-		oc         = exutil.NewCLI("router-headers")
+		oc         = exutil.NewCLIWithPodSecurityLevel("router-headers", admissionapi.LevelBaseline)
 
 		routerIP  string
 		metricsIP string

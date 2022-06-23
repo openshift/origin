@@ -14,12 +14,13 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"gopkg.in/ldap.v2"
-	"sigs.k8s.io/yaml"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kdiff "k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/kube-openapi/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	admissionapi "k8s.io/pod-security-admission/api"
+	"sigs.k8s.io/yaml"
 
 	userv1 "github.com/openshift/api/user/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
@@ -32,7 +33,7 @@ import (
 var _ = g.Describe("[sig-auth][Feature:LDAP][Serial] ldap group sync", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLI("ldap-group-sync").AsAdmin()
+		oc = exutil.NewCLIWithPodSecurityLevel("ldap-group-sync", admissionapi.LevelPrivileged).AsAdmin()
 	)
 
 	g.It("can sync groups from ldap", func() {

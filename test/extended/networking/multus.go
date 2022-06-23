@@ -5,16 +5,19 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	exutil "github.com/openshift/origin/test/extended/util"
+
 	v1 "k8s.io/api/core/v1"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
+	admissionapi "k8s.io/pod-security-admission/api"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-network][Feature:Multus]", func() {
 	var oc *exutil.CLI
 	var ns string // namespace
 
-	oc = exutil.NewCLI("multus-e2e")
+	oc = exutil.NewCLIWithPodSecurityLevel("multus-e2e", admissionapi.LevelBaseline)
 
 	f := oc.KubeFramework()
 	podName := "multus-test-pod-"

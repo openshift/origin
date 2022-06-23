@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	configv1 "github.com/openshift/api/config/v1"
 	imagev1 "github.com/openshift/api/image/v1"
@@ -33,7 +34,7 @@ import (
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("imagestream-api")
+	oc := exutil.NewCLIWithPodSecurityLevel("imagestream-api", admissionapi.LevelBaseline)
 	g.BeforeEach(func() {
 		if err := deployEphemeralImageRegistry(oc); err != nil {
 			g.GinkgoT().Fatalf("error deploying ephemeral registry: %s", err)

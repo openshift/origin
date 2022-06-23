@@ -25,6 +25,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	watchtools "k8s.io/client-go/tools/watch"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	imagev1 "github.com/openshift/api/image/v1"
@@ -84,7 +85,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		entry.dic.Wait()
 	})
 
-	oc = exutil.NewCLI("cli-deployment")
+	oc = exutil.NewCLIWithPodSecurityLevel("cli-deployment", admissionapi.LevelBaseline)
 
 	var (
 		deploymentFixture               = exutil.FixturePath("testdata", "deployments", "test-deployment-test.yaml")

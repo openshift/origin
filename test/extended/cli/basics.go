@@ -12,15 +12,18 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	exutil "github.com/openshift/origin/test/extended/util"
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	k8simage "k8s.io/kubernetes/test/utils/image"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-cli] oc basics", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc                   = exutil.NewCLI("oc-basics")
+		oc                   = exutil.NewCLIWithPodSecurityLevel("oc-basics", admissionapi.LevelBaseline)
 		cmdTestData          = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata")
 		mixedAPIVersionsFile = exutil.FixturePath("testdata", "mixed-api-versions.yaml")
 		oauthAccessTokenFile = filepath.Join(cmdTestData, "oauthaccesstoken.yaml")

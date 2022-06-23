@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	routev1 "github.com/openshift/api/route/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
@@ -42,7 +43,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 		}
 	})
 
-	oc = exutil.NewCLI("router-subdomain")
+	oc = exutil.NewCLIWithPodSecurityLevel("router-subdomain", admissionapi.LevelBaseline)
 
 	g.BeforeEach(func() {
 		ns = oc.Namespace()

@@ -4,6 +4,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	"k8s.io/pod-security-admission/api"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -11,7 +13,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][pullsearch] docker build where 
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-build-search-registries.yaml")
-		oc           = exutil.NewCLI("docker-build-pullsearch")
+		oc           = exutil.NewCLIWithPodSecurityLevel("docker-build-pullsearch", api.LevelPrivileged)
 	)
 
 	g.Context("", func() {

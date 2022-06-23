@@ -12,10 +12,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	configv1 "github.com/openshift/api/config/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 	oauthutil "github.com/openshift/origin/test/extended/util/oauthserver"
@@ -24,7 +26,7 @@ import (
 var _ = g.Describe("[sig-auth][Feature:LDAP] LDAP IDP", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLI("oauth-ldap-idp")
+		oc = exutil.NewCLIWithPodSecurityLevel("oauth-ldap-idp", admissionapi.LevelPrivileged)
 
 		bindDN         = "cn=Manager,dc=example,dc=com"
 		bindPassword   = "admin"

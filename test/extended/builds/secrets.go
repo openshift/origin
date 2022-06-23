@@ -7,6 +7,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -24,7 +25,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use build secrets", f
 		dockerBuildDockerfile  = filepath.Join(buildSecretBaseDir, "Dockerfile")
 		sourceBuildFixture     = filepath.Join(buildSecretBaseDir, "test-s2i-build.json")
 		sourceBuildBinDir      = filepath.Join(buildSecretBaseDir, "s2i-binary-dir")
-		oc                     = exutil.NewCLI("build-secrets")
+		oc                     = exutil.NewCLIWithPodSecurityLevel("build-secrets", admissionapi.LevelBaseline)
 	)
 
 	g.Context("", func() {

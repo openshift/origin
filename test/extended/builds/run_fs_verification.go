@@ -7,6 +7,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 )
@@ -14,7 +16,7 @@ import (
 var _ = g.Describe("[sig-builds][Feature:Builds] verify /run filesystem contents", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                                      = exutil.NewCLI("verify-run-fs")
+		oc                                      = exutil.NewCLIWithPodSecurityLevel("verify-run-fs", admissionapi.LevelBaseline)
 		testVerityRunFSWriteableBuildConfigYaml = fmt.Sprintf(`
 apiVersion: build.openshift.io/v1
 kind: BuildConfig

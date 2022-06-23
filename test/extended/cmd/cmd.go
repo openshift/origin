@@ -9,16 +9,15 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	"k8s.io/apimachinery/pkg/util/sets"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -37,7 +36,7 @@ var _ = g.Describe("[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] te
 	hacklibDir := exutil.FixturePath("testdata", "cmd", "hack")
 	keys := exutil.FixturePaths("testdata", "cmd", "test", "cmd")
 
-	oc := exutil.NewCLI("test-cmd")
+	oc := exutil.NewCLIWithPodSecurityLevel("test-cmd", admissionapi.LevelBaseline)
 
 	for _, filename := range keys {
 		// only make tests for the bash files

@@ -14,11 +14,13 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -27,7 +29,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 	defer g.GinkgoRecover()
 
 	var (
-		cli              = exutil.NewCLI("templates")
+		cli              = exutil.NewCLIWithPodSecurityLevel("templates", admissionapi.LevelBaseline)
 		template         *templatev1.Template
 		templateinstance *templatev1.TemplateInstance
 		templatefixture  = exutil.FixturePath("testdata", "templates", "templateinstance_readiness.yaml")

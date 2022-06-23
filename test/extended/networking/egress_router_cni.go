@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"time"
 
-	exutil "github.com/openshift/origin/test/extended/util"
+	g "github.com/onsi/ginkgo"
+	o "github.com/onsi/gomega"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2edeployment "k8s.io/kubernetes/test/e2e/framework/deployment"
+	admissionapi "k8s.io/pod-security-admission/api"
 
-	g "github.com/onsi/ginkgo"
-	o "github.com/onsi/gomega"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (
@@ -33,7 +34,7 @@ const (
 )
 
 var _ = g.Describe("[sig-network][Feature:EgressRouterCNI]", func() {
-	oc := exutil.NewCLI(egressRouterCNIE2E)
+	oc := exutil.NewCLIWithPodSecurityLevel(egressRouterCNIE2E, admissionapi.LevelPrivileged)
 
 	g.It("should ensure ipv4 egressrouter cni resources are created", func() {
 		doEgressRouterCNI(egressRouterCNIV4Manifest, oc, ipv4MatchPattern)

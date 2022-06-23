@@ -9,20 +9,23 @@ import (
 	"net/http"
 	"time"
 
+	g "github.com/onsi/ginkgo"
+	o "github.com/onsi/gomega"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
+	admissionapi "k8s.io/pod-security-admission/api"
 
-	g "github.com/onsi/ginkgo"
-	o "github.com/onsi/gomega"
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-builds][Feature:Builds][webhook]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("build-webhooks")
+	oc := exutil.NewCLIWithPodSecurityLevel("build-webhooks", admissionapi.LevelBaseline)
 
 	g.It("TestWebhook", func() {
 		TestWebhook(g.GinkgoT(), oc)

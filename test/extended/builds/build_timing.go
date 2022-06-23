@@ -7,7 +7,10 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	buildv1 "github.com/openshift/api/build/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -36,7 +39,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][timing] capture build stages an
 		dockerBuildDockerfile = filepath.Join(buildTimingBaseDir, "Dockerfile")
 		sourceBuildFixture    = filepath.Join(buildTimingBaseDir, "test-s2i-build.json")
 		sourceBuildBinDir     = filepath.Join(buildTimingBaseDir, "s2i-binary-dir")
-		oc                    = exutil.NewCLI("build-timing")
+		oc                    = exutil.NewCLIWithPodSecurityLevel("build-timing", admissionapi.LevelBaseline)
 	)
 
 	g.Context("", func() {

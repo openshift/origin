@@ -7,6 +7,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/jenkins"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -16,7 +18,7 @@ var _ = g.Describe("[sig-builds][Feature:JenkinsRHELImagesOnly][Feature:Jenkins]
 	defer g.GinkgoRecover()
 
 	var (
-		oc               = exutil.NewCLI("jenkins-pipeline")
+		oc               = exutil.NewCLIWithPodSecurityLevel("jenkins-pipeline", admissionapi.LevelBaseline)
 		j                *jenkins.JenkinsRef
 		simplePipelineBC = exutil.FixturePath("testdata", "builds", "simple-pipeline-bc.yaml")
 

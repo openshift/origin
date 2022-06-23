@@ -10,6 +10,7 @@ import (
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -26,7 +27,7 @@ var _ = g.Describe("[sig-cli] oc", func() {
 		}
 	})
 
-	oc = exutil.NewCLI("cli")
+	oc = exutil.NewCLIWithPodSecurityLevel("cli", admissionapi.LevelBaseline)
 
 	g.It("can run inside of a busybox container", func() {
 		ns = oc.Namespace()

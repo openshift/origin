@@ -12,6 +12,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 
@@ -38,7 +39,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 		}
 	})
 
-	oc = exutil.NewCLI("unprivileged-router")
+	oc = exutil.NewCLIWithPodSecurityLevel("unprivileged-router", admissionapi.LevelBaseline)
 
 	g.BeforeEach(func() {
 		ns = oc.Namespace()

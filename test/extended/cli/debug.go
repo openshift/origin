@@ -8,6 +8,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	"k8s.io/apimachinery/pkg/util/wait"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -20,7 +21,7 @@ var (
 var _ = g.Describe("[sig-cli] oc debug", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("oc-debug")
+	oc := exutil.NewCLIWithPodSecurityLevel("oc-debug", admissionapi.LevelBaseline)
 	testCLIDebug := exutil.FixturePath("testdata", "test-cli-debug.yaml")
 	testDeploymentConfig := exutil.FixturePath("testdata", "test-deployment-config.yaml")
 	testReplicationController := exutil.FixturePath("testdata", "test-replication-controller.yaml")

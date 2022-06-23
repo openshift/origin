@@ -7,17 +7,19 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	admissionapi "k8s.io/pod-security-admission/api"
+
 	routev1 "github.com/openshift/api/route/v1"
 
 	"github.com/openshift/origin/test/extended/router/certgen"
 	grpcinterop "github.com/openshift/origin/test/extended/router/grpc-interop"
 	"github.com/openshift/origin/test/extended/router/shard"
 	exutil "github.com/openshift/origin/test/extended/util"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
-	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 )
 
 var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Router]", func() {
@@ -27,7 +29,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 		grpcServiceConfigPath     = exutil.FixturePath("testdata", "router", "router-grpc-interop.yaml")
 		grpcRoutesConfigPath      = exutil.FixturePath("testdata", "router", "router-grpc-interop-routes.yaml")
 		grpcRouterShardConfigPath = exutil.FixturePath("testdata", "router", "router-shard.yaml")
-		oc                        = exutil.NewCLI("grpc-interop")
+		oc                        = exutil.NewCLIWithPodSecurityLevel("grpc-interop", admissionapi.LevelBaseline)
 		shardConfigPath           string // computed
 	)
 

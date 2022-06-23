@@ -301,30 +301,7 @@ func (c *CLI) SetupProject() string {
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		// once permissions are settled the underlying namespace must have been created.
-		ns, err := c.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), newNamespace, metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-
-		if len(c.kubeFramework.NamespacePodSecurityEnforceLevel) == 0 {
-			// TODO(sur): set to restricted in a separate PR and fix failing tests
-			c.kubeFramework.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
-		}
-		if ns.Labels == nil {
-			ns.Labels = make(map[string]string)
-		}
-		ns.Labels[admissionapi.EnforceLevelLabel] = string(c.kubeFramework.NamespacePodSecurityEnforceLevel)
-		// In contrast to upstream, OpenShift sets a global default on warn and audit pod security levels.
-		// Since this would cause unwanted audit log and warning entries, we are setting the same level as for enforcement.
-		ns.Labels[admissionapi.WarnLevelLabel] = string(c.kubeFramework.NamespacePodSecurityEnforceLevel)
-		ns.Labels[admissionapi.AuditLevelLabel] = string(c.kubeFramework.NamespacePodSecurityEnforceLevel)
-		ns.Labels["security.openshift.io/scc.podSecurityLabelSync"] = "false"
-
-		_, err = c.AdminKubeClient().CoreV1().Namespaces().Update(context.Background(), ns, metav1.UpdateOptions{})
-		return err
-	})
+	err = c.setupNamespacePodSecurity(newNamespace)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// Wait for SAs and default dockercfg Secret to be injected
@@ -435,7 +412,37 @@ func (c *CLI) CreateProject() string {
 		},
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
+
+	err = c.setupNamespacePodSecurity(newNamespace)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
 	return newNamespace
+}
+
+func (c *CLI) setupNamespacePodSecurity(ns string) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		// once permissions are settled the underlying namespace must have been created.
+		ns, err := c.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), ns, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		if len(c.kubeFramework.NamespacePodSecurityEnforceLevel) == 0 {
+			c.kubeFramework.NamespacePodSecurityEnforceLevel = admissionapi.LevelRestricted
+		}
+		if ns.Labels == nil {
+			ns.Labels = make(map[string]string)
+		}
+		ns.Labels[admissionapi.EnforceLevelLabel] = string(c.kubeFramework.NamespacePodSecurityEnforceLevel)
+		// In contrast to upstream, OpenShift sets a global default on warn and audit pod security levels.
+		// Since this would cause unwanted audit log and warning entries, we are setting the same level as for enforcement.
+		ns.Labels[admissionapi.WarnLevelLabel] = string(c.kubeFramework.NamespacePodSecurityEnforceLevel)
+		ns.Labels[admissionapi.AuditLevelLabel] = string(c.kubeFramework.NamespacePodSecurityEnforceLevel)
+		ns.Labels["security.openshift.io/scc.podSecurityLabelSync"] = "false"
+
+		_, err = c.AdminKubeClient().CoreV1().Namespaces().Update(context.Background(), ns, metav1.UpdateOptions{})
+		return err
+	})
 }
 
 // TeardownProject removes projects created by this test.

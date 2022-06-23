@@ -2,6 +2,7 @@ package builds
 
 import (
 	"fmt"
+	"k8s.io/pod-security-admission/api"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -21,7 +22,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a quota", func()
 
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-s2i-build-quota.json")
-		oc           = exutil.NewCLI("s2i-build-quota")
+		oc           = exutil.NewCLIWithPodSecurityLevel("s2i-build-quota", api.LevelPrivileged)
 	)
 
 	g.Context("", func() {
