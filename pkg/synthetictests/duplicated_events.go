@@ -485,7 +485,8 @@ func isEventDuringInstallation(monitorEvent monitorapi.EventInterval, kubeClient
 		return true, nil
 	}
 	for _, event := range kubeEvents.Items {
-		if event.Related.Name != pod ||
+		if event.Related == nil ||
+			event.Related.Name != pod ||
 			event.Reason != reason ||
 			!strings.Contains(event.Message, msg) {
 			continue
