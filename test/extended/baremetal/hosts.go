@@ -232,8 +232,8 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 		checkConditionStatus(*hfs, "Valid", "True")
 
 		// Change HostFirmwareSetting to valid value different than current
-		status, _, err = unstructured.NestedStringMap(hfs.Object, "status", "settings")
-		v, ok := status[procTurboMode]
+		status, _, _ = unstructured.NestedStringMap(hfs.Object, "status", "settings")
+		v, _ := status[procTurboMode]
 		newValue := "Enabled"
 		if v == "Enabled" {
 			newValue = "Disabled"
@@ -242,7 +242,10 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 		g.By(fmt.Sprintf("setting firmwaresetting %s to %s for host %s", procTurboMode, newValue, hostName))
 
 		err = unstructured.SetNestedStringMap(hfs.Object, spec, "spec", "settings")
+		status, _, _ = unstructured.NestedStringMap(hfs.Object, "status", "settings")
+		_, ok := status[procTurboMode]
 		o.Expect(ok).To(o.BeTrue(), "setting not available for host %s", hostName)
+
 		o.Expect(err).NotTo(o.HaveOccurred())
 		_, err = hfsClient.Update(context.Background(), hfs, metav1.UpdateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
