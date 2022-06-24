@@ -102,6 +102,14 @@ func (opt *Options) AsEnv() []string {
 
 func (opt *Options) SelectSuite(suites []*TestSuite, args []string) (*TestSuite, error) {
 	var suite *TestSuite
+	if len(args) > 0 {
+		for _, s := range suites {
+			if s.Name == args[0] {
+				suite = s
+				break
+			}
+		}
+	}
 
 	if len(opt.TestFile) > 0 {
 		var in []byte
@@ -117,29 +125,28 @@ func (opt *Options) SelectSuite(suites []*TestSuite, args []string) (*TestSuite,
 		if err != nil {
 			return nil, err
 		}
-		suite, err = newSuiteFromFile("files", in)
+		filesSuite, err := newSuiteFromFile("files", in)
 		if err != nil {
 			return nil, fmt.Errorf("could not read test suite from input: %v", err)
 		}
-	}
-
-	if suite == nil && len(args) == 0 {
-		fmt.Fprintf(opt.ErrOut, SuitesString(suites, "Select a test suite to run against the server:\n\n"))
-		return nil, fmt.Errorf("specify a test suite to run, for example: %s run %s", filepath.Base(os.Args[0]), suites[0].Name)
-	}
-	if suite == nil && len(args) > 0 {
-		for _, s := range suites {
-			if s.Name == args[0] {
-				suite = s
-				break
-			}
+		if suite != nil {
+			suite.Matches = filesSuite.Matches
+		} else {
+			suite = filesSuite
 		}
 	}
-	if suite == nil {
-		fmt.Fprintf(opt.ErrOut, SuitesString(suites, "Select a test suite to run against the server:\n\n"))
-		return nil, fmt.Errorf("suite %q does not exist", args[0])
+
+	if suite != nil {
+		return suite, nil
 	}
-	return suite, nil
+
+	fmt.Fprint(opt.ErrOut, SuitesString(suites, "Select a test suite to run against the server:\n\n"))
+
+	if len(args) == 0 {
+		return nil, fmt.Errorf("specify a test suite to run, for example: %s run %s", filepath.Base(os.Args[0]), suites[0].Name)
+	}
+
+	return nil, fmt.Errorf("suite %q does not exist", args[0])
 }
 
 func max(a, b int) int {
