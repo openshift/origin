@@ -58,13 +58,15 @@ func loadResourcesMaps(junitDir string) []monitorapi.ResourcesMap {
 	}
 	ret := make([]monitorapi.ResourcesMap, 0)
 	for _, file := range files {
-		if strings.HasPrefix(file.Name(), "resource-pods") {
+		if strings.HasPrefix(file.Name(), "resource-tmp-pods") {
 			resMap, err := monitor_cmd.LoadKnownPods(file.Name())
 			if err != nil {
 				framework.Logf("Unable to read %s", file.Name())
 				continue
 			}
 			ret = append(ret, resMap)
+		} else {
+			framework.Logf("Found file but skipped: %s", file.Name())
 		}
 	}
 	return ret

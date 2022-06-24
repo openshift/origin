@@ -33,6 +33,22 @@ func WriteTrackedResourcesForJobRun(artifactDir string, monitor *Monitor, events
 	return utilerrors.NewAggregate(errors)
 }
 
+// Just like WriteTrackedResourcesForJobRun but to write state for use in another test.
+func WriteTrackedResourcesForJobRunState(artifactDir string, monitor *Monitor, timeSuffix string) error {
+	errors := []error{}
+
+	// write out the current state of resources that we explicitly tracked.
+	resourcesMap := monitor.CurrentResourceState()
+	for resourceType, instanceMap := range resourcesMap {
+		targetFile := fmt.Sprintf("resource-tmp-%s%s.zip", resourceType, timeSuffix)
+		if err := monitorserialization.InstanceMapToFile(filepath.Join(artifactDir, targetFile), resourceType, instanceMap); err != nil {
+			errors = append(errors, err)
+		}
+	}
+
+	return utilerrors.NewAggregate(errors)
+}
+
 func WriteBackendDisruptionForJobRun(artifactDir string, monitor *Monitor, events monitorapi.Intervals, timeSuffix string) error {
 	backendDisruption := computeDisruptionData(events)
 	return writeDisruptionData(filepath.Join(artifactDir, fmt.Sprintf("backend-disruption%s.json", timeSuffix)), backendDisruption)

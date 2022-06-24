@@ -375,6 +375,14 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	q.Execute(testCtx, late, parallelism, status.Run)
 	tests = append(tests, late...)
 
+	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
+	if len(opt.JUnitDir) > 0 {
+		if err := monitor.WriteTrackedResourcesForJobRunState(opt.JUnitDir, m, timeSuffix); err != nil {
+			fmt.Fprintf(opt.ErrOut, "error: Failed to write current resource state: %v\n", err)
+		} else {
+			fmt.Printf("DP-DEBUG: wrote resource state to %s\n", opt.JUnitDir)
+		}
+	}
 	// TODO: will move to the monitor
 	if len(opt.JUnitDir) > 0 {
 		pc.ComputePodTransitions()
@@ -406,7 +414,6 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	// monitor the cluster while the tests are running and report any detected anomalies
 	var syntheticTestResults []*junitapi.JUnitTestCase
 	var syntheticFailure bool
-	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 	events := m.Intervals(time.Time{}, time.Time{})
 
 	if len(opt.JUnitDir) > 0 {
