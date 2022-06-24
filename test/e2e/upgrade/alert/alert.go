@@ -3,11 +3,15 @@ package alert
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	"github.com/openshift/origin/pkg/monitor/monitor_cmd"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
@@ -39,6 +43,31 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 	t.oc = oc
 	t.prometheusClient = oc.NewPrometheusClient(context.TODO())
 	framework.Logf("Post-upgrade alert test setup complete")
+}
+
+func loadResourcesMaps(junitDir string) []monitorapi.ResourcesMap {
+	if len(junitDir) == 0 {
+		framework.Logf("TEST_JUNIT_DIR is not set")
+		return nil
+	}
+	framework.Logf("TEST_JUNIT_DIR is set to: %s", junitDir)
+	files, err := ioutil.ReadDir(junitDir)
+	if err != nil {
+		framework.Logf("Unable to read %s", junitDir)
+		return nil
+	}
+	ret := make([]monitorapi.ResourcesMap, 0)
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), "resource-pods") {
+			resMap, err := monitor_cmd.LoadKnownPods(file.Name())
+			if err != nil {
+				framework.Logf("Unable to read %s", file.Name())
+				continue
+			}
+			ret = append(ret, resMap)
+		}
+	}
+	return ret
 }
 
 // Test checks if alerts are firing at various points during upgrade.
@@ -201,6 +230,11 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	time.Sleep(1 * time.Minute)
 
 	testDuration := time.Now().Sub(start).Round(time.Second)
+
+	junitDir := os.Getenv("TEST_JUNIT_DIR")
+	resourcesMaps := loadResourcesMaps(junitDir)
+	framework.Logf("Length: %d", len(resourcesMaps))
+	fmt.Printf("Length1: %d\n", len(resourcesMaps))
 
 	// Invariant: No non-info level alerts should have fired during the upgrade
 	firingAlertQuery := fmt.Sprintf(`

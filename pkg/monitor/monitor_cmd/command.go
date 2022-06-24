@@ -211,7 +211,7 @@ func (o *Timeline) Run() error {
 
 	recordedResources := monitorapi.ResourcesMap{}
 	if len(o.PodResourceFilename) > 0 {
-		recordedResources, err = loadKnownPods(o.PodResourceFilename)
+		recordedResources, err = LoadKnownPods(o.PodResourceFilename)
 		if err != nil {
 			return err
 		}
@@ -279,7 +279,7 @@ func renderHTML(events monitorapi.Intervals) ([]byte, error) {
 	return e2eChartHTML, nil
 }
 
-func loadKnownPods(filename string) (monitorapi.ResourcesMap, error) {
+func LoadKnownPods(filename string) (monitorapi.ResourcesMap, error) {
 
 	zipReader, err := zip.OpenReader(filename)
 	if err != nil {
