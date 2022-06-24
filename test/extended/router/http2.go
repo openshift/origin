@@ -227,22 +227,6 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			o.Expect(shardService).NotTo(o.BeNil())
 			o.Expect(shardService.Status.LoadBalancer.Ingress).To(o.Not(o.BeEmpty()))
 
-			var addrs []string
-
-			if len(shardService.Status.LoadBalancer.Ingress[0].Hostname) > 0 {
-				g.By("Waiting for LB hostname to register in DNS")
-				addrs, err = resolveHost(oc, time.Minute, 15*time.Minute, shardService.Status.LoadBalancer.Ingress[0].Hostname)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(addrs).NotTo(o.BeEmpty())
-			} else {
-				addrs = append(addrs, shardService.Status.LoadBalancer.Ingress[0].IP)
-			}
-
-			g.By("Waiting for route hostname to register in DNS")
-			addrs, err = resolveHostAsAddress(oc, time.Minute, 15*time.Minute, testCases[0].route+"."+shardFQDN, addrs[0])
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(addrs).NotTo(o.BeEmpty())
-
 			for i, tc := range testCases {
 				testConfig := fmt.Sprintf("%+v", tc)
 				var resp *http.Response
@@ -351,32 +335,6 @@ func resolveHost(oc *exutil.CLI, interval, timeout time.Duration, host string) (
 		}
 		result = addrs
 		return true, nil
-	}); err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func resolveHostAsAddress(oc *exutil.CLI, interval, timeout time.Duration, host, expectedAddr string) ([]string, error) {
-	var result []string
-
-	if err := wait.PollImmediate(interval, timeout, func() (bool, error) {
-		addrs, err := net.LookupHost(host)
-		if err != nil {
-			e2e.Logf("error: %v, retrying in %s...", err, interval.String())
-			return false, nil
-		}
-
-		for i := range addrs {
-			if addrs[i] == expectedAddr {
-				e2e.Logf("host %q now resolves as %+v", host, addrs)
-				result = addrs
-				return true, nil
-			}
-		}
-		e2e.Logf("host %q resolves as %+v, expecting %v, retrying in %s...", host, addrs, expectedAddr, interval.String())
-		return false, nil
 	}); err != nil {
 		return nil, err
 	}
