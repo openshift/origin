@@ -57,6 +57,8 @@ func loadResourcesMaps(junitDir string) []monitorapi.ResourcesMap {
 		return nil
 	}
 	ret := make([]monitorapi.ResourcesMap, 0)
+
+	framework.Logf("Length of files: %d", len(files))
 	for _, file := range files {
 		if strings.HasPrefix(file.Name(), "resource-tmp-pods") {
 			resMap, err := monitor_cmd.LoadKnownPods(file.Name())
@@ -225,7 +227,9 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 
 	// Block until upgrade is done
 	g.By("Waiting for upgrade to finish before checking for alerts")
+	fmt.Printf("%s: No resourceMaps yet, sleeping ...\n", time.Now().String())
 	<-done
+	fmt.Printf("%s: No resourceMaps yet, sleeping ...\n", time.Now().String())
 
 	// Additonal delay after upgrade completion to allow pending alerts to settle
 	g.By("Waiting before checking for alerts")
@@ -235,7 +239,17 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 
 	junitDir := os.Getenv("TEST_JUNIT_DIR")
 	resourcesMaps := loadResourcesMaps(junitDir)
-	framework.Logf("Length: %d", len(resourcesMaps))
+	if len(resourcesMaps) == 0 {
+
+		for i := 0; i < 90; i++ {
+			fmt.Printf("%s: No resourceMaps yet, sleeping ...\n", time.Now().String())
+			time.Sleep(120 * time.Second)
+			resourcesMaps = loadResourcesMaps(junitDir)
+			if len(resourcesMaps) > 0 {
+				break
+			}
+		}
+	}
 	fmt.Printf("Length1: %d\n", len(resourcesMaps))
 
 	// Invariant: No non-info level alerts should have fired during the upgrade
