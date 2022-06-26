@@ -227,9 +227,9 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 
 	// Block until upgrade is done
 	g.By("Waiting for upgrade to finish before checking for alerts")
-	fmt.Printf("%s: No resourceMaps yet, sleeping ...\n", time.Now().String())
+	fmt.Printf("%s: DP-DEBUG: before waiting for upgrade...\n", time.Now().String())
 	<-done
-	fmt.Printf("%s: No resourceMaps yet, sleeping ...\n", time.Now().String())
+	fmt.Printf("%s: DP-DEBUG: after waiting for upgrade...\n", time.Now().String())
 
 	// Additonal delay after upgrade completion to allow pending alerts to settle
 	g.By("Waiting before checking for alerts")
@@ -238,19 +238,25 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	testDuration := time.Now().Sub(start).Round(time.Second)
 
 	junitDir := os.Getenv("TEST_JUNIT_DIR")
-	resourcesMaps := loadResourcesMaps(junitDir)
-	if len(resourcesMaps) == 0 {
-
-		for i := 0; i < 90; i++ {
-			fmt.Printf("%s: No resourceMaps yet, sleeping ...\n", time.Now().String())
-			time.Sleep(120 * time.Second)
-			resourcesMaps = loadResourcesMaps(junitDir)
+	lenWait := make(chan int)
+	go func() {
+		for {
+			resourcesMaps := loadResourcesMaps(junitDir)
 			if len(resourcesMaps) > 0 {
+				lenWait <- len(resourcesMaps)
 				break
 			}
+			fmt.Printf("%s: No resourceMaps yet, sleeping ...\n", time.Now().String())
+			time.Sleep(2 * time.Minute)
 		}
+	}()
+
+	select {
+	case <-time.After(30 * time.Minute):
+		fmt.Println("DP-DEBUG: seems we timed out waiting for resourceMap data")
+	case len := <-lenWait:
+		fmt.Printf("DP-DEBUG Length: %d\n", len)
 	}
-	fmt.Printf("Length1: %d\n", len(resourcesMaps))
 
 	// Invariant: No non-info level alerts should have fired during the upgrade
 	firingAlertQuery := fmt.Sprintf(`
