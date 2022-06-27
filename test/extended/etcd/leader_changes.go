@@ -3,8 +3,9 @@ package etcd
 import (
 	"context"
 	"fmt"
-	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	"time"
+
+	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
