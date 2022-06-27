@@ -108,6 +108,10 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		type platformUpperBound map[string]int64
 
 		// See https://issues.redhat.com/browse/WRKLDS-291 for upper bounds computation
+		//
+		// These values need to be periodically incremented as code evolves, the stated goal of the test is to prevent
+		// exponential growth. Original methodology for calculating the values is difficult, iterations since have just
+		// been done manually via search.ci. (i.e. https://search.ci.openshift.org/?search=produces+more+watch+requests+than+expected&maxAge=336h&context=0&type=bug%2Bjunit&name=&excludeName=&maxMatches=5&maxBytes=20971520&groupBy=job )
 		upperBounds := map[configv1.PlatformType]platformUpperBound{
 			configv1.AWSPlatformType: {
 				"authentication-operator":                519,
