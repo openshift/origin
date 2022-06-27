@@ -286,7 +286,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 				"openshift-controller-manager-operator":  170,
 				"openshift-kube-scheduler-operator":      230.0,
 				"operator":                               15.0,
-				"prometheus-operator":                    118,
+				"prometheus-operator":                    125,
 				"service-ca-operator":                    100.0,
 				"vmware-vsphere-csi-driver-operator":     111.0,
 				"vsphere-problem-detector-operator":      50.0,
@@ -319,7 +319,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 				"openshift-config-operator":              50,
 				"openshift-controller-manager-operator":  180,
 				"openshift-kube-scheduler-operator":      179,
-				"prometheus-operator":                    90,
+				"prometheus-operator":                    100,
 				"service-ca-operator":                    131,
 			},
 		}
