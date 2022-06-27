@@ -5,10 +5,11 @@ import (
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 var _ = g.Describe("[sig-network] external gateway address", func() {
-	oc := exutil.NewCLI("ns-global")
+	oc := exutil.NewCLIWithPodSecurityLevel("ns-global", admissionapi.LevelPrivileged)
 
 	InOVNKubernetesContext(func() {
 		f := oc.KubeFramework()
