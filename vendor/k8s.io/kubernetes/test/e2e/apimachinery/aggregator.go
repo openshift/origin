@@ -38,7 +38,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
-	clientset "k8s.io/client-go/kubernetes"
 	apiregistrationv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	aggregatorclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
@@ -58,17 +57,7 @@ const (
 )
 
 var _ = SIGDescribe("Aggregator", func() {
-	var ns string
-	var c clientset.Interface
 	var aggrclient *aggregatorclient.Clientset
-
-	// BeforeEachs run in LIFO order, AfterEachs run in FIFO order.
-	// We want cleanTest to happen before the namespace cleanup AfterEach
-	// inserted by NewDefaultFramework, so we put this AfterEach in front
-	// of NewDefaultFramework.
-	ginkgo.AfterEach(func() {
-		cleanTest(c, aggrclient, ns)
-	})
 
 	f := framework.NewDefaultFramework("aggregator")
 	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelBaseline
@@ -77,9 +66,6 @@ var _ = SIGDescribe("Aggregator", func() {
 	// NewDefaultFramework to happen before this, so we put this BeforeEach
 	// after NewDefaultFramework.
 	ginkgo.BeforeEach(func() {
-		c = f.ClientSet
-		ns = f.Namespace.Name
-
 		if aggrclient == nil {
 			config, err := framework.LoadConfig()
 			if err != nil {
@@ -104,25 +90,6 @@ var _ = SIGDescribe("Aggregator", func() {
 	})
 
 })
-
-func cleanTest(client clientset.Interface, aggrclient *aggregatorclient.Clientset, namespace string) {
-	// delete the APIService first to avoid causing discovery errors
-	_ = aggrclient.ApiregistrationV1().APIServices().Delete(context.TODO(), "v1alpha1.wardle.example.com", metav1.DeleteOptions{})
-
-	// this simple sleep makes sure that the sample api server was unregistered from all Kube APIs before tearing down the deployment (otherwise it could make the test to fail)
-	// a more expensive way of doing it would be checking if the sample server was unregistered from all deployed Kube API servers before tearing down the deployment.
-	framework.Logf("sleeping 45 seconds before deleting the sample-apiserver deployment, see %q for more", "https://bugzilla.redhat.com/show_bug.cgi?id=1933144")
-	time.Sleep(time.Second * 45)
-
-	_ = client.AppsV1().Deployments(namespace).Delete(context.TODO(), "sample-apiserver-deployment", metav1.DeleteOptions{})
-	_ = client.CoreV1().Secrets(namespace).Delete(context.TODO(), "sample-apiserver-secret", metav1.DeleteOptions{})
-	_ = client.CoreV1().Services(namespace).Delete(context.TODO(), "sample-api", metav1.DeleteOptions{})
-	_ = client.CoreV1().ServiceAccounts(namespace).Delete(context.TODO(), "sample-apiserver", metav1.DeleteOptions{})
-	_ = client.RbacV1().RoleBindings("kube-system").Delete(context.TODO(), "wardler-auth-reader", metav1.DeleteOptions{})
-	_ = client.RbacV1().ClusterRoleBindings().Delete(context.TODO(), "wardler:"+namespace+":auth-delegator", metav1.DeleteOptions{})
-	_ = client.RbacV1().ClusterRoles().Delete(context.TODO(), "sample-apiserver-reader", metav1.DeleteOptions{})
-	_ = client.RbacV1().ClusterRoleBindings().Delete(context.TODO(), "wardler:"+namespace+":sample-apiserver-reader", metav1.DeleteOptions{})
-}
 
 // TestSampleAPIServer is a basic test if the sample-apiserver code from 1.10 and compiled against 1.10
 // will work on the current Aggregator/API-Server.
@@ -150,7 +117,7 @@ func TestSampleAPIServer(f *framework.Framework, aggrclient *aggregatorclient.Cl
 		},
 	}
 	_, err := client.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
-	framework.ExpectNoError(err, "creating secret %q in namespace %q", secretName, namespace)
+	framework.ExpectNoError(err, "creating secret %s in namespace %s", secretName, namespace)
 
 	// kubectl create -f clusterrole.yaml
 	_, err = client.RbacV1().ClusterRoles().Create(context.TODO(), &rbacv1.ClusterRole{
@@ -162,6 +129,10 @@ func TestSampleAPIServer(f *framework.Framework, aggrclient *aggregatorclient.Cl
 		},
 	}, metav1.CreateOptions{})
 	framework.ExpectNoError(err, "creating cluster role %s", "sample-apiserver-reader")
+	defer func() {
+		err = client.RbacV1().ClusterRoles().Delete(context.TODO(), "sample-apiserver-reader", metav1.DeleteOptions{})
+		framework.ExpectNoError(err, "deleting cluster role %s", "sample-apiserver-reader")
+	}()
 
 	_, err = client.RbacV1().ClusterRoleBindings().Create(context.TODO(), &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -182,6 +153,10 @@ func TestSampleAPIServer(f *framework.Framework, aggrclient *aggregatorclient.Cl
 		},
 	}, metav1.CreateOptions{})
 	framework.ExpectNoError(err, "creating cluster role binding %s", "wardler:"+namespace+":sample-apiserver-reader")
+	defer func() {
+		err = client.RbacV1().ClusterRoleBindings().Delete(context.TODO(), "wardler:"+namespace+":sample-apiserver-reader", metav1.DeleteOptions{})
+		framework.ExpectNoError(err, "deleting cluster role binding %s", "wardler:"+namespace+":sample-apiserver-reader")
+	}()
 
 	// kubectl create -f authDelegator.yaml
 	_, err = client.RbacV1().ClusterRoleBindings().Create(context.TODO(), &rbacv1.ClusterRoleBinding{
@@ -203,6 +178,10 @@ func TestSampleAPIServer(f *framework.Framework, aggrclient *aggregatorclient.Cl
 		},
 	}, metav1.CreateOptions{})
 	framework.ExpectNoError(err, "creating cluster role binding %s", "wardler:"+namespace+":auth-delegator")
+	defer func() {
+		err = client.RbacV1().ClusterRoleBindings().Delete(context.TODO(), "wardler:"+namespace+":auth-delegator", metav1.DeleteOptions{})
+		framework.ExpectNoError(err, "deleting cluster role binding %s", "wardler:"+namespace+":auth-delegator")
+	}()
 
 	// kubectl create -f deploy.yaml
 	deploymentName := "sample-apiserver-deployment"
@@ -243,6 +222,19 @@ func TestSampleAPIServer(f *framework.Framework, aggrclient *aggregatorclient.Cl
 				"--audit-log-maxbackup=0",
 			},
 			Image: image,
+			ReadinessProbe: &v1.Probe{
+				ProbeHandler: v1.ProbeHandler{
+					HTTPGet: &v1.HTTPGetAction{
+							Scheme: v1.URISchemeHTTPS,
+							Port:   intstr.FromInt(443),
+							Path:   "/readyz",
+					},
+				},
+				InitialDelaySeconds: 20,
+				PeriodSeconds:    1,
+				SuccessThreshold: 1,
+				FailureThreshold: 3,
+			},
 		},
 		{
 			Name:  "etcd",
@@ -289,7 +281,7 @@ func TestSampleAPIServer(f *framework.Framework, aggrclient *aggregatorclient.Cl
 		},
 	}
 	_, err = client.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
-	framework.ExpectNoError(err, "creating service %s in namespace %s", "sample-apiserver", namespace)
+	framework.ExpectNoError(err, "creating service %s in namespace %s", "sample-api", namespace)
 
 	// kubectl create -f serviceAccount.yaml
 	sa := &v1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: "sample-apiserver"}}
@@ -317,7 +309,11 @@ func TestSampleAPIServer(f *framework.Framework, aggrclient *aggregatorclient.Cl
 			},
 		},
 	}, metav1.CreateOptions{})
-	framework.ExpectNoError(err, "creating role binding %s:sample-apiserver to access configMap", namespace)
+	framework.ExpectNoError(err, "creating role binding %s in namespace %s", "wardler-auth-reader", "kube-system")
+	defer func() {
+		err = client.RbacV1().RoleBindings("kube-system").Delete(context.TODO(), "wardler-auth-reader", metav1.DeleteOptions{})
+		framework.ExpectNoError(err, "deleting role binding %s in namespace %s", "wardler-auth-reader", "kube-system")
+	}()
 
 	// Wait for the extension apiserver to be up and healthy
 	// kubectl get deployments -n <aggregated-api-namespace> && status == Running
@@ -342,7 +338,11 @@ func TestSampleAPIServer(f *framework.Framework, aggrclient *aggregatorclient.Cl
 			VersionPriority:      200,
 		},
 	}, metav1.CreateOptions{})
-	framework.ExpectNoError(err, "creating apiservice %s with namespace %s", "v1alpha1.wardle.example.com", namespace)
+	framework.ExpectNoError(err, "creating apiservice %s", "v1alpha1.wardle.example.com")
+	defer func() {
+		err = aggrclient.ApiregistrationV1().APIServices().Delete(context.TODO(), "v1alpha1.wardle.example.com", metav1.DeleteOptions{})
+		framework.ExpectNoError(err, "deleting API service %s", "v1alpha1.wardle.example.com")
+	}()
 
 	var (
 		currentAPIService *apiregistrationv1.APIService
@@ -533,8 +533,6 @@ func TestSampleAPIServer(f *framework.Framework, aggrclient *aggregatorclient.Cl
 	if len(unstructuredList.Items) != 0 {
 		framework.Failf("failed to get back the correct deleted flunders list %v from the dynamic client", unstructuredList)
 	}
-
-	cleanTest(client, aggrclient, namespace)
 }
 
 // pollTimed will call Poll but time how long Poll actually took.

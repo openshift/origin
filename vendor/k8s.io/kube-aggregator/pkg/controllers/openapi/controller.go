@@ -108,6 +108,7 @@ func (c *AggregationController) processNextWorkItem() bool {
 	} else {
 		klog.V(4).Infof("OpenAPI AggregationController: Processing item %s", key)
 	}
+	klog.Infof("OpenAPI AggregationController: Processing item %s", key)
 
 	action, err := c.syncHandler(key.(string))
 	if err == nil {
@@ -121,10 +122,11 @@ func (c *AggregationController) processNextWorkItem() bool {
 		if aggregator.IsLocalAPIService(key.(string)) {
 			klog.V(7).Infof("OpenAPI AggregationController: action for local item %s: Requeue after %s.", key, successfulUpdateDelayLocal)
 			c.queue.AddAfter(key, successfulUpdateDelayLocal)
-		} else {
-			klog.V(7).Infof("OpenAPI AggregationController: action for item %s: Requeue.", key)
-			c.queue.AddAfter(key, successfulUpdateDelay)
-		}
+			} else {
+				klog.V(7).Infof("OpenAPI AggregationController: action for item %s: Requeue.", key)
+				c.queue.AddAfter(key, successfulUpdateDelay)
+			}
+			klog.Infof("OpenAPI AggregationController: Requeueing %s", key)
 	case syncRequeueRateLimited:
 		klog.Infof("OpenAPI AggregationController: action for item %s: Rate Limited Requeue.", key)
 		c.queue.AddRateLimited(key)
