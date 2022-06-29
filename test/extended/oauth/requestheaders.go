@@ -256,42 +256,6 @@ func gatherPostMortem(oc *exutil.CLI) {
 	}
 	e2e.Logf("Authentication %v\n", authn)
 
-	deploymentName := "oauth-openshift"
-	oauthServerNamespace := "openshift-authentication"
-	deployment, err := oc.AdminKubeClient().
-		AppsV1().
-		Deployments(oauthServerNamespace).
-		Get(context.Background(), deploymentName, metav1.GetOptions{})
-	if err != nil {
-		e2e.Logf("get deployment from %s in %s: %w", deploymentName, oauthServerNamespace, err)
-	}
-	e2e.Logf("deployment for %s in %s: %s", deploymentName, oauthServerNamespace, deployment)
-
-	configmapName := "v4-0-config-system-cliconfig"
-	configmap, err := oc.AdminKubeClient().
-		CoreV1().
-		ConfigMaps(oauthServerNamespace).
-		Get(context.Background(), configmapName, metav1.GetOptions{})
-	if err != nil {
-		e2e.Logf("get configmap from %s in %s: %w", configmapName, oauthServerNamespace, err)
-	}
-	e2e.Logf("configmap for %s in %s: %s", configmapName, oauthServerNamespace, configmap)
-
-	pods, err := oc.AdminKubeClient().
-		CoreV1().
-		Pods(oauthServerNamespace).
-		List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		e2e.Logf("get pods from %s: %w", oauthServerNamespace, err)
-	}
-	for _, pod := range pods.Items {
-		logs, err := oc.Run("logs").Args(pod.Name, "-n", oauthServerNamespace).Output()
-		if err != nil {
-			e2e.Logf("get logs from %s in %s: %w", pod.Name, oauthServerNamespace, err)
-		}
-		e2e.Logf("log from %s in %s: %s", pod.Name, oauthServerNamespace, logs)
-	}
-
 	operator, err := oc.AdminOperatorClient().
 		OperatorV1().
 		Authentications().
@@ -341,6 +305,42 @@ func gatherPostMortem(oc *exutil.CLI) {
 			conditionOutput.WriteString("\n")
 		}
 		e2e.Logf("authentication operator status condition %s:\n%s", conditionType, conditionOutput.String())
+	}
+
+	deploymentName := "oauth-openshift"
+	oauthServerNamespace := "openshift-authentication"
+	deployment, err := oc.AdminKubeClient().
+		AppsV1().
+		Deployments(oauthServerNamespace).
+		Get(context.Background(), deploymentName, metav1.GetOptions{})
+	if err != nil {
+		e2e.Logf("get deployment from %s in %s: %w", deploymentName, oauthServerNamespace, err)
+	}
+	e2e.Logf("deployment for %s in %s: %s", deploymentName, oauthServerNamespace, deployment)
+
+	configmapName := "v4-0-config-system-cliconfig"
+	configmap, err := oc.AdminKubeClient().
+		CoreV1().
+		ConfigMaps(oauthServerNamespace).
+		Get(context.Background(), configmapName, metav1.GetOptions{})
+	if err != nil {
+		e2e.Logf("get configmap from %s in %s: %w", configmapName, oauthServerNamespace, err)
+	}
+	e2e.Logf("configmap for %s in %s: %s", configmapName, oauthServerNamespace, configmap)
+
+	pods, err := oc.AdminKubeClient().
+		CoreV1().
+		Pods(oauthServerNamespace).
+		List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		e2e.Logf("get pods from %s: %w", oauthServerNamespace, err)
+	}
+	for _, pod := range pods.Items {
+		logs, err := oc.Run("logs").Args(pod.Name, "-n", oauthServerNamespace).Output()
+		if err != nil {
+			e2e.Logf("get logs from %s in %s: %w", pod.Name, oauthServerNamespace, err)
+		}
+		e2e.Logf("log from %s in %s: %s", pod.Name, oauthServerNamespace, logs)
 	}
 }
 
