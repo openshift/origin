@@ -105,12 +105,6 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// clean up after ourselves
 		defer func() {
-			g.By("clean up - wait for stability")
-			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
-			defer cancel()
-			authenticationRollout := exutil.WaitForOperatorToRollout(ctx, oc.AdminConfigClient(), "authentication")
-			<-authenticationRollout.StableBeforeStarting() // wait for the initial state to be stable
-
 			g.By("clean up - remove test environment")
 			userclient := oc.AdminUserClient().UserV1()
 			userclient.Identities().Delete(context.Background(), fmt.Sprintf("%s:%s", idpName, testUserName), metav1.DeleteOptions{})
@@ -125,10 +119,6 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 			if err != nil {
 				g.Fail(fmt.Sprintf("Failed to update oauth/cluster, unable to turn it into its original state: %v", err))
 			}
-
-			g.By("clean up - wait for clean up to be done")
-			<-authenticationRollout.Done()
-			o.Expect(authenticationRollout.Err()).NotTo(o.HaveOccurred())
 		}()
 
 		g.By("setup  - wait for setup to be done")
