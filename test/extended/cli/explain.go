@@ -435,8 +435,10 @@ func getCrdTypes(oc *exutil.CLI) []schema.GroupVersionResource {
 		switch capability {
 		case configv1.ClusterVersionCapabilityMarketplace:
 			crdTypes = append(crdTypes, marketplaceTypes...)
-		case configv1.ClusterVersionCapabilityBaremetal:
-			crdTypes = append(crdTypes, metal3Types...)
+			// FIXME(stbenjam): Baremetal disabled in 4.12 while they rebuild
+			// Ironic images for RHEL 9.
+			// case configv1.ClusterVersionCapabilityBaremetal:
+			// crdTypes = append(crdTypes, metal3Types...)
 		}
 	}
 
