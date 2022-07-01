@@ -143,6 +143,9 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 
 		g.By("all cluster operators report an operator version in the first position equal to the cluster version")
 		for _, co := range coList.Items {
+			if co.Name == "baremetal" {
+				continue // Metal images are being rebuilt on RHEL9.
+			}
 			msg := fmt.Sprintf("unexpected operator status versions %s:\n%#v", co.Name, co.Status.Versions)
 			o.Expect(co.Status.Versions).NotTo(o.BeEmpty(), msg)
 			operator := findOperatorVersion(co.Status.Versions, "operator")
