@@ -40,6 +40,13 @@ func wellKnownNamespaceGroups() []relatedNamespaces {
 			),
 		},
 		{
+			// image-registry, console, oauth seem to break together so group them to help debugging
+			name: "openshift-ir-con-oauth",
+			namespaces: sets.NewString(
+				"openshift-authentication", "openshift-console", "openshift-image-registry", "openshift-ingress",
+			),
+		},
+		{
 			name: "openshift-machines",
 			namespaces: sets.NewString(
 				"openshift-cloud-controller-manager-operator", "openshift-cloud-controller-manager",
