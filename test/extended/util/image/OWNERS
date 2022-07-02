@@ -3,9 +3,15 @@ reviewers:
 - smarterclayton
 - soltysh
 - sttts
+- ravisantoshgudimetla
+- tkashem
 approvers:
 - smarterclayton
 - soltysh
 - sttts
+- ravisantoshgudimetla
+- tkashem
 labels:
 - "e2e-images-update"
+options:
+  no_parent_owners: true
