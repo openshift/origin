@@ -47,28 +47,28 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 
 func loadResourcesMaps(junitDir string) []monitorapi.ResourcesMap {
 	if len(junitDir) == 0 {
-		framework.Logf("TEST_JUNIT_DIR is not set")
+		framework.Logf("DP-DEBUG: TEST_JUNIT_DIR is not set")
 		return nil
 	}
-	framework.Logf("TEST_JUNIT_DIR is set to: %s", junitDir)
+	framework.Logf("DP-DEBUG: TEST_JUNIT_DIR is set to: %s", junitDir)
 	files, err := ioutil.ReadDir(junitDir)
 	if err != nil {
-		framework.Logf("Unable to read %s", junitDir)
+		framework.Logf("DP-DEBUG: Unable to read %s", junitDir)
 		return nil
 	}
 	ret := make([]monitorapi.ResourcesMap, 0)
 
-	framework.Logf("Length of files: %d", len(files))
+	framework.Logf("DP-DEBUG: Length of files: %d", len(files))
 	for _, file := range files {
 		if strings.HasPrefix(file.Name(), "resource-tmp-pods") {
 			resMap, err := monitor_cmd.LoadKnownPods(file.Name())
 			if err != nil {
-				framework.Logf("Unable to read %s", file.Name())
+				framework.Logf("DP-DEBUG: Unable to read %s", file.Name())
 				continue
 			}
 			ret = append(ret, resMap)
 		} else {
-			framework.Logf("Found file but skipped: %s", file.Name())
+			framework.Logf("DP-DEBUG: Found file but skipped: %s", file.Name())
 		}
 	}
 	return ret
@@ -246,7 +246,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 				lenWait <- len(resourcesMaps)
 				break
 			}
-			fmt.Printf("%s: No resourceMaps yet, sleeping ...\n", time.Now().String())
+			fmt.Printf("%s: DP-DEBUG: No resourceMaps yet, sleeping ...\n", time.Now().String())
 			time.Sleep(2 * time.Minute)
 		}
 	}()
