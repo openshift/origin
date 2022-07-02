@@ -39,6 +39,7 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 		{by: " by writing child", substring: "write child: broken pipe"},
 		{by: " by ovn default network ready", substring: "have you checked that your default network is ready? still waiting for readinessindicatorfile"},
 		{by: " by adding pod to network", substring: "failed (add)"},
+		{by: " by initializing docker source", substring: `can't talk to a V1 container registry`},
 		{by: " by other", substring: " "}, // always matches
 	}
 
