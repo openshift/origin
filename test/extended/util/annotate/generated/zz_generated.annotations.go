@@ -3193,6 +3193,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-node] supplemental groups Ensure supplemental groups propagate to docker should propagate requested groups to the container [Local]": "should propagate requested groups to the container [Local]",
 
+	"[Top Level] [sig-node][Feature:WorkerLatencyProfiles] should reject extreme latency profile": "should reject extreme latency profile [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-node][Late] should not have pod creation failures due to systemd timeouts": "should not have pod creation failures due to systemd timeouts [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-operator] OLM should Implement packages API server and list packagemanifest info with namespace not NULL": "Implement packages API server and list packagemanifest info with namespace not NULL [Suite:openshift/conformance/parallel]",
