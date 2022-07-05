@@ -107,6 +107,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 			configv1.AWSPlatformType,
 			configv1.GCPPlatformType,
 			configv1.AzurePlatformType,
+			configv1.OpenStackPlatformType,
 		}
 		for _, supportedPlatform := range supportedPlatforms {
 			if cloudType == supportedPlatform {
