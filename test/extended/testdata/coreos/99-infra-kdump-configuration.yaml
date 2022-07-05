@@ -1,0 +1,16 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: infra
+  name: 99-infra-kdump-configuration
+spec:
+  kernelArguments:
+    - 'crashkernel=256M'
+  config:
+    ignition:
+      version: 3.2.0
+    systemd:
+      units:
+        - enabled: true
+          name: kdump.service

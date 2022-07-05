@@ -290,6 +290,8 @@
 // test/extended/testdata/cmd/test/cmd/triggers.sh
 // test/extended/testdata/cmd/test/cmd/volumes.sh
 // test/extended/testdata/cmd/test/cmd/whoami.sh
+// test/extended/testdata/coreos/99-infra-kdump-configuration.yaml
+// test/extended/testdata/coreos/infra.mcp.yaml
 // test/extended/testdata/custom-secret-builder/Dockerfile
 // test/extended/testdata/custom-secret-builder/build.sh
 // test/extended/testdata/deployments/custom-deployment.yaml
@@ -40624,6 +40626,67 @@ func testExtendedTestdataCmdTestCmdWhoamiSh() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataCoreos99InfraKdumpConfigurationYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: infra
+  name: 99-infra-kdump-configuration
+spec:
+  kernelArguments:
+    - 'crashkernel=256M'
+  config:
+    ignition:
+      version: 3.2.0
+    systemd:
+      units:
+        - enabled: true
+          name: kdump.service
+`)
+
+func testExtendedTestdataCoreos99InfraKdumpConfigurationYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCoreos99InfraKdumpConfigurationYaml, nil
+}
+
+func testExtendedTestdataCoreos99InfraKdumpConfigurationYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCoreos99InfraKdumpConfigurationYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/coreos/99-infra-kdump-configuration.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCoreosInfraMcpYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfigPool
+metadata:
+  name: infra
+spec:
+  nodeSelector:
+    matchLabels:
+      node-role.kubernetes.io/infra: ""
+  machineConfigSelector:
+    matchExpressions:
+      - {key: machineconfiguration.openshift.io/role, operator: In, values: [worker,infra]}
+`)
+
+func testExtendedTestdataCoreosInfraMcpYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCoreosInfraMcpYaml, nil
+}
+
+func testExtendedTestdataCoreosInfraMcpYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCoreosInfraMcpYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/coreos/infra.mcp.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataCustomSecretBuilderDockerfile = []byte(`FROM openshift/origin-custom-docker-builder
 # Override the default build script
 ADD build.sh /tmp/build.sh
@@ -53246,6 +53309,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/triggers.sh":                                                        testExtendedTestdataCmdTestCmdTriggersSh,
 	"test/extended/testdata/cmd/test/cmd/volumes.sh":                                                         testExtendedTestdataCmdTestCmdVolumesSh,
 	"test/extended/testdata/cmd/test/cmd/whoami.sh":                                                          testExtendedTestdataCmdTestCmdWhoamiSh,
+	"test/extended/testdata/coreos/99-infra-kdump-configuration.yaml":                                        testExtendedTestdataCoreos99InfraKdumpConfigurationYaml,
+	"test/extended/testdata/coreos/infra.mcp.yaml":                                                           testExtendedTestdataCoreosInfraMcpYaml,
 	"test/extended/testdata/custom-secret-builder/Dockerfile":                                                testExtendedTestdataCustomSecretBuilderDockerfile,
 	"test/extended/testdata/custom-secret-builder/build.sh":                                                  testExtendedTestdataCustomSecretBuilderBuildSh,
 	"test/extended/testdata/deployments/custom-deployment.yaml":                                              testExtendedTestdataDeploymentsCustomDeploymentYaml,
@@ -53916,6 +53981,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							"whoami.sh":   {testExtendedTestdataCmdTestCmdWhoamiSh, map[string]*bintree{}},
 						}},
 					}},
+				}},
+				"coreos": {nil, map[string]*bintree{
+					"99-infra-kdump-configuration.yaml": {testExtendedTestdataCoreos99InfraKdumpConfigurationYaml, map[string]*bintree{}},
+					"infra.mcp.yaml":                    {testExtendedTestdataCoreosInfraMcpYaml, map[string]*bintree{}},
 				}},
 				"custom-secret-builder": {nil, map[string]*bintree{
 					"Dockerfile": {testExtendedTestdataCustomSecretBuilderDockerfile, map[string]*bintree{}},

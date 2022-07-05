@@ -1573,6 +1573,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-coreos] [Conformance] CoreOS bootimages TestBootimagesPresent": "TestBootimagesPresent [Suite:openshift/conformance/parallel/minimal]",
 
+	"[Top Level] [sig-coreos] [Feature:machine-config-operator] [Conformance] [Slow] [Disruptive] kdump TestKdump": "TestKdump [Serial]",
+
 	"[Top Level] [sig-devex] check registry.redhat.io is available and samples operator can import sample imagestreams run sample related validations": "run sample related validations [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/dotnet:3.1-el7\" should print the usage": "\"image-registry.openshift-image-registry.svc:5000/openshift/dotnet:3.1-el7\" should print the usage",
