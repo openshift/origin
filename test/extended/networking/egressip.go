@@ -200,8 +200,112 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 			}
 		}
 
+		g.By("Removing leftover CloudPrivateIPConfig objects")
+		cpicList, err := listCloudPrivateIPConfigs(cloudNetworkClientset)
+		if err == nil {
+			for _, cpic := range cpicList.Items {
+				_ = deleteCloudPrivateIPConfig(cloudNetworkClientset, cpic.Name)
+			}
+		}
+
 		g.By("Removing the temp directory")
 		os.RemoveAll(tmpDirEgressIP)
+	})
+
+	g.Context("[cloud-private-ip-config]", func() {
+		g.It("CloudPrivateIPConfig objects can be created and deleted repeatedly", func() {
+			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
+			nodeName := egressIPNodesOrderedNames[0]
+			egressIPNodeStr := []string{nodeName}
+			egressIPsPerNode := 1
+			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodeStr, cloudType, egressIPsPerNode)
+			framework.Logf("%v", nodeEgressIPMap)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("Making sure that the node EgressIP map contains exactly a single element and an entry for node %s", egressIPNodeStr))
+			o.Expect(len(nodeEgressIPMap)).Should(o.BeNumerically("==", 1))
+			ips, ok := nodeEgressIPMap[nodeName]
+			o.Expect(ok).To(o.BeTrue())
+			o.Expect(len(ips)).Should(o.BeNumerically("==", 1))
+			ip := ips[0]
+
+			g.By("Creating and deleting the CloudPrivateIPConfig object 10 times")
+			for i := 0; i < 10; i++ {
+				framework.Logf("Creating the CloudPrivateIPConfig object, iteration %d", i)
+				err = createCloudPrivateIPConfig(cloudNetworkClientset, ip, nodeName)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				framework.Logf("Expecting the CloudPrivateIPConfig object to exist and to be assigned, iteration %d", i)
+				o.Eventually(func() bool {
+					framework.Logf("Probing the CloudPrivateIPConfig object")
+					exists, isAssigned, err := cloudPrivateIpConfigExists(oc, cloudNetworkClientset, ip)
+					return err == nil && exists && isAssigned
+				}, 60*time.Second, 1*time.Second).Should(o.BeTrue())
+
+				framework.Logf("Deleting the CloudPrivateIPConfig object, iteration %d", i)
+				err = deleteCloudPrivateIPConfig(cloudNetworkClientset, ip)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				framework.Logf("Expecting the CloudPrivateIPConfig object to be deleted, iteration %d", i)
+				o.Eventually(func() bool {
+					framework.Logf("Probing the CloudPrivateIPConfig object")
+					exists, isAssigned, _ := cloudPrivateIpConfigExists(oc, cloudNetworkClientset, ip)
+					return err == nil && !exists && !isAssigned
+				}, 60*time.Second, 1*time.Second).Should(o.BeTrue())
+			}
+		})
+
+		g.It("Invalid CloudPrivateIPConfig objects are handled correctly", func() {
+			nodeName := egressIPNodesOrderedNames[0]
+
+			g.By("Getting a node IP address")
+			var nodeIP string
+			nodes, err := clientset.CoreV1().Nodes().List(
+				context.TODO(),
+				metav1.ListOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+		outer:
+			for _, node := range nodes.Items {
+				for _, addr := range node.Status.Addresses {
+					if addr.Type == corev1.NodeInternalIP {
+						nodeIP = addr.Address
+						break outer
+					}
+				}
+			}
+
+			g.By("Creating the CloudPrivateIPConfig object")
+			err = createCloudPrivateIPConfig(cloudNetworkClientset, nodeIP, nodeName)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Eventually(func() bool {
+				framework.Logf("Probing the CloudPrivateIPConfig object")
+				cpic, err := cloudNetworkClientset.CloudV1().CloudPrivateIPConfigs().Get(context.Background(), nodeIP, metav1.GetOptions{})
+				if err != nil {
+					return false
+				}
+				for _, c := range cpic.Status.Conditions {
+					framework.Logf("Found status %v for CloudPrivateIPConfig %s", c, nodeIP)
+					if c.Type == "Assigned" &&
+						c.Status == metav1.ConditionFalse &&
+						strings.Contains(c.Message, "Error processing cloud assignment request") {
+						return true
+					}
+				}
+				return false
+			}, 60*time.Second, 1*time.Second).Should(o.BeTrue())
+
+			g.By("Deleting the CloudPrivateIPConfig object")
+			err = deleteCloudPrivateIPConfig(cloudNetworkClientset, nodeIP)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Expecting the CloudPrivateIPConfig object to be deleted")
+			o.Eventually(func() bool {
+				framework.Logf("Probing the CloudPrivateIPConfig object")
+				exists, isAssigned, _ := cloudPrivateIpConfigExists(oc, cloudNetworkClientset, nodeIP)
+				return err == nil && !exists && !isAssigned
+			}, 60*time.Second, 1*time.Second).Should(o.BeTrue())
+		})
 	})
 
 	g.Context("[internal-targets]", func() {

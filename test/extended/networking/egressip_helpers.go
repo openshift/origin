@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	cloudnetworkv1 "github.com/openshift/api/cloudnetwork/v1"
 	configv1 "github.com/openshift/api/config/v1"
 	networkv1 "github.com/openshift/api/network/v1"
 	routev1 "github.com/openshift/api/route/v1"
@@ -1665,6 +1666,25 @@ func cloudPrivateIpConfigExists(oc *exutil.CLI, cloudNetworkClientset cloudnetwo
 	}
 
 	return true, false, nil
+}
+
+// createCloudPrivateIPConfig creates an object of type CloudPrivateIPConfig with the given IP address.
+func createCloudPrivateIPConfig(cloudNetworkClientset cloudnetwork.Interface, ip, nodeName string) error {
+	cpic := cloudnetworkv1.CloudPrivateIPConfig{}
+	cpic.Name = ip
+	cpic.Spec.Node = nodeName
+	_, err := cloudNetworkClientset.CloudV1().CloudPrivateIPConfigs().Create(context.Background(), &cpic, metav1.CreateOptions{})
+	return err
+}
+
+// deleteCloudPrivateIPConfig deletes an object of type CloudPrivateIPConfig with the given IP address.
+func deleteCloudPrivateIPConfig(cloudNetworkClientset cloudnetwork.Interface, ip string) error {
+	return cloudNetworkClientset.CloudV1().CloudPrivateIPConfigs().Delete(context.Background(), ip, metav1.DeleteOptions{})
+}
+
+// listCloudPrivateIPConfigs lists objects of type CloudPrivateIPConfig.
+func listCloudPrivateIPConfigs(cloudNetworkClientset cloudnetwork.Interface) (*cloudnetworkv1.CloudPrivateIPConfigList, error) {
+	return cloudNetworkClientset.CloudV1().CloudPrivateIPConfigs().List(context.Background(), metav1.ListOptions{})
 }
 
 // egressIPStatusHasIP returns if a given ip was found in a given EgressIP object's status field.

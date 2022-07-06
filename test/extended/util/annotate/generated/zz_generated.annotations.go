@@ -2769,6 +2769,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network][Feature:EgressFirewall] when using openshift-sdn should ensure egressnetworkpolicy is created": "should ensure egressnetworkpolicy is created [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-network][Feature:EgressIP] [cloud-private-ip-config] CloudPrivateIPConfig objects can be created and deleted repeatedly": "CloudPrivateIPConfig objects can be created and deleted repeatedly [Serial] [Suite:openshift/conformance/serial]",
+
+	"[Top Level] [sig-network][Feature:EgressIP] [cloud-private-ip-config] Invalid CloudPrivateIPConfig objects are handled correctly": "Invalid CloudPrivateIPConfig objects are handled correctly [Serial] [Suite:openshift/conformance/serial]",
+
 	"[Top Level] [sig-network][Feature:EgressIP] [external-targets] EgressIPs can be assigned automatically [Skipped:Network/OVNKubernetes]": "EgressIPs can be assigned automatically [Skipped:Network/OVNKubernetes] [Serial] [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-network][Feature:EgressIP] [external-targets] only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN]": "only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN] [Serial] [Suite:openshift/conformance/serial]",
