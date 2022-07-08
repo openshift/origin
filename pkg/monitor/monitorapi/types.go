@@ -198,6 +198,18 @@ func IsInNamespaces(namespaces sets.String) EventIntervalMatchesFunc {
 	}
 }
 
+// IsBetween returns a function that returns true of the given eventInterval
+// falls between from/to range.
+//
+func IsBetween(from, to time.Time) EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		if eventInterval.From.After(from) && eventInterval.To.Before(to) {
+			return true
+		}
+		return false
+	}
+}
+
 // ContainsAllParts ensures that all listed key match at least one of the values.
 func ContainsAllParts(matchers map[string][]*regexp.Regexp) EventIntervalMatchesFunc {
 	return func(eventInterval EventInterval) bool {

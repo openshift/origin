@@ -37,6 +37,8 @@ type TimelineOptions struct {
 	Namespaces      []string
 	OutputType      string
 	EndDate         string
+	FromDate        string
+	ToDate          string
 
 	KnownRenderers map[string]RenderFunc
 	KnownTimelines map[string]monitorapi.EventIntervalMatchesFunc
@@ -107,6 +109,8 @@ func (o *TimelineOptions) Bind(flagset *pflag.FlagSet) error {
 	flagset.StringVar(&o.PodResourceFilename, "known-pods", o.PodResourceFilename, "resource-pods_<timestamp>.zip filename from openshift-tests.")
 	flagset.StringSliceVarP(&o.LocatorMatchers, "locator", "l", o.LocatorMatchers, "key=value selector for monitor event locators (where value is a regex).  for instance -lpod=openshift-etcd-installer.  The same key listed multiple times means an OR.  Each separate key is logically ANDed.  Precede value with a dash for anti-match")
 	flagset.StringVarP(&o.EndDate, "end-date", "e", o.EndDate, fmt.Sprintf("End date (default is one hour after latest event) in RFC3399 format in UTC timezone: %s", time.RFC3339))
+	flagset.StringVar(&o.FromDate, "from-date", o.FromDate, fmt.Sprintf("Start of events to display in RFC3399 format in UTC timezone: %s", time.RFC3339))
+	flagset.StringVar(&o.ToDate, "to-date", o.ToDate, fmt.Sprintf("End of events to display in RFC3399 format in UTC timezone: %s", time.RFC3339))
 
 	return nil
 }
@@ -142,7 +146,24 @@ func (o *TimelineOptions) Validate() error {
 	if len(o.EndDate) > 0 {
 		_, err := time.ParseInLocation(time.RFC3339, o.EndDate, time.UTC)
 		if err != nil {
-			return fmt.Errorf("The --end-date value needs to be a valid time in RFC3339 format: %s", time.RFC3339)
+			return fmt.Errorf("The --end-date value needs to be a valid time in RFC3339 format: %s %v", time.RFC3339, err)
+		}
+	}
+
+	if len(o.FromDate) > 0 {
+		_, err := time.ParseInLocation(time.RFC3339, o.FromDate, time.UTC)
+		if err != nil {
+			return fmt.Errorf("The --from-date value needs to be a valid time in RFC3339 format: %s, %v", time.RFC3339, err)
+		}
+		if len(o.ToDate) == 0 {
+			return fmt.Errorf("You must specify --to-date if you want to use --from-date")
+		}
+	}
+
+	if len(o.ToDate) > 0 {
+		_, err := time.ParseInLocation(time.RFC3339, o.ToDate, time.UTC)
+		if err != nil {
+			return fmt.Errorf("The --to-date value needs to be a valid time in RFC3339 format: %s, %v", time.RFC3339, err)
 		}
 	}
 	return nil
@@ -173,6 +194,9 @@ func (o *TimelineOptions) ToTimeline() *Timeline {
 		endDateTime = nil
 	}
 
+	tmpFrom, _ := time.ParseInLocation(time.RFC3339, o.FromDate, time.UTC)
+	tmpTo, _ := time.ParseInLocation(time.RFC3339, o.ToDate, time.UTC)
+
 	return &Timeline{
 		MonitorEventFilename: o.MonitorEventFilename,
 		PodResourceFilename:  o.PodResourceFilename,
@@ -181,6 +205,8 @@ func (o *TimelineOptions) ToTimeline() *Timeline {
 		RemovedLocatorMatcher: inverseLocatorMatcher,
 		Namespaces:            o.Namespaces,
 		EndDate:               endDateTime,
+		FromDate:              &tmpFrom,
+		ToDate:                &tmpTo,
 
 		Renderer:       o.KnownRenderers[o.OutputType],
 		TimelineFilter: o.KnownTimelines[o.TimelineType],
@@ -196,6 +222,8 @@ type Timeline struct {
 	RemovedLocatorMatcher map[string][]*regexp.Regexp
 	Namespaces            []string
 	EndDate               *time.Time
+	FromDate              *time.Time
+	ToDate                *time.Time
 
 	Renderer       RenderFunc
 	TimelineFilter monitorapi.EventIntervalMatchesFunc
@@ -228,6 +256,11 @@ func (o *Timeline) Run() error {
 	if len(o.RemovedLocatorMatcher) > 0 {
 		filteredEvents = filteredEvents.Filter(monitorapi.NotContainsAllParts(o.RemovedLocatorMatcher))
 	}
+
+	if o.FromDate != nil && o.ToDate != nil {
+		filteredEvents = filteredEvents.Filter(monitorapi.IsBetween(*o.FromDate, *o.ToDate))
+	}
+
 	// compute intervals from raw
 	from := time.Time{}
 	var to time.Time
