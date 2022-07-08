@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
@@ -15,8 +14,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/openshift/origin/pkg/monitor"
 
 	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -247,11 +244,8 @@ func (o *Timeline) Run() error {
 	} else {
 		to = *o.EndDate
 	}
-	computedIntervalFns := monitor.DefaultIntervalCreationFns()
-	for _, createIntervals := range computedIntervalFns {
-		filteredEvents = append(filteredEvents, createIntervals(filteredEvents, recordedResources, from, to)...)
-	}
-	sort.Sort(filteredEvents)
+
+	filteredEvents = intervalcreation.InsertCalculatedIntervals(filteredEvents, recordedResources, from, to)
 
 	output, err := o.Renderer(filteredEvents)
 	if err != nil {

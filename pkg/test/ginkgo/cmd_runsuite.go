@@ -414,7 +414,9 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	var syntheticTestResults []*junitapi.JUnitTestCase
 	var syntheticFailure bool
 	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
-	events := m.Intervals(time.Time{}, time.Time{})
+	fromTime, endTime := time.Time{}, time.Time{}
+	events := m.Intervals(fromTime, endTime)
+	events = intervalcreation.InsertCalculatedIntervals(events, m.CurrentResourceState(), fromTime, endTime)
 
 	if len(opt.JUnitDir) > 0 {
 		var additionalEvents monitorapi.Intervals

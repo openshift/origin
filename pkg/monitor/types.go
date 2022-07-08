@@ -10,8 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-type IntervalCreationFunc func(intervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) monitorapi.Intervals
-
 type SamplerFunc func(time.Time) []*monitorapi.Condition
 
 type Interface interface {

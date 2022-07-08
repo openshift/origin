@@ -27,6 +27,7 @@ func TestMonitor_Events(t *testing.T) {
 		want    monitorapi.Intervals
 	}{
 		{
+			name: "one",
 			events: monitorapi.Intervals{
 				{Condition: monitorapi.Condition{Message: "1"}, From: time.Unix(1, 0), To: time.Unix(1, 0)},
 				{Condition: monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(2, 0)},
@@ -37,6 +38,7 @@ func TestMonitor_Events(t *testing.T) {
 			},
 		},
 		{
+			name: "two",
 			events: monitorapi.Intervals{
 				{Condition: monitorapi.Condition{Message: "1"}, From: time.Unix(1, 0), To: time.Unix(1, 0)},
 				{Condition: monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(2, 0)},
@@ -47,6 +49,7 @@ func TestMonitor_Events(t *testing.T) {
 			},
 		},
 		{
+			name: "three",
 			events: monitorapi.Intervals{
 				{Condition: monitorapi.Condition{Message: "1"}, From: time.Unix(1, 0), To: time.Unix(1, 0)},
 				{Condition: monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(2, 0)},
@@ -58,6 +61,7 @@ func TestMonitor_Events(t *testing.T) {
 			},
 		},
 		{
+			name: "four",
 			events: monitorapi.Intervals{
 				{Condition: monitorapi.Condition{Message: "1"}, From: time.Unix(1, 0), To: time.Unix(1, 0)},
 				{Condition: monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(2, 0)},
@@ -66,6 +70,7 @@ func TestMonitor_Events(t *testing.T) {
 			want: monitorapi.Intervals{},
 		},
 		{
+			name: "five",
 			samples: []*sample{
 				{at: time.Unix(1, 0), conditions: []*monitorapi.Condition{{Message: "1"}, {Message: "A"}}},
 				{at: time.Unix(2, 0), conditions: []*monitorapi.Condition{{Message: "2"}}},
@@ -74,20 +79,21 @@ func TestMonitor_Events(t *testing.T) {
 			from: time.Unix(1, 0),
 			want: monitorapi.Intervals{
 				{Condition: monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(3, 0)},
-				{Condition: monitorapi.Condition{Message: "A"}, From: time.Unix(3, 0), To: time.Unix(3, 0)},
+				{Condition: monitorapi.Condition{Message: "A"}, From: time.Unix(3, 0), To: time.Unix(4, 0)},
 			},
 		},
 		{
+			name: "six",
 			samples: []*sample{
 				{at: time.Unix(1, 0), conditions: []*monitorapi.Condition{{Message: "1"}, {Message: "A"}}},
 				{at: time.Unix(2, 0), conditions: []*monitorapi.Condition{{Message: "2"}}},
 				{at: time.Unix(3, 0), conditions: []*monitorapi.Condition{{Message: "2"}, {Message: "A"}}},
 			},
 			want: monitorapi.Intervals{
-				{Condition: monitorapi.Condition{Message: "1"}, From: time.Unix(1, 0), To: time.Unix(1, 0)},
-				{Condition: monitorapi.Condition{Message: "A"}, From: time.Unix(1, 0), To: time.Unix(1, 0)},
+				{Condition: monitorapi.Condition{Message: "1"}, From: time.Unix(1, 0), To: time.Unix(2, 0)},
+				{Condition: monitorapi.Condition{Message: "A"}, From: time.Unix(1, 0), To: time.Unix(2, 0)},
 				{Condition: monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(3, 0)},
-				{Condition: monitorapi.Condition{Message: "A"}, From: time.Unix(3, 0), To: time.Unix(3, 0)},
+				{Condition: monitorapi.Condition{Message: "A"}, From: time.Unix(3, 0), To: time.Unix(4, 0)},
 			},
 		},
 	}
