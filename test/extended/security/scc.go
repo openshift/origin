@@ -272,7 +272,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 
 		desiredCapabilities := "000000000000051b"
 
-		capabilities, err := pod.Exec("cat /proc/1/status | grep CapInh | cut -f 2")
+		capabilities, err := pod.Exec("cat /proc/1/status | grep CapBnd | cut -f 2")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		capString, err := pod.Exec("capsh --decode=" + capabilities)
