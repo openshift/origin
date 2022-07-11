@@ -52739,6 +52739,13 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
+    function isKubeletReadinessCheck(eventInterval) {
+        if (eventInterval.locator.includes("container/") && (eventInterval.message.includes("reason/ReadinessFailed") || eventInterval.message.includes("reason/ReadinessErrored"))) {
+            return true
+        }
+        return false
+    }
+
     function isE2EFailed(eventInterval) {
         if (eventInterval.locator.startsWith("e2e-test/") && eventInterval.message.includes("finished As \"Failed")) {
             return true
@@ -52822,6 +52829,15 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
                 return [item.locator, ` + "`" + ` (container readiness)` + "`" + `, "ContainerReady"];
             }
         }
+        if (m && isKubeletReadinessCheck(item)){
+            if (m[2] == "ReadinessFailed") {
+                return [item.locator, ` + "`" + ` (kubelet container readiness)` + "`" + `, "ContainerReadinessFailed"];
+            }
+            if (m[2] == "ReadinessErrored") {
+                return [item.locator, ` + "`" + ` (kubelet container readiness)` + "`" + `, "ContainerReadinessErrored"];
+            }
+        }
+
         return [item.locator, "", "Unknown"];
     }
 
@@ -53029,14 +53045,14 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
                 'OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', // operators
                 'Update', 'Drain', 'Reboot', 'OperatingSystemUpdate', 'NodeNotReady', // nodes
                 'Passed', 'Skipped', 'Flaked', 'Failed',  // tests
-                'PodCreated', 'PodScheduled', 'PodTerminating','ContainerWait', 'ContainerStart', 'ContainerNotReady', 'ContainerReady',  // pods
+                'PodCreated', 'PodScheduled', 'PodTerminating','ContainerWait', 'ContainerStart', 'ContainerNotReady', 'ContainerReady', 'ContainerReadinessFailed', 'ContainerReadinessErrored',  // pods
                 'Degraded', 'Upgradeable', 'False', 'Unknown'])
             .range([
-                '#fada5e','#fada5e','#ffa500','#d0312d',  // alerts
+                '#fada5e','#fada5e','#ffa500', '#d0312d',  // alerts
                 '#d0312d', '#ffa500', '#fada5e', // operators
                 '#1e7bd9', '#4294e6', '#6aaef2', '#96cbff', '#fada5e', // nodes
                 '#3cb043', '#ceba76', '#ffa500', '#d0312d', // tests
-                '#96cbff', '#1e7bd9', '#ffa500', '#ca8dfd', '#9300ff', '#fada5e','#3cb043', // pods
+                '#96cbff', '#1e7bd9', '#ffa500', '#ca8dfd', '#9300ff', '#fada5e','#3cb043', '#d0312d', '#d0312d', // pods
                 '#b65049', '#32b8b6', '#ffffff', '#bbbbbb']);
         myChart.
         data(timelineGroups).
