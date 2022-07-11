@@ -184,7 +184,7 @@ func (r ingressServicePodRendering) WriteRunData(artifactDir string, _ monitorap
 			return false
 		})
 
-	if err := writer.WriteEventData(artifactDir, events, timeSuffix); err != nil {
+	if err := writer.WriteRunData(artifactDir, nil, events, timeSuffix); err != nil {
 		errs = append(errs, err)
 	}
 	return utilerrors.NewAggregate(errs)

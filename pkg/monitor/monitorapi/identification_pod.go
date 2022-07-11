@@ -155,6 +155,11 @@ var (
 		ContainerReasonReady,
 		ContainerReasonNotReady,
 	)
+
+	KubeletReadinessCheckReasons = sets.NewString(
+		ContainerReasonReadinessFailed,
+		ContainerReasonReadinessErrored,
+	)
 )
 
 type ByTimeWithNamespacedPods []EventInterval
