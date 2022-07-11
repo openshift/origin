@@ -94,22 +94,11 @@ type podRendering struct {
 	name string
 }
 
-// ingressServicePodRendering type is used for rendering intervals for services that use the
-// router-default pods found in the openshift-ingress namespace.  This includes image-registry,
-// console, and oauth pods.
-type ingressServicePodRendering struct {
-	name string
-}
-
 func NewPodEventIntervalRenderer() podRendering {
 	return podRendering{}
 }
 
-func NewIngressServicePodIntervalRenderer() ingressServicePodRendering {
-	return ingressServicePodRendering{}
-}
-
-func (r podRendering) WriteEventData(artifactDir string, events monitorapi.Intervals, timeSuffix string) error {
+func (r podRendering) WriteRunData(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
 	allNamespaces := sets.NewString()
 	for _, interval := range events {
 		allNamespaces.Insert(monitorapi.NamespaceFromLocator(interval.Locator))
@@ -153,7 +142,7 @@ func (r podRendering) WriteEventData(artifactDir string, events monitorapi.Inter
 				}
 				return false
 			})
-		if err := writer.WriteEventData(artifactDir, events, timeSuffix); err != nil {
+		if err := writer.WriteRunData(artifactDir, nil, events, timeSuffix); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -161,11 +150,22 @@ func (r podRendering) WriteEventData(artifactDir string, events monitorapi.Inter
 	return utilerrors.NewAggregate(errs)
 }
 
+// ingressServicePodRendering type is used for rendering intervals for services that use the
+// router-default pods found in the openshift-ingress namespace.  This includes image-registry,
+// console, and oauth pods.
+type ingressServicePodRendering struct {
+	name string
+}
+
+func NewIngressServicePodIntervalRenderer() ingressServicePodRendering {
+	return ingressServicePodRendering{}
+}
+
 // WriteEventData for ingressServicePodRendering writes out a custom spyglass chart to help debug TRT-364 and BZ2101622 where
 // image-registry, console, and oauth pods were experiencing disruption during upgrades.  We wanted one chart that
 // showed those pods, router-default pods, node changes, and disruption.
 //
-func (r ingressServicePodRendering) WriteEventData(artifactDir string, events monitorapi.Intervals, timeSuffix string) error {
+func (r ingressServicePodRendering) WriteRunData(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
 	errs := []error{}
 	disruptionReasons := sets.NewString(backenddisruption.DisruptionBeganEventReason,
 		backenddisruption.DisruptionEndedEventReason,

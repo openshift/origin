@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/fs"
 	"io/ioutil"
 	"os"
 	"os/signal"
@@ -15,18 +14,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/intervalcreation"
-
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-
-	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
-
 	"github.com/onsi/ginkgo/config"
 	"github.com/openshift/origin/pkg/monitor"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
-	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
-	"github.com/openshift/origin/test/extended/util/disruption/frontends"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -59,7 +49,7 @@ type Options struct {
 	// context into a failure.
 	SyntheticEventTests JUnitsForEvents
 
-	RunDataWriters []RunDataWriter
+	MonitorEventsOptions *MonitorEventsOptions
 
 	IncludeSuccessOutput bool
 
@@ -72,25 +62,11 @@ type Options struct {
 	StartTime time.Time
 }
 
-func NewOptions() *Options {
+func NewOptions(out io.Writer, errOut io.Writer) *Options {
 	return &Options{
-		RunDataWriters: []RunDataWriter{
-			// these produce the various intervals.  Different intervals focused on inspecting different problem spaces.
-			AdaptEventDataWriter(intervalcreation.NewSpyglassEventIntervalRenderer("everything", intervalcreation.BelongsInEverything)),
-			AdaptEventDataWriter(intervalcreation.NewSpyglassEventIntervalRenderer("spyglass", intervalcreation.BelongsInSpyglass)),
-			// TODO add visualization of individual apiserver containers and their readiness on this page
-			AdaptEventDataWriter(intervalcreation.NewSpyglassEventIntervalRenderer("kube-apiserver", intervalcreation.BelongsInKubeAPIServer)),
-			AdaptEventDataWriter(intervalcreation.NewSpyglassEventIntervalRenderer("operators", intervalcreation.BelongsInOperatorRollout)),
-			AdaptEventDataWriter(intervalcreation.NewPodEventIntervalRenderer()),
-			AdaptEventDataWriter(intervalcreation.NewIngressServicePodIntervalRenderer()),
-
-			RunDataWriterFunc(monitor.WriteEventsForJobRun),
-			RunDataWriterFunc(monitor.WriteTrackedResourcesForJobRun),
-			RunDataWriterFunc(monitor.WriteBackendDisruptionForJobRun),
-			RunDataWriterFunc(allowedalerts.WriteAlertDataForJobRun),
-		},
-		Out:    os.Stdout,
-		ErrOut: os.Stderr,
+		MonitorEventsOptions: NewMonitorEventsOptions(out, errOut),
+		Out:                  out,
+		ErrOut:               errOut,
 	}
 }
 
@@ -212,7 +188,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	}
 
 	if opt.PrintCommands {
-		status := newTestStatus(opt.Out, true, len(tests), time.Minute, &monitor.Monitor{}, monitor.NewNoOpMonitor(), opt.AsEnv())
+		status := newTestStatus(opt.Out, true, len(tests), time.Minute, monitor.NewNoOpMonitor(), opt.AsEnv())
 		newParallelTestQueue().Execute(context.Background(), tests, 1, status.OutputCommand)
 		return nil
 	}
@@ -271,12 +247,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	if err != nil {
 		return err
 	}
-	m, err := monitor.Start(ctx, restConfig,
-		[]monitor.StartEventIntervalRecorderFunc{
-			controlplane.StartAllAPIMonitoring,
-			frontends.StartAllIngressMonitoring,
-		},
-	)
+	monitorEventRecorder, err := opt.MonitorEventsOptions.Start(ctx, restConfig)
 	if err != nil {
 		return err
 	}
@@ -332,7 +303,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	}
 	expectedTestCount += len(openshiftTests) + len(kubeTests)
 
-	status := newTestStatus(opt.Out, includeSuccess, expectedTestCount, timeout, m, m, opt.AsEnv())
+	status := newTestStatus(opt.Out, includeSuccess, expectedTestCount, timeout, monitorEventRecorder, opt.AsEnv())
 	testCtx := ctx
 	if opt.FailFast {
 		var cancelFn context.CancelFunc
@@ -411,53 +382,51 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 
 	pass, fail, skip, failing := summarizeTests(tests)
 
-	// monitor the cluster while the tests are running and report any detected anomalies
-	var syntheticTestResults []*junitapi.JUnitTestCase
-	var syntheticFailure bool
-	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
-	fromTime, endTime := time.Time{}, time.Time{}
-	events := m.Intervals(fromTime, endTime)
-	events = intervalcreation.InsertCalculatedIntervals(events, m.CurrentResourceState(), fromTime, endTime)
+	// attempt to retry failures to do flake detection
+	if fail > 0 && fail <= suite.MaximumAllowedFlakes {
+		var retries []*testCase
+		for _, test := range failing {
+			retry := test.Retry()
+			retries = append(retries, retry)
+			tests = append(tests, retry)
+			if len(retries) > suite.MaximumAllowedFlakes {
+				break
+			}
+		}
 
-	if len(opt.JUnitDir) > 0 {
-		var additionalEvents monitorapi.Intervals
-		filepath.WalkDir(opt.JUnitDir, func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return nil
+		q := newParallelTestQueue()
+		status := newTestStatus(ioutil.Discard, opt.IncludeSuccessOutput, len(retries), timeout, monitorEventRecorder, opt.AsEnv())
+		q.Execute(testCtx, retries, parallelism, status.Run)
+		var flaky []string
+		var repeatFailures []*testCase
+		for _, test := range retries {
+			if test.success {
+				flaky = append(flaky, test.name)
+			} else {
+				repeatFailures = append(repeatFailures, test)
 			}
-			if d.IsDir() {
-				return nil
-			}
-			if !strings.HasPrefix(d.Name(), "AdditionalEvents_") {
-				return nil
-			}
-			saved, _ := monitorserialization.EventsFromFile(path)
-			additionalEvents = append(additionalEvents, saved...)
-			return nil
-		})
-		if len(additionalEvents) > 0 {
-			events = append(events, additionalEvents.Cut(start, end)...)
-			sort.Sort(events)
+		}
+		if len(flaky) > 0 {
+			failing = repeatFailures
+			sort.Strings(flaky)
+			fmt.Fprintf(opt.Out, "Flaky tests:\n\n%s\n\n", strings.Join(flaky, "\n"))
 		}
 	}
 
-	// add events from alerts so we can create the intervals
-	alertEventIntervals, err := monitor.FetchEventIntervalsForAllAlerts(ctx, restConfig, start)
-	if err != nil {
-		fmt.Printf("\n\n\n#### alertErr=%v\n", err)
+	// monitor the cluster while the tests are running and report any detected anomalies
+	var syntheticTestResults []*junitapi.JUnitTestCase
+	var syntheticFailure bool
+
+	if err := opt.MonitorEventsOptions.End(ctx, restConfig, opt.JUnitDir); err != nil {
+		return err
 	}
-	events = append(events, alertEventIntervals...)
-	sort.Sort(events)
-
-	events.Clamp(start, end)
-
 	if len(opt.JUnitDir) > 0 {
-		if err := opt.WriteRunDataToArtifactsDir(opt.JUnitDir, m, events, timeSuffix); err != nil {
+		if err := opt.MonitorEventsOptions.WriteRunDataToArtifactsDir(opt.JUnitDir); err != nil {
 			fmt.Fprintf(opt.ErrOut, "error: Failed to write run-data: %v\n", err)
 		}
 	}
 
-	if len(events) > 0 {
+	if events := opt.MonitorEventsOptions.GetEvents(); len(events) > 0 {
 		var buf *bytes.Buffer
 		syntheticTestResults, buf, _ = createSyntheticTestsFromMonitor(events, duration)
 		testCases := syntheticEventTests.JUnitsForEvents(events, duration, restConfig, suite.Name)
@@ -491,37 +460,6 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		}
 
 		opt.Out.Write(buf.Bytes())
-	}
-
-	// attempt to retry failures to do flake detection
-	if fail > 0 && fail <= suite.MaximumAllowedFlakes {
-		var retries []*testCase
-		for _, test := range failing {
-			retry := test.Retry()
-			retries = append(retries, retry)
-			tests = append(tests, retry)
-			if len(retries) > suite.MaximumAllowedFlakes {
-				break
-			}
-		}
-
-		q := newParallelTestQueue()
-		status := newTestStatus(ioutil.Discard, opt.IncludeSuccessOutput, len(retries), timeout, m, m, opt.AsEnv())
-		q.Execute(testCtx, retries, parallelism, status.Run)
-		var flaky []string
-		var repeatFailures []*testCase
-		for _, test := range retries {
-			if test.success {
-				flaky = append(flaky, test.name)
-			} else {
-				repeatFailures = append(repeatFailures, test)
-			}
-		}
-		if len(flaky) > 0 {
-			failing = repeatFailures
-			sort.Strings(flaky)
-			fmt.Fprintf(opt.Out, "Flaky tests:\n\n%s\n\n", strings.Join(flaky, "\n"))
-		}
 	}
 
 	// report the outcome of the test

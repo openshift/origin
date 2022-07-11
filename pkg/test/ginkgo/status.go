@@ -21,7 +21,6 @@ import (
 type testStatus struct {
 	out             io.Writer
 	timeout         time.Duration
-	monitor         monitor.Interface
 	monitorRecorder monitor.Recorder
 	env             []string
 
@@ -35,12 +34,11 @@ type testStatus struct {
 	total    int
 }
 
-func newTestStatus(out io.Writer, includeSuccessfulOutput bool, total int, timeout time.Duration, m monitor.Interface, monitorRecorder monitor.Recorder, testEnv []string) *testStatus {
+func newTestStatus(out io.Writer, includeSuccessfulOutput bool, total int, timeout time.Duration, monitorRecorder monitor.Recorder, testEnv []string) *testStatus {
 	return &testStatus{
 		out:             out,
 		total:           total,
 		timeout:         timeout,
-		monitor:         m,
 		monitorRecorder: monitorRecorder,
 		env:             testEnv,
 
