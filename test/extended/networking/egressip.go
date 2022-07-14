@@ -69,6 +69,10 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 		cloudType configv1.PlatformType
 		hasIPv4   bool
 		hasIPv6   bool
+
+		targetProtocol string
+		targetHost     string
+		targetPort     int
 	)
 
 	g.BeforeEach(func() {
@@ -139,6 +143,16 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 		hasIPv4, hasIPv6, err = GetIPAddressFamily(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		g.By("Determining the target protocol, host and port")
+		targetProtocol, targetHost, targetPort, err = getTargetProtocolHostPort(oc, hasIPv4, hasIPv6, cloudType, networkPlugin)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		framework.Logf("Testing against: CloudType: %s, NetworkPlugin: %s, Protocol %s, TargetHost: %s, TargetPort: %d",
+			cloudType,
+			networkPlugin,
+			targetProtocol,
+			targetHost,
+			targetPort)
+
 		g.By("Creating a project for the prober pod")
 		// Create a target project and assign source and target namespace
 		// to variables for later use.
@@ -191,27 +205,17 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 	})
 
 	g.Context("[internal-targets]", func() {
-		var targetIP string
-		var targetPort int
-
 		g.JustBeforeEach(func() {
-			framework.Logf("Testing against: CloudType: %s, NetworkPlugin: %s",
-				cloudType,
-				networkPlugin,
-			)
-
 			// Host networked is needed for host networked pods.
 			g.By("Adding SCC hostnetwork to the external namespace")
 			_, err := runOcWithRetry(oc.AsAdmin(), "adm", "policy", "add-scc-to-user", "hostnetwork", fmt.Sprintf("system:serviceaccount:%s:default", externalNamespace))
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		// Skip on Azure due to timeout issues and very long delays for EgressIP configuration.
-		// Azure fails often on the pod that is matched by the EgressIP, for a seemingly random delay.
-		// Sometimes, the EgressIP is applied late, and due to this packets are dropped during reconfiguration.
-		// Skip on GCP, the range from 30000 - 32767 (which we exploit for these tests) is open only based on sourceTags,
-		// but aliasIpRanges are not matched by sourceTags. See https://bugzilla.redhat.com/show_bug.cgi?id=2104637.
-		g.It("EgressIP pods should reach hostNetwork pods on other nodes [Skipped:azure][Skipped:gce]", func() {
+		g.It("EgressIP pods should query hostNetwork pods with the local node's SNAT", func() {
+			var targetIP string
+			var targetPort int
+
 			g.By("Selecting a single EgressIP node, and one node per source deployment")
 			// Requires a minimum of 3 worker nodes in total:
 			// 1 nonEgressIPNodeName + at least 2 as sources of EgressIP traffic.
@@ -263,13 +267,12 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(podIPs)).Should(o.BeNumerically(">", 0))
 			targetIP = podIPs[0]
-			framework.Logf("targetIP is %s, targetPort is %d", targetIP, targetPort)
 
-			routeNames := make([]string, len(deploymentNodeStr))
-			for k, scheduleOnNodes := range deploymentNodeStr {
-				g.By(fmt.Sprintf("Creating EgressIP test source deployment %d with %d pod(s) on node(s) %v", k, len(scheduleOnNodes), scheduleOnNodes))
-				_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, fmt.Sprint(k), ingressDomain, len(scheduleOnNodes), scheduleOnNodes)
-				routeNames[k] = routeName
+			var routeNames []string
+			for k, v := range deploymentNodeStr {
+				g.By(fmt.Sprintf("Creating EgressIP test source deployment %d with number of pods equals number of EgressIP nodes", k))
+				_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, fmt.Sprint(k), ingressDomain, len(v), v)
+				routeNames = append(routeNames, routeName)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 
@@ -292,56 +295,61 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 				}
 			}
 
+			g.By("Creating the EgressIP object for OVN Kubernetes")
+			egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
+			egressIPObjectName := egressIPNamespace
+			ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
+
+			g.By("Applying the EgressIP object for OVN Kubernetes")
+			_, err = runOcWithRetry(oc.AsAdmin(), "create", "-f", tmpDirEgressIP+"/"+egressIPYaml)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			if networkPlugin == OVNKubernetesPluginName {
-				g.By("Creating the EgressIP object for OVN Kubernetes")
-				egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
-				egressIPObjectName := egressIPNamespace
-				ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
 
-				g.By("Applying the EgressIP object for OVN Kubernetes")
-				_, err = runOcWithRetry(oc.AsAdmin(), "create", "-f", tmpDirEgressIP+"/"+egressIPYaml)
-			} else {
-				g.By("Adding EgressIPs to netnamespace and hostsubnet for OpenShiftSDN")
-				openshiftSDNAssignEgressIPsManually(oc, cloudNetworkClientset, egressIPNamespace, egressIPSet, egressUpdateTimeout)
-			}
-
-			// We have twice the following: routes -> service -> deployment -> single pod.
-			// One of these pods is on the same node as the EgressIP. The other pod is on the node without the EgressIP.
 			// This approach here is different from the other tests because:
 			// a) No additional SNAT or similar can be injected by the cloud as we go directly from node and we know that we have
 			// an endpoint on the cloud, always, thus we can directly query agnhost's /clientip.
 			// b) The requests in tcpdump did not expose the request string for some reason (probably needed better filters)
 			// c) It's simpler to just query for the /clientip instead of relying on the packet capture for these tests.
-			for k, routeName := range routeNames {
-				g.By(fmt.Sprintf("Launching prober pod, curling route %s, triggering dial from pod(s) on host(s) %v to targetIP:targetPort %s:%d", routeName, deploymentNodeStr[k], targetIP, targetPort))
+			for _, routeName := range routeNames {
+				g.By(fmt.Sprintf("Launching a new prober pod and probing for EgressIPs at %s", routeName))
 				numberOfRequestsToSend := 10
-				spawnProberPodSendEgressIPTrafficInternal(oc, externalNamespace, probePodName, routeName, targetIP, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, egressIPSet)
+				clientIPSet, err := probeForClientIPs(oc, externalNamespace, probePodName, routeName, targetIP, targetPort, numberOfRequestsToSend)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// Note: my interpretation is that it's a bug if we see an egressIP here:
+				// We should never see egressIPs when querying internal targets:
+				// https://bugzilla.redhat.com/show_bug.cgi?id=2070929
+				// However, this was still a subject of discussion. When we enable these tests after
+				// we fix 2070929, decide if we want to see EgressIPs here or not and possibly remove
+				// this verification.
+				g.By("Making sure that EgressIPs were not part of the response")
+				framework.Logf("egressIPSet is: %v", egressIPSet)
+				framework.Logf("clientIPSet is: %v", clientIPSet)
+				o.Expect(len(clientIPSet)).Should(o.BeNumerically(">", 0))
+				o.Expect(
+					// return false if any key of x is in y or vice-versa.
+					func(x map[string]string, y map[string]struct{}) bool {
+						for k := range x {
+							if _, ok := y[k]; ok {
+								return false
+							}
+						}
+						for k := range y {
+							if _, ok := x[k]; ok {
+								return false
+							}
+						}
+						return true
+					}(egressIPSet, clientIPSet)).To(o.BeTrue())
 			}
 		})
 	}) // end testing to internal targets
 
 	g.Context("[external-targets]", func() {
-		var targetProtocol string
-		var targetHost string
-		var targetPort int
-
 		g.JustBeforeEach(func() {
-			var err error
-			g.By("Determining the target protocol, host and port")
-			targetProtocol, targetHost, targetPort, err = getTargetProtocolHostPort(oc, hasIPv4, hasIPv6, cloudType, networkPlugin)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			framework.Logf("Testing against: CloudType: %s, NetworkPlugin: %s, Protocol %s, TargetHost: %s, TargetPort: %d",
-				cloudType,
-				networkPlugin,
-				targetProtocol,
-				targetHost,
-				targetPort)
-
 			// SCC privileged is needed to run tcpdump on the packet sniffer containers, and at the minimum host networked is needed for
 			// host networked pods.
 			g.By("Adding SCC privileged to the external namespace")
-			_, err = runOcWithRetry(oc.AsAdmin(), "adm", "policy", "add-scc-to-user", "privileged", fmt.Sprintf("system:serviceaccount:%s:default", externalNamespace))
+			_, err := runOcWithRetry(oc.AsAdmin(), "adm", "policy", "add-scc-to-user", "privileged", fmt.Sprintf("system:serviceaccount:%s:default", externalNamespace))
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Determining the interface that will be used for packet sniffing")
@@ -669,81 +677,8 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 // use and that can serve as readymade drop-in replacements for larger chunks of code.
 //
 
-// spawnProberSendEgressIPTrafficInternal is a wrapper function to reduce code duplication when probing for EgressIPs towards
-// internal targets (towards host networked pods).
-// Spawns a prober pod inside the prober namespace. It then runs curl against http://%s/dial?host=%s&port=%d&request=/clientip
-// Unfortunately, it can take a bit of time for the setup to become active and packets may be lost during this time.
-// Therefore, add a 60 seconds retry mechanism which eventually must report a working curl request before running the actual test.
-// Then, run curl for the specified number of iterations and return a set of the clientIP addresses that were returned.
-// At the end of the test, the prober pod is deleted again.
-func spawnProberPodSendEgressIPTrafficInternal(oc *exutil.CLI, proberPodNamespace, proberPodName, url, targetIP string, targetPort, iterations, expectedHits int, egressIPSet map[string]string) {
-	framework.Logf("Launching a new prober pod")
-	proberPod := createProberPod(oc, proberPodNamespace, probePodName)
-
-	// Unfortunately, even after we created all resources, it can take some time before everything is applied correctly with
-	// failed connection attempts in between.
-	// If we expect non-zero number of hits, add this 60 second retry mechanism that waits for the first log hit.
-	// 60 seconds might seems a bit long, but I have seen this take quite some time on Azure.
-	if expectedHits > 0 {
-		framework.Logf("Eventually (after max 60 seconds) the setup should converge and everything should be operational")
-		o.Eventually(func() bool {
-			framework.Logf("Sending a single probe and checking if it makes it")
-			_, warnList, err := probeForClientIPs(oc, proberPod.Namespace, proberPod.Name, url, targetIP, targetPort, 1)
-			return err == nil && len(warnList) == 0
-		}, 60*time.Second, 1*time.Second).Should(o.BeTrue())
-	}
-
-	framework.Logf("Probing %d times and expecting %d hits", iterations, expectedHits)
-	clientIPSet, warnList, err := probeForClientIPs(oc, proberPod.Namespace, proberPod.Name, url, targetIP, targetPort, iterations)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	framework.Logf("The following EgressIPs are configured: %v", egressIPSet)
-	framework.Logf("The target reported that it saw the following client IPs and hits: %v", clientIPSet)
-	if len(warnList) > 0 {
-		framework.Logf("%d requests failed due to the following issues: %v", len(warnList), warnList)
-	}
-	o.Expect(func() int {
-		numAnswers := 0
-		for _, numHits := range clientIPSet {
-			numAnswers += numHits
-		}
-		return numAnswers
-	}()).Should(o.BeNumerically("==", iterations))
-
-	// NOTE: The following checks are disabled as of now as we do not have consensus for how this should behave
-	// and currently traffic to node ports does get EgressIP mapped.
-
-	// Note: my interpretation is that it's a bug if we see an egressIP here:
-	// We should never see egressIPs when querying internal targets:
-	// https://bugzilla.redhat.com/show_bug.cgi?id=2070929
-	// However, this was still a subject of discussion. When we enable these tests after
-	// we fix 2070929, decide if we want to see EgressIPs here or not and possibly remove
-	// this verification.
-	/*
-		g.By("Making sure that EgressIPs were not part of the response")
-		o.Expect(
-			// return false if any key of x is in y or vice-versa.
-			func(x map[string]string, y map[string]struct{}) bool {
-				for k := range x {
-					if _, ok := y[k]; ok {
-						return false
-					}
-				}
-				for k := range y {
-					if _, ok := x[k]; ok {
-						return false
-					}
-				}
-				return true
-			}(egressIPSet, clientIPSet)).To(o.BeTrue())
-	*/
-
-	framework.Logf("Destroying the prober pod")
-	err = destroyProberPod(oc, proberPod)
-	o.Expect(err).NotTo(o.HaveOccurred())
-}
-
 // spawnProberSendEgressIPTrafficCheckLogs is a wrapper function to reduce code duplication when probing for EgressIPs.
-// Unfortunately, it can take a bit of time for EgressIPs to become active, so spawnProberSendEgressIPTrafficCheckLogs adds a 60 seconds retry
+// Unfortunately, it can take a bit of time for EgressIPs to become active, so spawnProberSendEgressIPTrafficCheckLogs adds a 15 second retry
 // mechanism which eventually must observe an EgressIP in the logs before running the actual test.
 // It launches a new prober pod and sends <iterations> of requests with a unique search string. It then makes sure that <expectedHits> number
 // of hits were seen.

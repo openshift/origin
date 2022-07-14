@@ -2779,7 +2779,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network][Feature:EgressIP] [external-targets] pods should keep the assigned EgressIPs when being rescheduled to another node": "pods should keep the assigned EgressIPs when being rescheduled to another node [Serial] [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [sig-network][Feature:EgressIP] [internal-targets] EgressIP pods should reach hostNetwork pods on other nodes [Skipped:azure][Skipped:gce]": "EgressIP pods should reach hostNetwork pods on other nodes [Skipped:azure][Skipped:gce] [Serial] [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-network][Feature:EgressIP] [internal-targets] EgressIP pods should query hostNetwork pods with the local node's SNAT": "EgressIP pods should query hostNetwork pods with the local node's SNAT [Disabled:Broken] [Serial]",
 
 	"[Top Level] [sig-network][Feature:EgressRouterCNI] should ensure ipv4 egressrouter cni resources are created": "should ensure ipv4 egressrouter cni resources are created [Suite:openshift/conformance/parallel]",
 
