@@ -199,6 +199,23 @@ func archHasDefaultIndex(oc *exutil.CLI) bool {
 	return false
 }
 
+func marketplaceEnabled(oc *exutil.CLI) (bool, error) {
+	output, err := oc.AsAdmin().Run("get").Args("clusterversion", "version", "-o=jsonpath={.status.capabilities.enabledCapabilities}").Output()
+	if err != nil {
+		return false, err
+	}
+	capabilities := []string{}
+	if err = json.Unmarshal([]byte(output), &capabilities); err != nil {
+		return false, err
+	}
+	for _, capability := range capabilities {
+		if capability == "marketplace" {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func hasRedHatOperatorsSource(oc *exutil.CLI) (bool, error) {
 	spec, err := oc.AsAdmin().Run("get").Args("operatorhub/cluster", "-o=jsonpath={.spec}").Output()
 	if err != nil {
@@ -248,8 +265,14 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 	g.It("can subscribe to the operator", func() {
 		g.By("Cluster-admin user subscribe the operator resource")
 
+		// skip test if marketplace-operator is not enabled
+		ok, err := marketplaceEnabled(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if !ok {
+			g.Skip("marketplace operator not enabled, skipping test")
+		}
 		// skip test if redhat-operators is not present or disabled
-		ok, err := hasRedHatOperatorsSource(oc)
+		ok, err = hasRedHatOperatorsSource(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if !ok {
 			g.Skip("redhat-operators source not found in enabled sources")
