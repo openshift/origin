@@ -2743,6 +2743,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] services basic functionality should allow connections to another pod on the same node via a service IP": "should allow connections to another pod on the same node via a service IP [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-network] services when running openshift cluster on KubeVirt virtual machines should allow connections to pods from guest hostNetwork pod via NodePort across different guest nodes": "should allow connections to pods from guest hostNetwork pod via NodePort across different guest nodes [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-network] services when running openshift cluster on KubeVirt virtual machines should allow connections to pods from infra cluster pod via NodePort across different infra nodes": "should allow connections to pods from infra cluster pod via NodePort across different infra nodes [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-network] services when running openshift ipv4 cluster ensures external ip policy is configured correctly on the cluster [Serial]": "ensures external ip policy is configured correctly on the cluster [Serial] [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-network] services when running openshift ipv4 cluster on bare metal ensures external auto assign cidr is configured correctly on the cluster [Serial]": "ensures external auto assign cidr is configured correctly on the cluster [Serial] [Suite:openshift/conformance/serial]",

@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/library-go/pkg/network/networkutils"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -93,7 +94,40 @@ func expectError(err error, explain ...interface{}) {
 	ExpectWithOffset(1, err).To(HaveOccurred(), explain...)
 }
 
-func launchWebserverService(client k8sclient.Interface, namespace, serviceName string, nodeName string) (serviceAddr string) {
+func launchWebserverNodePortService(client k8sclient.Interface, namespace, serviceName string, nodeName string) int32 {
+	labelSelector := make(map[string]string)
+	labelSelector["name"] = "web"
+	createPodForService(client, namespace, serviceName, nodeName, labelSelector)
+
+	servicePort := 8080
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: serviceName,
+		},
+		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeNodePort,
+			Ports: []corev1.ServicePort{
+				{
+					Protocol: corev1.ProtocolTCP,
+					Port:     int32(servicePort),
+				},
+			},
+			Selector: labelSelector,
+		},
+	}
+	serviceClient := client.CoreV1().Services(namespace)
+	_, err := serviceClient.Create(context.Background(), service, metav1.CreateOptions{})
+	expectNoError(err)
+	expectNoError(exutil.WaitForEndpoint(client, namespace, serviceName))
+	service, err = serviceClient.Get(context.Background(), serviceName, metav1.GetOptions{})
+	expectNoError(err)
+
+	Expect(service.Spec.Ports[0].NodePort).ToNot(Equal(0))
+	return service.Spec.Ports[0].NodePort
+
+}
+
+func launchWebserverClusterIPService(client k8sclient.Interface, namespace, serviceName string, nodeName string) (serviceAddr string) {
 	labelSelector := make(map[string]string)
 	labelSelector["name"] = "web"
 	createPodForService(client, namespace, serviceName, nodeName, labelSelector)
@@ -186,10 +220,45 @@ func createWebserverLBService(client k8sclient.Interface, namespace, serviceName
 	return err
 }
 
-func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, host string, timeout time.Duration) error {
+func checkConnectivityToHostWithCLI(f *e2e.Framework, oc *exutil.CLI, nodeName string, podName string, host string, timeout time.Duration, hostNetwork bool) error {
+	namespace := f.Namespace.Name
+
+	e2e.Logf("Creating an exec pod on node %v", nodeName)
+	execPod := pod.CreateExecPodOrFail(f.ClientSet, namespace, fmt.Sprintf("execpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
+		pod.Spec.NodeName = nodeName
+		pod.Spec.HostNetwork = hostNetwork
+	})
+	defer func() {
+		e2e.Logf("Cleaning up the exec pod")
+		err := f.ClientSet.CoreV1().Pods(namespace).Delete(context.Background(), execPod.Name, metav1.DeleteOptions{})
+		Expect(err).NotTo(HaveOccurred())
+	}()
+
+	var stdout string
+	e2e.Logf("Waiting up to %v to wget %s", timeout, host)
+	cmd := fmt.Sprintf("wget -T 30 -qO- %s", host)
+	var err error
+	for start := time.Now(); time.Since(start) < timeout; time.Sleep(2) {
+		stdout, err = oc.Run("exec").Args(execPod.Name, "-n", namespace, "--", "/bin/sh", "-x", "-c", cmd).Output()
+		if err != nil {
+			e2e.Logf("got err: %v, retry until timeout", err)
+			continue
+		}
+		// Need to check output because wget -q might omit the error.
+		if strings.TrimSpace(stdout) == "" {
+			e2e.Logf("got empty stdout, retry until timeout")
+			continue
+		}
+		break
+	}
+	return err
+}
+
+func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, host string, timeout time.Duration, hostNetwork bool) error {
 	e2e.Logf("Creating an exec pod on node %v", nodeName)
 	execPod := pod.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, fmt.Sprintf("execpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
 		pod.Spec.NodeName = nodeName
+		pod.Spec.HostNetwork = hostNetwork
 	})
 	defer func() {
 		e2e.Logf("Cleaning up the exec pod")
@@ -410,7 +479,109 @@ func checkPodIsolation(f1, f2 *e2e.Framework, nodeType NodeType) error {
 	defer f1.ClientSet.CoreV1().Pods(f1.Namespace.Name).Delete(context.Background(), podName, metav1.DeleteOptions{})
 	ip := exutil.LaunchWebserverPod(f1.ClientSet, f1.Namespace.Name, podName, serverNode.Name)
 
-	return checkConnectivityToHost(f2, clientNode.Name, "isolation-wget", ip, 10*time.Second)
+	return checkConnectivityToHost(f2, clientNode.Name, "isolation-wget", ip, 10*time.Second, false)
+}
+
+func getSchedulableNode(serverFramework *e2e.Framework) (string, error) {
+
+	// Any node is fine to schedule the server on.
+	nodes, err := e2enode.GetReadySchedulableNodes(serverFramework.ClientSet)
+	if err != nil {
+		e2e.Logf("Unable to get schedulable nodes due to %v", err)
+		return "", err
+	}
+	// GetReadySchedulableNodes guarantees us the list is not empty
+	// Any schedulable node will work for the server in this case.
+	return nodes.Items[0].Name, nil
+
+}
+
+func getKubeVirtPodFromGuestNode(framework *e2e.Framework, nodeName string) (*corev1.Pod, error) {
+
+	podList, err := framework.ClientSet.CoreV1().Pods(framework.Namespace.Name).List(context.Background(), metav1.ListOptions{})
+	Expect(err).To(Succeed())
+	for _, pod := range podList.Items {
+		if strings.Contains(pod.Name, nodeName) {
+			return &pod, nil
+		}
+	}
+
+	return nil, fmt.Errorf("kubevirt node's infra pod not found")
+}
+
+func getSchedulableInfraNode(framework *e2e.Framework, serverInfraNode string) (string, error) {
+
+	// find an infra node to schedule the client on
+	nodes, err := e2enode.GetReadySchedulableNodes(framework.ClientSet)
+	if err != nil {
+		e2e.Logf("Unable to get schedulable nodes due to %v", err)
+		return "", err
+	}
+
+	for _, node := range nodes.Items {
+		if node.Name != serverInfraNode {
+			return node.Name, nil
+		}
+	}
+	return "", fmt.Errorf("infra node not found")
+}
+
+func getNodeInternalAddress(node *v1.Node) (string, error) {
+
+	for _, addr := range node.Status.Addresses {
+
+		if addr.Type == v1.NodeInternalIP {
+			return addr.Address, nil
+		}
+	}
+	return "", fmt.Errorf("no internal node ip found for node %s", node.Name)
+}
+
+func checkKubeVirtGuestClusterNodePortConnectivity(serverFramework, clientFramework *e2e.Framework) error {
+	makeNamespaceScheduleToAllNodes(serverFramework)
+	makeNamespaceScheduleToAllNodes(clientFramework)
+	serverNode, clientNode, err := findAppropriateNodes(serverFramework, DIFFERENT_NODE)
+	if err != nil {
+		return err
+	}
+
+	podName := names.SimpleNameGenerator.GenerateName("service-")
+	defer serverFramework.ClientSet.CoreV1().Pods(serverFramework.Namespace.Name).Delete(context.Background(), podName, metav1.DeleteOptions{})
+	defer serverFramework.ClientSet.CoreV1().Services(serverFramework.Namespace.Name).Delete(context.Background(), podName, metav1.DeleteOptions{})
+
+	serverNodePort := launchWebserverNodePortService(serverFramework.ClientSet, serverFramework.Namespace.Name, podName, serverNode.Name)
+
+	ip, err := getNodeInternalAddress(clientNode)
+	Expect(err).To(Succeed())
+
+	serviceAddr := net.JoinHostPort(ip, strconv.Itoa(int(serverNodePort)))
+
+	return checkConnectivityToHost(clientFramework, clientNode.Name, "service-wget", serviceAddr, 10*time.Second, true)
+}
+
+func checkKubeVirtInfraClusterNodePortConnectivity(serverFramework, clientFramework *e2e.Framework, oc *exutil.CLI) error {
+	makeNamespaceScheduleToAllNodes(serverFramework)
+
+	serverGuestNode, err := getSchedulableNode(serverFramework)
+	Expect(err).To(Succeed())
+
+	serverVMPod, err := getKubeVirtPodFromGuestNode(clientFramework, serverGuestNode)
+	Expect(err).To(Succeed())
+
+	serverInfraNode := serverVMPod.Spec.NodeName
+	serverGuestNodeIP := serverVMPod.Status.PodIP
+
+	infraClientNode, err := getSchedulableInfraNode(clientFramework, serverInfraNode)
+	Expect(err).To(Succeed())
+
+	podName := names.SimpleNameGenerator.GenerateName("service-")
+	defer serverFramework.ClientSet.CoreV1().Pods(serverFramework.Namespace.Name).Delete(context.Background(), podName, metav1.DeleteOptions{})
+	defer serverFramework.ClientSet.CoreV1().Services(serverFramework.Namespace.Name).Delete(context.Background(), podName, metav1.DeleteOptions{})
+
+	serverGuestNodePort := launchWebserverNodePortService(serverFramework.ClientSet, serverFramework.Namespace.Name, podName, serverGuestNode)
+	serviceAddr := net.JoinHostPort(serverGuestNodeIP, strconv.Itoa(int(serverGuestNodePort)))
+
+	return checkConnectivityToHostWithCLI(clientFramework, oc, infraClientNode, "service-wget", serviceAddr, 10*time.Second, false)
 }
 
 func checkServiceConnectivity(serverFramework, clientFramework *e2e.Framework, nodeType NodeType) error {
@@ -423,9 +594,9 @@ func checkServiceConnectivity(serverFramework, clientFramework *e2e.Framework, n
 	podName := names.SimpleNameGenerator.GenerateName("service-")
 	defer serverFramework.ClientSet.CoreV1().Pods(serverFramework.Namespace.Name).Delete(context.Background(), podName, metav1.DeleteOptions{})
 	defer serverFramework.ClientSet.CoreV1().Services(serverFramework.Namespace.Name).Delete(context.Background(), podName, metav1.DeleteOptions{})
-	ip := launchWebserverService(serverFramework.ClientSet, serverFramework.Namespace.Name, podName, serverNode.Name)
+	ip := launchWebserverClusterIPService(serverFramework.ClientSet, serverFramework.Namespace.Name, podName, serverNode.Name)
 
-	return checkConnectivityToHost(clientFramework, clientNode.Name, "service-wget", ip, 10*time.Second)
+	return checkConnectivityToHost(clientFramework, clientNode.Name, "service-wget", ip, 10*time.Second, false)
 }
 
 func InNonIsolatingContext(body func()) {
@@ -507,6 +678,22 @@ func InBareMetalIPv4ClusterContext(oc *exutil.CLI, body func()) {
 				expectNoError(err)
 				if pType != configv1.BareMetalPlatformType || getIPFamilyForCluster(oc.KubeFramework()) != IPv4 {
 					e2eskipper.Skipf("Not running in bare metal ipv4 cluster")
+				}
+			})
+
+			body()
+		},
+	)
+}
+
+func InKubeVirtClusterContext(oc *exutil.CLI, body func()) {
+	Context("when running openshift cluster on KubeVirt virtual machines",
+		func() {
+			BeforeEach(func() {
+				pType, err := platformType(oc.AdminConfigClient())
+				expectNoError(err)
+				if pType != configv1.KubevirtPlatformType {
+					e2eskipper.Skipf("Not running in KubeVirt cluster")
 				}
 			})
 

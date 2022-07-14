@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/storage/names"
@@ -247,4 +248,46 @@ var _ = Describe("[sig-network] services", func() {
 			}
 		})
 	})
+
+	InKubeVirtClusterContext(oc, func() {
+
+		mgmtFramework := e2e.NewDefaultFramework("mgmt-framework")
+		mgmtFramework.SkipNamespaceCreation = true
+
+		f1 := e2e.NewDefaultFramework("server-framework")
+		f1.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
+
+		It("should allow connections to pods from infra cluster pod via NodePort across different infra nodes", func() {
+
+			// This tests connectivity from the infra cluster's pod network to a NodePort
+			// within a nested KubeVirt Hypershift guest cluster.
+			//
+			// This exercises the back half of the network flow used to pass ingress
+			// through the ingress cluster into the nested guest cluster.
+			//
+			// client pod (on infra cluster) -> guest node IP -> NodePort -> server pod (on guest cluster)
+			//
+			_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
+			Expect(err).To(Succeed())
+
+			oc = exutil.NewHypershiftManagementCLI(hcpNamespace).AsAdmin()
+
+			mgmtClientSet := oc.KubeClient()
+			mgmtFramework.Namespace = &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: hcpNamespace,
+				},
+			}
+			mgmtFramework.ClientSet = mgmtClientSet
+
+			Expect(checkKubeVirtInfraClusterNodePortConnectivity(f1, mgmtFramework, oc)).To(Succeed())
+		})
+
+		It("should allow connections to pods from guest hostNetwork pod via NodePort across different guest nodes", func() {
+			// Within a nested KubeVirt guest cluster, this tests the ability for
+			// NodePort services to route from hostnet to pods across guest nodes.
+			Expect(checkKubeVirtGuestClusterNodePortConnectivity(f1, f1)).To(Succeed())
+		})
+	})
+
 })
