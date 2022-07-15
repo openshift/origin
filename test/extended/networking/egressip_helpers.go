@@ -911,7 +911,6 @@ func findNodeEgressIPs(oc *exutil.CLI, clientset kubernetes.Interface, cloudNetw
 
 	// Build the list of reserved IPs. To do so, look at the currently used cloudprivateipconfigs
 	// and egressips as well as nodes.
-	var reservedIPs []string
 	reservedIPs, err := buildReservedEgressIPList(oc, clientset, cloudNetworkClientset)
 	if err != nil {
 		return nil, err
@@ -940,24 +939,19 @@ func findNodeEgressIPs(oc *exutil.CLI, clientset kubernetes.Interface, cloudNetw
 		}
 		nodeEgressIPs[node.Name] = freeIPs
 		// Most cloud environments such as GCP report a single, common CIDR for
-		// EgresiIPs. Therefore, just add the IPs for this node to the reservedPool.
+		// EgressIPs. Therefore, just add the IPs for this node to the reservedPool.
 		for _, freeIP := range freeIPs {
-			reservedIPs = append(reservedIPs, freeIP)
+			reservedIPs[freeIP] = struct{}{}
 		}
 	}
 
 	return nodeEgressIPs, nil
 }
 
-// buildReservedEgressIPList builds the list of reserved IPs. To do so, look at the currently used cloudprivateipconfigs
-// and egressips as well as the node IP addresses.
-// Warning: Some cloud environments have a common CIDR for EgressIPs. In those environments, it is not possible to attribute
-// a specific EgressIP to a specific node so this is just a "best effort" allocation and should be kept in mind when writing
-// tests.
-// TODO: add an internal reservation system based on a singleton to avoid race conditions during
-// concurrent tests.
-func buildReservedEgressIPList(oc *exutil.CLI, clientset kubernetes.Interface, cloudNetworkClientset cloudnetwork.Interface) ([]string, error) {
-	var reservedIPs []string
+// buildReservedEgressIPList builds the list of reserved IPs. To do so, look at the currently used cloudprivateipconfigs, egressips,
+// hostsubnets, netnamespaces as well as the node IP addresses.
+func buildReservedEgressIPList(oc *exutil.CLI, clientset kubernetes.Interface, cloudNetworkClientset cloudnetwork.Interface) (map[string]struct{}, error) {
+	reservedIPs := make(map[string]struct{})
 
 	// cloudprivateipconfigs
 	cloudPrivateIPConfigs, err := cloudNetworkClientset.CloudV1().CloudPrivateIPConfigs().List(context.Background(), metav1.ListOptions{})
@@ -965,7 +959,7 @@ func buildReservedEgressIPList(oc *exutil.CLI, clientset kubernetes.Interface, c
 		return nil, err
 	}
 	for _, cloudPrivateIPConfig := range cloudPrivateIPConfigs.Items {
-		reservedIPs = append(reservedIPs, cloudPrivateIPConfig.Name)
+		reservedIPs[cloudPrivateIPConfig.Name] = struct{}{}
 	}
 
 	// egressip for OVNKubernetes - if we receive a failure here, it may simply be because
@@ -974,10 +968,11 @@ func buildReservedEgressIPList(oc *exutil.CLI, clientset kubernetes.Interface, c
 	if err == nil {
 		for _, egressip := range egressipList.Items {
 			for _, ip := range egressip.Spec.EgressIPs {
-				reservedIPs = append(reservedIPs, ip)
+				reservedIPs[ip] = struct{}{}
 			}
 		}
 	}
+	// Find EgressIP in HostSubnet configuration.
 	// egressip for OpenShiftSDN - if we receive a failure here, it may simply be because
 	// we are on OVNKubernetes, so ignore the error.
 	networkClient := networkclient.NewForConfigOrDie(oc.AdminConfig())
@@ -985,7 +980,18 @@ func buildReservedEgressIPList(oc *exutil.CLI, clientset kubernetes.Interface, c
 	if err == nil {
 		for _, hostSubnet := range hostSubnets.Items {
 			for _, eip := range hostSubnet.EgressIPs {
-				reservedIPs = append(reservedIPs, string(eip))
+				reservedIPs[string(eip)] = struct{}{}
+			}
+		}
+	}
+	// Find EgressIPs in NetNamespace configuration.
+	// egressip for OpenShiftSDN - if we receive a failure here, it may simply be because
+	// we are on OVNKubernetes, so ignore the error.
+	netNamespaces, err := networkClient.NetNamespaces().List(context.Background(), metav1.ListOptions{})
+	if err == nil {
+		for _, netNamespace := range netNamespaces.Items {
+			for _, eip := range netNamespace.EgressIPs {
+				reservedIPs[string(eip)] = struct{}{}
 			}
 		}
 	}
@@ -1000,7 +1006,7 @@ func buildReservedEgressIPList(oc *exutil.CLI, clientset kubernetes.Interface, c
 	for _, node := range nodes.Items {
 		for _, addr := range node.Status.Addresses {
 			if addr.Type == corev1.NodeInternalIP {
-				reservedIPs = append(reservedIPs, addr.Address)
+				reservedIPs[addr.Address] = struct{}{}
 			}
 		}
 	}
@@ -1010,7 +1016,7 @@ func buildReservedEgressIPList(oc *exutil.CLI, clientset kubernetes.Interface, c
 
 // getFirstFreeIPs returns the first available IP addresses from the IP network (CIDR notation). reservedIPs are
 // eliminated from the choice and the cloudType is taken into account.
-func getFirstFreeIPs(ipnetStr string, reservedIPs []string, cloudType configv1.PlatformType, egressIPsPerNode int) ([]string, error) {
+func getFirstFreeIPs(ipnetStr string, reservedIPs map[string]struct{}, cloudType configv1.PlatformType, egressIPsPerNode int) ([]string, error) {
 	// Parse the CIDR notation and enumerate all IPs inside the subnet.
 	_, ipnet, err := net.ParseCIDR(ipnetStr)
 	if err != nil {
@@ -1051,7 +1057,7 @@ func getFirstFreeIPs(ipnetStr string, reservedIPs []string, cloudType configv1.P
 	var freeIPList []string
 outer:
 	for _, ip := range ipList {
-		for _, rip := range reservedIPs {
+		for rip := range reservedIPs {
 			if ip.String() == rip {
 				continue outer
 			}
@@ -1545,60 +1551,42 @@ func getDaemonSetPodIPs(clientset kubernetes.Interface, namespace, daemonsetName
 // probeForClientIPs spawns a prober pod inside the prober namespace. It then runs curl against http://%s/dial?host=%s&port=%d&request=/clientip
 // for the specified number of iterations and returns a set of the clientIP addresses that were returned.
 // At the end of the test, the prober pod is deleted again.
-func probeForClientIPs(oc *exutil.CLI, proberPodNamespace, proberPodName, url, targetIP string, targetPort, iterations int) (map[string]struct{}, error) {
+func probeForClientIPs(oc *exutil.CLI, proberPodNamespace, proberPodName, url, targetIP string, targetPort, iterations int) (map[string]int, []error, error) {
 	if oc == nil {
-		return nil, fmt.Errorf("Nil pointer to exutil.CLI oc was provided in SendProbesToHostPort.")
+		return nil, nil, fmt.Errorf("Nil pointer to exutil.CLI oc was provided in SendProbesToHostPort.")
 	}
 
-	f := oc.KubeFramework()
-	clientset := f.ClientSet
+	clientIpSet := make(map[string]int)
 
-	clientIpSet := make(map[string]struct{})
-
-	proberPod := frameworkpod.CreateExecPodOrFail(clientset, proberPodNamespace, probePodName, func(pod *corev1.Pod) {
-		// pod.ObjectMeta.Annotations = annotation
-	})
 	request := fmt.Sprintf("http://%s/dial?host=%s&port=%d&request=/clientip", url, targetIP, targetPort)
-	maxTimeouts := 3
+	var warnings []error
 	for i := 0; i < iterations; i++ {
-		output, err := runOcWithRetry(oc.AsAdmin(), "exec", "--", "curl", "-s", request)
+		output, err := runOcWithRetry(oc.AsAdmin(), "exec", "-n", proberPodNamespace, proberPodName, "--", "curl", "-s", request)
 		if err != nil {
-			// if we hit an i/o timeout, retry
-			if timeoutError, _ := regexp.Match("^Unable to connect to the server: dial tcp.*i/o timeout$", []byte(output)); timeoutError && maxTimeouts > 0 {
-				framework.Logf("Query failed. Request: %s, Output: %s, Error: %v", request, output, err)
-				iterations++
-				maxTimeouts--
-				continue
-			}
-			return nil, fmt.Errorf("Query failed. Request: %s, Output: %s, Error: %v", request, output, err)
+			return nil, warnings, fmt.Errorf("Query failed. Request: %s, Output: %s, Error: %v", request, output, err)
 		}
 		dialResponse := &struct {
 			Responses []string
 		}{}
 		err = json.Unmarshal([]byte(output), dialResponse)
 		if err != nil {
+			warnings = append(warnings, err)
 			continue
 		}
 		if len(dialResponse.Responses) != 1 {
+			warnings = append(warnings, fmt.Errorf("Received invalid dial responses: %s", output))
 			continue
 		}
 		clientIpPort := strings.Split(dialResponse.Responses[0], ":")
 		if len(clientIpPort) != 2 {
+			warnings = append(warnings, fmt.Errorf("Received an invalid value for clientIP and port in dial responses: %s", output))
 			continue
 		}
 		clientIp := clientIpPort[0]
-		clientIpSet[clientIp] = struct{}{}
+		clientIpSet[clientIp]++
 	}
 
-	// delete the exec pod again - in foreground, so that it blocks
-	deletePolicy := metav1.DeletePropagationForeground
-	if err := clientset.CoreV1().Pods(proberPod.Namespace).Delete(context.TODO(), proberPod.Name, metav1.DeleteOptions{
-		PropagationPolicy: &deletePolicy,
-	}); err != nil {
-		return nil, err
-	}
-
-	return clientIpSet, nil
+	return clientIpSet, warnings, nil
 }
 
 // getTargetProtocolHostPort gets targetProtocol, targetHost, targetPort.
