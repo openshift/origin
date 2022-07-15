@@ -68,14 +68,14 @@ new-app`.
 
 ## Available database example templates
 
-* [MariaDB](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/mariadb/templates/mariadb-ephemeral.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mariadb.html).
-* [MariaDB Persistent](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/mariadb/templates/mariadb-persistent.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mariadb.html).
-* [MySQL](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/mysql/templates/mysql-ephemeral.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mysql.html).
-* [MySQL Persistent](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/mysql/templates/mysql-persistent.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mysql.html).
-* [PostgreSQL](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/postgresql/templates/postgresql-ephemeral.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/postgresql.html).
-* [PostgreSQL Persistent](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/postgresql/templates/postgresql-persistent.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/postgresql.html).
-* [Redis](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/redis/templates/redis-ephemeral.json) - For more information see the [image documentation](https://github.com/sclorg/redis-container/blob/master/README.md).
-* [Redis Persistent](https://raw.githubusercontent.com/openshift/library/master/arch/x86_64/official/redis/templates/redis-persistent.json) - For more information see the [image documentation](https://github.com/sclorg/redis-container/blob/master/README.md).
+* [MariaDB](https://raw.githubusercontent.com/openshift/library/master/official/mariadb/templates/mariadb-ephemeral.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mariadb.html).
+* [MariaDB Persistent](https://raw.githubusercontent.com/openshift/library/master/official/mariadb/templates/mariadb-persistent.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mariadb.html).
+* [MySQL](https://raw.githubusercontent.com/openshift/library/master/official/mysql/templates/mysql-ephemeral.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mysql.html).
+* [MySQL Persistent](https://raw.githubusercontent.com/openshift/library/master/official/mysql/templates/mysql-persistent.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mysql.html).
+* [PostgreSQL](https://raw.githubusercontent.com/openshift/library/master/official/postgresql/templates/postgresql-ephemeral.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/postgresql.html).
+* [PostgreSQL Persistent](https://raw.githubusercontent.com/openshift/library/master/official/postgresql/templates/postgresql-persistent.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/postgresql.html).
+* [Redis](https://raw.githubusercontent.com/openshift/library/master/official/redis/templates/redis-ephemeral.json) - For more information see the [image documentation](https://github.com/sclorg/redis-container/blob/master/README.md).
+* [Redis Persistent](https://raw.githubusercontent.com/openshift/library/master/official/redis/templates/redis-persistent.json) - For more information see the [image documentation](https://github.com/sclorg/redis-container/blob/master/README.md).
 
 Note: This file is processed by `hack/update-external-examples.sh`. New examples
 must follow the exact syntax of the existing entries. Files in this directory
