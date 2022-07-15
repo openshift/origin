@@ -2,7 +2,6 @@ package suite
 
 import (
 	"math/rand"
-	"strings"
 
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/internal/containernode"
@@ -42,15 +41,14 @@ func (suite *Suite) WalkTests(fn func(testName, parentName string, test types.Te
 }
 
 func containerName(containers []*containernode.ContainerNode) string {
-	var b strings.Builder
-	b.Grow(len(containers) * 20)
+	var parent string
 	for i, container := range containers {
 		if i > 0 {
-			b.WriteRune(' ')
+			parent += " "
 		}
-		b.WriteString(container.Text())
+		parent += container.Text()
 	}
-	return b.String()
+	return parent
 }
 
 func (suite *Suite) ClearBeforeSuiteNode() {

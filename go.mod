@@ -289,7 +289,7 @@ require (
 
 replace (
 	github.com/google/cadvisor => github.com/google/cadvisor v0.44.1
-	github.com/onsi/ginkgo => github.com/openshift/onsi-ginkgo v4.7.0-origin.0+incompatible
+	github.com/onsi/ginkgo => github.com/bparees/onsi-ginkgo v1.14.0-unpatch
 	k8s.io/api => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20220601165048-899fd9fb835c
 	k8s.io/apiextensions-apiserver => github.com/openshift/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20220601165048-899fd9fb835c
 	k8s.io/apimachinery => github.com/openshift/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20220601165048-899fd9fb835c
