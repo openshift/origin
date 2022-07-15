@@ -38,6 +38,7 @@ var dnsLookupRegex = regexp.MustCompile(`dial tcp: lookup.*: i/o timeout`)
 
 const (
 	DisruptionBeganEventReason              = "DisruptionBegan"
+	DisruptionEndedEventReason              = "DisruptionEnded"
 	DisruptionSamplerOutageBeganEventReason = "DisruptionSamplerOutageBegan"
 )
 

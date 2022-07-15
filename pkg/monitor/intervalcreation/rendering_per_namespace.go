@@ -5,6 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
@@ -93,8 +94,19 @@ type podRendering struct {
 	name string
 }
 
+// ingressServicePodRendering type is used for rendering intervals for services that use the
+// router-default pods found in the openshift-ingress namespace.  This includes image-registry,
+// console, and oauth pods.
+type ingressServicePodRendering struct {
+	name string
+}
+
 func NewPodEventIntervalRenderer() podRendering {
 	return podRendering{}
+}
+
+func NewIngressServicePodIntervalRenderer() ingressServicePodRendering {
+	return ingressServicePodRendering{}
 }
 
 func (r podRendering) WriteEventData(artifactDir string, events monitorapi.Intervals, timeSuffix string) error {
@@ -146,5 +158,34 @@ func (r podRendering) WriteEventData(artifactDir string, events monitorapi.Inter
 		}
 	}
 
+	return utilerrors.NewAggregate(errs)
+}
+
+// WriteEventData for ingressServicePodRendering writes out a custom spyglass chart to help debug TRT-364 and BZ2101622 where
+// image-registry, console, and oauth pods were experiencing disruption during upgrades.  We wanted one chart that
+// showed those pods, router-default pods, node changes, and disruption.
+//
+func (r ingressServicePodRendering) WriteEventData(artifactDir string, events monitorapi.Intervals, timeSuffix string) error {
+	errs := []error{}
+	disruptionReasons := sets.NewString(backenddisruption.DisruptionBeganEventReason,
+		backenddisruption.DisruptionEndedEventReason,
+		backenddisruption.DisruptionSamplerOutageBeganEventReason)
+	relevantNamespaces := sets.NewString("openshift-authentication", "openshift-console", "openshift-image-registry", "openshift-ingress")
+	writer := NewNonSpyglassEventIntervalRenderer("image-reg-console-oauth",
+		func(eventInterval monitorapi.EventInterval) bool {
+			switch {
+			case isInterestingNamespace(eventInterval, relevantNamespaces):
+				return true
+			case monitorapi.IsNode(eventInterval.Locator):
+				return true
+			case disruptionReasons.Has(monitorapi.ReasonFrom(eventInterval.Message)):
+				return true
+			}
+			return false
+		})
+
+	if err := writer.WriteEventData(artifactDir, events, timeSuffix); err != nil {
+		errs = append(errs, err)
+	}
 	return utilerrors.NewAggregate(errs)
 }

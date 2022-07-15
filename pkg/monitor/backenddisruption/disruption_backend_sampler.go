@@ -584,7 +584,7 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, interval time.Du
 			framework.Logf(message)
 			eventRecorder.Eventf(
 				&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: b.backendSampler.GetDisruptionBackendName()}, nil,
-				v1.EventTypeNormal, "DisruptionEnded", "detected", message)
+				v1.EventTypeNormal, DisruptionEndedEventReason, "detected", message)
 			currCondition := monitorapi.Condition{
 				Level:   monitorapi.Info,
 				Locator: b.backendSampler.GetLocator(),
