@@ -15,6 +15,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/baremetal"
 	_ "github.com/openshift/origin/test/extended/bootstrap_user"
 	_ "github.com/openshift/origin/test/extended/builds"
+	_ "github.com/openshift/origin/test/extended/ci"
 	_ "github.com/openshift/origin/test/extended/cli"
 	_ "github.com/openshift/origin/test/extended/cluster"
 	_ "github.com/openshift/origin/test/extended/cmd"
