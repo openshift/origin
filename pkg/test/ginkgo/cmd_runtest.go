@@ -26,6 +26,9 @@ func (e ExitError) Error() string {
 
 // TestOptions handles running a single test.
 type TestOptions struct {
+	// EnableMonitor is an easy way to enable monitor gathering for a single e2e test.
+	// TODO if this is useful enough for general users, we can extend this into an arg, this just ensures the plumbing.
+	EnableMonitor        bool
 	MonitorEventsOptions *MonitorEventsOptions
 
 	DryRun bool
@@ -72,9 +75,11 @@ func (opt *TestOptions) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	_, err = opt.MonitorEventsOptions.Start(ctx, restConfig)
-	if err != nil {
-		return err
+	if opt.EnableMonitor {
+		_, err = opt.MonitorEventsOptions.Start(ctx, restConfig)
+		if err != nil {
+			return err
+		}
 	}
 
 	config.GinkgoConfig.FocusString = fmt.Sprintf("^%s$", regexp.QuoteMeta(" [Top Level] "+test.name))
@@ -91,11 +96,13 @@ func (opt *TestOptions) Run(args []string) error {
 		}
 	}
 
-	if err := opt.MonitorEventsOptions.End(ctx, restConfig, ""); err != nil {
-		return err
-	}
-	if err := opt.MonitorEventsOptions.WriteRunDataToArtifactsDir(""); err != nil {
-		fmt.Fprintf(opt.ErrOut, "error: Failed to write run-data: %v\n", err)
+	if opt.EnableMonitor {
+		if err := opt.MonitorEventsOptions.End(ctx, restConfig, ""); err != nil {
+			return err
+		}
+		if err := opt.MonitorEventsOptions.WriteRunDataToArtifactsDir(""); err != nil {
+			fmt.Fprintf(opt.ErrOut, "error: Failed to write run-data: %v\n", err)
+		}
 	}
 
 	// TODO: print stack line?
