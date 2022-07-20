@@ -82,6 +82,7 @@ func NewOptions() *Options {
 			AdaptEventDataWriter(intervalcreation.NewSpyglassEventIntervalRenderer("kube-apiserver", intervalcreation.BelongsInKubeAPIServer)),
 			AdaptEventDataWriter(intervalcreation.NewSpyglassEventIntervalRenderer("operators", intervalcreation.BelongsInOperatorRollout)),
 			AdaptEventDataWriter(intervalcreation.NewPodEventIntervalRenderer()),
+			AdaptEventDataWriter(intervalcreation.NewIngressServicePodIntervalRenderer()),
 
 			RunDataWriterFunc(monitor.WriteEventsForJobRun),
 			RunDataWriterFunc(monitor.WriteTrackedResourcesForJobRun),
