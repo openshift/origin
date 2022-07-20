@@ -3273,13 +3273,17 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-scheduling][Early] The openshift-authentication pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-scheduling][Early] The openshift-console pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-scheduling][Early] The openshift-console console pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-scheduling][Early] The openshift-console downloads pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-scheduling][Early] The openshift-etcd pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-scheduling][Early] The openshift-image-registry pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-scheduling][Early] The openshift-monitoring pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-scheduling][Early] The openshift-monitoring prometheus-adapter pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-scheduling][Early] The openshift-monitoring thanos-querier pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-scheduling][Early] The openshift-oauth-apiserver pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
