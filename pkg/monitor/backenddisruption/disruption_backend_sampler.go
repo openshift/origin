@@ -353,7 +353,7 @@ func (b *BackendSampler) checkConnection(ctx context.Context) error {
 	case getErr != nil:
 		sampleErr = getErr
 	case bodyReadErr != nil:
-		sampleErr = getErr
+		sampleErr = bodyReadErr
 	case resp.StatusCode < 200 || resp.StatusCode > 399:
 		sampleErr = fmt.Errorf("error running request: %v: %v", resp.Status, string(body))
 	default:
