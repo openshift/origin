@@ -20,6 +20,8 @@ func skipIfNotBaremetal(oc *exutil.CLI) {
 	g.By("checking platform type")
 
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	// EXTRA DEBUG
+	g.By(fmt.Sprintf("The platform is : %v", infra))
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	if infra.Status.PlatformStatus.Type != configv1.BareMetalPlatformType {
