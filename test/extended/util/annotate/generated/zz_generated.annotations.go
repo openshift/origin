@@ -937,6 +937,10 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch][bz-openshift-controller-manager][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-controller-manager-operator": "alert/KubePodNotReady should not be at or above pending in ns/openshift-controller-manager-operator [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-arch][bz-samples][Late] Alerts alert/SamplesImagestreamImportFailing should not be at or above info": "alert/SamplesImagestreamImportFailing should not be at or above info [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch][bz-samples][Late] Alerts alert/SamplesImagestreamImportFailing should not be at or above pending": "alert/SamplesImagestreamImportFailing should not be at or above pending [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-arch][bz-service-ca][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-service-ca": "alert/KubePodNotReady should not be at or above info in ns/openshift-service-ca [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][bz-service-ca][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-service-ca-operator": "alert/KubePodNotReady should not be at or above info in ns/openshift-service-ca-operator [Suite:openshift/conformance/parallel]",
