@@ -164,13 +164,13 @@ var _ = g.Describe("[sig-scheduling][Early]", func() {
 		})
 	})
 
-	g.Describe("The openshift-console pods", func() {
+	g.Describe("The openshift-console console pods", func() {
 		g.It("should be scheduled on different nodes", func() {
 			requirePodsOnDifferentNodesTest{namespace: "openshift-console", deployment: "console"}.run(oc)
 		})
 	})
 
-	g.Describe("The openshift-console pods", func() {
+	g.Describe("The openshift-console downloads pods", func() {
 		g.It("should be scheduled on different nodes", func() {
 			requirePodsOnDifferentNodesTest{namespace: "openshift-console", deployment: "downloads"}.run(oc)
 		})
@@ -188,13 +188,13 @@ var _ = g.Describe("[sig-scheduling][Early]", func() {
 		})
 	})
 
-	g.Describe("The openshift-monitoring pods", func() {
+	g.Describe("The openshift-monitoring prometheus-adapter pods", func() {
 		g.It("should be scheduled on different nodes", func() {
 			requirePodsOnDifferentNodesTest{namespace: "openshift-monitoring", deployment: "prometheus-adapter"}.run(oc)
 		})
 	})
 
-	g.Describe("The openshift-monitoring pods", func() {
+	g.Describe("The openshift-monitoring thanos-querier pods", func() {
 		g.It("should be scheduled on different nodes", func() {
 			requirePodsOnDifferentNodesTest{namespace: "openshift-monitoring", deployment: "thanos-querier"}.run(oc)
 		})
