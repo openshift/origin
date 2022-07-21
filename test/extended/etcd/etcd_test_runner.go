@@ -10,22 +10,25 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	configv1 "github.com/openshift/api/config/v1"
-	exutil "github.com/openshift/origin/test/extended/util"
-	"go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+	psapi "k8s.io/pod-security-admission/api"
+
+	configv1 "github.com/openshift/api/config/v1"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-api-machinery] API data in etcd", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("etcd-storage-path").AsAdmin()
+	oc := exutil.NewCLIWithPodSecurityLevel("etcd-storage-path", psapi.LevelBaseline).AsAdmin()
 
 	_ = g.It("should be stored at the correct location and version for all resources [Serial]", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
@@ -37,7 +40,7 @@ var _ = g.Describe("[sig-api-machinery] API data in etcd", func() {
 
 		etcdClientCreater := &etcdPortForwardClient{kubeClient: oc.AdminKubeClient()}
 		defer etcdClientCreater.closeAll()
-		testEtcd3StoragePath(g.GinkgoT(2), oc.AdminConfig(), etcdClientCreater.getEtcdClient)
+		testEtcd3StoragePath(g.GinkgoT(2), oc, etcdClientCreater.getEtcdClient)
 	})
 })
 

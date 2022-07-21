@@ -11,7 +11,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	"golang.org/x/net/context"
 
-	kapiv1 "k8s.io/api/core/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	discocache "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
@@ -36,151 +35,154 @@ import (
 )
 
 // Etcd data for all persisted OpenShift objects.
-var OpenshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageData{
-	// github.com/openshift/api/authorization/v1
-	gvr("authorization.openshift.io", "v1", "roles"): {
-		Stub:             `{"metadata": {"name": "r1b1o2"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
-		ExpectedEtcdPath: "kubernetes.io/roles/etcdstoragepathtestnamespace/r1b1o2",
-		ExpectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "Role"), // proxy to RBAC
-	},
-	gvr("authorization.openshift.io", "v1", "clusterroles"): {
-		Stub:             `{"metadata": {"name": "cr1a1o2"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
-		ExpectedEtcdPath: "kubernetes.io/clusterroles/cr1a1o2",
-		ExpectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRole"), // proxy to RBAC
-	},
-	gvr("authorization.openshift.io", "v1", "rolebindings"): {
-		Stub:             `{"metadata": {"name": "rb1a1o2"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "Role", "name": "r1a1"}}`,
-		ExpectedEtcdPath: "kubernetes.io/rolebindings/etcdstoragepathtestnamespace/rb1a1o2",
-		ExpectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "RoleBinding"), // proxy to RBAC
-	},
-	gvr("authorization.openshift.io", "v1", "clusterrolebindings"): {
-		Stub:             `{"metadata": {"name": "crb1a1o2"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "ClusterRole", "name": "cr1a1"}}`,
-		ExpectedEtcdPath: "kubernetes.io/clusterrolebindings/crb1a1o2",
-		ExpectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRoleBinding"), // proxy to RBAC
-	},
-	// --
 
-	// github.com/openshift/api/build/v1
-	gvr("build.openshift.io", "v1", "builds"): {
-		Stub:             `{"metadata": {"name": "build1g"}, "spec": {"source": {"dockerfile": "Dockerfile1"}, "strategy": {"dockerStrategy": {"noCache": true}}}}`,
-		ExpectedEtcdPath: "openshift.io/builds/etcdstoragepathtestnamespace/build1g",
-	},
-	gvr("build.openshift.io", "v1", "buildconfigs"): {
-		Stub:             `{"metadata": {"name": "bc1g"}, "spec": {"source": {"dockerfile": "Dockerfile0"}, "strategy": {"dockerStrategy": {"noCache": true}}}}`,
-		ExpectedEtcdPath: "openshift.io/buildconfigs/etcdstoragepathtestnamespace/bc1g",
-	},
-	// --
+func GetOpenshiftEtcdStorageData(namespace string) map[schema.GroupVersionResource]etcddata.StorageData {
+	return map[schema.GroupVersionResource]etcddata.StorageData{
+		// github.com/openshift/api/authorization/v1
+		gvr("authorization.openshift.io", "v1", "roles"): {
+			Stub:             `{"metadata": {"name": "r1b1o2"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
+			ExpectedEtcdPath: "kubernetes.io/roles/" + namespace + "/r1b1o2",
+			ExpectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "Role"), // proxy to RBAC
+		},
+		gvr("authorization.openshift.io", "v1", "clusterroles"): {
+			Stub:             `{"metadata": {"name": "cr1a1o2"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
+			ExpectedEtcdPath: "kubernetes.io/clusterroles/cr1a1o2",
+			ExpectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRole"), // proxy to RBAC
+		},
+		gvr("authorization.openshift.io", "v1", "rolebindings"): {
+			Stub:             `{"metadata": {"name": "rb1a1o2"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "Role", "name": "r1a1"}}`,
+			ExpectedEtcdPath: "kubernetes.io/rolebindings/" + namespace + "/rb1a1o2",
+			ExpectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "RoleBinding"), // proxy to RBAC
+		},
+		gvr("authorization.openshift.io", "v1", "clusterrolebindings"): {
+			Stub:             `{"metadata": {"name": "crb1a1o2"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "ClusterRole", "name": "cr1a1"}}`,
+			ExpectedEtcdPath: "kubernetes.io/clusterrolebindings/crb1a1o2",
+			ExpectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRoleBinding"), // proxy to RBAC
+		},
+		// --
 
-	// github.com/openshift/api/apps/v1
-	gvr("apps.openshift.io", "v1", "deploymentconfigs"): {
-		Stub:             `{"metadata": {"name": "dc1g"}, "spec": {"selector": {"d": "c"}, "template": {"metadata": {"labels": {"d": "c"}}, "spec": {"containers": [{"image": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest", "name": "container2"}]}}}}`,
-		ExpectedEtcdPath: "openshift.io/deploymentconfigs/etcdstoragepathtestnamespace/dc1g",
-	},
-	// --
+		// github.com/openshift/api/build/v1
+		gvr("build.openshift.io", "v1", "builds"): {
+			Stub:             `{"metadata": {"name": "build1g"}, "spec": {"source": {"dockerfile": "Dockerfile1"}, "strategy": {"dockerStrategy": {"noCache": true}}}}`,
+			ExpectedEtcdPath: "openshift.io/builds/" + namespace + "/build1g",
+		},
+		gvr("build.openshift.io", "v1", "buildconfigs"): {
+			Stub:             `{"metadata": {"name": "bc1g"}, "spec": {"source": {"dockerfile": "Dockerfile0"}, "strategy": {"dockerStrategy": {"noCache": true}}}}`,
+			ExpectedEtcdPath: "openshift.io/buildconfigs/" + namespace + "/bc1g",
+		},
+		// --
 
-	// github.com/openshift/api/image/v1
-	gvr("image.openshift.io", "v1", "imagestreams"): {
-		Stub:             `{"metadata": {"name": "is1g"}, "spec": {"dockerImageRepository": "docker"}}`,
-		ExpectedEtcdPath: "openshift.io/imagestreams/etcdstoragepathtestnamespace/is1g",
-	},
-	gvr("image.openshift.io", "v1", "images"): {
-		Stub:             `{"dockerImageReference": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest", "metadata": {"name": "image1g"}}`,
-		ExpectedEtcdPath: "openshift.io/images/image1g",
-	},
-	// --
+		// github.com/openshift/api/apps/v1
+		gvr("apps.openshift.io", "v1", "deploymentconfigs"): {
+			Stub:             `{"metadata": {"name": "dc1g"}, "spec": {"selector": {"d": "c"}, "template": {"metadata": {"labels": {"d": "c"}}, "spec": {"containers": [{"image": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest", "name": "container2"}]}}}}`,
+			ExpectedEtcdPath: "openshift.io/deploymentconfigs/" + namespace + "/dc1g",
+		},
+		// --
 
-	// github.com/openshift/api/oauth/v1
-	gvr("oauth.openshift.io", "v1", "oauthclientauthorizations"): {
-		Stub:             `{"clientName": "system:serviceaccount:etcdstoragepathtestnamespace:clientg", "metadata": {"name": "user:system:serviceaccount:etcdstoragepathtestnamespace:clientg"}, "scopes": ["user:info"], "userName": "user", "userUID": "cannot be empty"}`,
-		ExpectedEtcdPath: "openshift.io/oauth/clientauthorizations/user:system:serviceaccount:etcdstoragepathtestnamespace:clientg",
-		Prerequisites: []etcddata.Prerequisite{
-			{
-				GvrData: gvr("", "v1", "serviceaccounts"),
-				Stub:    `{"metadata": {"annotations": {"serviceaccounts.openshift.io/oauth-redirecturi.foo": "http://bar"}, "name": "clientg"}}`,
-			},
-			{
-				GvrData: gvr("", "v1", "secrets"),
-				Stub:    `{"metadata": {"annotations": {"kubernetes.io/service-account.name": "clientg"}, "generateName": "clientg"}, "type": "kubernetes.io/service-account-token"}`,
+		// github.com/openshift/api/image/v1
+		gvr("image.openshift.io", "v1", "imagestreams"): {
+			Stub:             `{"metadata": {"name": "is1g"}, "spec": {"dockerImageRepository": "docker"}}`,
+			ExpectedEtcdPath: "openshift.io/imagestreams/" + namespace + "/is1g",
+		},
+		gvr("image.openshift.io", "v1", "images"): {
+			Stub:             `{"dockerImageReference": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest", "metadata": {"name": "image1g"}}`,
+			ExpectedEtcdPath: "openshift.io/images/image1g",
+		},
+		// --
+
+		// github.com/openshift/api/oauth/v1
+		gvr("oauth.openshift.io", "v1", "oauthclientauthorizations"): {
+			Stub:             `{"clientName": "system:serviceaccount:` + namespace + `:clientg", "metadata": {"name": "user:system:serviceaccount:` + namespace + `:clientg"}, "scopes": ["user:info"], "userName": "user", "userUID": "cannot be empty"}`,
+			ExpectedEtcdPath: "openshift.io/oauth/clientauthorizations/user:system:serviceaccount:" + namespace + ":clientg",
+			Prerequisites: []etcddata.Prerequisite{
+				{
+					GvrData: gvr("", "v1", "serviceaccounts"),
+					Stub:    `{"metadata": {"annotations": {"serviceaccounts.openshift.io/oauth-redirecturi.foo": "http://bar"}, "name": "clientg"}}`,
+				},
+				{
+					GvrData: gvr("", "v1", "secrets"),
+					Stub:    `{"metadata": {"annotations": {"kubernetes.io/service-account.name": "clientg"}, "generateName": "clientg"}, "type": "kubernetes.io/service-account-token"}`,
+				},
 			},
 		},
-	},
-	gvr("oauth.openshift.io", "v1", "oauthaccesstokens"): {
-		Stub:             `{"clientName": "client1g", "metadata": {"name": "sha256~tokenneedstobelongenoughelseitwontworkg"}, "userName": "user", "scopes": ["user:info"], "redirectURI": "https://something.com/", "userUID": "cannot be empty"}`,
-		ExpectedEtcdPath: "openshift.io/oauth/accesstokens/sha256~tokenneedstobelongenoughelseitwontworkg",
-		Prerequisites: []etcddata.Prerequisite{
-			{
-				GvrData: gvr("oauth.openshift.io", "v1", "oauthclients"),
-				Stub:    `{"metadata": {"name": "client1g"}, "grantMethod": "prompt"}`,
+		gvr("oauth.openshift.io", "v1", "oauthaccesstokens"): {
+			Stub:             `{"clientName": "client1g", "metadata": {"name": "sha256~tokenneedstobelongenoughelseitwontworkg"}, "userName": "user", "scopes": ["user:info"], "redirectURI": "https://something.com/", "userUID": "cannot be empty"}`,
+			ExpectedEtcdPath: "openshift.io/oauth/accesstokens/sha256~tokenneedstobelongenoughelseitwontworkg",
+			Prerequisites: []etcddata.Prerequisite{
+				{
+					GvrData: gvr("oauth.openshift.io", "v1", "oauthclients"),
+					Stub:    `{"metadata": {"name": "client1g"}, "grantMethod": "prompt"}`,
+				},
 			},
 		},
-	},
-	gvr("oauth.openshift.io", "v1", "oauthauthorizetokens"): {
-		Stub:             `{"clientName": "client0g", "metadata": {"name": "sha256~tokenneedstobelongenoughelseitwontworkg"}, "userName": "user", "scopes": ["user:info"], "redirectURI": "https://something.com/", "userUID": "cannot be empty", "expiresIn": 86400}`,
-		ExpectedEtcdPath: "openshift.io/oauth/authorizetokens/sha256~tokenneedstobelongenoughelseitwontworkg",
-		Prerequisites: []etcddata.Prerequisite{
-			{
-				GvrData: gvr("oauth.openshift.io", "v1", "oauthclients"),
-				Stub:    `{"metadata": {"name": "client0g"}, "grantMethod": "auto"}`,
+		gvr("oauth.openshift.io", "v1", "oauthauthorizetokens"): {
+			Stub:             `{"clientName": "client0g", "metadata": {"name": "sha256~tokenneedstobelongenoughelseitwontworkg"}, "userName": "user", "scopes": ["user:info"], "redirectURI": "https://something.com/", "userUID": "cannot be empty", "expiresIn": 86400}`,
+			ExpectedEtcdPath: "openshift.io/oauth/authorizetokens/sha256~tokenneedstobelongenoughelseitwontworkg",
+			Prerequisites: []etcddata.Prerequisite{
+				{
+					GvrData: gvr("oauth.openshift.io", "v1", "oauthclients"),
+					Stub:    `{"metadata": {"name": "client0g"}, "grantMethod": "auto"}`,
+				},
 			},
 		},
-	},
-	gvr("oauth.openshift.io", "v1", "oauthclients"): {
-		Stub:             `{"metadata": {"name": "clientg"}, "grantMethod": "prompt"}`,
-		ExpectedEtcdPath: "openshift.io/oauth/clients/clientg",
-	},
-	// --
+		gvr("oauth.openshift.io", "v1", "oauthclients"): {
+			Stub:             `{"metadata": {"name": "clientg"}, "grantMethod": "prompt"}`,
+			ExpectedEtcdPath: "openshift.io/oauth/clients/clientg",
+		},
+		// --
 
-	// github.com/openshift/api/project/v1
-	gvr("project.openshift.io", "v1", "projects"): {
-		Stub:             `{"metadata": {"name": "namespace2g"}, "spec": {"finalizers": ["kubernetes", "openshift.io/origin"]}}`,
-		ExpectedEtcdPath: "kubernetes.io/namespaces/namespace2g",
-		ExpectedGVK:      gvkP("", "v1", "Namespace"), // project is a proxy for namespace
-	},
-	// --
+		// github.com/openshift/api/project/v1
+		gvr("project.openshift.io", "v1", "projects"): {
+			Stub:             `{"metadata": {"name": "namespace2g"}, "spec": {"finalizers": ["kubernetes", "openshift.io/origin"]}}`,
+			ExpectedEtcdPath: "kubernetes.io/namespaces/namespace2g",
+			ExpectedGVK:      gvkP("", "v1", "Namespace"), // project is a proxy for namespace
+		},
+		// --
 
-	// github.com/openshift/api/route/v1
-	gvr("route.openshift.io", "v1", "routes"): {
-		Stub:             `{"metadata": {"name": "route1g"}, "spec": {"host": "hostname1.com", "to": {"name": "service1"}}}`,
-		ExpectedEtcdPath: "openshift.io/routes/etcdstoragepathtestnamespace/route1g",
-	},
-	// --
+		// github.com/openshift/api/route/v1
+		gvr("route.openshift.io", "v1", "routes"): {
+			Stub:             `{"metadata": {"name": "route1g"}, "spec": {"host": "hostname1.com", "to": {"name": "service1"}}}`,
+			ExpectedEtcdPath: "openshift.io/routes/" + namespace + "/route1g",
+		},
+		// --
 
-	// github.com/openshift/api/security/v1
-	gvr("security.openshift.io", "v1", "rangeallocations"): {
-		Stub:             `{"metadata": {"name": "scc2"}, "range": "", "data": ""}`,
-		ExpectedEtcdPath: "openshift.io/rangeallocations/scc2",
-	},
-	// --
+		// github.com/openshift/api/security/v1
+		gvr("security.openshift.io", "v1", "rangeallocations"): {
+			Stub:             `{"metadata": {"name": "scc2"}, "range": "", "data": ""}`,
+			ExpectedEtcdPath: "openshift.io/rangeallocations/scc2",
+		},
+		// --
 
-	// github.com/openshift/api/template/v1
-	gvr("template.openshift.io", "v1", "templates"): {
-		Stub:             `{"message": "Jenkins template", "metadata": {"name": "template1g"}}`,
-		ExpectedEtcdPath: "openshift.io/templates/etcdstoragepathtestnamespace/template1g",
-	},
-	gvr("template.openshift.io", "v1", "templateinstances"): {
-		Stub:             `{"metadata": {"name": "templateinstance1"}, "spec": {"template": {"metadata": {"name": "template1", "namespace": "etcdstoragepathtestnamespace"}}, "requester": {"username": "test"}}}`,
-		ExpectedEtcdPath: "openshift.io/templateinstances/etcdstoragepathtestnamespace/templateinstance1",
-	},
-	gvr("template.openshift.io", "v1", "brokertemplateinstances"): {
-		Stub:             `{"metadata": {"name": "brokertemplateinstance1"}, "spec": {"templateInstance": {"kind": "TemplateInstance", "name": "templateinstance1", "namespace": "etcdstoragepathtestnamespace"}, "secret": {"kind": "Secret", "name": "secret1", "namespace": "etcdstoragepathtestnamespace"}}}`,
-		ExpectedEtcdPath: "openshift.io/brokertemplateinstances/brokertemplateinstance1",
-	},
-	// --
+		// github.com/openshift/api/template/v1
+		gvr("template.openshift.io", "v1", "templates"): {
+			Stub:             `{"message": "Jenkins template", "metadata": {"name": "template1g"}}`,
+			ExpectedEtcdPath: "openshift.io/templates/" + namespace + "/template1g",
+		},
+		gvr("template.openshift.io", "v1", "templateinstances"): {
+			Stub:             `{"metadata": {"name": "templateinstance1"}, "spec": {"template": {"metadata": {"name": "template1", "namespace": "` + namespace + `"}}, "requester": {"username": "test"}}}`,
+			ExpectedEtcdPath: "openshift.io/templateinstances/" + namespace + "/templateinstance1",
+		},
+		gvr("template.openshift.io", "v1", "brokertemplateinstances"): {
+			Stub:             `{"metadata": {"name": "brokertemplateinstance1"}, "spec": {"templateInstance": {"kind": "TemplateInstance", "name": "templateinstance1", "namespace": "` + namespace + `"}, "secret": {"kind": "Secret", "name": "secret1", "namespace": "` + namespace + `"}}}`,
+			ExpectedEtcdPath: "openshift.io/brokertemplateinstances/brokertemplateinstance1",
+		},
+		// --
 
-	// github.com/openshift/api/user/v1
-	gvr("user.openshift.io", "v1", "groups"): {
-		Stub:             `{"metadata": {"name": "groupg"}, "users": ["user1", "user2"]}`,
-		ExpectedEtcdPath: "openshift.io/groups/groupg",
-	},
-	gvr("user.openshift.io", "v1", "users"): {
-		Stub:             `{"fullName": "user1g", "metadata": {"name": "user1g"}}`,
-		ExpectedEtcdPath: "openshift.io/users/user1g",
-	},
-	gvr("user.openshift.io", "v1", "identities"): {
-		Stub:             `{"metadata": {"name": "github:user2g"}, "providerName": "github", "providerUserName": "user2g"}`,
-		ExpectedEtcdPath: "openshift.io/useridentities/github:user2g",
-	},
-	// --
+		// github.com/openshift/api/user/v1
+		gvr("user.openshift.io", "v1", "groups"): {
+			Stub:             `{"metadata": {"name": "groupg"}, "users": ["user1", "user2"]}`,
+			ExpectedEtcdPath: "openshift.io/groups/groupg",
+		},
+		gvr("user.openshift.io", "v1", "users"): {
+			Stub:             `{"fullName": "user1g", "metadata": {"name": "user1g"}}`,
+			ExpectedEtcdPath: "openshift.io/users/user1g",
+		},
+		gvr("user.openshift.io", "v1", "identities"): {
+			Stub:             `{"metadata": {"name": "github:user2g"}, "providerName": "github", "providerUserName": "user2g"}`,
+			ExpectedEtcdPath: "openshift.io/useridentities/github:user2g",
+		},
+		// --
+	}
 }
 
 // Only add kinds to this list when there is no way to create the object
@@ -195,9 +197,6 @@ var kindWhiteList = sets.NewString(
 	"SecurityContextConstraints",
 	"RoleBindingRestriction",
 )
-
-// namespace used for all tests, do not change this
-const TestNamespace = "etcdstoragepathtestnamespace"
 
 type helperT struct {
 	g.GinkgoTInterface
@@ -219,7 +218,7 @@ func (t *helperT) done() {
 // It will start failing when a new type is added to ensure that all future types are added to this test.
 // It will also fail when a type gets moved to a different location. Be very careful in this situation because
 // it essentially means that you will be break old clusters unless you create some migration path for the old data.
-func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, etcdClient3Fn func() (etcdv3.KV, error)) {
+func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn func() (etcdv3.KV, error)) {
 	defer g.GinkgoRecover()
 
 	// make Errorf fail the test as expected but continue until the end so we can see all failures
@@ -230,7 +229,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 
 	var tt *testing.T // will cause nil panics that make it easy enough to find where things went wrong
 
-	kubeConfig = restclient.CopyConfig(kubeConfig)
+	kubeConfig := restclient.CopyConfig(oc.AdminConfig())
 	kubeConfig.QPS = 99999
 	kubeConfig.Burst = 9999
 	kubeClient := kclientset.NewForConfigOrDie(kubeConfig)
@@ -259,25 +258,12 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 
 	client := &allClient{dynamicClient: dynamic.NewForConfigOrDie(kubeConfig)}
 
-	if _, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), &kapiv1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: TestNamespace}}, metav1.CreateOptions{}); err != nil {
-		t.Fatalf("error creating test namespace: %#v", err)
-	}
-	defer func() {
-		if err := kubeClient.CoreV1().Namespaces().Delete(context.Background(), TestNamespace, metav1.DeleteOptions{}); err != nil {
-			t.Fatalf("error deleting test namespace: %#v", err)
-		}
-	}()
-
-	if err := exutil.WaitForServiceAccount(kubeClient.CoreV1().ServiceAccounts(TestNamespace), "default"); err != nil {
-		t.Fatalf("error waiting for the default service account: %v", err)
-	}
-
 	version, err := kubeClient.Discovery().ServerVersion()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	etcdStorageData := etcddata.GetEtcdStorageData()
+	etcdStorageData := etcddata.GetEtcdStorageDataForNamespace(oc.Namespace())
 
 	// OpenShift runs the etcd storage tests as e2e, upstream as integration test. Hence, we have to patch up
 	// nodes that otherwise get deleted by the node controller.
@@ -342,7 +328,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 	}
 
 	// add openshift specific data
-	for gvr, data := range OpenshiftEtcdStorageData {
+	for gvr, data := range GetOpenshiftEtcdStorageData(oc.Namespace()) {
 		if _, ok := etcdStorageData[gvr]; ok {
 			t.Errorf("%s exists in both Kube and OpenShift ETCD data, data=%#v", gvr.String(), data)
 		}
@@ -420,13 +406,13 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, kubeConfig *restclient.Config, e
 				}
 			}()
 
-			if err := client.createPrerequisites(mapper, TestNamespace, testData.Prerequisites, all); err != nil {
+			if err := client.createPrerequisites(mapper, oc.Namespace(), testData.Prerequisites, all); err != nil {
 				t.Errorf("failed to create prerequisites for %v: %#v", gvk, err)
 				return
 			}
 
 			if shouldCreate { // do not try to create items with no stub
-				if err := client.create(testData.Stub, TestNamespace, mapping, all); err != nil {
+				if err := client.create(testData.Stub, oc.Namespace(), mapping, all); err != nil {
 					t.Errorf("failed to create stub for %v: %#v", gvk, err)
 					return
 				}

@@ -22,10 +22,13 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/kubernetes/test/e2e/framework"
+	psapi "k8s.io/pod-security-admission/api"
 
 	exetcd "github.com/openshift/origin/test/extended/etcd"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
+
+const NamespaceReplaceHereTag = "{REPLACE_WITH_NAMESPACE_HERE}"
 
 var _ = g.Describe("[sig-api-machinery][Feature:ServerSideApply] Server-Side Apply", func() {
 	var (
@@ -37,9 +40,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:ServerSideApply] Server-Side App
 
 	defer g.GinkgoRecover()
 
-	// Defer project creation to tests that require it by calling
-	// NewCLIWithoutNamespace instead of NewCLI.
 	oc := exutil.NewCLIWithoutNamespace("server-side-apply")
+	oc.KubeFramework().NamespacePodSecurityEnforceLevel = psapi.LevelBaseline
 
 	g.BeforeEach(func() {
 		// Only init once per worker
@@ -50,7 +52,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:ServerSideApply] Server-Side App
 		o.Expect(err).NotTo(o.HaveOccurred())
 		mapper = restmapper.NewDeferredDiscoveryRESTMapper(discocache.NewMemCacheClient(kubeClient.Discovery()))
 	})
-	storageData := exetcd.OpenshiftEtcdStorageData
+
+	storageData := exetcd.GetOpenshiftEtcdStorageData(NamespaceReplaceHereTag)
 	for key := range storageData {
 		gvr := key
 		data := storageData[gvr]
@@ -63,8 +66,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:ServerSideApply] Server-Side App
 		}
 
 		g.It(fmt.Sprintf("should work for %s", gvr), func() {
-			// Create at most one namespace only if needed.
-			var testNamespace string
+			// create the testing namespace
+			testNamespace := oc.SetupProject()
 
 			for _, prerequisite := range data.Prerequisites {
 				// The etcd storage test for oauthclientauthorizations needs to
@@ -75,8 +78,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ServerSideApply] Server-Side App
 				if gvr.Resource == "oauthclientauthorizations" && prerequisite.GvrData.Resource == "secrets" {
 					continue
 				}
-				resourceClient, unstructuredObj, namespace := createResource(oc, mapper, prerequisite.GvrData, prerequisite.Stub, testNamespace)
-				testNamespace = namespace
+				resourceClient, unstructuredObj := createResource(oc, mapper, prerequisite.GvrData, prerequisite.Stub, testNamespace)
 
 				// we need to wait for the tokens to appear at the SA otherwise creation
 				// of the oauthclientauthorization object fails
@@ -86,8 +88,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ServerSideApply] Server-Side App
 				defer deleteResource(resourceClient, unstructuredObj.GetName())
 			}
 
-			resourceClient, unstructuredObj, namespace := createResource(oc, mapper, gvr, data.Stub, testNamespace)
-			testNamespace = namespace
+			resourceClient, unstructuredObj := createResource(oc, mapper, gvr, data.Stub, testNamespace)
 			defer deleteResource(resourceClient, unstructuredObj.GetName())
 
 			serializedObj, err := json.Marshal(unstructuredObj.Object)
@@ -141,7 +142,7 @@ func createResource(
 	mapper *restmapper.DeferredDiscoveryRESTMapper,
 	gvr schema.GroupVersionResource,
 	stub, testNamespace string) (
-	dynamic.ResourceInterface, *unstructured.Unstructured, string) {
+	dynamic.ResourceInterface, *unstructured.Unstructured) {
 
 	// Discover the gvk from the gvr
 	gvk, err := mapper.KindFor(gvr)
@@ -151,17 +152,14 @@ func createResource(
 	mapping, err := mapper.RESTMapping(gvk.GroupKind())
 	o.Expect(err).NotTo(o.HaveOccurred())
 	namespace := ""
-	if mapping.Scope.Name() == meta.RESTScopeNameNamespace && len(testNamespace) == 0 {
-		// Create the namespace on demand
-		namespace = oc.SetupProject()
-		testNamespace = namespace
+	if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
+		o.Expect(testNamespace).NotTo(o.HaveLen(0))
+		namespace = testNamespace
 	}
 
 	// Ensure that any stub embedding the etcd test namespace
 	// is updated to use local test namespace instead.
-	if len(testNamespace) > 0 {
-		stub = strings.Replace(stub, exetcd.TestNamespace, testNamespace, -1)
-	}
+	stub = strings.Replace(stub, NamespaceReplaceHereTag, testNamespace, -1)
 
 	// Create unstructured object from stub
 	unstructuredObj := unstructured.Unstructured{}
@@ -177,9 +175,9 @@ func createResource(
 	_, err = resourceClient.Create(context.Background(), &unstructuredObj, metav1.CreateOptions{
 		FieldManager: "create_test",
 	})
-	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(err).NotTo(o.HaveOccurred(), "the attempted unstructured object: %v", unstructuredObj)
 
-	return resourceClient, &unstructuredObj, testNamespace
+	return resourceClient, &unstructuredObj
 }
 
 // waitForSATokens waits for the kube-controller-manager to populate the SA from the unstructured object
