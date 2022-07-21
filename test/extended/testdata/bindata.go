@@ -52784,6 +52784,17 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
+    function isEtcdUnhealthy(eventInterval) {
+        if (eventInterval.message.startsWith("reason/UnhealthyEtcdMember") || eventInterval.message.includes("unhealthy members:")) {
+            return true
+        }
+
+        if (eventInterval.message.startsWith("reason/ProbeError") || eventInterval.message.includes("etcd-")) {
+            return true
+        }
+        return false
+    }
+
     function isAlert(eventInterval) {
         if (eventInterval.locator.startsWith("alert/")) {
             return true
@@ -52986,6 +52997,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
             }
             return 0
         })
+
+        timelineGroups.push({group: "etcd-availability", data: []})
+        createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEtcdUnhealthy, regex)
 
         timelineGroups.push({group: "endpoint-availability", data: []})
         createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
