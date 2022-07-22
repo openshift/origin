@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	o "github.com/onsi/gomega"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -17,7 +16,6 @@ import (
 	bmhelper "github.com/openshift/origin/test/extended/baremetal"
 	exutil "github.com/openshift/origin/test/extended/util"
 
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/net"
@@ -99,11 +97,11 @@ func EnsureMasterMachine(ctx context.Context, t TestingT, machineName string, ma
 
 // EnsureInitialClusterState makes sure the cluster state is expected, that is, has only 3 running machines and exactly 3 voting members
 // otherwise it attempts to recover the cluster by removing any excessive machines
-func EnsureInitialClusterState(ctx context.Context, t TestingT, etcdClientFactory EtcdClientCreator, machineClient machinev1beta1client.MachineInterface, kubeClient kubernetes.Interface) error {
+func EnsureInitialClusterState(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface, kubeClient kubernetes.Interface) error {
 	if err := recoverClusterToInitialStateIfNeeded(ctx, t, machineClient); err != nil {
 		return err
 	}
-	if err := EnsureVotingMembersCount(ctx, t, etcdClientFactory, kubeClient, 3); err != nil {
+	if err := EnsureVotingMembersCount(ctx, t, kubeClient, 3); err != nil {
 		return err
 	}
 	return EnsureMasterMachinesAndCount(ctx, t, machineClient)
@@ -178,41 +176,14 @@ func recoverClusterToInitialStateIfNeeded(ctx context.Context, t TestingT, machi
 	})
 }
 
-// EnsureVotingMembersCount counts the number of voting etcd members, it doesn't evaluate health conditions or any other attributes (i.e. name) of individual members
+// EnsureVotingMembersCount counts the number of voting etcd members by looking at the endpoints configmap, it doesn't evaluate health conditions or any other attributes (i.e. name) of individual members
 // this method won't fail immediately on errors, this is useful during scaling down operation until the feature can ensure this operation to be graceful
-func EnsureVotingMembersCount(ctx context.Context, t TestingT, etcdClientFactory EtcdClientCreator, kubeClient kubernetes.Interface, expectedMembersCount int) error {
+func EnsureVotingMembersCount(ctx context.Context, t TestingT, kubeClient kubernetes.Interface, expectedMembersCount int) error {
 	waitPollInterval := 15 * time.Second
 	waitPollTimeout := 10 * time.Minute
 	t.Logf("Waiting up to %s for the cluster to reach the expected member count of %v", waitPollTimeout.String(), expectedMembersCount)
 
 	return wait.Poll(waitPollInterval, waitPollTimeout, func() (bool, error) {
-		etcdClient, closeFn, err := etcdClientFactory.NewEtcdClient()
-		if err != nil {
-			t.Logf("failed to get etcd client, will retry, err: %v", err)
-			return false, nil
-		}
-		defer closeFn()
-
-		ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
-		defer cancel()
-		memberList, err := etcdClient.MemberList(ctx)
-		if err != nil {
-			t.Logf("failed to get the member list, will retry, err: %v", err)
-			return false, nil
-		}
-
-		var votingMemberNames []string
-		for _, member := range memberList.Members {
-			if !member.IsLearner {
-				votingMemberNames = append(votingMemberNames, member.Name)
-			}
-		}
-		if len(votingMemberNames) != expectedMembersCount {
-			t.Logf("unexpected number of voting etcd members, expected exactly %d, got: %v, current members are: %v", expectedMembersCount, len(votingMemberNames), votingMemberNames)
-			return false, nil
-		}
-		t.Logf("cluster has reached the expected number of %v voting members, the members are: %v", expectedMembersCount, votingMemberNames)
-
 		t.Logf("ensuring that the openshift-etcd/etcd-endpoints cm has the expected number of %v voting members", expectedMembersCount)
 		etcdEndpointsConfigMap, err := kubeClient.CoreV1().ConfigMaps("openshift-etcd").Get(ctx, "etcd-endpoints", metav1.GetOptions{})
 		if err != nil {
@@ -228,110 +199,6 @@ func EnsureVotingMembersCount(ctx context.Context, t TestingT, etcdClientFactory
 		}
 		return true, nil
 	})
-}
-
-func EnsureMemberRemoved(t TestingT, etcdClientFactory EtcdClientCreator, memberName string) error {
-	waitPollInterval := 15 * time.Second
-	waitPollTimeout := 1 * time.Minute
-	t.Logf("Waiting up to %s for %v member to be removed from the cluster", waitPollTimeout.String(), memberName)
-
-	return wait.Poll(waitPollInterval, waitPollTimeout, func() (bool, error) {
-		etcdClient, closeFn, err := etcdClientFactory.NewEtcdClient()
-		if err != nil {
-			t.Logf("failed to get etcd client, will retry, err: %v", err)
-			return false, nil
-		}
-		defer closeFn()
-
-		ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Second)
-		defer cancel()
-		rsp, err := etcdClient.MemberList(ctx)
-		if err != nil {
-			t.Logf("failed to get member list, will retry, err: %v", err)
-			return false, nil
-		}
-
-		for _, member := range rsp.Members {
-			if member.Name == memberName {
-				return false, fmt.Errorf("member %v hasn't been removed", spew.Sdump(member))
-			}
-		}
-		return true, nil
-	})
-}
-
-func EnsureHealthyMember(t TestingT, etcdClientFactory EtcdClientCreator, memberName string) error {
-	etcdClient, closeFn, err := etcdClientFactory.NewEtcdClientForMember(memberName)
-	if err != nil {
-		return err
-	}
-	defer closeFn()
-
-	ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Second)
-	defer cancel()
-
-	// We know it's a voting member so lineared read is fine
-	_, err = etcdClient.Get(ctx, "health")
-	if err != nil {
-		return fmt.Errorf("failed to check healthiness condition of the %q member, err: %v", memberName, err)
-	}
-	t.Logf("successfully evaluated health condition of %q member", memberName)
-	return nil
-}
-
-// MachineNameToEtcdMemberName finds an etcd member name that corresponds to the given machine name
-// first it looks up a node that corresponds to the machine by comparing the ProviderID field
-// next, it returns the node name as it is used to name an etcd member.
-//
-// In cases the ProviderID is empty it will try to find a node that matches an internal IP address
-//
-// note:
-// it will exit and report an error in case the node was not found
-func MachineNameToEtcdMemberName(ctx context.Context, kubeClient kubernetes.Interface, machineClient machinev1beta1client.MachineInterface, machineName string) (string, error) {
-	machine, err := machineClient.Get(ctx, machineName, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-
-	masterNodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master"})
-	if err != nil {
-		return "", err
-	}
-
-	machineProviderID := pointer.StringDeref(machine.Spec.ProviderID, "")
-	if len(machineProviderID) != 0 {
-		// case 1: find corresponding node, match on providerID
-		var nodeNames []string
-		for _, masterNode := range masterNodes.Items {
-			if masterNode.Spec.ProviderID == machineProviderID {
-				return masterNode.Name, nil
-			}
-			nodeNames = append(nodeNames, masterNode.Name)
-		}
-
-		return "", fmt.Errorf("unable to find a node for the corresponding %q machine on ProviderID: %v, checked: %v", machineName, machineProviderID, nodeNames)
-	}
-
-	// case 2: match on an internal ip address
-	machineIPListSet := sets.NewString()
-	for _, addr := range machine.Status.Addresses {
-		if addr.Type == corev1.NodeInternalIP {
-			machineIPListSet.Insert(addr.Address)
-		}
-	}
-
-	var nodeNames []string
-	for _, masterNode := range masterNodes.Items {
-		for _, addr := range masterNode.Status.Addresses {
-			if addr.Type == corev1.NodeInternalIP {
-				if machineIPListSet.Has(addr.Address) {
-					return masterNode.Name, nil
-				}
-			}
-			nodeNames = append(nodeNames, masterNode.Name)
-		}
-	}
-	return "", fmt.Errorf("unable to find a node for the corresponding %q machine on the following machine's IPs: %v, checked: %v", machineName, machineIPListSet.List(), nodeNames)
 }
 
 func InitPlatformSpecificConfiguration(oc *exutil.CLI) func() {
@@ -360,7 +227,10 @@ func SkipIfUnsupportedPlatform(ctx context.Context, oc *exutil.CLI) {
 	o.Expect(err).ToNot(o.HaveOccurred())
 	machineClient := machineClientSet.MachineV1beta1().Machines("openshift-machine-api")
 	skipUnlessFunctionalMachineAPI(ctx, machineClient)
+	// no need to scale a single node cluster
 	skipIfSingleNode(oc)
+	// bare metal, albeit having MCO, is having trouble provisioning machines quickly enough
+	skipIfBareMetal(oc)
 }
 
 func skipUnlessFunctionalMachineAPI(ctx context.Context, machineClient machinev1beta1client.MachineInterface) {
@@ -389,15 +259,6 @@ func skipUnlessFunctionalMachineAPI(ctx context.Context, machineClient machinev1
 	return
 }
 
-func skipIfAzure(oc *exutil.CLI) {
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	if infra.Status.PlatformStatus.Type == configv1.AzurePlatformType {
-		e2eskipper.Skipf("this test is currently flaky on the azure platform")
-	}
-}
-
 func skipIfSingleNode(oc *exutil.CLI) {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -413,15 +274,6 @@ func skipIfBareMetal(oc *exutil.CLI) {
 
 	if infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType {
 		e2eskipper.Skipf("this test is currently broken on the metal platform and needs to be fixed")
-	}
-}
-
-func skipIfVsphere(oc *exutil.CLI) {
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	if infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType {
-		e2eskipper.Skipf("this test is currently broken on the vsphere platform and needs to be fixed (BZ2094919)")
 	}
 }
 
