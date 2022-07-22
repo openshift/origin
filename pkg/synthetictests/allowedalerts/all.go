@@ -71,5 +71,8 @@ func AllAlertTests(ctx context.Context, clientConfig *rest.Config, duration time
 	ret = append(ret, newAlert("storage", "VSphereOpenshiftNodeHealthFail").pending().neverFail().toTests()...)
 	ret = append(ret, newAlert("storage", "VSphereOpenshiftNodeHealthFail").firing().neverFail().toTests()...) // https://bugzilla.redhat.com/show_bug.cgi?id=2055729
 
+	ret = append(ret, newAlert("samples", "SamplesImagestreamImportFailing").pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("samples", "SamplesImagestreamImportFailing").firing().toTests()...)
+
 	return ret
 }
