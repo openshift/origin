@@ -22,12 +22,13 @@ import (
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 
 	"github.com/onsi/ginkgo/config"
+	"k8s.io/apimachinery/pkg/util/sets"
+
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const (
@@ -80,6 +81,7 @@ func NewOptions() *Options {
 			AdaptEventDataWriter(intervalcreation.NewSpyglassEventIntervalRenderer("spyglass", intervalcreation.BelongsInSpyglass)),
 			// TODO add visualization of individual apiserver containers and their readiness on this page
 			AdaptEventDataWriter(intervalcreation.NewSpyglassEventIntervalRenderer("kube-apiserver", intervalcreation.BelongsInKubeAPIServer)),
+			AdaptEventDataWriter(intervalcreation.NewSpyglassEventIntervalRenderer("etcd", intervalcreation.BelongsInEtcd)),
 			AdaptEventDataWriter(intervalcreation.NewSpyglassEventIntervalRenderer("operators", intervalcreation.BelongsInOperatorRollout)),
 			AdaptEventDataWriter(intervalcreation.NewPodEventIntervalRenderer()),
 			AdaptEventDataWriter(intervalcreation.NewIngressServicePodIntervalRenderer()),

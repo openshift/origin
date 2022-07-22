@@ -7,11 +7,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/test/extended/testdata"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 type filenameBaseFunc func(timeSuffix string) string
@@ -119,6 +120,27 @@ func BelongsInKubeAPIServer(eventInterval monitorapi.EventInterval) bool {
 		return false
 	}
 	if isInterestingNamespace(eventInterval, kubeControlPlaneNamespaces) {
+		return true
+	}
+
+	return true
+}
+
+func BelongsInEtcd(eventInterval monitorapi.EventInterval) bool {
+	if monitorapi.IsE2ETest(eventInterval.Locator) {
+		return false
+	}
+	if isLessInterestingAlert(eventInterval) {
+		return false
+	}
+	interestingNamespaces := sets.NewString("openshift-etcd", "openshift-etcd-operator")
+	if IsPodLifecycle(eventInterval) {
+		if isPlatformPodEvent(eventInterval) && isInterestingNamespace(eventInterval, interestingNamespaces) {
+			return true
+		}
+		return false
+	}
+	if isInterestingNamespace(eventInterval, interestingNamespaces) {
 		return true
 	}
 
