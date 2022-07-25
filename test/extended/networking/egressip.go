@@ -689,25 +689,15 @@ func spawnProberSendEgressIPTrafficCheckLogs(
 	proberPod := createProberPod(oc, externalNamespace, probePodName)
 
 	// Unfortunately, even after we created the EgressIP object and the CloudPrivateIPConfig, it can take some time before everything is applied correctly.
-	// If we expect non-zero number of hits, add this 60 second retry mechanism that waits for the first log hit that contains the EgressIP.
-	// 60 seconds might seems a bit long, but for the UDP tests, agnhost's netexec needs at least 7 seconds to finish the UDP query. Add to this the log parsing
-	// retry mechanism and we are around 10 seconds minimum for a single round. On top of that, I have seen this take quite some time on Azure.
-	if expectedHits > 0 {
-		framework.Logf("Eventually (after max 60 seconds) the EgressIP setup should converge and the EgressIP configuration should be operational")
-		o.Eventually(func() bool {
-			framework.Logf("Sending a single probe and checking if it shows up inside the logs")
-			result, err := sendEgressIPProbesAndCheckPacketSnifferLogs(oc, proberPod, routeName, targetProtocol, targetHost, targetPort, 1, 1, packetSnifferDaemonSet, egressIPSet, 3)
-			return err == nil && result
-		}, 60*time.Second, 1*time.Second).Should(o.BeTrue())
-	}
-
-	framework.Logf("Verifying that the expected number of EgressIP outbound requests can be seen in the packet sniffer logs")
-	result, err := sendEgressIPProbesAndCheckPacketSnifferLogs(oc, proberPod, routeName, targetProtocol, targetHost, targetPort, iterations, expectedHits, packetSnifferDaemonSet, egressIPSet, 10)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	o.Expect(result).To(o.BeTrue())
+	// Retry this test every 30 seconds for up to 2 minutes to give the cluster time to converge - eventually, this test should pass.
+	o.Eventually(func() bool {
+		framework.Logf("Verifying that the expected number of EgressIP outbound requests can be seen in the packet sniffer logs")
+		result, err := sendEgressIPProbesAndCheckPacketSnifferLogs(oc, proberPod, routeName, targetProtocol, targetHost, targetPort, iterations, expectedHits, packetSnifferDaemonSet, egressIPSet, 10)
+		return err == nil && result
+	}, 120*time.Second, 30*time.Second).Should(o.BeTrue())
 
 	framework.Logf("Destroying the prober pod")
-	err = destroyProberPod(oc, proberPod)
+	err := destroyProberPod(oc, proberPod)
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
