@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package node
@@ -150,7 +151,7 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		// Not an OpenShift plugin
 		return nil, nil
 	}
-	glog.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q)", c.PluginName, c.Hostname, c.SelfIP)
+	glog.Infof("(trivial change to trigger release-3.11 CI) Initializing SDN node of type %q with configured hostname %q (IP %q)", c.PluginName, c.Hostname, c.SelfIP)
 
 	if useConnTrack && c.ProxyMode != kubeproxyconfig.ProxyModeIPTables {
 		return nil, fmt.Errorf("%q plugin is not compatible with proxy-mode %q", c.PluginName, c.ProxyMode)
