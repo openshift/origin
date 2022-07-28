@@ -360,7 +360,10 @@ func SkipIfUnsupportedPlatform(ctx context.Context, oc *exutil.CLI) {
 	o.Expect(err).ToNot(o.HaveOccurred())
 	machineClient := machineClientSet.MachineV1beta1().Machines("openshift-machine-api")
 	skipUnlessFunctionalMachineAPI(ctx, machineClient)
+	skipIfAzure(oc)
 	skipIfSingleNode(oc)
+	skipIfBareMetal(oc)
+	skipIfVsphere(oc)
 }
 
 func skipUnlessFunctionalMachineAPI(ctx context.Context, machineClient machinev1beta1client.MachineInterface) {
