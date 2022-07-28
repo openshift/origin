@@ -156,9 +156,6 @@ var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 		g.By("Creating a project for the prober pod")
 		// Create a target project and assign source and target namespace
 		// to variables for later use.
-		// SetupProject() instead of SetupNamespace() because we need a privileged
-		// namespace: https://kubernetes.io/blog/2021/12/09/pod-security-admission-beta/
-		// and SetupProject() does that for us.
 		egressIPNamespace = f.Namespace.Name
 		externalNamespace = oc.SetupProject()
 

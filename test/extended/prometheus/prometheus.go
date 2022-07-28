@@ -692,7 +692,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 		})
 
 		g.It("should provide ingress metrics", func() {
-			ns := oc.SetupNamespace()
+			ns := oc.SetupProject()
 
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
@@ -730,7 +730,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 		})
 
 		g.It("should provide named network metrics", func() {
-			ns := oc.SetupNamespace()
+			ns := oc.SetupProject()
 
 			cs, err := newDynClientSet()
 			o.Expect(err).NotTo(o.HaveOccurred())

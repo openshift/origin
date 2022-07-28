@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	psapi "k8s.io/pod-security-admission/api"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -39,7 +40,7 @@ var _ = Describe("[sig-network][Feature:Network Policy Audit logging]", func() {
 		}
 	})
 
-	oc = exutil.NewCLI("acl-logging")
+	oc = exutil.NewCLIWithPodSecurityLevel("acl-logging", psapi.LevelBaseline)
 
 	// The OVNKubernetes subnet plugin should allow acl_logging for network policy.
 	// For Openshift SDN and third party plugins, the behavior is unspecified and we should not run either test.
@@ -51,7 +52,7 @@ var _ = Describe("[sig-network][Feature:Network Policy Audit logging]", func() {
 				makeNamespaceScheduleToAllNodes(f)
 				makeNamespaceACLLoggingEnabled(oc, f.Namespace)
 
-				nsNoACLLog := oc.SetupNamespace()
+				nsNoACLLog := oc.SetupProject()
 				By("making namespace " + nsNoACLLog + " with acl-logging disabled")
 				ns = append(ns, nsNoACLLog)
 

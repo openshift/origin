@@ -247,29 +247,6 @@ func (c CLI) WithToken(token string) *CLI {
 	return &c
 }
 
-// SetupNamespace creates a namespace, without waiting for any resources except the SCC annotation to be available
-func (c *CLI) SetupNamespace() string {
-	requiresTestStart()
-	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
-	c.SetNamespace(newNamespace)
-
-	framework.Logf("Creating namespace %q", newNamespace)
-	_, err := c.AdminKubeClient().CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
-	}, metav1.CreateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	c.kubeFramework.AddNamespacesToDelete(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: newNamespace}})
-
-	WaitForNamespaceSCCAnnotations(c.AdminKubeClient().CoreV1(), newNamespace)
-	for _, sa := range []string{"default"} {
-		framework.Logf("Waiting for ServiceAccount %q to be provisioned...", sa)
-		err = WaitForServiceAccount(c.AdminKubeClient().CoreV1().ServiceAccounts(newNamespace), sa)
-		o.Expect(err).NotTo(o.HaveOccurred())
-	}
-	return newNamespace
-}
-
 // SetupProject creates a new project and assign a random user to the project.
 // All resources will be then created within this project.
 // Returns the name of the new project.

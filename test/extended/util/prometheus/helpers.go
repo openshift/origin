@@ -252,7 +252,7 @@ func ExpectPrometheusEndpoint(namespace, podName, url string) {
 // the given URL using the given bearer token.  The results are returned
 // as a map of group names to lists of alerting rules.
 func FetchAlertingRules(oc *exutil.CLI, promURL, bearerToken string) (map[string][]promv1.AlertingRule, error) {
-	ns := oc.SetupNamespace()
+	ns := oc.SetupProject()
 	execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 	defer func() {
 		oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
