@@ -53,7 +53,7 @@ func init() {
 
 		// allowed upstream kube images - index and value must match upstream or
 		// tests will fail (vendor/k8s.io/kubernetes/test/utils/image/manifest.go)
-		"k8s.gcr.io/e2e-test-images/agnhost:2.39": 1,
+		"k8s.gcr.io/e2e-test-images/agnhost:2.36": 1,
 		"k8s.gcr.io/e2e-test-images/nginx:1.15-2": 23,
 	}
 
