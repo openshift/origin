@@ -429,7 +429,7 @@ func checkServiceConnectivity(serverFramework, clientFramework *e2e.Framework, n
 }
 
 func InNonIsolatingContext(body func()) {
-	Context("when using OpenshiftSDN in a mode that does not isolate namespaces by default", func() {
+	Context("when using a plugin in a mode that does not isolate namespaces by default", func() {
 		BeforeEach(func() {
 			if pluginIsolatesNamespaces() {
 				e2eskipper.Skipf("This plugin isolates namespaces by default.")
@@ -441,7 +441,7 @@ func InNonIsolatingContext(body func()) {
 }
 
 func InIsolatingContext(body func()) {
-	Context("when using OpenshiftSDN in a mode that isolates namespaces by default", func() {
+	Context("when using a plugin in a mode that isolates namespaces by default", func() {
 		BeforeEach(func() {
 			if !pluginIsolatesNamespaces() {
 				e2eskipper.Skipf("This plugin does not isolate namespaces by default.")
