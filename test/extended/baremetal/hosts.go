@@ -172,9 +172,6 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 	g.It("skip inspection when disabled by annotation", func() {
 		skipIfNotBaremetal(oc)
 
-		// Extra DEBUG
-		g.By(fmt.Sprintf("check that platform given by oc= %v is baremetal type", oc))
-
 		// Get extra worker info
 		hostData, secretData := helper.GetExtraWorkerData(0)
 
@@ -193,9 +190,6 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 
 	g.It("configure BIOS settings during cleaning", func() {
 		var procTurboMode = "ProcTurboMode"
-
-		// Extra DEBUG
-		g.By(fmt.Sprintf("check that platform given by oc= %v is baremetal type", oc))
 
 		skipIfNotBaremetal(oc)
 
@@ -248,12 +242,9 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 		g.By(fmt.Sprintf("setting firmwaresetting %s to %s for host %s", procTurboMode, newValue, hostName))
 
 		err = unstructured.SetNestedStringMap(hfs.Object, spec, "spec", "settings")
-		// TEST wait for settings to apply
+
 		time.Sleep(2 * time.Second)
 		status, _, _ = unstructured.NestedStringMap(hfs.Object, "status", "settings")
-		//Extra DEBUG
-		g.By(fmt.Sprintf("the status of string is = %v", status))
-
 		_, ok := status[procTurboMode]
 		o.Expect(ok).To(o.BeTrue(), "setting not available for host %s", hostName)
 
