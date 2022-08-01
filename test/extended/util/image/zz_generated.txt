@@ -3,7 +3,7 @@ alpine/socat:1.0.3 quay.io/openshift/community-e2e-images:e2e-58-alpine-socat-1-
 docker.io/library/registry:2.8.0-beta.1 quay.io/openshift/community-e2e-images:e2e-docker-io-library-registry-2-8-0-beta-1-8x_YFKSuz9Xw6lZD
 k8s.gcr.io/build-image/debian-iptables:bullseye-v1.3.0 quay.io/openshift/community-e2e-images:e2e-10-k8s-gcr-io-build-image-debian-iptables-bullseye-v1-3-0-ZjxXl8tk9erJIrx0
 k8s.gcr.io/cloud-provider-gcp/gcp-compute-persistent-disk-csi-driver:v1.2.2 quay.io/openshift/community-e2e-images:e2e-48-k8s-gcr-io-cloud-provider-gcp-gcp-compute-persistent-disk-csi-driver-v1-2-2-FhWuJgmsPY7UvECR
-k8s.gcr.io/e2e-test-images/agnhost:2.36 quay.io/openshift/community-e2e-images:e2e-1-k8s-gcr-io-e2e-test-images-agnhost-2-36-Vx1DLvG369kAoAuR
+k8s.gcr.io/e2e-test-images/agnhost:2.39 quay.io/openshift/community-e2e-images:e2e-1-k8s-gcr-io-e2e-test-images-agnhost-2-39-D3QKX7Bo93z7tlZq
 k8s.gcr.io/e2e-test-images/apparmor-loader:1.4 quay.io/openshift/community-e2e-images:e2e-4-k8s-gcr-io-e2e-test-images-apparmor-loader-1-4-8n3MBYqtd4M2JI4n
 k8s.gcr.io/e2e-test-images/busybox:1.29-1 quay.io/openshift/community-e2e-images:e2e-59-k8s-gcr-io-e2e-test-images-busybox-1-29-1-4vRlLJlMSKkJ4csR
 k8s.gcr.io/e2e-test-images/busybox:1.29-2 quay.io/openshift/community-e2e-images:e2e-7-k8s-gcr-io-e2e-test-images-busybox-1-29-2-cqcP1Tnbm-JjJyUA
