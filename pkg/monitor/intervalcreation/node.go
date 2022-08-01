@@ -5,21 +5,18 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-
-	"github.com/openshift/origin/pkg/monitor/nodedetails"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"k8s.io/client-go/kubernetes"
-
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitor/nodedetails"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -123,6 +120,7 @@ func IntervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 		return nil, err
 	}
 
+	collectionStart := time.Now()
 	lock := sync.Mutex{}
 	errCh := make(chan error, len(allNodes.Items))
 	wg := sync.WaitGroup{}
@@ -145,6 +143,8 @@ func IntervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 		}(ctx, node.Name)
 	}
 	wg.Wait()
+	collectionEnd := time.Now()
+	fmt.Fprintf(os.Stderr, "Collection of node logs and analysis took: %v\n", collectionEnd.Sub(collectionStart))
 
 	errs := []error{}
 	for len(errCh) > 0 {
@@ -155,6 +155,8 @@ func IntervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 	return ret, utilerrors.NewAggregate(errs)
 }
 
+// eventsFromKubeletLogs returns the produced intervals.  Any errors during this creation are logged, but
+// not returned because this is a best effort step
 func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Intervals {
 	ret := monitorapi.Intervals{}
 
@@ -186,7 +188,11 @@ func readinessFailure(logLine string) monitorapi.Intervals {
 	}
 	outputSubmatches := failureOutputRegex.FindStringSubmatch(logLine)
 	message := outputSubmatches[1]
-	message, _ = strconv.Unquote(`"` + message + `"`)
+	// message contains many \", this removes the escaping to result in message containing "
+	// if we have an error, just use the original message, we don't really care that much.
+	if unquotedMessage, err := strconv.Unquote(`"` + message + `"`); err == nil {
+		message = unquotedMessage
+	}
 
 	containerRef := probeProblemToContainerReference(logLine)
 	failureTime := kubeletLogTime(logLine)
@@ -265,6 +271,8 @@ func probeProblemToContainerReference(logLine string) monitorapi.ContainerRefere
 
 var kubeletTimeRegex = regexp.MustCompile(`^(?P<MONTH>\S+)\s(?P<DAY>\S+)\s(?P<TIME>\S+)`)
 
+// kubeletLogTime returns Now if there is trouble reading the time.  This will stack the event intervals without
+// parseable times at the end of the run, which will be more clearly visible as a problem than not reporting them.
 func kubeletLogTime(logLine string) time.Time {
 	kubeletTimeRegex.MatchString(logLine)
 	if !kubeletTimeRegex.MatchString(logLine) {
@@ -291,6 +299,7 @@ func kubeletLogTime(logLine string) time.Time {
 	timeString := fmt.Sprintf("%s %s %s %s UTC", day, month, year, timeOfDay)
 	ret, err := time.Parse("02 Jan 2006 15:04:05.999999999 MST", timeString)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failure parsing time format: %v for %q\n", err, timeString)
 		return time.Now()
 	}
 
