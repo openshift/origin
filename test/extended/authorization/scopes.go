@@ -34,7 +34,7 @@ import (
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 )
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {

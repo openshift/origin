@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/onsi/ginkgo/config"
+	"github.com/onsi/ginkgo/v2/config"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"k8s.io/apimachinery/pkg/util/sets"
