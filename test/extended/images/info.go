@@ -2,7 +2,7 @@ package images
 
 import (
 	"github.com/MakeNowJust/heredoc"
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 
 	admissionapi "k8s.io/pod-security-admission/api"
 

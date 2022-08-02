@@ -6,11 +6,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters/stenographer"
-	"github.com/onsi/ginkgo/types"
+	"github.com/onsi/ginkgo/v2/config"
+	"github.com/onsi/ginkgo/v2/reporters/stenographer"
+	"github.com/onsi/ginkgo/v2/types"
 
-	"github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable"
+	"github.com/onsi/ginkgo/v2/reporters/stenographer/support/go-colorable"
 )
 
 const maxDescriptionLength = 100

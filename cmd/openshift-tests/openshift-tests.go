@@ -18,7 +18,7 @@ import (
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/spf13/cobra"

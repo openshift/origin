@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
