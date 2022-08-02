@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/config"
 	"github.com/onsi/ginkgo/v2/reporters"
 	"github.com/onsi/gomega"
 	"k8s.io/klog/v2"
@@ -112,14 +111,16 @@ func ExecuteTest(t ginkgo.GinkgoTestingT, suite string) {
 		defer e2e.CoreDump(TestContext.ReportDir)
 	}
 
-	if config.GinkgoConfig.FocusString == "" && config.GinkgoConfig.SkipString == "" {
-		config.GinkgoConfig.SkipString = "Skipped"
+	suiteConfig, _ := ginkgo.GinkgoConfiguration()
+
+	if len(suiteConfig.FocusStrings) == 0 && len(suiteConfig.SkipStrings) == 0 {
+		suiteConfig.SkipStrings = []string{"Skipped"}
 	}
 
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
 	if TestContext.ReportDir != "" {
-		r = append(r, reporters.NewJUnitReporter(path.Join(TestContext.ReportDir, fmt.Sprintf("%s_%02d.xml", reportFileName, config.GinkgoConfig.ParallelNode))))
+		r = append(r, reporters.NewJUnitReporter(path.Join(TestContext.ReportDir, fmt.Sprintf("%s_%02d.xml", reportFileName, suiteConfig.ParallelProcess))))
 	}
 
 	WithCleanup(func() {
@@ -268,13 +269,16 @@ func checkSyntheticInput() {
 // checkSuiteSkips ensures Origin/Kubernetes synthetic skip labels are applied
 // DEPRECATED: remove in a future release
 func checkSuiteSkips() {
+	suiteConfig, _ := ginkgo.GinkgoConfiguration()
 	switch {
 	case isOriginTest():
-		if strings.Contains(config.GinkgoConfig.SkipString, "Synthetic Origin") {
+		skip := strings.Join(suiteConfig.SkipStrings, "|")
+		if strings.Contains(skip, "Synthetic Origin") {
 			ginkgo.Skip("skipping all openshift/origin tests")
 		}
 	case isKubernetesE2ETest():
-		if strings.Contains(config.GinkgoConfig.SkipString, "Synthetic Kubernetes") {
+		skip := strings.Join(suiteConfig.SkipStrings, "|")
+		if strings.Contains(skip, "Synthetic Kubernetes") {
 			ginkgo.Skip("skipping all k8s.io/kubernetes tests")
 		}
 	}
