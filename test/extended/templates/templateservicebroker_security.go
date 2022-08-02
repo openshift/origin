@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
 	"golang.org/x/net/context"

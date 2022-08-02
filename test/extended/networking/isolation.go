@@ -5,7 +5,7 @@ import (
 
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
 )

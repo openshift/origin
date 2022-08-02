@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	apiserverv1 "github.com/openshift/api/apiserver/v1"
 	configv1 "github.com/openshift/api/config/v1"
