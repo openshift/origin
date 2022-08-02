@@ -21,7 +21,7 @@ import (
 
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 
-	"github.com/onsi/ginkgo/config"
+	"github.com/onsi/ginkgo/v2/config"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"

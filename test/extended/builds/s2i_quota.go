@@ -2,9 +2,10 @@ package builds
 
 import (
 	"fmt"
+
 	"k8s.io/pod-security-admission/api"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"

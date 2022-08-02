@@ -15,7 +15,7 @@ import (
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	psapi "k8s.io/pod-security-admission/api"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

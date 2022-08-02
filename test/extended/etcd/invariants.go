@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	configv1 "github.com/openshift/api/config/v1"

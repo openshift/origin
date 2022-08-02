@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"

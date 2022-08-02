@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	apiv1 "k8s.io/api/core/v1"

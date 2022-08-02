@@ -3,10 +3,11 @@ package etcd
 import (
 	"context"
 	"fmt"
-	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	"time"
 
-	g "github.com/onsi/ginkgo"
+	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
+
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
 

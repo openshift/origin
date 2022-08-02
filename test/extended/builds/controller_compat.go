@@ -1,7 +1,7 @@
 package builds
 
 import (
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )

@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/blang/semver"
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"

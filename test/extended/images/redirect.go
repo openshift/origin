@@ -9,7 +9,7 @@ import (
 	"net/http/httputil"
 	"strings"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"github.com/opencontainers/go-digest"
 	imageregistryv1 "github.com/openshift/api/imageregistry/v1"
