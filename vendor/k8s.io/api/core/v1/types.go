@@ -1800,11 +1800,20 @@ type CSIPersistentVolumeSource struct {
 	// controllerExpandSecretRef is a reference to the secret object containing
 	// sensitive information to pass to the CSI driver to complete the CSI
 	// ControllerExpandVolume call.
-	// This is an alpha field and requires enabling ExpandCSIVolumes feature gate.
+	// This is an beta field and requires enabling ExpandCSIVolumes feature gate.
 	// This field is optional, and may be empty if no secret is required. If the
 	// secret object contains more than one secret, all secrets are passed.
 	// +optional
 	ControllerExpandSecretRef *SecretReference `json:"controllerExpandSecretRef,omitempty" protobuf:"bytes,9,opt,name=controllerExpandSecretRef"`
+
+	// nodeExpandSecretRef is a reference to the secret object containing
+	// sensitive information to pass to the CSI driver to complete the CSI
+	// NodeExpandVolume call.
+	// This is an alpha field and requires enabling CSINodeExpandSecret feature gate.
+	// This field is optional, may be omitted if no secret is required. If the
+	// secret object contains more than one secret, all secrets are passed.
+	// +optional
+	NodeExpandSecretRef *SecretReference `json:"nodeExpandSecretRef,omitempty" protobuf:"bytes,10,opt,name=nodeExpandSecretRef"`
 }
 
 // Represents a source location of a volume to mount, managed by an external CSI driver
@@ -2324,12 +2333,12 @@ type Container struct {
 	// Cannot be updated.
 	// +optional
 	WorkingDir string `json:"workingDir,omitempty" protobuf:"bytes,5,opt,name=workingDir"`
-	// List of ports to expose from the container. Exposing a port here gives
-	// the system additional information about the network connections a
-	// container uses, but is primarily informational. Not specifying a port here
+	// List of ports to expose from the container. Not specifying a port here
 	// DOES NOT prevent that port from being exposed. Any port which is
 	// listening on the default "0.0.0.0" address inside a container will be
 	// accessible from the network.
+	// Modifying this array with strategic merge patch may corrupt the data.
+	// For more information See https://github.com/kubernetes/kubernetes/issues/108255.
 	// Cannot be updated.
 	// +optional
 	// +patchMergeKey=containerPort
@@ -3330,6 +3339,17 @@ const (
 	ScheduleAnyway UnsatisfiableConstraintAction = "ScheduleAnyway"
 )
 
+// NodeInclusionPolicy defines the type of node inclusion policy
+// +enum
+type NodeInclusionPolicy string
+
+const (
+	// NodeInclusionPolicyIgnore means ignore this scheduling directive when calculating pod topology spread skew.
+	NodeInclusionPolicyIgnore NodeInclusionPolicy = "Ignore"
+	// NodeInclusionPolicyHonor means use this scheduling directive when calculating pod topology spread skew.
+	NodeInclusionPolicyHonor NodeInclusionPolicy = "Honor"
+)
+
 // TopologySpreadConstraint specifies how to spread matching pods among the given topology.
 type TopologySpreadConstraint struct {
 	// MaxSkew describes the degree to which pods may be unevenly distributed.
@@ -3358,7 +3378,8 @@ type TopologySpreadConstraint struct {
 	// We consider each <key, value> as a "bucket", and try to put balanced number
 	// of pods into each bucket.
 	// We define a domain as a particular instance of a topology.
-	// Also, we define an eligible domain as a domain whose nodes match the node selector.
+	// Also, we define an eligible domain as a domain whose nodes meet the requirements of
+	// nodeAffinityPolicy and nodeTaintsPolicy.
 	// e.g. If TopologyKey is "kubernetes.io/hostname", each Node is a domain of that topology.
 	// And, if TopologyKey is "topology.kubernetes.io/zone", each zone is a domain of that topology.
 	// It's a required field.
@@ -3413,9 +3434,28 @@ type TopologySpreadConstraint struct {
 	// because computed skew will be 3(3 - 0) if new Pod is scheduled to any of the three zones,
 	// it will violate MaxSkew.
 	//
-	// This is an alpha field and requires enabling MinDomainsInPodTopologySpread feature gate.
+	// This is a beta field and requires the MinDomainsInPodTopologySpread feature gate to be enabled (enabled by default).
 	// +optional
 	MinDomains *int32 `json:"minDomains,omitempty" protobuf:"varint,5,opt,name=minDomains"`
+	// NodeAffinityPolicy indicates how we will treat Pod's nodeAffinity/nodeSelector
+	// when calculating pod topology spread skew. Options are:
+	// - Honor: only nodes matching nodeAffinity/nodeSelector are included in the calculations.
+	// - Ignore: nodeAffinity/nodeSelector are ignored. All nodes are included in the calculations.
+	//
+	// If this value is nil, the behavior is equivalent to the Honor policy.
+	// This is a alpha-level feature enabled by the NodeInclusionPolicyInPodTopologySpread feature flag.
+	// +optional
+	NodeAffinityPolicy *NodeInclusionPolicy `json:"nodeAffinityPolicy,omitempty" protobuf:"bytes,6,opt,name=nodeAffinityPolicy"`
+	// NodeTaintsPolicy indicates how we will treat node taints when calculating
+	// pod topology spread skew. Options are:
+	// - Honor: nodes without taints, along with tainted nodes for which the incoming pod
+	// has a toleration, are included.
+	// - Ignore: node taints are ignored. All nodes are included.
+	//
+	// If this value is nil, the behavior is equivalent to the Ignore policy.
+	// This is a alpha-level feature enabled by the NodeInclusionPolicyInPodTopologySpread feature flag.
+	// +optional
+	NodeTaintsPolicy *NodeInclusionPolicy `json:"nodeTaintsPolicy,omitempty" protobuf:"bytes,7,opt,name=nodeTaintsPolicy"`
 }
 
 const (
@@ -4168,29 +4208,34 @@ const (
 	ServiceTypeExternalName ServiceType = "ExternalName"
 )
 
-// ServiceInternalTrafficPolicyType describes the type of traffic routing for
-// internal traffic
+// ServiceInternalTrafficPolicyType describes how nodes distribute service traffic they
+// receive on the ClusterIP.
 // +enum
 type ServiceInternalTrafficPolicyType string
 
 const (
-	// ServiceInternalTrafficPolicyCluster routes traffic to all endpoints
+	// ServiceInternalTrafficPolicyCluster routes traffic to all endpoints.
 	ServiceInternalTrafficPolicyCluster ServiceInternalTrafficPolicyType = "Cluster"
 
-	// ServiceInternalTrafficPolicyLocal only routes to node-local
-	// endpoints, otherwise drops the traffic
+	// ServiceInternalTrafficPolicyLocal routes traffic only to endpoints on the same
+	// node as the client pod (dropping the traffic if there are no local endpoints).
 	ServiceInternalTrafficPolicyLocal ServiceInternalTrafficPolicyType = "Local"
 )
 
-// Service External Traffic Policy Type string
+// ServiceExternalTrafficPolicyType describes how nodes distribute service traffic they
+// receive on one of the Service's "externally-facing" addresses (NodePorts, ExternalIPs,
+// and LoadBalancer IPs).
 // +enum
 type ServiceExternalTrafficPolicyType string
 
 const (
-	// ServiceExternalTrafficPolicyTypeLocal specifies node-local endpoints behavior.
-	ServiceExternalTrafficPolicyTypeLocal ServiceExternalTrafficPolicyType = "Local"
-	// ServiceExternalTrafficPolicyTypeCluster specifies node-global (legacy) behavior.
+	// ServiceExternalTrafficPolicyTypeCluster routes traffic to all endpoints.
 	ServiceExternalTrafficPolicyTypeCluster ServiceExternalTrafficPolicyType = "Cluster"
+
+	// ServiceExternalTrafficPolicyTypeLocal preserves the source IP of the traffic by
+	// routing only to endpoints on the same node as the traffic was received on
+	// (dropping the traffic if there are no local endpoints).
+	ServiceExternalTrafficPolicyTypeLocal ServiceExternalTrafficPolicyType = "Local"
 )
 
 // These are the valid conditions of a service.
@@ -4255,29 +4300,33 @@ const (
 	IPv6Protocol IPFamily = "IPv6"
 )
 
-// IPFamilyPolicyType represents the dual-stack-ness requested or required by a Service
+// IPFamilyPolicy represents the dual-stack-ness requested or required by a Service
 // +enum
-type IPFamilyPolicyType string
+type IPFamilyPolicy string
 
 const (
 	// IPFamilyPolicySingleStack indicates that this service is required to have a single IPFamily.
 	// The IPFamily assigned is based on the default IPFamily used by the cluster
 	// or as identified by service.spec.ipFamilies field
-	IPFamilyPolicySingleStack IPFamilyPolicyType = "SingleStack"
+	IPFamilyPolicySingleStack IPFamilyPolicy = "SingleStack"
 	// IPFamilyPolicyPreferDualStack indicates that this service prefers dual-stack when
 	// the cluster is configured for dual-stack. If the cluster is not configured
 	// for dual-stack the service will be assigned a single IPFamily. If the IPFamily is not
 	// set in service.spec.ipFamilies then the service will be assigned the default IPFamily
 	// configured on the cluster
-	IPFamilyPolicyPreferDualStack IPFamilyPolicyType = "PreferDualStack"
+	IPFamilyPolicyPreferDualStack IPFamilyPolicy = "PreferDualStack"
 	// IPFamilyPolicyRequireDualStack indicates that this service requires dual-stack. Using
 	// IPFamilyPolicyRequireDualStack on a single stack cluster will result in validation errors. The
 	// IPFamilies (and their order) assigned  to this service is based on service.spec.ipFamilies. If
 	// service.spec.ipFamilies was not provided then it will be assigned according to how they are
 	// configured on the cluster. If service.spec.ipFamilies has only one entry then the alternative
 	// IPFamily will be added by apiserver
-	IPFamilyPolicyRequireDualStack IPFamilyPolicyType = "RequireDualStack"
+	IPFamilyPolicyRequireDualStack IPFamilyPolicy = "RequireDualStack"
 )
+
+// for backwards compat
+// +enum
+type IPFamilyPolicyType = IPFamilyPolicy
 
 // ServiceSpec describes the attributes that a user creates on a service.
 type ServiceSpec struct {
@@ -4405,12 +4454,19 @@ type ServiceSpec struct {
 	// +optional
 	ExternalName string `json:"externalName,omitempty" protobuf:"bytes,10,opt,name=externalName"`
 
-	// externalTrafficPolicy denotes if this Service desires to route external
-	// traffic to node-local or cluster-wide endpoints. "Local" preserves the
-	// client source IP and avoids a second hop for LoadBalancer and Nodeport
-	// type services, but risks potentially imbalanced traffic spreading.
-	// "Cluster" obscures the client source IP and may cause a second hop to
-	// another node, but should have good overall load-spreading.
+	// externalTrafficPolicy describes how nodes distribute service traffic they
+	// receive on one of the Service's "externally-facing" addresses (NodePorts,
+	// ExternalIPs, and LoadBalancer IPs). If set to "Local", the proxy will configure
+	// the service in a way that assumes that external load balancers will take care
+	// of balancing the service traffic between nodes, and so each node will deliver
+	// traffic only to the node-local endpoints of the service, without masquerading
+	// the client source IP. (Traffic mistakenly sent to a node with no endpoints will
+	// be dropped.) The default value, "Cluster", uses the standard behavior of
+	// routing to all endpoints evenly (possibly modified by topology and other
+	// features). Note that traffic sent to an External IP or LoadBalancer IP from
+	// within the cluster will always get "Cluster" semantics, but clients sending to
+	// a NodePort from within the cluster may need to take traffic policy into account
+	// when picking a node.
 	// +optional
 	ExternalTrafficPolicy ServiceExternalTrafficPolicyType `json:"externalTrafficPolicy,omitempty" protobuf:"bytes,11,opt,name=externalTrafficPolicy"`
 
@@ -4476,7 +4532,7 @@ type ServiceSpec struct {
 	// ipFamilies and clusterIPs fields depend on the value of this field. This
 	// field will be wiped when updating a service to type ExternalName.
 	// +optional
-	IPFamilyPolicy *IPFamilyPolicyType `json:"ipFamilyPolicy,omitempty" protobuf:"bytes,17,opt,name=ipFamilyPolicy,casttype=IPFamilyPolicyType"`
+	IPFamilyPolicy *IPFamilyPolicy `json:"ipFamilyPolicy,omitempty" protobuf:"bytes,17,opt,name=ipFamilyPolicy,casttype=IPFamilyPolicy"`
 
 	// allocateLoadBalancerNodePorts defines if NodePorts will be automatically
 	// allocated for services with type LoadBalancer.  Default is "true". It
@@ -4502,12 +4558,12 @@ type ServiceSpec struct {
 	// +optional
 	LoadBalancerClass *string `json:"loadBalancerClass,omitempty" protobuf:"bytes,21,opt,name=loadBalancerClass"`
 
-	// InternalTrafficPolicy specifies if the cluster internal traffic
-	// should be routed to all endpoints or node-local endpoints only.
-	// "Cluster" routes internal traffic to a Service to all endpoints.
-	// "Local" routes traffic to node-local endpoints only, traffic is
-	// dropped if no node-local endpoints are ready.
-	// The default value is "Cluster".
+	// InternalTrafficPolicy describes how nodes distribute service traffic they
+	// receive on the ClusterIP. If set to "Local", the proxy will assume that pods
+	// only want to talk to endpoints of the service on the same node as the pod,
+	// dropping the traffic if there are no local endpoints. The default value,
+	// "Cluster", uses the standard behavior of routing to all endpoints evenly
+	// (possibly modified by topology and other features).
 	// +featureGate=ServiceInternalTrafficPolicy
 	// +optional
 	InternalTrafficPolicy *ServiceInternalTrafficPolicyType `json:"internalTrafficPolicy,omitempty" protobuf:"bytes,22,opt,name=internalTrafficPolicy"`
@@ -5058,7 +5114,7 @@ type PodSignature struct {
 // Describe a container image
 type ContainerImage struct {
 	// Names by which this image is known.
-	// e.g. ["k8s.gcr.io/hyperkube:v1.0.7", "dockerhub.io/google_containers/hyperkube:v1.0.7"]
+	// e.g. ["kubernetes.example/hyperkube:v1.0.7", "cloud-vendor.registry.example/cloud-vendor/hyperkube:v1.0.7"]
 	// +optional
 	Names []string `json:"names" protobuf:"bytes,1,rep,name=names"`
 	// The size of the image in bytes.

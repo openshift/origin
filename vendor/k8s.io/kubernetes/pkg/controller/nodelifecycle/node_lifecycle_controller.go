@@ -300,7 +300,8 @@ type Controller struct {
 
 	getPodsAssignedToNode func(nodeName string) ([]*v1.Pod, error)
 
-	recorder record.EventRecorder
+	broadcaster record.EventBroadcaster
+	recorder    record.EventRecorder
 
 	// Value controlling Controller monitoring period, i.e. how often does Controller
 	// check node health signal posted from kubelet. This value should be lower than
@@ -372,13 +373,6 @@ func NewNodeLifecycleController(
 
 	eventBroadcaster := record.NewBroadcaster()
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "node-controller"})
-	eventBroadcaster.StartStructuredLogging(0)
-
-	klog.Infof("Sending events to api server.")
-	eventBroadcaster.StartRecordingToSink(
-		&v1core.EventSinkImpl{
-			Interface: v1core.New(kubeClient.CoreV1().RESTClient()).Events(""),
-		})
 
 	if kubeClient.CoreV1().RESTClient().GetRateLimiter() != nil {
 		ratelimiter.RegisterMetricAndTrackRateLimiterUsage("node_lifecycle_controller", kubeClient.CoreV1().RESTClient().GetRateLimiter())
@@ -390,6 +384,7 @@ func NewNodeLifecycleController(
 		knownNodeSet:                make(map[string]*v1.Node),
 		nodeHealthMap:               newNodeHealthMap(),
 		nodeEvictionMap:             newNodeEvictionMap(),
+		broadcaster:                 eventBroadcaster,
 		recorder:                    recorder,
 		nodeMonitorPeriod:           nodeMonitorPeriod,
 		nodeStartupGracePeriod:      nodeStartupGracePeriod,
@@ -480,12 +475,10 @@ func NewNodeLifecycleController(
 		return pods, nil
 	}
 	nc.podLister = podInformer.Lister()
+	nc.nodeLister = nodeInformer.Lister()
 
 	if nc.runTaintManager {
-		podGetter := func(name, namespace string) (*v1.Pod, error) { return nc.podLister.Pods(namespace).Get(name) }
-		nodeLister := nodeInformer.Lister()
-		nodeGetter := func(name string) (*v1.Node, error) { return nodeLister.Get(name) }
-		nc.taintManager = scheduler.NewNoExecuteTaintManager(ctx, kubeClient, podGetter, nodeGetter, nc.getPodsAssignedToNode)
+		nc.taintManager = scheduler.NewNoExecuteTaintManager(ctx, kubeClient, nc.podLister, nc.nodeLister, nc.getPodsAssignedToNode)
 		nodeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 			AddFunc: controllerutil.CreateAddNodeHandler(func(node *v1.Node) error {
 				nc.taintManager.NodeUpdated(nil, node)
@@ -523,7 +516,6 @@ func NewNodeLifecycleController(
 	nc.leaseLister = leaseInformer.Lister()
 	nc.leaseInformerSynced = leaseInformer.Informer().HasSynced
 
-	nc.nodeLister = nodeInformer.Lister()
 	nc.nodeInformerSynced = nodeInformer.Informer().HasSynced
 
 	nc.daemonSetStore = daemonSetInformer.Lister()
@@ -536,6 +528,19 @@ func NewNodeLifecycleController(
 func (nc *Controller) Run(ctx context.Context) {
 	defer utilruntime.HandleCrash()
 
+	// Start events processing pipeline.
+	nc.broadcaster.StartStructuredLogging(0)
+	klog.Infof("Sending events to api server.")
+	nc.broadcaster.StartRecordingToSink(
+		&v1core.EventSinkImpl{
+			Interface: v1core.New(nc.kubeClient.CoreV1().RESTClient()).Events(""),
+		})
+	defer nc.broadcaster.Shutdown()
+
+	// Close node update queue to cleanup go routine.
+	defer nc.nodeUpdateQueue.ShutDown()
+	defer nc.podUpdateQueue.ShutDown()
+
 	klog.Infof("Starting node controller")
 	defer klog.Infof("Shutting down node controller")
 
@@ -546,10 +551,6 @@ func (nc *Controller) Run(ctx context.Context) {
 	if nc.runTaintManager {
 		go nc.taintManager.Run(ctx)
 	}
-
-	// Close node update queue to cleanup go routine.
-	defer nc.nodeUpdateQueue.ShutDown()
-	defer nc.podUpdateQueue.ShutDown()
 
 	// Start workers to reconcile labels and/or update NoSchedule taint for nodes.
 	for i := 0; i < scheduler.UpdateWorkerSize; i++ {
@@ -653,7 +654,7 @@ func (nc *Controller) doNoScheduleTaintingPass(ctx context.Context, nodeName str
 		return found
 	})
 	taintsToAdd, taintsToDel := taintutils.TaintSetDiff(taints, nodeTaints)
-	// If nothing to add not delete, return true directly.
+	// If nothing to add or delete, return true directly.
 	if len(taintsToAdd) == 0 && len(taintsToDel) == 0 {
 		return nil
 	}

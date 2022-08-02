@@ -12,7 +12,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/storagebackend"
 )
 
-func newETCD3HealthCheck(c storagebackend.Config) (func() error, error) {
+func newETCD3HealthCheck(c storagebackend.Config, stopCh <-chan struct{}) (func() error, error) {
 	// constructing the etcd v3 client blocks and times out if etcd is not available.
 	// retry in a loop in the background until we successfully create the client, storing the client or error encountered
 	// the health check is run every second and the result is stored for an immediate healthz response

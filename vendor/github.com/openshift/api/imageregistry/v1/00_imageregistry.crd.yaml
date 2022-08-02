@@ -1288,6 +1288,26 @@ spec:
                           storage services. Optional, defaults based on the Region
                           that is provided.
                         type: string
+                      trustedCA:
+                        description: "trustedCA is a reference to a config map containing
+                          a CA bundle. The image registry and its operator use certificates
+                          from this bundle to verify S3 server certificates. \n The
+                          namespace for the config map referenced by trustedCA is
+                          \"openshift-config\". The key for the bundle in the config
+                          map is \"ca-bundle.crt\"."
+                        properties:
+                          name:
+                            description: name is the metadata.name of the referenced
+                              config map. This field must adhere to standard config
+                              map naming restrictions. The name must consist solely
+                              of alphanumeric characters, hyphens (-) and periods
+                              (.). It has a maximum length of 253 characters. If this
+                              field is not specified or is empty string, the default
+                              trust bundle will be used.
+                            maxLength: 253
+                            pattern: ^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                        type: object
                       virtualHostedStyle:
                         description: virtualHostedStyle enables using S3 virtual hosted
                           style bucket paths with a custom RegionEndpoint Optional,
@@ -1818,6 +1838,26 @@ spec:
                           storage services. Optional, defaults based on the Region
                           that is provided.
                         type: string
+                      trustedCA:
+                        description: "trustedCA is a reference to a config map containing
+                          a CA bundle. The image registry and its operator use certificates
+                          from this bundle to verify S3 server certificates. \n The
+                          namespace for the config map referenced by trustedCA is
+                          \"openshift-config\". The key for the bundle in the config
+                          map is \"ca-bundle.crt\"."
+                        properties:
+                          name:
+                            description: name is the metadata.name of the referenced
+                              config map. This field must adhere to standard config
+                              map naming restrictions. The name must consist solely
+                              of alphanumeric characters, hyphens (-) and periods
+                              (.). It has a maximum length of 253 characters. If this
+                              field is not specified or is empty string, the default
+                              trust bundle will be used.
+                            maxLength: 253
+                            pattern: ^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                        type: object
                       virtualHostedStyle:
                         description: virtualHostedStyle enables using S3 virtual hosted
                           style bucket paths with a custom RegionEndpoint Optional,

@@ -329,20 +329,6 @@ func usesHugePagesInProjectedEnv(item api.Container) bool {
 	return false
 }
 
-// hasSysctlsWithSlashNames returns true if the sysctl name contains a slash, otherwise it returns false
-func hasSysctlsWithSlashNames(podSpec *api.PodSpec) bool {
-	if podSpec.SecurityContext == nil {
-		return false
-	}
-	securityContext := podSpec.SecurityContext
-	for _, s := range securityContext.Sysctls {
-		if strings.Contains(s.Name, "/") {
-			return true
-		}
-	}
-	return false
-}
-
 func checkContainerUseIndivisibleHugePagesValues(container api.Container) bool {
 	for resourceName, quantity := range container.Resources.Limits {
 		if helper.IsHugePageResourceName(resourceName) {
@@ -434,8 +420,6 @@ func GetValidationOptionsFromPodSpecAndMeta(podSpec, oldPodSpec *api.PodSpec, po
 		AllowExpandedDNSConfig: utilfeature.DefaultFeatureGate.Enabled(features.ExpandedDNSConfig) || haveSameExpandedDNSConfig(podSpec, oldPodSpec),
 		// Allow pod spec to use OS field
 		AllowOSField: utilfeature.DefaultFeatureGate.Enabled(features.IdentifyPodOS),
-		// The default sysctl value does not contain a forward slash, and in 1.24 we intend to relax this to be true by default
-		AllowSysctlRegexContainSlash: false,
 	}
 
 	if oldPodSpec != nil {
@@ -456,9 +440,6 @@ func GetValidationOptionsFromPodSpecAndMeta(podSpec, oldPodSpec *api.PodSpec, po
 
 		// if old spec used non-integer multiple of huge page unit size, we must allow it
 		opts.AllowIndivisibleHugePagesValues = usesIndivisibleHugePagesValues(oldPodSpec)
-
-		// if old spec used use relaxed validation for Update requests where the existing object's sysctl contains a slash, we must allow it.
-		opts.AllowSysctlRegexContainSlash = hasSysctlsWithSlashNames(oldPodSpec)
 
 	}
 	if oldPodMeta != nil && !opts.AllowInvalidPodDeletionCost {
@@ -580,6 +561,7 @@ func dropDisabledFields(
 	}
 
 	dropDisabledTopologySpreadConstraintsFields(podSpec, oldPodSpec)
+	dropDisabledNodeInclusionPolicyFields(podSpec, oldPodSpec)
 }
 
 // dropDisabledTopologySpreadConstraintsFields removes disabled fields from PodSpec related
@@ -645,6 +627,51 @@ func dropDisabledCSIVolumeSourceAlphaFields(podSpec, oldPodSpec *api.PodSpec) {
 			podSpec.Volumes[i].CSI = nil
 		}
 	}
+}
+
+// dropDisabledNodeInclusionPolicyFields removes disabled fields from PodSpec related
+// to NodeInclusionPolicy only if it is not used by the old spec.
+func dropDisabledNodeInclusionPolicyFields(podSpec, oldPodSpec *api.PodSpec) {
+	if !utilfeature.DefaultFeatureGate.Enabled(features.NodeInclusionPolicyInPodTopologySpread) && podSpec != nil {
+		if !nodeTaintsPolicyInUse(oldPodSpec) {
+			for i := range podSpec.TopologySpreadConstraints {
+				podSpec.TopologySpreadConstraints[i].NodeTaintsPolicy = nil
+			}
+		}
+		if !nodeAffinityPolicyInUse(oldPodSpec) {
+			for i := range podSpec.TopologySpreadConstraints {
+				podSpec.TopologySpreadConstraints[i].NodeAffinityPolicy = nil
+			}
+		}
+	}
+}
+
+// nodeAffinityPolicyInUse returns true if the pod spec is non-nil and has NodeAffinityPolicy field set
+// in TopologySpreadConstraints
+func nodeAffinityPolicyInUse(podSpec *api.PodSpec) bool {
+	if podSpec == nil {
+		return false
+	}
+	for _, c := range podSpec.TopologySpreadConstraints {
+		if c.NodeAffinityPolicy != nil {
+			return true
+		}
+	}
+	return false
+}
+
+// nodeTaintsPolicyInUse returns true if the pod spec is non-nil and has NodeTaintsPolicy field set
+// in TopologySpreadConstraints
+func nodeTaintsPolicyInUse(podSpec *api.PodSpec) bool {
+	if podSpec == nil {
+		return false
+	}
+	for _, c := range podSpec.TopologySpreadConstraints {
+		if c.NodeTaintsPolicy != nil {
+			return true
+		}
+	}
+	return false
 }
 
 func ephemeralContainersInUse(podSpec *api.PodSpec) bool {

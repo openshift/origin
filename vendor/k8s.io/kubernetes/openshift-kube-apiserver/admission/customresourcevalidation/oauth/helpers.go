@@ -1,9 +1,10 @@
 package oauth
 
 import (
+	"net"
+
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	netutils "k8s.io/utils/net"
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/pkg/config/validation"
@@ -11,7 +12,7 @@ import (
 )
 
 func isValidHostname(hostname string) bool {
-	return len(kvalidation.IsDNS1123Subdomain(hostname)) == 0 || netutils.ParseIPSloppy(hostname) != nil
+	return len(kvalidation.IsDNS1123Subdomain(hostname)) == 0 || net.ParseIP(hostname) != nil
 }
 
 func ValidateRemoteConnectionInfo(remoteConnectionInfo configv1.OAuthRemoteConnectionInfo, fldPath *field.Path) field.ErrorList {

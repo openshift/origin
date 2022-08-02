@@ -47,8 +47,8 @@ type PriorityAndFairnessClassification struct {
 // waitingMark tracks requests waiting rather than being executed
 var waitingMark = &requestWatermark{
 	phase:            epmetrics.WaitingPhase,
-	readOnlyObserver: fcmetrics.ReadWriteConcurrencyObserverPairGenerator.Generate(1, 1, []string{epmetrics.ReadOnlyKind}).RequestsWaiting,
-	mutatingObserver: fcmetrics.ReadWriteConcurrencyObserverPairGenerator.Generate(1, 1, []string{epmetrics.MutatingKind}).RequestsWaiting,
+	readOnlyObserver: fcmetrics.ReadWriteConcurrencyGaugeVec.NewForLabelValuesSafe(0, 1, []string{fcmetrics.LabelValueWaiting, epmetrics.ReadOnlyKind}),
+	mutatingObserver: fcmetrics.ReadWriteConcurrencyGaugeVec.NewForLabelValuesSafe(0, 1, []string{fcmetrics.LabelValueWaiting, epmetrics.MutatingKind}),
 }
 
 var atomicMutatingExecuting, atomicReadOnlyExecuting int32
@@ -125,14 +125,10 @@ func WithPriorityAndFairness(
 			workEstimate := workEstimator(r, classification.FlowSchemaName, classification.PriorityLevelName)
 
 			fcmetrics.ObserveWorkEstimatedSeats(classification.PriorityLevelName, classification.FlowSchemaName, workEstimate.MaxSeats())
-			// nolint:logcheck // Not using the result of klog.V
-			// inside the if branch is okay, we just use it to
-			// determine whether the additional information should
-			// be added.
-			if klog.V(4).Enabled() {
-				httplog.AddKeyValue(ctx, "apf_iseats", workEstimate.InitialSeats)
-				httplog.AddKeyValue(ctx, "apf_fseats", workEstimate.FinalSeats)
-			}
+			httplog.AddKeyValue(ctx, "apf_iseats", workEstimate.InitialSeats)
+			httplog.AddKeyValue(ctx, "apf_fseats", workEstimate.FinalSeats)
+			httplog.AddKeyValue(ctx, "apf_additionalLatency", workEstimate.AdditionalLatency)
+
 			return workEstimate
 		}
 

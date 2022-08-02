@@ -52,7 +52,6 @@ var ProberResults = metrics.NewCounterVec(
 // probe (AddPod). The worker periodically probes its assigned container and caches the results. The
 // manager use the cached probe results to set the appropriate Ready state in the PodStatus when
 // requested (UpdatePodStatus). Updating probe parameters is not currently supported.
-// TODO: Move liveness probing out of the runtime, to here.
 type Manager interface {
 	// AddPod creates new probe workers for every container probe. This should be called for every
 	// pod created.
@@ -164,7 +163,7 @@ func (m *manager) AddPod(pod *v1.Pod) {
 		if c.StartupProbe != nil {
 			key.probeType = startup
 			if _, ok := m.workers[key]; ok {
-				klog.ErrorS(nil, "Startup probe already exists for container",
+				klog.V(8).ErrorS(nil, "Startup probe already exists for container",
 					"pod", klog.KObj(pod), "containerName", c.Name)
 				return
 			}
@@ -176,7 +175,7 @@ func (m *manager) AddPod(pod *v1.Pod) {
 		if c.ReadinessProbe != nil {
 			key.probeType = readiness
 			if _, ok := m.workers[key]; ok {
-				klog.ErrorS(nil, "Readiness probe already exists for container",
+				klog.V(8).ErrorS(nil, "Readiness probe already exists for container",
 					"pod", klog.KObj(pod), "containerName", c.Name)
 				return
 			}
@@ -188,7 +187,7 @@ func (m *manager) AddPod(pod *v1.Pod) {
 		if c.LivenessProbe != nil {
 			key.probeType = liveness
 			if _, ok := m.workers[key]; ok {
-				klog.ErrorS(nil, "Liveness probe already exists for container",
+				klog.V(8).ErrorS(nil, "Liveness probe already exists for container",
 					"pod", klog.KObj(pod), "containerName", c.Name)
 				return
 			}
