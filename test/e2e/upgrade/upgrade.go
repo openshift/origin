@@ -314,6 +314,10 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		// compared to OpenShiftSDN:
 		//   https://bugzilla.redhat.com/show_bug.cgi?id=1942164
 		durationToSoftFailure = baseDurationToSoftFailure + (15 * time.Minute)
+		fallthrough
+
+	case infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType:
+		durationToSoftFailure = baseDurationToSoftFailure + (60 * time.Minute)
 
 	case platformType.Architecture == platformidentification.ArchitectureS390:
 		// s390 appears to take nearly 100 minutes to upgrade. Not sure why, but let's keep it from getting worse and provide meaningful
@@ -324,6 +328,9 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		// ppc appears to take just over 75 minutes. Not sure why, but let's keep it from getting worse and provide meaningful
 		// test results.
 		durationToSoftFailure = 80 * time.Minute
+
+	case infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType:
+		// if the cluster is bare metal, we expect the provisioning time to take more than the standard
 	}
 
 	framework.Logf("Starting upgrade to version=%s image=%s attempt=%s", version.Version.String(), version.NodeImage, uid)
