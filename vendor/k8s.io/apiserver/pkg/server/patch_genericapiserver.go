@@ -29,7 +29,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiserver/pkg/audit"
 	"k8s.io/klog/v2"
-	netutils "k8s.io/utils/net"
 )
 
 // terminationLoggingListener wraps the given listener to mark late connections
@@ -146,7 +145,7 @@ func isLocal(req *http.Request) bool {
 	host, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
 		// ignore error and keep going
-	} else if ip := netutils.ParseIPSloppy(host); ip != nil {
+	} else if ip := net.ParseIP(host); ip != nil {
 		return ip.IsLoopback()
 	}
 

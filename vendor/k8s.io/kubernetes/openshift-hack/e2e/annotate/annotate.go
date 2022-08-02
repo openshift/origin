@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/types"
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 )
 
 var reHasSig = regexp.MustCompile(`\[sig-[\w-]+\]`)
@@ -70,8 +70,8 @@ package generated
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/types"
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 )
 
 var annotations = map[string]string{

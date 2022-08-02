@@ -403,6 +403,9 @@ spec:
                         cisInstanceCRN:
                           description: CISInstanceCRN is the CRN of the Cloud Internet Services instance managing the DNS zone for the cluster's base domain
                           type: string
+                        dnsInstanceCRN:
+                          description: DNSInstanceCRN is the CRN of the DNS Services instance managing the DNS zone for the cluster's base domain
+                          type: string
                         location:
                           description: Location is where the cluster has been deployed
                           type: string
@@ -467,6 +470,9 @@ spec:
                       properties:
                         cisInstanceCRN:
                           description: CISInstanceCRN is the CRN of the Cloud Internet Services instance managing the DNS zone for the cluster's base domain
+                          type: string
+                        dnsInstanceCRN:
+                          description: DNSInstanceCRN is the CRN of the DNS Services instance managing the DNS zone for the cluster's base domain
                           type: string
                         region:
                           description: region holds the default Power VS region for new Power VS resources created by the cluster.

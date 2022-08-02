@@ -1,3 +1,171 @@
+## 1.16.4
+
+### Fixes
+1.16.4 retracts 1.16.3.  There are no code changes.  The 1.16.3 tag was associated with the wrong commit and an attempt to change it after-the-fact has proven problematic.  1.16.4 retracts 1.16.3 in Ginkgo's go.mod and creates a new, correctly tagged, release.
+
+## 1.16.3
+
+### Features
+- Measure is now deprecated and emits a deprecation warning.
+
+## 1.16.2
+
+### Fixes
+- Deprecations can be suppressed by setting an `ACK_GINKGO_DEPRECATIONS=<semver>` environment variable.
+
+## 1.16.1
+
+### Fixes
+- Supress --stream deprecation warning on windows (#793)
+
+## 1.16.0
+
+### Features
+- Advertise Ginkgo 2.0.  Introduce deprecations. [9ef1913]
+    - Update README.md to advertise that Ginkgo 2.0 is coming.
+    - Backport the 2.0 DeprecationTracker and start alerting users
+    about upcoming deprecations.
+
+- Add slim-sprig template functions to bootstrap/generate (#775) [9162b86]
+
+### Fixes
+- Fix accidental reference to 1488 (#784) [9fb7fe4]
+
+## 1.15.2
+
+### Fixes
+- ignore blank `-focus` and `-skip` flags (#780) [e90a4a0]
+
+## 1.15.1
+
+### Fixes
+- reporters/junit: Use `system-out` element instead of `passed` (#769) [9eda305]
+
+## 1.15.0
+
+### Features
+- Adds 'outline' command to print the outline of specs/containers in a file (#754) [071c369] [6803cc3] [935b538] [06744e8] [0c40583]
+- Add support for using template to generate tests (#752) [efb9e69]
+- Add a Chinese Doc #755 (#756) [5207632]
+- cli: allow multiple -focus and -skip flags (#736) [9a782fb]
+
+### Fixes
+- Add _internal to filename of tests created with internal flag (#751) [43c12da]
+
+## 1.14.2
+
+### Fixes
+- correct handling windows backslash in import path (#721) [97f3d51]
+- Add additional methods to GinkgoT() to improve compatibility with the testing.TB interface [b5fe44d]
+
+## 1.14.1
+
+### Fixes
+- Discard exported method declaration when running ginkgo bootstrap (#558) [f4b0240]
+
+## 1.14.0
+
+### Features
+- Defer running top-level container nodes until RunSpecs is called [d44dedf]
+- [Document Ginkgo lifecycle](http://onsi.github.io/ginkgo/#understanding-ginkgos-lifecycle)
+- Add `extensions/globals` package (#692) [3295c8f] - this can be helpful in contexts where you are test-driving your test-generation code (see [#692](https://github.com/onsi/ginkgo/pull/692))
+- Print Skip reason in JUnit reporter if one was provided [820dfab]
+
+## 1.13.0
+
+### Features
+- Add a version of table.Entry that allows dumping the entry parameters. (#689) [21eaef2]
+
+### Fixes
+- Ensure integration tests pass in an environment sans GOPATH [606fba2]
+- Add books package (#568) [fc0e44e]
+- doc(readme): installation via "tools package" (#677) [83bb20e]
+- Solve the undefined: unix.Dup2 compile error on mips64le (#680) [0624f75]
+- Import package without dot (#687) [6321024]
+- Fix integration tests to stop require GOPATH (#686) [a912ec5]
+
+## 1.12.3
+
+### Fixes
+- Print correct code location of failing table test (#666) [c6d7afb]
+
+## 1.12.2
+
+### Fixes
+- Update dependencies [ea4a036]
+
+## 1.12.1
+
+### Fixes
+- Make unfocus ("blur") much faster (#674) [8b18061]
+- Fix typo (#673) [7fdcbe8]
+- Test against 1.14 and remove 1.12 [d5c2ad6]
+- Test if a coverprofile content is empty before checking its latest character (#670) [14d9fa2]
+- replace tail package with maintained one. this fixes go get errors (#667) [4ba33d4]
+- improve ginkgo performance - makes progress on #644 [a14f98e]
+- fix convert integration tests [1f8ba69]
+- fix typo succesful -> successful (#663) [1ea49cf]
+- Fix invalid link (#658) [b886136]
+- convert utility : Include comments from source (#657) [1077c6d]
+- Explain what BDD means [d79e7fb]
+- skip race detector test on unsupported platform (#642) [f8ab89d]
+- Use Dup2 from golang.org/x/sys/unix instead of syscallDup (#638) [5d53c55]
+- Fix missing newline in combined coverage file (#641) [6a07ea2]
+- check if a spec is run before returning SpecSummary (#645) [8850000]
+
+## 1.12.0
+
+### Features
+- Add module definition (#630) [78916ab]
+
+## 1.11.0
+
+### Features
+- Add syscall for riscv64 architecture [f66e896]
+- teamcity reporter: output location of test failure as well as test definition (#626) [9869142]
+- teamcity reporter: output newline after every service message (#625) [3cfa02d]
+- Add support for go module when running `generate` command (#578) [9c89e3f]
+
+## 1.10.3
+
+### Fixes
+- Set go_import_path in travis.yml to allow internal packages in forks (#607) [3b721db]
+- Add integration test [d90e0dc]
+- Fix coverage files combining [e5dde8c]
+- A new CLI option: -ginkgo.reportFile <file path> (#601) [034fd25]
+
+## 1.10.2
+
+### Fixes
+- speed up table entry generateIt() (#609) [5049dc5]
+- Fix. Write errors to stderr instead of stdout (#610) [7bb3091]
+
+## 1.10.1
+
+### Fixes
+- stack backtrace: fix skipping (#600) [2a4c0bd]
+
+## 1.10.0
+
+### Fixes
+- stack backtrace: fix alignment and skipping [66915d6]
+- fix typo in documentation [8f97b93]
+
+## 1.9.0
+
+### Features
+- Option to print output into report, when tests have passed [0545415]
+
+### Fixes
+- Fixed typos in comments [0ecbc58]
+- gofmt code [a7f8bfb]
+- Simplify code [7454d00]
+- Simplify concatenation, incrementation and function assignment [4825557]
+- Avoid unnecessary conversions [9d9403c]
+- JUnit: include more detailed information about panic [19cca4b]
+- Print help to stdout when the user asks for help [4cb7441]
+
+
 ## 1.8.0
 
 ### New Features
@@ -155,7 +323,7 @@ New Features:
 - `ginkgo -tags=TAG_LIST` passes a list of tags down to the `go build` command.
 - `ginkgo --failFast` aborts the test suite after the first failure.
 - `ginkgo generate file_1 file_2` can take multiple file arguments.
-- Ginkgo now summarizes any spec failures that occured at the end of the test run. 
+- Ginkgo now summarizes any spec failures that occurred at the end of the test run. 
 - `ginkgo --randomizeSuites` will run tests *suites* in random order using the generated/passed-in seed.
 
 Improvements:

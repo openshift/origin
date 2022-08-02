@@ -26,9 +26,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	openapiutil "k8s.io/kube-openapi/pkg/util"
-	kubeopenapispec "k8s.io/kube-openapi/pkg/validation/spec"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/yaml"
 
@@ -705,7 +704,7 @@ func convertJSONSchemaProps(in []byte, out *spec.Schema) error {
 	if err := apiextensionsv1.Convert_v1_JSONSchemaProps_To_apiextensions_JSONSchemaProps(&external, &internal, nil); err != nil {
 		return err
 	}
-	kubeOut := kubeopenapispec.Schema{}
+	kubeOut := spec.Schema{}
 	if err := validation.ConvertJSONSchemaPropsWithPostProcess(&internal, &kubeOut, validation.StripUnsupportedFormatsPostProcess); err != nil {
 		return err
 	}

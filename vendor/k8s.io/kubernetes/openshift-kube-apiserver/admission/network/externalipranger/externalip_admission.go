@@ -16,7 +16,6 @@ import (
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/externalipranger"
 	v1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/network/apis/externalipranger/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	netutils "k8s.io/utils/net"
 )
 
 const ExternalIPPluginName = "network.openshift.io/ExternalIPRanger"
@@ -81,7 +80,7 @@ func ParseRejectAdmitCIDRRules(rules []string) (reject, admit []*net.IPNet, err 
 			negate = true
 			s = s[1:]
 		}
-		_, cidr, err := netutils.ParseCIDRSloppy(s)
+		_, cidr, err := net.ParseCIDR(s)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -167,7 +166,7 @@ func (r *externalIPRanger) Validate(ctx context.Context, a admission.Attributes,
 	// administrator has limited the range
 	case len(svc.Spec.ExternalIPs) > 0 && len(r.admit) > 0:
 		for i, s := range svc.Spec.ExternalIPs {
-			ip := netutils.ParseIPSloppy(s)
+			ip := net.ParseIP(s)
 			if ip == nil {
 				errs = append(errs, field.Forbidden(field.NewPath("spec", "externalIPs").Index(i), "externalIPs must be a valid address"))
 				continue

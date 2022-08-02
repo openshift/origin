@@ -344,7 +344,8 @@ func (ClusterCSIDriverList) SwaggerDoc() map[string]string {
 }
 
 var map_ClusterCSIDriverSpec = map[string]string{
-	"": "ClusterCSIDriverSpec is the desired behavior of CSI driver operator",
+	"":                  "ClusterCSIDriverSpec is the desired behavior of CSI driver operator",
+	"storageClassState": "StorageClassState determines if CSI operator should create and manage storage classes. If this field value is empty or Managed - CSI operator will continuously reconcile storage class and create if necessary. If this field value is Unmanaged - CSI operator will not reconcile any previously created storage class. If this field value is Removed - CSI operator will delete the storage class it created previously. When omitted, this means the user has no opinion and the platform chooses a reasonable default, which is subject to change over time. The current default behaviour is Managed.",
 }
 
 func (ClusterCSIDriverSpec) SwaggerDoc() map[string]string {
@@ -820,7 +821,8 @@ func (NodePortStrategy) SwaggerDoc() map[string]string {
 }
 
 var map_PrivateStrategy = map[string]string{
-	"": "PrivateStrategy holds parameters for the Private endpoint publishing strategy.",
+	"":         "PrivateStrategy holds parameters for the Private endpoint publishing strategy.",
+	"protocol": "protocol specifies whether the IngressController expects incoming connections to use plain TCP or whether the IngressController expects PROXY protocol.\n\nPROXY protocol can be used with load balancers that support it to communicate the source addresses of client connections when forwarding those connections to the IngressController.  Using PROXY protocol enables the IngressController to report those source addresses instead of reporting the load balancer's address in HTTP headers and logs.  Note that enabling PROXY protocol on the IngressController will cause connections to fail if you are not using a load balancer that uses PROXY protocol to forward connections to the IngressController.  See http://www.haproxy.org/download/2.2/doc/proxy-protocol.txt for information about PROXY protocol.\n\nThe following values are valid for this field:\n\n* The empty string. * \"TCP\". * \"PROXY\".\n\nThe empty string specifies the default, which is TCP without PROXY protocol.  Note that the default is subject to change.",
 }
 
 func (PrivateStrategy) SwaggerDoc() map[string]string {
@@ -954,6 +956,15 @@ var map_DefaultNetworkDefinition = map[string]string{
 
 func (DefaultNetworkDefinition) SwaggerDoc() map[string]string {
 	return map_DefaultNetworkDefinition
+}
+
+var map_EgressIPConfig = map[string]string{
+	"":                                "EgressIPConfig defines the configuration knobs for egressip",
+	"reachabilityTotalTimeoutSeconds": "reachabilityTotalTimeout configures the EgressIP node reachability check total timeout in seconds. If the EgressIP node cannot be reached within this timeout, the node is declared down. Setting a large value may cause the EgressIP feature to react slowly to node changes. In particular, it may react slowly for EgressIP nodes that really have a genuine problem and are unreachable. When omitted, this means the user has no opinion and the platform is left to choose a reasonable default, which is subject to change over time. The current default is 1 second. A value of 0 disables the EgressIP node's reachability check.",
+}
+
+func (EgressIPConfig) SwaggerDoc() map[string]string {
+	return map_EgressIPConfig
 }
 
 var map_ExportNetworkFlows = map[string]string{
@@ -1107,6 +1118,9 @@ var map_OVNKubernetesConfig = map[string]string{
 	"ipsecConfig":         "ipsecConfig enables and configures IPsec for pods on the pod network within the cluster.",
 	"policyAuditConfig":   "policyAuditConfig is the configuration for network policy audit events. If unset, reported defaults are used.",
 	"gatewayConfig":       "gatewayConfig holds the configuration for node gateway options.",
+	"v4InternalSubnet":    "v4InternalSubnet is a v4 subnet used internally by ovn-kubernetes in case the default one is being already used by something else. It must not overlap with any other subnet being used by OpenShift or by the node network. The size of the subnet must be larger than the number of nodes. The value cannot be changed after installation. Default is 100.64.0.0/16",
+	"v6InternalSubnet":    "v6InternalSubnet is a v6 subnet used internally by ovn-kubernetes in case the default one is being already used by something else. It must not overlap with any other subnet being used by OpenShift or by the node network. The size of the subnet must be larger than the number of nodes. The value cannot be changed after installation. Default is fd98::/48",
+	"egressIPConfig":      "egressIPConfig holds the configuration for EgressIP options.",
 }
 
 func (OVNKubernetesConfig) SwaggerDoc() map[string]string {

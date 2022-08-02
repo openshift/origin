@@ -160,6 +160,22 @@ type ImageRegistryConfigStorageS3CloudFront struct {
 type ImageRegistryConfigStorageEmptyDir struct {
 }
 
+// S3TrustedCASource references a config map with a CA certificate bundle in
+// the "openshift-config" namespace. The key for the bundle in the
+// config map is "ca-bundle.crt".
+type S3TrustedCASource struct {
+	// name is the metadata.name of the referenced config map.
+	// This field must adhere to standard config map naming restrictions.
+	// The name must consist solely of alphanumeric characters, hyphens (-)
+	// and periods (.). It has a maximum length of 253 characters.
+	// If this field is not specified or is empty string, the default trust
+	// bundle will be used.
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	// +optional
+	Name string `json:"name"`
+}
+
 // ImageRegistryConfigStorageS3 holds the information to configure
 // the registry to use the AWS S3 service for backend storage
 // https://docs.docker.com/registry/storage-drivers/s3/
@@ -195,6 +211,15 @@ type ImageRegistryConfigStorageS3 struct {
 	// Optional, defaults to false.
 	// +optional
 	VirtualHostedStyle bool `json:"virtualHostedStyle"`
+	// trustedCA is a reference to a config map containing a CA bundle. The
+	// image registry and its operator use certificates from this bundle to
+	// verify S3 server certificates.
+	//
+	// The namespace for the config map referenced by trustedCA is
+	// "openshift-config". The key for the bundle in the config map is
+	// "ca-bundle.crt".
+	// +optional
+	TrustedCA S3TrustedCASource `json:"trustedCA"`
 }
 
 // ImageRegistryConfigStorageGCS holds GCS configuration.
