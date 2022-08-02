@@ -24,10 +24,12 @@ func Run() {
 	filename := os.Args[len(os.Args)-1]
 
 	generator := newGenerator()
-	ginkgo.WalkTests(generator.generateRename)
+	suite := ginkgo.GetSuite()
+	suite.BuildTree()
+	suite.WalkTests(generator.generateRename)
 
 	renamer := newRenamerFromGenerated(generator.output)
-	ginkgo.WalkTests(renamer.updateNodeText)
+	suite.WalkTests(renamer.updateNodeText)
 	if len(renamer.missing) > 0 {
 		var names []string
 		for name := range renamer.missing {
@@ -69,28 +71,22 @@ func Run() {
 package generated
 
 import (
-	"fmt"
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/types"
+	//"fmt"
+	//"github.com/onsi/ginkgo/v2"
+	//"github.com/onsi/ginkgo/v2/types"
 )
 
-var annotations = map[string]string{
+var Annotations = map[string]string{
 %s
 }
 
+/*
 func init() {
-	ginkgo.WalkTests(func(name, parentName string, node types.TestNode) {
-		combined := name
-		if len(parentName) > 0 {
-			combined = parentName + " " + combined
-		}
-		if updated, ok := annotations[combined]; ok {
-			node.SetText(updated)
-		} else {
-			panic(fmt.Sprintf("unable to find test %%s", combined))
-		}
-	})
+	suite := ginkgo.GetSuite()
+	suite.BuildTree()
+	suite.AppendTestNodes(annotations)
 }
+*/
 `, strings.Join(pairs, "\n\n"))
 	if err := ioutil.WriteFile(filename, []byte(contents), 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v", err)
@@ -161,52 +157,50 @@ type ginkgoTestRenamer struct {
 	missing map[string]struct{}
 }
 
-func (r *ginkgoTestRenamer) updateNodeText(name, parentName string, node types.TestNode) {
-	if updated, ok := r.output[combineNames(parentName, name)]; ok {
-		node.SetText(updated)
+func (r *ginkgoTestRenamer) updateNodeText(name string, node types.TestSpec) {
+	if labels, ok := r.output[name]; ok {
+		node.AppendText(labels)
 	} else {
-		r.missing[combineNames(parentName, name)] = struct{}{}
+		r.missing[name] = struct{}{}
 	}
 }
 
-func (r *ginkgoTestRenamer) generateRename(name, parentName string, node types.TestNode) {
+func (r *ginkgoTestRenamer) generateRename(name string, node types.TestSpec) {
 	originalName := name
-	combinedName := combineNames(parentName, name)
-
 	labels := ""
 	for {
 		count := 0
 		for _, label := range r.allLabels {
 			// never apply a sig label twice
-			if strings.HasPrefix(label, "[sig-") && strings.Contains(combinedName, "[sig-") {
+			if strings.HasPrefix(label, "[sig-") && strings.Contains(name, "[sig-") {
 				continue
 			}
-			if strings.Contains(combinedName, label) {
+			// check if test name already contains the candidate label
+			if strings.Contains(name, label) {
 				continue
 			}
 
-			var hasLabel bool
+			var needsLabel bool
 			for _, segment := range r.stringMatches[label] {
-				hasLabel = strings.Contains(combinedName, segment)
-				if hasLabel {
+				needsLabel = strings.Contains(name, segment)
+				if needsLabel {
 					break
 				}
 			}
-			if !hasLabel {
+			if !needsLabel {
 				if re := r.matches[label]; re != nil {
-					hasLabel = r.matches[label].MatchString(combinedName)
+					needsLabel = re.MatchString(name)
 				}
 			}
 
-			if hasLabel {
+			if needsLabel {
 				// TODO: remove when we no longer need it
-				if re, ok := r.excludes[label]; ok && re.MatchString(combinedName) {
+				if re, ok := r.excludes[label]; ok && re.MatchString(name) {
 					continue
 				}
 				count++
 				labels += " " + label
-				combinedName += " " + label
-				name += " " + label
+				name += label
 			}
 		}
 		if count == 0 {
@@ -214,25 +208,27 @@ func (r *ginkgoTestRenamer) generateRename(name, parentName string, node types.T
 		}
 	}
 
-	if !r.excludedTestsFilter.MatchString(combinedName) {
-		isSerial := strings.Contains(combinedName, "[Serial]")
-		isConformance := strings.Contains(combinedName, "[Conformance]")
+	labeledName := originalName + labels
+	if !r.excludedTestsFilter.MatchString(labeledName) {
+		isSerial := strings.Contains(labeledName, "[Serial]")
+		isConformance := strings.Contains(labeledName, "[Conformance]")
 		switch {
 		case isSerial && isConformance:
-			name += " [Suite:openshift/conformance/serial/minimal]"
+			labels += " [Suite:openshift/conformance/serial/minimal]"
 		case isSerial:
-			name += " [Suite:openshift/conformance/serial]"
+			labels += " [Suite:openshift/conformance/serial]"
 		case isConformance:
-			name += " [Suite:openshift/conformance/parallel/minimal]"
+			labels += " [Suite:openshift/conformance/parallel/minimal]"
 		default:
-			name += " [Suite:openshift/conformance/parallel]"
+			labels += " [Suite:openshift/conformance/parallel]"
 		}
 	}
-	if isGoModulePath(node.CodeLocation().FileName, "k8s.io/kubernetes", "test/e2e") {
-		name += " [Suite:k8s]"
+	locations := node.CodeLocation()
+	if isGoModulePath(locations[len(locations)-1].FileName, "k8s.io/kubernetes", "test/e2e") {
+		labels += " [Suite:k8s]"
 	}
 
-	r.output[combineNames(parentName, originalName)] = name
+	r.output[originalName] = labels
 }
 
 // isGoModulePath returns true if the packagePath reported by reflection is within a

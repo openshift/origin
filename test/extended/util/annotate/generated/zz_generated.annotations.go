@@ -1,11 +1,5 @@
 package generated
 
-import (
-	"fmt"
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/types"
-)
-
 var annotations = map[string]string{
 	"[Top Level] [Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-ext.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io]": "\"lb-ext.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]",
 
@@ -16466,6 +16460,7 @@ var annotations = map[string]string{
 	"[Top Level] [sig-storage][Late] Metrics should report short mount times": "should report short mount times [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 }
 
+/*
 func init() {
 	ginkgo.WalkTests(func(name, parentName string, node types.TestNode) {
 		combined := name
@@ -16479,3 +16474,4 @@ func init() {
 		}
 	})
 }
+*/
