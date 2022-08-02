@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	g "github.com/onsi/ginkgo"
-	t "github.com/onsi/ginkgo/extensions/table"
+	g "github.com/onsi/ginkgo/v2"
+	t "github.com/onsi/ginkgo/v2/extensions/table"
 	o "github.com/onsi/gomega"
 
 	kapiv1 "k8s.io/api/core/v1"

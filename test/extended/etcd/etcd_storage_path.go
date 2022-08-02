@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	"golang.org/x/net/context"
 
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"

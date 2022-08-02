@@ -17,7 +17,7 @@ import (
 	"time"
 
 	dockerclient "github.com/fsouza/go-dockerclient"
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	godigest "github.com/opencontainers/go-digest"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

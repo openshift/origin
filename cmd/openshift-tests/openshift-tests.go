@@ -34,7 +34,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/kubectl/pkg/util/templates"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -448,7 +448,7 @@ func newRunTestCommand() *cobra.Command {
 		Use:   "run-test NAME",
 		Short: "Run a single test by name",
 		Long: templates.LongDesc(`
-		Execute a single test 
+		Execute a single test
 
 		This executes a single test by name. It is used by the run command during suite execution but may also
 		be used to test in isolation while developing new tests.
