@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"net/url"
 
-	g "github.com/onsi/ginkgo"
-	t "github.com/onsi/ginkgo/extensions/table"
+	g "github.com/onsi/ginkgo/v2"
+	t "github.com/onsi/ginkgo/v2/extensions/table"
 	o "github.com/onsi/gomega"
 
 	"k8s.io/client-go/rest"

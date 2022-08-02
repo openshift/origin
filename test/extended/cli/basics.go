@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	admissionapi "k8s.io/pod-security-admission/api"
