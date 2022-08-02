@@ -208,7 +208,7 @@ func newImagesCommand() *cobra.Command {
 }
 
 type runOptions struct {
-	testginkgo.Options
+	*testginkgo.Options
 
 	FromRepository string
 	Provider       string
@@ -224,7 +224,7 @@ type runOptions struct {
 
 func NewRunOptions(fromRepository string) *runOptions {
 	return &runOptions{
-		Options: *testginkgo.NewOptions(),
+		Options: testginkgo.NewOptions(os.Stdout, os.Stderr),
 
 		FromRepository: fromRepository,
 	}
@@ -298,7 +298,7 @@ func newRunCommand() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return mirrorToFile(&opt.Options, func() error {
+			return mirrorToFile(opt.Options, func() error {
 				if err := verifyImages(); err != nil {
 					return err
 				}
@@ -360,7 +360,7 @@ func newRunUpgradeCommand() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return mirrorToFile(&opt.Options, func() error {
+			return mirrorToFile(opt.Options, func() error {
 				if len(opt.ToImage) == 0 {
 					return fmt.Errorf("--to-image must be specified to run an upgrade test")
 				}
@@ -401,10 +401,7 @@ func newRunUpgradeCommand() *cobra.Command {
 }
 
 func newRunTestCommand() *cobra.Command {
-	testOpt := &testginkgo.TestOptions{
-		Out:    os.Stdout,
-		ErrOut: os.Stderr,
-	}
+	testOpt := testginkgo.NewTestOptions(os.Stdout, os.Stderr)
 
 	cmd := &cobra.Command{
 		Use:   "run-test NAME",
@@ -483,7 +480,7 @@ func mirrorToFile(opt *testginkgo.Options, fn func() error) error {
 func bindOptions(opt *runOptions, flags *pflag.FlagSet) {
 	flags.StringVar(&opt.FromRepository, "from-repository", opt.FromRepository, "A container image repository to retrieve test images from.")
 	flags.StringVar(&opt.Provider, "provider", opt.Provider, "The cluster infrastructure provider. Will automatically default to the correct value.")
-	bindTestOptions(&opt.Options, flags)
+	bindTestOptions(opt.Options, flags)
 }
 
 func bindTestOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {

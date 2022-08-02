@@ -42,7 +42,7 @@ func NewNonSpyglassEventIntervalRenderer(name string, filter monitorapi.EventInt
 	}
 }
 
-func (r eventIntervalRenderer) WriteEventData(artifactDir string, events monitorapi.Intervals, timeSuffix string) error {
+func (r eventIntervalRenderer) WriteRunData(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
 	filenameBase := r.filenameBaseFn(timeSuffix)
 	return r.writeEventData(artifactDir, filenameBase, events, timeSuffix)
 }

@@ -16,8 +16,9 @@ func CreatePodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 	// these *static* locators to events. These are NOT the same as the actual event locators because nodes are not consistently assigned.
 	podToStateTransitions := map[string][]monitorapi.EventInterval{}
 	allPodTransitions := map[string][]monitorapi.EventInterval{}
-	podToContainerToLifecycleTransitions := map[string][]monitorapi.EventInterval{}
-	podToContainerToReadinessTransitions := map[string][]monitorapi.EventInterval{}
+	containerToLifecycleTransitions := map[string][]monitorapi.EventInterval{}
+	containerToReadinessTransitions := map[string][]monitorapi.EventInterval{}
+	containerToKubeletReadinessChecks := map[string][]monitorapi.EventInterval{}
 
 	for i := range input {
 		event := input[i]
@@ -32,16 +33,20 @@ func CreatePodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 		isContainer := len(container.ContainerName) > 0
 		isContainerLifecycleTransition := monitorapi.ContainerLifecycleTransitionReasons.Has(monitorapi.ReasonFrom(event.Message))
 		isContainerReadyTransition := monitorapi.ContainerReadinessTransitionReasons.Has(monitorapi.ReasonFrom(event.Message))
+		isKubeletReadinessCheck := monitorapi.KubeletReadinessCheckReasons.Has(monitorapi.ReasonFrom(event.Message))
 
 		switch {
 		case !isContainer && isRecognizedPodReason:
 			podToStateTransitions[pod.ToLocator()] = append(podToStateTransitions[pod.ToLocator()], event)
 
 		case isContainer && isContainerLifecycleTransition:
-			podToContainerToLifecycleTransitions[container.ToLocator()] = append(podToContainerToLifecycleTransitions[container.ToLocator()], event)
+			containerToLifecycleTransitions[container.ToLocator()] = append(containerToLifecycleTransitions[container.ToLocator()], event)
 
 		case isContainer && isContainerReadyTransition:
-			podToContainerToReadinessTransitions[container.ToLocator()] = append(podToContainerToReadinessTransitions[container.ToLocator()], event)
+			containerToReadinessTransitions[container.ToLocator()] = append(containerToReadinessTransitions[container.ToLocator()], event)
+
+		case isKubeletReadinessCheck:
+			containerToKubeletReadinessChecks[container.ToLocator()] = append(containerToKubeletReadinessChecks[container.ToLocator()], event)
 
 		}
 	}
@@ -55,12 +60,12 @@ func CreatePodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 	}
 	containerTimeBounder := containerLifecycleTimeBounder{
 		delegate:                             podTimeBounder,
-		podToContainerToLifecycleTransitions: podToContainerToLifecycleTransitions,
+		podToContainerToLifecycleTransitions: containerToLifecycleTransitions,
 		recordedPods:                         recordedResources["pods"],
 	}
 	containerReadinessTimeBounder := containerReadinessTimeBounder{
 		delegate:                             containerTimeBounder,
-		podToContainerToLifecycleTransitions: podToContainerToLifecycleTransitions,
+		podToContainerToLifecycleTransitions: containerToLifecycleTransitions,
 	}
 
 	ret := monitorapi.Intervals{}
@@ -69,13 +74,32 @@ func CreatePodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 			monitorapi.PodReasonCreated, monitorapi.PodReasonDeleted, podTimeBounder)...,
 	)
 	ret = append(ret,
-		buildTransitionsForCategory(podToContainerToLifecycleTransitions,
+		buildTransitionsForCategory(containerToLifecycleTransitions,
 			monitorapi.ContainerReasonContainerWait, monitorapi.ContainerReasonContainerExit, containerTimeBounder)...,
 	)
 	ret = append(ret,
-		buildTransitionsForCategory(podToContainerToReadinessTransitions,
+		buildTransitionsForCategory(containerToReadinessTransitions,
 			monitorapi.ContainerReasonNotReady, "", containerReadinessTimeBounder)...,
 	)
+
+	// inject readiness failures.  These are done separately because they don't impact the overall ready or not ready
+	// recall that a container can fail multiple readiness checks before the failure causes readyz=false on the pod overall.
+	// to do this, we find all the readiness failures, make them one second long, so they appear.
+	// we have to render them as a separate bar because we don't want to force the timeline for readiness to be
+	// broken up and the timeline rendering logic we have
+	for locator, instantEvents := range containerToKubeletReadinessChecks {
+		for _, instantEvent := range instantEvents {
+			ret = append(ret, monitorapi.EventInterval{
+				Condition: monitorapi.Condition{
+					Level:   monitorapi.Info,
+					Locator: locator,
+					Message: "constructed/true " + instantEvent.Message,
+				},
+				From: instantEvent.From,
+				To:   instantEvent.From.Add(1 * time.Second),
+			})
+		}
+	}
 
 	sort.Stable(ret)
 	return ret
