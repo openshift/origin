@@ -53,12 +53,13 @@ func (opt *TestOptions) Run(args []string) error {
 		return nil
 	}
 
-	config.GinkgoConfig.FocusString = fmt.Sprintf("^%s$", regexp.QuoteMeta(" [Top Level] "+test.name))
+	config.GinkgoConfig.FocusStrings = []string{fmt.Sprintf("^%s$", regexp.QuoteMeta(" [Top Level] "+test.name))}
 	config.DefaultReporterConfig.NoColor = true
 	w := ginkgo.GinkgoWriterType()
 	w.SetStream(true)
 	reporter := NewMinimalReporter(test.name, test.location)
-	ginkgo.GlobalSuite().Run(reporter, "", []reporters.Reporter{reporter}, w, config.GinkgoConfig)
+	ginkgo.GetSuite().BuildTree()
+	ginkgo.GetSuite().Run(reporter, "", []reporters.Reporter{reporter}, *w, config.GinkgoConfig)
 	summary, setup := reporter.Summary()
 	if summary == nil && setup != nil {
 		summary = &types.SpecSummary{
