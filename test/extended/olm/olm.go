@@ -204,6 +204,9 @@ func marketplaceEnabled(oc *exutil.CLI) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	if len(output) == 0 {
+		return false, nil
+	}
 	capabilities := []string{}
 	if err = json.Unmarshal([]byte(output), &capabilities); err != nil {
 		return false, err
