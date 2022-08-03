@@ -10,18 +10,38 @@ import (
 	"github.com/onsi/ginkgo/v2/types"
 )
 
+/* v1 spec
+type Spec struct {
+	subject          leafnodes.SubjectNode
+	focused          bool
+	announceProgress bool
+
+	containers []*containernode.ContainerNode
+
+	state            types.SpecState
+	runTime          time.Duration
+	startTime        time.Time
+	failure          types.SpecFailure
+	previousFailures bool
+
+	stateMutex *sync.Mutex
+}
+*/
+
+/* v1 spec
+type Spec struct {
+	Nodes Nodes
+	Skip  bool
+}
+*/
+
 func testsForSuite(cfg config.GinkgoConfigType) ([]*testCase, error) {
-	iter := ginkgo.GlobalSuite().Iterator(cfg)
+	//iter := ginkgo.GlobalSuite().Iterator(cfg)
+	specs := ginkgo.GetSpecs()
 	var tests []*testCase
-	for {
-		spec, err := iter.Next()
-		if err != nil {
-			if err.Error() == "no more specs to run" {
-				break
-			}
-			return nil, err
-		}
-		tc, err := newTestCase(spec)
+	for _, spec := range specs {
+
+		tc, err := newTestCaseFromGinkgoSpec(spec.Text(), spec.Nodes.CodeLocations())
 		if err != nil {
 			return nil, err
 		}
