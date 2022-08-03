@@ -27,6 +27,15 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 			e2eskipper.Skipf("JOB_NAME contains agnostic, not expecting platform in name")
 		}
 
+		// If it's an e2e job, we're only interested in the parts that come after e2e, e.g.
+		// a presubmit on pull-ci-openshift-ovn-kubernetes-master-e2e-hypershift, we don't want
+		// to look at the repo name which contains the -ovn- substring!
+		originalJobName := jobName
+		parts := strings.Split(jobName, "e2e-")
+		if len(parts) >= 2 {
+			jobName = parts[len(parts)-1]
+		}
+
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -48,7 +57,7 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 		}
 
 		if !hasPlatform {
-			result.Flakef("job name %q does not contain platform type in name (%s)", jobName, platform)
+			result.Flakef("job name %q does not contain platform type in name (%s)", originalJobName, platform)
 		}
 
 	})
