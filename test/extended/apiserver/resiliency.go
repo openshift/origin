@@ -3,12 +3,13 @@ package apiserver
 import (
 	"context"
 	"fmt"
-	"github.com/openshift/origin/test/extended/operators"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/openshift/origin/test/extended/operators"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -31,7 +32,6 @@ import (
 var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 	f := framework.NewDefaultFramework("cluster-resiliency")
 	f.SkipNamespaceCreation = true
-	f.SkipPrivilegedPSPBinding = true
 
 	oc := exutil.NewCLIWithoutNamespace("cluster-resiliency")
 
