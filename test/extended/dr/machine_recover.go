@@ -15,7 +15,7 @@ import (
 	o "github.com/onsi/gomega"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
-	"go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
 
 	corev1 "k8s.io/api/core/v1"
@@ -40,7 +40,6 @@ import (
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive]", func() {
 	f := framework.NewDefaultFramework("machine-recovery")
 	f.SkipNamespaceCreation = true
-	f.SkipPrivilegedPSPBinding = true
 
 	oc := exutil.NewCLIWithoutNamespace("machine-recovery")
 
