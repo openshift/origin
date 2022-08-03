@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/onsi/ginkgo/types"
+	"github.com/onsi/ginkgo/v2/types"
 )
 
 type testCase struct {
@@ -38,6 +38,7 @@ type testCase struct {
 	previous *testCase
 }
 
+/*
 func newTestCase(spec ginkgoSpec) (*testCase, error) {
 	name := spec.ConcatenatedString()
 	name = strings.TrimPrefix(name, "[Top Level] ")
@@ -60,7 +61,26 @@ func newTestCase(spec ginkgoSpec) (*testCase, error) {
 
 	return tc, nil
 }
+*/
 
+func newTestCaseFromGinkgoSpec(name string, codeLocations []types.CodeLocation) (*testCase, error) {
+	name = strings.TrimPrefix(name, "[Top Level] ")
+	tc := &testCase{
+		name:     name,
+		location: codeLocations[len(codeLocations)-1],
+	}
+
+	re := regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
+	if match := re.FindStringSubmatch(name); match != nil {
+		testTimeOut, err := time.ParseDuration(match[1])
+		if err != nil {
+			return nil, err
+		}
+		tc.testTimeout = testTimeOut
+	}
+
+	return tc, nil
+}
 func (t *testCase) Retry() *testCase {
 	copied := &testCase{
 		name:          t.name,
