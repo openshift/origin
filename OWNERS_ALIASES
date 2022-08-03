@@ -24,6 +24,7 @@ aliases:
   - c3d # OpenShift Sandboxed Containers
   - celebdor # Ecosystem Edge
   - dmage # Image Registry
+  - dtantsur # Metal Platform
   - dulek # Kuryr Networking
   - hexfusion # etcd
   - jaypoulz # Multi Arch
