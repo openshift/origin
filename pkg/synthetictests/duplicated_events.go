@@ -2,6 +2,7 @@ package synthetictests
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -18,6 +19,11 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+)
+
+const (
+	duplicateEventThreshold   = 20
+	consoleReadinessRegExpStr = `ns/(?P<NS>openshift-console) pod/(?P<POD>console-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>ProbeError) (?P<MSG>Readiness probe error:.* connect: connection refused$)`
 )
 
 func combinedRegexp(arr ...*regexp.Regexp) *regexp.Regexp {
@@ -236,7 +242,7 @@ func testDuplicatedEventForStableSystem(events monitorapi.Intervals, kubeClientC
 // isRepeatedEventOKFunc takes a monitorEvent as input and returns true if the repeated event is OK.
 // This commonly happens for known bugs and for cases where events are repeated intentionally by tests.
 // Use this to handle cases where, "if X is true, then the repeated event is ok".
-type isRepeatedEventOKFunc func(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config) bool
+type isRepeatedEventOKFunc func(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config, times int) (bool, error)
 
 // we want to identify events based on the monitor because it is (currently) our only spot that tracks events over time
 // for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] test
@@ -281,17 +287,24 @@ func (d duplicateEventsEvaluator) testDuplicatedE2ENamespaceEvents(events monito
 func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnly bool, events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	allowedRepeatedEventsRegex := combinedRegexp(d.allowedRepeatedEventPatterns...)
 
+	var failures []string
 	displayToCount := map[string]int{}
 	for _, event := range events {
 		eventDisplayMessage, times := getTimesAnEventHappened(fmt.Sprintf("%s - %s", event.Locator, event.Message))
-		if times > 20 {
+		if times > duplicateEventThreshold {
 			if allowedRepeatedEventsRegex.MatchString(eventDisplayMessage) {
 				continue
 			}
 			allowed := false
 			for _, allowRepeatedEventFn := range d.allowedRepeatedEventFns {
-				if allowRepeatedEventFn(event, kubeClientConfig) {
-					allowed = true
+				var err error
+				allowed, err = allowRepeatedEventFn(event, kubeClientConfig, times)
+				if err != nil {
+					failures = append(failures, fmt.Sprintf("error: [%v] when processing event %v", err, eventDisplayMessage))
+					allowed = false
+					continue
+				}
+				if allowed {
 					break
 				}
 			}
@@ -302,7 +315,6 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 		}
 	}
 
-	var failures []string
 	var flakes []string
 	for display, count := range displayToCount {
 		msg := fmt.Sprintf("event happened %d times, something is wrong: %v", count, display)
@@ -382,86 +394,115 @@ func getTimesAnEventHappened(message string) (string, int) {
 	return matches[0][1], int(times)
 }
 
+func getInstallCompletionTime(kubeClientConfig *rest.Config) *metav1.Time {
+	configClient, err := configclient.NewForConfig(kubeClientConfig)
+	if err != nil {
+		return nil
+	}
+	clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
+	if err != nil {
+		return nil
+	}
+	if len(clusterVersion.Status.History) == 0 {
+		return nil
+	}
+	return clusterVersion.Status.History[len(clusterVersion.Status.History)-1].CompletionTime
+}
+
+func getMatchedElementsFromMonitorEventMsg(regExp *regexp.Regexp, message string) (string, string, string, string, string, error) {
+	var namespace, pod, node, reason, msg string
+	if !regExp.MatchString(message) {
+		return namespace, pod, node, reason, msg, errors.New("regex match error")
+	}
+	subMatches := regExp.FindStringSubmatch(message)
+	subNames := regExp.SubexpNames()
+	for i, name := range subNames {
+		switch name {
+		case "NS":
+			namespace = subMatches[i]
+		case "POD":
+			pod = subMatches[i]
+		case "NODE":
+			node = subMatches[i]
+		case "REASON":
+			reason = subMatches[i]
+		case "MSG":
+			msg = subMatches[i]
+		}
+	}
+	if len(namespace) == 0 ||
+		len(pod) == 0 ||
+		len(node) == 0 ||
+		len(msg) == 0 {
+		return namespace, pod, node, reason, msg, fmt.Errorf("regex match expects non-empty elements, got namespace: %s, pod: %s, node: %s, msg: %s", namespace, pod, node, msg)
+	}
+	return namespace, pod, node, reason, msg, nil
+}
+
+// isEventDuringInstallation returns true if the monitorEvent represents a real event that happened after installation.
+// regExp defines the pattern of the monitorEvent message. Named match is used in the pattern using `(?P<>)`. The names are placed inside <>. See example below
+// `ns/(?P<NS>openshift-ovn-kubernetes) pod/(?P<POD>ovnkube-node-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>Unhealthy) (?P<MSG>Readiness probe failed:.*$`
+func isEventDuringInstallation(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config, regExp *regexp.Regexp) (bool, error) {
+	if kubeClientConfig == nil {
+		// default to OK
+		return true, nil
+	}
+	installCompletionTime := getInstallCompletionTime(kubeClientConfig)
+	if installCompletionTime == nil {
+		return true, nil
+	}
+
+	message := fmt.Sprintf("%s - %s", monitorEvent.Locator, monitorEvent.Message)
+	namespace, pod, _, reason, msg, err := getMatchedElementsFromMonitorEventMsg(regExp, message)
+	if err != nil {
+		return false, err
+	}
+	kubeClient, err := kubernetes.NewForConfig(kubeClientConfig)
+	if err != nil {
+		return true, nil
+	}
+	kubeEvents, err := kubeClient.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return true, nil
+	}
+	for _, event := range kubeEvents.Items {
+		if event.Related == nil ||
+			event.Related.Name != pod ||
+			event.Reason != reason ||
+			!strings.Contains(event.Message, msg) {
+			continue
+		}
+
+		if event.FirstTimestamp.After(installCompletionTime.Time) {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 // isConsoleReadinessDuringInstallation returns true if the event is for console readiness and it happens during the
 // initial installation of the cluster.
 // we're looking for something like
 // > ns/openshift-console pod/console-7c6f797fd9-5m94j node/ip-10-0-158-106.us-west-2.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.129.0.49:8443/health": dial tcp 10.129.0.49:8443: connect: connection refused
 // with a firstTimestamp before the cluster completed the initial installation
-func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config) bool {
+func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config, _ int) (bool, error) {
 	if !strings.Contains(monitorEvent.Locator, "ns/openshift-console") {
-		return false
+		return false, nil
 	}
 	if !strings.Contains(monitorEvent.Locator, "pod/console-") {
-		return false
+		return false, nil
 	}
 	if !strings.Contains(monitorEvent.Locator, "Readiness probe") {
-		return false
+		return false, nil
 	}
 	if !strings.Contains(monitorEvent.Locator, "connect: connection refused") {
-		return false
-	}
-	tokens := strings.Split(monitorEvent.Locator, " ")
-	tokens = strings.Split(tokens[1], "/")
-	podName := tokens[1]
-
-	if kubeClientConfig == nil {
-		// default to OK
-		return true
+		return false, nil
 	}
 
-	// This block gets the time when the cluster completed installation
-	configClient, err := configclient.NewForConfig(kubeClientConfig)
-	if err != nil {
-		// default to OK
-		return true
-	}
-	clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
-	if err != nil {
-		// default to OK
-		return true
-	}
-	if len(clusterVersion.Status.History) == 0 {
-		// default to OK
-		return true
-	}
-	initialInstallHistory := clusterVersion.Status.History[len(clusterVersion.Status.History)-1]
-	if initialInstallHistory.CompletionTime == nil {
-		// default to OK
-		return true
-	}
-
-	// this block gets the actual event from the API.  This is ugly, but necessary because we don't have real events.
-	// It may be interesting to track real events, but it would be expensive.
-	kubeClient, err := kubernetes.NewForConfig(kubeClientConfig)
-	if err != nil {
-		// default to OK
-		return true
-	}
-	consoleEvents, err := kubeClient.CoreV1().Events("openshift-console").List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		// default to OK
-		return true
-	}
-	for _, event := range consoleEvents.Items {
-		if event.Related.Name != podName {
-			continue
-		}
-		if !strings.Contains(event.Message, "Readiness probe") {
-			continue
-		}
-		if !strings.Contains(event.Message, "connect: connection refused") {
-			continue
-		}
-
-		// if the readiness probe failure for this pod happened AFTER the initial installation was complete,
-		// then this probe failure is unexpected and should fail.
-		if event.FirstTimestamp.After(initialInstallHistory.CompletionTime.Time) {
-			return false
-		}
-	}
-
-	// Default to OK if we cannot find the event
-	return true
+	regExp := regexp.MustCompile(consoleReadinessRegExpStr)
+	// if the readiness probe failure for this pod happened AFTER the initial installation was complete,
+	// then this probe failure is unexpected and should fail.
+	return isEventDuringInstallation(monitorEvent, kubeClientConfig, regExp)
 }
 
 func (d *duplicateEventsEvaluator) getClusterInfo(c *rest.Config) (err error) {
