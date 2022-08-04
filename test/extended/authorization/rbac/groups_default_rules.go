@@ -67,6 +67,9 @@ const (
 
 	// Provided as CRD via cluster-csi-snapshot-controller-operator
 	snapshotGroup = "snapshot.storage.k8s.io"
+
+	// Provided as CRD via operator-lifecycle-manager
+	operatorsCoreOSGroup = "operators.coreos.com"
 )
 
 // Do not change any of these lists without approval from the auth and master teams
@@ -154,6 +157,7 @@ var (
 		kuser.AllAuthenticated: {
 			"openshift": {
 				rbacv1helpers.NewRule(read...).Groups(templateGroup, legacyTemplateGroup).Resources("templates").RuleOrDie(),
+				rbacv1helpers.NewRule(read...).Groups(operatorsCoreOSGroup).Resources("clusterserviceversions").RuleOrDie(),
 				rbacv1helpers.NewRule(read...).Groups(imageGroup, legacyImageGroup).Resources("imagestreams", "imagestreamtags", "imagestreamimages", "imagetags").RuleOrDie(),
 				rbacv1helpers.NewRule("get").Groups(imageGroup, legacyImageGroup).Resources("imagestreams/layers").RuleOrDie(),
 				rbacv1helpers.NewRule("get").Groups("").Resources("configmaps").RuleOrDie(),
