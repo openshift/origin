@@ -831,7 +831,7 @@ github.com/openshift/api/template/v1
 github.com/openshift/api/unidling/v1alpha1
 github.com/openshift/api/user
 github.com/openshift/api/user/v1
-# github.com/openshift/apiserver-library-go v0.0.0-20220525180945-29f4c54d0291
+# github.com/openshift/apiserver-library-go v0.0.0-20220718193426-aa2bfcc66a43
 ## explicit; go 1.16
 github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy
 github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -2485,7 +2485,7 @@ k8s.io/kubelet/pkg/apis/pluginregistration/v1
 k8s.io/kubelet/pkg/apis/podresources/v1
 k8s.io/kubelet/pkg/apis/podresources/v1alpha1
 k8s.io/kubelet/pkg/apis/stats/v1alpha1
-# k8s.io/kubernetes v1.24.0 => github.com/openshift/kubernetes v1.24.0-alpha.3.0.20220601165048-899fd9fb835c
+# k8s.io/kubernetes v1.24.0 => github.com/openshift/kubernetes v1.24.1-0.20220726222740-a6c02f3f6663
 ## explicit; go 1.16
 k8s.io/kubernetes/cmd/kube-apiserver/app
 k8s.io/kubernetes/cmd/kube-apiserver/app/options
@@ -2520,6 +2520,7 @@ k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/fe
 k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/image
 k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/kubecontrollermanager
 k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/network
+k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/node
 k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/oauth
 k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/project
 k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/rolebindingrestriction
@@ -3469,7 +3470,7 @@ sigs.k8s.io/yaml
 # k8s.io/kube-scheduler => github.com/openshift/kubernetes/staging/src/k8s.io/kube-scheduler v0.0.0-20220601165048-899fd9fb835c
 # k8s.io/kubectl => github.com/openshift/kubernetes/staging/src/k8s.io/kubectl v0.0.0-20220601165048-899fd9fb835c
 # k8s.io/kubelet => github.com/openshift/kubernetes/staging/src/k8s.io/kubelet v0.0.0-20220601165048-899fd9fb835c
-# k8s.io/kubernetes => github.com/openshift/kubernetes v1.24.0-alpha.3.0.20220601165048-899fd9fb835c
+# k8s.io/kubernetes => github.com/openshift/kubernetes v1.24.1-0.20220726222740-a6c02f3f6663
 # k8s.io/legacy-cloud-providers => github.com/openshift/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20220601165048-899fd9fb835c
 # k8s.io/metrics => github.com/openshift/kubernetes/staging/src/k8s.io/metrics v0.0.0-20220601165048-899fd9fb835c
 # k8s.io/mount-utils => github.com/openshift/kubernetes/staging/src/k8s.io/mount-utils v0.0.0-20220601165048-899fd9fb835c
