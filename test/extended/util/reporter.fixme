@@ -6,11 +6,11 @@ import (
 	"os"
 	"strings"
 
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/config"
 	"github.com/onsi/ginkgo/v2/reporters/stenographer"
-	"github.com/onsi/ginkgo/v2/types"
-
 	"github.com/onsi/ginkgo/v2/reporters/stenographer/support/go-colorable"
+	"github.com/onsi/ginkgo/v2/types"
 )
 
 const maxDescriptionLength = 100
@@ -21,9 +21,10 @@ type SimpleReporter struct {
 }
 
 func NewSimpleReporter() *SimpleReporter {
+	_, reporterConfig := ginkgo.GinkgoConfiguration()
 	return &SimpleReporter{
 		Output:       os.Stdout,
-		stenographer: stenographer.New(!config.DefaultReporterConfig.NoColor, false, colorable.NewColorableStdout()),
+		stenographer: stenographer.New(!reporterConfig.NoColor, false, colorable.NewColorableStdout()),
 	}
 }
 
