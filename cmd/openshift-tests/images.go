@@ -54,7 +54,7 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 
 	initialDefaults := k8simage.GetOriginalImageConfigs()
 	exceptions := image.Exceptions.List()
-	defaults := map[int]k8simage.Config{}
+	defaults := map[k8simage.ImageID]k8simage.Config{}
 	for i, config := range initialDefaults {
 		for _, exception := range exceptions {
 			if strings.Contains(config.GetE2EImage(), exception) {

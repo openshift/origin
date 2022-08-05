@@ -9,10 +9,11 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	k8simage "k8s.io/kubernetes/test/utils/image"
 )
 
 func init() {
-	allowedImages = map[string]int{
+	allowedImages = map[string]k8simage.ImageID{
 		// used by jenkins tests
 		"quay.io/redhat-developer/nfs-server:1.1": -1,
 
@@ -62,7 +63,7 @@ func init() {
 
 var (
 	images        map[string]string
-	allowedImages map[string]int
+	allowedImages map[string]k8simage.ImageID
 )
 
 // ReplaceContents ensures that the provided yaml or json has the
@@ -141,8 +142,8 @@ func OpenLDAPTestImage() string {
 }
 
 // OriginalImages returns a map of the original image names.
-func OriginalImages() map[string]int {
-	images := make(map[string]int)
+func OriginalImages() map[string]k8simage.ImageID {
+	images := make(map[string]k8simage.ImageID)
 	for k, v := range allowedImages {
 		images[k] = v
 	}
@@ -168,7 +169,7 @@ func Images() map[string]struct{} {
 // image repository. The keys of the returned map are the same as the keys
 // in originalImages and the values are the equivalent name in the target
 // repo.
-func GetMappedImages(originalImages map[string]int, repo string) map[string]string {
+func GetMappedImages(originalImages map[string]k8simage.ImageID, repo string) map[string]string {
 	if len(repo) == 0 {
 		images := make(map[string]string)
 		for k := range originalImages {
