@@ -124,12 +124,7 @@ func ExecuteTest(t ginkgo.GinkgoTestingT, suite string) {
 	}
 
 	WithCleanup(func() {
-		if quiet {
-			r = append(r, NewSimpleReporter())
-			ginkgo.RunSpecsWithCustomReporters(t, suite, r)
-		} else {
-			ginkgo.RunSpecsWithDefaultAndCustomReporters(t, suite, r)
-		}
+		ginkgo.RunSpecs(t, suite)
 	})
 }
 

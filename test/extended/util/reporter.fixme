@@ -1,6 +1,5 @@
 package util
 
-/*
 import (
 	"fmt"
 	"io"
@@ -51,19 +50,13 @@ func (r *SimpleReporter) AfterSuiteDidRun(setupSummary *types.SetupSummary) {
 func (r *SimpleReporter) SpecSuiteDidEnd(summary *types.SuiteSummary) {
 }
 
-func (r *SimpleReporter) SuiteWillBegin(config config.GinkgoConfigType, summary *types.SuiteSummary) {
-}
-
-func (r *SimpleReporter) SuiteDidEnd(summary *types.SuiteSummary) {
-}
-
 func (r *SimpleReporter) handleSpecFailure(spec *types.SpecSummary) {
 	switch spec.State {
 	case types.SpecStateFailed:
 		r.stenographer.AnnounceSpecFailed(spec, true, false)
 	case types.SpecStatePanicked:
 		r.stenographer.AnnounceSpecPanicked(spec, true, false)
-	case types.SpecStateInterrupted:
+	case types.SpecStateTimedOut:
 		r.stenographer.AnnounceSpecTimedOut(spec, true, false)
 	}
 }
@@ -134,4 +127,3 @@ func trimLocation(l types.CodeLocation) string {
 	delimiter := "/openshift/origin/"
 	return fmt.Sprintf("%q", l.FileName[strings.LastIndex(l.FileName, delimiter)+len(delimiter):])
 }
-*/
