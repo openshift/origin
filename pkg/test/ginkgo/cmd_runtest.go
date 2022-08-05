@@ -33,7 +33,7 @@ func (opt *TestOptions) Run(args []string) error {
 		return fmt.Errorf("only a single test name may be passed")
 	}
 
-	tests, err := testsForSuite(config.GinkgoConfig)
+	tests, err := testsForSuite()
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,8 @@ func (opt *TestOptions) Run(args []string) error {
 		return nil
 	}
 
-	config.GinkgoConfig.FocusStrings = []string{fmt.Sprintf("^%s$", regexp.QuoteMeta(" [Top Level] "+test.name))}
+	suiteConfig, _ := ginkgo.GinkgoConfiguration()
+	suiteConfig.FocusStrings = []string{fmt.Sprintf("^%s$", regexp.QuoteMeta(" [Top Level] "+test.name))}
 	config.DefaultReporterConfig.NoColor = true
 	w := ginkgo.GinkgoWriterType()
 	w.SetStream(true)

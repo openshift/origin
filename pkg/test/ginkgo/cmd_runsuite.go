@@ -15,19 +15,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/intervalcreation"
+	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-
-	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
-
-	"github.com/onsi/ginkgo/v2/config"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const (
@@ -175,7 +172,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		suite.SyntheticEventTests,
 	}
 
-	tests, err := testsForSuite(config.GinkgoConfig)
+	tests, err := testsForSuite()
 	if err != nil {
 		return err
 	}
