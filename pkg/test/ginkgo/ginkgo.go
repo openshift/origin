@@ -35,7 +35,7 @@ type Spec struct {
 }
 */
 
-func testsForSuite(cfg config.GinkgoConfigType) ([]*testCase, error) {
+func testsForSuite() ([]*testCase, error) {
 	//iter := ginkgo.GlobalSuite().Iterator(cfg)
 	specs := ginkgo.GetSpecs()
 	var tests []*testCase
