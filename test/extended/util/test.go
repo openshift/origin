@@ -5,14 +5,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/reporters"
-	"github.com/onsi/gomega"
 	"k8s.io/klog/v2"
 
 	kapiv1 "k8s.io/api/core/v1"
@@ -95,42 +92,6 @@ func InitTest(dryRun bool) error {
 
 	klog.V(2).Infof("Extended test version %s", version.Get().String())
 	return nil
-}
-
-func ExecuteTest(t ginkgo.GinkgoTestingT, suite string) {
-	var r []ginkgo.Reporter
-
-	if dir := os.Getenv("TEST_REPORT_DIR"); len(dir) > 0 {
-		TestContext.ReportDir = dir
-	}
-
-	if TestContext.ReportDir != "" {
-		if err := os.MkdirAll(TestContext.ReportDir, 0755); err != nil {
-			klog.Errorf("Failed creating report directory: %v", err)
-		}
-		defer e2e.CoreDump(TestContext.ReportDir)
-	}
-
-	suiteConfig, _ := ginkgo.GinkgoConfiguration()
-
-	if len(suiteConfig.FocusStrings) == 0 && len(suiteConfig.SkipStrings) == 0 {
-		suiteConfig.SkipStrings = []string{"Skipped"}
-	}
-
-	gomega.RegisterFailHandler(ginkgo.Fail)
-
-	if TestContext.ReportDir != "" {
-		r = append(r, reporters.NewJUnitReporter(path.Join(TestContext.ReportDir, fmt.Sprintf("%s_%02d.xml", reportFileName, suiteConfig.ParallelProcess))))
-	}
-
-	WithCleanup(func() {
-		if quiet {
-			r = append(r, NewSimpleReporter())
-			ginkgo.RunSpecsWithCustomReporters(t, suite, r)
-		} else {
-			ginkgo.RunSpecsWithDefaultAndCustomReporters(t, suite, r)
-		}
-	})
 }
 
 var testsStarted bool
