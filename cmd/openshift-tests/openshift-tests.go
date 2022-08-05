@@ -428,8 +428,7 @@ func newRunTestCommand() *cobra.Command {
 			}
 
 			// Ignore the upstream suite behavior within test execution
-			ginkgo.GlobalSuite().ClearBeforeSuiteNode()
-			ginkgo.GlobalSuite().ClearAfterSuiteNode()
+			ginkgo.GetSuite().ClearBeforeAndAfterSuiteNodes()
 
 			config, err := decodeProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun, false, nil)
 			if err != nil {
