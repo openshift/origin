@@ -327,7 +327,7 @@ func hasAnyStringPrefix(s string, prefixes []string) bool {
 // digests). This set of prefixes can be used to verify that image references are coming
 // from a location the cluster knows about.
 func imagePrefixesFromNamespaceImageStreams(ns string) (sets.String, error) {
-	clientConfig, err := e2e.LoadConfig(true)
+	clientConfig, err := e2e.LoadConfigNoAgent()
 	if err != nil {
 		return nil, err
 	}

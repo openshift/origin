@@ -92,7 +92,7 @@ func decodeProvider(provider string, dryRun, discover bool, clusterState *exutil
 
 	case "azure", "aws", "baremetal", "gce", "vsphere", "alibabacloud":
 		if clusterState == nil {
-			clientConfig, err := e2e.LoadConfig(true)
+			clientConfig, err := e2e.LoadConfigNoAgent()
 			if err != nil {
 				return nil, err
 			}
@@ -123,7 +123,7 @@ func decodeProvider(provider string, dryRun, discover bool, clusterState *exutil
 		var config *exutilcluster.ClusterConfiguration
 		if discover {
 			if clusterState == nil {
-				if clientConfig, err := e2e.LoadConfig(true); err == nil {
+				if clientConfig, err := e2e.LoadConfigNoAgent(); err == nil {
 					clusterState, _ = exutilcluster.DiscoverClusterState(clientConfig)
 				}
 			}
