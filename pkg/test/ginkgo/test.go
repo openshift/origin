@@ -15,9 +15,9 @@ import (
 )
 
 type testCase struct {
-	name     string
-	spec     ginkgoSpec
-	location types.CodeLocation
+	name      string
+	spec      ginkgoSpec
+	locations []types.CodeLocation
 
 	// identifies which tests can be run in parallel (ginkgo runs suites linearly)
 	testExclusion string
@@ -66,8 +66,8 @@ func newTestCase(spec ginkgoSpec) (*testCase, error) {
 func newTestCaseFromGinkgoSpec(name string, codeLocations []types.CodeLocation) (*testCase, error) {
 	name = strings.TrimPrefix(name, "[Top Level] ")
 	tc := &testCase{
-		name:     name,
-		location: codeLocations[len(codeLocations)-1],
+		name:      name,
+		locations: codeLocations,
 	}
 
 	re := regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
@@ -85,7 +85,7 @@ func (t *testCase) Retry() *testCase {
 	copied := &testCase{
 		name:          t.name,
 		spec:          t.spec,
-		location:      t.location,
+		locations:     t.locations,
 		testExclusion: t.testExclusion,
 
 		previous: t,
