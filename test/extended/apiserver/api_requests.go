@@ -96,7 +96,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		apirequestCountClient, err := apiserverclientv1.NewForConfig(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		clientConfig, err := framework.LoadConfig(true)
+		clientConfig, err := framework.LoadConfigNoAgent()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		configClient, err := configclient.NewForConfig(clientConfig)
