@@ -469,7 +469,7 @@ func (f *Framework) AfterEach() {
 	// Check whether all nodes are ready after the test.
 	// This is explicitly done at the very end of the test, to avoid
 	// e.g. not removing namespace in case of this failure.
-	if err := AllNodesReady(f.ClientSet, 7*time.Minute); err != nil {
+	if err := AllNodesReady(f.ClientSet, 3*time.Minute); err != nil {
 		Failf("All nodes should be ready after test, %v", err)
 	}
 }
@@ -528,9 +528,6 @@ func (f *Framework) CreateNamespace(baseName string, labels map[string]string) (
 		enforceLevel = f.NamespacePodSecurityEnforceLevel
 	}
 	labels[admissionapi.EnforceLevelLabel] = string(enforceLevel)
-	// turn off the OpenShift label syncer so that it does not attempt to sync
-	// the PodSecurity admission labels
-	labels["security.openshift.io/scc.podSecurityLabelSync"] = "false"
 
 	ns, err := createTestingNS(baseName, f.ClientSet, labels)
 	// check ns instead of err to see if it's nil as we may

@@ -89,35 +89,32 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 			framework.Failf("failed to delete valid CR: %v", err)
 		}
 
-		// TODO(workload): re-enable client-side validation tests
-		/*
-			ginkgo.By("kubectl validation (kubectl create and apply) rejects request with value outside defined enum values")
-			badEnumValueCR := fmt.Sprintf(`{%s,"spec":{"bars":[{"name":"test-bar", "feeling":"NonExistentValue"}]}}`, meta)
-			if _, err := framework.RunKubectlInput(f.Namespace.Name, badEnumValueCR, ns, "create", "-f", "-"); err == nil || !strings.Contains(err.Error(), `Unsupported value: "NonExistentValue"`) {
-				framework.Failf("unexpected no error when creating CR with unknown enum value: %v", err)
-			}
+		ginkgo.By("kubectl validation (kubectl create and apply) rejects request with value outside defined enum values")
+		badEnumValueCR := fmt.Sprintf(`{%s,"spec":{"bars":[{"name":"test-bar", "feeling":"NonExistentValue"}]}}`, meta)
+		if _, err := framework.RunKubectlInput(f.Namespace.Name, badEnumValueCR, ns, "create", "-f", "-"); err == nil || !strings.Contains(err.Error(), `Unsupported value: "NonExistentValue"`) {
+			framework.Failf("unexpected no error when creating CR with unknown enum value: %v", err)
+		}
 
-			// TODO: server-side validation and client-side validation produce slightly different error messages.
-			// Because server-side is default in beta but not GA yet, we will produce different behaviors in the default vs GA only conformance tests. We have made the error generic enough to pass both, but should go back and make the error more specific once server-side validation goes GA.
-			ginkgo.By("kubectl validation (kubectl create and apply) rejects request with unknown properties when disallowed by the schema")
-			unknownCR := fmt.Sprintf(`{%s,"spec":{"foo":true}}`, meta)
-			if _, err := framework.RunKubectlInput(f.Namespace.Name, unknownCR, ns, "create", "-f", "-"); err == nil || (!strings.Contains(err.Error(), `unknown field "foo"`) && !strings.Contains(err.Error(), `unknown field "spec.foo"`)) {
-				framework.Failf("unexpected no error when creating CR with unknown field: %v", err)
-			}
-			if _, err := framework.RunKubectlInput(f.Namespace.Name, unknownCR, ns, "apply", "-f", "-"); err == nil || (!strings.Contains(err.Error(), `unknown field "foo"`) && !strings.Contains(err.Error(), `unknown field "spec.foo"`)) {
-				framework.Failf("unexpected no error when applying CR with unknown field: %v", err)
-			}
+		// TODO: server-side validation and client-side validation produce slightly different error messages.
+		// Because server-side is default in beta but not GA yet, we will produce different behaviors in the default vs GA only conformance tests. We have made the error generic enough to pass both, but should go back and make the error more specific once server-side validation goes GA.
+		ginkgo.By("kubectl validation (kubectl create and apply) rejects request with unknown properties when disallowed by the schema")
+		unknownCR := fmt.Sprintf(`{%s,"spec":{"foo":true}}`, meta)
+		if _, err := framework.RunKubectlInput(f.Namespace.Name, unknownCR, ns, "create", "-f", "-"); err == nil || (!strings.Contains(err.Error(), `unknown field "foo"`) && !strings.Contains(err.Error(), `unknown field "spec.foo"`)) {
+			framework.Failf("unexpected no error when creating CR with unknown field: %v", err)
+		}
+		if _, err := framework.RunKubectlInput(f.Namespace.Name, unknownCR, ns, "apply", "-f", "-"); err == nil || (!strings.Contains(err.Error(), `unknown field "foo"`) && !strings.Contains(err.Error(), `unknown field "spec.foo"`)) {
+			framework.Failf("unexpected no error when applying CR with unknown field: %v", err)
+		}
 
-			// TODO: see above note, we should check the value of the error once server-side validation is GA.
-			ginkgo.By("kubectl validation (kubectl create and apply) rejects request without required properties")
-			noRequireCR := fmt.Sprintf(`{%s,"spec":{"bars":[{"age":"10"}]}}`, meta)
-			if _, err := framework.RunKubectlInput(f.Namespace.Name, noRequireCR, ns, "create", "-f", "-"); err == nil || (!strings.Contains(err.Error(), `missing required field "name"`) && !strings.Contains(err.Error(), `spec.bars[0].name: Required value`)) {
-				framework.Failf("unexpected no error when creating CR without required field: %v", err)
-			}
-			if _, err := framework.RunKubectlInput(f.Namespace.Name, noRequireCR, ns, "apply", "-f", "-"); err == nil || (!strings.Contains(err.Error(), `missing required field "name"`) && !strings.Contains(err.Error(), `spec.bars[0].name: Required value`)) {
-				framework.Failf("unexpected no error when applying CR without required field: %v", err)
-			}
-		*/
+		// TODO: see above note, we should check the value of the error once server-side validation is GA.
+		ginkgo.By("kubectl validation (kubectl create and apply) rejects request without required properties")
+		noRequireCR := fmt.Sprintf(`{%s,"spec":{"bars":[{"age":"10"}]}}`, meta)
+		if _, err := framework.RunKubectlInput(f.Namespace.Name, noRequireCR, ns, "create", "-f", "-"); err == nil || (!strings.Contains(err.Error(), `missing required field "name"`) && !strings.Contains(err.Error(), `spec.bars[0].name: Required value`)) {
+			framework.Failf("unexpected no error when creating CR without required field: %v", err)
+		}
+		if _, err := framework.RunKubectlInput(f.Namespace.Name, noRequireCR, ns, "apply", "-f", "-"); err == nil || (!strings.Contains(err.Error(), `missing required field "name"`) && !strings.Contains(err.Error(), `spec.bars[0].name: Required value`)) {
+			framework.Failf("unexpected no error when applying CR without required field: %v", err)
+		}
 
 		ginkgo.By("kubectl explain works to explain CR properties")
 		if err := verifyKubectlExplain(f.Namespace.Name, crd.Crd.Spec.Names.Plural, `(?s)DESCRIPTION:.*Foo CRD for Testing.*FIELDS:.*apiVersion.*<string>.*APIVersion defines.*spec.*<Object>.*Specification of Foo`); err != nil {
@@ -523,13 +520,7 @@ func setupCRDAndVerifySchema(f *framework.Framework, schema, expect []byte, grou
 	return setupCRDAndVerifySchemaWithOptions(f, schema, expect, groupSuffix, versions)
 }
 
-func setupCRDAndVerifySchemaWithOptions(f *framework.Framework, schema, expect []byte, groupSuffix string, versions []string, options ...crd.Option) (tCRD *crd.TestCrd, err error) {
-	defer func() {
-		if err != nil {
-			framework.Logf("sleeping 45 seconds before running the actual tests, we hope that during all API servers converge during that window, see %q for more", "https://github.com/kubernetes/kubernetes/pull/90452")
-			time.Sleep(time.Second * 45)
-		}
-	}()
+func setupCRDAndVerifySchemaWithOptions(f *framework.Framework, schema, expect []byte, groupSuffix string, versions []string, options ...crd.Option) (*crd.TestCrd, error) {
 	group := fmt.Sprintf("%s-test-%s.example.com", f.BaseName, groupSuffix)
 	if len(versions) == 0 {
 		return nil, fmt.Errorf("require at least one version for CRD")
@@ -567,17 +558,17 @@ func setupCRDAndVerifySchemaWithOptions(f *framework.Framework, schema, expect [
 		}
 		crd.Spec.Versions = apiVersions
 	})
-	tCRD, err = crd.CreateMultiVersionTestCRD(f, group, options...)
+	crd, err := crd.CreateMultiVersionTestCRD(f, group, options...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create CRD: %v", err)
 	}
 
-	for _, v := range tCRD.Crd.Spec.Versions {
-		if err := waitForDefinition(f.ClientSet, definitionName(tCRD, v.Name), expect); err != nil {
+	for _, v := range crd.Crd.Spec.Versions {
+		if err := waitForDefinition(f.ClientSet, definitionName(crd, v.Name), expect); err != nil {
 			return nil, fmt.Errorf("%v", err)
 		}
 	}
-	return tCRD, nil
+	return crd, nil
 }
 
 func cleanupCRD(f *framework.Framework, crd *crd.TestCrd) error {
