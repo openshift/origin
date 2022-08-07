@@ -528,9 +528,49 @@ func LoadConfig() (config *restclient.Config, err error) {
 	return clientcmd.NewDefaultClientConfig(*c, &clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: TestContext.Host}}).ClientConfig()
 }
 
+// LoadConfig returns a config for a rest client with the UserAgent set to include the current test name.
+func LoadConfigNoAgent() (config *restclient.Config, err error) {
+	if TestContext.NodeE2E {
+		// This is a node e2e test, apply the node e2e configuration
+		return &restclient.Config{
+			Host:        TestContext.Host,
+			BearerToken: TestContext.BearerToken,
+			TLSClientConfig: restclient.TLSClientConfig{
+				Insecure: true,
+			},
+		}, nil
+	}
+	c, err := restclientConfig(TestContext.KubeContext)
+	if err != nil {
+		if TestContext.KubeConfig == "" {
+			return restclient.InClusterConfig()
+		}
+		return nil, err
+	}
+	// In case Host is not set in TestContext, sets it as
+	// CurrentContext Server for k8s API client to connect to.
+	if TestContext.Host == "" && c.Clusters != nil {
+		currentContext, ok := c.Clusters[c.CurrentContext]
+		if ok {
+			TestContext.Host = currentContext.Server
+		}
+	}
+
+	return clientcmd.NewDefaultClientConfig(*c, &clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: TestContext.Host}}).ClientConfig()
+}
+
 // LoadClientset returns clientset for connecting to kubernetes clusters.
 func LoadClientset() (*clientset.Clientset, error) {
 	config, err := LoadConfig()
+	if err != nil {
+		return nil, fmt.Errorf("error creating client: %v", err.Error())
+	}
+	return clientset.NewForConfig(config)
+}
+
+// LoadClientset returns clientset for connecting to kubernetes clusters.
+func LoadClientsetNoAgent() (*clientset.Clientset, error) {
+	config, err := LoadConfigNoAgent()
 	if err != nil {
 		return nil, fmt.Errorf("error creating client: %v", err.Error())
 	}
