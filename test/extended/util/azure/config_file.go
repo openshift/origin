@@ -20,7 +20,8 @@ import (
 func LoadConfigFile() ([]byte, error) {
 	// LoadClientset but don't set the UserAgent to include the current test name because
 	// we don't run any test yet and this call panics
-	client, err := e2e.LoadClientset(true)
+
+	client, err := e2e.LoadClientsetNoAgent()
 	if err != nil {
 		return nil, err
 	}
