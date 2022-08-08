@@ -13,11 +13,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift/origin/pkg/monitor/monitor_cmd"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
-	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/spf13/cobra"
@@ -427,9 +427,6 @@ func newRunTestCommand() *cobra.Command {
 				return err
 			}
 
-			// Ignore the upstream suite behavior within test execution
-			ginkgo.GetSuite().ClearBeforeAndAfterSuiteNodes()
-
 			config, err := decodeProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun, false, nil)
 			if err != nil {
 				return err
@@ -446,6 +443,9 @@ func newRunTestCommand() *cobra.Command {
 			if err := upgradeTestPreTest(); err != nil {
 				return err
 			}
+
+			// Ignore the upstream suite behavior within test execution
+			ginkgo.GetSuite().ClearBeforeAndAfterSuiteNodes()
 
 			exutil.WithCleanup(func() { err = testOpt.Run(args) })
 			return err
