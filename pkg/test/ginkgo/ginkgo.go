@@ -8,6 +8,8 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/config"
 	"github.com/onsi/ginkgo/v2/types"
+
+	"github.com/openshift/origin/test/extended/util/annotate/generated"
 )
 
 /* v1 spec
@@ -36,11 +38,17 @@ type Spec struct {
 */
 
 func testsForSuite() ([]*testCase, error) {
-	//iter := ginkgo.GlobalSuite().Iterator(cfg)
+	if err := ginkgo.GetSuite().BuildTree(); err != nil {
+		return nil, err
+	}
 	specs := ginkgo.GetSpecs()
 	var tests []*testCase
 	for _, spec := range specs {
-
+		if append, ok := generated.Annotations[spec.Text()]; ok {
+			spec.AppendText(append)
+		} else {
+			panic(fmt.Sprintf("unable to find test %s", spec.Text()))
+		}
 		tc, err := newTestCaseFromGinkgoSpec(spec.Text(), spec.Nodes.CodeLocations())
 		if err != nil {
 			return nil, err
