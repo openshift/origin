@@ -50,7 +50,7 @@ var _ = Describe("[sig-network][Feature:Network Policy Audit logging]", func() {
 			It("should ensure acl logs are created and correct", func() {
 				ns = append(ns, f.Namespace.Name)
 				makeNamespaceScheduleToAllNodes(f)
-				makeNamespaceACLLoggingEnabled(oc, f.Namespace)
+				makeNamespaceACLLoggingEnabled(oc)
 
 				nsNoACLLog := oc.SetupProject()
 				By("making namespace " + nsNoACLLog + " with acl-logging disabled")
@@ -62,9 +62,13 @@ var _ = Describe("[sig-network][Feature:Network Policy Audit logging]", func() {
 	)
 })
 
-func makeNamespaceACLLoggingEnabled(oc *exutil.CLI, ns *kapiv1.Namespace) {
-	By("setting the k8s.ovn.org/acl-logging annotation for the namespace: " + oc.KubeFramework().Namespace.Name)
-	var err error
+func makeNamespaceACLLoggingEnabled(oc *exutil.CLI) {
+	nsName := oc.Namespace()
+
+	By("setting the k8s.ovn.org/acl-logging annotation for the namespace: " + nsName)
+	ns, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), nsName, metav1.GetOptions{})
+	expectNoError(err)
+
 	if ns.Annotations == nil {
 		ns.Annotations = make(map[string]string, 1)
 	}
