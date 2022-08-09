@@ -36,7 +36,7 @@ func NewBackendDisruptionTest(testName string, backend BackendSampler) *backendD
 		testName: testName,
 		backend:  backend,
 	}
-	ret.getAllowedDisruption = alwaysAllowOneSecond(ret.historicalP95Disruption)
+	ret.getAllowedDisruption = alwaysAllowOneSecond(ret.historicalAllowedDisruption)
 	return ret
 }
 
@@ -88,7 +88,7 @@ func alwaysAllowOneSecond(delegateFn AllowedDisruptionFunc) AllowedDisruptionFun
 	}
 }
 
-func (t *backendDisruptionTest) historicalP95Disruption(f *framework.Framework) (*time.Duration, string, error) {
+func (t *backendDisruptionTest) historicalAllowedDisruption(f *framework.Framework) (*time.Duration, string, error) {
 	backendName := t.backend.GetDisruptionBackendName() + "-" + string(t.backend.GetConnectionType()) + "-connections"
 	jobType, err := platformidentification.GetJobType(context.TODO(), f.ClientConfig())
 	if err != nil {
