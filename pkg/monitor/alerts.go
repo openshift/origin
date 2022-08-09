@@ -32,10 +32,15 @@ func whenWasAlertInState(ctx context.Context, prometheusClient prometheusv1.API,
 	if alertState != "pending" && alertState != "firing" {
 		return nil, fmt.Errorf("unrecognized alertState: %v", alertState)
 	}
+
+	// Prometheus has a hardcoded maximum resolution of 11,000 points per timeseries.  The "Step"
+	// used to be 1 second but if a query exceeded 3 hours, this query would fail.  A resolution of
+	// 2 seconds is fine because the query will work for up to 6 hours and ALERTS change every 30s
+	// at most.
 	timeRange := prometheusv1.Range{
 		Start: startTime,
 		End:   time.Now(),
-		Step:  1 * time.Second,
+		Step:  2 * time.Second,
 	}
 	query := ""
 	switch {
