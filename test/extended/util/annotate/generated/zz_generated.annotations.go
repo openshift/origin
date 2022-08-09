@@ -1829,6 +1829,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods using a watch should watch for changes and rsync them": "should watch for changes and rsync them",
 
+	"[Top Level] [sig-cloud-provider][Feature:OpenShiftCloudControllerManager][Late] Deploy an external cloud provider": "Deploy an external cloud provider [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cluster-lifecycle] CSRs from machines that are not recognized by the cloud provider are not approved": "CSRs from machines that are not recognized by the cloud provider are not approved [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cluster-lifecycle] Pods cannot access the /config/master API endpoint": "Pods cannot access the /config/master API endpoint [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
