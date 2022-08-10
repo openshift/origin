@@ -27,7 +27,6 @@ const (
 var _ = Describe("[sig-network][Feature:Network Policy Audit logging]", func() {
 	var oc *exutil.CLI
 	var ns []string
-	var auditOut string
 	// this hook must be registered before the framework namespace teardown
 	// hook
 	AfterEach(func() {
@@ -35,8 +34,6 @@ var _ = Describe("[sig-network][Feature:Network Policy Audit logging]", func() {
 			// If test fails dump test pods logs
 			exutil.DumpPodLogsStartingWithInNamespace("acl-logging", ns[0], oc.AsAdmin())
 			exutil.DumpPodLogsStartingWithInNamespace("acl-logging", ns[1], oc.AsAdmin())
-			// Dump what audit logs looked like if test failed
-			e2e.Logf("Audit logs are incorrect:\n %v", auditOut)
 		}
 	})
 
@@ -50,21 +47,25 @@ var _ = Describe("[sig-network][Feature:Network Policy Audit logging]", func() {
 			It("should ensure acl logs are created and correct", func() {
 				ns = append(ns, f.Namespace.Name)
 				makeNamespaceScheduleToAllNodes(f)
-				makeNamespaceACLLoggingEnabled(oc, f.Namespace)
+				makeNamespaceACLLoggingEnabled(oc)
 
 				nsNoACLLog := oc.SetupProject()
 				By("making namespace " + nsNoACLLog + " with acl-logging disabled")
 				ns = append(ns, nsNoACLLog)
 
-				testACLLogging(f, oc, ns, auditOut)
+				testACLLogging(f, oc, ns)
 			})
 		},
 	)
 })
 
-func makeNamespaceACLLoggingEnabled(oc *exutil.CLI, ns *kapiv1.Namespace) {
-	By("setting the k8s.ovn.org/acl-logging annotation for the namespace: " + oc.KubeFramework().Namespace.Name)
-	var err error
+func makeNamespaceACLLoggingEnabled(oc *exutil.CLI) {
+	nsName := oc.Namespace()
+
+	By("setting the k8s.ovn.org/acl-logging annotation for the namespace: " + nsName)
+	ns, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), nsName, metav1.GetOptions{})
+	expectNoError(err)
+
 	if ns.Annotations == nil {
 		ns.Annotations = make(map[string]string, 1)
 	}
@@ -74,7 +75,7 @@ func makeNamespaceACLLoggingEnabled(oc *exutil.CLI, ns *kapiv1.Namespace) {
 }
 
 // Test the Network policy audit logging feature
-func testACLLogging(f *e2e.Framework, oc *exutil.CLI, ns []string, auditOut string) {
+func testACLLogging(f *e2e.Framework, oc *exutil.CLI, ns []string) {
 	// We launch 3 pods total; pod[0] and pod[1] will end up on node[0] in ns "acl-logging-on" , and pod[2]
 	// will end up on node[1] in ns "acl-logging off", to know which acl-logging container to look in
 	var nodes [2]*kapiv1.Node
@@ -118,6 +119,7 @@ func testACLLogging(f *e2e.Framework, oc *exutil.CLI, ns []string, auditOut stri
 	var errAllow error
 	var errDeny error
 	var podOut string
+	var auditOut string
 	allowReady := false
 	denyReady := false
 	allowLogFound := false
@@ -170,10 +172,10 @@ func testACLLogging(f *e2e.Framework, oc *exutil.CLI, ns []string, auditOut stri
 
 	// Fail if correctly formed allow log was never found
 	By("ensuring the correct allow log is found")
-	Expect(allowLogFound).Should(Equal(true))
+	Expect(allowLogFound).Should(Equal(true), "allow log not found in the logs\n%s", auditOut)
 	// Fail if correctly formed deny log was never found
 	By("ensuring the correct deny log is found")
-	Expect(denyLogFound).Should(Equal(true))
+	Expect(denyLogFound).Should(Equal(true), "deny log not found in the logs:\n%s", auditOut)
 }
 
 func pokePod(oc *exutil.CLI, srcPodName string, srcNamespace string, dstPodIP string, ipv6 bool) (string, error) {
