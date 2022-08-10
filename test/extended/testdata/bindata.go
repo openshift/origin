@@ -53056,6 +53056,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
                 '#b65049', '#32b8b6', '#ffffff', '#bbbbbb']);
         myChart.
         data(timelineGroups).
+        useUtc(true).
         zQualitative(true).
         enableAnimations(false).
         leftMargin(240).
