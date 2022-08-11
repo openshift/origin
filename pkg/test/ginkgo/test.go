@@ -11,12 +11,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 )
 
 type testCase struct {
 	name      string
-	spec      ginkgoSpec
+	spec      ginkgo.Spec
 	locations []types.CodeLocation
 
 	// identifies which tests can be run in parallel (ginkgo runs suites linearly)
@@ -38,36 +39,12 @@ type testCase struct {
 	previous *testCase
 }
 
-/*
-func newTestCase(spec ginkgoSpec) (*testCase, error) {
-	name := spec.ConcatenatedString()
-	name = strings.TrimPrefix(name, "[Top Level] ")
-
-	summary := spec.Summary("")
-	tc := &testCase{
-		name:     name,
-		spec:     spec,
-		location: summary.ComponentCodeLocations[len(summary.ComponentCodeLocations)-1],
-	}
-
-	re := regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
-	if match := re.FindStringSubmatch(name); match != nil {
-		testTimeOut, err := time.ParseDuration(match[1])
-		if err != nil {
-			return nil, err
-		}
-		tc.testTimeout = testTimeOut
-	}
-
-	return tc, nil
-}
-*/
-
-func newTestCaseFromGinkgoSpec(name string, codeLocations []types.CodeLocation) (*testCase, error) {
-	name = strings.TrimPrefix(name, "[Top Level] ")
+func newTestCaseFromGinkgoSpec(spec ginkgo.Spec) (*testCase, error) {
+	name := strings.TrimPrefix(spec.InternalSpec.Text(), "[Top Level] ")
 	tc := &testCase{
 		name:      name,
-		locations: codeLocations,
+		locations: spec.InternalSpec.CodeLocation(),
+		spec:      spec,
 	}
 
 	re := regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
