@@ -13,7 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift/origin/pkg/monitor/monitor_cmd"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -440,9 +439,6 @@ func newRunTestCommand() *cobra.Command {
 			if err := upgradeTestPreTest(); err != nil {
 				return err
 			}
-
-			// Ignore the upstream suite behavior within test execution
-			ginkgo.GetSuite().ClearBeforeAndAfterSuiteNodes()
 
 			exutil.WithCleanup(func() { err = testOpt.Run(args) })
 			return err
