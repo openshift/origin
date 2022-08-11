@@ -2,7 +2,6 @@ reviewers:
   - bparees
   - mfojtik
   - csrwng
-  - smarterclayton
   - sspeiche
   - jupierce
   - akram
@@ -12,9 +11,7 @@ approvers:
   - bparees
   - mfojtik
   - csrwng
-  - smarterclayton
   - gabemontero
   - akram
   - waveywaves
   - coreydaley
-

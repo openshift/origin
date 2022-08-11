@@ -1,5 +1,4 @@
 reviewers:
-  - smarterclayton
   - deads2k
   - bparees
   - mfojtik
@@ -7,10 +6,7 @@ reviewers:
   - soltysh
   - ericavonb
   - mrogers950
-  - tnozicka
 approvers:
-  - smarterclayton
   - deads2k
   - bparees
-  - tnozicka
   - soltysh

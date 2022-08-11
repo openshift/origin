@@ -6,7 +6,6 @@ filters:
     - bparees
     - deads2k
     - sjenning
-    - smarterclayton
     - soltysh
     approvers:
     - bparees
@@ -20,7 +19,6 @@ filters:
     - soltysh
     - stbenjam
     - sttts
-    - smarterclayton
   "^\\.go.(mod|sum)$":
     labels:
     - "vendor-update"
