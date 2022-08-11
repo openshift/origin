@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/config"
 	"github.com/onsi/ginkgo/v2/reporters"
 	"github.com/onsi/ginkgo/v2/types"
 	"github.com/openshift/origin/pkg/monitor"
@@ -65,7 +64,7 @@ func (opt *TestOptions) Run(args []string) error {
 	}
 
 	if test == nil {
-		return fmt.Errorf("no test exists with that name")
+		return fmt.Errorf("no test exists with name: %s", args[0])
 	}
 
 	if opt.DryRun {
@@ -84,40 +83,46 @@ func (opt *TestOptions) Run(args []string) error {
 		}
 	}
 
-	suiteConfig, _ := ginkgo.GinkgoConfiguration()
+	suiteConfig, reporterConfig := ginkgo.GinkgoConfiguration()
 	config.GinkgoConfig.FocusString = fmt.Sprintf("^%s$", regexp.QuoteMeta(" [Top Level] "+test.name))
-	config.DefaultReporterConfig.NoColor = true
-	w := ginkgo.GinkgoWriterType()
-	w.SetStream(true)
-	reporter := NewMinimalReporter(test.name, test.location)
-	ginkgo.GetSuite().BuildTree()
-	ginkgo.GetSuite().Run(reporter, "", []reporters.Reporter{reporter}, *w, config.GinkgoConfig)
-	summary, setup := reporter.Summary()
-	if summary == nil && setup != nil {
-		summary = &types.SpecSummary{
-			Failure: setup.Failure,
-			State:   setup.State,
-		}
-	}
+	//suiteConfig.FocusStrings = []string{fmt.Sprintf("^%s$", regexp.QuoteMeta(test.name))}
+	// FIX ME
+	//config.DefaultReporterConfig.NoColor = true
+	//w := ginkgo.GinkgoWriterType()
+	// FIX ME
+	//w.SetStream(true)
+	// reporter := NewMinimalReporter(test.name, test.locations[len(test.locations)-1])
+	//ginkgo.GetSuite().BuildTree()
 
-	if opt.EnableMonitor {
-		if err := opt.MonitorEventsOptions.End(ctx, restConfig, ""); err != nil {
-			return err
-		}
-		if err := opt.MonitorEventsOptions.WriteRunDataToArtifactsDir(""); err != nil {
-			fmt.Fprintf(opt.ErrOut, "error: Failed to write run-data: %v\n", err)
+	// FIX ME
+	//ginkgo.GetSuite().BuildTree()
+	reporterConfig.JUnitReport = "/tmp/junit.xml"
+
+	//t := &testing.T{}
+	//ginkgo.RunSpecs(t, "my suite", suiteConfig, reporterConfig)
+
+	reporter := reporters.NoopReporter{}
+	//ginkgo.GetSuite().Run(" [Top Level]", ginkgo.Labels{}, "/tmp/suitepath", ginkgo.GetFailer(), reporter, ginkgo.GetWriter(), ginkgo.GetOutputInterceptor(), ginkgo.NewInterruptHandler(suiteConfig.Timeout, nil), nil, suiteConfig)
+	ginkgo.GetSuite().RunSpec(test.spec.InternalSpec, " [Top Level]", ginkgo.Labels{}, "/tmp/suitepath", ginkgo.GetFailer(), reporter, ginkgo.GetWriter(), ginkgo.GetOutputInterceptor(), ginkgo.NewInterruptHandler(suiteConfig.Timeout, nil), nil, suiteConfig)
+	// func (suite *Suite) Run(description string, suiteLabels Labels, suitePath string, failer *Failer, reporter reporters.Reporter, writer WriterInterface, outputInterceptor OutputInterceptor, interruptHandler interrupt_handler.InterruptHandlerInterface, client parallel_support.Client, suiteConfig types.SuiteConfig) (bool, bool) {
+
+	var summary types.SpecReport
+	for _, report := range ginkgo.GetSuite().GetReport().SpecReports {
+		if report.NumAttempts > 0 {
+			//fmt.Printf("Test: %s\nReport:%#v\n", test.name, report.State.String())
+			summary = report
 		}
 	}
 
 	switch {
-	case summary == nil:
-		return fmt.Errorf("test suite set up failed, see logs")
-	case summary.Passed():
+	//case summary == nil:
+	//	return fmt.Errorf("test suite set up failed, see logs")
+	case summary.State == types.SpecStatePassed:
 		if s, ok := result.LastFlake(); ok {
 			fmt.Fprintf(opt.ErrOut, "flake: %s\n", s)
 			return ExitError{Code: 4}
 		}
-	case summary.Skipped():
+	case summary.State == types.SpecStateSkipped:
 		if len(summary.Failure.Message) > 0 {
 			fmt.Fprintf(opt.ErrOut, "skip [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.Message)
 		}
@@ -125,7 +130,7 @@ func (opt *TestOptions) Run(args []string) error {
 			fmt.Fprintf(opt.ErrOut, "skip [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.ForwardedPanic)
 		}
 		return ExitError{Code: 3}
-	case summary.Failed(), summary.Panicked():
+	case summary.State == types.SpecStateFailed, summary.State == types.SpecStatePanicked:
 		if len(summary.Failure.ForwardedPanic) > 0 {
 			if len(summary.Failure.Location.FullStackTrace) > 0 {
 				fmt.Fprintf(opt.ErrOut, "\n%s\n", summary.Failure.Location.FullStackTrace)
@@ -138,6 +143,60 @@ func (opt *TestOptions) Run(args []string) error {
 	default:
 		return fmt.Errorf("unrecognized test case outcome: %#v", summary)
 	}
+	// original
+	/*
+		ginkgo.GetSuite().Run(reporter, "", []reporters.Reporter{reporter}, *w, config.GinkgoConfig)
+
+		summary, setup := reporter.Summary()
+		if summary == nil && setup != nil {
+			summary = &types.SpecSummary{
+				Failure: setup.Failure,
+				State:   setup.State,
+		}
+	}
+
+	if opt.EnableMonitor {
+		if err := opt.MonitorEventsOptions.End(ctx, restConfig, ""); err != nil {
+			return err
+		}
+		if err := opt.MonitorEventsOptions.WriteRunDataToArtifactsDir(""); err != nil {
+			fmt.Fprintf(opt.ErrOut, "error: Failed to write run-data: %v\n", err)
+			}
+		}
+	*/
+
+	// TODO: print stack line?
+	/*
+		switch {
+		case summary == nil:
+			return fmt.Errorf("test suite set up failed, see logs")
+		case summary.Passed():
+			if s, ok := result.LastFlake(); ok {
+				fmt.Fprintf(opt.ErrOut, "flake: %s\n", s)
+				return ExitError{Code: 4}
+			}
+		case summary.Skipped():
+			if len(summary.Failure.Message) > 0 {
+				fmt.Fprintf(opt.ErrOut, "skip [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.Message)
+			}
+			if len(summary.Failure.ForwardedPanic) > 0 {
+				fmt.Fprintf(opt.ErrOut, "skip [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.ForwardedPanic)
+			}
+			return ExitError{Code: 3}
+		case summary.Failed(), summary.Panicked():
+			if len(summary.Failure.ForwardedPanic) > 0 {
+				if len(summary.Failure.Location.FullStackTrace) > 0 {
+					fmt.Fprintf(opt.ErrOut, "\n%s\n", summary.Failure.Location.FullStackTrace)
+				}
+				fmt.Fprintf(opt.ErrOut, "fail [%s:%d]: Test Panicked: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.ForwardedPanic)
+				return ExitError{Code: 1}
+			}
+			fmt.Fprintf(opt.ErrOut, "fail [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.Message)
+			return ExitError{Code: 1}
+		default:
+			return fmt.Errorf("unrecognized test case outcome: %#v", summary)
+		}
+	*/
 	return nil
 }
 
