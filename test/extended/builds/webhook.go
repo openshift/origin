@@ -27,16 +27,16 @@ var _ = g.Describe("[sig-builds][Feature:Builds][webhook]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithPodSecurityLevel("build-webhooks", admissionapi.LevelBaseline)
 
-	g.It("TestWebhook", func() {
+	g.It("TestWebhook [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() {
 		TestWebhook(g.GinkgoT(), oc)
 	})
-	g.It("TestWebhookGitHubPushWithImage", func() {
+	g.It("TestWebhookGitHubPushWithImage [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
 		TestWebhookGitHubPushWithImage(g.GinkgoT(), oc)
 	})
-	g.It("TestWebhookGitHubPushWithImageStream", func() {
+	g.It("TestWebhookGitHubPushWithImageStream [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
 		TestWebhookGitHubPushWithImageStream(g.GinkgoT(), oc)
 	})
-	g.It("TestWebhookGitHubPing", func() {
+	g.It("TestWebhookGitHubPing [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
 		TestWebhookGitHubPing(g.GinkgoT(), oc)
 	})
 })

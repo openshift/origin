@@ -68,7 +68,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		o.Expect(oc.Run("adm", "node-logs").Args(randomNode(oc), "--tail=5").Execute()).To(o.Succeed())
 	})
 
-	g.It("groups", func() {
+	g.It("groups [apigroup:user.openshift.io]", func() {
 		shortoutputgroup := gen.GenerateName("shortoutputgroup-")
 		out, err := oc.Run("adm", "groups", "new").Args(shortoutputgroup, "--output=name").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -126,7 +126,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		oc.Run("delete", fmt.Sprintf("groups/%s", group1)).Execute()
 	})
 
-	g.It("who-can", func() {
+	g.It("who-can [apigroup:authorization.openshift.io][apigroup:user.openshift.io]", func() {
 		o.Expect(oc.Run("adm", "policy", "who-can").Args("get", "pods").Execute()).To(o.Succeed())
 		o.Expect(oc.Run("adm", "policy", "who-can").Args("get", "pods", "-n", "default").Execute()).To(o.Succeed())
 		o.Expect(oc.Run("adm", "policy", "who-can").Args("get", "pods", "--all-namespaces").Execute()).To(o.Succeed())
@@ -153,7 +153,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		o.Expect(out).To(o.ContainSubstring("Resource:  horizontalpodautoscalers.autoscaling"))
 	})
 
-	g.It("policy", func() {
+	g.It("policy [apigroup:authorization.openshift.io][apigroup:user.openshift.io]", func() {
 		o.Expect(ocns.Run("adm", "policy", "add-role-to-group").Args("--rolebinding-name=cluster-admin", "cluster-admin", "system:unauthenticated").Execute()).To(o.Succeed())
 		o.Expect(ocns.Run("adm", "policy", "add-role-to-user").Args("--rolebinding-name=cluster-admin", "cluster-admin", "system:no-user").Execute()).To(o.Succeed())
 
@@ -239,7 +239,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		o.Expect(out).To(o.ContainSubstring("clusterrolebinding.rbac.authorization.k8s.io/system:openshift:scc:privileged updated"))
 	})
 
-	g.It("storage-admin", func() {
+	g.It("storage-admin [apigroup:authorization.openshift.io][apigroup:user.openshift.io]", func() {
 		g.By("Test storage-admin role and impersonation")
 		o.Expect(oc.Run("adm", "policy", "add-cluster-role-to-user").Args("storage-admin", "storage-adm").Execute()).To(o.Succeed())
 		o.Expect(oc.Run("adm", "policy", "add-cluster-role-to-user").Args("storage-admin", "storage-adm2").Execute()).To(o.Succeed())
@@ -313,7 +313,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		oc.Run("delete").Args("project/policy-can-i").Execute()
 	})
 
-	g.It("role-reapers", func() {
+	g.It("role-reapers [apigroup:authorization.openshift.io][apigroup:user.openshift.io]", func() {
 		policyRoles, _, err := ocns.Run("process").Args("-f", policyRolesPath, "-p", fmt.Sprintf("NAMESPACE=%s", ocns.Namespace())).Outputs()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(ocns.Run("create").Args("-f", "-").InputString(policyRoles).Execute()).To(o.Succeed())
@@ -333,7 +333,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 	})
 
 	// "oc adm prune auth clusterrole/edit" is a disruptive command and needs to be run in a Serial test
-	g.It("cluster-role-reapers [Serial]", func() {
+	g.It("cluster-role-reapers [Serial][apigroup:authorization.openshift.io][apigroup:user.openshift.io]", func() {
 		clusterRole := gen.GenerateName("basic-user2-")
 		clusterBinding := gen.GenerateName("basic-users2-")
 		policyClusterRoles, _, err := ocns.Run("process").Args("-f", policyClusterRolesPath, "-p", fmt.Sprintf("ROLE_NAME=%s", clusterRole), "-p", fmt.Sprintf("BINDING_NAME=%s", clusterBinding)).Outputs()
@@ -394,7 +394,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		oc.Run("delete").Args("-f", "-").InputString(policyClusterRoles).Execute()
 	})
 
-	g.It("ui-project-commands", func() {
+	g.It("ui-project-commands [apigroup:project.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io]", func() {
 		// Test the commands the UI projects page tells users to run
 		// These should match what is described in projects.html
 		o.Expect(oc.Run("adm", "new-project").Args("ui-test-project", "--admin=createuser").Execute()).To(o.Succeed())
@@ -416,7 +416,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		ocns.Run("delete").Args("project/ui-test-project").Execute()
 	})
 
-	g.It("new-project", func() {
+	g.It("new-project [apigroup:project.openshift.io][apigroup:authorization.openshift.io]", func() {
 		// Test deleting and recreating a project
 		o.Expect(oc.Run("adm", "new-project").Args("recreated-project", "--admin=createuser1").Execute()).To(o.Succeed())
 		o.Expect(oc.Run("delete").Args("project", "recreated-project").Execute()).To(o.Succeed())
@@ -435,7 +435,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		oc.Run("delete").Args("project", "recreated-project").Execute()
 	})
 
-	g.It("build-chain", func() {
+	g.It("build-chain [apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:project.openshift.io]", func() {
 		// Test building a dependency tree
 		s2iBuildPath := exutil.FixturePath("..", "..", "examples", "sample-app", "application-template-stibuild.json")
 		out, _, err := ocns.Run("process").Args("-f", s2iBuildPath, "-l", "build=sti").Outputs()
@@ -494,7 +494,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		ocns.Run("delete").Args("sa/my-sa-name").Execute()
 	})
 
-	g.It("user-creation", func() {
+	g.It("user-creation [apigroup:user.openshift.io]", func() {
 		user := gen.GenerateName("test-cmd-user-")
 		identity := gen.GenerateName("test-idp:test-uid-")
 		o.Expect(oc.Run("create", "user").Args(user).Execute()).To(o.Succeed())
@@ -513,7 +513,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		oc.Run("delete").Args(fmt.Sprintf("useridentitymapping/%s", identity)).Execute()
 	})
 
-	g.It("images", func() {
+	g.It("images [apigroup:image.openshift.io]", func() {
 		stableBusyboxPath := exutil.FixturePath("testdata", "stable-busybox.yaml")
 		o.Expect(oc.Run("create").Args("-f", stableBusyboxPath).Execute()).To(o.Succeed())
 

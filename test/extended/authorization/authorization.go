@@ -231,7 +231,7 @@ func (test resourceAccessReviewTest) run() {
 	failMessage := ""
 	var err error
 
-	g.By("resourceAccessReviewTest - "+test.description, func() {
+	g.By("resourceAccessReviewTest - "+test.description+" [apigroup:config.openshift.io]", func() {
 		// keep trying the test until you get a success or you timeout.  Every time you have a failure, set the fail message
 		// so that if you never have a success, we can call t.Errorf with a reasonable message
 		// exiting the poll with `failMessage=""` indicates success.
@@ -312,7 +312,7 @@ func (test localResourceAccessReviewTest) run() {
 	failMessage := ""
 	var err error
 
-	g.By("localResourceAccessReviewTest - "+test.description, func() {
+	g.By("localResourceAccessReviewTest - "+test.description+" [apigroup:authorization.openshift.io][apigroup:config.openshift.io]", func() {
 		// keep trying the test until you get a success or you timeout.  Every time you have a failure, set the fail message
 		// so that if you never have a success, we can call t.Errorf with a reasonable message
 		// exiting the poll with `failMessage=""` indicates success.
@@ -397,7 +397,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization][Serial] authoriza
 
 	g.Context("", func() {
 		g.Describe("TestAuthorizationResourceAccessReview", func() {
-			g.It(fmt.Sprintf("should succeed"), func() {
+			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
 				clusterAdminAuthorizationClient := oc.AdminAuthorizationClient().AuthorizationV1()
 
 				hammerProjectName := oc.CreateProject()
@@ -500,7 +500,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 
 	g.Context("", func() {
 		g.Describe("TestAuthorizationSubjectAccessReview", func() {
-			g.It(fmt.Sprintf("should succeed"), func() {
+			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
 				t := g.GinkgoT()
 
 				clusterAdminLocalSARGetter := oc.AdminKubeClient().AuthorizationV1()
@@ -825,7 +825,7 @@ func (test subjectAccessReviewTest) run(t g.GinkgoTInterface) {
 	PolicyCachePollInterval := 100 * time.Millisecond
 	PolicyCachePollTimeout := 10 * time.Second
 
-	g.By(test.description+" with openshift api", func() {
+	g.By(test.description+" with openshift api [apigroup:authorization.openshift.io]", func() {
 		failMessage := ""
 		err := wait.Poll(PolicyCachePollInterval, PolicyCachePollTimeout, func() (bool, error) {
 			var err error
@@ -1055,7 +1055,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 
 	g.Context("", func() {
 		g.Describe("TestAuthorizationSubjectAccessReviewAPIGroup", func() {
-			g.It(fmt.Sprintf("should succeed"), func() {
+			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
 				t := g.GinkgoT()
 
 				clusterAdminKubeClient := oc.AdminKubeClient()
@@ -1191,7 +1191,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 
 	g.Context("", func() {
 		g.Describe("TestBrowserSafeAuthorizer", func() {
-			g.It(fmt.Sprintf("should succeed"), func() {
+			g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io]"), func() {
 				t := g.GinkgoT()
 
 				// this client has an API token so it is safe

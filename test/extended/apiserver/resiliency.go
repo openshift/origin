@@ -3,9 +3,6 @@ package apiserver
 import (
 	"context"
 	"fmt"
-	"github.com/openshift/origin/test/extended/operators"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes"
 	"net/http"
 	"strings"
 	"time"
@@ -13,15 +10,18 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
+	"github.com/openshift/origin/test/extended/operators"
 	"github.com/openshift/origin/test/extended/scheme"
 	"github.com/openshift/origin/test/extended/single_node"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -35,7 +35,7 @@ var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 
 	oc := exutil.NewCLIWithoutNamespace("cluster-resiliency")
 
-	ginkgo.It("should allow a fast rollout of kube-apiserver with no pods restarts during API disruption", func() {
+	ginkgo.It("should allow a fast rollout of kube-apiserver with no pods restarts during API disruption [apigroup:config.openshift.io][apigroup:operator.openshift.io]", func() {
 		controlPlaneTopology, _ := single_node.GetTopologies(f)
 
 		if controlPlaneTopology != configv1.SingleReplicaTopologyMode {
