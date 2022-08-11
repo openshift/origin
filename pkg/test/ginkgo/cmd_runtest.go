@@ -55,7 +55,7 @@ func (opt *TestOptions) Run(args []string) error {
 	}
 
 	suiteConfig, reporterConfig := ginkgo.GinkgoConfiguration()
-	suiteConfig.FocusStrings = []string{fmt.Sprintf("^%s$", regexp.QuoteMeta(" [Top Level] "+test.name))}
+	suiteConfig.FocusStrings = []string{fmt.Sprintf("^%s$", regexp.QuoteMeta(" "+test.name))}
 	//suiteConfig.FocusStrings = []string{fmt.Sprintf("^%s$", regexp.QuoteMeta(test.name))}
 	// FIX ME
 	//config.DefaultReporterConfig.NoColor = true
@@ -73,8 +73,7 @@ func (opt *TestOptions) Run(args []string) error {
 	//ginkgo.RunSpecs(t, "my suite", suiteConfig, reporterConfig)
 
 	reporter := reporters.NoopReporter{}
-	//ginkgo.GetSuite().Run(" [Top Level]", ginkgo.Labels{}, "/tmp/suitepath", ginkgo.GetFailer(), reporter, ginkgo.GetWriter(), ginkgo.GetOutputInterceptor(), ginkgo.NewInterruptHandler(suiteConfig.Timeout, nil), nil, suiteConfig)
-	ginkgo.GetSuite().RunSpec(test.spec.InternalSpec, " [Top Level]", ginkgo.Labels{}, "/tmp/suitepath", ginkgo.GetFailer(), reporter, ginkgo.GetWriter(), ginkgo.GetOutputInterceptor(), ginkgo.NewInterruptHandler(suiteConfig.Timeout, nil), nil, suiteConfig)
+	ginkgo.GetSuite().RunSpec(test.spec.InternalSpec, ginkgo.Labels{}, "/tmp/suitepath", ginkgo.GetFailer(), reporter, ginkgo.GetWriter(), ginkgo.GetOutputInterceptor(), ginkgo.NewInterruptHandler(suiteConfig.Timeout, nil), nil, suiteConfig)
 	// func (suite *Suite) Run(description string, suiteLabels Labels, suitePath string, failer *Failer, reporter reporters.Reporter, writer WriterInterface, outputInterceptor OutputInterceptor, interruptHandler interrupt_handler.InterruptHandlerInterface, client parallel_support.Client, suiteConfig types.SuiteConfig) (bool, bool) {
 
 	var summary types.SpecReport
