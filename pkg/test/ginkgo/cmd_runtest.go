@@ -10,7 +10,6 @@ import (
 	"github.com/onsi/ginkgo/v2/config"
 	"github.com/onsi/ginkgo/v2/reporters"
 	"github.com/onsi/ginkgo/v2/types"
-
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
 )
 
@@ -33,6 +32,8 @@ func (opt *TestOptions) Run(args []string) error {
 		return fmt.Errorf("only a single test name may be passed")
 	}
 
+	// Ignore the upstream suite behavior within test execution
+	ginkgo.GetSuite().ClearBeforeAndAfterSuiteNodes()
 	tests, err := testsForSuite()
 	if err != nil {
 		return err
@@ -44,6 +45,7 @@ func (opt *TestOptions) Run(args []string) error {
 			break
 		}
 	}
+
 	if test == nil {
 		return fmt.Errorf("no test exists with that name")
 	}
@@ -69,7 +71,6 @@ func (opt *TestOptions) Run(args []string) error {
 		}
 	}
 
-	// TODO: print stack line?
 	switch {
 	case summary == nil:
 		return fmt.Errorf("test suite set up failed, see logs")
