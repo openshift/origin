@@ -40,15 +40,14 @@ type testCase struct {
 }
 
 func newTestCaseFromGinkgoSpec(spec ginkgo.Spec) (*testCase, error) {
-	name := strings.TrimPrefix(spec.InternalSpec.Text(), "[Top Level] ")
 	tc := &testCase{
-		name:      name,
+		name:      spec.InternalSpec.Text(),
 		locations: spec.InternalSpec.CodeLocation(),
 		spec:      spec,
 	}
 
 	re := regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
-	if match := re.FindStringSubmatch(name); match != nil {
+	if match := re.FindStringSubmatch(tc.name); match != nil {
 		testTimeOut, err := time.ParseDuration(match[1])
 		if err != nil {
 			return nil, err
