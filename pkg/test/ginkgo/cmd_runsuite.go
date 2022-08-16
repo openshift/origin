@@ -301,7 +301,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests)
+	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(mustGatherTests)
 
 	status := newTestStatus(opt.Out, includeSuccess, expectedTestCount, timeout, monitorEventRecorder, opt.AsEnv())
 	testCtx := ctx
