@@ -98,10 +98,18 @@ func (opt *TestOptions) Run(args []string) error {
 	//ginkgo.GetSuite().BuildTree()
 	reporterConfig.JUnitReport = "/tmp/junit.xml"
 
-	//t := &testing.T{}
-	//ginkgo.RunSpecs(t, "my suite", suiteConfig, reporterConfig)
+	// Turn on EmitSpecProgress to get spec progress (especially on interrupt)
+	suiteConfig.EmitSpecProgress = true
+	// Randomize specs as well as suites
+	suiteConfig.RandomizeAllSpecs = true
+	// Turn on verbose by default to get spec names
+	reporterConfig.Verbose = false
+	reporterConfig.NoColor = false
+
+	ginkgo.SetReporterConfig(reporterConfig)
 
 	reporter := reporters.NoopReporter{}
+	//reporter := reporters.NewDefaultReporter(reporterConfig, ginkgo.GetWriter())
 	ginkgo.GetSuite().RunSpec(test.spec.InternalSpec, ginkgo.Labels{}, "/tmp/suitepath", ginkgo.GetFailer(), reporter, ginkgo.GetWriter(), ginkgo.GetOutputInterceptor(), ginkgo.NewInterruptHandler(suiteConfig.Timeout, nil), nil, suiteConfig)
 	// func (suite *Suite) Run(description string, suiteLabels Labels, suitePath string, failer *Failer, reporter reporters.Reporter, writer WriterInterface, outputInterceptor OutputInterceptor, interruptHandler interrupt_handler.InterruptHandlerInterface, client parallel_support.Client, suiteConfig types.SuiteConfig) (bool, bool) {
 
@@ -113,6 +121,7 @@ func (opt *TestOptions) Run(args []string) error {
 		}
 	}
 
+	//reporters.ReportViaDeprecatedReporter(util.NewSimpleReporter(), ginkgo.GetSuite().GetReport())
 	switch {
 	//case summary == nil:
 	//	return fmt.Errorf("test suite set up failed, see logs")
