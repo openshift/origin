@@ -19,7 +19,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-arch] ClusterOperators", func() {
+var _ = g.Describe("[sig-arch] ClusterOperators [apigroup:config.openshift.io]", func() {
 	defer g.GinkgoRecover()
 
 	var clusterOperators []config.ClusterOperator

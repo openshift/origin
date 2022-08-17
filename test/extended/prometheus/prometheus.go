@@ -39,7 +39,7 @@ import (
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 )
 
-var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules", func() {
+var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io]", func() {
 	defer g.GinkgoRecover()
 
 	// These alerts are known to be missing the summary and/or description
@@ -190,7 +190,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		oc = exutil.NewCLIWithoutNamespace("prometheus")
 	)
 
-	g.It("shouldn't report any unexpected alerts in firing or pending state", func() {
+	g.It("shouldn't report any unexpected alerts in firing or pending state [apigroup:config.openshift.io]", func() {
 		// Watchdog and AlertmanagerReceiversNotConfigured are expected.
 		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
 			e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
@@ -467,7 +467,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			e2e.Logf("Telemetry is enabled: %s", bearerToken)
 		})
 
-		g.It("should start and expose a secured proxy and unsecured metrics", func() {
+		g.It("should start and expose a secured proxy and unsecured metrics [apigroup:config.openshift.io]", func() {
 			ns := oc.Namespace()
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
@@ -607,7 +607,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			e2e.Logf("AlertmanagerReceiversNotConfigured alert is firing")
 		})
 
-		g.It("should have important platform topology metrics", func() {
+		g.It("should have important platform topology metrics [apigroup:config.openshift.io]", func() {
 			exutil.SkipIfExternalControlplaneTopology(oc, "topology metrics are not available for clusters with external controlPlaneTopology")
 
 			tests := map[string]bool{
@@ -659,7 +659,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			})
 		})
 
-		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early]", func() {
+		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io]", func() {
 			if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
 				e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
 			}
@@ -729,7 +729,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should provide named network metrics", func() {
+		g.It("should provide named network metrics [apigroup:project.openshift.io]", func() {
 			ns := oc.SetupProject()
 
 			cs, err := newDynClientSet()

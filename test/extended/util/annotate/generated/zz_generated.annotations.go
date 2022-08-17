@@ -17,7 +17,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [Conformance][sig-sno][Serial] Cluster should allow a fast rollout of kube-apiserver with no pods restarts during API disruption [apigroup:config.openshift.io][apigroup:operator.openshift.io]": "should allow a fast rollout of kube-apiserver with no pods restarts during API disruption [apigroup:config.openshift.io][apigroup:operator.openshift.io] [Suite:openshift/conformance/serial/minimal]",
 
-	"[Top Level] [Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP] test RequestHeaders IdP": "test RequestHeaders IdP [Suite:openshift/conformance/serial]",
+	"[Top Level] [Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP] test RequestHeaders IdP [apigroup:config.openshift.io][apigroup:user.openshift.io][apigroup:apps.openshift.io]": "test RequestHeaders IdP [apigroup:config.openshift.io][apigroup:user.openshift.io][apigroup:apps.openshift.io] [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-api-machinery] API data in etcd should be stored at the correct location and version for all resources [Serial]": "should be stored at the correct location and version for all resources [Serial] [Suite:openshift/conformance/serial]",
 
@@ -273,9 +273,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-api-machinery][Feature:Audit] Basic audit should audit API calls": "should audit API calls [Disabled:SpecialConfig]",
 
-	"[Top Level] [sig-api-machinery][Feature:ClusterResourceQuota] Cluster resource quota should control resource limits across namespaces": "should control resource limits across namespaces [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ClusterResourceQuota] Cluster resource quota should control resource limits across namespaces [apigroup:quota.openshift.io][apigroup:image.openshift.io]": "should control resource limits across namespaces [apigroup:quota.openshift.io][apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-api-machinery][Feature:ResourceQuota] Object count should properly count the number of imagestreams resources": "should properly count the number of imagestreams resources [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-api-machinery][Feature:ResourceQuota] Object count should properly count the number of imagestreams resources [apigroup:image.openshift.io]": "should properly count the number of imagestreams resources [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for apps.openshift.io/v1, Resource=deploymentconfigs": "should work for apps.openshift.io/v1, Resource=deploymentconfigs [Suite:openshift/conformance/parallel]",
 
@@ -583,13 +583,15 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-apps][Feature:OpenShiftControllerManager] TestTriggers_manual": "TestTriggers_manual [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-arch] Cluster topology single node tests Verify that OpenShift components deploy one replica in SingleReplica topology mode": "Verify that OpenShift components deploy one replica in SingleReplica topology mode [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] Cluster topology single node tests [apigroup:config.openshift.io] Verify that OpenShift components deploy one replica in SingleReplica topology mode": "Verify that OpenShift components deploy one replica in SingleReplica topology mode [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-arch] ClusterOperators should define at least one namespace in their lists of related objects": "at least one namespace in their lists of related objects [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] ClusterOperators [apigroup:config.openshift.io] should define at least one namespace in their lists of related objects": "at least one namespace in their lists of related objects [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-arch] ClusterOperators should define at least one related object that is not a namespace": "at least one related object that is not a namespace [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] ClusterOperators [apigroup:config.openshift.io] should define at least one related object that is not a namespace": "at least one related object that is not a namespace [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-arch] ClusterOperators should define valid related objects": "valid related objects [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] ClusterOperators [apigroup:config.openshift.io] should define valid related objects": "valid related objects [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-arch] Managed cluster should [apigroup:apps.openshift.io] should expose cluster services outside the cluster [apigroup:route.openshift.io]": "should expose cluster services outside the cluster [apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch] Managed cluster should ensure control plane operators do not make themselves unevictable": "ensure control plane operators do not make themselves unevictable [Suite:openshift/conformance/parallel]",
 
@@ -599,17 +601,15 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch] Managed cluster should ensure pods use downstream images from our release image with proper ImagePullPolicy": "should ensure pods use downstream images from our release image with proper ImagePullPolicy [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-arch] Managed cluster should have operators on the cluster version": "have operators on the cluster version [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] Managed cluster should have operators on the cluster version [apigroup:config.openshift.io]": "have operators on the cluster version [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-arch] Managed cluster should only include cluster daemonsets that have maxUnavailable update of 10 or 33 percent": "should only include cluster daemonsets that have maxUnavailable update of 10 or 33 percent [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] Managed cluster should only include cluster daemonsets that have maxUnavailable update of 10 or 33 percent [apigroup:config.openshift.io]": "should only include cluster daemonsets that have maxUnavailable update of 10 or 33 percent [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-arch] Managed cluster should recover when operator-owned objects are deleted [Disruptive]": "when operator-owned objects are deleted [Disruptive] [Serial]",
+	"[Top Level] [sig-arch] Managed cluster should recover when operator-owned objects are deleted [Disruptive][apigroup:config.openshift.io]": "when operator-owned objects are deleted [Disruptive][apigroup:config.openshift.io] [Serial]",
 
 	"[Top Level] [sig-arch] Managed cluster should set requests but not limits": "should set requests but not limits [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-arch] Managed cluster should should expose cluster services outside the cluster": "should expose cluster services outside the cluster [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[Top Level] [sig-arch] [Conformance] FIPS TestFIPS": "TestFIPS [Suite:openshift/conformance/parallel/minimal]",
+	"[Top Level] [sig-arch] [Conformance] FIPS TestFIPS [apigroup:config.openshift.io]": "TestFIPS [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]",
 
 	"[Top Level] [sig-arch] [Conformance] sysctl pod should not start for sysctl not on whitelist kernel.msgmax": "kernel.msgmax [Suite:openshift/conformance/parallel/minimal]",
 
@@ -625,13 +625,13 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-arch] [Conformance] sysctl whitelists net.ipv4.tcp_syncookies": "net.ipv4.tcp_syncookies [Suite:openshift/conformance/parallel/minimal]",
 
-	"[Top Level] [sig-arch] ocp payload should be based on existing source OLM version should contain the source commit id": "OLM version should contain the source commit id [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch] ocp payload should be based on existing source OLM version should contain the source commit id [apigroup:config.openshift.io]": "OLM version should contain the source commit id [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][Early] CRDs for openshift.io should have a status in the CRD schema": "should have a status in the CRD schema [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][Early] CRDs for openshift.io should have subresource.status": "should have subresource.status [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-arch][Early] Managed cluster should start all core operators": "start all core operators [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-arch][Early] Managed cluster should [apigroup:config.openshift.io] start all core operators": "start all core operators [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-arch][Feature:ClusterUpgrade] Cluster should remain functional during upgrade [Disruptive]": "Cluster should remain functional during upgrade [Disruptive] [Serial]",
 
@@ -1007,49 +1007,49 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-auth][Feature:BootstrapUser] The bootstrap user should successfully login with password decoded from kubeadmin secret [Disruptive]": "should successfully login with password decoded from kubeadmin secret [Disruptive] [Serial]",
 
-	"[Top Level] [sig-auth][Feature:HTPasswdAuth] HTPasswd IDP should successfully configure htpasswd and be responsive": "should successfully configure htpasswd and be responsive [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:HTPasswdAuth] HTPasswd IDP should successfully configure htpasswd and be responsive [apigroup:user.openshift.io][apigroup:route.openshift.io]": "should successfully configure htpasswd and be responsive [apigroup:user.openshift.io][apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:LDAP] LDAP IDP should authenticate against an ldap server": "should authenticate against an ldap server [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:LDAP] LDAP IDP should authenticate against an ldap server [apigroup:user.openshift.io][apigroup:route.openshift.io]": "should authenticate against an ldap server [apigroup:user.openshift.io][apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:LDAP] LDAP should start an OpenLDAP test server": "should start an OpenLDAP test server [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:LDAP] LDAP should start an OpenLDAP test server [apigroup:user.openshift.io][apigroup:security.openshift.io][apigroup:authorization.openshift.io]": "should start an OpenLDAP test server [apigroup:user.openshift.io][apigroup:security.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:LDAP][Serial] ldap group sync can sync groups from ldap": "can sync groups from ldap [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-auth][Feature:LDAP][Serial] ldap group sync can sync groups from ldap [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:security.openshift.io]": "can sync groups from ldap [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:security.openshift.io] [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] ClientSecretWithPlus should create oauthclient": "should create oauthclient [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] ClientSecretWithPlus should create oauthclient [apigroup:config.openshift.io][apigroup:oauth.openshift.io][apigroup:user.openshift.io]": "should create oauthclient [apigroup:config.openshift.io][apigroup:oauth.openshift.io][apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] OAuth Authenticator accepts sha256 access tokens": "accepts sha256 access tokens [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] OAuth Authenticator accepts sha256 access tokens [apigroup:user.openshift.io][apigroup:oauth.openshift.io]": "accepts sha256 access tokens [apigroup:user.openshift.io][apigroup:oauth.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] OAuth server has the correct token and certificate fallback semantics": "has the correct token and certificate fallback semantics [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] OAuth server has the correct token and certificate fallback semantics [apigroup:config.openshift.io][apigroup:user.openshift.io]": "has the correct token and certificate fallback semantics [apigroup:config.openshift.io][apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-auth][Feature:OAuthServer] OAuth server should use http1.1 only to prevent http2 connection reuse": "should use http1.1 only to prevent http2 connection reuse [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the authorize URL": "authorize URL [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io] expected headers returned from the authorize URL": "authorize URL [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the grant URL": "grant URL [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io] expected headers returned from the grant URL": "grant URL [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the login URL for the allow all IDP": "login URL for the allow all IDP [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io] expected headers returned from the login URL for the allow all IDP": "login URL for the allow all IDP [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the login URL for the bootstrap IDP": "login URL for the bootstrap IDP [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io] expected headers returned from the login URL for the bootstrap IDP": "login URL for the bootstrap IDP [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the login URL for when there is only one IDP": "login URL for when there is only one IDP [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io] expected headers returned from the login URL for when there is only one IDP": "login URL for when there is only one IDP [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the logout URL": "logout URL [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io] expected headers returned from the logout URL": "logout URL [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the root URL": "root URL [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io] expected headers returned from the root URL": "root URL [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the token URL": "token URL [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io] expected headers returned from the token URL": "token URL [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers] expected headers returned from the token request URL": "token request URL [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io] expected headers returned from the token request URL": "token request URL [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age to generate tokens that do not expire works as expected when using a code authorization flow": "works as expected when using a code authorization flow [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age [apigroup:oauth.openshift.io] to generate tokens that do not expire works as expected when using a code authorization flow [apigroup:user.openshift.io]": "works as expected when using a code authorization flow [apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age to generate tokens that do not expire works as expected when using a token authorization flow": "works as expected when using a token authorization flow [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age [apigroup:oauth.openshift.io] to generate tokens that do not expire works as expected when using a token authorization flow [apigroup:user.openshift.io]": "works as expected when using a token authorization flow [apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age to generate tokens that expire shortly works as expected when using a code authorization flow": "works as expected when using a code authorization flow [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age [apigroup:oauth.openshift.io] to generate tokens that expire shortly works as expected when using a code authorization flow [apigroup:user.openshift.io]": "works as expected when using a code authorization flow [apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age to generate tokens that expire shortly works as expected when using a token authorization flow": "works as expected when using a token authorization flow [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age [apigroup:oauth.openshift.io] to generate tokens that expire shortly works as expected when using a token authorization flow [apigroup:user.openshift.io]": "works as expected when using a token authorization flow [apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:OAuthServer] well-known endpoint should be reachable": "should be reachable [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:OAuthServer] well-known endpoint should be reachable [apigroup:config.openshift.io][apigroup:route.openshift.io]": "should be reachable [apigroup:config.openshift.io][apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz  RunLegacyClusterRoleBindingEndpoint should succeed [apigroup:authorization.openshift.io]": "should succeed [apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]",
 
@@ -1089,19 +1089,19 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-auth][Feature:PodSecurity] restricted-v2 SCC should mutate empty securityContext to match restricted PSa profile": "restricted-v2 SCC should mutate empty securityContext to match restricted PSa profile [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestInvalidRoleRefs should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestInvalidRoleRefs should succeed [apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:project.openshift.io]": "should succeed [apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:project.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestProjectIsNamespace should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestProjectIsNamespace should succeed [apigroup:project.openshift.io]": "should succeed [apigroup:project.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestProjectWatch should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestProjectWatch should succeed [apigroup:project.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io]": "should succeed [apigroup:project.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestProjectWatchWithSelectionPredicate should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestProjectWatchWithSelectionPredicate should succeed [apigroup:project.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io]": "should succeed [apigroup:project.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestScopedProjectAccess should succeed": "should succeed [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestScopedProjectAccess should succeed [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:authorization.openshift.io]": "should succeed [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestUnprivilegedNewProject": "TestUnprivilegedNewProject [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:ProjectAPI]  TestUnprivilegedNewProject [apigroup:project.openshift.io]": "TestUnprivilegedNewProject [apigroup:project.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:ProjectAPI][Serial]  TestUnprivilegedNewProjectDenied": "TestUnprivilegedNewProjectDenied [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-auth][Feature:ProjectAPI][Serial]  TestUnprivilegedNewProjectDenied [apigroup:authorization.openshift.io][apigroup:project.openshift.io]": "TestUnprivilegedNewProjectDenied [apigroup:authorization.openshift.io][apigroup:project.openshift.io] [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional  Create a RBAC rolebinding when subject is not already bound and is not permitted by any RBR should fail [apigroup:authorization.openshift.io]": "should fail [apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]",
 
@@ -1119,15 +1119,15 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-auth][Feature:SCC][Early] should not have pod creation failures during install": "should not have pod creation failures during install [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestAllowedSCCViaRBAC": "TestAllowedSCCViaRBAC [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestAllowedSCCViaRBAC [apigroup:project.openshift.io][apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:security.openshift.io]": "TestAllowedSCCViaRBAC [apigroup:project.openshift.io][apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:security.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestPodDefaultCapabilities": "TestPodDefaultCapabilities [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestPodUpdateSCCEnforcement": "TestPodUpdateSCCEnforcement [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestPodUpdateSCCEnforcement [apigroup:user.openshift.io][apigroup:authorization.openshift.io]": "TestPodUpdateSCCEnforcement [apigroup:user.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:UserAPI] groups should work": "groups should work [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:UserAPI] groups should work [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:authorization.openshift.io]": "groups should work [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-auth][Feature:UserAPI] users can manipulate groups": "users can manipulate groups [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-auth][Feature:UserAPI] users can manipulate groups [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:project.openshift.io]": "users can manipulate groups [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:project.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-autoscaling] Cluster size autoscaler scalability [Slow] CA ignores unschedulable pods while scheduling schedulable pods [Feature:ClusterAutoscalerScalability6]": "CA ignores unschedulable pods while scheduling schedulable pods [Feature:ClusterAutoscalerScalability6] [Suite:k8s]",
 
@@ -1837,17 +1837,17 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive] [Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks": "[Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks [Serial]",
 
-	"[Top Level] [sig-cluster-lifecycle][Feature:Machines] Managed cluster should have machine resources": "have machine resources [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cluster-lifecycle][Feature:Machines] Managed cluster should have machine resources [apigroup:machine.openshift.io]": "have machine resources [apigroup:machine.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Disruptive] Managed cluster should recover from deleted worker machines": "recover from deleted worker machines [Serial]",
+	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Disruptive] Managed cluster should recover from deleted worker machines [apigroup:machine.openshift.io]": "recover from deleted worker machines [apigroup:machine.openshift.io] [Serial]",
 
-	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Early] Managed cluster should have same number of Machines and Nodes": "have same number of Machines and Nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Early] Managed cluster should have same number of Machines and Nodes [apigroup:machine.openshift.io]": "have same number of Machines and Nodes [apigroup:machine.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Serial] Managed cluster should grow and decrease when scaling different machineSets simultaneously [Timeout:30m]": "grow and decrease when scaling different machineSets simultaneously [Timeout:30m] [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-cluster-lifecycle][Feature:Machines][Serial] Managed cluster should grow and decrease when scaling different machineSets simultaneously [Timeout:30m][apigroup:machine.openshift.io]": "grow and decrease when scaling different machineSets simultaneously [Timeout:30m][apigroup:machine.openshift.io] [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-coreos] [Conformance] CoreOS bootimages TestBootimagesPresent": "TestBootimagesPresent [Suite:openshift/conformance/parallel/minimal]",
 
-	"[Top Level] [sig-devex] check registry.redhat.io is available and samples operator can import sample imagestreams run sample related validations": "run sample related validations [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex] check registry.redhat.io is available and samples operator can import sample imagestreams run sample related validations [apigroup:config.openshift.io][apigroup:image.openshift.io]": "run sample related validations [apigroup:config.openshift.io][apigroup:image.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled  returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/dotnet:3.1-el7\" should print the usage": "\"image-registry.openshift-image-registry.svc:5000/openshift/dotnet:3.1-el7\" should print the usage",
 
@@ -1981,33 +1981,33 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-devex][Feature:OpenShiftControllerManager] TestDockercfgTokenDeletedController": "TestDockercfgTokenDeletedController [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:Templates] template-api TestTemplate": "TestTemplate [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex][Feature:Templates] template-api TestTemplate [apigroup:template.openshift.io]": "TestTemplate [apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:Templates] template-api TestTemplateTransformationFromConfig": "TestTemplateTransformationFromConfig [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex][Feature:Templates] template-api TestTemplateTransformationFromConfig [apigroup:template.openshift.io]": "TestTemplateTransformationFromConfig [apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:Templates] templateinstance creation with invalid object reports error  should report a failure on creation": "should report a failure on creation [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex][Feature:Templates] templateinstance creation with invalid object reports error  should report a failure on creation [apigroup:template.openshift.io]": "should report a failure on creation [apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:Templates] templateinstance cross-namespace test should create and delete objects across namespaces": "should create and delete objects across namespaces [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex][Feature:Templates] templateinstance cross-namespace test should create and delete objects across namespaces [apigroup:user.openshift.io][apigroup:template.openshift.io]": "should create and delete objects across namespaces [apigroup:user.openshift.io][apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:Templates] templateinstance impersonation tests should pass impersonation creation tests": "should pass impersonation creation tests [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex][Feature:Templates] templateinstance impersonation tests [apigroup:user.openshift.io][apigroup:authorization.openshift.io] should pass impersonation creation tests [apigroup:template.openshift.io]": "should pass impersonation creation tests [apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:Templates] templateinstance impersonation tests should pass impersonation deletion tests": "should pass impersonation deletion tests [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex][Feature:Templates] templateinstance impersonation tests [apigroup:user.openshift.io][apigroup:authorization.openshift.io] should pass impersonation deletion tests [apigroup:template.openshift.io]": "should pass impersonation deletion tests [apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:Templates] templateinstance impersonation tests should pass impersonation update tests": "should pass impersonation update tests [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex][Feature:Templates] templateinstance impersonation tests [apigroup:user.openshift.io][apigroup:authorization.openshift.io] should pass impersonation update tests [apigroup:template.openshift.io]": "should pass impersonation update tests [apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:Templates] templateinstance object kinds test should create and delete objects from varying API groups": "should create and delete objects from varying API groups [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex][Feature:Templates] templateinstance object kinds test should create and delete objects from varying API groups [apigroup:template.openshift.io][apigroup:route.openshift.io]": "should create and delete objects from varying API groups [apigroup:template.openshift.io][apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:Templates] templateinstance readiness test  should report failed soon after an annotated objects has failed": "should report failed soon after an annotated objects has failed [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex][Feature:Templates] templateinstance readiness test  should report failed soon after an annotated objects has failed [apigroup:template.openshift.io][apigroup:build.openshift.io]": "should report failed soon after an annotated objects has failed [apigroup:template.openshift.io][apigroup:build.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:Templates] templateinstance readiness test  should report ready soon after all annotated objects are ready": "should report ready soon after all annotated objects are ready [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex][Feature:Templates] templateinstance readiness test  should report ready soon after all annotated objects are ready [apigroup:template.openshift.io][apigroup:build.openshift.io]": "should report ready soon after all annotated objects are ready [apigroup:template.openshift.io][apigroup:build.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:Templates] templateinstance security tests  should pass security tests": "should pass security tests [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex][Feature:Templates] templateinstance security tests [apigroup:authorization.openshift.io][apigroup:template.openshift.io] should pass security tests [apigroup:route.openshift.io]": "should pass security tests [apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:Templates] templateservicebroker bind test  should pass bind tests": "should pass bind tests [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex][Feature:Templates] templateservicebroker bind test [apigroup:authorization.openshift.io][apigroup:template.openshift.io] should pass bind tests": "should pass bind tests [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:Templates] templateservicebroker end-to-end test  should pass an end-to-end test": "should pass an end-to-end test [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex][Feature:Templates] templateservicebroker end-to-end test [apigroup:template.openshift.io][apigroup:authorization.openshift.io]  should pass an end-to-end test": "should pass an end-to-end test [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:Templates] templateservicebroker security test  should pass security tests": "should pass security tests [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex][Feature:Templates] templateservicebroker security test [apigroup:template.openshift.io][apigroup:authorization.openshift.io]  should pass security tests": "should pass security tests [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-etcd] etcd cluster has the same number of master nodes and voting members from the endpoints configmap [Early]": "cluster has the same number of master nodes and voting members from the endpoints configmap [Early] [Suite:openshift/conformance/parallel]",
 
@@ -2151,21 +2151,21 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should have a AlertmanagerReceiversNotConfigured alert in firing state": "should have a AlertmanagerReceiversNotConfigured alert in firing state [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should have important platform topology metrics": "should have important platform topology metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should have important platform topology metrics [apigroup:config.openshift.io]": "should have important platform topology metrics [apigroup:config.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should have non-Pod host cAdvisor metrics": "should have non-Pod host cAdvisor metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should provide ingress metrics": "should provide ingress metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should provide named network metrics": "should provide named network metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should provide named network metrics [apigroup:project.openshift.io]": "should provide named network metrics [apigroup:project.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should report telemetry if a cloud.openshift.com token is present [Late]": "should report telemetry if a cloud.openshift.com token is present [Late] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should start and expose a secured proxy and unsecured metrics": "should start and expose a secured proxy and unsecured metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should start and expose a secured proxy and unsecured metrics [apigroup:config.openshift.io]": "should start and expose a secured proxy and unsecured metrics [apigroup:config.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster shouldn't have failing rules evaluation": "shouldn't have failing rules evaluation [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early]": "shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io]": "shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster when using openshift-sdn should be able to get the sdn ovs flows": "should be able to get the sdn ovs flows [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
@@ -2183,27 +2183,27 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't exceed the 650 series limit of total series sent via telemetry from each cluster": "shouldn't exceed the 650 series limit of total series sent via telemetry from each cluster [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't report any unexpected alerts in firing or pending state": "shouldn't report any unexpected alerts in firing or pending state [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation][Late] Alerts shouldn't report any unexpected alerts in firing or pending state [apigroup:config.openshift.io]": "shouldn't report any unexpected alerts in firing or pending state [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation][Late] OpenShift alerting rules should have a runbook_url annotation if the alert is critical": "should have a runbook_url annotation if the alert is critical [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io] should have a runbook_url annotation if the alert is critical": "should have a runbook_url annotation if the alert is critical [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation][Late] OpenShift alerting rules should have a valid severity label": "should have a valid severity label [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io] should have a valid severity label": "should have a valid severity label [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation][Late] OpenShift alerting rules should have description and summary annotations": "should have description and summary annotations [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io] should have description and summary annotations": "should have description and summary annotations [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation][sig-builds][Feature:Builds] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics": "should start and expose a secured proxy and verify build metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation][sig-builds][Feature:Builds] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics [apigroup:config.openshift.io][apigroup:build.openshift.io]": "should start and expose a secured proxy and verify build metrics [apigroup:config.openshift.io][apigroup:build.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network-edge] DNS should answer A and AAAA queries for a dual-stack service": "should answer A and AAAA queries for a dual-stack service [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network-edge] DNS should answer endpoint and wildcard queries for the cluster": "should answer endpoint and wildcard queries for the cluster [Disabled:Broken]",
 
-	"[Top Level] [sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should be able to connect to a service that is idled because a GET on the route will unidle it": "should be able to connect to a service that is idled because a GET on the route will unidle it [Skipped:Disconnected] [Suite:openshift/conformance/parallel/minimal]",
+	"[Top Level] [sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should be able to connect to a service that is idled because a GET on the route will unidle it [apigroup:config.openshift.io][apigroup:template.openshift.io]": "should be able to connect to a service that is idled because a GET on the route will unidle it [apigroup:config.openshift.io][apigroup:template.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel/minimal]",
 
-	"[Top Level] [sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should pass the gRPC interoperability tests": "should pass the gRPC interoperability tests [Suite:openshift/conformance/parallel/minimal]",
+	"[Top Level] [sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should pass the gRPC interoperability tests [apigroup:config.openshift.io][apigroup:route.openshift.io][apigroup:template.openshift.io]": "should pass the gRPC interoperability tests [apigroup:config.openshift.io][apigroup:route.openshift.io][apigroup:template.openshift.io] [Suite:openshift/conformance/parallel/minimal]",
 
-	"[Top Level] [sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should pass the h2spec conformance tests": "should pass the h2spec conformance tests [Suite:openshift/conformance/parallel/minimal]",
+	"[Top Level] [sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io] The HAProxy router should pass the h2spec conformance tests [apigroup:config.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:security.openshift.io][apigroup:template.openshift.io]": "should pass the h2spec conformance tests [apigroup:config.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:security.openshift.io][apigroup:template.openshift.io] [Suite:openshift/conformance/parallel/minimal]",
 
-	"[Top Level] [sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should pass the http2 tests": "should pass the http2 tests [Suite:openshift/conformance/parallel/minimal]",
+	"[Top Level] [sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router should pass the http2 tests [apigroup:image.openshift.io][apigroup:template.openshift.io]": "should pass the http2 tests [apigroup:image.openshift.io][apigroup:template.openshift.io] [Suite:openshift/conformance/parallel/minimal]",
 
 	"[Top Level] [sig-network-edge][Feature:Idling] Idling with a single service and DeploymentConfig should idle the service and DeploymentConfig properly": "should idle the service and DeploymentConfig properly [Disabled:Broken]",
 
@@ -2761,7 +2761,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] services when running openshift ipv4 cluster ensures external ip policy is configured correctly on the cluster [Serial]": "ensures external ip policy is configured correctly on the cluster [Serial] [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [sig-network] services when running openshift ipv4 cluster on bare metal ensures external auto assign cidr is configured correctly on the cluster [Serial]": "ensures external auto assign cidr is configured correctly on the cluster [Serial] [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-network] services when running openshift ipv4 cluster on bare metal [apigroup:config.openshift.io] ensures external auto assign cidr is configured correctly on the cluster [Serial]": "ensures external auto assign cidr is configured correctly on the cluster [Serial] [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-network] services when using a plugin in a mode that does not isolate namespaces by default should allow connections to pods in different namespaces on different nodes via service IPs": "should allow connections to pods in different namespaces on different nodes via service IPs [Suite:openshift/conformance/parallel]",
 
@@ -2779,69 +2779,69 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] services when using a plugin in a mode that isolates namespaces by default should prevent connections to pods in different namespaces on the same node via service IPs": "should prevent connections to pods in different namespaces on the same node via service IPs [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:EgressFirewall] egressFirewall should have no impact outside its namespace": "egressFirewall should have no impact outside its namespace [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:EgressFirewall] egressFirewall should have no impact outside its namespace [apigroup:config.openshift.io]": "egressFirewall should have no impact outside its namespace [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network][Feature:EgressFirewall] when using openshift ovn-kubernetes should ensure egressfirewall is created": "should ensure egressfirewall is created [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:EgressFirewall] when using openshift-sdn should ensure egressnetworkpolicy is created": "should ensure egressnetworkpolicy is created [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:EgressFirewall] when using openshift-sdn should ensure egressnetworkpolicy is created [apigroup:network.openshift.io]": "should ensure egressnetworkpolicy is created [apigroup:network.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:EgressIP] [external-targets] EgressIPs can be assigned automatically [Skipped:Network/OVNKubernetes]": "EgressIPs can be assigned automatically [Skipped:Network/OVNKubernetes] [Serial] [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-network][Feature:EgressIP][apigroup:config.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] EgressIPs can be assigned automatically [Skipped:Network/OVNKubernetes]": "EgressIPs can be assigned automatically [Skipped:Network/OVNKubernetes] [Serial] [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [sig-network][Feature:EgressIP] [external-targets] only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN]": "only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN] [Serial] [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-network][Feature:EgressIP][apigroup:config.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN]": "only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN] [Serial] [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [sig-network][Feature:EgressIP] [external-targets] pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure]": "pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure] [Serial] [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-network][Feature:EgressIP][apigroup:config.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure][apigroup:route.openshift.io]": "pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure][apigroup:route.openshift.io] [Serial] [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [sig-network][Feature:EgressIP] [external-targets] pods should have the assigned EgressIPs and EgressIPs can be updated [Skipped:Network/OpenShiftSDN]": "pods should have the assigned EgressIPs and EgressIPs can be updated [Skipped:Network/OpenShiftSDN] [Serial] [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-network][Feature:EgressIP][apigroup:config.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should have the assigned EgressIPs and EgressIPs can be updated [Skipped:Network/OpenShiftSDN]": "pods should have the assigned EgressIPs and EgressIPs can be updated [Skipped:Network/OpenShiftSDN] [Serial] [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [sig-network][Feature:EgressIP] [external-targets] pods should keep the assigned EgressIPs when being rescheduled to another node": "pods should keep the assigned EgressIPs when being rescheduled to another node [Serial] [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-network][Feature:EgressIP][apigroup:config.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should keep the assigned EgressIPs when being rescheduled to another node": "pods should keep the assigned EgressIPs when being rescheduled to another node [Serial] [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [sig-network][Feature:EgressIP] [internal-targets] EgressIP pods should query hostNetwork pods with the local node's SNAT": "EgressIP pods should query hostNetwork pods with the local node's SNAT [Disabled:Broken] [Serial]",
+	"[Top Level] [sig-network][Feature:EgressIP][apigroup:config.openshift.io] [internal-targets] EgressIP pods should query hostNetwork pods with the local node's SNAT": "EgressIP pods should query hostNetwork pods with the local node's SNAT [Serial] [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [sig-network][Feature:EgressRouterCNI] should ensure ipv4 egressrouter cni resources are created": "should ensure ipv4 egressrouter cni resources are created [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:EgressRouterCNI] should ensure ipv4 egressrouter cni resources are created [apigroup:operator.openshift.io]": "should ensure ipv4 egressrouter cni resources are created [apigroup:operator.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:EgressRouterCNI] when using openshift ovn-kubernetes should ensure ipv6 egressrouter cni resources are created": "should ensure ipv6 egressrouter cni resources are created [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:EgressRouterCNI] when using openshift ovn-kubernetes should ensure ipv6 egressrouter cni resources are created [apigroup:operator.openshift.io]": "should ensure ipv6 egressrouter cni resources are created [apigroup:operator.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network][Feature:Multus] should use multus to create net1 device from network-attachment-definition": "should use multus to create net1 device from network-attachment-definition [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Network Policy Audit logging] when using openshift ovn-kubernetes should ensure acl logs are created and correct": "should ensure acl logs are created and correct [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Network Policy Audit logging] when using openshift ovn-kubernetes should ensure acl logs are created and correct [apigroup:project.openshift.io][apigroup:network.openshift.io]": "should ensure acl logs are created and correct [apigroup:project.openshift.io][apigroup:network.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] The HAProxy router converges when multiple routers are writing conflicting status": "converges when multiple routers are writing conflicting status [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:config.openshift.io] The HAProxy router should enable openshift-monitoring to pull metrics": "should enable openshift-monitoring to pull metrics [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] The HAProxy router converges when multiple routers are writing status": "converges when multiple routers are writing status [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:config.openshift.io] The HAProxy router should expose a health check on the metrics port": "should expose a health check on the metrics port [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] The HAProxy router reports the expected host names in admitted routes' statuses": "reports the expected host names in admitted routes' statuses [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:config.openshift.io] The HAProxy router should expose prometheus metrics for a route [apigroup:route.openshift.io]": "should expose prometheus metrics for a route [apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] The HAProxy router should enable openshift-monitoring to pull metrics": "should enable openshift-monitoring to pull metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:config.openshift.io] The HAProxy router should expose the profiling endpoints": "should expose the profiling endpoints [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] The HAProxy router should expose a health check on the metrics port": "should expose a health check on the metrics port [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:config.openshift.io][apigroup:image.openshift.io] The HAProxy router should serve a route that points to two services and respect weights": "should serve a route that points to two services and respect weights [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] The HAProxy router should expose prometheus metrics for a route": "should expose prometheus metrics for a route [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:config.openshift.io][apigroup:operator.openshift.io][apigroup:apps.openshift.io] The HAProxy router should set Forwarded headers appropriately": "should set Forwarded headers appropriately [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] The HAProxy router should expose the profiling endpoints": "should expose the profiling endpoints [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:operator.openshift.io][apigroup:apps.openshift.io] The HAProxy router should respond with 503 to unrecognized hosts": "should respond with 503 to unrecognized hosts [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] The HAProxy router should override the route host for overridden domains with a custom value": "should override the route host for overridden domains with a custom value [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:operator.openshift.io][apigroup:apps.openshift.io] The HAProxy router should serve routes that were created from an ingress [apigroup:route.openshift.io]": "should serve routes that were created from an ingress [apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] The HAProxy router should override the route host with a custom value": "should override the route host with a custom value [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router converges when multiple routers are writing conflicting status": "converges when multiple routers are writing conflicting status [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] The HAProxy router should respond with 503 to unrecognized hosts": "should respond with 503 to unrecognized hosts [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router converges when multiple routers are writing status": "converges when multiple routers are writing status [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] The HAProxy router should run even if it has no access to update status": "should run even if it has no access to update status [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:route.openshift.io] when FIPS is disabled the HAProxy router should serve routes when configured with a 1024-bit RSA key [apigroup:template.openshift.io]": "should serve routes when configured with a 1024-bit RSA key [apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] The HAProxy router should serve a route that points to two services and respect weights": "should serve a route that points to two services and respect weights [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:route.openshift.io] when FIPS is enabled the HAProxy router should not work when configured with a 1024-bit RSA key [apigroup:template.openshift.io]": "should not work when configured with a 1024-bit RSA key [apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] The HAProxy router should serve routes that were created from an ingress": "should serve routes that were created from an ingress [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router reports the expected host names in admitted routes' statuses": "reports the expected host names in admitted routes' statuses [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] The HAProxy router should serve the correct routes when running with the haproxy config manager": "should serve the correct routes when running with the haproxy config manager [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router should serve the correct routes when running with the haproxy config manager": "should serve the correct routes when running with the haproxy config manager [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] The HAProxy router should serve the correct routes when scoped to a single namespace and label set": "should serve the correct routes when scoped to a single namespace and label set [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:template.openshift.io] The HAProxy router should run even if it has no access to update status [apigroup:image.openshift.io]": "should run even if it has no access to update status [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] The HAProxy router should set Forwarded headers appropriately": "should set Forwarded headers appropriately [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:operator.openshift.io][apigroup:apps.openshift.io] The HAProxy router should support reencrypt to services backed by a serving certificate automatically": "should support reencrypt to services backed by a serving certificate automatically [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] The HAProxy router should support reencrypt to services backed by a serving certificate automatically": "should support reencrypt to services backed by a serving certificate automatically [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:template.openshift.io] The HAProxy router should override the route host for overridden domains with a custom value [apigroup:image.openshift.io]": "should override the route host for overridden domains with a custom value [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] when FIPS is disabled the HAProxy router should serve routes when configured with a 1024-bit RSA key": "should serve routes when configured with a 1024-bit RSA key [Feature:Networking-IPv4] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:template.openshift.io] The HAProxy router should override the route host with a custom value": "should override the route host with a custom value [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][Feature:Router] when FIPS is enabled the HAProxy router should not work when configured with a 1024-bit RSA key": "should not work when configured with a 1024-bit RSA key [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:template.openshift.io] The HAProxy router should serve the correct routes when scoped to a single namespace and label set": "should serve the correct routes when scoped to a single namespace and label set [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network][Feature:Whereabouts] should assign unique IP addresses to each pod in the event of a race condition case": "should assign unique IP addresses to each pod in the event of a race condition case [Suite:openshift/conformance/parallel]",
 
@@ -2859,9 +2859,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network][Feature:tuning] pod sysctls should not affect node": "pod sysctls should not affect node [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][endpoints] admission blocks manual creation of EndpointSlices pointing to the cluster or service network": "blocks manual creation of EndpointSlices pointing to the cluster or service network [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][endpoints] admission [apigroup:config.openshift.io] blocks manual creation of EndpointSlices pointing to the cluster or service network": "blocks manual creation of EndpointSlices pointing to the cluster or service network [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-network][endpoints] admission blocks manual creation of Endpoints pointing to the cluster or service network": "blocks manual creation of Endpoints pointing to the cluster or service network [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-network][endpoints] admission [apigroup:config.openshift.io] blocks manual creation of Endpoints pointing to the cluster or service network": "blocks manual creation of Endpoints pointing to the cluster or service network [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-node] AppArmor load AppArmor profiles can disable an AppArmor profile, using unconfined": "can disable an AppArmor profile, using unconfined [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -3203,7 +3203,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-node] should override timeoutGracePeriodSeconds when annotation is set": "should override timeoutGracePeriodSeconds when annotation is set [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-node] supplemental groups Ensure supplemental groups propagate to docker should propagate requested groups to the container [Local]": "should propagate requested groups to the container [Local]",
+	"[Top Level] [sig-node] supplemental groups Ensure supplemental groups propagate to docker should propagate requested groups to the container [Local][apigroup:user.openshift.io][apigroup:security.openshift.io]": "should propagate requested groups to the container [Local][apigroup:user.openshift.io][apigroup:security.openshift.io]",
 
 	"[Top Level] [sig-node][Late] should not have pod creation failures due to systemd timeouts": "should not have pod creation failures due to systemd timeouts [Suite:openshift/conformance/parallel]",
 
@@ -3221,11 +3221,11 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-operator] OLM should be installed with subscriptions at version v1alpha1": "be installed with subscriptions at version v1alpha1 [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-operator] OLM should have imagePullPolicy:IfNotPresent on thier deployments": "have imagePullPolicy:IfNotPresent on thier deployments [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] OLM should have imagePullPolicy:IfNotPresent on thier deployments [apigroup:config.openshift.io]": "have imagePullPolicy:IfNotPresent on thier deployments [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-operator] an end user can use OLM Report Upgradeable in OLM ClusterOperators status": "Report Upgradeable in OLM ClusterOperators status [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-operator] an end user can use OLM can subscribe to the operator": "can subscribe to the operator [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] an end user can use OLM can subscribe to the operator [apigroup:config.openshift.io]": "can subscribe to the operator [apigroup:config.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-scalability][Feature:Performance] Load cluster should populate the cluster [Slow][Serial]": "should populate the cluster [Slow][Serial]",
 
