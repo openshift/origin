@@ -30,7 +30,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel("scc", admissionapi.LevelPrivileged)
 	ctx := context.Background()
 
-	g.It("TestPodUpdateSCCEnforcement", func() {
+	g.It("TestPodUpdateSCCEnforcement [apigroup:user.openshift.io][apigroup:authorization.openshift.io]", func() {
 		t := g.GinkgoT()
 
 		clusterAdminKubeClientset := oc.AdminKubeClient()
@@ -92,7 +92,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	// pods running as root are being started here
 	oc := exutil.NewCLIWithPodSecurityLevel("scc", admissionapi.LevelPrivileged)
 
-	g.It("TestAllowedSCCViaRBAC", func() {
+	g.It("TestAllowedSCCViaRBAC [apigroup:project.openshift.io][apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:security.openshift.io]", func() {
 		t := g.GinkgoT()
 
 		clusterAdminKubeClientset := oc.AdminKubeClient()

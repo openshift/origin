@@ -79,7 +79,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance security tes
 		}
 	)
 
-	g.Context("", func() {
+	g.Context("[apigroup:authorization.openshift.io][apigroup:template.openshift.io]", func() {
 		g.BeforeEach(func() {
 			adminuser = createUser(cli, "adminuser", "admin")
 			edituser = createUser(cli, "edituser", "edit")
@@ -127,7 +127,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance security tes
 			deleteGroup(cli, editgroup)
 		})
 
-		g.It("should pass security tests", func() {
+		g.It("should pass security tests [apigroup:route.openshift.io]", func() {
 			tests := []struct {
 				by              string
 				user            *userv1.User
