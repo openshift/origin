@@ -251,6 +251,15 @@ func (c CLI) WithToken(token string) *CLI {
 // All resources will be then created within this project.
 // Returns the name of the new project.
 func (c *CLI) SetupProject() string {
+	exist, err := DoesApiResourceExist(c, "projects")
+	o.Expect(err).ToNot(o.HaveOccurred())
+	if exist {
+		return c.setupProject()
+	}
+	return c.setupNamespace()
+}
+
+func (c *CLI) setupProject() string {
 	requiresTestStart()
 	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
 	c.SetNamespace(newNamespace).ChangeUser(fmt.Sprintf("%s-user", newNamespace))
@@ -291,7 +300,7 @@ func (c *CLI) SetupProject() string {
 	}
 	for _, sa := range DefaultServiceAccounts {
 		framework.Logf("Waiting for ServiceAccount %q to be provisioned...", sa)
-		err = WaitForServiceAccount(c.KubeClient().CoreV1().ServiceAccounts(newNamespace), sa)
+		err = WaitForServiceAccountWithSecret(c.KubeClient().CoreV1().ServiceAccounts(newNamespace), sa)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
@@ -334,6 +343,47 @@ func (c *CLI) SetupProject() string {
 	WaitForProjectSCCAnnotations(c.ProjectClient().ProjectV1(), newNamespace)
 
 	framework.Logf("Project %q has been fully provisioned.", newNamespace)
+	return newNamespace
+}
+
+func (c *CLI) setupNamespace() string {
+	requiresTestStart()
+	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
+	c.SetNamespace(newNamespace).ChangeUser(fmt.Sprintf("%s-user", newNamespace))
+
+	nsObject := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: newNamespace,
+		},
+	}
+	framework.Logf("Creating namespace %q", newNamespace)
+	_, err := c.AdminKubeClient().CoreV1().Namespaces().Create(context.Background(), nsObject, metav1.CreateOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	c.kubeFramework.AddNamespacesToDelete(nsObject)
+
+	framework.Logf("Waiting on permissions in namespace %q ...", newNamespace)
+	err = WaitForSelfSAR(1*time.Second, 60*time.Second, c.AdminKubeClient(), kubeauthorizationv1.SelfSubjectAccessReviewSpec{
+		ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
+			Namespace: newNamespace,
+			Verb:      "create",
+			Group:     "",
+			Resource:  "pods",
+		},
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	err = c.setupNamespacePodSecurity(newNamespace)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	serviceAccountName := "default"
+	framework.Logf("Waiting for ServiceAccount %q to be provisioned...", serviceAccountName)
+	err = WaitForServiceAccount(c.KubeClient().CoreV1().ServiceAccounts(newNamespace), serviceAccountName)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	WaitForNamespaceSCCAnnotations(c.KubeClient().CoreV1(), newNamespace)
+
+	framework.Logf("Namespace %q has been fully provisioned.", newNamespace)
 	return newNamespace
 }
 
@@ -770,6 +820,16 @@ func (c *CLI) CreateUser(prefix string) *userv1.User {
 }
 
 func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
+
+	userAPIExists, err := DoesApiResourceExist(c, "users")
+	if err != nil {
+		FatalErr(err)
+	}
+
+	if !userAPIExists {
+		return turnOffRateLimiting(rest.CopyConfig(c.AdminConfig()))
+	}
+
 	ctx := context.Background()
 	userClient := c.AdminUserClient()
 

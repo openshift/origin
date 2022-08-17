@@ -1018,32 +1018,60 @@ func CheckBuildCancelled(b *buildv1.Build) bool {
 	return b.Status.Phase == buildv1.BuildPhaseCancelled
 }
 
-// WaitForServiceAccount waits until the named service account gets fully
-// provisioned
+func getServiceAccount(c corev1client.ServiceAccountInterface, name string) (*corev1.ServiceAccount, error) {
+	sc, err := c.Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		if kapierrs.IsNotFound(err) || kapierrs.IsForbidden(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return sc, nil
+}
+
+func serviceAccountContainsPullSecret(sa *corev1.ServiceAccount) bool {
+	hasDockerCfg := false
+	for _, s := range sa.ImagePullSecrets {
+		if strings.Contains(s.Name, "-dockercfg-") {
+			hasDockerCfg = true
+		}
+	}
+	return hasDockerCfg
+}
+
+// WaitForServiceAccountWithSecret waits until the named service account gets fully
+// provisioned. without dockercfg secrets
 func WaitForServiceAccount(c corev1client.ServiceAccountInterface, name string) error {
 	waitFn := func() (bool, error) {
-		sc, err := c.Get(context.Background(), name, metav1.GetOptions{})
+		sa, err := getServiceAccount(c, name)
 		if err != nil {
-			// If we can't access the service accounts, let's wait till the controller
-			// create it.
-			if kapierrs.IsNotFound(err) || kapierrs.IsForbidden(err) {
-				e2e.Logf("Waiting for service account %q to be available: %v (will retry) ...", name, err)
-				return false, nil
-			}
 			return false, fmt.Errorf("Failed to get service account %q: %v", name, err)
 		}
-		secretNames := []string{}
-		var hasDockercfg bool
-		for _, s := range sc.ImagePullSecrets {
-			if strings.Contains(s.Name, "-dockercfg-") {
-				hasDockercfg = true
-			}
-			secretNames = append(secretNames, s.Name)
+		if sa == nil {
+			e2e.Logf("Waiting for service account %q to be available: %v (will retry) ...", name, err)
+			return false, nil
 		}
-		if hasDockercfg {
+		return true, nil
+	}
+	return wait.Poll(100*time.Millisecond, 3*time.Minute, waitFn)
+}
+
+// WaitForServiceAccountWithSecret waits until the named service account gets fully
+// provisioned, including dockercfg secrets
+func WaitForServiceAccountWithSecret(c corev1client.ServiceAccountInterface, name string) error {
+	waitFn := func() (bool, error) {
+		sa, err := getServiceAccount(c, name)
+		if err != nil {
+			return false, fmt.Errorf("Failed to get service account %q: %v", name, err)
+		}
+		if sa == nil {
+			e2e.Logf("Waiting for service account %q to be available: %v (will retry) ...", name, err)
+			return false, nil
+		}
+		if serviceAccountContainsPullSecret(sa) {
 			return true, nil
 		}
-		e2e.Logf("Waiting for service account %q secrets (%s) to include dockercfg ...", name, strings.Join(secretNames, ","))
+		e2e.Logf("Waiting for service account %q secrets to include dockercfg ...", name)
 		return false, nil
 	}
 	return wait.Poll(100*time.Millisecond, 3*time.Minute, waitFn)
