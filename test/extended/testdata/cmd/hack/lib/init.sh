@@ -80,3 +80,7 @@ export KUBECONFIG=/kubeconfig
 
 namespace="cmd-${TEST_NAME}"
 oc new-project "${namespace}"
+
+oc label namespace ${namespace} --overwrite \
+  pod-security.kubernetes.io/enforce=baseline \
+  security.openshift.io/scc.podSecurityLabelSync=false
