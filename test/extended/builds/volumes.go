@@ -59,7 +59,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] build volumes", func()
 			}
 		})
 
-		g.It("should mount given secrets and configmaps into the build pod for source strategy builds", func() {
+		g.It("should mount given secrets and configmaps into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
 			g.By("creating an imagestream")
 			err := oc.Run("create").Args("-f", s2iImageStream).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -97,7 +97,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] build volumes", func()
 			o.Expect(out).To(o.ContainSubstring("cat: /var/run/configmaps/some-configmap/key: No such file or directory"))
 		})
 
-		g.It("should mount given secrets and configmaps into the build pod for docker strategy builds", func() {
+		g.It("should mount given secrets and configmaps into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
 			g.By("creating an imagestream")
 			err := oc.Run("create").Args("-f", dockerImageStream).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -147,7 +147,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 		csiDockerBuildConfig = filepath.Join(baseDir, "csi-docker-buildconfig.yaml")
 	)
 
-	g.Context("", func() {
+	g.Context("[apigroup:config.openshift.io]", func() {
 		g.BeforeEach(func() {
 			exutil.PreTestDump()
 		})
@@ -166,7 +166,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 			}
 		})
 
-		g.It("should fail mounting given csi shared resource secret into the build pod for source strategy builds", func() {
+		g.It("should fail mounting given csi shared resource secret into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
 			g.By("creating an imagestream")
 			err := oc.Run("create").Args("-f", s2iImageStream).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -187,7 +187,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 			o.Expect(build.Status.Message).To(o.ContainSubstring("Failed to create pod spec"))
 
 		})
-		g.It("should fail mounting given csi shared resource secret into the build pod for docker strategy builds", func() {
+		g.It("should fail mounting given csi shared resource secret into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
 			g.By("creating an imagestream")
 			err := oc.Run("create").Args("-f", dockerImageStream).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -230,7 +230,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 		csiWithoutResourceRefreshDockerBuildConfig = filepath.Join(baseDir, "csi-without-rr-docker-buildconfig.yaml")
 	)
 
-	g.Context("", func() {
+	g.Context("[apigroup:config.openshift.io]", func() {
 		g.BeforeEach(func() {
 			exutil.PreTestDump()
 		})
@@ -274,7 +274,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 			}
 		})
 
-		g.It("should mount given csi shared resource secret into the build pod for source strategy builds", func() {
+		g.It("should mount given csi shared resource secret into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
 			g.By("creating an imagestream")
 			err := oc.Run("create").Args("-f", s2iImageStream).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -306,7 +306,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 			o.Expect(out).To(o.ContainSubstring("cat: /var/run/secrets/some-secret/key: No such file or directory"))
 		})
 
-		g.It("should mount given csi shared resource secret without resource refresh into the build pod for source strategy builds", func() {
+		g.It("should mount given csi shared resource secret without resource refresh into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
 			g.By("creating an imagestream")
 			err := oc.Run("create").Args("-f", s2iImageStream).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -338,7 +338,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 			o.Expect(out).To(o.ContainSubstring("cat: /var/run/secrets/some-secret/key: No such file or directory"))
 		})
 
-		g.It("should mount given csi shared resource secret into the build pod for docker strategy builds", func() {
+		g.It("should mount given csi shared resource secret into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
 			g.By("creating an imagestream")
 			err := oc.Run("create").Args("-f", dockerImageStream).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -370,7 +370,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 			o.Expect(out).To(o.ContainSubstring("cat: /var/run/secrets/some-secret/key: No such file or directory"))
 		})
 
-		g.It("should mount given csi shared resource secret without resource refresh into the build pod for docker strategy builds", func() {
+		g.It("should mount given csi shared resource secret without resource refresh into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
 			g.By("creating an imagestream")
 			err := oc.Run("create").Args("-f", dockerImageStream).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())

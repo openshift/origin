@@ -240,7 +240,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 
 		})
 
-		g.Context("build config no ocm rollout", func() {
+		g.Context("build config no ocm rollout [apigroup:config.openshift.io]", func() {
 			g.AfterEach(func() {
 				g.By("reset build cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
@@ -251,7 +251,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 
-			g.It("Apply default proxy configuration to source build pod through env vars", func() {
+			g.It("Apply default proxy configuration to source build pod through env vars [apigroup:build.openshift.io]", func() {
 				g.By("apply proxy cluster configuration")
 				err := oc.AsAdmin().Run("apply").Args("-f", invalidproxyConfigFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -276,7 +276,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 				checkPodProxyEnvs(pod.Spec.InitContainers, buildConfig.Spec.BuildDefaults.DefaultProxy)
 			})
 
-			g.It("Apply default proxy configuration to docker build pod through env vars", func() {
+			g.It("Apply default proxy configuration to docker build pod through env vars [apigroup:build.openshift.io]", func() {
 				g.By("apply proxy cluster configuration")
 				err := oc.AsAdmin().Run("apply").Args("-f", invalidproxyConfigFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -302,7 +302,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			})
 
 			// this replaces coverage from the TestBuildDefaultGitHTTPProxy and TestBuildDefaultGitHTTPSProxy integration test
-			g.It("Apply git proxy configuration to build pod", func() {
+			g.It("Apply git proxy configuration to build pod [apigroup:build.openshift.io]", func() {
 				g.By("apply proxy cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -341,7 +341,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			})
 		})
 
-		g.Context("build config with ocm rollout", func() {
+		g.Context("build config with ocm rollout [apigroup:config.openshift.io]", func() {
 
 			g.AfterEach(func() {
 				g.By("reset build cluster configuration")
@@ -463,7 +463,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 			})
 
 			// this replaces coverage from the TestBuildOverrideLabels integration test
-			g.It("Apply override image label configuration to build pod", func() {
+			g.It("Apply override image label configuration to build pod [apigroup:build.openshift.io]", func() {
 				g.By("apply label cluster configuration")
 				buildConfig, err := oc.AdminConfigClient().ConfigV1().Builds().Get(context.Background(), "cluster", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())

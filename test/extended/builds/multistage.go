@@ -42,7 +42,7 @@ COPY --from=%[2]s /bin/ping /test/
 		}
 	})
 
-	g.It("should succeed", func() {
+	g.It("should succeed [apigroup:build.openshift.io]", func() {
 		g.By("creating a build directly")
 		registryURL, err := eximages.GetDockerRegistryURL(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())

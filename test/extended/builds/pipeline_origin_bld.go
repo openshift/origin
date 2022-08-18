@@ -89,7 +89,7 @@ var _ = g.Describe("[sig-builds][Feature:JenkinsRHELImagesOnly][Feature:Jenkins]
 	g.Context("", func() {
 
 		g.Describe("jenkins pipeline build config strategy", func() {
-			g.It("using a jenkins instance launched with the ephemeral template", func() {
+			g.It("using a jenkins instance launched with the ephemeral template [apigroup:build.openshift.io]", func() {
 				defer cleanup()
 				setupJenkins()
 

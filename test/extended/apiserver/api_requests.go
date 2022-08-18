@@ -25,7 +25,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 
 	oc := exutil.NewCLIWithoutNamespace("api-requests")
 
-	g.It("clients should not use APIs that are removed in upcoming releases", func() {
+	g.It("clients should not use APIs that are removed in upcoming releases [apigroup:config.openshift.io]", func() {
 		ctx := context.Background()
 		apirequestCountClient, err := apiserverclientv1.NewForConfig(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -91,7 +91,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		}
 	})
 
-	g.It("operators should not create watch channels very often", func() {
+	g.It("operators should not create watch channels very often [apigroup:config.openshift.io]", func() {
 		ctx := context.Background()
 		apirequestCountClient, err := apiserverclientv1.NewForConfig(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())

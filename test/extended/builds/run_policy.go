@@ -3,10 +3,11 @@ package builds
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/validation"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/validation"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -58,7 +59,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 		})
 
 		g.Describe("build configuration with Parallel build run policy", func() {
-			g.It("runs the builds in parallel", func() {
+			g.It("runs the builds in parallel [apigroup:build.openshift.io]", func() {
 				g.By("starting multiple builds")
 				var (
 					startedBuilds []string
@@ -137,7 +138,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 		})
 
 		g.Describe("build configuration with Serial build run policy", func() {
-			g.It("runs the builds in serial order", func() {
+			g.It("runs the builds in serial order [apigroup:build.openshift.io]", func() {
 				g.By("starting multiple builds")
 				var (
 					startedBuilds []string
@@ -216,7 +217,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 		})
 
 		g.Describe("build configuration with Serial build run policy handling cancellation", func() {
-			g.It("starts the next build immediately after one is canceled", func() {
+			g.It("starts the next build immediately after one is canceled [apigroup:build.openshift.io]", func() {
 				g.By("starting multiple builds")
 				bcName := "sample-serial-build"
 
@@ -265,7 +266,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 		})
 
 		g.Describe("build configuration with Serial build run policy handling failure", func() {
-			g.It("starts the next build immediately after one fails", func() {
+			g.It("starts the next build immediately after one fails [apigroup:build.openshift.io]", func() {
 				g.By("starting multiple builds")
 				bcName := "sample-serial-build-fail"
 
@@ -345,7 +346,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 		})
 
 		g.Describe("build configuration with Serial build run policy handling deletion", func() {
-			g.It("starts the next build immediately after running one is deleted", func() {
+			g.It("starts the next build immediately after running one is deleted [apigroup:build.openshift.io]", func() {
 				g.By("starting multiple builds")
 
 				bcName := "sample-serial-build"
@@ -403,7 +404,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 		})
 
 		g.Describe("build configuration with SerialLatestOnly build run policy", func() {
-			g.It("runs the builds in serial order but cancel previous builds", func() {
+			g.It("runs the builds in serial order but cancel previous builds [apigroup:build.openshift.io]", func() {
 				g.By("starting multiple builds")
 				var (
 					startedBuilds        []string

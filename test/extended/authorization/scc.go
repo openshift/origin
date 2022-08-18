@@ -6,14 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/blang/semver"
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
-	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 var _ = g.Describe("[sig-auth][Feature:SCC][Early]", func() {
@@ -24,30 +21,8 @@ var _ = g.Describe("[sig-auth][Feature:SCC][Early]", func() {
 	g.It("should not have pod creation failures during install", func() {
 		kubeClient := oc.AdminKubeClient()
 
-		// prior to 4.10, we saw races in releases from 4.1 onwards with
-		// 1. SCC type didn't exist: we moved it to a CRD
-		// 2. SCC didn't exist: we moved them to rendering step
-		// 3. namespace annotations didn't exist before openshift-controller-manager: cluster-policy-controller created as part of KCM pod
-		// 4. SCC creation/lister was not complete: we created a "wait for up to 10s" stanza for synchronization
-		// 5. namespaces were not annotated with UID ranges fast enough: created a "wait for up to 10s" stanza to allow the race to settle
-		// The culmination of all these things has allowed us to be tighter post-4.10 or whatever level we backport to.
-		// It's worth noting that these could result in a different SCC being assigned and that can result in different
-		// file ownership, so being stable early is important.
-		numFailuresForFail := 5
-
 		events, err := kubeClient.CoreV1().Events("").List(context.TODO(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// starting from 4.10, enforce the requirement that SCCs not fail
-		config, err := framework.LoadConfig()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		hasAllFixes, err := util.AllClusterVersionsAreGTE(semver.Version{Major: 4, Minor: 10}, config)
-		if err != nil {
-			framework.Logf("Cannot require full SCC enforcement, some versions could not be checked: %v", err)
-		}
-		if hasAllFixes {
-			numFailuresForFail = 0
-		}
 
 		suiteStartTime := exutil.SuiteStartTime()
 		var suppressPreTestFailure bool
@@ -86,7 +61,7 @@ var _ = g.Describe("[sig-auth][Feature:SCC][Early]", func() {
 			}
 		}
 
-		if numFailingPods := len(preTestDenialStrings); numFailingPods > numFailuresForFail {
+		if numFailingPods := len(preTestDenialStrings); numFailingPods > 0 {
 			failMessage := fmt.Sprintf("%d pods failed before test on SCC errors\n%s\n", numFailingPods, strings.Join(preTestDenialStrings, "\n"))
 			if suppressPreTestFailure {
 				result.Flakef("pre-test environment had disruption and limited this test, suppressing failure: %s", failMessage)

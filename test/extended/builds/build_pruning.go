@@ -54,7 +54,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] prune builds based on settings 
 			}
 		})
 
-		g.It("should prune completed builds based on the successfulBuildsHistoryLimit setting", func() {
+		g.It("should prune completed builds based on the successfulBuildsHistoryLimit setting [apigroup:build.openshift.io]", func() {
 
 			g.By("creating test successful build config")
 			err := oc.Run("create").Args("-f", successfulBuildConfig).Execute()
@@ -99,7 +99,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] prune builds based on settings 
 
 		})
 
-		g.It("should prune failed builds based on the failedBuildsHistoryLimit setting", func() {
+		g.It("should prune failed builds based on the failedBuildsHistoryLimit setting [apigroup:build.openshift.io]", func() {
 
 			g.By("creating test failed build config")
 			err := oc.Run("create").Args("-f", failedBuildConfig).Execute()
@@ -144,7 +144,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] prune builds based on settings 
 
 		})
 
-		g.It("should prune canceled builds based on the failedBuildsHistoryLimit setting", func() {
+		g.It("should prune canceled builds based on the failedBuildsHistoryLimit setting [apigroup:build.openshift.io]", func() {
 
 			g.By("creating test successful build config")
 			err := oc.Run("create").Args("-f", failedBuildConfig).Execute()
@@ -234,7 +234,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] prune builds based on settings 
 
 		})
 
-		g.It("should prune builds after a buildConfig change", func() {
+		g.It("should prune builds after a buildConfig change [apigroup:build.openshift.io]", func() {
 
 			g.By("creating test failed build config")
 			err := oc.Run("create").Args("-f", failedBuildConfig).Execute()
@@ -285,7 +285,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] prune builds based on settings 
 
 		})
 
-		g.It("buildconfigs should have a default history limit set when created via the group api", func() {
+		g.It("buildconfigs should have a default history limit set when created via the group api [apigroup:build.openshift.io]", func() {
 
 			g.By("creating a build config with the group api")
 			err := oc.Run("create").Args("-f", groupBuildConfig).Execute()

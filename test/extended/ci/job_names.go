@@ -19,7 +19,7 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("job-names")
 
-	g.It("should match platform type", func() {
+	g.It("should match platform type [apigroup:config.openshift.io]", func() {
 		jobName := os.Getenv("JOB_NAME")
 		if jobName == "" {
 			e2eskipper.Skipf("JOB_NAME env var not set, skipping")
@@ -62,7 +62,7 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 
 	})
 
-	g.It("should match network type", func() {
+	g.It("should match network type [apigroup:config.openshift.io]", func() {
 		jobName := os.Getenv("JOB_NAME")
 		if jobName == "" {
 			e2eskipper.Skipf("JOB_NAME env var not set, skipping")

@@ -52,7 +52,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] oc new-app", func() {
 			deployutil.DeploymentConfigFailureTrap(oc, a59, g.CurrentGinkgoTestDescription().Failed)
 		})
 
-		g.It("should succeed with a --name of 58 characters", func() {
+		g.It("should succeed with a --name of 58 characters [apigroup:build.openshift.io]", func() {
 			g.By("calling oc new-app")
 			err := oc.Run("new-app").Args("registry.redhat.io/ubi8/nodejs-16:latest~https://github.com/sclorg/nodejs-ex", "--name", a58, "--build-env=BUILD_LOGLEVEL=5").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
