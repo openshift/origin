@@ -189,8 +189,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] prune builds based on settings 
 
 		})
 
-		g.It("should prune errored builds based on the failedBuildsHistoryLimit setting", func() {
-
+		g.It("should prune errored builds based on the failedBuildsHistoryLimit setting [apigroup:build.openshift.io]", func() {
 			g.By("creating test failed build config")
 			err := oc.Run("create").Args("-f", erroredBuildConfig).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())

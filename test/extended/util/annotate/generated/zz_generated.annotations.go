@@ -1265,11 +1265,11 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-builds][Feature:Builds] imagechangetriggers  imagechangetriggers should trigger builds of all types [apigroup:build.openshift.io]": "imagechangetriggers should trigger builds of all types [apigroup:build.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-builds][Feature:Builds] oc new-app  should fail with a --name longer than 58 characters": "should fail with a --name longer than 58 characters [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] oc new-app  should fail with a --name longer than 58 characters [apigroup:build.openshift.io]": "should fail with a --name longer than 58 characters [apigroup:build.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-builds][Feature:Builds] oc new-app  should succeed with a --name of 58 characters [apigroup:build.openshift.io]": "should succeed with a --name of 58 characters [apigroup:build.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-builds][Feature:Builds] oc new-app  should succeed with an imagestream": "should succeed with an imagestream [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] oc new-app  should succeed with an imagestream [apigroup:build.openshift.io]": "should succeed with an imagestream [apigroup:build.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-builds][Feature:Builds] prune builds based on settings in the buildconfig  buildconfigs should have a default history limit set when created via the group api [apigroup:build.openshift.io]": "buildconfigs should have a default history limit set when created via the group api [apigroup:build.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
@@ -1279,7 +1279,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-builds][Feature:Builds] prune builds based on settings in the buildconfig  should prune completed builds based on the successfulBuildsHistoryLimit setting [apigroup:build.openshift.io]": "should prune completed builds based on the successfulBuildsHistoryLimit setting [apigroup:build.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-builds][Feature:Builds] prune builds based on settings in the buildconfig  should prune errored builds based on the failedBuildsHistoryLimit setting": "should prune errored builds based on the failedBuildsHistoryLimit setting [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-builds][Feature:Builds] prune builds based on settings in the buildconfig  should prune errored builds based on the failedBuildsHistoryLimit setting [apigroup:build.openshift.io]": "should prune errored builds based on the failedBuildsHistoryLimit setting [apigroup:build.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-builds][Feature:Builds] prune builds based on settings in the buildconfig  should prune failed builds based on the failedBuildsHistoryLimit setting [apigroup:build.openshift.io]": "should prune failed builds based on the failedBuildsHistoryLimit setting [apigroup:build.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
