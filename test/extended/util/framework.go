@@ -2071,3 +2071,34 @@ func DoesApiResourceExist(oc *CLI, apiResourceName string) (bool, error) {
 
 	return false, nil
 }
+
+func DoesApiGroupExist(oc *CLI, apiGroup schema.GroupVersion) (bool, error) {
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(oc.AdminConfig())
+	if err != nil {
+		return false, err
+	}
+	allGroupsList, _, err := discoveryClient.ServerGroupsAndResources()
+	if err != nil {
+		return false, err
+	}
+	for _, group := range allGroupsList {
+		if group.Name == apiGroup.Group {
+			for _, version := range group.Versions {
+				if version.Version == apiGroup.Version {
+					return true, nil
+				}
+			}
+		}
+	}
+	return false, nil
+}
+
+func SkipIfApiGroupDoesNotExist(oc *CLI, apiGroups ...schema.GroupVersion) {
+	for _, apiGroup := range apiGroups {
+		exist, err := DoesApiGroupExist(oc, apiGroup)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if !exist {
+			skipper.Skipf("%q not available", apiGroup)
+		}
+	}
+}
