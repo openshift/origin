@@ -11,31 +11,6 @@ import (
 	"github.com/openshift/origin/test/extended/util/annotate/generated"
 )
 
-/* v1 spec
-type Spec struct {
-	subject          leafnodes.SubjectNode
-	focused          bool
-	announceProgress bool
-
-	containers []*containernode.ContainerNode
-
-	state            types.SpecState
-	runTime          time.Duration
-	startTime        time.Time
-	failure          types.SpecFailure
-	previousFailures bool
-
-	stateMutex *sync.Mutex
-}
-*/
-
-/* v1 spec
-type Spec struct {
-	Nodes Nodes
-	Skip  bool
-}
-*/
-
 func testsForSuite() ([]*testCase, error) {
 	if err := ginkgo.GetSuite().BuildTree(); err != nil {
 		return nil, err

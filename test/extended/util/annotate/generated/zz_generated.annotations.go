@@ -7,15 +7,15 @@ import (
 )
 
 var Annotations = map[string]string{
-	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-ext.kubeconfig\" should be present on all masters and work": " [Suite:openshift/conformance/parallel/minimal]",
+	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-ext.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
-	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-int.kubeconfig\" should be present on all masters and work": " [Suite:openshift/conformance/parallel/minimal]",
+	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-int.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
-	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work": " [Suite:openshift/conformance/parallel/minimal]",
+	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
-	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost.kubeconfig\" should be present on all masters and work": " [Suite:openshift/conformance/parallel/minimal]",
+	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
-	"[Conformance][sig-sno][Serial] Cluster should allow a fast rollout of kube-apiserver with no pods restarts during API disruption": " [Suite:openshift/conformance/serial/minimal]",
+	"[Conformance][sig-sno][Serial] Cluster should allow a fast rollout of kube-apiserver with no pods restarts during API disruption [apigroup:config.openshift.io][apigroup:operator.openshift.io]": " [Suite:openshift/conformance/serial/minimal]",
 
 	"[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP] test RequestHeaders IdP": " [Suite:openshift/conformance/serial]",
 
@@ -275,7 +275,7 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and don't send request early": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients": " [Suite:openshift/conformance/parallel]",
+	"[sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and stop sending requests": " [Suite:openshift/conformance/parallel]",
 
@@ -649,9 +649,9 @@ var Annotations = map[string]string{
 
 	"[sig-arch][Feature:ClusterUpgrade] Cluster should remain functional during upgrade [Disruptive]": " [Serial]",
 
-	"[sig-arch][Late] clients should not use APIs that are removed in upcoming releases": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][Late] clients should not use APIs that are removed in upcoming releases [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][Late] operators should not create watch channels very often": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][Late] operators should not create watch channels very often [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch][bz-Cloud Compute][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cloud-controller-manager": " [Suite:openshift/conformance/parallel]",
 
@@ -1011,7 +1011,7 @@ var Annotations = map[string]string{
 
 	"[sig-auth] [Feature:NodeAuthorizer] Getting an existing secret should exit with the Forbidden error": " [Skipped:ibmroks] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-auth][Feature:Authentication]  TestFrontProxy should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:Authentication]  TestFrontProxy should succeed [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:BootstrapUser] The bootstrap user should successfully login with password decoded from kubeadmin secret [Disruptive]": " [Serial]",
 
@@ -1059,41 +1059,41 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:OAuthServer] well-known endpoint should be reachable": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz RunLegacyClusterRoleBindingEndpoint should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz RunLegacyClusterRoleBindingEndpoint should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz RunLegacyClusterRoleEndpoint should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz RunLegacyClusterRoleEndpoint should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz RunLegacyEndpointConfirmNoEscalation should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz RunLegacyEndpointConfirmNoEscalation [apigroup:authorization.openshift.io] should succeed": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz RunLegacyLocalRoleBindingEndpoint should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz RunLegacyLocalRoleBindingEndpoint should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz RunLegacyLocalRoleEndpoint should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz RunLegacyLocalRoleEndpoint should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:OpenShiftAuthorization] The default cluster RBAC policy should have correct RBAC rules": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OpenShiftAuthorization] authorization TestAuthorizationSubjectAccessReview should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OpenShiftAuthorization] authorization TestAuthorizationSubjectAccessReview should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OpenShiftAuthorization] authorization TestAuthorizationSubjectAccessReviewAPIGroup should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OpenShiftAuthorization] authorization TestAuthorizationSubjectAccessReviewAPIGroup should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OpenShiftAuthorization] authorization TestBrowserSafeAuthorizer should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OpenShiftAuthorization] authorization TestBrowserSafeAuthorizer should succeed [apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:OpenShiftAuthorization] authorization TestClusterReaderCoverage should succeed": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OpenShiftAuthorization] scopes TestScopeEscalations should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OpenShiftAuthorization] scopes TestScopeEscalations should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:build.openshift.io][apigroup:oauth.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OpenShiftAuthorization] scopes TestScopedImpersonation should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OpenShiftAuthorization] scopes TestScopedImpersonation should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OpenShiftAuthorization] scopes TestScopedTokens should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OpenShiftAuthorization] scopes TestScopedTokens should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:oauth.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OpenShiftAuthorization] scopes TestTokensWithIllegalScopes should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OpenShiftAuthorization] scopes TestTokensWithIllegalScopes should succeed [apigroup:oauth.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OpenShiftAuthorization] scopes TestUnknownScopes should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OpenShiftAuthorization] scopes TestUnknownScopes should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:project.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OpenShiftAuthorization] self-SAR compatibility TestBootstrapPolicySelfSubjectAccessReviews should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OpenShiftAuthorization] self-SAR compatibility TestBootstrapPolicySelfSubjectAccessReviews should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OpenShiftAuthorization] self-SAR compatibility TestSelfSubjectAccessReviewsNonExistingNamespace should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OpenShiftAuthorization] self-SAR compatibility TestSelfSubjectAccessReviewsNonExistingNamespace should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OpenShiftAuthorization][Serial] authorization TestAuthorizationResourceAccessReview should succeed": " [Suite:openshift/conformance/serial]",
+	"[sig-auth][Feature:OpenShiftAuthorization][Serial] authorization TestAuthorizationResourceAccessReview should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/serial]",
 
 	"[sig-auth][Feature:PodSecurity] restricted-v2 SCC should mutate empty securityContext to match restricted PSa profile": " [Suite:openshift/conformance/parallel]",
 
@@ -1111,19 +1111,19 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:ProjectAPI][Serial]  TestUnprivilegedNewProjectDenied": " [Suite:openshift/conformance/serial]",
 
-	"[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional Create a RBAC rolebinding when subject is not already bound and is not permitted by any RBR should fail": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional Create a RBAC rolebinding when subject is not already bound and is not permitted by any RBR should fail [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional Create a rolebinding that also contains system:non-existing users should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional Create a rolebinding that also contains system:non-existing users should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional Create a rolebinding when subject is already bound should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional Create a rolebinding when subject is already bound should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional Create a rolebinding when subject is not already bound and is not permitted by any RBR should fail": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional Create a rolebinding when subject is not already bound and is not permitted by any RBR should fail [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional Create a rolebinding when subject is permitted by RBR should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional Create a rolebinding when subject is permitted by RBR should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional Create a rolebinding when there are no restrictions should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional Create a rolebinding when there are no restrictions should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional Rolebinding restrictions tests single project should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional Rolebinding restrictions tests single project should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:SCC][Early] should not have pod creation failures during install": " [Suite:openshift/conformance/parallel]",
 
@@ -1253,79 +1253,79 @@ var Annotations = map[string]string{
 
 	"[sig-autoscaling] [HPA] Horizontal pod autoscaling (scale resource: Custom Metrics from Stackdriver) should scale up with two metrics of type Pod from Stackdriver [Feature:CustomMetricsAutoscaling]": " [Skipped:gce] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-builds][Feature:Builds] Multi-stage image builds should succeed": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] Multi-stage image builds should succeed [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] Optimized image builds should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] Optimized image builds should succeed [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] build can reference a cluster service with a build being created from new-build should be able to run a build that references a cluster service": " [Skipped:Proxy] [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] build can reference a cluster service with a build being created from new-build should be able to run a build that references a cluster service [apigroup:build.openshift.io]": " [Skipped:Proxy] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] build have source revision metadata started build should contain source revision information": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] build have source revision metadata started build should contain source revision information [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] build with empty source started build should build even with an empty source in build config": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] build with empty source started build should build even with an empty source in build config [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] build without output image building from templates should create an image from a S2i template without an output image reference defined": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] build without output image building from templates should create an image from a S2i template without an output image reference defined [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] build without output image building from templates should create an image from a docker template without an output image reference defined": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] build without output image building from templates should create an image from a docker template without an output image reference defined [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] buildconfig secret injector should inject secrets to the appropriate buildconfigs": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] buildconfig secret injector should inject secrets to the appropriate buildconfigs [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds] clone repository using git:// protocol should clone using git:// if no proxy is configured": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] custom build with buildah being created from new-build should complete build with custom builder image": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] custom build with buildah being created from new-build should complete build with custom builder image [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] imagechangetriggers imagechangetriggers should trigger builds of all types": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] imagechangetriggers imagechangetriggers should trigger builds of all types [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds] oc new-app should fail with a --name longer than 58 characters": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] oc new-app should succeed with a --name of 58 characters": " [Skipped:Proxy] [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] oc new-app should succeed with a --name of 58 characters [apigroup:build.openshift.io]": " [Skipped:Proxy] [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds] oc new-app should succeed with an imagestream": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig buildconfigs should have a default history limit set when created via the group api": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig buildconfigs should have a default history limit set when created via the group api [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune builds after a buildConfig change": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune builds after a buildConfig change [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune canceled builds based on the failedBuildsHistoryLimit setting": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune canceled builds based on the failedBuildsHistoryLimit setting [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune completed builds based on the successfulBuildsHistoryLimit setting": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune completed builds based on the successfulBuildsHistoryLimit setting [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune errored builds based on the failedBuildsHistoryLimit setting": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune failed builds based on the failedBuildsHistoryLimit setting": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune failed builds based on the failedBuildsHistoryLimit setting [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] remove all builds when build configuration is removed oc delete buildconfig should start builds and delete the buildconfig": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] remove all builds when build configuration is removed oc delete buildconfig should start builds and delete the buildconfig [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] result image should have proper labels set Docker build from a template should create a image from \"test-docker-build.json\" template with proper Docker labels": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] result image should have proper labels set Docker build from a template should create a image from \"test-docker-build.json\" template with proper Docker labels [apigroup:build.openshift.io][apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] result image should have proper labels set S2I build from a template should create a image from \"test-s2i-build.json\" template with proper Docker labels": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] result image should have proper labels set S2I build from a template should create a image from \"test-s2i-build.json\" template with proper Docker labels [apigroup:build.openshift.io][apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] s2i build with a quota Building from a template should create an s2i build with a quota and run it": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] s2i build with a quota Building from a template should create an s2i build with a quota and run it [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] s2i build with a root user image should create a root build and fail without a privileged SCC": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] s2i build with a root user image should create a root build and fail without a privileged SCC [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] s2i build with a root user image should create a root build and pass with a privileged SCC": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] s2i build with a root user image should create a root build and pass with a privileged SCC [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] verify /run filesystem contents are writeable using a simple Docker Strategy Build": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] verify /run filesystem contents are writeable using a simple Docker Strategy Build [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] verify /run filesystem contents do not have unexpected content using a simple Docker Strategy Build": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] verify /run filesystem contents do not have unexpected content using a simple Docker Strategy Build [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config no ocm rollout Apply default proxy configuration to docker build pod through env vars": "",
+	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config no ocm rollout [apigroup:config.openshift.io] Apply default proxy configuration to docker build pod through env vars [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config no ocm rollout Apply default proxy configuration to source build pod through env vars": "",
+	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config no ocm rollout [apigroup:config.openshift.io] Apply default proxy configuration to source build pod through env vars [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config no ocm rollout Apply git proxy configuration to build pod": "",
+	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config no ocm rollout [apigroup:config.openshift.io] Apply git proxy configuration to build pod [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config with ocm rollout Apply default image label configuration to build pod": "",
+	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config with ocm rollout [apigroup:config.openshift.io] Apply default image label configuration to build pod": "",
 
-	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config with ocm rollout Apply env configuration to build pod": "",
+	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config with ocm rollout [apigroup:config.openshift.io] Apply env configuration to build pod": "",
 
-	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config with ocm rollout Apply node selector configuration to build pod": "",
+	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config with ocm rollout [apigroup:config.openshift.io] Apply node selector configuration to build pod": "",
 
-	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config with ocm rollout Apply override image label configuration to build pod": "",
+	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config with ocm rollout [apigroup:config.openshift.io] Apply override image label configuration to build pod [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config with ocm rollout Apply resource configuration to build pod": "",
+	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config with ocm rollout [apigroup:config.openshift.io] Apply resource configuration to build pod": "",
 
-	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config with ocm rollout Apply toleration override configuration to build pod": "",
+	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config with ocm rollout [apigroup:config.openshift.io] Apply toleration override configuration to build pod": "",
 
 	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration registries config context should allow registries to be blacklisted": "",
 
@@ -1333,201 +1333,201 @@ var Annotations = map[string]string{
 
 	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration registries config context should default registry search to docker.io for image pulls": "",
 
-	"[sig-builds][Feature:Builds][Slow] Capabilities should be dropped for s2i builders s2i build with a rootable builder should not be able to switch to root with an assemble script": "",
+	"[sig-builds][Feature:Builds][Slow] Capabilities should be dropped for s2i builders s2i build with a rootable builder should not be able to switch to root with an assemble script [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] build can have Dockerfile input being created from new-build should be able to start a build from Dockerfile with FROM reference to scratch": "",
+	"[sig-builds][Feature:Builds][Slow] build can have Dockerfile input being created from new-build should be able to start a build from Dockerfile with FROM reference to scratch [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] build can have Dockerfile input being created from new-build should create a image via new-build and infer the origin tag": "",
+	"[sig-builds][Feature:Builds][Slow] build can have Dockerfile input being created from new-build should create a image via new-build [apigroup:build.openshift.io][apigroup:image.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] build can have Dockerfile input being created from new-build should create a image via new-build": "",
+	"[sig-builds][Feature:Builds][Slow] build can have Dockerfile input being created from new-build should create a image via new-build and infer the origin tag [apigroup:build.openshift.io][apigroup:image.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] build can have Dockerfile input being created from new-build testing build image with dockerfile contains a file path uses a variable in its name": "",
+	"[sig-builds][Feature:Builds][Slow] build can have Dockerfile input being created from new-build testing build image with dockerfile contains a file path uses a variable in its name [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] build can have Dockerfile input being created from new-build testing build image with invalid dockerfile content": "",
+	"[sig-builds][Feature:Builds][Slow] build can have Dockerfile input being created from new-build testing build image with invalid dockerfile content [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] build can have container image source buildconfig with input source image and docker strategy should complete successfully and contain the expected file": "",
+	"[sig-builds][Feature:Builds][Slow] build can have container image source [apigroup:image.openshift.io] buildconfig with input source image and docker strategy should complete successfully and contain the expected file [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] build can have container image source buildconfig with input source image and s2i strategy should complete successfully and contain the expected file": "",
+	"[sig-builds][Feature:Builds][Slow] build can have container image source [apigroup:image.openshift.io] buildconfig with input source image and s2i strategy should complete successfully and contain the expected file [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] build can have container image source creating a build with an input source image and custom strategy should resolve the imagestream references and secrets": "",
+	"[sig-builds][Feature:Builds][Slow] build can have container image source [apigroup:image.openshift.io] creating a build with an input source image and custom strategy should resolve the imagestream references and secrets [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] build can have container image source creating a build with an input source image and docker strategy should resolve the imagestream references and secrets": "",
+	"[sig-builds][Feature:Builds][Slow] build can have container image source [apigroup:image.openshift.io] creating a build with an input source image and docker strategy should resolve the imagestream references and secrets [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] build can have container image source creating a build with an input source image and s2i strategy should resolve the imagestream references and secrets": "",
+	"[sig-builds][Feature:Builds][Slow] build can have container image source [apigroup:image.openshift.io] creating a build with an input source image and s2i strategy should resolve the imagestream references and secrets [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] build controller RunBuildCompletePodDeleteTest should succeed": "",
+	"[sig-builds][Feature:Builds][Slow] build controller RunBuildCompletePodDeleteTest should succeed [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] build controller RunBuildDeleteTest should succeed": "",
+	"[sig-builds][Feature:Builds][Slow] build controller RunBuildDeleteTest should succeed [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] build controller RunBuildRunningPodDeleteTest should succeed": "",
+	"[sig-builds][Feature:Builds][Slow] build controller RunBuildRunningPodDeleteTest should succeed [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] builds should have deadlines oc start-build docker-build --wait Docker: should start a build and wait for the build failed and build pod being killed by kubelet": "",
+	"[sig-builds][Feature:Builds][Slow] builds should have deadlines oc start-build docker-build --wait Docker: should start a build and wait for the build failed and build pod being killed by kubelet [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] builds should have deadlines oc start-build source-build --wait Source: should start a build and wait for the build failed and build pod being killed by kubelet": "",
+	"[sig-builds][Feature:Builds][Slow] builds should have deadlines oc start-build source-build --wait Source: should start a build and wait for the build failed and build pod being killed by kubelet [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] builds should support proxies start build with broken proxy and a no_proxy override should start a docker build and wait for the build to succeed": "",
+	"[sig-builds][Feature:Builds][Slow] builds should support proxies start build with broken proxy and a no_proxy override should start a docker build and wait for the build to succeed [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] builds should support proxies start build with broken proxy and a no_proxy override should start an s2i build and wait for the build to succeed": "",
+	"[sig-builds][Feature:Builds][Slow] builds should support proxies start build with broken proxy and a no_proxy override should start an s2i build and wait for the build to succeed [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] builds should support proxies start build with broken proxy should start a build and wait for the build to fail": "",
+	"[sig-builds][Feature:Builds][Slow] builds should support proxies start build with broken proxy should start a build and wait for the build to fail [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] builds should support proxies start build with cluster-wide custom PKI should mount the custom PKI into the build if specified": "",
+	"[sig-builds][Feature:Builds][Slow] builds should support proxies start build with cluster-wide custom PKI should mount the custom PKI into the build if specified [apigroup:config.openshift.io][apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] builds with a context directory docker context directory build should docker build an application using a context directory": "",
+	"[sig-builds][Feature:Builds][Slow] builds with a context directory docker context directory build should docker build an application using a context directory [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] builds with a context directory s2i context directory build should s2i build an application using a context directory": "",
+	"[sig-builds][Feature:Builds][Slow] builds with a context directory s2i context directory build should s2i build an application using a context directory [apigroup:build.openshift.io]": "",
 
 	"[sig-builds][Feature:Builds][Slow] can use build secrets build with secrets and configMaps should contain secrets during the docker strategy build": "",
 
-	"[sig-builds][Feature:Builds][Slow] can use build secrets build with secrets and configMaps should contain secrets during the source strategy build": "",
+	"[sig-builds][Feature:Builds][Slow] can use build secrets build with secrets and configMaps should contain secrets during the source strategy build [apigroup:build.openshift.io][apigroup:image.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] can use private repositories as build input build using an HTTP token should be able to clone source code via an HTTP token": "",
+	"[sig-builds][Feature:Builds][Slow] can use private repositories as build input build using an HTTP token should be able to clone source code via an HTTP token [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] can use private repositories as build input build using an ssh private key should be able to clone source code via ssh using SCP-style URIs": "",
+	"[sig-builds][Feature:Builds][Slow] can use private repositories as build input build using an ssh private key should be able to clone source code via ssh [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] can use private repositories as build input build using an ssh private key should be able to clone source code via ssh": "",
+	"[sig-builds][Feature:Builds][Slow] can use private repositories as build input build using an ssh private key should be able to clone source code via ssh using SCP-style URIs [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status Docker build started with log level >5 should save the image digest when finished": "",
+	"[sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status Docker build started with log level >5 should save the image digest when finished [apigroup:build.openshift.io][apigroup:image.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status Docker build started with normal log level should save the image digest when finished": "",
+	"[sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status Docker build started with normal log level should save the image digest when finished [apigroup:build.openshift.io][apigroup:image.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status S2I build started with log level >5 should save the image digest when finished": "",
+	"[sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status S2I build started with log level >5 should save the image digest when finished [apigroup:build.openshift.io][apigroup:image.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status S2I build started with normal log level should save the image digest when finished": "",
+	"[sig-builds][Feature:Builds][Slow] completed builds should have digest of the image in their status S2I build started with normal log level should save the image digest when finished [apigroup:build.openshift.io][apigroup:image.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] incremental s2i build Building from a template should create a build from \"incremental-auth-build.json\" template and run it": "",
+	"[sig-builds][Feature:Builds][Slow] incremental s2i build Building from a template should create a build from \"incremental-auth-build.json\" template and run it [apigroup:build.openshift.io][apigroup:image.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] s2i build with environment file in sources Building from a template should create a image from \"test-env-build.json\" template and run it in a pod": "",
+	"[sig-builds][Feature:Builds][Slow] s2i build with environment file in sources Building from a template should create a image from \"test-env-build.json\" template and run it in a pod [apigroup:build.openshift.io][apigroup:image.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context Setting build-args on Docker builds Should accept build args that are specified in the Dockerfile": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context Setting build-args on Docker builds Should accept build args that are specified in the Dockerfile [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context Setting build-args on Docker builds Should complete with a warning on non-existent build-arg": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context Setting build-args on Docker builds Should complete with a warning on non-existent build-arg [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context Setting build-args on Docker builds Should copy build args from BuildConfig to Build": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context Setting build-args on Docker builds Should copy build args from BuildConfig to Build [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context Trigger builds with branch refs matching directories on master branch Should checkout the config branch, not config directory": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context Trigger builds with branch refs matching directories on master branch Should checkout the config branch, not config directory [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context binary builds shoud accept --from-archive with https URL as an input": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context binary builds shoud accept --from-archive with https URL as an input [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context binary builds shoud accept --from-file with https URL as an input": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context binary builds shoud accept --from-file with https URL as an input [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context binary builds should accept --from-dir as input": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context binary builds should accept --from-dir as input [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context binary builds should accept --from-file as input": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context binary builds should accept --from-file as input [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context binary builds should accept --from-repo as input": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context binary builds should accept --from-repo as input [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context binary builds should accept --from-repo with --commit as input": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context binary builds should accept --from-repo with --commit as input [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context binary builds should reject binary build requests without a --from-xxxx value": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context binary builds should reject binary build requests without a --from-xxxx value [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context cancel a binary build that doesn't start running in 5 minutes should start a build and wait for the build to be cancelled": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context cancel a binary build that doesn't start running in 5 minutes should start a build and wait for the build to be cancelled [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context cancel a build started by oc start-build --wait should start a build and wait for the build to cancel": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context cancel a build started by oc start-build --wait should start a build and wait for the build to cancel [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context oc start-build --wait should start a build and wait for the build to complete": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context oc start-build --wait should start a build and wait for the build to complete [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context oc start-build --wait should start a build and wait for the build to fail": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context oc start-build --wait should start a build and wait for the build to fail [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context oc start-build with pr ref should start a build from a PR ref, wait for the build to complete, and confirm the right level was used": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context oc start-build with pr ref should start a build from a PR ref, wait for the build to complete, and confirm the right level was used [apigroup:build.openshift.io][apigroup:image.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context override environment BUILD_LOGLEVEL in buildconfig can be overridden by build-loglevel": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context override environment BUILD_LOGLEVEL in buildconfig can be overridden by build-loglevel [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context override environment BUILD_LOGLEVEL in buildconfig should create verbose output": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context override environment BUILD_LOGLEVEL in buildconfig should create verbose output [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context override environment should accept environment variables": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context override environment should accept environment variables [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context s2i build maintaining symlinks should s2i build image and maintain symlinks": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context s2i build maintaining symlinks should s2i build image and maintain symlinks [apigroup:build.openshift.io][apigroup:image.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context start a build via a webhook should be able to start builds via the webhook with valid secrets and fail with invalid secrets": "",
+	"[sig-builds][Feature:Builds][Slow] starting a build using CLI start-build test context start a build via a webhook should be able to start builds via the webhook with valid secrets and fail with invalid secrets [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] testing build configuration hooks testing postCommit hook should run docker postCommit hooks": "",
+	"[sig-builds][Feature:Builds][Slow] testing build configuration hooks testing postCommit hook should run docker postCommit hooks [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] testing build configuration hooks testing postCommit hook should run s2i postCommit hooks": "",
+	"[sig-builds][Feature:Builds][Slow] testing build configuration hooks testing postCommit hook should run s2i postCommit hooks [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] update failure status Build status Docker fetch image content failure should contain the Docker build fetch image content reason and message": "",
+	"[sig-builds][Feature:Builds][Slow] update failure status Build status Docker fetch image content failure should contain the Docker build fetch image content reason and message [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] update failure status Build status Docker fetch source failure should contain the Docker build fetch source failure reason and message": "",
+	"[sig-builds][Feature:Builds][Slow] update failure status Build status Docker fetch source failure should contain the Docker build fetch source failure reason and message [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] update failure status Build status OutOfMemoryKilled should contain OutOfMemoryKilled failure reason and message": "",
+	"[sig-builds][Feature:Builds][Slow] update failure status Build status OutOfMemoryKilled should contain OutOfMemoryKilled failure reason and message [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] update failure status Build status S2I bad context dir failure should contain the S2I bad context dir failure reason and message": "",
+	"[sig-builds][Feature:Builds][Slow] update failure status Build status S2I bad context dir failure should contain the S2I bad context dir failure reason and message [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] update failure status Build status S2I fetch source failure should contain the S2I fetch source failure reason and message": "",
+	"[sig-builds][Feature:Builds][Slow] update failure status Build status S2I fetch source failure should contain the S2I fetch source failure reason and message [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] update failure status Build status failed assemble container should contain the failure reason related to an assemble script failing in s2i": "",
+	"[sig-builds][Feature:Builds][Slow] update failure status Build status failed assemble container should contain the failure reason related to an assemble script failing in s2i [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] update failure status Build status failed https proxy invalid url should contain the generic failure reason and message": "",
+	"[sig-builds][Feature:Builds][Slow] update failure status Build status failed https proxy invalid url should contain the generic failure reason and message [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] update failure status Build status fetch builder image failure should contain the fetch builder image failure reason and message": "",
+	"[sig-builds][Feature:Builds][Slow] update failure status Build status fetch builder image failure should contain the fetch builder image failure reason and message [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] update failure status Build status postcommit hook failure should contain the post commit hook failure reason and message": "",
+	"[sig-builds][Feature:Builds][Slow] update failure status Build status postcommit hook failure should contain the post commit hook failure reason and message [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] update failure status Build status push image to registry failure should contain the image push to registry failure reason and message": "",
+	"[sig-builds][Feature:Builds][Slow] update failure status Build status push image to registry failure should contain the image push to registry failure reason and message [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] using build configuration runPolicy build configuration with Parallel build run policy runs the builds in parallel": "",
+	"[sig-builds][Feature:Builds][Slow] using build configuration runPolicy build configuration with Parallel build run policy runs the builds in parallel [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] using build configuration runPolicy build configuration with Serial build run policy handling cancellation starts the next build immediately after one is canceled": "",
+	"[sig-builds][Feature:Builds][Slow] using build configuration runPolicy build configuration with Serial build run policy handling cancellation starts the next build immediately after one is canceled [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] using build configuration runPolicy build configuration with Serial build run policy handling deletion starts the next build immediately after running one is deleted": "",
+	"[sig-builds][Feature:Builds][Slow] using build configuration runPolicy build configuration with Serial build run policy handling deletion starts the next build immediately after running one is deleted [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] using build configuration runPolicy build configuration with Serial build run policy handling failure starts the next build immediately after one fails": "",
+	"[sig-builds][Feature:Builds][Slow] using build configuration runPolicy build configuration with Serial build run policy handling failure starts the next build immediately after one fails [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] using build configuration runPolicy build configuration with Serial build run policy runs the builds in serial order": "",
+	"[sig-builds][Feature:Builds][Slow] using build configuration runPolicy build configuration with Serial build run policy runs the builds in serial order [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] using build configuration runPolicy build configuration with SerialLatestOnly build run policy runs the builds in serial order but cancel previous builds": "",
+	"[sig-builds][Feature:Builds][Slow] using build configuration runPolicy build configuration with SerialLatestOnly build run policy runs the builds in serial order but cancel previous builds [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] using pull secrets in a build start-build test context binary builds should be able to run a build that is implicitly pulling from the internal registry": "",
+	"[sig-builds][Feature:Builds][Slow] using pull secrets in a build start-build test context binary builds should be able to run a build that is implicitly pulling from the internal registry [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] using pull secrets in a build start-build test context pulling from an external authenticated registry should be able to use a pull secret in a build": "",
+	"[sig-builds][Feature:Builds][Slow] using pull secrets in a build start-build test context pulling from an external authenticated registry should be able to use a pull secret in a build [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] using pull secrets in a build start-build test context pulling from an external authenticated registry should be able to use a pull secret linked to the builder service account": "",
+	"[sig-builds][Feature:Builds][Slow] using pull secrets in a build start-build test context pulling from an external authenticated registry should be able to use a pull secret linked to the builder service account [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][pullsearch] docker build where the registry is not specified Building from a Dockerfile whose FROM image ref does not specify the image registry should create a docker build that has buildah search from our predefined list of image registries and succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][pullsearch] docker build where the registry is not specified Building from a Dockerfile whose FROM image ref does not specify the image registry should create a docker build that has buildah search from our predefined list of image registries and succeed [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][pullsecret] docker build using a pull secret Building from a template should create a docker build that pulls using a secret run it": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][pullsecret] docker build using a pull secret Building from a template should create a docker build that pulls using a secret run it [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][timing] capture build stages and durations should record build stages and durations for docker": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][timing] capture build stages and durations should record build stages and durations for docker [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][timing] capture build stages and durations should record build stages and durations for s2i": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][timing] capture build stages and durations should record build stages and durations for s2i [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should fail resolving unresolvable valueFrom in docker build environment variable references": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should fail resolving unresolvable valueFrom in docker build environment variable references [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should fail resolving unresolvable valueFrom in sti build environment variable references": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should fail resolving unresolvable valueFrom in sti build environment variable references [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should successfully resolve valueFrom in docker build environment variables": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should successfully resolve valueFrom in docker build environment variables [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should successfully resolve valueFrom in s2i build environment variables": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should successfully resolve valueFrom in s2i build environment variables [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for docker strategy builds": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for source strategy builds": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview disabled clusters should fail mounting given csi shared resource secret into the build pod for docker strategy builds": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview disabled clusters [apigroup:config.openshift.io] should fail mounting given csi shared resource secret into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview disabled clusters should fail mounting given csi shared resource secret into the build pod for source strategy builds": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview disabled clusters [apigroup:config.openshift.io] should fail mounting given csi shared resource secret into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster should mount given csi shared resource secret into the build pod for docker strategy builds": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster should mount given csi shared resource secret into the build pod for source strategy builds": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster should mount given csi shared resource secret without resource refresh into the build pod for docker strategy builds": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret without resource refresh into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster should mount given csi shared resource secret without resource refresh into the build pod for source strategy builds": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret without resource refresh into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][webhook] TestWebhook": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][webhook] TestWebhook [apigroup:build.openshift.io][apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][webhook] TestWebhookGitHubPing": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][webhook] TestWebhookGitHubPing [apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][webhook] TestWebhookGitHubPushWithImage": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][webhook] TestWebhookGitHubPushWithImage [apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][webhook] TestWebhookGitHubPushWithImageStream": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][webhook] TestWebhookGitHubPushWithImageStream [apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:JenkinsRHELImagesOnly][Feature:Jenkins][Feature:Builds][sig-devex][Slow] openshift pipeline build jenkins pipeline build config strategy using a jenkins instance launched with the ephemeral template": "",
+	"[sig-builds][Feature:JenkinsRHELImagesOnly][Feature:Jenkins][Feature:Builds][sig-devex][Slow] openshift pipeline build jenkins pipeline build config strategy using a jenkins instance launched with the ephemeral template [apigroup:build.openshift.io]": "",
 
-	"[sig-ci] [Early] prow job name should match network type": " [Suite:openshift/conformance/parallel]",
+	"[sig-ci] [Early] prow job name should match network type [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-ci] [Early] prow job name should match platform type": " [Suite:openshift/conformance/parallel]",
+	"[sig-ci] [Early] prow job name should match platform type [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] Kubectl Port forwarding With a server listening on 0.0.0.0 should support forwarding over websockets": " [Skipped:Proxy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -1647,13 +1647,13 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc --request-timeout works as expected": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm build-chain": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc adm build-chain [apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:project.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm cluster-role-reapers [Serial]": " [Suite:openshift/conformance/serial]",
+	"[sig-cli] oc adm cluster-role-reapers [Serial][apigroup:authorization.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-cli] oc adm groups": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc adm groups [apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm images": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc adm images [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc adm must-gather runs successfully for audit logs": " [Suite:openshift/conformance/parallel]",
 
@@ -1663,25 +1663,25 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc adm must-gather when looking at the audit logs [sig-node] kubelet runs apiserver processes strictly sequentially in order to not risk audit log corruption": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm new-project": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc adm new-project [apigroup:project.openshift.io][apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc adm node-logs": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm policy": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc adm policy [apigroup:authorization.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm role-reapers": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc adm role-reapers [apigroup:authorization.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc adm role-selectors": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc adm serviceaccounts": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm storage-admin": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc adm storage-admin [apigroup:authorization.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm ui-project-commands": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc adm ui-project-commands [apigroup:project.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm user-creation": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc adm user-creation [apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm who-can": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc adm who-can [apigroup:authorization.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc annotate pod": " [Suite:openshift/conformance/parallel]",
 
@@ -1703,15 +1703,15 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc basics can process templates": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc builds complex build start-build": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc builds complex build start-build [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc builds complex build webhooks CRUD": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc builds complex build webhooks CRUD [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc builds get buildconfig": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc builds get buildconfig [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc builds new-build": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc builds new-build [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc builds patch buildconfig": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc builds patch buildconfig [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc can get list of nodes": " [Suite:openshift/conformance/parallel]",
 
@@ -1847,7 +1847,7 @@ var Annotations = map[string]string{
 
 	"[sig-cluster-lifecycle] Pods cannot access the /config/master API endpoint": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-cluster-lifecycle] TestAdminAck should succeed": " [Suite:openshift/conformance/parallel]",
+	"[sig-cluster-lifecycle] TestAdminAck should succeed [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive] [Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks": " [Serial]",
 
@@ -2609,7 +2609,6 @@ var Annotations = map[string]string{
 
 	"[sig-network] SCTP [LinuxOnly] should create a ClusterIP Service with SCTP ports": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-
 	"[sig-network] SCTP [LinuxOnly] should create a Pod with SCTP HostPort": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-network] Service endpoints latency should not be very high  [Conformance]": " [Serial] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
@@ -2621,7 +2620,6 @@ var Annotations = map[string]string{
 	"[sig-network] Services should be able to change the type from ClusterIP to ExternalName [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[sig-network] Services should be able to change the type from ExternalName to ClusterIP [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
-
 
 	"[sig-network] Services should be able to change the type from ExternalName to NodePort [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -2656,7 +2654,6 @@ var Annotations = map[string]string{
 	"[sig-network] Services should fail health check node port if there are only terminating endpoints [Feature:ProxyTerminatingEndpoints]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-network] Services should fallback to local terminating endpoints when there are no ready endpoints with externalTrafficPolicy=Local [Feature:ProxyTerminatingEndpoints]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
-
 
 	"[sig-network] Services should fallback to local terminating endpoints when there are no ready endpoints with internalTrafficPolicy=Local [Feature:ProxyTerminatingEndpoints]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2758,21 +2755,21 @@ var Annotations = map[string]string{
 
 	"[sig-network] multicast when using one of the OpenshiftSDN modes 'redhat/openshift-ovs-subnet' should block multicast traffic": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network] network isolation when using OpenshiftSDN in a mode that does not isolate namespaces by default should allow communication between pods in different namespaces on different nodes": " [Suite:openshift/conformance/parallel]",
+	"[sig-network] network isolation when using a plugin in a mode that does not isolate namespaces by default should allow communication between pods in different namespaces on different nodes": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network] network isolation when using OpenshiftSDN in a mode that does not isolate namespaces by default should allow communication between pods in different namespaces on the same node": " [Suite:openshift/conformance/parallel]",
+	"[sig-network] network isolation when using a plugin in a mode that does not isolate namespaces by default should allow communication between pods in different namespaces on the same node": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network] network isolation when using OpenshiftSDN in a mode that isolates namespaces by default should allow communication from default to non-default namespace on a different node": " [Suite:openshift/conformance/parallel]",
+	"[sig-network] network isolation when using a plugin in a mode that isolates namespaces by default should allow communication from default to non-default namespace on a different node": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network] network isolation when using OpenshiftSDN in a mode that isolates namespaces by default should allow communication from default to non-default namespace on the same node": " [Suite:openshift/conformance/parallel]",
+	"[sig-network] network isolation when using a plugin in a mode that isolates namespaces by default should allow communication from default to non-default namespace on the same node": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network] network isolation when using OpenshiftSDN in a mode that isolates namespaces by default should allow communication from non-default to default namespace on a different node": " [Suite:openshift/conformance/parallel]",
+	"[sig-network] network isolation when using a plugin in a mode that isolates namespaces by default should allow communication from non-default to default namespace on a different node": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network] network isolation when using OpenshiftSDN in a mode that isolates namespaces by default should allow communication from non-default to default namespace on the same node": " [Suite:openshift/conformance/parallel]",
+	"[sig-network] network isolation when using a plugin in a mode that isolates namespaces by default should allow communication from non-default to default namespace on the same node": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network] network isolation when using OpenshiftSDN in a mode that isolates namespaces by default should prevent communication between pods in different namespaces on different nodes": " [Suite:openshift/conformance/parallel]",
+	"[sig-network] network isolation when using a plugin in a mode that isolates namespaces by default should prevent communication between pods in different namespaces on different nodes": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network] network isolation when using OpenshiftSDN in a mode that isolates namespaces by default should prevent communication between pods in different namespaces on the same node": " [Suite:openshift/conformance/parallel]",
+	"[sig-network] network isolation when using a plugin in a mode that isolates namespaces by default should prevent communication between pods in different namespaces on the same node": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network] services basic functionality should allow connections to another pod on a different node via a service IP": " [Suite:openshift/conformance/parallel]",
 
@@ -2782,21 +2779,21 @@ var Annotations = map[string]string{
 
 	"[sig-network] services when running openshift ipv4 cluster on bare metal ensures external auto assign cidr is configured correctly on the cluster [Serial]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-network] services when using OpenshiftSDN in a mode that does not isolate namespaces by default should allow connections to pods in different namespaces on different nodes via service IPs": " [Suite:openshift/conformance/parallel]",
+	"[sig-network] services when using a plugin in a mode that does not isolate namespaces by default should allow connections to pods in different namespaces on different nodes via service IPs": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network] services when using OpenshiftSDN in a mode that does not isolate namespaces by default should allow connections to pods in different namespaces on the same node via service IPs": " [Suite:openshift/conformance/parallel]",
+	"[sig-network] services when using a plugin in a mode that does not isolate namespaces by default should allow connections to pods in different namespaces on the same node via service IPs": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network] services when using OpenshiftSDN in a mode that isolates namespaces by default should allow connections from pods in the default namespace to a service in another namespace on a different node": " [Suite:openshift/conformance/parallel]",
+	"[sig-network] services when using a plugin in a mode that isolates namespaces by default should allow connections from pods in the default namespace to a service in another namespace on a different node": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network] services when using OpenshiftSDN in a mode that isolates namespaces by default should allow connections from pods in the default namespace to a service in another namespace on the same node": " [Suite:openshift/conformance/parallel]",
+	"[sig-network] services when using a plugin in a mode that isolates namespaces by default should allow connections from pods in the default namespace to a service in another namespace on the same node": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network] services when using OpenshiftSDN in a mode that isolates namespaces by default should allow connections to services in the default namespace from a pod in another namespace on a different node": " [Suite:openshift/conformance/parallel]",
+	"[sig-network] services when using a plugin in a mode that isolates namespaces by default should allow connections to services in the default namespace from a pod in another namespace on a different node": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network] services when using OpenshiftSDN in a mode that isolates namespaces by default should allow connections to services in the default namespace from a pod in another namespace on the same node": " [Suite:openshift/conformance/parallel]",
+	"[sig-network] services when using a plugin in a mode that isolates namespaces by default should allow connections to services in the default namespace from a pod in another namespace on the same node": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network] services when using OpenshiftSDN in a mode that isolates namespaces by default should prevent connections to pods in different namespaces on different nodes via service IPs": " [Suite:openshift/conformance/parallel]",
+	"[sig-network] services when using a plugin in a mode that isolates namespaces by default should prevent connections to pods in different namespaces on different nodes via service IPs": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network] services when using OpenshiftSDN in a mode that isolates namespaces by default should prevent connections to pods in different namespaces on the same node via service IPs": " [Suite:openshift/conformance/parallel]",
+	"[sig-network] services when using a plugin in a mode that isolates namespaces by default should prevent connections to pods in different namespaces on the same node via service IPs": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:EgressFirewall] egressFirewall should have no impact outside its namespace": " [Suite:openshift/conformance/parallel]",
 
@@ -3000,7 +2997,6 @@ var Annotations = map[string]string{
 
 	"[sig-node] NodeLease NodeLease should have OwnerReferences set": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-
 	"[sig-node] NodeLease NodeLease the kubelet should create and update a lease in the kube-node-lease namespace": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-node] NodeLease NodeLease the kubelet should report node status infrequently": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
@@ -3064,10 +3060,6 @@ var Annotations = map[string]string{
 	"[sig-node] Probing container should *not* be restarted by liveness probe because startup probe delays it": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-node] Probing container should *not* be restarted with a /healthz http liveness probe [NodeConformance] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
-
-	"[Top Level] [sig-node] Probing container should mark readiness on pods to false and disable liveness probes while pod is in progress of terminating": "should mark readiness on pods to false and disable liveness probes while pod is in progress of terminating [Suite:openshift/conformance/parallel] [Suite:k8s]",
-
-	"[Top Level] [sig-node] Probing container should mark readiness on pods to false while pod is in progress of terminating when a pod has a readiness probe": "should mark readiness on pods to false while pod is in progress of terminating when a pod has a readiness probe [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-node] Probing container should *not* be restarted with a GRPC liveness probe [NodeConformance]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
