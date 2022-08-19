@@ -134,7 +134,6 @@ func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase
 
 func setTestExclusion(tests []*testCase, fn func(suitePath string, t *testCase) bool) {
 	for _, test := range tests {
-		//summary := test.spec.Summary("")
 		var suitePath string
 		for _, loc := range test.locations {
 			if len(loc.FileName) > 0 {

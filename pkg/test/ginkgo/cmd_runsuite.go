@@ -16,6 +16,7 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const (
