@@ -26,7 +26,7 @@ func testsForSuite() ([]*testCase, error) {
 			panic(fmt.Sprintf("unable to find test %s", spec.Text()))
 		}
 
-		tc, err := newTestCaseFromGinkgoSpec(ginkgo.Spec{spec})
+		tc, err := newTestCaseFromGinkgoSpec(ginkgo.Spec{InternalSpec: spec})
 		if err != nil {
 			return nil, err
 		}
