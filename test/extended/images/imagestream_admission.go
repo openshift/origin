@@ -27,13 +27,13 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers][Serial] ImageStre
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("imagestream-admission")
 
-	g.It("TestImageStreamTagsAdmission", func() {
+	g.It("TestImageStreamTagsAdmission [apigroup:image.openshift.io]", func() {
 		TestImageStreamTagsAdmission(g.GinkgoT(), oc)
 	})
-	g.It("TestImageStreamAdmitSpecUpdate", func() {
+	g.It("TestImageStreamAdmitSpecUpdate [apigroup:image.openshift.io]", func() {
 		TestImageStreamAdmitSpecUpdate(g.GinkgoT(), oc)
 	})
-	g.It("TestImageStreamAdmitStatusUpdate", func() {
+	g.It("TestImageStreamAdmitStatusUpdate [apigroup:image.openshift.io]", func() {
 		TestImageStreamAdmitStatusUpdate(g.GinkgoT(), oc)
 	})
 })

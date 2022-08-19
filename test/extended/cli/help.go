@@ -14,7 +14,7 @@ var _ = g.Describe("[sig-cli] oc help", func() {
 
 	oc := exutil.NewCLIWithoutNamespace("oc-help")
 
-	g.It("works as expected", func() {
+	g.It("works as expected [apigroup:user.openshift.io][apigroup:project.openshift.io]", func() {
 		err := exec.Command("kubectl").Run()
 		o.Expect(err).NotTo(o.HaveOccurred())
 

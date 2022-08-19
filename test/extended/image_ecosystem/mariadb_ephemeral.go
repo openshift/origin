@@ -30,7 +30,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][mariadb][Slow] openshift
 		})
 
 		g.Describe("Creating from a template", func() {
-			g.It(fmt.Sprintf("should instantiate the template"), func() {
+			g.It(fmt.Sprintf("should instantiate the template [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:apps.openshift.io]"), func() {
 				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 
 				g.By(fmt.Sprintf("calling oc process %q", templatePath))

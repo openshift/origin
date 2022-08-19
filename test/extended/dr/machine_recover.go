@@ -15,7 +15,7 @@ import (
 	o "github.com/onsi/gomega"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
-	"go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
 
 	corev1 "k8s.io/api/core/v1"
@@ -44,7 +44,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive
 
 	oc := exutil.NewCLIWithoutNamespace("machine-recovery")
 
-	g.It("[Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks", func() {
+	g.It("[Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks [apigroup:machine.openshift.io]", func() {
 
 		framework.Logf("Verify SSH is available before restart")
 		masters, workers := clusterNodes(oc)
