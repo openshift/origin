@@ -102,9 +102,7 @@ func (opt *TestOptions) Run(args []string) error {
 	suiteConfig.EmitSpecProgress = true
 	// Randomize specs as well as suites
 	suiteConfig.RandomizeAllSpecs = true
-	// Turn on verbose by default to get spec names
-	reporterConfig.Verbose = false
-	reporterConfig.NoColor = false
+	reporterConfig.NoColor = true
 
 	ginkgo.SetReporterConfig(reporterConfig)
 
