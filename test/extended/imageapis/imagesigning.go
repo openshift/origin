@@ -16,7 +16,6 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	imagev1 "github.com/openshift/api/image/v1"
-	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -28,8 +27,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:Image] signature", func() {
 	g.It("TestImageAddSignature [apigroup:image.openshift.io]", func() {
 		t := g.GinkgoT()
 
-		clusterAdminConfig := oc.AdminConfig()
-		adminClient := imagev1client.NewForConfigOrDie(clusterAdminConfig)
+		adminClient := oc.AdminImageClient()
 
 		image, err := getImageFixture(oc, exutil.FixturePath("testdata", "image", "test-image.json"))
 		if err != nil {

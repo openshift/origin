@@ -2029,17 +2029,17 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-imageregistry][Feature:ImageExtract] Image extract should extract content from an image [apigroup:image.openshift.io]": "should extract content from an image [apigroup:image.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageInfo] Image info should display information about images": "should display information about images [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageInfo] Image info should display information about images [apigroup:image.openshift.io]": "should display information about images [apigroup:image.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-imageregistry][Feature:ImageLayers] Image layer subresource should identify a deleted image as missing [apigroup:image.openshift.io]": "should identify a deleted image as missing [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-imageregistry][Feature:ImageLayers] Image layer subresource should return layers from tagged images [apigroup:image.openshift.io][apigroup:build.openshift.io]": "should return layers from tagged images [apigroup:image.openshift.io][apigroup:build.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should perform lookup when the Deployment gets the resolve-names annotation later": "should perform lookup when the Deployment gets the resolve-names annotation later [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should perform lookup when the Deployment gets the resolve-names annotation later [apigroup:image.openshift.io]": "should perform lookup when the Deployment gets the resolve-names annotation later [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should perform lookup when the object has the resolve-names annotation": "should perform lookup when the object has the resolve-names annotation [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should perform lookup when the object has the resolve-names annotation [apigroup:image.openshift.io]": "should perform lookup when the object has the resolve-names annotation [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should update OpenShift object image fields when local names are on": "should update OpenShift object image fields when local names are on [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should update OpenShift object image fields when local names are on [apigroup:image.openshift.io]": "should update OpenShift object image fields when local names are on [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-imageregistry][Feature:ImageLookup] Image policy should update standard Kube object image fields when local names are on [apigroup:image.openshift.io][apigroup:apps.openshift.io]": "should update standard Kube object image fields when local names are on [apigroup:image.openshift.io][apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]",
 
