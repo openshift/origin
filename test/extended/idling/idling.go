@@ -222,7 +222,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 				fixture = echoServerFixture
 			})
 
-			g.It("should idle the service and DeploymentConfig properly", func() {
+			g.It("should idle the service and DeploymentConfig properly [apigroup:apps.openshift.io]", func() {
 				checkSingleIdle(oc, idlingFile, resources, "deploymentconfig.apps.openshift.io", "DeploymentConfig")
 			})
 		})
