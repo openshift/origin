@@ -12,14 +12,14 @@ import (
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 )
 
-func testAlerts(events monitorapi.Intervals, restConfig *rest.Config, duration time.Duration) []*junitapi.JUnitTestCase {
+func testAlerts(events monitorapi.Intervals, restConfig *rest.Config, duration time.Duration, recordedResource *monitorapi.ResourcesMap) []*junitapi.JUnitTestCase {
 	ret := []*junitapi.JUnitTestCase{}
 
 	alertTests := allowedalerts.AllAlertTests(context.TODO(), restConfig, duration)
 	for i := range alertTests {
 		alertTest := alertTests[i]
 
-		junit, err := alertTest.InvariantCheck(context.TODO(), restConfig, events)
+		junit, err := alertTest.InvariantCheck(context.TODO(), restConfig, events, *recordedResource)
 		if err != nil {
 			ret = append(ret, &junitapi.JUnitTestCase{
 				Name: alertTest.InvariantTestName(),

@@ -429,7 +429,8 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	if events := opt.MonitorEventsOptions.GetEvents(); len(events) > 0 {
 		var buf *bytes.Buffer
 		syntheticTestResults, buf, _ = createSyntheticTestsFromMonitor(events, duration)
-		testCases := syntheticEventTests.JUnitsForEvents(events, duration, restConfig, suite.Name)
+		currResState := opt.MonitorEventsOptions.GetRecordedResources()
+		testCases := syntheticEventTests.JUnitsForEvents(events, duration, restConfig, suite.Name, &currResState)
 		syntheticTestResults = append(syntheticTestResults, testCases...)
 
 		if len(syntheticTestResults) > 0 {

@@ -157,6 +157,10 @@ func (o *MonitorEventsOptions) GetEvents() monitorapi.Intervals {
 	return o.recordedEvents
 }
 
+func (o *MonitorEventsOptions) GetRecordedResources() monitorapi.ResourcesMap {
+	return o.recordedResources
+}
+
 // WriteRunDataToArtifactsDir attempts to write useful run data to the specified directory.
 func (o *MonitorEventsOptions) WriteRunDataToArtifactsDir(artifactDir string) error {
 	if o.endTime == nil {
