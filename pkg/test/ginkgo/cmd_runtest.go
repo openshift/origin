@@ -85,19 +85,9 @@ func (opt *TestOptions) Run(args []string) error {
 
 	suiteConfig, reporterConfig := ginkgo.GinkgoConfiguration()
 	suiteConfig.FocusStrings = []string{fmt.Sprintf("^%s$", regexp.QuoteMeta(" "+test.name))}
-	//suiteConfig.FocusStrings = []string{fmt.Sprintf("^%s$", regexp.QuoteMeta(test.name))}
-	// FIX ME
-	//config.DefaultReporterConfig.NoColor = true
-	//w := ginkgo.GinkgoWriterType()
-	// FIX ME
-	//w.SetStream(true)
-	// reporter := NewMinimalReporter(test.name, test.locations[len(test.locations)-1])
-	//ginkgo.GetSuite().BuildTree()
 
-	// FIX ME
-	//ginkgo.GetSuite().BuildTree()
-	reporterConfig.JUnitReport = "/tmp/junit.xml"
-
+	// These settings are matched to upstream's ginkgo configuration. See:
+	// https://github.com/kubernetes/kubernetes/blob/ddeb3ab90b581a7531dcaee3c55c7b9199981fd6/test/e2e/framework/test_context.go#L324-L334
 	// Turn on EmitSpecProgress to get spec progress (especially on interrupt)
 	suiteConfig.EmitSpecProgress = true
 	// Randomize specs as well as suites
@@ -107,9 +97,7 @@ func (opt *TestOptions) Run(args []string) error {
 	ginkgo.SetReporterConfig(reporterConfig)
 
 	reporter := reporters.NoopReporter{}
-	//reporter := reporters.NewDefaultReporter(reporterConfig, ginkgo.GetWriter())
-	ginkgo.GetSuite().RunSpec(test.spec.InternalSpec, ginkgo.Labels{}, "/tmp/suitepath", ginkgo.GetFailer(), reporter, ginkgo.GetWriter(), ginkgo.GetOutputInterceptor(), ginkgo.NewInterruptHandler(suiteConfig.Timeout, nil), nil, suiteConfig)
-	// func (suite *Suite) Run(description string, suiteLabels Labels, suitePath string, failer *Failer, reporter reporters.Reporter, writer WriterInterface, outputInterceptor OutputInterceptor, interruptHandler interrupt_handler.InterruptHandlerInterface, client parallel_support.Client, suiteConfig types.SuiteConfig) (bool, bool) {
+	ginkgo.GetSuite().RunSpec(test.spec.InternalSpec, ginkgo.Labels{}, "", ginkgo.GetFailer(), reporter, ginkgo.GetWriter(), ginkgo.GetOutputInterceptor(), ginkgo.NewInterruptHandler(suiteConfig.Timeout, nil), nil, suiteConfig)
 
 	if opt.EnableMonitor {
 		if err := opt.MonitorEventsOptions.End(ctx, restConfig, ""); err != nil {

@@ -2,6 +2,7 @@ package ginkgo
 
 import (
 	"fmt"
+	"math/rand"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift/origin/test/extended/util/annotate/generated"
@@ -14,7 +15,6 @@ func testsForSuite() ([]*testCase, error) {
 	specs := ginkgo.GetSpecs()
 	var tests []*testCase
 	for _, spec := range specs {
-
 		if append, ok := generated.Annotations[spec.Text()]; ok {
 			spec.AppendText(append)
 
@@ -28,5 +28,8 @@ func testsForSuite() ([]*testCase, error) {
 		}
 		tests = append(tests, tc)
 	}
+	suiteConfig, _ := ginkgo.GinkgoConfiguration()
+	r := rand.New(rand.NewSource(suiteConfig.RandomSeed))
+	r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
 	return tests, nil
 }
