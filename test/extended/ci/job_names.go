@@ -20,22 +20,22 @@ import (
 var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("job-names")
+	jobName := os.Getenv("JOB_NAME")
+
+	// If it's an e2e job, we're only interested in the parts that come after e2e, e.g.
+	// a presubmit on pull-ci-openshift-ovn-kubernetes-master-e2e-hypershift, we don't want
+	// to look at the repo name which contains the -ovn- substring!
+	originalJobName := jobName
+	parts := strings.Split(jobName, "e2e-")
+	if len(parts) >= 2 {
+		jobName = parts[len(parts)-1]
+	}
 
 	g.It("should match platform type [apigroup:config.openshift.io]", func() {
-		jobName := os.Getenv("JOB_NAME")
 		if jobName == "" {
 			e2eskipper.Skipf("JOB_NAME env var not set, skipping")
 		} else if strings.Contains(jobName, "agnostic") {
 			e2eskipper.Skipf("JOB_NAME contains agnostic, not expecting platform in name")
-		}
-
-		// If it's an e2e job, we're only interested in the parts that come after e2e, e.g.
-		// a presubmit on pull-ci-openshift-ovn-kubernetes-master-e2e-hypershift, we don't want
-		// to look at the repo name which contains the -ovn- substring!
-		originalJobName := jobName
-		parts := strings.Split(jobName, "e2e-")
-		if len(parts) >= 2 {
-			jobName = parts[len(parts)-1]
 		}
 
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
@@ -65,7 +65,6 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 	})
 
 	g.It("should match network type [apigroup:config.openshift.io]", func() {
-		jobName := os.Getenv("JOB_NAME")
 		if jobName == "" {
 			e2eskipper.Skipf("JOB_NAME env var not set, skipping")
 		}
