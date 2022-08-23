@@ -97,7 +97,7 @@ func isSNOUpgradeTest(ctx context.Context, restConfig *rest.Config) (bool, error
 	return len(clusterVersion.Status.History) > 1, nil
 }
 
-func (a *watchdogAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Config, alertIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+func (a *watchdogAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Config, alertIntervals monitorapi.Intervals, _ monitorapi.ResourcesMap) ([]*junitapi.JUnitTestCase, error) {
 
 	// Skip this test when SNO is being upgraded
 	isSNOUpgrade, err := isSNOUpgradeTest(ctx, restConfig)

@@ -3,8 +3,11 @@ package allowedalerts
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
+
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -31,7 +34,7 @@ type AlertTest interface {
 	AlertState() AlertState
 
 	TestAlert(ctx context.Context, prometheusClient prometheusv1.API, restConfig *rest.Config) error
-	InvariantCheck(ctx context.Context, restConfig *rest.Config, intervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error)
+	InvariantCheck(ctx context.Context, restConfig *rest.Config, intervals monitorapi.Intervals, r monitorapi.ResourcesMap) ([]*junitapi.JUnitTestCase, error)
 }
 
 // AlertState is the state of the alert. They are logically ordered, so if a test says it limits on "pending", then
@@ -286,7 +289,81 @@ func monitorEventMatchesNamespace(namespace string) func(event monitorapi.EventI
 	}
 }
 
-func (a *basicAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Config, alertIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+var imagePullBackoffRegEx = regexp.MustCompile("Back-off pulling image .*registry.redhat.io")
+
+// kubePodNotReadyDueToImagePullBackoff returns true if we searched pod events and determined that the
+// KubePodNotReady alert for this pod fired due to an imagePullBackoff event on registry.redhat.io.
+//
+func kubePodNotReadyDueToImagePullBackoff(trackedEventResources monitorapi.InstanceMap, firingIntervals monitorapi.Intervals) bool {
+
+	// Run the check for all firing intervals.
+	for _, firingInterval := range firingIntervals {
+		relatedPodRef := monitorapi.PodFrom(firingInterval.Locator)
+
+		// Find an event
+		foundImagePullBackoffEvent := false
+		var tmpEvent *corev1.Event
+		for _, obj := range trackedEventResources {
+			tmpEvent = obj.(*corev1.Event)
+			if tmpEvent.InvolvedObject.Name == relatedPodRef.Name &&
+				tmpEvent.InvolvedObject.Namespace == relatedPodRef.Namespace &&
+				imagePullBackoffRegEx.MatchString(tmpEvent.Message) {
+				foundImagePullBackoffEvent = true
+				break
+			}
+		}
+		if !foundImagePullBackoffEvent {
+			// No event resources found so we can't do any checking.
+			return false
+		}
+		imagePullBackoffTime := tmpEvent.LastTimestamp.Time
+		alertTime := firingInterval.From
+		if alertTime.After(imagePullBackoffTime) && alertTime.Sub(imagePullBackoffTime) < time.Minute*10 {
+			framework.Logf("KubePodNotReady alert failure suppressed due to registry.redhat.io ImagePullBackoff on pod %s/%s",
+				tmpEvent.ObjectMeta.Namespace, tmpEvent.ObjectMeta.Name)
+		} else {
+			return false
+		}
+	}
+	return true
+}
+
+// redhatOperatorPodsNotPending returns true of we determined that there is a redhat-operator
+// pod not in Pending state; this implies that the pod is up so we don't need to fail on the
+// RedhatOperatorsCatalogError alert.
+func redhatOperatorPodsNotPending(trackedPodResources monitorapi.InstanceMap, firingIntervals monitorapi.Intervals) bool {
+
+	// Find the redhat-operators pod in the openshift-marketplace namespace.
+	rhPodFound := false
+	var rhPod *corev1.Pod
+	for _, obj := range trackedPodResources {
+		rhPod = obj.(*corev1.Pod)
+		if namespace := rhPod.ObjectMeta.Namespace; namespace != "openshift-marketplace" {
+			continue
+		}
+		if podName := rhPod.ObjectMeta.Name; !strings.HasPrefix(podName, "redhat-operators") {
+			continue
+		}
+		rhPodFound = true
+	}
+	if !rhPodFound {
+		// No redhat-operator pod found so we can't do any checking.
+		return false
+	}
+
+	podStartTime := rhPod.Status.StartTime.Time
+	for i := range firingIntervals {
+		alertTime := firingIntervals[i].From
+		if alertTime.Before(podStartTime) && podStartTime.Sub(alertTime) >= time.Minute*10 && rhPod.Status.Phase != corev1.PodPending {
+			framework.Logf("RedhatOperatorsCatalogError alert interval %d failure suppressed since %s is not Pending 10+ minutes later", i, rhPod.ObjectMeta.Name)
+		} else {
+			return false
+		}
+	}
+	return true
+}
+
+func (a *basicAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Config, alertIntervals monitorapi.Intervals, resourcesMap monitorapi.ResourcesMap) ([]*junitapi.JUnitTestCase, error) {
 	pendingIntervals := alertIntervals.Filter(
 		monitorapi.And(
 			func(eventInterval monitorapi.EventInterval) bool {
@@ -321,6 +398,20 @@ func (a *basicAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Co
 	)
 
 	state, message := a.failOrFlake(ctx, restConfig, firingIntervals, pendingIntervals)
+
+	switch a.alertName {
+	case "KubePodNotReady":
+		if state == fail && kubePodNotReadyDueToImagePullBackoff(resourcesMap["events"], firingIntervals) {
+
+			// Since this is due to imagePullBackoff, change the state to flake instead of fail
+			state = flake
+		}
+	case "RedhatOperatorsCatalogError":
+		if state == fail && redhatOperatorPodsNotPending(resourcesMap["pods"], firingIntervals) {
+			state = flake
+		}
+	}
+
 	switch state {
 	case pass:
 		return []*junitapi.JUnitTestCase{
