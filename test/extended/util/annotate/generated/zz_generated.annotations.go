@@ -2795,7 +2795,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network][Feature:EgressIP][apigroup:config.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should keep the assigned EgressIPs when being rescheduled to another node": "pods should keep the assigned EgressIPs when being rescheduled to another node [Serial] [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [sig-network][Feature:EgressIP][apigroup:config.openshift.io] [internal-targets] EgressIP pods should query hostNetwork pods with the local node's SNAT": "EgressIP pods should query hostNetwork pods with the local node's SNAT [Serial] [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-network][Feature:EgressIP][apigroup:config.openshift.io] [internal-targets] EgressIP pods should query hostNetwork pods with the local node's SNAT": "EgressIP pods should query hostNetwork pods with the local node's SNAT [Disabled:Broken] [Serial]",
 
 	"[Top Level] [sig-network][Feature:EgressRouterCNI] should ensure ipv4 egressrouter cni resources are created [apigroup:operator.openshift.io]": "should ensure ipv4 egressrouter cni resources are created [apigroup:operator.openshift.io] [Suite:openshift/conformance/parallel]",
 
