@@ -159,13 +159,14 @@ func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framewor
 		// ensure the pod waits long enough during update for the LB to see the newly ready pod, which
 		// must be longer than the worst load balancer above (GCP at 32s)
 		rc.Spec.MinReadySeconds = 33
-		// ensure the pod waits long enough for most LBs to take it out of rotation, which has to be
-		// longer than the LB failed health check duration + 1 cycle
-		rc.Spec.Template.Spec.Containers[0].Lifecycle = &v1.Lifecycle{
-			PreStop: &v1.LifecycleHandler{
-				Exec: &v1.ExecAction{Command: []string{"sleep", "45"}},
-			},
-		}
+
+		// use a readiness endpoint that will go not ready before the pod terminates.
+		// the probe will go false when the sig-term is sent.
+		rc.Spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet.Path = "/readyz"
+
+		// delay shutdown long enough to go readyz=false before the process exits when the pod is deleted.
+		rc.Spec.Template.Spec.Containers[0].Args = append(rc.Spec.Template.Spec.Containers[0].Args, "--delay-shutdown=45")
+
 		// ensure the pod is not forcibly deleted at 30s, but waits longer than the graceful sleep
 		minute := int64(60)
 		rc.Spec.Template.Spec.TerminationGracePeriodSeconds = &minute
