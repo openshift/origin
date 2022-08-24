@@ -71,25 +71,8 @@ func Run() {
 	contents := fmt.Sprintf(`
 package generated
 
-import (
-	"fmt"
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/types"
-)
-
-var annotations = map[string]string{
+var Annotations = map[string]string{
 %s
-}
-
-func init() {
-	ginkgo.GetSuite().BuildTree()
-	ginkgo.GetSuite().WalkTests(func(name string, node types.TestSpec) {
-		if newLabels, ok := annotations[name]; ok {
-			node.AppendText(newLabels)
-		} else {
-			panic(fmt.Sprintf("unable to find test %%s", name))
-		}
-	})
 }
 `, strings.Join(pairs, "\n\n"))
 	if err := ioutil.WriteFile(filename, []byte(contents), 0644); err != nil {
@@ -221,7 +204,7 @@ func (r *ginkgoTestRenamer) generateRename(name string, node types.TestSpec) {
 			newLabels += " [Suite:openshift/conformance/parallel]"
 		}
 	}
-	codeLocations := node.CodeLocations()
+	codeLocations := node.CodeLocation()
 	if isGoModulePath(codeLocations[len(codeLocations)-1].FileName, "k8s.io/kubernetes", "test/e2e") {
 		newLabels += " [Suite:k8s]"
 	}
