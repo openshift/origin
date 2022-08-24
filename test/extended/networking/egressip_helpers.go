@@ -1042,6 +1042,18 @@ func getFirstFreeIPs(ipnetStr string, reservedIPs []string, cloudType configv1.P
 			return []string{}, fmt.Errorf("Cloud type is GCP, but there are less than 3 IPs available in the IP network %s", ipnetStr)
 		}
 		ipList = ipList[2 : len(ipList)-1]
+	case configv1.OpenStackPlatformType:
+		// For OpenStack as a heuristic use the last 32 IP addresses inside the subnet. We require the subnet to hold
+		// at least 64 addresses so that we always end up at least at the lower half. That should be sufficiently safe
+		// to avoid conflicts with infra IPs. In our CI tests, the OSP env usually spawns a 10.0.0.0/16 so we
+		// should be totally safe here. The currently required allocations should be here, but let's play it safe nevertheless:
+		// https://github.com/openshift/installer/blob/1884f8bda4ffbde7bc808900400aa62a7806fa21/pkg/types/openstack/defaults/platform.go#L30
+		// https://github.com/openshift/installer/blob/1884f8bda4ffbde7bc808900400aa62a7806fa21/pkg/types/openstack/defaults/platform.go#L40
+		// len(ipList)-1 will ignore the last element in the ipList which is the network's broadcast.
+		if len(ipList) < 64 {
+			return []string{}, fmt.Errorf("Cloud type is OpenStack, but there are less than 64 IPs available in the IP network %s", ipnetStr)
+		}
+		ipList = ipList[len(ipList)-32 : len(ipList)-1]
 	default:
 		// Skip the network address and the broadcast address
 		ipList = ipList[1 : len(ipList)-1]
