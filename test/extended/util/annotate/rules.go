@@ -340,7 +340,4 @@ var (
 			`\[Feature:Platform\] Managed cluster should ensure control plane operators do not make themselves unevictable`,
 		},
 	}
-
-	// labelExcludes temporarily block tests out of a specific suite
-	labelExcludes = map[string][]string{}
 )
