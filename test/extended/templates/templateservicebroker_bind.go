@@ -37,7 +37,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker bind te
 		cliUser            user.Info
 	)
 
-	g.Context("", func() {
+	g.Context("[apigroup:authorization.openshift.io][apigroup:template.openshift.io]", func() {
 		g.BeforeEach(func() {
 			var err error
 			brokercli, err = TSBClient(cli)

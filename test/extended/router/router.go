@@ -18,7 +18,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/url"
 )
 
-var _ = g.Describe("[sig-network][Feature:Router]", func() {
+var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io][apigroup:apps.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
 		host, ns string
@@ -68,7 +68,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			)
 		})
 
-		g.It("should serve routes that were created from an ingress", func() {
+		g.It("should serve routes that were created from an ingress [apigroup:route.openshift.io]", func() {
 			g.By("deploying an ingress rule")
 			err := oc.Run("create").Args("-f", configPath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())

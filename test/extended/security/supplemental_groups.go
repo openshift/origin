@@ -34,7 +34,7 @@ var _ = g.Describe("[sig-node] supplemental groups", func() {
 	)
 
 	g.Describe("Ensure supplemental groups propagate to docker", func() {
-		g.It("should propagate requested groups to the container [Local]", func() {
+		g.It("should propagate requested groups to the container [Local][apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
 
 			fsGroup := int64(1111)
 			supGroup := int64(2222)

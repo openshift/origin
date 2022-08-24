@@ -28,7 +28,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-network][Feature:Router]", func() {
+var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
 		routerImage string

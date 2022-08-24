@@ -467,7 +467,7 @@ var _ = Describe("[sig-network-edge] DNS", func() {
 		validateDNSResults(f, pod, expect, times)
 	})
 
-	It("should answer A and AAAA queries for a dual-stack service", func() {
+	It("should answer A and AAAA queries for a dual-stack service [apigroup:config.openshift.io]", func() {
 		// Only run this test on dual-stack enabled clusters.
 		networkConfig, err := oc.AdminConfigClient().ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
 		if err != nil {

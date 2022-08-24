@@ -27,7 +27,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 	one := int64(0)
 	ctx := context.Background()
 
-	g.It("should update standard Kube object image fields when local names are on", func() {
+	g.It("should update standard Kube object image fields when local names are on [apigroup:image.openshift.io][apigroup:apps.openshift.io]", func() {
 		err := oc.Run("tag").Args(k8simage.GetE2EImage(k8simage.BusyBox), "busybox:latest").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.Run("set", "image-lookup").Args("busybox").Execute()

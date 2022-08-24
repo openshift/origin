@@ -500,7 +500,7 @@ func InOpenShiftSDNContext(body func()) {
 }
 
 func InBareMetalIPv4ClusterContext(oc *exutil.CLI, body func()) {
-	Context("when running openshift ipv4 cluster on bare metal",
+	Context("when running openshift ipv4 cluster on bare metal [apigroup:config.openshift.io]",
 		func() {
 			BeforeEach(func() {
 				pType, err := platformType(oc.AdminConfigClient())

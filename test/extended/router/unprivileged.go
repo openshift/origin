@@ -19,7 +19,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-network][Feature:Router]", func() {
+var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:template.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc          *exutil.CLI
@@ -54,7 +54,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should run even if it has no access to update status", func() {
+		g.It("should run even if it has no access to update status [apigroup:image.openshift.io]", func() {
 
 			configPath := exutil.FixturePath("testdata", "router", "router-scoped.yaml")
 			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
