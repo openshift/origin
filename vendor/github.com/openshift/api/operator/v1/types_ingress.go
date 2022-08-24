@@ -616,6 +616,34 @@ type HostNetworkStrategy struct {
 // PrivateStrategy holds parameters for the Private endpoint publishing
 // strategy.
 type PrivateStrategy struct {
+	// protocol specifies whether the IngressController expects incoming
+	// connections to use plain TCP or whether the IngressController expects
+	// PROXY protocol.
+	//
+	// PROXY protocol can be used with load balancers that support it to
+	// communicate the source addresses of client connections when
+	// forwarding those connections to the IngressController.  Using PROXY
+	// protocol enables the IngressController to report those source
+	// addresses instead of reporting the load balancer's address in HTTP
+	// headers and logs.  Note that enabling PROXY protocol on the
+	// IngressController will cause connections to fail if you are not using
+	// a load balancer that uses PROXY protocol to forward connections to
+	// the IngressController.  See
+	// http://www.haproxy.org/download/2.2/doc/proxy-protocol.txt for
+	// information about PROXY protocol.
+	//
+	// The following values are valid for this field:
+	//
+	// * The empty string.
+	// * "TCP".
+	// * "PROXY".
+	//
+	// The empty string specifies the default, which is TCP without PROXY
+	// protocol.  Note that the default is subject to change.
+	//
+	// +kubebuilder:validation:Optional
+	// +optional
+	Protocol IngressControllerProtocol `json:"protocol,omitempty"`
 }
 
 // NodePortStrategy holds parameters for the NodePortService endpoint publishing strategy.
@@ -1404,7 +1432,7 @@ type IngressControllerTuningOptions struct {
 	// 2147483647ms (24.85 days).  Both are subject to change over time.
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Pattern=^0|([0-9]+(\.[0-9]+)?(ns|us|µs|μs|ms|s|m|h))+$
+	// +kubebuilder:validation:Pattern=^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|μs|ms|s|m|h))+)$
 	// +kubebuilder:validation:Type:=string
 	// +optional
 	HealthCheckInterval *metav1.Duration `json:"healthCheckInterval,omitempty"`

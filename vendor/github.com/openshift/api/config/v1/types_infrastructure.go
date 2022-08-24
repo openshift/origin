@@ -574,6 +574,10 @@ type IBMCloudPlatformStatus struct {
 	// CISInstanceCRN is the CRN of the Cloud Internet Services instance managing
 	// the DNS zone for the cluster's base domain
 	CISInstanceCRN string `json:"cisInstanceCRN,omitempty"`
+
+	// DNSInstanceCRN is the CRN of the DNS Services instance managing the DNS zone
+	// for the cluster's base domain
+	DNSInstanceCRN string `json:"dnsInstanceCRN,omitempty"`
 }
 
 // KubevirtPlatformSpec holds the desired state of the kubevirt infrastructure provider.
@@ -662,6 +666,10 @@ type PowerVSPlatformStatus struct {
 	// CISInstanceCRN is the CRN of the Cloud Internet Services instance managing
 	// the DNS zone for the cluster's base domain
 	CISInstanceCRN string `json:"cisInstanceCRN,omitempty"`
+
+	// DNSInstanceCRN is the CRN of the DNS Services instance managing the DNS zone
+	// for the cluster's base domain
+	DNSInstanceCRN string `json:"dnsInstanceCRN,omitempty"`
 }
 
 // AlibabaCloudPlatformSpec holds the desired state of the Alibaba Cloud infrastructure provider.

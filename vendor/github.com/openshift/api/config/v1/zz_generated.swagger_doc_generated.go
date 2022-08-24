@@ -1136,6 +1136,7 @@ var map_IBMCloudPlatformStatus = map[string]string{
 	"resourceGroupName": "ResourceGroupName is the Resource Group for new IBMCloud resources created for the cluster.",
 	"providerType":      "ProviderType indicates the type of cluster that was created",
 	"cisInstanceCRN":    "CISInstanceCRN is the CRN of the Cloud Internet Services instance managing the DNS zone for the cluster's base domain",
+	"dnsInstanceCRN":    "DNSInstanceCRN is the CRN of the DNS Services instance managing the DNS zone for the cluster's base domain",
 }
 
 func (IBMCloudPlatformStatus) SwaggerDoc() map[string]string {
@@ -1342,6 +1343,7 @@ var map_PowerVSPlatformStatus = map[string]string{
 	"zone":             "zone holds the default zone for the new Power VS resources created by the cluster. Note: Currently only single-zone OCP clusters are supported",
 	"serviceEndpoints": "serviceEndpoints is a list of custom endpoints which will override the default service endpoints of a Power VS service.",
 	"cisInstanceCRN":   "CISInstanceCRN is the CRN of the Cloud Internet Services instance managing the DNS zone for the cluster's base domain",
+	"dnsInstanceCRN":   "DNSInstanceCRN is the CRN of the DNS Services instance managing the DNS zone for the cluster's base domain",
 }
 
 func (PowerVSPlatformStatus) SwaggerDoc() map[string]string {
