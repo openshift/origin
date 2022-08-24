@@ -22,15 +22,16 @@ func NewParser(builder builder.TestSuitesBuilder, testParser TestDataParser, sui
 }
 
 // testOutputParser uses a stack to parse test output. Critical assumptions that this parser makes are:
-//   1 - packages may be nested but tests may not
-//   2 - no package declarations will occur within the boundaries of a test
-//   3 - all tests and packages are fully bounded by a start and result line
-//   4 - if a package or test declaration occurs after the start of a package but before its result,
-//       the sub-package's or member test's result line will occur before that of the parent package
-//       i.e. any test or package overlap will necessarily mean that one package's lines are a superset
-//       of any lines of tests or other packages overlapping with it
-//   5 - any text in the input file that doesn't match the parser regex is necessarily the output of the
-//       current test being built
+//
+//	1 - packages may be nested but tests may not
+//	2 - no package declarations will occur within the boundaries of a test
+//	3 - all tests and packages are fully bounded by a start and result line
+//	4 - if a package or test declaration occurs after the start of a package but before its result,
+//	    the sub-package's or member test's result line will occur before that of the parent package
+//	    i.e. any test or package overlap will necessarily mean that one package's lines are a superset
+//	    of any lines of tests or other packages overlapping with it
+//	5 - any text in the input file that doesn't match the parser regex is necessarily the output of the
+//	    current test being built
 type testOutputParser struct {
 	builder builder.TestSuitesBuilder
 

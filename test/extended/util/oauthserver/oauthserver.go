@@ -464,7 +464,7 @@ func newSessionSecretsJSON() ([]byte, error) {
 	return secretsBytes, nil
 }
 
-//randomString - random string of A-Z chars with len size
+// randomString - random string of A-Z chars with len size
 func randomString(size int) string {
 	buffer := make([]byte, size)
 	for i := 0; i < size; i++ {

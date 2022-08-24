@@ -164,7 +164,6 @@ func NewIngressServicePodIntervalRenderer() ingressServicePodRendering {
 // WriteEventData for ingressServicePodRendering writes out a custom spyglass chart to help debug TRT-364 and BZ2101622 where
 // image-registry, console, and oauth pods were experiencing disruption during upgrades.  We wanted one chart that
 // showed those pods, router-default pods, node changes, and disruption.
-//
 func (r ingressServicePodRendering) WriteRunData(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
 	errs := []error{}
 	disruptionReasons := sets.NewString(backenddisruption.DisruptionBeganEventReason,

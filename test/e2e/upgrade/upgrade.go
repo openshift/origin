@@ -124,7 +124,6 @@ func SetUpgradeDisruptReboot(policy string) error {
 //
 // * empty string - do not abort
 // * integer between 0-100 - once this percentage of operators have updated, rollback to the previous version
-//
 func SetUpgradeAbortAt(policy string) error {
 	if len(policy) == 0 {
 		upgradeAbortAt = 0

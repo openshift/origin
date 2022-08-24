@@ -24,7 +24,9 @@ func isDisabled(name string) bool {
 
 // shouldSkipUntil allows a test to be skipped with a time limit.
 // the test should be annotated with the 'SkippedUntil' tag, as shown below.
-//   [SkippedUntil:05092022:blocker-bz/123456]
+//
+//	[SkippedUntil:05092022:blocker-bz/123456]
+//
 // - the specified date should conform to the 'MMDDYYYY' format.
 // - a valid blocker BZ must be specified
 // if the specified date in the tag has not passed yet, the test

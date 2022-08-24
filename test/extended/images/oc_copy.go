@@ -182,9 +182,9 @@ func (e *hookExecutor) tagImages(hook *appsv1.LifecycleHook, rc *corev1.Replicat
 //
 // The hook pod inherits the following from the container the hook refers to:
 //
-//   * Environment (hook keys take precedence)
-//   * Working directory
-//   * Resources
+//   - Environment (hook keys take precedence)
+//   - Working directory
+//   - Resources
 func (e *hookExecutor) executeExecNewPod(hook *appsv1.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error {
 	config, err := appsserialization.DecodeDeploymentConfig(rc)
 	if err != nil {

@@ -6,7 +6,7 @@ import (
 	dockerClient "github.com/fsouza/go-dockerclient"
 )
 
-//ListImages initiates the equivalent of a `docker images`
+// ListImages initiates the equivalent of a `docker images`
 func ListImages() ([]string, error) {
 	client, err := dockerClient.NewClientFromEnv()
 	if err != nil {
@@ -33,7 +33,7 @@ func (mte MissingTagError) Error() string {
 	return fmt.Sprintf("the tag %s passed in was invalid, and not found in the list of images returned from docker", mte.Tags)
 }
 
-//GetImageIDForTags will obtain the hexadecimal IDs for the array of human readible image tags IDs provided
+// GetImageIDForTags will obtain the hexadecimal IDs for the array of human readible image tags IDs provided
 func GetImageIDForTags(comps []string) ([]string, error) {
 	client, dcerr := dockerClient.NewClientFromEnv()
 	if dcerr != nil {
