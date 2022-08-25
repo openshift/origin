@@ -170,7 +170,7 @@ func (r ingressServicePodRendering) WriteRunData(artifactDir string, _ monitorap
 	disruptionReasons := sets.NewString(backenddisruption.DisruptionBeganEventReason,
 		backenddisruption.DisruptionEndedEventReason,
 		backenddisruption.DisruptionSamplerOutageBeganEventReason)
-	relevantNamespaces := sets.NewString("openshift-authentication", "openshift-console", "openshift-image-registry", "openshift-ingress")
+	relevantNamespaces := sets.NewString("openshift-authentication", "openshift-console", "openshift-image-registry", "openshift-ingress", "openshift-ovn-kubernetes")
 	writer := NewNonSpyglassEventIntervalRenderer("image-reg-console-oauth",
 		func(eventInterval monitorapi.EventInterval) bool {
 			switch {
