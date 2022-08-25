@@ -19,8 +19,7 @@ import (
 // MetricsAvailableAfterUpgradeTest tests that metrics from before an upgrade
 // are also available after the upgrade.
 type MetricsAvailableAfterUpgradeTest struct {
-	executionTimestamp      time.Time
-	persistentVolumeEnabled bool
+	executionTimestamp time.Time
 }
 
 func (t *MetricsAvailableAfterUpgradeTest) Name() string {

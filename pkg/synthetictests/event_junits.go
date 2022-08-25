@@ -77,6 +77,8 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testAPIQuotaEvents(events)...)
 	tests = append(tests, testMultipleSingleSecondAvailabilityFailure(events)...)
 	tests = append(tests, testNoDNSLookupErrorsInDisruptionSamplers(events)...)
+	tests = append(tests, testNoExcessiveSecretGrowthDuringUpgrade()...)
+	tests = append(tests, testNoExcessiveConfigMapGrowthDuringUpgrade()...)
 
 	return tests
 }
