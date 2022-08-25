@@ -39,6 +39,8 @@ type testCase struct {
 	previous *testCase
 }
 
+var timeoutRegex = regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
+
 func newTestCaseFromGinkgoSpec(spec ginkgo.Spec) (*testCase, error) {
 	tc := &testCase{
 		name:      spec.InternalSpec.Text(),
@@ -46,8 +48,7 @@ func newTestCaseFromGinkgoSpec(spec ginkgo.Spec) (*testCase, error) {
 		spec:      spec,
 	}
 
-	re := regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
-	if match := re.FindStringSubmatch(tc.name); match != nil {
+	if match := timeoutRegex.FindStringSubmatch(tc.name); match != nil {
 		testTimeOut, err := time.ParseDuration(match[1])
 		if err != nil {
 			return nil, err
