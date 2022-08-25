@@ -25,7 +25,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker security test [apigroup:template.openshift.io][apigroup:authorization.openshift.io]", func() {
+var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker security test", func() {
 	defer g.GinkgoRecover()
 	ctx := context.Background()
 

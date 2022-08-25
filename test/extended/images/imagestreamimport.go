@@ -32,7 +32,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
-var _ = g.Describe("[sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API [apigroup:config.openshift.io]", func() {
+var _ = g.Describe("[sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithPodSecurityLevel("imagestream-api", admissionapi.LevelBaseline)
 	g.BeforeEach(func() {
@@ -74,16 +74,16 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageStreamImport][Serial][Slow]
 		}
 	})
 
-	g.It("TestImportImageFromInsecureRegistry [apigroup:image.openshift.io]", func() {
+	g.It("TestImportImageFromInsecureRegistry", func() {
 		TestImportImageFromInsecureRegistry(oc)
 	})
-	g.It("TestImportImageFromBlockedRegistry [apigroup:image.openshift.io]", func() {
+	g.It("TestImportImageFromBlockedRegistry", func() {
 		TestImportImageFromBlockedRegistry(oc)
 	})
-	g.It("TestImportRepositoryFromInsecureRegistry [apigroup:image.openshift.io]", func() {
+	g.It("TestImportRepositoryFromInsecureRegistry", func() {
 		TestImportRepositoryFromInsecureRegistry(oc)
 	})
-	g.It("TestImportRepositoryFromBlockedRegistry [apigroup:image.openshift.io]", func() {
+	g.It("TestImportRepositoryFromBlockedRegistry", func() {
 		TestImportRepositoryFromBlockedRegistry(oc)
 	})
 })

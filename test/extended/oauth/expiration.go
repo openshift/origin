@@ -38,7 +38,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Token Expiration]", func() 
 		oauthServerCleanup()
 	})
 
-	g.Context("Using a OAuth client with a non-default token max age [apigroup:oauth.openshift.io]", func() {
+	g.Context("Using a OAuth client with a non-default token max age", func() {
 		var oAuthClientResource *oauthv1.OAuthClient
 		var accessTokenMaxAgeSeconds int32
 
@@ -64,11 +64,11 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Token Expiration]", func() 
 				accessTokenMaxAgeSeconds = 0
 			})
 
-			g.It("works as expected when using a token authorization flow [apigroup:user.openshift.io]", func() {
+			g.It("works as expected when using a token authorization flow", func() {
 				testTokenFlow(oc, newRequestTokenOptions, oAuthClientResource, accessTokenMaxAgeSeconds)
 			})
 
-			g.It("works as expected when using a code authorization flow [apigroup:user.openshift.io]", func() {
+			g.It("works as expected when using a code authorization flow", func() {
 				testCodeFlow(oc, newRequestTokenOptions, oAuthClientResource, accessTokenMaxAgeSeconds)
 			})
 
@@ -79,10 +79,10 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Token Expiration]", func() 
 				accessTokenMaxAgeSeconds = 10
 			})
 
-			g.It("works as expected when using a token authorization flow [apigroup:user.openshift.io]", func() {
+			g.It("works as expected when using a token authorization flow", func() {
 				testTokenFlow(oc, newRequestTokenOptions, oAuthClientResource, accessTokenMaxAgeSeconds)
 			})
-			g.It("works as expected when using a code authorization flow [apigroup:user.openshift.io]", func() {
+			g.It("works as expected when using a code authorization flow", func() {
 				testCodeFlow(oc, newRequestTokenOptions, oAuthClientResource, accessTokenMaxAgeSeconds)
 			})
 		})

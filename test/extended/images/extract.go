@@ -33,7 +33,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 
 	oc = exutil.NewCLIWithPodSecurityLevel("image-extract", admissionapi.LevelBaseline)
 
-	g.It("should extract content from an image [apigroup:image.openshift.io]", func() {
+	g.It("should extract content from an image", func() {
 		is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get(context.Background(), "tools", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(is.Status.DockerImageRepository).NotTo(o.BeEmpty(), "registry not yet configured?")

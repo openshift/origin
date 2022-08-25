@@ -23,25 +23,25 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers] Image change buil
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("image-change-build-trigger")
 
-	g.It("TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
+	g.It("TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI", func() {
 		TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI(g.GinkgoT(), oc)
 	})
-	g.It("TestSimpleImageChangeBuildTriggerFromImageStreamTagSTIWithConfigChange [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
+	g.It("TestSimpleImageChangeBuildTriggerFromImageStreamTagSTIWithConfigChange", func() {
 		TestSimpleImageChangeBuildTriggerFromImageStreamTagSTIWithConfigChange(g.GinkgoT(), oc)
 	})
-	g.It("TestSimpleImageChangeBuildTriggerFromImageStreamTagDocker [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
+	g.It("TestSimpleImageChangeBuildTriggerFromImageStreamTagDocker", func() {
 		TestSimpleImageChangeBuildTriggerFromImageStreamTagDocker(g.GinkgoT(), oc)
 	})
-	g.It("TestSimpleImageChangeBuildTriggerFromImageStreamTagDockerWithConfigChange [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
+	g.It("TestSimpleImageChangeBuildTriggerFromImageStreamTagDockerWithConfigChange", func() {
 		TestSimpleImageChangeBuildTriggerFromImageStreamTagDockerWithConfigChange(g.GinkgoT(), oc)
 	})
-	g.It("TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
+	g.It("TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom", func() {
 		TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom(g.GinkgoT(), oc)
 	})
-	g.It("TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
+	g.It("TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange", func() {
 		TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange(g.GinkgoT(), oc)
 	})
-	g.It("TestMultipleImageChangeBuildTriggers [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
+	g.It("TestMultipleImageChangeBuildTriggers", func() {
 		TestMultipleImageChangeBuildTriggers(g.GinkgoT(), oc)
 	})
 })

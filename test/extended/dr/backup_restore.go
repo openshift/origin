@@ -41,7 +41,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 	// corresponds to a step in the documentation.
 	//
 	// Backing up and recovering on the same node is tested by quorum_restore.go.
-	g.It("[Feature:EtcdRecovery] Cluster should recover from a backup taken on one node and recovered on another [apigroup:operator.openshift.io]", func() {
+	g.It("[Feature:EtcdRecovery] Cluster should recover from a backup taken on one node and recovered on another", func() {
 		masters := masterNodes(oc)
 		// Need one node to backup from and another to restore to
 		o.Expect(len(masters)).To(o.BeNumerically(">=", 2))

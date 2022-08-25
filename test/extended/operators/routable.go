@@ -19,7 +19,7 @@ import (
 	exurl "github.com/openshift/origin/test/extended/util/url"
 )
 
-var _ = g.Describe("[sig-arch] Managed cluster should [apigroup:apps.openshift.io]", func() {
+var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -49,7 +49,7 @@ var _ = g.Describe("[sig-arch] Managed cluster should [apigroup:apps.openshift.i
 		}
 	})
 
-	g.It("should expose cluster services outside the cluster [apigroup:route.openshift.io]", func() {
+	g.It("should expose cluster services outside the cluster", func() {
 		ns := oc.KubeFramework().Namespace.Name
 
 		tester := exurl.NewTester(oc.AdminKubeClient(), ns).WithErrorPassthrough(true)

@@ -41,7 +41,7 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 	// during an upgrade as new pods start and then establish connections.
 	//
 	// Currently only applies to daemonsets that don't explicitly target the control plane.
-	g.It("should only include cluster daemonsets that have maxUnavailable update of 10 or 33 percent [apigroup:config.openshift.io]", func() {
+	g.It("should only include cluster daemonsets that have maxUnavailable update of 10 or 33 percent", func() {
 		// iterate over the references to find valid images
 		daemonSets, err := oc.KubeFramework().ClientSet.AppsV1().DaemonSets("").List(context.Background(), metav1.ListOptions{})
 		if err != nil {

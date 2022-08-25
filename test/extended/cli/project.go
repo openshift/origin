@@ -12,7 +12,7 @@ var _ = g.Describe("[sig-cli] oc project", func() {
 
 	var oc = exutil.NewCLI("oc-project").AsAdmin()
 
-	g.It("--show-labels works for projects [apigroup:project.openshift.io]", func() {
+	g.It("--show-labels works for projects", func() {
 		out, err := oc.Run("label").Args("namespace", oc.Namespace(), "foo=bar").Output()
 		o.Expect(out).To(o.ContainSubstring("labeled"))
 		o.Expect(err).NotTo(o.HaveOccurred())

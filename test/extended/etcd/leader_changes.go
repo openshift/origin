@@ -25,7 +25,7 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 		earlyTimeStamp = time.Now()
 	})
 
-	g.It("leader changes are not excessive [Late][apigroup:config.openshift.io]", func() {
+	g.It("leader changes are not excessive [Late]", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {

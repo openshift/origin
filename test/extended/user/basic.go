@@ -25,7 +25,7 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("user-api")
 
-	g.It("users can manipulate groups [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:project.openshift.io]", func() {
+	g.It("users can manipulate groups", func() {
 		t := g.GinkgoT()
 
 		clusterAdminUserClient := oc.AdminUserClient().UserV1()
@@ -131,7 +131,7 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 		})
 	})
 
-	g.It("groups should work [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:authorization.openshift.io]", func() {
+	g.It("groups should work", func() {
 		t := g.GinkgoT()
 		clusterAdminUserClient := oc.AdminUserClient().UserV1()
 

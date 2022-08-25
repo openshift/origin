@@ -43,7 +43,7 @@ const (
 	egressUpdateTimeout = 180
 )
 
-var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io]", func() {
+var _ = g.Describe("[sig-network][Feature:EgressIP]", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel(namespacePrefix, admissionapi.LevelPrivileged)
 	portAllocator := NewPortAllocator(egressIPTargetHostPortMin, egressIPTargetHostPortMax)
 
@@ -342,7 +342,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 		})
 	}) // end testing to internal targets
 
-	g.Context("[external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
+	g.Context("[external-targets]", func() {
 		g.JustBeforeEach(func() {
 			// SCC privileged is needed to run tcpdump on the packet sniffer containers, and at the minimum host networked is needed for
 			// host networked pods.
@@ -363,7 +363,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 		// OVNKubernetes
 		// OpenShiftSDN
 		// Skipped on Azure due to https://bugzilla.redhat.com/show_bug.cgi?id=2073045
-		g.It("pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure][apigroup:route.openshift.io]", func() {
+		g.It("pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure]", func() {
 			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
 			_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
 			o.Expect(err).NotTo(o.HaveOccurred())
