@@ -363,6 +363,8 @@ func SkipIfUnsupportedPlatform(ctx context.Context, oc *exutil.CLI) {
 	machineClient := machineClientSet.MachineV1beta1().Machines("openshift-machine-api")
 	skipUnlessFunctionalMachineAPI(ctx, machineClient)
 	skipIfSingleNode(oc)
+	skipIfBareMetal(oc)
+	skipIfVsphere(oc)
 }
 
 func skipUnlessFunctionalMachineAPI(ctx context.Context, machineClient machinev1beta1client.MachineInterface) {
