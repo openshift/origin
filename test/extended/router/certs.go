@@ -21,7 +21,7 @@ import (
 	exurl "github.com/openshift/origin/test/extended/util/url"
 )
 
-var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]", func() {
+var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc          *exutil.CLI
@@ -101,7 +101,7 @@ u3YLAbyW/lHhOCiZu2iAI8AbmXem9lW6Tr7p/97s0w==
 
 	g.When("FIPS is enabled", func() {
 		g.Describe("the HAProxy router", func() {
-			g.It("should not work when configured with a 1024-bit RSA key [apigroup:template.openshift.io]", func() {
+			g.It("should not work when configured with a 1024-bit RSA key", func() {
 				if !isFIPS {
 					g.Skip("skipping on non-FIPS cluster")
 				}
@@ -139,7 +139,7 @@ u3YLAbyW/lHhOCiZu2iAI8AbmXem9lW6Tr7p/97s0w==
 
 	g.When("FIPS is disabled", func() {
 		g.Describe("the HAProxy router", func() {
-			g.It("should serve routes when configured with a 1024-bit RSA key [apigroup:template.openshift.io]", func() {
+			g.It("should serve routes when configured with a 1024-bit RSA key", func() {
 				if isFIPS {
 					g.Skip("skipping on FIPS cluster")
 				}

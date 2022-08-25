@@ -26,7 +26,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image hard prune [apigroup:apps.openshift.io][apigroup:user.openshift.io]", func() {
+var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image hard prune", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("prune-images")
 	var originalAcceptSchema2 *bool
@@ -327,11 +327,11 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 		}
 	}
 
-	g.It("should show orphaned blob deletions in dry-run mode [apigroup:image.openshift.io]", func() {
+	g.It("should show orphaned blob deletions in dry-run mode", func() {
 		testHardPrune(true)
 	})
 
-	g.It("should delete orphaned blobs [apigroup:image.openshift.io]", func() {
+	g.It("should delete orphaned blobs", func() {
 		testHardPrune(false)
 	})
 })

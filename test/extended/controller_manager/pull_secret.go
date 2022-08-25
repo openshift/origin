@@ -60,7 +60,7 @@ var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("pull-secrets")
 
-	g.It("TestAutomaticCreationOfPullSecrets [apigroup:config.openshift.io]", func() {
+	g.It("TestAutomaticCreationOfPullSecrets", func() {
 		t := g.GinkgoT()
 
 		clusterAdminKubeClient := oc.AdminKubeClient()

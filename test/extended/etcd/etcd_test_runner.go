@@ -30,7 +30,7 @@ var _ = g.Describe("[sig-api-machinery] API data in etcd", func() {
 
 	oc := exutil.NewCLIWithPodSecurityLevel("etcd-storage-path", psapi.LevelBaseline).AsAdmin()
 
-	_ = g.It("should be stored at the correct location and version for all resources [Serial][apigroup:config.openshift.io]", func() {
+	_ = g.It("should be stored at the correct location and version for all resources [Serial]", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 

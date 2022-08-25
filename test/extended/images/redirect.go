@@ -26,7 +26,7 @@ func storageSupportsRedirects(storage imageregistryv1.ImageRegistryConfigStorage
 	return storage.S3 != nil || storage.GCS != nil || storage.Azure != nil || storage.Swift != nil || storage.OSS != nil
 }
 
-var _ = g.Describe("[sig-imageregistry] Image registry [apigroup:route.openshift.io]", func() {
+var _ = g.Describe("[sig-imageregistry] Image registry", func() {
 	defer g.GinkgoRecover()
 
 	routeNamespace := "openshift-image-registry"
@@ -51,7 +51,7 @@ var _ = g.Describe("[sig-imageregistry] Image registry [apigroup:route.openshift
 
 	oc = exutil.NewCLI("image-redirect")
 
-	g.It("should redirect on blob pull [apigroup:image.openshift.io]", func() {
+	g.It("should redirect on blob pull", func() {
 		ctx := context.TODO()
 		imageRegistryConfigClient, err := imageregistry.NewForConfig(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())

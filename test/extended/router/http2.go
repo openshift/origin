@@ -56,7 +56,7 @@ func makeHTTPClient(useHTTP2Transport bool, timeout time.Duration) *http.Client 
 	return c
 }
 
-var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io]", func() {
+var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -88,7 +88,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should pass the http2 tests [apigroup:image.openshift.io][apigroup:template.openshift.io]", func() {
+		g.It("should pass the http2 tests", func() {
 			isProxyJob, err := exutil.IsClusterProxyEnabled(oc)
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get proxy configuration")
 			if isProxyJob {

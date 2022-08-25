@@ -27,7 +27,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 	oc := exutil.NewCLI("crq")
 
 	g.Describe("Cluster resource quota", func() {
-		g.It(fmt.Sprintf("should control resource limits across namespaces [apigroup:quota.openshift.io][apigroup:image.openshift.io]"), func() {
+		g.It(fmt.Sprintf("should control resource limits across namespaces"), func() {
 			t := g.GinkgoT(1)
 
 			clusterAdminKubeClient := oc.AdminKubeClient()

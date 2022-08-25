@@ -37,7 +37,7 @@ import (
 	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 )
 
-var _ = g.Describe("[sig-network][Feature:Router][apigroup:config.openshift.io]", func() {
+var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = exutil.NewCLIWithPodSecurityLevel("router-metrics", admissionapi.LevelBaseline)
@@ -120,7 +120,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:config.openshift.io]"
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should expose prometheus metrics for a route [apigroup:route.openshift.io]", func() {
+		g.It("should expose prometheus metrics for a route", func() {
 			g.By("when a route exists")
 			configPath := exutil.FixturePath("testdata", "router", "router-metrics.yaml")
 			err := oc.Run("create").Args("-f", configPath).Execute()

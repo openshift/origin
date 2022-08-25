@@ -22,7 +22,7 @@ import (
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Early] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
-	g.It("have same number of Machines and Nodes [apigroup:machine.openshift.io]", func() {
+	g.It("have same number of Machines and Nodes", func() {
 		cfg, err := e2e.LoadConfig()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		c, err := e2e.LoadClientset()

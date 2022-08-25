@@ -36,7 +36,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("runs successfully [apigroup:config.openshift.io]", func() {
+	g.It("runs successfully", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {
@@ -101,7 +101,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		}
 	})
 
-	g.It("runs successfully with options [apigroup:config.openshift.io]", func() {
+	g.It("runs successfully with options", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {
@@ -126,7 +126,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		o.Expect(stat.Size()).To(o.BeNumerically(">", 0))
 	})
 
-	g.It("runs successfully for audit logs [apigroup:config.openshift.io][apigroup:oauth.openshift.io]", func() {
+	g.It("runs successfully for audit logs", func() {
 		// On External clusters, events will not be part of the output, since audit logs do not include control plane logs.
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -301,7 +301,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 
 	g.When("looking at the audit logs", func() {
 		g.Describe("[sig-node] kubelet", func() {
-			g.It("runs apiserver processes strictly sequentially in order to not risk audit log corruption [apigroup:config.openshift.io]", func() {
+			g.It("runs apiserver processes strictly sequentially in order to not risk audit log corruption", func() {
 				controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
