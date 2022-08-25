@@ -8,15 +8,18 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const (
-	imagePullRedhatRegEx                  = `reason/[a-zA-Z]+ .*Back-off pulling image .*registry.redhat.io`
-	imagePullRedhatFlakeThreshold         = 5
-	requiredResourcesMissingRegEx         = `reason/RequiredInstallerResourcesMissing secrets: etcd-all-certs-[0-9]+`
-	requiredResourceMissingFlakeThreshold = 10
-	backoffRestartingFailedRegEx          = `reason/BackOff Back-off restarting failed container`
-	backoffRestartingFlakeThreshold       = 10
+	imagePullRedhatRegEx                      = `reason/[a-zA-Z]+ .*Back-off pulling image .*registry.redhat.io`
+	imagePullRedhatFlakeThreshold             = 5
+	requiredResourcesMissingRegEx             = `reason/RequiredInstallerResourcesMissing secrets: etcd-all-certs-[0-9]+`
+	requiredResourceMissingFlakeThreshold     = 10
+	backoffRestartingFailedRegEx              = `reason/BackOff Back-off restarting failed container`
+	backoffRestartingFlakeThreshold           = 10
+	errorUpdatingEndpointSlicesRegex          = `reason/FailedToUpdateEndpointSlices Error updating Endpoint Slices`
+	errorUpdatingEndpointSlicesFlakeThreshold = 10
 )
 
 type eventRecognizerFunc func(event monitorapi.EventInterval) bool
@@ -128,4 +131,11 @@ func testBackoffStartingFailedContainerForE2ENamespaces(events monitorapi.Interv
 	// always flake for now
 	return newSingleEventCheckRegex(testName, backoffRestartingFailedRegEx, math.MaxInt, backoffRestartingFlakeThreshold).
 		test(events.Filter(monitorapi.IsInE2ENamespace))
+}
+
+func testErrorUpdatingEndpointSlices(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	testName := "[sig-networking] should not see excessive FailedToUpdateEndpointSlices Error updating Endpoint Slices"
+
+	return newSingleEventCheckRegex(testName, errorUpdatingEndpointSlicesRegex, duplicateEventThreshold, errorUpdatingEndpointSlicesFlakeThreshold).
+		test(events.Filter(monitorapi.IsInNamespaces(sets.NewString("openshift-ovn-kubernetes"))))
 }
