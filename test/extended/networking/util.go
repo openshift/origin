@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/library-go/pkg/network/networkutils"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -343,6 +344,20 @@ func modifyNetworkConfig(configClient configv1client.Interface, autoAssignCIDRs,
 	expectNoError(kubeAPIServerRollout.Err())
 }
 
+func setNamespaceExternalGateway(f *e2e.Framework, gatewayIP string) {
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		ns, err := f.ClientSet.CoreV1().Namespaces().Get(context.Background(), f.Namespace.Name, metav1.GetOptions{})
+		expectNoError(err)
+		if ns.Annotations == nil {
+			ns.Annotations = make(map[string]string)
+		}
+		ns.Annotations["k8s.ovn.org/routing-external-gws"] = gatewayIP
+		_, err = f.ClientSet.CoreV1().Namespaces().Update(context.Background(), ns, metav1.UpdateOptions{})
+		return err
+	})
+	expectNoError(err)
+}
+
 // findAppropriateNodes tries to find a source and destination for a type of node connectivity
 // test (same node, or different node).
 func findAppropriateNodes(f *e2e.Framework, nodeType NodeType) (*corev1.Node, *corev1.Node, error) {
@@ -582,6 +597,10 @@ func networkAttachmentDefinitionClient(config *rest.Config) (dynamic.Namespaceab
 func getIPFamilyForCluster(f *e2e.Framework) IPFamily {
 	podIPs, err := createPod(f.ClientSet, f.Namespace.Name, "test-ip-family-pod")
 	expectNoError(err)
+	return getIPFamily(podIPs)
+}
+
+func getIPFamily(podIPs []v1.PodIP) IPFamily {
 	switch len(podIPs) {
 	case 1:
 		ip := net.ParseIP(podIPs[0].IP)
