@@ -2653,9 +2653,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Services should find a service from listing all namespaces [Conformance]": "should find a service from listing all namespaces [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should have session affinity timeout work for NodePort service [LinuxOnly] [Conformance]": "should have session affinity timeout work for NodePort service [LinuxOnly] [Conformance] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should have session affinity timeout work for NodePort service [LinuxOnly] [Conformance]": "should have session affinity timeout work for NodePort service [LinuxOnly] [Conformance] [Skipped:Network/OVNKuberenetes] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should have session affinity timeout work for service with type clusterIP [LinuxOnly] [Conformance]": "should have session affinity timeout work for service with type clusterIP [LinuxOnly] [Conformance] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should have session affinity timeout work for service with type clusterIP [LinuxOnly] [Conformance]": "should have session affinity timeout work for service with type clusterIP [LinuxOnly] [Conformance] [Skipped:Network/OVNKuberenetes] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Services should have session affinity work for NodePort service [LinuxOnly] [Conformance]": "should have session affinity work for NodePort service [LinuxOnly] [Conformance] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
