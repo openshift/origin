@@ -206,14 +206,6 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1939580",
 			},
 			{
-				Selector: map[string]string{"alertname": "AggregatedAPIDown", "name": "v1alpha1.wardle.example.com"},
-				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1933144",
-			},
-			{
-				Selector: map[string]string{"alertname": "KubeAggregatedAPIDown", "name": "v1alpha1.wardle.example.com"},
-				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1933144",
-			},
-			{
 				Selector: map[string]string{"alertname": "KubeAPIErrorBudgetBurn"},
 				Text:     "https://bugzilla.redhat.com/show_bug.cgi?id=1953798",
 				Matches: func(_ *model.Sample) bool {
