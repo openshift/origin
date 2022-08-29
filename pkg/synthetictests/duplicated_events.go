@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
+	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -250,6 +251,16 @@ func testDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 }
 
 func testDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfig *rest.Config, testSuite string) []*junitapi.JUnitTestCase {
+	cfgClient := configclient.NewForConfigOrDie(clientConfig)
+	controlplaneTopology, err := exutil.GetControlPlaneTopologyFromConfigClient(cfgClient.ConfigV1())
+	if err != nil {
+		panic(fmt.Errorf("failed to determine controlplane toplogy: %w", err))
+	}
+
+	// There is no etcd cluster operator when the ControlPlaneTopology is External
+	if *controlplaneTopology == v1.ExternalTopologyMode {
+		return nil
+	}
 	evaluator := duplicateEventsEvaluator{
 		allowedRepeatedEventPatterns: allowedRepeatedEventPatterns,
 		allowedRepeatedEventFns:      allowedRepeatedEventFns,

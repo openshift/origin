@@ -43,6 +43,9 @@ func TestDuplicatedEvents(t *testing.T) {
 			}
 
 			actual := testDuplicatedEventForStableSystem(events, nil, "unit-test")
+			if actual == nil {
+				return
+			}
 			if !strings.Contains(actual[0].FailureOutput.Output, test.output) {
 				t.Error(spew.Sdump(actual[0]))
 			}
