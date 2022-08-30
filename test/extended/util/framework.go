@@ -26,6 +26,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -2101,4 +2102,38 @@ func SkipIfApiGroupDoesNotExist(oc *CLI, apiGroups ...schema.GroupVersion) {
 			skipper.Skipf("%q not available", apiGroup)
 		}
 	}
+}
+
+var (
+	microShiftVersion string
+	microShiftMutex   sync.Mutex
+)
+
+func getMicroShiftVersion(ocClient *CLI) (string, error) {
+	microShiftMutex.Lock()
+	defer microShiftMutex.Unlock()
+
+	if microShiftVersion == "" {
+		cm, err := ocClient.AdminKubeClient().CoreV1().ConfigMaps("kube-public").Get(context.Background(), "microshift-version", metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return "", nil
+			}
+			return "", fmt.Errorf("unable to get microshift version configmap: %w", err)
+		}
+		if version, ok := cm.Data["version"]; !ok {
+			return "", fmt.Errorf("version not found")
+		} else {
+			microShiftVersion = version
+		}
+	}
+	return microShiftVersion, nil
+}
+
+func IsMicroShiftDeployment(ocClient *CLI) (bool, error) {
+	version, err := getMicroShiftVersion(ocClient)
+	if err != nil {
+		return false, err
+	}
+	return version != "", nil
 }
