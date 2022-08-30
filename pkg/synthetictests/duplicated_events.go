@@ -13,6 +13,7 @@ import (
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -600,7 +601,13 @@ func (a *etcdRevisionChangeAllowance) allowEtcdGuardReadinessProbeFailure(monito
 func getBiggestRevisionForEtcdOperator(ctx context.Context, operatorClient operatorv1client.OperatorV1Interface) (int, error) {
 	etcd, err := operatorClient.Etcds().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
-		return 0, err
+		// instead of panicking when there no etcd operator (e.g. microshift), just estimate the biggest revision to be 0
+		if apierrors.IsNotFound(err) {
+			return 0, nil
+		} else {
+			return 0, err
+		}
+
 	}
 	biggestRevision := 0
 	for _, nodeStatus := range etcd.Status.NodeStatuses {
