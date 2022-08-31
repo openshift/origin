@@ -42,7 +42,7 @@ import (
 const (
 	resizePollInterval = 2 * time.Second
 	// total time to wait for cloudprovider or file system resize to finish
-	totalResizeWaitPeriod = 10 * time.Minute
+	totalResizeWaitPeriod = 20 * time.Minute
 
 	// resizedPodStartupTimeout defines time we should wait for pod that uses offline
 	// resized volume to startup. This time is higher than default PodStartTimeout because
