@@ -1657,7 +1657,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc adm role-reapers [apigroup:authorization.openshift.io][apigroup:user.openshift.io]": "role-reapers [apigroup:authorization.openshift.io][apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc adm role-selectors": "role-selectors [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc adm role-selectors [apigroup:template.openshift.io]": "role-selectors [apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc adm serviceaccounts": "serviceaccounts [Suite:openshift/conformance/parallel]",
 
@@ -1673,11 +1673,23 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc api-resources can output expected information about api-resources": "can output expected information about api-resources [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc api-resources can output expected information about build.openshift.io api-resources [apigroup:build.openshift.io]": "can output expected information about build.openshift.io api-resources [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc api-resources can output expected information about image.openshift.io api-resources [apigroup:image.openshift.io]": "can output expected information about image.openshift.io api-resources [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc api-resources can output expected information about operator.openshift.io api-resources [apigroup:operator.openshift.io]": "can output expected information about operator.openshift.io api-resources [apigroup:operator.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc api-resources can output expected information about project.openshift.io api-resources [apigroup:project.openshift.io]": "can output expected information about project.openshift.io api-resources [apigroup:project.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc api-resources can output expected information about route.openshift.io api-resources and api-version [apigroup:route.openshift.io]": "can output expected information about route.openshift.io api-resources and api-version [apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc api-resources can output expected information about snapshot.storage.k8s.io api-resources [apigroup:snapshot.storage.k8s.io]": "can output expected information about snapshot.storage.k8s.io api-resources [apigroup:snapshot.storage.k8s.io] [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc basics can create and interact with a list of resources": "can create and interact with a list of resources [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc basics can create deploymentconfig and clusterquota": "can create deploymentconfig and clusterquota [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc basics can create deploymentconfig and clusterquota [apigroup:apps.openshift.io]": "can create deploymentconfig and clusterquota [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc basics can describe an OAuth access token": "can describe an OAuth access token [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc basics can describe an OAuth access token [apigroup:oauth.openshift.io]": "can describe an OAuth access token [apigroup:oauth.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc basics can get version information from API": "can get version information from API [Suite:openshift/conformance/parallel]",
 
@@ -1685,9 +1697,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc basics can output expected --dry-run text": "can output expected --dry-run text [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc basics can patch resources": "can patch resources [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc basics can patch resources [apigroup:user.openshift.io]": "can patch resources [apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc basics can process templates": "can process templates [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc basics can process templates [apigroup:template.openshift.io]": "can process templates [apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc basics can show correct whoami result": "can show correct whoami result [Suite:openshift/conformance/parallel]",
 
@@ -1705,7 +1717,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc can route traffic to services [apigroup:route.openshift.io]": "can route traffic to services [apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc can run inside of a busybox container": "can run inside of a busybox container [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc can run inside of a busybox container [apigroup:image.openshift.io]": "can run inside of a busybox container [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc completion returns expected help messages": "returns expected help messages [Suite:openshift/conformance/parallel]",
 
@@ -1725,11 +1737,45 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc explain networking types when using openshift-sdn should contain proper fields description for special networking types": "should contain proper fields description for special networking types [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc explain should contain proper fields description for special types": "should contain proper fields description for special types [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc explain should contain proper fields description for apps.openshift.io [apigroup:apps.openshift.io]": "should contain proper fields description for apps.openshift.io [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc explain should contain proper fields description for authorization.openshift.io [apigroup:authorization.openshift.io]": "should contain proper fields description for authorization.openshift.io [apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc explain should contain proper fields description for config.openshift.io [apigroup:config.openshift.io]": "should contain proper fields description for config.openshift.io [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc explain should contain proper fields description for console.openshift.io [apigroup:console.openshift.io]": "should contain proper fields description for console.openshift.io [apigroup:console.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc explain should contain proper fields description for image.openshift.io [apigroup:image.openshift.io]": "should contain proper fields description for image.openshift.io [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc explain should contain proper fields description for oauth.openshift.io [apigroup:oauth.openshift.io]": "should contain proper fields description for oauth.openshift.io [apigroup:oauth.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc explain should contain proper fields description for project.openshift.io [apigroup:project.openshift.io]": "should contain proper fields description for project.openshift.io [apigroup:project.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc explain should contain proper fields description for route.openshift.io [apigroup:route.openshift.io]": "should contain proper fields description for route.openshift.io [apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc explain should contain proper fields description for security.internal.openshift.io [apigroup:security.internal.openshift.io]": "should contain proper fields description for security.internal.openshift.io [apigroup:security.internal.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc explain should contain proper fields description for security.openshift.io [apigroup:security.openshift.io]": "should contain proper fields description for security.openshift.io [apigroup:security.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc explain should contain proper fields description for template.openshift.io [apigroup:template.openshift.io]": "should contain proper fields description for template.openshift.io [apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc explain should contain proper fields description for user.openshift.io [apigroup:user.openshift.io]": "should contain proper fields description for user.openshift.io [apigroup:user.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc explain should contain proper spec+status for CRDs [apigroup:config.openshift.io]": "should contain proper spec+status for CRDs [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc explain should contain spec+status for builtinTypes": "should contain spec+status for builtinTypes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc explain should contain spec+status for apps.openshift.io [apigroup:apps.openshift.io]": "should contain spec+status for apps.openshift.io [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc explain should contain spec+status for build.openshift.io [apigroup:build.openshift.io]": "should contain spec+status for build.openshift.io [apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc explain should contain spec+status for image.openshift.io [apigroup:image.openshift.io]": "should contain spec+status for image.openshift.io [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc explain should contain spec+status for project.openshift.io [apigroup:project.openshift.io]": "should contain spec+status for project.openshift.io [apigroup:project.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc explain should contain spec+status for route.openshift.io [apigroup:route.openshift.io]": "should contain spec+status for route.openshift.io [apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc explain should contain spec+status for security.openshift.io [apigroup:security.openshift.io]": "should contain spec+status for security.openshift.io [apigroup:security.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc explain should contain spec+status for template.openshift.io [apigroup:template.openshift.io]": "should contain spec+status for template.openshift.io [apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc expose can ensure the expose command is functioning as expected [apigroup:route.openshift.io]": "can ensure the expose command is functioning as expected [apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]",
 
@@ -1745,9 +1791,11 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc label pod": "pod [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc observe works as expected [apigroup:config.openshift.io]": "works as expected [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc observe works as expected with cluster operators [apigroup:config.openshift.io]": "works as expected with cluster operators [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc probe can ensure the probe command is functioning as expected on deploymentconfigs": "can ensure the probe command is functioning as expected on deploymentconfigs [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc observe works as expected": "works as expected [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc probe can ensure the probe command is functioning as expected on deploymentconfigs [apigroup:apps.openshift.io]": "can ensure the probe command is functioning as expected on deploymentconfigs [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc probe can ensure the probe command is functioning as expected on pods": "can ensure the probe command is functioning as expected on pods [Suite:openshift/conformance/parallel]",
 

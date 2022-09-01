@@ -66,7 +66,7 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("can create deploymentconfig and clusterquota", func() {
+	g.It("can create deploymentconfig and clusterquota [apigroup:apps.openshift.io]", func() {
 		nginx := k8simage.GetE2EImage(k8simage.Nginx)
 		tools := "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
 
@@ -102,7 +102,7 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("can patch resources", func() {
+	g.It("can patch resources [apigroup:user.openshift.io]", func() {
 		// need admin here
 		ocAdmin := oc.AsAdmin()
 
@@ -137,7 +137,7 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("can describe an OAuth access token", func() {
+	g.It("can describe an OAuth access token [apigroup:oauth.openshift.io]", func() {
 		// need admin here
 		ocAdmin := oc.AsAdmin()
 
@@ -166,7 +166,7 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 		o.Expect(out).To(o.ContainSubstring("job.batch/foo"))
 	})
 
-	g.It("can process templates", func() {
+	g.It("can process templates [apigroup:template.openshift.io]", func() {
 		name := filepath.Join(os.TempDir(), "template.json")
 
 		out, err := oc.Run("process").Args("-f", templateFile, "-l", "name=mytemplate").Output()
