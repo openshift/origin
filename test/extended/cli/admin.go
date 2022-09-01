@@ -363,7 +363,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		oc.Run("delete").Args("-f", "-").InputString(policyClusterRoles).Execute()
 	})
 
-	g.It("role-selectors", func() {
+	g.It("role-selectors [apigroup:template.openshift.io]", func() {
 		clusterRole := gen.GenerateName("basic-user2-")
 		clusterBinding := gen.GenerateName("basic-users2-")
 		// template processing requires a namespaced client
