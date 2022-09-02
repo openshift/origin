@@ -286,17 +286,13 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 		gvr("storage.k8s.io", "v1alpha1", "csistoragecapacities"),
 	)
 
-	// Apply output of git diff origin/release-1.22 origin/release-1.23 test/integration/etcd/data.go. This is needed
+	// Apply output of git diff origin/release-1.XY origin/release-1.X(Y+1) test/integration/etcd/data.go. This is needed
 	// to apply the right data depending on the kube version of the running server. Replace this with the next current
 	// and rebase version next time. Don't pile them up.
-	if strings.HasPrefix(version.Minor, "23") {
-		namespace := "etcdstoragepathtestnamespace"
-		_ = namespace
-
+	if strings.HasPrefix(version.Minor, "25") {
 		// Added etcd data.
 		for k, a := range map[schema.GroupVersionResource]etcddata.StorageData{} {
-			// TODO: fill when 1.23 rebase has started
-
+			// TODO: fill when rebase has started
 			if _, preexisting := etcdStorageData[k]; preexisting {
 				t.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)
 			}
@@ -304,11 +300,29 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 		}
 
 		// Modified etcd data.
-		// TODO: fill when 1.23 rebase has started
+		// see: https://github.com/kubernetes/kubernetes/pull/109394
+		etcdStorageData[gvr("storage.k8s.io", "v1alpha1", "csistoragecapacities")] = etcddata.StorageData{
+			Stub:             `{"metadata": {"name": "csc-12345-1"}, "storageClassName": "sc1"}`,
+			ExpectedEtcdPath: "/registry/csistoragecapacities/" + oc.Namespace() + "/csc-12345-1",
+			ExpectedGVK:      gvkP("storage.k8s.io", "v1", "CSIStorageCapacity"),
+		}
+		etcdStorageData[gvr("storage.k8s.io", "v1beta1", "csistoragecapacities")] = etcddata.StorageData{
+			Stub:             `{"metadata": {"name": "csc-12345-2"}, "storageClassName": "sc1"}`,
+			ExpectedEtcdPath: "/registry/csistoragecapacities/" + oc.Namespace() + "/csc-12345-2",
+			ExpectedGVK:      gvkP("storage.k8s.io", "v1", "CSIStorageCapacity"),
+		}
 
 		// Removed etcd data.
-		// TODO: fill when 1.23 rebase has started
-		removeStorageData(t, etcdStorageData)
+		// see: https://github.com/kubernetes/kubernetes/pull/110010
+		removeStorageData(t, etcdStorageData,
+			gvr("autoscaling", "v2beta1", "horizontalpodautoscalers"),
+			gvr("batch", "v1beta1", "cronjobs"),
+			gvr("discovery", "v1beta1", "endpointslices"),
+			gvr("events", "v1beta1", "events"),
+			gvr("node", "v1beta1", "runtimeclasses"),
+			gvr("policy", "v1beta1", "poddisruptionbudgets"),
+			gvr("policy", "v1beta1", "podsecuritypolicies"),
+		)
 
 	} else {
 		removeStorageData(t, etcdStorageData)
