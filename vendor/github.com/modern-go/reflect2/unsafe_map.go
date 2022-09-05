@@ -108,8 +108,10 @@ func (type2 *UnsafeMapType) Iterate(obj interface{}) MapIterator {
 }
 
 func (type2 *UnsafeMapType) UnsafeIterate(obj unsafe.Pointer) MapIterator {
+	var it hiter
+	mapiterinit(type2.rtype, *(*unsafe.Pointer)(obj), &it)
 	return &UnsafeMapIterator{
-		hiter:      mapiterinit(type2.rtype, *(*unsafe.Pointer)(obj)),
+		hiter:      &it,
 		pKeyRType:  type2.pKeyRType,
 		pElemRType: type2.pElemRType,
 	}
