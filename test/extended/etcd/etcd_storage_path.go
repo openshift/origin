@@ -301,14 +301,14 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 
 		// Modified etcd data.
 		// see: https://github.com/kubernetes/kubernetes/pull/109394
-		etcdStorageData[gvr("storage.k8s.io", "v1alpha1", "csistoragecapacities")] = etcddata.StorageData{
-			Stub:             `{"metadata": {"name": "csc-12345-1"}, "storageClassName": "sc1"}`,
-			ExpectedEtcdPath: "/registry/csistoragecapacities/" + oc.Namespace() + "/csc-12345-1",
-			ExpectedGVK:      gvkP("storage.k8s.io", "v1", "CSIStorageCapacity"),
-		}
 		etcdStorageData[gvr("storage.k8s.io", "v1beta1", "csistoragecapacities")] = etcddata.StorageData{
 			Stub:             `{"metadata": {"name": "csc-12345-2"}, "storageClassName": "sc1"}`,
 			ExpectedEtcdPath: "/registry/csistoragecapacities/" + oc.Namespace() + "/csc-12345-2",
+			ExpectedGVK:      gvkP("storage.k8s.io", "v1", "CSIStorageCapacity"),
+		}
+		etcdStorageData[gvr("storage.k8s.io", "v1", "csistoragecapacities")] = etcddata.StorageData{
+			Stub:             `{"metadata": {"name": "csc-12345-3"}, "storageClassName": "sc1"}`,
+			ExpectedEtcdPath: "/registry/csistoragecapacities/" + oc.Namespace() + "/csc-12345-3",
 			ExpectedGVK:      gvkP("storage.k8s.io", "v1", "CSIStorageCapacity"),
 		}
 
@@ -317,15 +317,12 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 		removeStorageData(t, etcdStorageData,
 			gvr("autoscaling", "v2beta1", "horizontalpodautoscalers"),
 			gvr("batch", "v1beta1", "cronjobs"),
-			gvr("discovery", "v1beta1", "endpointslices"),
-			gvr("events", "v1beta1", "events"),
-			gvr("node", "v1beta1", "runtimeclasses"),
+			gvr("discovery.k8s.io", "v1beta1", "endpointslices"),
+			gvr("events.k8s.io", "v1beta1", "events"),
+			gvr("node.k8s.io", "v1beta1", "runtimeclasses"),
 			gvr("policy", "v1beta1", "poddisruptionbudgets"),
 			gvr("policy", "v1beta1", "podsecuritypolicies"),
 		)
-
-	} else {
-		removeStorageData(t, etcdStorageData)
 	}
 
 	// we use a different default path prefix for kube resources
