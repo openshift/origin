@@ -196,7 +196,6 @@
 // test/extended/testdata/cmd/hack/lib/util/trap.sh
 // test/extended/testdata/cmd/test/cmd/authentication.sh
 // test/extended/testdata/cmd/test/cmd/builds.sh
-// test/extended/testdata/cmd/test/cmd/completions.sh
 // test/extended/testdata/cmd/test/cmd/config.sh
 // test/extended/testdata/cmd/test/cmd/deployments.sh
 // test/extended/testdata/cmd/test/cmd/describer.sh
@@ -212,7 +211,6 @@
 // test/extended/testdata/cmd/test/cmd/newapp.sh
 // test/extended/testdata/cmd/test/cmd/policy.sh
 // test/extended/testdata/cmd/test/cmd/printer.sh
-// test/extended/testdata/cmd/test/cmd/projects.sh
 // test/extended/testdata/cmd/test/cmd/quota.sh
 // test/extended/testdata/cmd/test/cmd/registry.sh
 // test/extended/testdata/cmd/test/cmd/routes.sh
@@ -288,7 +286,6 @@
 // test/extended/testdata/cmd/test/cmd/testdata/test-stream.yaml
 // test/extended/testdata/cmd/test/cmd/triggers.sh
 // test/extended/testdata/cmd/test/cmd/volumes.sh
-// test/extended/testdata/cmd/test/cmd/whoami.sh
 // test/extended/testdata/custom-secret-builder/Dockerfile
 // test/extended/testdata/custom-secret-builder/build.sh
 // test/extended/testdata/deployments/custom-deployment.yaml
@@ -29705,40 +29702,6 @@ func testExtendedTestdataCmdTestCmdBuildsSh() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdCompletionsSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-os::test::junit::declare_suite_start "cmd/completions"
-# This test validates basic resource retrieval and command interaction
-
-# test completion command help
-os::cmd::expect_success_and_text "oc completion -h" "interactive completion of oc commands"
-# test completion command output
-os::cmd::expect_failure_and_text "oc completion" "Shell not specified."
-os::cmd::expect_success "oc completion bash"
-os::cmd::expect_success "oc completion zsh"
-os::cmd::expect_failure_and_text "oc completion test_shell" 'Unsupported shell type "test_shell"'
-echo "oc completion: ok"
-
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdCompletionsShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdCompletionsSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdCompletionsSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdCompletionsShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/completions.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdConfigSh = []byte(`#!/bin/bash
 
 set -o errexit
@@ -32089,80 +32052,6 @@ func testExtendedTestdataCmdTestCmdPrinterSh() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/printer.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdProjectsSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-# Cleanup cluster resources created by this test
-(
-  set +e
-  oc delete namespace test4
-  oc delete namespace test5
-  oc delete namespace test6
-  oc wait --for=delete namespace test4 --timeout=60s || true
-  oc wait --for=delete namespace test5 --timeout=60s || true
-  oc wait --for=delete namespace test6 --timeout=60s || true
-  exit 0
-) &>/dev/null
-
-
-os::test::junit::declare_suite_start "cmd/projects"
-
-os::test::junit::declare_suite_start "cmd/projects/lifecycle"
-# resourceaccessreview
-os::cmd::expect_success 'oc policy who-can get pods -n missing-ns'
-# selfsubjectaccessreview
-os::cmd::expect_success 'oc auth can-i get pods -n missing-ns'
-# selfsubjectrulesreivew
-os::cmd::expect_success 'oc auth can-i --list -n missing-ns'
-# create bob
-os::cmd::expect_success 'oc create user bob'
-# subjectaccessreview
-os::cmd::expect_failure_and_text 'oc auth can-i get pods --as=bob -n missing-ns' 'no'
-# subjectrulesreview
-os::cmd::expect_success 'oc auth can-i --list  --as=bob -n missing-ns'
-echo 'project lifecycle ok'
-os::test::junit::declare_suite_end
-
-os::cmd::expect_failure_and_text 'oc projects test_arg' 'no arguments'
-# log in as a test user and expect no projects
-#os::cmd::expect_success 'oc login -u test -p test'
-#os::cmd::expect_success_and_text 'oc projects' 'You are not a member of any projects'
-# add a project and expect text for a single project
-os::cmd::expect_success_and_text 'oc new-project test4' 'Now using project "test4" on server '
-os::cmd::try_until_text 'oc projects' 'Using project "test4" on server'
-os::cmd::expect_success_and_text 'oc new-project test5' 'Now using project "test5" on server '
-os::cmd::try_until_text 'oc projects' 'You have access to the following projects and can switch between them with '
-# HA masters means that you may have to wait for the lists to settle, so you allow for that by waiting
-os::cmd::try_until_text 'oc projects' 'test4'
-os::cmd::try_until_text 'oc projects' 'test5'
-# test --skip-config-write
-os::cmd::expect_success_and_text 'oc new-project test6 --skip-config-write' 'To switch to this project and start adding applications, use'
-os::cmd::expect_success_and_not_text 'oc config view -o jsonpath="{.contexts[*].context.namespace}"' '\btest6\b'
-os::cmd::try_until_text 'oc projects' 'test6'
-os::cmd::expect_success_and_text 'oc project test6' 'Now using project "test6"'
-os::cmd::expect_success_and_text 'oc config view -o jsonpath="{.contexts[*].context.namespace}"' '\btest6\b'
-echo 'projects command ok'
-
-
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdProjectsShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdProjectsSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdProjectsSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdProjectsShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/projects.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -40711,42 +40600,6 @@ func testExtendedTestdataCmdTestCmdVolumesSh() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/volumes.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdWhoamiSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-# Cleanup cluster resources created by this test
-(
-  set +e
-  oc delete all,templates --all
-  exit 0
-) &>/dev/null
-
-
-os::test::junit::declare_suite_start "cmd/whoami"
-# This test validates the whoami command's --show-server flag
-os::cmd::expect_success_and_text 'oc whoami --show-server' 'http(s)?:\/\/.*\:[0-9]+'
-os::cmd::expect_success_and_text 'oc whoami --show-console' 'http(s)?:\/\/.*'
-
-echo "whoami: ok"
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdWhoamiShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdWhoamiSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdWhoamiSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdWhoamiShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/whoami.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -53346,7 +53199,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/hack/lib/util/trap.sh":                                                       testExtendedTestdataCmdHackLibUtilTrapSh,
 	"test/extended/testdata/cmd/test/cmd/authentication.sh":                                                  testExtendedTestdataCmdTestCmdAuthenticationSh,
 	"test/extended/testdata/cmd/test/cmd/builds.sh":                                                          testExtendedTestdataCmdTestCmdBuildsSh,
-	"test/extended/testdata/cmd/test/cmd/completions.sh":                                                     testExtendedTestdataCmdTestCmdCompletionsSh,
 	"test/extended/testdata/cmd/test/cmd/config.sh":                                                          testExtendedTestdataCmdTestCmdConfigSh,
 	"test/extended/testdata/cmd/test/cmd/deployments.sh":                                                     testExtendedTestdataCmdTestCmdDeploymentsSh,
 	"test/extended/testdata/cmd/test/cmd/describer.sh":                                                       testExtendedTestdataCmdTestCmdDescriberSh,
@@ -53362,7 +53214,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/newapp.sh":                                                          testExtendedTestdataCmdTestCmdNewappSh,
 	"test/extended/testdata/cmd/test/cmd/policy.sh":                                                          testExtendedTestdataCmdTestCmdPolicySh,
 	"test/extended/testdata/cmd/test/cmd/printer.sh":                                                         testExtendedTestdataCmdTestCmdPrinterSh,
-	"test/extended/testdata/cmd/test/cmd/projects.sh":                                                        testExtendedTestdataCmdTestCmdProjectsSh,
 	"test/extended/testdata/cmd/test/cmd/quota.sh":                                                           testExtendedTestdataCmdTestCmdQuotaSh,
 	"test/extended/testdata/cmd/test/cmd/registry.sh":                                                        testExtendedTestdataCmdTestCmdRegistrySh,
 	"test/extended/testdata/cmd/test/cmd/routes.sh":                                                          testExtendedTestdataCmdTestCmdRoutesSh,
@@ -53438,7 +53289,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/testdata/test-stream.yaml":                                          testExtendedTestdataCmdTestCmdTestdataTestStreamYaml,
 	"test/extended/testdata/cmd/test/cmd/triggers.sh":                                                        testExtendedTestdataCmdTestCmdTriggersSh,
 	"test/extended/testdata/cmd/test/cmd/volumes.sh":                                                         testExtendedTestdataCmdTestCmdVolumesSh,
-	"test/extended/testdata/cmd/test/cmd/whoami.sh":                                                          testExtendedTestdataCmdTestCmdWhoamiSh,
 	"test/extended/testdata/custom-secret-builder/Dockerfile":                                                testExtendedTestdataCustomSecretBuilderDockerfile,
 	"test/extended/testdata/custom-secret-builder/build.sh":                                                  testExtendedTestdataCustomSecretBuilderBuildSh,
 	"test/extended/testdata/deployments/custom-deployment.yaml":                                              testExtendedTestdataDeploymentsCustomDeploymentYaml,
@@ -53995,7 +53845,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"cmd": {nil, map[string]*bintree{
 							"authentication.sh":     {testExtendedTestdataCmdTestCmdAuthenticationSh, map[string]*bintree{}},
 							"builds.sh":             {testExtendedTestdataCmdTestCmdBuildsSh, map[string]*bintree{}},
-							"completions.sh":        {testExtendedTestdataCmdTestCmdCompletionsSh, map[string]*bintree{}},
 							"config.sh":             {testExtendedTestdataCmdTestCmdConfigSh, map[string]*bintree{}},
 							"deployments.sh":        {testExtendedTestdataCmdTestCmdDeploymentsSh, map[string]*bintree{}},
 							"describer.sh":          {testExtendedTestdataCmdTestCmdDescriberSh, map[string]*bintree{}},
@@ -54011,7 +53860,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							"newapp.sh":             {testExtendedTestdataCmdTestCmdNewappSh, map[string]*bintree{}},
 							"policy.sh":             {testExtendedTestdataCmdTestCmdPolicySh, map[string]*bintree{}},
 							"printer.sh":            {testExtendedTestdataCmdTestCmdPrinterSh, map[string]*bintree{}},
-							"projects.sh":           {testExtendedTestdataCmdTestCmdProjectsSh, map[string]*bintree{}},
 							"quota.sh":              {testExtendedTestdataCmdTestCmdQuotaSh, map[string]*bintree{}},
 							"registry.sh":           {testExtendedTestdataCmdTestCmdRegistrySh, map[string]*bintree{}},
 							"routes.sh":             {testExtendedTestdataCmdTestCmdRoutesSh, map[string]*bintree{}},
@@ -54105,7 +53953,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							}},
 							"triggers.sh": {testExtendedTestdataCmdTestCmdTriggersSh, map[string]*bintree{}},
 							"volumes.sh":  {testExtendedTestdataCmdTestCmdVolumesSh, map[string]*bintree{}},
-							"whoami.sh":   {testExtendedTestdataCmdTestCmdWhoamiSh, map[string]*bintree{}},
 						}},
 					}},
 				}},
