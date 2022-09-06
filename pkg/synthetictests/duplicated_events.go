@@ -190,6 +190,10 @@ var knownEventsBugs = []knownProblem{
 		BZ:        "https://bugzilla.redhat.com/show_bug.cgi?id=2034984",
 		TestSuite: stringPointer("openshift/build"),
 	},
+	{
+		Regexp: regexp.MustCompile(`ns/.* service/.* - reason/FailedToUpdateEndpointSlices Error updating Endpoint Slices for Service .*: node ".*" not found`),
+		BZ:     "https://issues.redhat.com/browse/OCPBUGS-587",
+	},
 	//{ TODO this should only be skipped for single-node
 	//	name:    "single=node-storage",
 	//  BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1990662
