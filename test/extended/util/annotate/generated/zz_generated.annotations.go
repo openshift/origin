@@ -3293,27 +3293,27 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-scheduling] [Feature:GPUDevicePlugin] run Nvidia GPU Device Plugin tests": "run Nvidia GPU Device Plugin tests [Disabled:SpecialConfig] [Suite:k8s]",
 
-	"[Top Level] [sig-scheduling][Early] The HAProxy router pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-scheduling][Early] The HAProxy router pods [apigroup:route.openshift.io] should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-scheduling][Early] The openshift-apiserver pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-scheduling][Early] The openshift-apiserver pods [apigroup:apps.openshift.io][apigroup:authorization.openshift.io][apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:project.openshift.io][apigroup:quota.openshift.io][apigroup:route.openshift.io][apigroup:security.openshift.io][apigroup:template.openshift.io] should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-scheduling][Early] The openshift-authentication pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-scheduling][Early] The openshift-authentication pods [apigroup:oauth.openshift.io] should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-scheduling][Early] The openshift-console console pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-scheduling][Early] The openshift-console console pods [apigroup:console.openshift.io should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-scheduling][Early] The openshift-console downloads pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-scheduling][Early] The openshift-console downloads pods [apigroup:console.openshift.io] should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-scheduling][Early] The openshift-etcd pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-scheduling][Early] The openshift-etcd pods [apigroup:operator.openshift.io] should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-scheduling][Early] The openshift-image-registry pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-scheduling][Early] The openshift-image-registry pods [apigroup:imageregistry.operator.openshift.io] should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-scheduling][Early] The openshift-monitoring prometheus-adapter pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-scheduling][Early] The openshift-monitoring prometheus-adapter pods [apigroup:monitoring.coreos.com] should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-scheduling][Early] The openshift-monitoring thanos-querier pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-scheduling][Early] The openshift-monitoring thanos-querier pods [apigroup:monitoring.coreos.com] should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-scheduling][Early] The openshift-oauth-apiserver pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-scheduling][Early] The openshift-oauth-apiserver pods [apigroup:oauth.openshift.io][apigroup:user.openshift.io] should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-scheduling][Early] The openshift-operator-lifecycle-manager pods should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-scheduling][Early] The openshift-operator-lifecycle-manager pods [apigroup:packages.operators.coreos.com] should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: CSI Ephemeral-volume (default fs)] ephemeral should create read-only inline ephemeral volume": "should create read-only inline ephemeral volume [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
