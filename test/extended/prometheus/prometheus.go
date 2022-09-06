@@ -431,7 +431,7 @@ sort_desc(
 	})
 })
 
-var _ = g.Describe("[sig-instrumentation] Prometheus", func() {
+var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	ctx := context.TODO()
 	var (

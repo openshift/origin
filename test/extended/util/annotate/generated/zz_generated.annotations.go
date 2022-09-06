@@ -2157,25 +2157,25 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation] MetricsGrabber should grab all metrics from a Scheduler.": "should grab all metrics from a Scheduler. [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should have a AlertmanagerReceiversNotConfigured alert in firing state": "should have a AlertmanagerReceiversNotConfigured alert in firing state [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should have a AlertmanagerReceiversNotConfigured alert in firing state": "should have a AlertmanagerReceiversNotConfigured alert in firing state [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should have important platform topology metrics [apigroup:config.openshift.io]": "should have important platform topology metrics [apigroup:config.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should have important platform topology metrics [apigroup:config.openshift.io]": "should have important platform topology metrics [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should have non-Pod host cAdvisor metrics": "should have non-Pod host cAdvisor metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should have non-Pod host cAdvisor metrics": "should have non-Pod host cAdvisor metrics [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should provide ingress metrics": "should provide ingress metrics [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should provide ingress metrics": "should provide ingress metrics [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should provide named network metrics [apigroup:project.openshift.io]": "should provide named network metrics [apigroup:project.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should provide named network metrics [apigroup:project.openshift.io]": "should provide named network metrics [apigroup:project.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should report telemetry [Late]": "should report telemetry [Late] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should report telemetry [Late]": "should report telemetry [Late] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster should start and expose a secured proxy and unsecured metrics [apigroup:config.openshift.io]": "should start and expose a secured proxy and unsecured metrics [apigroup:config.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should start and expose a secured proxy and unsecured metrics [apigroup:config.openshift.io]": "should start and expose a secured proxy and unsecured metrics [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster shouldn't have failing rules evaluation": "shouldn't have failing rules evaluation [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster shouldn't have failing rules evaluation": "shouldn't have failing rules evaluation [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io]": "shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io]": "shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-instrumentation] Prometheus when installed on the cluster when using openshift-sdn should be able to get the sdn ovs flows": "should be able to get the sdn ovs flows [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster when using openshift-sdn should be able to get the sdn ovs flows": "should be able to get the sdn ovs flows [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-instrumentation] Stackdriver Monitoring should have accelerator metrics [Feature:StackdriverAcceleratorMonitoring]": "should have accelerator metrics [Feature:StackdriverAcceleratorMonitoring] [Disabled:Unimplemented] [Suite:k8s]",
 
