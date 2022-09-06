@@ -37,6 +37,14 @@ var _ = g.Describe("[sig-cluster-lifecycle]", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel("cluster-client-cert", admissionapi.LevelBaseline)
 	defer g.GinkgoRecover()
 
+	g.BeforeEach(func() {
+		microShift, err := exutil.IsMicroShiftDeployment(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if microShift {
+			g.Skip("Skipped in MicroShift")
+		}
+	})
+
 	g.It("Pods cannot access the /config/master API endpoint", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
