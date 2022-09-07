@@ -673,7 +673,7 @@ func (c *CLI) AdminImageClient() imagev1client.Interface {
 	return imagev1client.NewForConfigOrDie(c.AdminConfig())
 }
 
-func (c *CLI) AdminOauthClient() oauthv1client.Interface {
+func (c *CLI) AdminOAuthClient() oauthv1client.Interface {
 	return oauthv1client.NewForConfigOrDie(c.AdminConfig())
 }
 
@@ -687,10 +687,6 @@ func (c *CLI) AdminProjectClient() projectv1client.Interface {
 
 func (c *CLI) AdminQuotaClient() quotav1client.Interface {
 	return quotav1client.NewForConfigOrDie(c.AdminConfig())
-}
-
-func (c *CLI) AdminOAuthClient() oauthv1client.Interface {
-	return oauthv1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminRouteClient() routev1client.Interface {
@@ -971,7 +967,7 @@ func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 		c.AddResourceToDelete(userv1.GroupVersion.WithResource("users"), user)
 	}
 
-	oauthClient := c.AdminOauthClient()
+	oauthClient := c.AdminOAuthClient()
 	oauthClientName := "e2e-client-" + c.Namespace()
 	oauthClientObj, err := oauthClient.OauthV1().OAuthClients().Create(ctx, &oauthv1.OAuthClient{
 		ObjectMeta:  metav1.ObjectMeta{Name: oauthClientName},

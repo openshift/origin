@@ -69,7 +69,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 				UserUID:     string(haroldUser.UID),
 				RedirectURI: "https://localhost:8443/oauth/token/implicit",
 			}
-			if _, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Create(context.Background(), whoamiOnlyToken, metav1.CreateOptions{}); err != nil {
+			if _, err := oc.AdminOAuthClient().OauthV1().OAuthAccessTokens().Create(context.Background(), whoamiOnlyToken, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), whoamiOnlyToken)
@@ -166,7 +166,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 				UserUID:     string(haroldUser.UID),
 				RedirectURI: "https://localhost:8443/oauth/token/implicit",
 			}
-			if _, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Create(context.Background(), nonEscalatingEditToken, metav1.CreateOptions{}); err != nil {
+			if _, err := oc.AdminOAuthClient().OauthV1().OAuthAccessTokens().Create(context.Background(), nonEscalatingEditToken, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), nonEscalatingEditToken)
@@ -192,7 +192,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 				UserUID:     string(haroldUser.UID),
 				RedirectURI: "https://localhost:8443/oauth/token/implicit",
 			}
-			if _, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Create(context.Background(), escalatingEditToken, metav1.CreateOptions{}); err != nil {
+			if _, err := oc.AdminOAuthClient().OauthV1().OAuthAccessTokens().Create(context.Background(), escalatingEditToken, metav1.CreateOptions{}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), escalatingEditToken)
