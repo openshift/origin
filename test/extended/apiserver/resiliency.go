@@ -31,7 +31,6 @@ import (
 var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 	f := framework.NewDefaultFramework("cluster-resiliency")
 	f.SkipNamespaceCreation = true
-	f.SkipPrivilegedPSPBinding = true
 
 	oc := exutil.NewCLIWithoutNamespace("cluster-resiliency")
 

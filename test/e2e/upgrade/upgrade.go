@@ -139,7 +139,6 @@ func SetUpgradeAbortAt(policy string) error {
 var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 	f := framework.NewDefaultFramework("cluster-upgrade")
 	f.SkipNamespaceCreation = true
-	f.SkipPrivilegedPSPBinding = true
 
 	g.It("Cluster should remain functional during upgrade [Disruptive]", func() {
 		config, err := framework.LoadConfig()
