@@ -347,7 +347,4 @@ var (
 			`\[sig-storage\]`,
 		},
 	}
-
-	// labelExcludes temporarily block tests out of a specific suite
-	labelExcludes = map[string][]string{}
 )
