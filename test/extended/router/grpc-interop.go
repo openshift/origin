@@ -142,23 +142,6 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				routev1.TLSTerminationReencrypt,
 				routev1.TLSTerminationPassthrough,
 			} {
-				var addrs []string
-
-				if len(shardService.Status.LoadBalancer.Ingress[0].Hostname) > 0 {
-					g.By("Waiting for LB hostname to register in DNS")
-					addrs, err = resolveHost(oc, time.Minute, 15*time.Minute, shardService.Status.LoadBalancer.Ingress[0].Hostname)
-					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(addrs).NotTo(o.BeEmpty())
-				} else {
-					addrs = append(addrs, shardService.Status.LoadBalancer.Ingress[0].IP)
-				}
-
-				g.By("Waiting for route hostname to register in DNS")
-				host := fmt.Sprintf("grpc-interop-%s.%s", routeType, shardFQDN)
-				addrs, err = resolveHostAsAddress(oc, time.Minute, 15*time.Minute, host, addrs[0])
-				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(addrs).NotTo(o.BeEmpty())
-
 				err := grpcExecTestCases(oc, routeType, 5*time.Minute, testCases...)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
