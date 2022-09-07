@@ -68,6 +68,18 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 		if !strings.Contains(event.Message, "reason/FailedCreatePodSandBox Failed to create pod sandbox") {
 			continue
 		}
+		if strings.Contains(event.Locator, "pod/simpletest-rc-to-be-deleted") &&
+			(strings.Contains(event.Message, "not found") ||
+				strings.Contains(event.Message, "pod was already deleted") ||
+				strings.Contains(event.Message, "error adding container to network")) {
+			// This FailedCreatePodSandBox might happen because of an upstream Garbage Collector test. This test creates at least 10 pods controlled
+			// by a ReplicationController. Then proceeds to create a second ReplicationController and sets half of the pods owned by both RCs. Tries
+			// deleting all pods owned by the first RC and checks if the half having 2 owners is not deleted. Test doesnt wait for
+			// readiness/availability, and it deletes pods with a 0 second termination period. If CNI is not able to create the sandbox in time it
+			// does not signal an error in the test, as we don't need the pod being available for success.
+			// https://github.com/kubernetes/kubernetes/blob/70ca1dbb81d8b8c6a2ac88d62480008780d4db79/test/e2e/apimachinery/garbage_collector.go#L735
+			continue
+		}
 		if strings.Contains(event.Message, "Multus") &&
 			strings.Contains(event.Message, "error getting pod") &&
 			(strings.Contains(event.Message, "connection refused") || strings.Contains(event.Message, "i/o timeout")) {
