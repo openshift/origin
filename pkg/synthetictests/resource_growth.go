@@ -116,8 +116,6 @@ func comparePostUpgradeResourceCountFromMetrics(testName, resource string) []*ju
 					Output: output,
 				},
 			},
-			// Add a success test to cause this to be a flake for now until we see how it behaves broadly.
-			{Name: testName},
 		}
 	}
 	return []*junitapi.JUnitTestCase{
