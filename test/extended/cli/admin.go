@@ -30,7 +30,6 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 
 	f := framework.NewDefaultFramework("oc-adm")
 	f.SkipNamespaceCreation = true
-	f.SkipPrivilegedPSPBinding = true
 
 	oc := exutil.NewCLIWithoutNamespace("oc-adm").AsAdmin()
 	ocns := exutil.NewCLI("oc-adm-ns").AsAdmin()

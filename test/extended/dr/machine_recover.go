@@ -40,7 +40,6 @@ import (
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive]", func() {
 	f := framework.NewDefaultFramework("machine-recovery")
 	f.SkipNamespaceCreation = true
-	f.SkipPrivilegedPSPBinding = true
 
 	oc := exutil.NewCLIWithoutNamespace("machine-recovery")
 
