@@ -206,7 +206,8 @@ func verifyAuditLogs(out string, ns []string, ips []string, ipv6 bool) (bool, bo
 			allowLogFound = true
 			continue
 		}
-		if strings.Contains(logLine, ns[0]+"_allow-from-same-ns\", verdict=drop") && strings.Contains(logLine, ipMatchSrc+ips[2]) &&
+		if (strings.Contains(logLine, ns[0]+"_allow-from-same-ns\", verdict=drop") && strings.Contains(logLine, ipMatchSrc+ips[2]) ||
+			strings.Contains(logLine, ns[0]+"_ingressDefaultDeny\", verdict=drop") && strings.Contains(logLine, ipMatchSrc+ips[2])) &&
 			strings.Contains(logLine, ipMatchDst+ips[0]) {
 			denyLogFound = true
 			continue
