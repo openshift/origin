@@ -615,7 +615,7 @@ var Annotations = map[string]string{
 
 	"[sig-arch] Managed cluster should ensure platform components have system-* priority class associated": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch] Managed cluster should ensure pods use downstream images from our release image with proper ImagePullPolicy": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch] Managed cluster should ensure pods use downstream images from our release image with proper ImagePullPolicy [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch] Managed cluster should have operators on the cluster version [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
