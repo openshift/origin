@@ -65,7 +65,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ServerSideApply] Server-Side App
 			continue
 		}
 
-		g.It(fmt.Sprintf("should work for %s", gvr), func() {
+		g.It(fmt.Sprintf("should work for %s [apigroup:%s]", gvr, gvr.Group), func() {
 			// create the testing namespace
 			testNamespace := oc.SetupProject()
 
