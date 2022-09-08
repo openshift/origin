@@ -26,7 +26,7 @@ import (
 
 const changeTimeoutSeconds = 3 * 60
 
-var _ = g.Describe("[sig-network][Feature:Router]", func() {
+var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:template.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc          *exutil.CLI
@@ -170,7 +170,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			o.Expect(condition.LastTransitionTime).NotTo(o.BeNil())
 		})
 
-		g.It("should override the route host for overridden domains with a custom value", func() {
+		g.It("should override the route host for overridden domains with a custom value [apigroup:image.openshift.io]", func() {
 
 			configPath := exutil.FixturePath("testdata", "router", "router-override-domains.yaml")
 			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))

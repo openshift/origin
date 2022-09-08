@@ -12,7 +12,7 @@ var _ = g.Describe("[sig-cli] oc status", func() {
 
 	var oc = exutil.NewCLI("oc-status")
 
-	g.It("returns expected help messages", func() {
+	g.It("returns expected help messages [apigroup:project.openshift.io][apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:apps.openshift.io][apigroup:route.openshift.io]", func() {
 		out, err := oc.Run("status").Args("-h").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("oc describe buildconfig"))

@@ -28,7 +28,7 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 	helloPod := exutil.FixturePath("..", "..", "examples", "hello-openshift", "hello-pod.json")
 	imageStreamsCentos := exutil.FixturePath("..", "..", "examples", "image-streams", "image-streams-centos7.json")
 
-	g.It("deployment configs from a build", func() {
+	g.It("deployment configs from a build [apigroup:image.openshift.io][apigroup:apps.openshift.io]", func() {
 		err := oc.Run("create").Args("-f", testCLIDebug).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// wait for image stream to be present which means the build has completed
@@ -66,7 +66,7 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 		o.Expect(out).To(o.ContainSubstring("Starting pod/busybox2-debug, command was: foo bar baz qux\n"))
 	})
 
-	g.It("dissect deployment config debug", func() {
+	g.It("dissect deployment config debug [apigroup:apps.openshift.io]", func() {
 		err := oc.Run("create").Args("-f", testDeploymentConfig).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -128,7 +128,7 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 
 	// TODO: write a test that emulates a TTY to verify the correct defaulting of what the pod is created
 
-	g.It("ensure debug does not depend on a container actually existing for the selected resource", func() {
+	g.It("ensure debug does not depend on a container actually existing for the selected resource [apigroup:apps.openshift.io]", func() {
 		err := oc.Run("create").Args("-f", testReplicationController).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.Run("create").Args("-f", testDeploymentConfig).Execute()
@@ -180,7 +180,7 @@ spec:
 		o.Expect(out).To(o.ContainSubstring("test-deployment-debug"))
 	})
 
-	g.It("ensure it works with image streams", func() {
+	g.It("ensure it works with image streams [apigroup:image.openshift.io]", func() {
 		err := oc.Run("create").Args("-f", imageStreamsCentos).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = wait.Poll(cliInterval, cliTimeout, func() (bool, error) {

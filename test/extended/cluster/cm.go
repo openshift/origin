@@ -45,7 +45,7 @@ var _ = g.Describe("[sig-scalability][Feature:Performance][Serial][Slow] Mirror 
 		e2e.Logf("We have %v\n", nodeinfo)
 	})
 
-	g.It("it should read the cluster apps", func() {
+	g.It("it should read the cluster apps [apigroup:apps.openshift.io]", func() {
 		var pods *v1.PodList
 		config := ContextType{}
 		config.ClusterLoader.Cleanup = true
