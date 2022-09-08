@@ -28,7 +28,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers] Annotation trigge
 		deploymentFixture = exutil.FixturePath("testdata", "image", "deployment-with-annotation-trigger.yaml")
 	)
 
-	g.It("reconciles after the image is overwritten", func() {
+	g.It("reconciles after the image is overwritten [apigroup:image.openshift.io]", func() {
 		namespace := oc.Namespace()
 
 		g.By("creating a Deployment")

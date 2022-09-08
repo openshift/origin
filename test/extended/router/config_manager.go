@@ -21,7 +21,7 @@ import (
 
 const timeoutSeconds = 3 * 60
 
-var _ = g.Describe("[sig-network][Feature:Router]", func() {
+var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
 		configPath = exutil.FixturePath("testdata", "router", "router-config-manager.yaml")

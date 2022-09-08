@@ -30,7 +30,7 @@ const (
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
-	g.It("have machine resources", func() {
+	g.It("have machine resources [apigroup:machine.openshift.io]", func() {
 		cfg, err := e2e.LoadConfig()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		c, err := e2e.LoadClientset()
