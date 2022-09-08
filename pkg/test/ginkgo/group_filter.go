@@ -2,6 +2,7 @@ package ginkgo
 
 import (
 	"fmt"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/discovery"
@@ -45,8 +46,11 @@ func newApiGroupFilter(discoveryClient *discovery.DiscoveryClient) (*apiGroupFil
 func (agf *apiGroupFilter) markSkippedWhenAPIGroupNotServed(tests []*testCase) {
 	for _, test := range tests {
 		if !agf.apiGroups.HasAll(test.apigroups...) {
+			missingAPIGroups := sets.NewString(test.apigroups...).Difference(agf.apiGroups)
 			test.skipped = true
+			test.out = []byte(fmt.Sprintf("skipped because the following required API groups are missing: %v", strings.Join(missingAPIGroups.List(), ",")))
 			continue
 		}
 	}
+
 }
