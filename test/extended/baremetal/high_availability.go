@@ -29,7 +29,7 @@ const (
 	metal3Deployment         = "metal3"
 )
 
-var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platform should ensure", func() {
+var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platform should ensure [apigroup:config.openshift.io]", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -38,6 +38,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 	)
 
 	g.BeforeEach(func() {
+		skipIfNotBaremetal(oc)
 		helper = NewBaremetalTestHelper(oc.AdminDynamicClient())
 		helper.Setup()
 	})
@@ -47,8 +48,6 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 	})
 
 	g.It("cluster baremetal operator and metal3 deployment return back healthy after they are deleted", func() {
-		skipIfNotBaremetal(oc)
-
 		c, err := e2e.LoadClientset()
 		o.Expect(err).ToNot(o.HaveOccurred())
 

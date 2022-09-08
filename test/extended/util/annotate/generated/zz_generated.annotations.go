@@ -2119,23 +2119,23 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-imageregistry][Serial][Suite:openshift/registry/serial] Image signature workflow can push a signed image to openshift registry and verify it [apigroup:user.openshift.io][apigroup:image.openshift.io]": "can push a signed image to openshift registry and verify it [apigroup:user.openshift.io][apigroup:image.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should have baremetalhost resources": "have baremetalhost resources [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should [apigroup:config.openshift.io] have baremetalhost resources": "have baremetalhost resources [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should have hostfirmwaresetting resources": "have hostfirmwaresetting resources [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should [apigroup:config.openshift.io] have hostfirmwaresetting resources": "have hostfirmwaresetting resources [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should have preprovisioning images for workers": "have preprovisioning images for workers [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should [apigroup:config.openshift.io] have preprovisioning images for workers": "have preprovisioning images for workers [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should not allow updating BootMacAddress": "not allow updating BootMacAddress [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-installer][Feature:baremetal] Baremetal platform should [apigroup:config.openshift.io] not allow updating BootMacAddress": "not allow updating BootMacAddress [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphere/None platforms  have a metal3 deployment": "have a metal3 deployment [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphere/None platforms [apigroup:config.openshift.io] have a metal3 deployment": "have a metal3 deployment [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-installer][Feature:baremetal][Serial] A baremetal deployment without a provisioning network should allow setting the ProvisioningNetwork to 'Managed' with valid settings": "allow setting the ProvisioningNetwork to 'Managed' with valid settings [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-installer][Feature:baremetal][Serial] A baremetal deployment without a provisioning network should [apigroup:config.openshift.io] allow setting the ProvisioningNetwork to 'Managed' with valid settings": "allow setting the ProvisioningNetwork to 'Managed' with valid settings [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [sig-installer][Feature:baremetal][Serial] A baremetal deployment without a provisioning network should show the Provisioning Network as 'Disabled'": "show the Provisioning Network as 'Disabled' [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-installer][Feature:baremetal][Serial] A baremetal deployment without a provisioning network should [apigroup:config.openshift.io] show the Provisioning Network as 'Disabled'": "show the Provisioning Network as 'Disabled' [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [sig-installer][Feature:baremetal][Serial] Baremetal platform should ensure cluster baremetal operator and metal3 deployment return back healthy after they are deleted": "cluster baremetal operator and metal3 deployment return back healthy after they are deleted [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-installer][Feature:baremetal][Serial] Baremetal platform should [apigroup:config.openshift.io] skip inspection when disabled by annotation": "skip inspection when disabled by annotation [Suite:openshift/conformance/serial]",
 
-	"[Top Level] [sig-installer][Feature:baremetal][Serial] Baremetal platform should skip inspection when disabled by annotation": "skip inspection when disabled by annotation [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-installer][Feature:baremetal][Serial] Baremetal platform should ensure [apigroup:config.openshift.io] cluster baremetal operator and metal3 deployment return back healthy after they are deleted": "cluster baremetal operator and metal3 deployment return back healthy after they are deleted [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-instrumentation] Events API should delete a collection of events [Conformance]": "should delete a collection of events [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
