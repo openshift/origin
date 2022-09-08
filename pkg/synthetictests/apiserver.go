@@ -72,7 +72,8 @@ func testServerAvailability(
 		Name:     testName,
 		Duration: jobRunDuration.Seconds(),
 	}
-	if observedDisruption > roundedAllowedDisruption {
+	if true {
+		//if observedDisruption > roundedAllowedDisruption {
 		test := &junitapi.JUnitTestCase{
 			Name:     testName,
 			Duration: jobRunDuration.Seconds(),
@@ -82,7 +83,6 @@ func testServerAvailability(
 			SystemOut: strings.Join(disruptionMsgs, "\n"),
 		}
 		return []*junitapi.JUnitTestCase{test}
-
 	} else {
 		successTest.SystemOut = resultsStr
 		return []*junitapi.JUnitTestCase{successTest}
