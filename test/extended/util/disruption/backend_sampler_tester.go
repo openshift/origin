@@ -192,7 +192,7 @@ func (t *backendDisruptionTest) Test(f *framework.Framework, done <-chan struct{
 	ginkgo.By(fmt.Sprintf("results tallied: %s", t.backend.GetLocator()))
 
 	// raise an error AFTER we add the test summary
-	// TOOD restore.  suppressing this now to see what data we can get out without a panic.
+	// TODO restore.  suppressing this now to see what data we can get out without a panic.
 	framework.ExpectNoError(disruptionErr, fmt.Sprintf("unable to finish: %s", t.backend.GetLocator()))
 }
 

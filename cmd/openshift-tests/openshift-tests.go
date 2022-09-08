@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitor_cmd"
+	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
@@ -109,6 +110,7 @@ func newRunMonitorCommand() *cobra.Command {
 		AdditionalEventIntervalRecorders: []monitor.StartEventIntervalRecorderFunc{
 			controlplane.StartAllAPIMonitoring,
 			frontends.StartAllIngressMonitoring,
+			externalservice.StartExternalServiceMonitoring,
 		},
 	}
 	cmd := &cobra.Command{
