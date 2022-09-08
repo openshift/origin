@@ -1515,6 +1515,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-builds][Feature:JenkinsRHELImagesOnly][Feature:Jenkins][Feature:Builds][sig-devex][Slow] openshift pipeline build  jenkins pipeline build config strategy using a jenkins instance launched with the ephemeral template [apigroup:build.openshift.io]": "using a jenkins instance launched with the ephemeral template [apigroup:build.openshift.io]",
 
+	"[Top Level] [sig-ci] [Early] prow job name should match cluster version [apigroup:config.openshift.io]": "should match cluster version [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-ci] [Early] prow job name should match network type [apigroup:config.openshift.io]": "should match network type [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-ci] [Early] prow job name should match platform type [apigroup:config.openshift.io]": "should match platform type [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
