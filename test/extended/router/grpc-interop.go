@@ -46,7 +46,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should pass the gRPC interoperability tests", func() {
+		g.It("should pass the gRPC interoperability tests [apigroup:config.openshift.io][apigroup:route.openshift.io][apigroup:template.openshift.io]", func() {
 			isProxyJob, err := exutil.IsClusterProxyEnabled(oc)
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get proxy configuration")
 			if isProxyJob {

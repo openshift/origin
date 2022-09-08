@@ -43,14 +43,14 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 	// For Openshift SDN its supports EgressNetworkPolicy objects
 	InOpenShiftSDNContext(
 		func() {
-			g.It("should ensure egressnetworkpolicy is created", func() {
+			g.It("should ensure egressnetworkpolicy is created [apigroup:network.openshift.io]", func() {
 				doEgressFwTest(egFwf, egFwoc, openShiftSDNManifest)
 			})
 		},
 	)
 	noegFwoc := exutil.NewCLIWithPodSecurityLevel(noEgressFWE2E, admissionapi.LevelBaseline)
 	noegFwf := noegFwoc.KubeFramework()
-	g.It("egressFirewall should have no impact outside its namespace", func() {
+	g.It("egressFirewall should have no impact outside its namespace [apigroup:config.openshift.io]", func() {
 		g.By("creating test pod")
 		pod := "dummy"
 		o.Expect(createTestEgressFw(noegFwf, pod)).To(o.Succeed())

@@ -128,7 +128,7 @@ func validateDeploymentReplicas(deployment appsv1.Deployment,
 	validateReplicas(deployment.Name, deployment.Namespace, int(*deployment.Spec.Replicas))
 }
 
-var _ = ginkgo.Describe("[sig-arch] Cluster topology single node tests", func() {
+var _ = ginkgo.Describe("[sig-arch] Cluster topology single node tests [apigroup:config.openshift.io]", func() {
 	f := framework.NewDefaultFramework("single-node")
 
 	ginkgo.It("Verify that OpenShift components deploy one replica in SingleReplica topology mode", func() {

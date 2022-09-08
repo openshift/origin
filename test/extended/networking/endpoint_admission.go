@@ -21,7 +21,7 @@ import (
 	utilnet "k8s.io/utils/net"
 )
 
-var _ = g.Describe("[sig-network][endpoints] admission", func() {
+var _ = g.Describe("[sig-network][endpoints] admission [apigroup:config.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("endpoint-admission")
 

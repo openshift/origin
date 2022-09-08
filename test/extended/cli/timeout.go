@@ -13,7 +13,7 @@ var _ = g.Describe("[sig-cli] oc --request-timeout", func() {
 
 	oc := exutil.NewCLI("oc-request-timeout")
 
-	g.It("works as expected", func() {
+	g.It("works as expected [apigroup:apps.openshift.io]", func() {
 		busyBoxImage := k8simage.GetE2EImage(k8simage.BusyBox)
 		err := oc.Run("create").Args("deploymentconfig", "testdc", "--image="+busyBoxImage).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
