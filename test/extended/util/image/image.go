@@ -33,29 +33,10 @@ func init() {
 		// used by all the rest build s2s e2e tests
 		"quay.io/redhat-developer/test-build-simples2i:1.2": -1,
 
-		// storage-csi
-		"k8s.gcr.io/sig-storage/csi-attacher:v3.1.0":                           46,
-		"k8s.gcr.io/sig-storage/csi-attacher:v3.3.0":                           54,
-		"k8s.gcr.io/sig-storage/csi-external-health-monitor-controller:v0.4.0": 51,
-		"k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.1.0":              49,
-		"k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.3.0":              52,
-		"k8s.gcr.io/sig-storage/csi-provisioner:v2.1.0":                        45,
-		"k8s.gcr.io/sig-storage/csi-provisioner:v3.0.0":                        55,
-		"k8s.gcr.io/sig-storage/csi-resizer:v1.1.0":                            47,
-		"k8s.gcr.io/sig-storage/csi-resizer:v1.3.0":                            56,
-		"k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.3":                        44,
-		"k8s.gcr.io/sig-storage/csi-snapshotter:v4.2.1":                        57,
-		"k8s.gcr.io/sig-storage/hello-populator:v1.0.1":                        42,
-		"k8s.gcr.io/sig-storage/hostpathplugin:v1.7.3":                         50,
-		"k8s.gcr.io/sig-storage/livenessprobe:v2.4.0":                          53,
-		"k8s.gcr.io/sig-storage/volume-data-source-validator:v1.0.0":           43,
-
-		"k8s.gcr.io/e2e-test-images/busybox:1.29-1": 59,
-
 		// allowed upstream kube images - index and value must match upstream or
 		// tests will fail (vendor/k8s.io/kubernetes/test/utils/image/manifest.go)
-		"k8s.gcr.io/e2e-test-images/agnhost:2.39": 1,
-		"k8s.gcr.io/e2e-test-images/nginx:1.15-2": 23,
+		"registry.k8s.io/e2e-test-images/agnhost:2.40": 1,
+		"registry.k8s.io/e2e-test-images/nginx:1.15-2": 22,
 	}
 
 	images = GetMappedImages(allowedImages, os.Getenv("KUBE_TEST_REPO"))
