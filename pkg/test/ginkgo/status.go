@@ -143,6 +143,10 @@ func (s *testStatus) Run(ctx context.Context, test *testCase) {
 		Locator: monitorapi.E2ETestLocator(test.name),
 		Message: "started",
 	})
+	// if the test was already marked as skipped, skip it.
+	if test.skipped {
+		return
+	}
 	defer s.finalizeTest(test)
 
 	test.start = time.Now()
