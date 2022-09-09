@@ -23,7 +23,7 @@ var _ = g.Describe("[sig-builds][Feature:JenkinsRHELImagesOnly][Feature:Jenkins]
 		simplePipelineBC = exutil.FixturePath("testdata", "builds", "simple-pipeline-bc.yaml")
 
 		cleanup = func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}

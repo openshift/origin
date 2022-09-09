@@ -44,7 +44,7 @@ var _ = g.Describe("[sig-imageregistry] Image registry [apigroup:route.openshift
 
 	g.AfterEach(func() {
 		oc.AdminRouteClient().RouteV1().Routes(routeNamespace).Delete(context.TODO(), routeName, metav1.DeleteOptions{})
-		if g.CurrentGinkgoTestDescription().Failed && len(ns) > 0 {
+		if g.CurrentSpecReport().Failed() && len(ns) > 0 {
 			exutil.DumpPodLogsStartingWithInNamespace("", ns, oc)
 		}
 	})

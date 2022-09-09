@@ -24,7 +24,7 @@ var _ = g.Describe("[sig-instrumentation][sig-builds][Feature:Builds] Prometheus
 	)
 
 	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
+		if g.CurrentSpecReport().Failed() {
 			exutil.DumpPodStatesInNamespace("openshift-monitoring", oc)
 			exutil.DumpPodLogsStartingWithInNamespace("prometheus-k8s", "openshift-monitoring", oc)
 		}

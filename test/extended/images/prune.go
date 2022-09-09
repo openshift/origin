@@ -69,7 +69,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				dumpRegistryLogs(oc, startTime)
 			}
 			if *originalAcceptSchema2 {
@@ -97,7 +97,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				dumpRegistryLogs(oc, startTime)
 			}
 			if !*originalAcceptSchema2 {
@@ -125,7 +125,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				dumpRegistryLogs(oc, startTime)
 			}
 			if !*originalAcceptSchema2 {
@@ -153,7 +153,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				dumpRegistryLogs(oc, startTime)
 			}
 			if !*originalAcceptSchema2 {
@@ -181,7 +181,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				dumpRegistryLogs(oc, startTime)
 			}
 			if !*originalAcceptSchema2 {

@@ -31,7 +31,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] remove all builds when build co
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				exutil.DumpBuilds(oc)
 				exutil.DumpPodStates(oc)
 				exutil.DumpConfigMapStates(oc)
