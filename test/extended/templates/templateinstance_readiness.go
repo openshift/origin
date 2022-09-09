@@ -115,7 +115,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				exutil.DumpPodStates(cli)
 				exutil.DumpConfigMapStates(cli)
 				exutil.DumpPodLogsStartingWith("", cli)

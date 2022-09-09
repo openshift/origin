@@ -30,7 +30,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][php][Slow] hot deploy fo
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}

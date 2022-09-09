@@ -103,7 +103,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:config.openshift.io]"
 	})
 
 	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
+		if g.CurrentSpecReport().Failed() {
 			exutil.DumpPodLogsStartingWithInNamespace("router", "openshift-ingress", oc.AsAdmin())
 		}
 	})

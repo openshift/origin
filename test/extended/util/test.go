@@ -189,15 +189,15 @@ func isGoModulePath(packagePath, module, modulePath string) bool {
 }
 
 func isOriginTest() bool {
-	return isGoModulePath(ginkgo.CurrentGinkgoTestDescription().FileName, "github.com/openshift/origin", "test")
+	return isGoModulePath(ginkgo.CurrentSpecReport().FileName(), "github.com/openshift/origin", "test")
 }
 
 func isKubernetesE2ETest() bool {
-	return isGoModulePath(ginkgo.CurrentGinkgoTestDescription().FileName, "k8s.io/kubernetes", "test/e2e")
+	return isGoModulePath(ginkgo.CurrentSpecReport().FileName(), "k8s.io/kubernetes", "test/e2e")
 }
 
 func testNameContains(name string) bool {
-	return strings.Contains(ginkgo.CurrentGinkgoTestDescription().FullTestText, name)
+	return strings.Contains(ginkgo.CurrentSpecReport().FullText(), name)
 }
 
 func skipTestNamespaceCustomization() bool {

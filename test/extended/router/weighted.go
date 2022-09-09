@@ -40,8 +40,8 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:config.openshift.io][
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve a route that points to two services and respect weights", func() {
 			defer func() {
-				if g.CurrentGinkgoTestDescription().Failed {
-					dumpWeightedRouterLogs(oc, g.CurrentGinkgoTestDescription().FullTestText)
+				if g.CurrentSpecReport().Failed() {
+					dumpWeightedRouterLogs(oc, g.CurrentSpecReport().FullText())
 				}
 			}()
 

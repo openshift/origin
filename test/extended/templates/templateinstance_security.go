@@ -113,7 +113,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance security tes
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				templateinstances, err := cli.AdminTemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).List(context.Background(), metav1.ListOptions{})
 				if err == nil {
 					fmt.Fprintf(g.GinkgoWriter, "TemplateInstances: %#v", templateinstances.Items)
