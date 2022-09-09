@@ -3,8 +3,13 @@ package util
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -23,7 +28,9 @@ import (
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/openshift/api/annotations"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
+	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -340,7 +347,7 @@ func (c *CLI) setupProject() string {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
-	WaitForProjectSCCAnnotations(c.ProjectClient().ProjectV1(), newNamespace)
+	WaitForNamespaceSCCAnnotations(c.KubeClient().CoreV1(), newNamespace)
 
 	framework.Logf("Project %q has been fully provisioned.", newNamespace)
 	return newNamespace
@@ -349,21 +356,38 @@ func (c *CLI) setupProject() string {
 func (c *CLI) setupNamespace() string {
 	requiresTestStart()
 	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
-	c.SetNamespace(newNamespace).ChangeUser(fmt.Sprintf("%s-user", newNamespace))
+	username := fmt.Sprintf("%s-user", newNamespace)
+	serviceAccountName := "default"
+	c.SetNamespace(newNamespace)
 
 	nsObject := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: newNamespace,
+			Annotations: map[string]string{
+				annotations.OpenShiftDescription: username,
+				annotations.OpenShiftDisplayName: newNamespace,
+				"openshift.io/requester":         username,
+			},
 		},
 	}
 	framework.Logf("Creating namespace %q", newNamespace)
 	_, err := c.AdminKubeClient().CoreV1().Namespaces().Create(context.Background(), nsObject, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
-
 	c.kubeFramework.AddNamespacesToDelete(nsObject)
 
+	framework.Logf("Waiting for ServiceAccount %q to be provisioned...", serviceAccountName)
+	err = WaitForServiceAccount(c.AdminKubeClient().CoreV1().ServiceAccounts(newNamespace), serviceAccountName)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	framework.Logf("Configuring kubeconfig with user %q certificates...", username)
+	c.ChangeUser(username)
+
+	framework.Logf("Waiting for RoleBinding %q to be provisioned...", username)
+	err = c.setupRoleInNamespace(username)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
 	framework.Logf("Waiting on permissions in namespace %q ...", newNamespace)
-	err = WaitForSelfSAR(1*time.Second, 60*time.Second, c.AdminKubeClient(), kubeauthorizationv1.SelfSubjectAccessReviewSpec{
+	err = WaitForSelfSAR(1*time.Second, 60*time.Second, c.KubeClient(), kubeauthorizationv1.SelfSubjectAccessReviewSpec{
 		ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
 			Namespace: newNamespace,
 			Verb:      "create",
@@ -376,19 +400,115 @@ func (c *CLI) setupNamespace() string {
 	err = c.setupNamespacePodSecurity(newNamespace)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	serviceAccountName := "default"
-	framework.Logf("Waiting for ServiceAccount %q to be provisioned...", serviceAccountName)
-	err = WaitForServiceAccount(c.KubeClient().CoreV1().ServiceAccounts(newNamespace), serviceAccountName)
-	o.Expect(err).NotTo(o.HaveOccurred())
-
 	WaitForNamespaceSCCAnnotations(c.KubeClient().CoreV1(), newNamespace)
 
 	framework.Logf("Namespace %q has been fully provisioned.", newNamespace)
+
 	return newNamespace
 }
 
+func (c *CLI) setupRoleInNamespace(username string) error {
+	roleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: username,
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.SchemeGroupVersion.Group,
+			Kind:     "ClusterRole",
+			Name:     "admin",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      "User",
+				Name:      username,
+				Namespace: c.Namespace(),
+			},
+		},
+	}
+	_, err := c.AdminKubeClient().RbacV1().RoleBindings(c.Namespace()).Create(context.Background(), roleBinding, metav1.CreateOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *CLI) setupUserConfig(username string) (*rest.Config, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, err
+	}
+	privateKeyPem := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+	})
+
+	subj := pkix.Name{
+		CommonName:   username,
+		Organization: []string{"system:authenticated", "system:authenticated:oauth"},
+	}
+	template := x509.CertificateRequest{
+		Subject:            subj,
+		SignatureAlgorithm: x509.SHA256WithRSA,
+	}
+	crBytes, err := x509.CreateCertificateRequest(rand.Reader, &template, privateKey)
+	if err != nil {
+		return nil, err
+	}
+	crPem := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE REQUEST",
+		Bytes: crBytes,
+	})
+
+	req := certificatesv1.CertificateSigningRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: username,
+		},
+		Spec: certificatesv1.CertificateSigningRequestSpec{
+			Request:    crPem,
+			SignerName: "kubernetes.io/kube-apiserver-client",
+			Usages: []certificatesv1.KeyUsage{
+				certificatesv1.UsageClientAuth,
+			},
+		},
+	}
+	csr, err := c.AdminKubeClient().CertificatesV1().CertificateSigningRequests().Create(context.Background(), &req, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	c.AddExplicitResourceToDelete(certificatesv1.SchemeGroupVersion.WithResource("certificatesigningrequests"), "", username)
+
+	csr.Status.Conditions = append(csr.Status.Conditions, certificatesv1.CertificateSigningRequestCondition{
+		Type:           certificatesv1.CertificateApproved,
+		LastUpdateTime: metav1.Now(),
+		Status:         corev1.ConditionTrue,
+	})
+	_, err = c.AdminKubeClient().CertificatesV1().CertificateSigningRequests().UpdateApproval(context.Background(), username, csr, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	pollErr := wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
+		csr, err = c.AdminKubeClient().CertificatesV1().CertificateSigningRequests().Get(context.Background(), username, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		if len(csr.Status.Certificate) == 0 {
+			return false, nil
+		}
+		return true, nil
+	})
+	if pollErr != nil {
+		return nil, pollErr
+	}
+
+	userClientConfig := rest.AnonymousClientConfig(turnOffRateLimiting(rest.CopyConfig(c.AdminConfig())))
+	userClientConfig.TLSClientConfig.CertData = csr.Status.Certificate
+	userClientConfig.TLSClientConfig.KeyData = privateKeyPem
+	return userClientConfig, nil
+}
+
 func (c *CLI) setupSelfProvisionerRoleBinding() error {
-	framework.Logf("Creating role binding to allow self provisioning of projects")
 	rb := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "e2e-self-provisioners",
@@ -827,7 +947,11 @@ func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 	}
 
 	if !userAPIExists {
-		return turnOffRateLimiting(rest.CopyConfig(c.AdminConfig()))
+		config, err := c.setupUserConfig(username)
+		if err != nil {
+			FatalErr(err)
+		}
+		return config
 	}
 
 	ctx := context.Background()
