@@ -30,7 +30,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io
 	// this hook must be registered before the framework namespace teardown
 	// hook
 	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
+		if g.CurrentSpecReport().Failed() {
 			currlabel := "router=router"
 			for _, ns := range []string{"default", "openshift-ingress", "tectonic-ingress"} {
 				//Search the router by label

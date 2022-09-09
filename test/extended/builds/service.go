@@ -34,7 +34,7 @@ RUN curl -vvv hello-nodejs:8080
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				exutil.DumpPodStates(oc)
 				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)

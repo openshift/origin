@@ -66,8 +66,8 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:config.openshift.io][
 			defer func() {
 				// This should be done if the test fails but
 				// for now always dump the logs.
-				// if g.CurrentGinkgoTestDescription().Failed
-				dumpRouterHeadersLogs(oc, g.CurrentGinkgoTestDescription().FullTestText)
+				// if g.CurrentSpecReport().Failed()
+				dumpRouterHeadersLogs(oc, g.CurrentSpecReport().FullText())
 			}()
 
 			ns := oc.KubeFramework().Namespace.Name

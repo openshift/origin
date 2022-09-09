@@ -29,7 +29,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds should support pro
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				exutil.DumpPodStates(oc)
 				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)

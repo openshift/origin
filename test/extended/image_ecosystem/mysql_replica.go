@@ -203,7 +203,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][mysql][Slow] openshift m
 	var nfspod = &kapiv1.Pod{}
 	var cleanup = func() {
 		g.By("start cleanup")
-		if g.CurrentGinkgoTestDescription().Failed {
+		if g.CurrentSpecReport().Failed() {
 			exutil.DumpPodStates(oc)
 			exutil.DumpPodLogsStartingWith("", oc)
 			exutil.DumpPersistentVolumeInfo(oc)

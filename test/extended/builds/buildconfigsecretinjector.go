@@ -27,7 +27,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] buildconfig secret injector", f
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}

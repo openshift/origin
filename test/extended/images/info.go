@@ -16,7 +16,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageInfo] Image info", func() {
 	var ns string
 
 	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed && len(ns) > 0 {
+		if g.CurrentSpecReport().Failed() && len(ns) > 0 {
 			exutil.DumpPodLogsStartingWithInNamespace("", ns, oc)
 		}
 	})

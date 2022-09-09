@@ -102,7 +102,7 @@ valid_fields.json
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("verify-run-fs", oc)
 			}

@@ -30,7 +30,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 	ctx := context.Background()
 
 	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
+		if g.CurrentSpecReport().Failed() {
 			for _, s := range ns {
 				exutil.DumpPodLogsStartingWithInNamespace("", s, oc)
 			}
