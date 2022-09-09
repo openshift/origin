@@ -13,6 +13,17 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	utilflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2"
+	"k8s.io/kubectl/pkg/util/templates"
+
+	"github.com/openshift/library-go/pkg/image/reference"
+	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitor_cmd"
 	"github.com/openshift/origin/pkg/monitor/resourcewatch/cmd"
@@ -24,19 +35,6 @@ import (
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
-
-	"github.com/openshift/library-go/pkg/image/reference"
-	"github.com/openshift/library-go/pkg/serviceability"
-
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	utilflag "k8s.io/component-base/cli/flag"
-	"k8s.io/component-base/logs"
-	"k8s.io/klog/v2"
-	"k8s.io/kubectl/pkg/util/templates"
-
-	"github.com/onsi/ginkgo/v2"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 func main() {
@@ -464,10 +462,6 @@ func newRunTestCommand() *cobra.Command {
 			if err := verifyImagesWithoutEnv(); err != nil {
 				return err
 			}
-
-			// Ignore the upstream suite behavior within test execution
-			ginkgo.GlobalSuite().ClearBeforeSuiteNode()
-			ginkgo.GlobalSuite().ClearAfterSuiteNode()
 
 			config, err := decodeProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun, false, nil)
 			if err != nil {

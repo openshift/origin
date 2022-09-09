@@ -15,7 +15,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/onsi/ginkgo/v2/config"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -155,7 +154,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		suite.SyntheticEventTests,
 	}
 
-	tests, err := testsForSuite(config.GinkgoConfig)
+	tests, err := testsForSuite()
 	if err != nil {
 		return err
 	}
