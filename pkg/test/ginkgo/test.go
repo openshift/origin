@@ -15,9 +15,10 @@ import (
 )
 
 type testCase struct {
-	name     string
-	spec     ginkgoSpec
-	location types.CodeLocation
+	name      string
+	spec      ginkgoSpec
+	location  types.CodeLocation
+	apigroups []string
 
 	// identifies which tests can be run in parallel (ginkgo runs suites linearly)
 	testExclusion string
@@ -47,6 +48,15 @@ func newTestCase(spec ginkgoSpec) (*testCase, error) {
 		name:     name,
 		spec:     spec,
 		location: summary.ComponentCodeLocations[len(summary.ComponentCodeLocations)-1],
+	}
+
+	matches := regexp.MustCompile(`\[apigroup:([^]]*)\]`).FindAllStringSubmatch(name, -1)
+	for _, match := range matches {
+		if len(match) < 2 {
+			return nil, fmt.Errorf("regexp match %v is invalid: len(match) < 2", match)
+		}
+		apigroup := match[1]
+		tc.apigroups = append(tc.apigroups, apigroup)
 	}
 
 	re := regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
