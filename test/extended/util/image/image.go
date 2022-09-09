@@ -135,6 +135,10 @@ func OriginalImages() map[string]k8simage.ImageID {
 // problems. This list should ideally be empty.
 var Exceptions = sets.NewString(
 	"mcr.microsoft.com/windows:1809", // https://issues.redhat.com/browse/PROJQUAY-1874
+	// this image has 3 windows/amd64 manifests, where layers are not compressed,
+	// ie. application/vnd.docker.image.rootfs.diff.tar which are not accepted
+	// by quay.io, this has to be manually mirrored with --filter-by-os=linux.*
+	"registry.k8s.io/pause:3.8",
 )
 
 // Images returns a map of all images known to the test package.
