@@ -22,7 +22,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][mysql][Slow] openshift m
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}

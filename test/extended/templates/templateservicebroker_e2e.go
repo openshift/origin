@@ -344,7 +344,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateservicebroker end-to-
 
 	g.Context("", func() {
 		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				ns := cli.Namespace()
 				cli.SetNamespace("openshift-template-service-broker")
 				exutil.DumpPodStates(cli.AsAdmin())

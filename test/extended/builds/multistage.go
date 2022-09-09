@@ -35,7 +35,7 @@ COPY --from=%[2]s /bin/ping /test/
 	)
 
 	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
+		if g.CurrentSpecReport().Failed() {
 			exutil.DumpPodStates(oc)
 			exutil.DumpConfigMapStates(oc)
 			exutil.DumpPodLogsStartingWith("", oc)

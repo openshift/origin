@@ -23,7 +23,7 @@ func Before(oc *exutil.CLI) {
 }
 
 func After(oc *exutil.CLI) {
-	if g.CurrentGinkgoTestDescription().Failed {
+	if g.CurrentSpecReport().Failed() {
 		exutil.DumpPodStates(oc)
 		exutil.DumpConfigMapStates(oc)
 		exutil.DumpPodLogsStartingWith("", oc)

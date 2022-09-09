@@ -260,7 +260,7 @@ func finalizeTest(start time.Time, tc *junit.TestCase, ts *junit.TestSuite, f *f
 		}
 	}
 	// if we have a panic but it hasn't been recorded by ginkgo, panic now
-	if !g.CurrentGinkgoTestDescription().Failed {
+	if !g.CurrentSpecReport().Failed() {
 		framework.Logf("%q: panic: %v", tc.Name, r)
 		func() {
 			defer g.GinkgoRecover()
