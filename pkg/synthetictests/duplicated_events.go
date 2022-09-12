@@ -118,6 +118,10 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 
 	// Separated out in testErrorUpdatingEndpointSlices
 	regexp.MustCompile(errorUpdatingEndpointSlicesRegex),
+
+	// If you see this error, it means enough was working to get this event which implies enough retries happened to allow initial openshift
+	// installation to succeed. Hence, we can ignore it.
+	regexp.MustCompile(`reason/FailedCreate .* error creating EC2 instance: InsufficientInstanceCapacity: We currently do not have sufficient .* capacity in the Availability Zone you requested`),
 }
 
 var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
