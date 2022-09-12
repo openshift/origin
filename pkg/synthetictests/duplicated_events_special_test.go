@@ -205,9 +205,9 @@ func Test_testErrorUpdatingEndpointSlices(t *testing.T) {
 			kind:    "pass",
 		},
 		{
-			name:    "fail",
+			name:    "flake",
 			message: "reason/FailedToUpdateEndpointSlices Error updating Endpoint Slices for Service openshift-ovn-kubernetes/ovn-kubernetes-master: node \"ip-10-0-168-211.us-east-2.compute.internal\" not found (24 times)",
-			kind:    "fail",
+			kind:    "flake",
 		},
 		{
 			name:    "flake",
