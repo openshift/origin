@@ -2291,7 +2291,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] IngressClass [Feature:Ingress] should not set default value if no default IngressClass [Serial]": "should not set default value if no default IngressClass [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[Top Level] [sig-network] IngressClass [Feature:Ingress] should prevent Ingress creation if more than 1 IngressClass marked as default [Serial]": "should prevent Ingress creation if more than 1 IngressClass marked as default [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[Top Level] [sig-network] IngressClass [Feature:Ingress] should prevent Ingress creation if more than 1 IngressClass marked as default [Serial]": "should prevent Ingress creation if more than 1 IngressClass marked as default [Serial] [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-network] IngressClass [Feature:Ingress] should set default value on new IngressClass [Serial]": "should set default value on new IngressClass [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
