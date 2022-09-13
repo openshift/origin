@@ -15,8 +15,6 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	imagev1 "github.com/openshift/api/image/v1"
-	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
-	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -33,8 +31,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 		namespace := oc.Namespace()
 
 		kc := oc.KubeClient()
-		adminConfig := oc.AdminConfig()
-		adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).AppsV1()
+		adminAppsClient := oc.AdminAppsClient().AppsV1()
 
 		config := OkDeploymentConfig(0)
 		config.Namespace = namespace
@@ -103,9 +100,8 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 
 		const registryHostname = "registry:8080"
 
-		projectAdminClientConfig := oc.UserConfig()
-		projectAdminAppsClient := appsclient.NewForConfigOrDie(projectAdminClientConfig).AppsV1()
-		projectAdminImageClient := imagev1client.NewForConfigOrDie(projectAdminClientConfig).ImageV1()
+		projectAdminAppsClient := oc.AppsClient().AppsV1()
+		projectAdminImageClient := oc.ImageClient().ImageV1()
 
 		imageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: ImageStreamName}}
 
@@ -205,9 +201,8 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 		const maxUpdateRetries = 10
 		const registryHostname = "registry:8080"
 
-		adminConfig := oc.UserConfig()
-		adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).AppsV1()
-		adminImageClient := imagev1client.NewForConfigOrDie(adminConfig).ImageV1()
+		adminAppsClient := oc.AppsClient().AppsV1()
+		adminImageClient := oc.ImageClient().ImageV1()
 
 		imageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: ImageStreamName}}
 		var err error
@@ -388,9 +383,8 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 		t := g.GinkgoT()
 
 		const registryHostname = "registry:8080"
-		adminConfig := oc.UserConfig()
-		adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).AppsV1()
-		adminImageClient := imagev1client.NewForConfigOrDie(adminConfig).ImageV1()
+		adminAppsClient := oc.AppsClient().AppsV1()
+		adminImageClient := oc.ImageClient().ImageV1()
 
 		imageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: ImageStreamName}}
 		secondImageStream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: "sample"}}
@@ -548,8 +542,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 		namespace := oc.Namespace()
 
 		kc := oc.KubeClient()
-		adminConfig := oc.AdminConfig()
-		adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).AppsV1()
+		adminAppsClient := oc.AdminAppsClient().AppsV1()
 
 		config := OkDeploymentConfig(0)
 		config.Namespace = namespace

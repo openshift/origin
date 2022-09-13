@@ -16,7 +16,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	"github.com/openshift/api/apps"
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
+	appsv1client "github.com/openshift/client-go/apps/clientset/versioned"
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -29,8 +29,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 		t := g.GinkgoT()
 
 		namespace := oc.Namespace()
-		adminConfig := oc.UserConfig()
-		adminAppsClient := appsclient.NewForConfigOrDie(adminConfig)
+		adminAppsClient := oc.AppsClient()
 
 		config := OkDeploymentConfig(0)
 		config.Namespace = namespace
@@ -44,10 +43,11 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 		generation := dc.Generation
 
 		{
+			appsClient := appsv1client.NewForConfigOrDie(oc.UserConfig())
 			// Get scale subresource
 			scalePath := fmt.Sprintf("/apis/apps.openshift.io/v1/namespaces/%s/deploymentconfigs/%s/scale", dc.Namespace, dc.Name)
 			scale := &unstructured.Unstructured{}
-			if err := adminAppsClient.RESTClient().Get().AbsPath(scalePath).Do(context.Background()).Into(scale); err != nil {
+			if err := appsClient.RESTClient().Get().AbsPath(scalePath).Do(context.Background()).Into(scale); err != nil {
 				t.Fatal(err)
 			}
 			// Ensure correct type
@@ -60,7 +60,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 			}
 
 			// Ensure we can submit the same type back
-			if err := adminAppsClient.RESTClient().Put().AbsPath(scalePath).Body(scaleBytes).Do(context.Background()).Error(); err != nil {
+			if err := appsClient.RESTClient().Put().AbsPath(scalePath).Body(scaleBytes).Do(context.Background()).Error(); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -81,7 +81,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 		// we don't use cached discovery because DiscoveryScaleKindResolver does its own caching,
 		// so we want to re-fetch every time when we actually ask for it
 		scaleKindResolver := scale.NewDiscoveryScaleKindResolver(adminAppsClient.Discovery())
-		scaleClient, err := scale.NewForConfig(adminConfig, restMapper, dynamic.LegacyAPIPathResolverFunc, scaleKindResolver)
+		scaleClient, err := scale.NewForConfig(oc.UserConfig(), restMapper, dynamic.LegacyAPIPathResolverFunc, scaleKindResolver)
 		if err != nil {
 			t.Fatal(err)
 		}
