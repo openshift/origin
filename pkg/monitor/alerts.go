@@ -120,7 +120,7 @@ func FetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Confi
 	timeRange := prometheusv1.Range{
 		Start: startTime,
 		End:   time.Now(),
-		Step:  1 * time.Second,
+		Step:  2 * time.Second,
 	}
 	alerts, warningsForQuery, err := prometheusClient.QueryRange(ctx, `ALERTS{alertstate="firing"}`, timeRange)
 	if err != nil {
