@@ -5,16 +5,21 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"math/big"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	g "github.com/onsi/ginkgo"
+	o "github.com/onsi/gomega"
+	"github.com/opencontainers/go-digest"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -23,14 +28,85 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	configv1 "github.com/openshift/api/config/v1"
 	imagev1 "github.com/openshift/api/image/v1"
+	routev1 "github.com/openshift/api/route/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/ephemeralimageregistry"
 	"github.com/openshift/origin/test/extended/util/image"
 )
+
+func pushBlob(registryURL, repo string, blob []byte) digest.Digest {
+	url := fmt.Sprintf("%s/v2/%s/blobs/uploads/", registryURL, repo)
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+	req, err := http.NewRequest("POST", url, nil)
+	if err != nil {
+		g.Fail(fmt.Sprintf("error creating request for initializing blob upload: %s", err))
+	}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		g.Fail(fmt.Sprintf("error initializing blob upload: %s", err))
+	}
+	if resp.StatusCode != http.StatusAccepted {
+		g.Fail(fmt.Sprintf("unexpected status code while initializing blob upload: %s %s: %d", req.Method, req.URL, resp.StatusCode))
+	}
+	location := resp.Header.Get("Location")
+	if location == "" {
+		g.Fail(fmt.Sprintf("no location header in response from POST %s", url))
+	}
+	dgst := digest.FromBytes(blob)
+	if strings.Contains(location, "?") {
+		location += "&"
+	} else {
+		location += "?"
+	}
+	location += fmt.Sprintf("digest=%s", dgst)
+	req, err = http.NewRequest("PUT", location, bytes.NewReader(blob))
+	if err != nil {
+		g.Fail(fmt.Sprintf("error creating request for pushing blob: %s", err))
+	}
+	req.Header.Set("Content-Type", "application/octet-stream")
+	resp, err = httpClient.Do(req)
+	if err != nil {
+		g.Fail(fmt.Sprintf("error pushing blob: %s", err))
+	}
+	if resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		g.Fail(fmt.Sprintf("unexpected status code while pushing blob: %s %s: %d\n%s", req.Method, req.URL, resp.StatusCode, body))
+	}
+	return dgst
+}
+
+func pushManifest(registryURL, repo, tag, mimeType, manifest string) {
+	url := fmt.Sprintf("%s/v2/%s/manifests/%s", registryURL, repo, tag)
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+	req, err := http.NewRequest("PUT", url, strings.NewReader(manifest))
+	if err != nil {
+		g.Fail(fmt.Sprintf("error creating request: %s", err))
+	}
+	req.Header.Set("Content-Type", mimeType)
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		g.Fail(fmt.Sprintf("error pushing manifest: %s", err))
+	}
+	if resp.StatusCode != http.StatusCreated {
+		g.Fail(fmt.Sprintf("unexpected status code: %d", resp.StatusCode))
+	}
+}
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API [apigroup:config.openshift.io]", func() {
 	defer g.GinkgoRecover()
@@ -85,6 +161,229 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageStreamImport][Serial][Slow]
 	})
 	g.It("TestImportRepositoryFromBlockedRegistry [apigroup:image.openshift.io]", func() {
 		TestImportRepositoryFromBlockedRegistry(oc)
+	})
+})
+
+var _ = g.Describe("[sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API [apigroup:config.openshift.io]", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithPodSecurityLevel("imagestream-api", admissionapi.LevelBaseline)
+	g.BeforeEach(func() {
+		if err := ephemeralimageregistry.Deploy(oc); err != nil {
+			g.GinkgoT().Fatalf("error deploying ephemeral registry: %s", err)
+		}
+	})
+
+	g.It("should work with manifest lists", func() {
+		// expose insecure https service image-registry
+		_, err := oc.AdminRouteClient().RouteV1().Routes(oc.Namespace()).Create(context.Background(), &routev1.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "image-registry",
+			},
+			Spec: routev1.RouteSpec{
+				To: routev1.RouteTargetReference{
+					Kind: "Service",
+					Name: "image-registry",
+				},
+				TLS: &routev1.TLSConfig{
+					Termination:                   routev1.TLSTerminationEdge,
+					InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyNone,
+				},
+			},
+		}, metav1.CreateOptions{})
+		if err != nil {
+			g.Fail(fmt.Sprintf("error creating route: %s", err))
+		}
+		// wait until the route is available
+		var ephemeralRegistry string
+		if err := wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
+			route, err := oc.AdminRouteClient().RouteV1().Routes(oc.Namespace()).Get(context.Background(), "image-registry", metav1.GetOptions{})
+			if err != nil {
+				g.GinkgoT().Logf("error fetching route: %s", err)
+				return false, nil
+			}
+			if len(route.Status.Ingress) == 0 {
+				g.GinkgoT().Logf("route not ready")
+				return false, nil
+			}
+			ephemeralRegistry = route.Status.Ingress[0].Host
+			return true, nil
+		}); err != nil {
+			g.Fail(fmt.Sprintf("error waiting for route: %s", err))
+		}
+
+		// ephemeralRegistry := fmt.Sprintf("image-registry.%s:5000", oc.Namespace())
+		ephemeralRegistryURL := fmt.Sprintf("https://%s", ephemeralRegistry)
+
+		blob1Content := []byte("blob1")
+		configContent := []byte("{}")
+		blob1Digest := pushBlob(ephemeralRegistryURL, "test/manifest-list", blob1Content)
+		configDigest := pushBlob(ephemeralRegistryURL, "test/manifest-list", configContent)
+
+		submanifestContent := fmt.Sprintf(`{
+  "schemaVersion": 2,
+  "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+  "config": {
+    "mediaType": "application/vnd.docker.container.image.v1+json",
+    "size": %d,
+    "digest": "%s"
+  },
+  "layers": [
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": %d,
+      "digest": "%s"
+    }
+  ]
+}`, len(configContent), configDigest, len(blob1Content), blob1Digest)
+		submanifestDigest := digest.FromString(submanifestContent)
+		pushManifest(ephemeralRegistryURL, "test/manifest-list", submanifestDigest.String(), "application/vnd.docker.distribution.manifest.v2+json", submanifestContent)
+		pushManifest(ephemeralRegistryURL, "test/manifest-list", "latest", "application/vnd.docker.distribution.manifest.list.v2+json", fmt.Sprintf(`{
+  "schemaVersion": 2,
+  "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+  "manifests": [
+    {
+      "digest": "%s",
+      "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+      "platform": {
+        "architecture": "amd64",
+	"os": "linux"
+      },
+      "size": %d
+    }
+  ]
+}`, submanifestDigest, len(submanifestContent)))
+
+		manifestListReference := fmt.Sprintf("%s/test/manifest-list", ephemeralRegistry)
+		isi := &imagev1.ImageStreamImport{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "manifest-list",
+			},
+			Spec: imagev1.ImageStreamImportSpec{
+				Import: true,
+				Images: []imagev1.ImageImportSpec{
+					{
+						IncludeManifest: true,
+						From: corev1.ObjectReference{
+							Kind: "DockerImage",
+							Name: manifestListReference,
+						},
+						ImportPolicy: imagev1.TagImportPolicy{
+							Insecure: true,
+						},
+					},
+				},
+			},
+		}
+		isi, err = oc.AdminImageClient().ImageV1().ImageStreamImports(oc.Namespace()).Create(
+			context.Background(), isi, metav1.CreateOptions{},
+		)
+		if err != nil {
+			g.Fail(fmt.Sprintf("error creating image stream import request: %v", err))
+		}
+		if len(isi.Status.Images) != 1 {
+			g.Fail(fmt.Sprintf("expected 1 image in the response, got %d", len(isi.Status.Images)))
+		}
+
+		time.Sleep(15 * time.Second)
+
+		layers, err := oc.AdminImageClient().ImageV1().ImageStreams(oc.Namespace()).Layers(
+			context.Background(), "manifest-list", metav1.GetOptions{},
+		)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		e2e.Logf("ImageStreamLayers: %#+v", layers)
+
+		_, ok := layers.Images[submanifestDigest.String()]
+		if !ok {
+			g.Fail(fmt.Sprintf("expected to find submanifest %s in the layers response", submanifestDigest.String()))
+		}
+
+		/*
+
+			// check if we fail with certificate error as expected.
+			imgImportStatus := isi.Status.Images[0].Status
+			if imgImportStatus.Status != "Failure" {
+				t.Errorf("wrong status for insecure import: %s", imgImportStatus.Status)
+			}
+			if !strings.Contains(imgImportStatus.Message, "certificate is not valid") {
+				t.Errorf("wrong message for insecure import: %s", imgImportStatus.Message)
+			}
+
+			// test now by setting the remote registry as "insecure" on ImageStreamImport.
+			baseISI.Name = fmt.Sprintf("stream-import-test-%s", uuid.New().String())
+			baseISI.Spec.Images[0].ImportPolicy.Insecure = true
+			isi, err = oc.AdminImageClient().ImageV1().ImageStreamImports(oc.Namespace()).Create(
+				context.Background(), baseISI, metav1.CreateOptions{},
+			)
+			if err != nil {
+				t.Fatalf("error creating image stream import: %v", err)
+			}
+
+			// we also expect a failure here but now it should not be related to certificates but
+			// NotFound instead (the ephemeral registry does not know our invalid image).
+			imgImportStatus = isi.Status.Images[0].Status
+			if imgImportStatus.Status != "Failure" {
+				t.Errorf("wrong status for insecure import: %s", imgImportStatus.Status)
+			}
+			if imgImportStatus.Reason != "NotFound" {
+				t.Errorf("invalid reason for insecure import: %s", imgImportStatus.Reason)
+			}
+
+			// finally we add our ephemeral registry as insecure globally.
+			if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+				imageConfig, err := oc.AdminConfigClient().ConfigV1().Images().Get(
+					context.Background(), "cluster", metav1.GetOptions{},
+				)
+				if err != nil {
+					return err
+				}
+				imageConfig.Spec.RegistrySources.InsecureRegistries = []string{ephemeralRegistry}
+				_, err = oc.AdminConfigClient().ConfigV1().Images().Update(
+					context.Background(), imageConfig, metav1.UpdateOptions{},
+				)
+				return err
+			}); err != nil {
+				t.Errorf("error adding registry to insecure: %v", err)
+			}
+			defer func() {
+				// remove our ephemeral registry as "insecure" globally.
+				if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+					imageConfig, err := oc.AdminConfigClient().ConfigV1().Images().Get(
+						context.Background(), "cluster", metav1.GetOptions{},
+					)
+					if err != nil {
+						return err
+					}
+					imageConfig.Spec.RegistrySources.InsecureRegistries = []string{}
+					_, err = oc.AdminConfigClient().ConfigV1().Images().Update(
+						context.Background(), imageConfig, metav1.UpdateOptions{},
+					)
+					return err
+				}); err != nil {
+					t.Errorf("error removing registry from insecure: %v", err)
+				}
+			}()
+
+			// test one more time, now with the registry configured as insecure globally.
+			baseISI.Name = fmt.Sprintf("stream-import-test-%s", uuid.New().String())
+			baseISI.Spec.Images[0].ImportPolicy.Insecure = false
+			isi, err = oc.AdminImageClient().ImageV1().ImageStreamImports(oc.Namespace()).Create(
+				context.Background(), baseISI, metav1.CreateOptions{},
+			)
+			if err != nil {
+				t.Fatalf("error creating image stream import: %v", err)
+			}
+
+			// we also expect a failure here but now it should not be related to certificates but
+			// NotFound instead (the ephemeral registry does not know our invalid image).
+			imgImportStatus = isi.Status.Images[0].Status
+			if imgImportStatus.Status != "Failure" {
+				t.Errorf("wrong status for insecure import: %s", imgImportStatus.Status)
+			}
+			if imgImportStatus.Reason != "NotFound" {
+				t.Errorf("invalid reason for insecure import: %s", imgImportStatus.Reason)
+			}
+		*/
 	})
 })
 

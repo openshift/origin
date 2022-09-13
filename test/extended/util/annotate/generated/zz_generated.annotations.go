@@ -2079,6 +2079,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API [apigroup:config.openshift.io] TestImportRepositoryFromInsecureRegistry [apigroup:image.openshift.io]": "TestImportRepositoryFromInsecureRegistry [apigroup:image.openshift.io]",
 
+	"[Top Level] [sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API [apigroup:config.openshift.io] should work with manifest lists": "should work with manifest lists",
+
 	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Annotation trigger reconciles after the image is overwritten [apigroup:image.openshift.io]": "reconciles after the image is overwritten [apigroup:image.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-imageregistry][Feature:ImageTriggers] Image change build triggers TestMultipleImageChangeBuildTriggers [apigroup:image.openshift.io][apigroup:build.openshift.io]": "TestMultipleImageChangeBuildTriggers [apigroup:image.openshift.io][apigroup:build.openshift.io] [Suite:openshift/conformance/parallel]",
