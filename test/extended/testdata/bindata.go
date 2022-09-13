@@ -18793,6 +18793,7 @@ func testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment() (*asset, e
 var _testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile = []byte(`source "https://rubygems.org"
 
 gem "rack"
+gem "rackup"
 `)
 
 func testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfileBytes() ([]byte, error) {
