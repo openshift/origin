@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	g "github.com/onsi/ginkgo"
@@ -30,6 +31,7 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 	if len(parts) >= 2 {
 		jobName = parts[len(parts)-1]
 	}
+	isPeriodic := strings.HasPrefix(jobName, "periodic-")
 
 	g.It("should match platform type [apigroup:config.openshift.io]", func() {
 		if jobName == "" {
@@ -71,7 +73,6 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 
 		network, err := oc.AdminConfigClient().ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		isPeriodic := strings.HasPrefix(jobName, "periodic-")
 		switch network.Status.NetworkType {
 		case "OpenShiftSDN":
 			if strings.Contains(jobName, "ovn") {
@@ -98,6 +99,45 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 		default:
 			// Use this to find any other cases, so we can update the test
 			result.Flakef("job uses network type that's not ovn or sdn")
+		}
+	})
+
+	g.It("should match cluster version [apigroup:config.openshift.io]", func() {
+		if jobName == "" {
+			e2eskipper.Skipf("JOB_NAME env var not set, skipping")
+		}
+		if !isPeriodic {
+			e2eskipper.Skipf("This is only expected to work on periodics, skipping")
+		}
+
+		jobNameVersions := make([]string, 0)
+		// Look for OpenShift-like 4.x versions.
+		// NOTE: This will break on OpenShift major bumps, but we have jobs that reference
+		// non-openshift version numbers, limiting to 4.x reduces false positives.
+		versionMatcher := regexp.MustCompile(`-(4.[0-9]+)`)
+		matches := versionMatcher.FindAllStringSubmatch(jobName, -1)
+		for _, match := range matches {
+			jobNameVersions = append(jobNameVersions, match[1])
+		}
+
+		// The logic here is that if the job mentions something that looks like an OpenShift release, we want to make
+		// sure that any current and past cluster versions x.y are reflected in the job name.  For example, a job upgrading
+		// from 4.11 to 4.12 should reference both in the name.
+		if len(jobNameVersions) == 0 {
+			e2eskipper.Skipf("No versions found in job name, skipping.")
+		}
+
+		cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+	clusterVersionLoop:
+		for _, clusterVersion := range cv.Status.History {
+			for _, jobNameVersion := range jobNameVersions {
+				if strings.HasPrefix(clusterVersion.Version, jobNameVersion) {
+					continue clusterVersionLoop // found
+				}
+			}
+			// if we reach here, we didn't find the cluster version in the job name
+			result.Flakef("job name %q is missing cluster version %s", jobName, clusterVersion.Version)
 		}
 	})
 })
