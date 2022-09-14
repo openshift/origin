@@ -1691,6 +1691,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc basics can process templates": "can process templates [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc basics can show correct whoami result": "can show correct whoami result [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc builds complex build start-build [apigroup:build.openshift.io]": "start-build [apigroup:build.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc builds complex build webhooks CRUD [apigroup:build.openshift.io]": "webhooks CRUD [apigroup:build.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
@@ -1704,6 +1706,8 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli] oc can get list of nodes": "can get list of nodes [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc can run inside of a busybox container": "can run inside of a busybox container [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc completion returns expected help messages": "returns expected help messages [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc debug deployment configs from a build [apigroup:image.openshift.io][apigroup:apps.openshift.io]": "deployment configs from a build [apigroup:image.openshift.io][apigroup:apps.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
@@ -1741,6 +1745,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc project --show-labels works for projects [apigroup:project.openshift.io]": "--show-labels works for projects [apigroup:project.openshift.io] [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc project can switch between different projects [apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:project.openshift.io]": "can switch between different projects [apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:project.openshift.io] [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc rsh specific flags should work well when access to a remote shell": "should work well when access to a remote shell [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc secret creates and retrieves expected": "creates and retrieves expected [Suite:openshift/conformance/parallel]",
@@ -1754,8 +1760,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/authentication.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/authentication.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/builds.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/builds.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
-
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/completions.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/completions.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/config.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/config.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
 
@@ -1778,8 +1782,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/images.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/images.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/printer.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/printer.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
-
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/projects.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/projects.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/quota.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/quota.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
 
@@ -1808,8 +1810,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/triggers.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/triggers.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/volumes.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/volumes.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
-
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/whoami.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/whoami.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
 
 	"[Top Level] [sig-cli][Slow] can use rsync to upload files to pods [apigroup:template.openshift.io] copy by strategy should copy files with the rsync strategy": "should copy files with the rsync strategy",
 

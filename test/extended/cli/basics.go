@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -17,6 +18,11 @@ import (
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+)
+
+var (
+	serverPattern  = regexp.MustCompile(`http(s)?:\/\/.*\:[0-9]+`)
+	consolePattern = regexp.MustCompile(`http(s)?:\/\/.*`)
 )
 
 var _ = g.Describe("[sig-cli] oc basics", func() {
@@ -235,5 +241,17 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("Client Version: "))
 		o.Expect(out).To(o.ContainSubstring("Kubernetes Version: "))
+	})
+
+	g.It("can show correct whoami result", func() {
+		out, err := oc.Run("whoami").Args("--show-server").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		found := serverPattern.MatchString(out)
+		o.Expect(found).To(o.BeTrue())
+
+		out, err = oc.Run("whoami").Args("--show-console").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		found = consolePattern.MatchString(out)
+		o.Expect(found).To(o.BeTrue())
 	})
 })
