@@ -16,10 +16,9 @@ import (
 
 	admissionapi "k8s.io/pod-security-admission/api"
 
+	g "github.com/onsi/ginkgo"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
-
-	g "github.com/onsi/ginkgo"
 
 	"k8s.io/kubernetes/test/e2e/chaosmonkey"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -27,6 +26,12 @@ import (
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	"k8s.io/kubernetes/test/utils/junit"
+)
+
+const (
+	// DefaultAllowedDisruption is a constant used when we cannot calculate an allowed disruption value from historical data.
+	// It is used to search for our inability to do so across CI broadly.
+	DefaultAllowedDisruption = 2718
 )
 
 // testWithDisplayName is implemented by tests that want more descriptive test names
@@ -326,7 +331,7 @@ func ExpectNoDisruptionForDuration(f *framework.Framework, allowedDisruption tim
 	errorEvents := events.Filter(monitorapi.IsErrorEvent)
 	disruptionDuration := errorEvents.Duration(1 * time.Second)
 	roundedAllowedDisruption := allowedDisruption.Round(time.Second)
-	if allowedDisruption.Milliseconds() == 2718 {
+	if allowedDisruption.Milliseconds() == DefaultAllowedDisruption {
 		// don't round if we're using the default value so we can find this.
 		roundedAllowedDisruption = allowedDisruption
 	}

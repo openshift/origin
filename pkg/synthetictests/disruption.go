@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/synthetictests/allowedbackenddisruption"
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -57,7 +58,7 @@ func testServerAvailability(
 		}
 	}
 	roundedAllowedDisruption := allowedDisruption.Round(time.Second)
-	if allowedDisruption.Milliseconds() == 2718 {
+	if allowedDisruption.Milliseconds() == disruption.DefaultAllowedDisruption {
 		// don't round if we're using the default value so we can find this.
 		roundedAllowedDisruption = *allowedDisruption
 	}
