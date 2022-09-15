@@ -4,7 +4,8 @@ import (
 	"time"
 )
 
-// BackendDisruptionSeconds return duration disrupted, disruptionMessages, and New or Reused
+// BackendDisruptionSeconds return duration of disruption observed (rounded to nearest second),
+// disruptionMessages, and New or Reused connection type.
 func BackendDisruptionSeconds(locator string, events Intervals) (time.Duration, []string, string) {
 	disruptionEvents := events.Filter(
 		And(
@@ -15,7 +16,7 @@ func BackendDisruptionSeconds(locator string, events Intervals) (time.Duration, 
 	disruptionMessages := disruptionEvents.Strings()
 	connectionType := DisruptionConnectionTypeFrom(LocatorParts(locator))
 
-	return disruptionEvents.Duration(1 * time.Second), disruptionMessages, connectionType
+	return disruptionEvents.Duration(1 * time.Second).Round(time.Second), disruptionMessages, connectionType
 }
 
 func IsDisruptionEvent(eventInterval EventInterval) bool {

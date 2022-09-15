@@ -11,7 +11,6 @@ import (
 	"github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/test/e2e/upgrade"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"k8s.io/klog/v2"
@@ -118,7 +117,7 @@ func upgradeTestPreTest() error {
 		return filterUpgrade(upgrade.NoTests(), func(string) bool { return true })
 	case "platform":
 		return filterUpgrade(upgrade.AllTests(), func(name string) bool {
-			return name == controlplane.NewKubeAvailableWithNewConnectionsTest().Name() || name == controlplane.NewKubeAvailableWithConnectionReuseTest().Name()
+			return false
 		})
 	default:
 		return filterUpgrade(upgrade.AllTests(), func(string) bool { return true })

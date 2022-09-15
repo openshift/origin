@@ -16,14 +16,11 @@ import (
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"github.com/openshift/origin/test/e2e/upgrade/adminack"
 	"github.com/openshift/origin/test/e2e/upgrade/alert"
-	"github.com/openshift/origin/test/e2e/upgrade/cidisruptiontester"
 	"github.com/openshift/origin/test/e2e/upgrade/dns"
 	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
 	"github.com/openshift/origin/test/e2e/upgrade/service"
 	"github.com/openshift/origin/test/extended/prometheus"
 	"github.com/openshift/origin/test/extended/util/disruption"
-	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
-	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 	"github.com/openshift/origin/test/extended/util/disruption/imageregistry"
 	"github.com/openshift/origin/test/extended/util/operator"
 	"github.com/pborman/uuid"
@@ -54,22 +51,17 @@ func NoTests() []upgrades.Test {
 func AllTests() []upgrades.Test {
 	return []upgrades.Test{
 		&adminack.UpgradeTest{},
-		controlplane.NewKubeAvailableWithNewConnectionsTest(),
-		controlplane.NewOpenShiftAvailableNewConnectionsTest(),
-		controlplane.NewOAuthAvailableNewConnectionsTest(),
-		controlplane.NewKubeAvailableWithConnectionReuseTest(),
-		controlplane.NewOpenShiftAvailableWithConnectionReuseTest(),
-		controlplane.NewOAuthAvailableWithConnectionReuseTest(),
 		&manifestdelete.UpgradeTest{},
 		&alert.UpgradeTest{},
-		frontends.NewOAuthRouteAvailableWithNewConnectionsTest(),
-		frontends.NewOAuthRouteAvailableWithConnectionReuseTest(),
-		frontends.NewConsoleRouteAvailableWithNewConnectionsTest(),
-		frontends.NewConsoleRouteAvailableWithConnectionReuseTest(),
+
+		// These two tests require complex setup and thus are a poor fit for our current invariant/synthetic
+		// disruption tests, so they remain separate. They output AdditionalEvents json files as artifacts which
+		// are merged into our main e2e-events.
 		service.NewServiceLoadBalancerWithNewConnectionsTest(),
 		service.NewServiceLoadBalancerWithReusedConnectionsTest(),
-		cidisruptiontester.NewCIDisruptionWithNewConnectionsTest(),
-		cidisruptiontester.NewCIDisruptionWithReusedConnectionsTest(),
+		imageregistry.NewImageRegistryAvailableWithNewConnectionsTest(),
+		imageregistry.NewImageRegistryAvailableWithReusedConnectionsTest(),
+
 		&node.SecretUpgradeTest{},
 		&apps.ReplicaSetUpgradeTest{},
 		&apps.StatefulSetUpgradeTest{},
@@ -77,8 +69,6 @@ func AllTests() []upgrades.Test {
 		&apps.JobUpgradeTest{},
 		&node.ConfigMapUpgradeTest{},
 		&apps.DaemonSetUpgradeTest{},
-		imageregistry.NewImageRegistryAvailableWithNewConnectionsTest(),
-		imageregistry.NewImageRegistryAvailableWithReusedConnectionsTest(),
 		&prometheus.ImagePullsAreFast{},
 		&prometheus.MetricsAvailableAfterUpgradeTest{},
 		&dns.UpgradeTest{},

@@ -23,9 +23,12 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testPodTransitions(events)...)
 	tests = append(tests, testPodSandboxCreation(events, kubeClientConfig)...)
 	tests = append(tests, testOvnNodeReadinessProbe(events, kubeClientConfig)...)
-	tests = append(tests, testAllAPIAvailability(events, duration)...)
-	tests = append(tests, testMultipleSingleSecondAvailabilityFailure(events)...)
-	tests = append(tests, testAllIngressAvailability(events, duration)...)
+
+	tests = append(tests, testAllAPIBackendsForDisruption(events, duration, kubeClientConfig)...)
+	tests = append(tests, testAllIngressBackendsForDisruption(events, duration, kubeClientConfig)...)
+	tests = append(tests, testExternalBackendsForDisruption(events, duration, kubeClientConfig)...)
+
+	tests = append(tests, testMultipleSingleSecondDisruptions(events)...)
 	tests = append(tests, testStableSystemOperatorStateTransitions(events)...)
 	tests = append(tests, testDuplicatedEventForStableSystem(events, kubeClientConfig, testSuite)...)
 	tests = append(tests, testStaticPodLifecycleFailure(events, kubeClientConfig, testSuite)...)
@@ -76,11 +79,16 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testBackoffStartingFailedContainer(events)...)
 	tests = append(tests, testBackoffStartingFailedContainerForE2ENamespaces(events)...)
 	tests = append(tests, testAPIQuotaEvents(events)...)
-	tests = append(tests, testMultipleSingleSecondAvailabilityFailure(events)...)
+	tests = append(tests, testErrorUpdatingEndpointSlices(events)...)
+
+	tests = append(tests, testAllAPIBackendsForDisruption(events, duration, kubeClientConfig)...)
+	tests = append(tests, testAllIngressBackendsForDisruption(events, duration, kubeClientConfig)...)
+	tests = append(tests, testExternalBackendsForDisruption(events, duration, kubeClientConfig)...)
+	tests = append(tests, testMultipleSingleSecondDisruptions(events)...)
 	tests = append(tests, testNoDNSLookupErrorsInDisruptionSamplers(events)...)
+
 	tests = append(tests, testNoExcessiveSecretGrowthDuringUpgrade()...)
 	tests = append(tests, testNoExcessiveConfigMapGrowthDuringUpgrade()...)
-	tests = append(tests, testErrorUpdatingEndpointSlices(events)...)
 
 	return tests
 }
