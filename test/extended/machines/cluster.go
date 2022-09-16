@@ -78,7 +78,9 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 		}
 	})
 
-	g.It("should report ready nodes the entire duration of the test run [Late]", func() {
+	// This test makes use of Prometheus metrics, which are not present in the absence of cluster-monitoring-operator, the owner for
+	// the api groups tagged here.
+	g.It("should report ready nodes the entire duration of the test run [Late][apigroup:monitoring.coreos.com]", func() {
 		// we only consider samples since the beginning of the test
 		testDuration := exutil.DurationSinceStartInSeconds().String()
 
