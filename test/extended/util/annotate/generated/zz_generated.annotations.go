@@ -1965,19 +1965,19 @@ var Annotations = map[string]string{
 
 	"[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router should pass the http2 tests [apigroup:image.openshift.io][apigroup:template.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
-	"[sig-network-edge][Feature:Idling] Idling with a single service and DeploymentConfig should idle the service and DeploymentConfig properly [apigroup:apps.openshift.io]": " [Disabled:Broken]",
+	"[sig-network-edge][Feature:Idling] Idling with a single service and DeploymentConfig [apigroup:route.openshift.io] should idle the service and DeploymentConfig properly [apigroup:apps.openshift.io]": " [Disabled:Broken]",
 
 	"[sig-network-edge][Feature:Idling] Idling with a single service and ReplicationController should idle the service and ReplicationController properly": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network-edge][Feature:Idling] Unidling should handle many TCP connections by possibly dropping those over a certain bound [Serial]": " [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/serial]",
+	"[sig-network-edge][Feature:Idling] Unidling [apigroup:apps.openshift.io][apigroup:route.openshift.io] should handle many TCP connections by possibly dropping those over a certain bound [Serial]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-network-edge][Feature:Idling] Unidling should handle many UDP senders (by continuing to drop all packets on the floor) [Serial]": " [Suite:openshift/conformance/serial]",
+	"[sig-network-edge][Feature:Idling] Unidling [apigroup:apps.openshift.io][apigroup:route.openshift.io] should handle many UDP senders (by continuing to drop all packets on the floor) [Serial]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-network-edge][Feature:Idling] Unidling should work with TCP (when fully idled)": " [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel]",
+	"[sig-network-edge][Feature:Idling] Unidling [apigroup:apps.openshift.io][apigroup:route.openshift.io] should work with TCP (when fully idled)": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network-edge][Feature:Idling] Unidling should work with TCP (while idling)": " [Disabled:Broken] [Skipped:Network/OVNKubernetes]",
+	"[sig-network-edge][Feature:Idling] Unidling [apigroup:apps.openshift.io][apigroup:route.openshift.io] should work with TCP (while idling)": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network-edge][Feature:Idling] Unidling should work with UDP": " [Suite:openshift/conformance/parallel]",
+	"[sig-network-edge][Feature:Idling] Unidling [apigroup:apps.openshift.io][apigroup:route.openshift.io] should work with UDP": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network] CVE-2021-29923 IPv4 Service Type ClusterIP with leading zeros should work interpreted as decimal": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2523,9 +2523,9 @@ var Annotations = map[string]string{
 
 	"[sig-network] services basic functionality should allow connections to another pod on the same node via a service IP": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network] services when running openshift ipv4 cluster ensures external ip policy is configured correctly on the cluster [Serial]": " [Suite:openshift/conformance/serial]",
+	"[sig-network] services when running openshift ipv4 cluster ensures external ip policy is configured correctly on the cluster [apigroup:config.openshift.io] [Serial]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-network] services when running openshift ipv4 cluster on bare metal [apigroup:config.openshift.io] ensures external auto assign cidr is configured correctly on the cluster [Serial]": " [Suite:openshift/conformance/serial]",
+	"[sig-network] services when running openshift ipv4 cluster on bare metal [apigroup:config.openshift.io] ensures external auto assign cidr is configured correctly on the cluster [apigroup:config.openshift.io] [Serial]": " [Suite:openshift/conformance/serial]",
 
 	"[sig-network] services when using a plugin in a mode that does not isolate namespaces by default should allow connections to pods in different namespaces on different nodes via service IPs": " [Suite:openshift/conformance/parallel]",
 
@@ -2565,7 +2565,7 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:EgressRouterCNI] when using openshift ovn-kubernetes should ensure ipv6 egressrouter cni resources are created [apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Multus] should use multus to create net1 device from network-attachment-definition": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Multus] should use multus to create net1 device from network-attachment-definition [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Network Policy Audit logging] when using openshift ovn-kubernetes should ensure acl logs are created and correct [apigroup:project.openshift.io][apigroup:network.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -2607,23 +2607,23 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:template.openshift.io] The HAProxy router should serve the correct routes when scoped to a single namespace and label set": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Whereabouts] should assign unique IP addresses to each pod in the event of a race condition case": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Whereabouts] should assign unique IP addresses to each pod in the event of a race condition case [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Whereabouts] should use whereabouts net-attach-def to limit IP ranges for newly created pods": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Whereabouts] should use whereabouts net-attach-def to limit IP ranges for newly created pods [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:bond] should create a pod with bond interface": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:tuning] pod should not start for sysctls not on whitelist net.ipv4.conf.IFNAME.arp_filter": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:tuning] pod should not start for sysctls not on whitelist [apigroup:k8s.cni.cncf.io] net.ipv4.conf.IFNAME.arp_filter": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:tuning] pod should not start for sysctls not on whitelist net.ipv4.conf.all.send_redirects": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:tuning] pod should not start for sysctls not on whitelist [apigroup:k8s.cni.cncf.io] net.ipv4.conf.all.send_redirects": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:tuning] pod should start with all sysctl on whitelist": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:tuning] pod should start with all sysctl on whitelist [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:tuning] pod sysctl should not affect existing pods": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:tuning] pod sysctl should not affect existing pods [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:tuning] pod sysctl should not affect newly created pods": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:tuning] pod sysctl should not affect newly created pods [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:tuning] pod sysctls should not affect node": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:tuning] pod sysctls should not affect node [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][endpoints] admission [apigroup:config.openshift.io] blocks manual creation of EndpointSlices pointing to the cluster or service network": " [Suite:openshift/conformance/parallel]",
 
