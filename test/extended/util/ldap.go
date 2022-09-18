@@ -162,7 +162,7 @@ func CreateLDAPTestServer(oc *CLI) (svcNs, svcName, svcHostname string, caPem []
 
 		// Confirm ldap server availability. Since the ldap client does not support SNI, a TLS passthrough route will not
 		// work, so we need to talk to the server over the service network.
-		if err := checkLDAPConn(oc, svcHostname); err != nil {
+		if err := checkLDAPConn(oc, svcHostname, fmt.Sprintf("runonce-ldapsearch-pod-%d", i)); err != nil {
 			if i >= maxAttempts-1 {
 				e2e.Logf("checkLDAPConn failed for svcHostName '%s', exhausted retry attempts", svcHostname)
 				return "", "", "", nil, err
@@ -178,9 +178,9 @@ func CreateLDAPTestServer(oc *CLI) (svcNs, svcName, svcHostname string, caPem []
 }
 
 // Confirm that the ldapserver host is responding to ldapsearch.
-func checkLDAPConn(oc *CLI, host string) error {
+func checkLDAPConn(oc *CLI, host string, podname string) error {
 	compareString := expectedLDAPClientResponse
-	output, err := runLDAPSearchInPod(oc, host)
+	output, err := runLDAPSearchInPod(oc, host, podname)
 	if err != nil {
 		return err
 	}
@@ -191,9 +191,9 @@ func checkLDAPConn(oc *CLI, host string) error {
 }
 
 // Run an ldapsearch in a pod against host.
-func runLDAPSearchInPod(oc *CLI, host string) (string, error) {
+func runLDAPSearchInPod(oc *CLI, host string, podname string) (string, error) {
 	mounts, volumes := LDAPClientMounts()
-	output, errs := RunOneShotCommandPod(oc, "runonce-ldapsearch-pod", image.OpenLDAPTestImage(), fmt.Sprintf(ldapSearchCommandFormat, host), mounts, volumes, nil, 8*time.Minute)
+	output, errs := RunOneShotCommandPod(oc, podname, image.OpenLDAPTestImage(), fmt.Sprintf(ldapSearchCommandFormat, host), mounts, volumes, nil, 8*time.Minute)
 	if len(errs) != 0 {
 		return output, fmt.Errorf("errors encountered trying to run ldapsearch pod: %v", errs)
 	}
