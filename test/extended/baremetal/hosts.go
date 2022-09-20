@@ -14,7 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphere/None platforms ", func() {
+var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphere/None platforms [apigroup:config.openshift.io]", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -37,14 +37,16 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphe
 	})
 })
 
-var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should", func() {
+var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should [apigroup:config.openshift.io]", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("baremetal")
 
-	g.It("have baremetalhost resources", func() {
+	g.BeforeEach(func() {
 		skipIfNotBaremetal(oc)
+	})
 
+	g.It("have baremetalhost resources", func() {
 		dc := oc.AdminDynamicClient()
 		bmc := baremetalClient(dc)
 
@@ -61,8 +63,6 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 	})
 
 	g.It("have preprovisioning images for workers", func() {
-		skipIfNotBaremetal(oc)
-
 		dc := oc.AdminDynamicClient()
 		bmc := baremetalClient(dc)
 		ppiClient := preprovisioningImagesClient(dc)
@@ -81,8 +81,6 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 	})
 
 	g.It("have hostfirmwaresetting resources", func() {
-		skipIfNotBaremetal(oc)
-
 		dc := oc.AdminDynamicClient()
 
 		bmc := baremetalClient(dc)
@@ -119,8 +117,6 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 	})
 
 	g.It("not allow updating BootMacAddress", func() {
-		skipIfNotBaremetal(oc)
-
 		dc := oc.AdminDynamicClient()
 		bmc := baremetalClient(dc)
 
@@ -151,7 +147,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 
 // This block must be used for the serial tests. Any eventual extra worker deployed will be
 // automatically deleted during the AfterEach
-var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platform should", func() {
+var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platform should [apigroup:config.openshift.io]", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -160,6 +156,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 	)
 
 	g.BeforeEach(func() {
+		skipIfNotBaremetal(oc)
 		helper = NewBaremetalTestHelper(oc.AdminDynamicClient())
 		helper.Setup()
 	})
@@ -169,7 +166,6 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 	})
 
 	g.It("skip inspection when disabled by annotation", func() {
-		skipIfNotBaremetal(oc)
 
 		// Get extra worker info
 		hostData, secretData := helper.GetExtraWorkerData(0)
@@ -188,16 +184,18 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 	})
 })
 
-var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] A baremetal deployment without a provisioning network should", func() {
+var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] A baremetal deployment without a provisioning network should [apigroup:config.openshift.io]", func() {
 	defer g.GinkgoRecover()
 
 	var (
 		oc = exutil.NewCLI("baremetal")
 	)
 
-	g.It("show the Provisioning Network as 'Disabled'", func() {
+	g.BeforeEach(func() {
 		skipIfNotBaremetal(oc)
+	})
 
+	g.It("show the Provisioning Network as 'Disabled'", func() {
 		dc := oc.AdminDynamicClient()
 
 		skipIfProvisioningNetworkSet(dc)
@@ -225,8 +223,6 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] A baremetal deplo
 	})
 
 	g.It("allow setting the ProvisioningNetwork to 'Managed' with valid settings", func() {
-		skipIfNotBaremetal(oc)
-
 		dc := oc.AdminDynamicClient()
 
 		skipIfProvisioningNetworkSet(dc)
