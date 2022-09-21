@@ -36,6 +36,7 @@ import (
 
 	projectv1 "github.com/openshift/api/project/v1"
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
+
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -67,7 +68,6 @@ func InitTest(dryRun bool) error {
 	testfiles.AddFileSource(conformancetestdata.GetConformanceTestdataFS())
 	TestContext.KubectlPath = "kubectl"
 	TestContext.KubeConfig = KubeConfigPath()
-	os.Setenv("KUBECONFIG", TestContext.KubeConfig)
 
 	// "debian" is used when not set. At least GlusterFS tests need "custom".
 	// (There is no option for "rhel" or "centos".)
