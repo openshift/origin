@@ -241,7 +241,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 				"cluster-node-tuning-operator":           97.0,
 				"cluster-samples-operator":               25.0,
 				"cluster-storage-operator":               195.0,
-				"console-operator":                       106.0,
+				"console-operator":                       110.0,
 				"csi-snapshot-controller-operator":       80.0,
 				"dns-operator":                           49.0,
 				"etcd-operator":                          147.0,
