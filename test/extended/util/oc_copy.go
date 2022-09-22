@@ -60,7 +60,6 @@ func getUserPartOfNickname(clientCfg *restclient.Config) (string, error) {
 	} else if err != nil {
 		return "", err
 	}
-
 	return userInfo.Name, nil
 }
 
