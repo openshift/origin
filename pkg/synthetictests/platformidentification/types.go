@@ -104,6 +104,8 @@ func GetJobType(ctx context.Context, clientConfig *rest.Config) (*JobType, error
 		topology = "ha"
 	case configv1.SingleReplicaTopologyMode:
 		topology = "single"
+	case configv1.ExternalTopologyMode:
+		topology = "external"
 	}
 
 	return &JobType{
