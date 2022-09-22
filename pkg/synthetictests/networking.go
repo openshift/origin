@@ -51,6 +51,12 @@ func testPodSandboxCreation(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 			flakes = append(flakes, fmt.Sprintf("%v - multus is unable to get pods due to authorization https://bugzilla.redhat.com/show_bug.cgi?id=1972490 - %v", event.Locator, event.Message))
 			continue
 		}
+		if strings.Contains(event.Message, "kuryr") && strings.Contains(event.Message, "deleted while processing the CNI ADD request") {
+			// This happens from time to time with Kuryr. Creating ports in Neutron for pod can take long and a controller might delete the pod before,
+			// effectively cancelling Kuryr CNI ADD request.
+			flakes = append(flakes, fmt.Sprintf("%v - pod got deleted while kuryr was still processing its creation - %v", event.Locator, event.Message))
+			continue
+		}
 		deletionTime := getPodDeletionTime(eventsForPods[event.Locator], event.Locator)
 		if deletionTime == nil {
 			// mark sandboxes errors as flakes if networking is being updated
