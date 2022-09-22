@@ -698,3 +698,63 @@ func GetIPAddressFamily(oc *exutil.CLI) (bool, bool, error) {
 	}
 	return hasIPv4, hasIPv6, nil
 }
+
+func updatePodLabels(f *e2e.Framework, pod *v1.Pod, labels map[string]string) error {
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		p, err := f.ClientSet.CoreV1().Pods(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		p.Labels = labels
+		_, err = f.ClientSet.CoreV1().Pods(pod.Namespace).Update(context.TODO(), p, metav1.UpdateOptions{})
+		return err
+	})
+
+	return err
+}
+
+func launchHostNetworkedPodForTCPDump(f *e2e.Framework, tcpdumpImage, nodeName, generateName string) (*v1.Pod, error) {
+	contName := fmt.Sprintf("%s-container", generateName)
+	runAsUser := int64(0)
+	securityContext := &v1.SecurityContext{
+		RunAsUser: &runAsUser,
+		Capabilities: &v1.Capabilities{
+			Add: []v1.Capability{
+				"SETFCAP",
+				"CAP_NET_RAW",
+				"CAP_NET_ADMIN",
+			},
+		},
+	}
+
+	pod := &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Pod",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: generateName,
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				{
+					Name:            contName,
+					Image:           tcpdumpImage,
+					Command:         []string{"sleep", "100000"},
+					SecurityContext: securityContext,
+				},
+			},
+			NodeName:      nodeName,
+			RestartPolicy: v1.RestartPolicyNever,
+			HostNetwork:   true,
+		},
+	}
+
+	p, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.Background(), pod, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	err = frameworkpod.WaitForPodRunningInNamespace(context.Background(), f.ClientSet, p)
+	return p, err
+}

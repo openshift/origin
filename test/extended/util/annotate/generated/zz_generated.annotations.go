@@ -1345,6 +1345,14 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [internal-targets] EgressIP pods should query hostNetwork pods with the local node's SNAT": " [Disabled:Broken] [Serial]",
 
+	"[sig-network][Feature:EgressQoS] when using openshift ovn-kubernetes EgressQoS should mark all egress traffic from the namespace": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:EgressQoS] when using openshift ovn-kubernetes EgressQoS should mark egress traffic based on both destination CIDR and podSelectors": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:EgressQoS] when using openshift ovn-kubernetes EgressQoS should mark egress traffic based on destination CIDR": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:EgressQoS] when using openshift ovn-kubernetes EgressQoS should mark egress traffic based on podSelectors": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network][Feature:EgressRouterCNI] should ensure ipv4 egressrouter cni resources are created [apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:EgressRouterCNI] when using openshift ovn-kubernetes should ensure ipv6 egressrouter cni resources are created [apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel]",
