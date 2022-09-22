@@ -20,7 +20,8 @@ var _ = g.Describe("[sig-network] external gateway address", func() {
 			// Set external gateway address into an IPv6 address and make sure
 			// pod ip address matches with IPv6 address family.
 			setNamespaceExternalGateway(f, "fd00:10:244:2::6")
-			podIPs, err := createPod(f.ClientSet, f.Namespace.Name, "test-ipv6-pod")
+			p, err := createPod(f.ClientSet, f.Namespace.Name, "test-ipv6-pod")
+			podIPs := p.Status.PodIPs
 			e2e.Logf("pod IPs are %v after setting external gw with IPv6 address", podIPs)
 			switch podIPFamily {
 			case DualStack:
@@ -37,7 +38,8 @@ var _ = g.Describe("[sig-network] external gateway address", func() {
 			// Set external gateway address into an IPv4 address and make sure
 			// pod ip address matches with IPv4 address family.
 			setNamespaceExternalGateway(f, "10.10.10.1")
-			podIPs, err = createPod(f.ClientSet, f.Namespace.Name, "test-ipv4-pod")
+			p, err = createPod(f.ClientSet, f.Namespace.Name, "test-ipv4-pod")
+			podIPs = p.Status.PodIPs
 			e2e.Logf("pod IPs are %v after setting external gw with IPv4 address", podIPs)
 			switch podIPFamily {
 			case DualStack:
@@ -54,7 +56,8 @@ var _ = g.Describe("[sig-network] external gateway address", func() {
 			// Set external gateway address supporting Dual Stack and make sure
 			// pod ip address(es) match with desired address family.
 			setNamespaceExternalGateway(f, "10.10.10.1,fd00:10:244:2::6")
-			podIPs, err = createPod(f.ClientSet, f.Namespace.Name, "test-dual-stack-pod")
+			p, err = createPod(f.ClientSet, f.Namespace.Name, "test-dual-stack-pod")
+			podIPs = p.Status.PodIPs
 			o.Expect(err).NotTo(o.HaveOccurred())
 			e2e.Logf("pod IPs are %v after setting external gw with Dual Stack address", podIPs)
 			o.Expect(getIPFamily(podIPs)).To(o.Equal(podIPFamily))

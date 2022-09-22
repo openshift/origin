@@ -593,9 +593,9 @@ func networkAttachmentDefinitionClient(config *rest.Config) (dynamic.Namespaceab
 }
 
 func getIPFamilyForCluster(f *e2e.Framework) IPFamily {
-	podIPs, err := createPod(f.ClientSet, f.Namespace.Name, "test-ip-family-pod")
+	p, err := createPod(f.ClientSet, f.Namespace.Name, "test-ip-family-pod")
 	expectNoError(err)
-	return getIPFamily(podIPs)
+	return getIPFamily(p.Status.PodIPs)
 }
 
 func getIPFamily(podIPs []v1.PodIP) IPFamily {
@@ -622,21 +622,25 @@ func getIPFamily(podIPs []v1.PodIP) IPFamily {
 	}
 }
 
-func createPod(client k8sclient.Interface, ns, generateName string) ([]corev1.PodIP, error) {
+func createPod(client k8sclient.Interface, ns, generateName string, tweak ...func(*corev1.Pod)) (*corev1.Pod, error) {
 	pod := frameworkpod.NewAgnhostPod(ns, "", nil, nil, nil)
 	pod.ObjectMeta.GenerateName = generateName
+	for _, f := range tweak {
+		f(pod)
+	}
+
 	execPod, err := client.CoreV1().Pods(ns).Create(context.TODO(), pod, metav1.CreateOptions{})
 	expectNoError(err, "failed to create new pod in namespace: %s", ns)
-	var podIPs []corev1.PodIP
+	var p *corev1.Pod
 	err = wait.PollImmediate(poll, 2*time.Minute, func() (bool, error) {
 		retrievedPod, err := client.CoreV1().Pods(execPod.Namespace).Get(context.TODO(), execPod.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
-		podIPs = retrievedPod.Status.PodIPs
+		p = retrievedPod
 		return retrievedPod.Status.Phase == corev1.PodRunning, nil
 	})
-	return podIPs, err
+	return p, err
 }
 
 // SubnetIPs enumerates all IP addresses in an IP subnet (starting with the provided IP address and including the broadcast address).
