@@ -10,13 +10,14 @@ import (
 
 	v1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kube-openapi/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
-func skipIfNotSingleNode(oc *exutil.CLI) {
+func skipIfNotSingleNodeAndWP(oc *exutil.CLI) {
 	g.By("checking topology")
 
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(),
@@ -30,6 +31,22 @@ func skipIfNotSingleNode(oc *exutil.CLI) {
 
 	if controlPlaneTopology != v1.SingleReplicaTopologyMode && infraTopology != v1.SingleReplicaTopologyMode {
 		e2eskipper.Skipf("test is only relevant for single replica topologies")
+	}
+
+	g.By("checking if cluster has workload partitioning enabled")
+	listOpts := metav1.ListOptions{}
+	masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), listOpts)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	numNodes := len(masterNodes.Items)
+	if numNodes > 1 {
+		g.Fail(fmt.Sprintf("unexpected error: controlPlaneTopology is `%s` but found %d", controlPlaneTopology, numNodes))
+	}
+
+	node := masterNodes.Items[0]
+
+	if _, hasAllocatableCores := node.Status.Allocatable[corev1.ResourceName("management.workload.openshift.io/cores")]; !hasAllocatableCores {
+		e2eskipper.Skipf("test is only relevant for workload partitioning enabled clusters")
 	}
 }
 
@@ -49,7 +66,7 @@ var _ = g.Describe("[sig-arch] workload partitioning", func() {
 	g.It("should be annotated with: target.workload.openshift.io/management: {effect: PreferredDuringScheduling}", func() {
 		ctx := context.TODO()
 
-		skipIfNotSingleNode(oc)
+		skipIfNotSingleNodeAndWP(oc)
 
 		kubeClient, err := e2e.LoadClientset()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -93,7 +110,7 @@ var _ = g.Describe("[sig-arch] workload partitioning", func() {
 	g.It("should be annotated with: workload.openshift.io/allowed: management", func() {
 		ctx := context.TODO()
 
-		skipIfNotSingleNode(oc)
+		skipIfNotSingleNodeAndWP(oc)
 
 		kubeClient, err := e2e.LoadClientset()
 		o.Expect(err).NotTo(o.HaveOccurred())
