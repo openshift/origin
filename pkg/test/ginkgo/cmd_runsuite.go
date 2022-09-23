@@ -164,15 +164,23 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 			return err
 		}
 	} else {
-		apiGroupFilter, err := newApiGroupFilter(discoveryClient)
-		if err != nil {
-			return fmt.Errorf("unable to build api group filter: %v", err)
-		}
+		if _, err := discoveryClient.ServerVersion(); err != nil {
+			if opt.DryRun {
+				fmt.Fprintf(opt.ErrOut, "Unable to get server version through discovery client, skipping apigroup check in the dry-run mode: %v\n", err)
+			} else {
+				return err
+			}
+		} else {
+			apiGroupFilter, err := newApiGroupFilter(discoveryClient)
+			if err != nil {
+				return fmt.Errorf("unable to build api group filter: %v", err)
+			}
 
-		// Skip tests with [apigroup:GROUP] labels for apigroups which are not
-		// served by a cluster. E.g. MicroShift is not serving most of the openshift.io
-		// apigroups. Other installations might be serving only a subset of the api groups.
-		apiGroupFilter.markSkippedWhenAPIGroupNotServed(tests)
+			// Skip tests with [apigroup:GROUP] labels for apigroups which are not
+			// served by a cluster. E.g. MicroShift is not serving most of the openshift.io
+			// apigroups. Other installations might be serving only a subset of the api groups.
+			apiGroupFilter.markSkippedWhenAPIGroupNotServed(tests)
+		}
 	}
 
 	// This ensures that tests in the identified paths do not run in parallel, because
