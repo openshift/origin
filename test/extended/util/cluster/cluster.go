@@ -290,3 +290,20 @@ func (c *ClusterConfiguration) MatchFn() func(string) bool {
 	}
 	return matchFn
 }
+
+func HasCapability(clusterVersion *configv1.ClusterVersion, desiredCapability string) bool {
+	for _, ec := range clusterVersion.Status.Capabilities.EnabledCapabilities {
+		if string(ec) == desiredCapability {
+			return true
+		}
+	}
+	return false
+}
+func KnowsCapability(clusterVersion *configv1.ClusterVersion, desiredCapability string) bool {
+	for _, ec := range clusterVersion.Status.Capabilities.KnownCapabilities {
+		if string(ec) == desiredCapability {
+			return true
+		}
+	}
+	return false
+}
