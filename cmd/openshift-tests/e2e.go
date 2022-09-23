@@ -5,10 +5,11 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/kubectl/pkg/util/templates"
+
 	"github.com/openshift/origin/pkg/synthetictests"
 	"github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"k8s.io/kubectl/pkg/util/templates"
 
 	_ "github.com/openshift/origin/test/extended"
 	_ "github.com/openshift/origin/test/extended/util/annotate/generated"
@@ -448,7 +449,7 @@ func isStandardEarlyOrLateTest(name string) bool {
 // suiteWithInitializedProviderPreSuite loads the provider info, but does not
 // exclude any tests specific to that provider.
 func suiteWithInitializedProviderPreSuite(opt *runOptions) error {
-	config, err := decodeProvider(opt.Provider, opt.DryRun, true, nil)
+	config, err := decodeProvider(opt.Provider, opt.DryRun, true, opt.JUnitDir, nil)
 	if err != nil {
 		return err
 	}

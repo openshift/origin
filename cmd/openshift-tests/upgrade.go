@@ -7,15 +7,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/synthetictests"
-	"github.com/openshift/origin/pkg/test/ginkgo"
-	"github.com/openshift/origin/test/e2e/upgrade"
-	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"k8s.io/klog/v2"
 	"k8s.io/kubectl/pkg/util/templates"
 	"k8s.io/kubernetes/test/e2e/upgrades"
+
+	"github.com/openshift/origin/pkg/synthetictests"
+	"github.com/openshift/origin/pkg/test/ginkgo"
+	"github.com/openshift/origin/test/e2e/upgrade"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 // upgradeSuites are all known upgrade test suites this binary should run
@@ -78,7 +79,7 @@ var upgradeSuites = testSuites{
 func upgradeTestPreSuite(opt *runOptions) error {
 	if !opt.DryRun {
 		testOpt := ginkgo.NewTestOptions(os.Stdout, os.Stderr)
-		config, err := decodeProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun, false, nil)
+		config, err := decodeProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun, true, opt.JUnitDir, nil)
 		if err != nil {
 			return err
 		}

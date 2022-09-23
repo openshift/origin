@@ -6,6 +6,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
+
 	exutilcluster "github.com/openshift/origin/test/extended/util/cluster"
 
 	corev1 "k8s.io/api/core/v1"
@@ -272,7 +273,7 @@ func TestDecodeProvider(t *testing.T) {
 					NetworkSpec:    tc.discoveredNetwork,
 				}
 			}
-			config, err := decodeProvider(tc.provider, false, discover, testState)
+			config, err := decodeProvider(tc.provider, false, discover, "", testState)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}

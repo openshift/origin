@@ -430,7 +430,7 @@ func newRunTestCommand() *cobra.Command {
 			ginkgo.GlobalSuite().ClearBeforeSuiteNode()
 			ginkgo.GlobalSuite().ClearAfterSuiteNode()
 
-			config, err := decodeProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun, false, nil)
+			config, err := decodeProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun, false, os.Getenv("TEST_JUNIT_DIR"), nil)
 			if err != nil {
 				return err
 			}

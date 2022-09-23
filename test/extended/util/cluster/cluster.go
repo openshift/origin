@@ -22,6 +22,8 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	operatorclient "github.com/openshift/client-go/operator/clientset/versioned"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/azure"
 )
 
@@ -75,8 +77,9 @@ func (c *ClusterConfiguration) ToJSONString() string {
 	return string(out)
 }
 
-// ClusterState provides information about the cluster that is used to generate
-// ClusterConfiguration
+// ClusterState provides information about the cluster under test, that is used
+// to generate a ClusterConfiguration, as well as writing out to disk the details
+// of the cluster that was tested.
 type ClusterState struct {
 	APIURL               *url.URL
 	PlatformStatus       *configv1.PlatformStatus
@@ -84,6 +87,7 @@ type ClusterState struct {
 	NonMasters           *corev1.NodeList
 	NetworkSpec          *operatorv1.NetworkSpec
 	ControlPlaneTopology *configv1.TopologyMode
+	UpdateHistory        []configv1.UpdateHistory
 }
 
 // DiscoverClusterState creates a ClusterState based on a live cluster
@@ -141,6 +145,14 @@ func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 		return nil, err
 	}
 	state.NetworkSpec = &networkConfig.Spec
+
+	oc := exutil.NewCLI("cluster-info")
+	cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	state.UpdateHistory = cv.Status.History
 
 	return state, nil
 }

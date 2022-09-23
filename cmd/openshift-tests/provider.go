@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -74,19 +76,19 @@ func initializeTestFramework(context *e2e.TestContextType, config *exutilcluster
 	return nil
 }
 
-func decodeProvider(provider string, dryRun, discover bool, clusterState *exutilcluster.ClusterState) (*exutilcluster.ClusterConfiguration, error) {
+func decodeProvider(provider string, dryRun, discover bool, junitDir string, clusterState *exutilcluster.ClusterState) (*exutilcluster.ClusterConfiguration, error) {
+	var clusterConfig *exutilcluster.ClusterConfiguration
 	switch provider {
 	case "none":
-		return &exutilcluster.ClusterConfiguration{ProviderName: "skeleton"}, nil
-
+		clusterConfig = &exutilcluster.ClusterConfiguration{ProviderName: "skeleton"}
 	case "":
 		if _, ok := os.LookupEnv("KUBE_SSH_USER"); ok {
 			if _, ok := os.LookupEnv("LOCAL_SSH_KEY"); ok {
-				return &exutilcluster.ClusterConfiguration{ProviderName: "local"}, nil
+				clusterConfig = &exutilcluster.ClusterConfiguration{ProviderName: "local"}
 			}
 		}
 		if dryRun {
-			return &exutilcluster.ClusterConfiguration{ProviderName: "skeleton"}, nil
+			clusterConfig = &exutilcluster.ClusterConfiguration{ProviderName: "skeleton"}
 		}
 		fallthrough
 
@@ -108,8 +110,7 @@ func decodeProvider(provider string, dryRun, discover bool, clusterState *exutil
 		if len(config.ProviderName) == 0 {
 			config.ProviderName = "skeleton"
 		}
-		return config, nil
-
+		clusterConfig = config
 	default:
 		var providerInfo struct {
 			Type string
@@ -138,6 +139,39 @@ func decodeProvider(provider string, dryRun, discover bool, clusterState *exutil
 		if err := json.Unmarshal([]byte(provider), config); err != nil {
 			return nil, fmt.Errorf("provider must decode into the ClusterConfig object: %v", err)
 		}
-		return config, nil
+		clusterConfig = config
 	}
+
+	if err := writeClusterInfo(clusterState, clusterConfig, junitDir); err != nil {
+		return nil, fmt.Errorf("could not write cluster info: %s", err.Error())
+	}
+
+	return clusterConfig, nil
+}
+
+func writeClusterInfo(clusterState *exutilcluster.ClusterState, clusterConfig *exutilcluster.ClusterConfiguration, path string) error {
+	if len(path) > 0 {
+		if _, err := os.Stat(path); err != nil {
+			if !os.IsNotExist(err) {
+				return fmt.Errorf("could not access path", err)
+			}
+			if err := os.MkdirAll(path, 0755); err != nil {
+				return fmt.Errorf("could not create path: %v", err)
+			}
+		}
+	}
+
+	if info, err := json.Marshal(struct {
+		ClusterState         *exutilcluster.ClusterState
+		ClusterConfiguration *exutilcluster.ClusterConfiguration
+	}{
+		ClusterState:         clusterState,
+		ClusterConfiguration: clusterConfig,
+	}); err != nil {
+		return err
+	} else if err := ioutil.WriteFile(filepath.Join(path, "cluster-info.json"), info, 0644); err != nil {
+		return err
+	}
+
+	return nil
 }
