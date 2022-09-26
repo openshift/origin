@@ -3215,23 +3215,23 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-node][Late] should not have pod creation failures due to systemd timeouts": "should not have pod creation failures due to systemd timeouts [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-operator] OLM should Implement packages API server and list packagemanifest info with namespace not NULL": "Implement packages API server and list packagemanifest info with namespace not NULL [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] OLM should Implement packages API server and list packagemanifest info with namespace not NULL [apigroup:packages.operators.coreos.com]": "Implement packages API server and list packagemanifest info with namespace not NULL [apigroup:packages.operators.coreos.com] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-operator] OLM should be installed with catalogsources at version v1alpha1": "be installed with catalogsources at version v1alpha1 [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] OLM should be installed with catalogsources at version v1alpha1 [apigroup:operators.coreos.com]": "be installed with catalogsources at version v1alpha1 [apigroup:operators.coreos.com] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-operator] OLM should be installed with clusterserviceversions at version v1alpha1": "be installed with clusterserviceversions at version v1alpha1 [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] OLM should be installed with clusterserviceversions at version v1alpha1 [apigroup:operators.coreos.com]": "be installed with clusterserviceversions at version v1alpha1 [apigroup:operators.coreos.com] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-operator] OLM should be installed with installplans at version v1alpha1": "be installed with installplans at version v1alpha1 [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] OLM should be installed with installplans at version v1alpha1 [apigroup:operators.coreos.com]": "be installed with installplans at version v1alpha1 [apigroup:operators.coreos.com] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-operator] OLM should be installed with operatorgroups at version v1": "be installed with operatorgroups at version v1 [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] OLM should be installed with operatorgroups at version v1 [apigroup:operators.coreos.com]": "be installed with operatorgroups at version v1 [apigroup:operators.coreos.com] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-operator] OLM should be installed with packagemanifests at version v1": "be installed with packagemanifests at version v1 [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] OLM should be installed with packagemanifests at version v1 [apigroup:packages.operators.coreos.com]": "be installed with packagemanifests at version v1 [apigroup:packages.operators.coreos.com] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-operator] OLM should be installed with subscriptions at version v1alpha1": "be installed with subscriptions at version v1alpha1 [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] OLM should be installed with subscriptions at version v1alpha1 [apigroup:operators.coreos.com]": "be installed with subscriptions at version v1alpha1 [apigroup:operators.coreos.com] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-operator] OLM should have imagePullPolicy:IfNotPresent on thier deployments [apigroup:config.openshift.io]": "have imagePullPolicy:IfNotPresent on thier deployments [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-operator] an end user can use OLM Report Upgradeable in OLM ClusterOperators status": "Report Upgradeable in OLM ClusterOperators status [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-operator] an end user can use OLM Report Upgradeable in OLM ClusterOperators status [apigroup:config.openshift.io]": "Report Upgradeable in OLM ClusterOperators status [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-operator] an end user can use OLM can subscribe to the operator [apigroup:config.openshift.io]": "can subscribe to the operator [apigroup:config.openshift.io] [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 

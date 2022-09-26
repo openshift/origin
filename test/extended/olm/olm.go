@@ -17,12 +17,16 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
+const (
+	operatorsGroupName = "operators.coreos.com"
+	packagesGroupName  = "packages." + operatorsGroupName
+)
+
 var _ = g.Describe("[sig-operator] OLM should", func() {
 	defer g.GinkgoRecover()
 
 	var oc = exutil.NewCLIWithoutNamespace("default")
 
-	operators := "operators.coreos.com"
 	providedAPIs := []struct {
 		fromAPIService bool
 		group          string
@@ -31,32 +35,32 @@ var _ = g.Describe("[sig-operator] OLM should", func() {
 	}{
 		{
 			fromAPIService: true,
-			group:          "packages." + operators,
+			group:          packagesGroupName,
 			version:        "v1",
 			plural:         "packagemanifests",
 		},
 		{
-			group:   operators,
+			group:   operatorsGroupName,
 			version: "v1",
 			plural:  "operatorgroups",
 		},
 		{
-			group:   operators,
+			group:   operatorsGroupName,
 			version: "v1alpha1",
 			plural:  "clusterserviceversions",
 		},
 		{
-			group:   operators,
+			group:   operatorsGroupName,
 			version: "v1alpha1",
 			plural:  "catalogsources",
 		},
 		{
-			group:   operators,
+			group:   operatorsGroupName,
 			version: "v1alpha1",
 			plural:  "installplans",
 		},
 		{
-			group:   operators,
+			group:   operatorsGroupName,
 			version: "v1alpha1",
 			plural:  "subscriptions",
 		},
@@ -64,7 +68,7 @@ var _ = g.Describe("[sig-operator] OLM should", func() {
 
 	for i := range providedAPIs {
 		api := providedAPIs[i]
-		g.It(fmt.Sprintf("be installed with %s at version %s", api.plural, api.version), func() {
+		g.It(fmt.Sprintf("be installed with %s at version %s [apigroup:%s]", api.plural, api.version, api.group), func() {
 			if api.fromAPIService {
 				// Ensure spec.version matches expected
 				raw, err := oc.AsAdmin().Run("get").Args("apiservices", fmt.Sprintf("%s.%s", api.version, api.group), "-o=jsonpath={.spec.version}").Output()
@@ -115,7 +119,7 @@ var _ = g.Describe("[sig-operator] OLM should", func() {
 
 	// OCP-21082 - Implement packages API server and list packagemanifest info with namespace not NULL
 	// author: bandrade@redhat.com
-	g.It("Implement packages API server and list packagemanifest info with namespace not NULL", func() {
+	g.It("Implement packages API server and list packagemanifest info with namespace not NULL [apigroup:packages.operators.coreos.com]", func() {
 		msg, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("packagemanifest", "--all-namespaces", "--no-headers").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		packageserverLines := strings.Split(msg, "\n")
@@ -347,7 +351,7 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 
 	// OCP-24829 - Report `Upgradeable` in OLM ClusterOperators status
 	// author: bandrade@redhat.com
-	g.It("Report Upgradeable in OLM ClusterOperators status", func() {
+	g.It("Report Upgradeable in OLM ClusterOperators status [apigroup:config.openshift.io]", func() {
 		olmCOs := []string{"operator-lifecycle-manager", "operator-lifecycle-manager-catalog", "operator-lifecycle-manager-packageserver"}
 		for _, co := range olmCOs {
 			msg, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("co", co, "-o=jsonpath={range .status.conditions[*]}{.type}{' '}{.status}").Output()
