@@ -58,22 +58,9 @@ func skipIfUnsupportedPlatformOrConfig(oc *exutil.CLI, dc dynamic.Interface) {
 	}
 }
 
-func skipIfProvisioningNetworkSet(dc dynamic.Interface) {
-	g.By("checking Provisioning Network CIDR")
-
-	provisioningClient := provisioningClient(dc)
-	provisioningConfig, err := provisioningClient.Get(context.Background(), "provisioning-configuration", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	_, provisioningNetworkCIDRfound, err := unstructured.NestedString(provisioningConfig.Object, "spec", "provisioningNetworkCIDR")
-	o.Expect(err).NotTo(o.HaveOccurred())
-	if provisioningNetworkCIDRfound {
-		e2eskipper.Skipf("Provisioning Network set")
-	}
-}
-
 func getProvisioningNetwork(dc dynamic.Interface) string {
-	provisioningClient := provisioningClient(dc)
+	provisioningGVR := schema.GroupVersionResource{Group: "metal3.io", Resource: "provisionings", Version: "v1alpha1"}
+	provisioningClient := dc.Resource(provisioningGVR)
 	provisioningConfig, err := provisioningClient.Get(context.Background(), "provisioning-configuration", metav1.GetOptions{})
 	if err != nil {
 		return ""
@@ -102,11 +89,6 @@ func hostfirmwaresettingsClient(dc dynamic.Interface) dynamic.ResourceInterface 
 func preprovisioningImagesClient(dc dynamic.Interface) dynamic.ResourceInterface {
 	ppiClient := dc.Resource(schema.GroupVersionResource{Group: "metal3.io", Resource: "preprovisioningimages", Version: "v1alpha1"})
 	return ppiClient.Namespace("openshift-machine-api")
-}
-
-func provisioningClient(dc dynamic.Interface) dynamic.ResourceInterface {
-	pClient := dc.Resource(schema.GroupVersionResource{Group: "metal3.io", Resource: "provisionings", Version: "v1alpha1"})
-	return pClient
 }
 
 type FieldGetterFunc func(obj map[string]interface{}, fields ...string) (interface{}, bool, error)
