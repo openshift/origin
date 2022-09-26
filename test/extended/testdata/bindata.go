@@ -347,7 +347,6 @@
 // test/extended/testdata/image_ecosystem/perl-hotdeploy/index.pl
 // test/extended/testdata/image_ecosystem/perl-hotdeploy/lib/My/Test.pm
 // test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json
-// test/extended/testdata/jobs/v1.yaml
 // test/extended/testdata/ldap/groupsync/ad/blacklist_ldap.txt
 // test/extended/testdata/ldap/groupsync/ad/blacklist_openshift.txt
 // test/extended/testdata/ldap/groupsync/ad/ldapgroupuids.txt
@@ -43669,39 +43668,6 @@ func testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson() (*asset, error) 
 	return a, nil
 }
 
-var _testExtendedTestdataJobsV1Yaml = []byte(`apiVersion: batch/v1
-kind: Job
-metadata:
-  name: simplev1
-spec:
-  template:
-    metadata:
-      name: simplev1
-      labels:
-        app: simplev1
-    spec:
-      containers:
-      - name: simplev1
-        image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
-        command: ["/bin/sh", "-c", "exit 0"]
-      restartPolicy: Never
-`)
-
-func testExtendedTestdataJobsV1YamlBytes() ([]byte, error) {
-	return _testExtendedTestdataJobsV1Yaml, nil
-}
-
-func testExtendedTestdataJobsV1Yaml() (*asset, error) {
-	bytes, err := testExtendedTestdataJobsV1YamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/jobs/v1.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataLdapGroupsyncAdBlacklist_ldapTxt = []byte(`group1
 group3
 `)
@@ -53351,7 +53317,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/image_ecosystem/perl-hotdeploy/index.pl":                                         testExtendedTestdataImage_ecosystemPerlHotdeployIndexPl,
 	"test/extended/testdata/image_ecosystem/perl-hotdeploy/lib/My/Test.pm":                                   testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPm,
 	"test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json":                                        testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson,
-	"test/extended/testdata/jobs/v1.yaml":                                                                    testExtendedTestdataJobsV1Yaml,
 	"test/extended/testdata/ldap/groupsync/ad/blacklist_ldap.txt":                                            testExtendedTestdataLdapGroupsyncAdBlacklist_ldapTxt,
 	"test/extended/testdata/ldap/groupsync/ad/blacklist_openshift.txt":                                       testExtendedTestdataLdapGroupsyncAdBlacklist_openshiftTxt,
 	"test/extended/testdata/ldap/groupsync/ad/ldapgroupuids.txt":                                             testExtendedTestdataLdapGroupsyncAdLdapgroupuidsTxt,
@@ -54065,9 +54030,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						}},
 						"perl.json": {testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson, map[string]*bintree{}},
 					}},
-				}},
-				"jobs": {nil, map[string]*bintree{
-					"v1.yaml": {testExtendedTestdataJobsV1Yaml, map[string]*bintree{}},
 				}},
 				"ldap": {nil, map[string]*bintree{
 					"groupsync": {nil, map[string]*bintree{
