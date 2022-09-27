@@ -434,6 +434,7 @@ func TestImageStreamAdmitStatusUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 			},
 		},
 	})
+
 	_, err = client.ImageV1().ImageStreams(oc.Namespace()).UpdateStatus(ctx, is, metav1.UpdateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -559,6 +560,13 @@ func bumpLimit(t g.GinkgoTInterface, oc *exutil.CLI, lrClient corev1client.Limit
 	}
 	_, err = lrClient.Update(context.Background(), lr, metav1.UpdateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
+
+	// In very rare circumstances, this change is not honored when we immediately make requests that will
+	// violate the new limit. A sleep should help these test failures from ever occurring. I'd prefer
+	// we wait until some observed state is validated, but LimitRange has no Status.
+	// Using same value as pre-existing Sleep above.
+	time.Sleep(5 * time.Second)
+
 	return res
 }
 
