@@ -41,7 +41,6 @@ os::cmd::expect_failure_and_text "oc extract secret/dockerconfigjson secret/dock
 os::cmd::expect_success_and_text "oc extract secret/dockerconfigjson secret/dockerconfigjson --to '${workingdir}' --confirm" '.dockerconfigjson'
 os::cmd::expect_success_and_text "oc extract secret/dockerconfigjson --to '${workingdir}' --confirm" '.dockerconfigjson'
 os::cmd::expect_success "oc extract secret/dockerconfigjson --to '${workingdir}' --confirm | xargs rm"
-os::cmd::expect_failure_and_text "oc extract secret/dockerconfigjson --to missing-dir" "stat missing-dir: no such file or directory"
 
 # attach secrets to service account
 # single secret with prefix
