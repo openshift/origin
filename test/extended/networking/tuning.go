@@ -229,6 +229,56 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 		o.Expect(podOutput).Should(o.Equal(podOutputBeforeSysctlAplied))
 	})
 
+	g.Context("sysctl allowlist update", func() {
+		var originalSysctls = ""
+
+		g.BeforeEach(func() {
+			cm, err := f.ClientSet.CoreV1().ConfigMaps("openshift-multus").Get(context.TODO(), "cni-sysctl-allowlist", metav1.GetOptions{})
+			o.Expect(err).ToNot(o.HaveOccurred())
+			var ok bool
+			originalSysctls, ok = cm.Data["allowlist.conf"]
+			o.Expect(ok).To(o.BeTrue())
+		})
+
+		g.AfterEach(func() {
+			updateAllowlistConfig(originalSysctls, f.ClientSet)
+		})
+
+		g.It("should start a pod with custom sysctl only when the sysctl is added to whitelist", func() {
+			updatedSysctls := originalSysctls + "\n" + "^net.ipv4.conf.IFNAME.accept_local$"
+			namespace := f.Namespace.Name
+
+			err := createTuningNAD(oc.AdminConfig(), namespace, tuningNADName, map[string]string{"net.ipv4.conf.IFNAME.accept_local": "1"})
+			o.Expect(err).NotTo(o.HaveOccurred(), "unable to create network-attachment-definition")
+
+			podDefinition := frameworkpod.NewAgnhostPod(namespace, podName, nil, nil, nil)
+			podDefinition.ObjectMeta.Annotations = map[string]string{"k8s.v1.cni.cncf.io/networks": fmt.Sprintf("%s/%s", namespace, tuningNADName)}
+			pod := f.PodClient().Create(podDefinition)
+			err = frameworkpod.WaitForPodCondition(f.ClientSet, namespace, pod.Name, "Failed", 30*time.Second, func(pod *kapiv1.Pod) (bool, error) {
+				if pod.Status.Phase == kapiv1.PodPending {
+					return true, nil
+				}
+				return false, nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred(), "incorrect pod status")
+
+			o.Consistently(func() kapiv1.PodPhase {
+				pod, err := f.ClientSet.CoreV1().Pods(namespace).Get(context.Background(), podName, metav1.GetOptions{})
+				o.Expect(err).ToNot(o.HaveOccurred())
+				return pod.Status.Phase
+			}, 15*time.Second, 3*time.Second).Should(o.Equal(kapiv1.PodPending))
+
+			updateAllowlistConfig(updatedSysctls, f.ClientSet)
+
+			err = frameworkpod.WaitForPodCondition(f.ClientSet, namespace, pod.Name, "Failed", 30*time.Second, func(pod *kapiv1.Pod) (bool, error) {
+				if pod.Status.Phase == kapiv1.PodRunning {
+					return true, nil
+				}
+				return false, nil
+			})
+		})
+	})
+
 })
 
 func createNAD(config *rest.Config, namespace string, nadName string) error {
@@ -252,4 +302,14 @@ func createTuningNADWithBridgeName(config *rest.Config, namespace, nadName, brid
 	}
 	nadConfig := fmt.Sprintf(`{"cniVersion":"0.4.0","name":"%s","plugins":[{"type":"bridge","bridge":"%s","ipam":{"type":"static","addresses":[{"address":"10.10.0.1/24"}]}}%s]}`, nadName, bridgeName, sysctlString)
 	return createNetworkAttachmentDefinition(config, namespace, nadName, nadConfig)
+}
+
+func updateAllowlistConfig(sysctls string, client clientset.Interface) error {
+	cm, err := client.CoreV1().ConfigMaps("openshift-multus").Get(context.TODO(), "cni-sysctl-allowlist", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	cm.Data["allowlist.conf"] = sysctls
+	_, err = client.CoreV1().ConfigMaps("openshift-multus").Update(context.TODO(), cm, metav1.UpdateOptions{})
+	return err
 }
