@@ -3,6 +3,7 @@ package synthetictests
 import (
 	"context"
 	"fmt"
+	v1 "github.com/openshift/api/config/v1"
 	"time"
 
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -47,27 +48,12 @@ func comparePostUpgradeResourceCountFromMetrics(testName, resource string) []*ju
 	preUpgradeCount := upgrade.PreUpgradeResourceCounts[resource]
 	e2e.Logf("found %d %s prior to upgrade", preUpgradeCount, resource)
 
-	cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
-	if err != nil {
-		return []*junitapi.JUnitTestCase{
-			{
-				Name: testName,
-				FailureOutput: &junitapi.FailureOutput{
-					Output: "Error getting ClusterVersion: " + err.Error(),
-				},
-			},
-		}
-
-	}
-	if len(cv.Status.History) == 0 {
-		return []*junitapi.JUnitTestCase{
-			{
-				Name: testName,
-				FailureOutput: &junitapi.FailureOutput{
-					Output: "ClusterVersion.Status has no History",
-				},
-			},
-		}
+	// if the check on clusterversion returns a junit, we are done. most likely there was a problem
+	// getting the cv or possibly the upgrade completion time was null because the rollback is still in
+	// progress and the test has given up.
+	cv, junit := getAndCheckClusterVersion(testName, oc)
+	if junit != nil {
+		return junit
 	}
 	upgradeCompletion := cv.Status.History[0].CompletionTime
 
@@ -122,4 +108,51 @@ func comparePostUpgradeResourceCountFromMetrics(testName, resource string) []*ju
 		{Name: testName},
 	}
 
+}
+
+func getAndCheckClusterVersion(testName string, oc *exutil.CLI) (*v1.ClusterVersion, []*junitapi.JUnitTestCase) {
+	cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version",
+		metav1.GetOptions{})
+
+	if err != nil {
+		return cv, []*junitapi.JUnitTestCase{
+			{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Output: "Error getting ClusterVersion: " + err.Error(),
+				},
+			},
+		}
+
+	}
+	if len(cv.Status.History) == 0 {
+		return cv, []*junitapi.JUnitTestCase{
+			{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Output: "ClusterVersion.Status has no History",
+				},
+			},
+		}
+	}
+
+	// In the case that cv completionTime is nil meaning the version change (upgrade or
+	// rollback is still in progress), flake this case. The problem is likely a bigger
+	// problem and the job will fail for that. Returning a failure and fake success, so it
+	// will be marked as a flake.
+	if cv.Status.History[0].CompletionTime == nil {
+		return cv, []*junitapi.JUnitTestCase{
+			{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Output: "ClusterVersion.completionTime is nil",
+				},
+			},
+			{
+				Name: testName,
+			},
+		}
+	}
+
+	return cv, nil
 }
