@@ -114,6 +114,169 @@ func (Tag) SwaggerDoc() map[string]string {
 	return map_Tag
 }
 
+var map_AWSResourceFilter = map[string]string{
+	"":       "AWSResourceFilter is a filter used to identify an AWS resource",
+	"name":   "Name of the filter. Filter names are case-sensitive.",
+	"values": "Values includes one or more filter values. Filter values are case-sensitive.",
+}
+
+func (AWSResourceFilter) SwaggerDoc() map[string]string {
+	return map_AWSResourceFilter
+}
+
+var map_AWSResourceReference = map[string]string{
+	"":        "AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters. Only one of ID, ARN or Filters may be specified. Specifying more than one will result in a validation error.",
+	"type":    "Type determines how the reference will fetch the AWS resource.",
+	"id":      "ID of resource.",
+	"arn":     "ARN of resource.",
+	"filters": "Filters is a set of filters used to identify a resource.",
+}
+
+func (AWSResourceReference) SwaggerDoc() map[string]string {
+	return map_AWSResourceReference
+}
+
+var map_AWSFailureDomain = map[string]string{
+	"":          "AWSFailureDomain configures failure domain information for the AWS platform.",
+	"subnet":    "Subnet is a reference to the subnet to use for this instance.",
+	"placement": "Placement configures the placement information for this instance.",
+}
+
+func (AWSFailureDomain) SwaggerDoc() map[string]string {
+	return map_AWSFailureDomain
+}
+
+var map_AWSFailureDomainPlacement = map[string]string{
+	"":                 "AWSFailureDomainPlacement configures the placement information for the AWSFailureDomain.",
+	"availabilityZone": "AvailabilityZone is the availability zone of the instance.",
+}
+
+func (AWSFailureDomainPlacement) SwaggerDoc() map[string]string {
+	return map_AWSFailureDomainPlacement
+}
+
+var map_AzureFailureDomain = map[string]string{
+	"":     "AzureFailureDomain configures failure domain information for the Azure platform.",
+	"zone": "Availability Zone for the virtual machine. If nil, the virtual machine should be deployed to no zone.",
+}
+
+func (AzureFailureDomain) SwaggerDoc() map[string]string {
+	return map_AzureFailureDomain
+}
+
+var map_ControlPlaneMachineSet = map[string]string{
+	"": "ControlPlaneMachineSet ensures that a specified number of control plane machine replicas are running at any given time. Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+}
+
+func (ControlPlaneMachineSet) SwaggerDoc() map[string]string {
+	return map_ControlPlaneMachineSet
+}
+
+var map_ControlPlaneMachineSetList = map[string]string{
+	"": "ControlPlaneMachineSetList contains a list of ControlPlaneMachineSet Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+}
+
+func (ControlPlaneMachineSetList) SwaggerDoc() map[string]string {
+	return map_ControlPlaneMachineSetList
+}
+
+var map_ControlPlaneMachineSetSpec = map[string]string{
+	"":         "ControlPlaneMachineSet represents the configuration of the ControlPlaneMachineSet.",
+	"replicas": "Replicas defines how many Control Plane Machines should be created by this ControlPlaneMachineSet. This field is immutable and cannot be changed after cluster installation. The ControlPlaneMachineSet only operates with 3 or 5 node control planes, 3 and 5 are the only valid values for this field.",
+	"strategy": "Strategy defines how the ControlPlaneMachineSet will update Machines when it detects a change to the ProviderSpec.",
+	"selector": "Label selector for Machines. Existing Machines selected by this selector will be the ones affected by this ControlPlaneMachineSet. It must match the template's labels. This field is considered immutable after creation of the resource.",
+	"template": "Template describes the Control Plane Machines that will be created by this ControlPlaneMachineSet.",
+}
+
+func (ControlPlaneMachineSetSpec) SwaggerDoc() map[string]string {
+	return map_ControlPlaneMachineSetSpec
+}
+
+var map_ControlPlaneMachineSetStatus = map[string]string{
+	"":                    "ControlPlaneMachineSetStatus represents the status of the ControlPlaneMachineSet CRD.",
+	"conditions":          "Conditions represents the observations of the ControlPlaneMachineSet's current state. Known .status.conditions.type are: Available, Degraded and Progressing.",
+	"observedGeneration":  "ObservedGeneration is the most recent generation observed for this ControlPlaneMachineSet. It corresponds to the ControlPlaneMachineSets's generation, which is updated on mutation by the API Server.",
+	"replicas":            "Replicas is the number of Control Plane Machines created by the ControlPlaneMachineSet controller. Note that during update operations this value may differ from the desired replica count.",
+	"readyReplicas":       "ReadyReplicas is the number of Control Plane Machines created by the ControlPlaneMachineSet controller which are ready. Note that this value may be higher than the desired number of replicas while rolling updates are in-progress.",
+	"updatedReplicas":     "UpdatedReplicas is the number of non-terminated Control Plane Machines created by the ControlPlaneMachineSet controller that have the desired provider spec and are ready. This value is set to 0 when a change is detected to the desired spec. When the update strategy is RollingUpdate, this will also coincide with starting the process of updating the Machines. When the update strategy is OnDelete, this value will remain at 0 until a user deletes an existing replica and its replacement has become ready.",
+	"unavailableReplicas": "UnavailableReplicas is the number of Control Plane Machines that are still required before the ControlPlaneMachineSet reaches the desired available capacity. When this value is non-zero, the number of ReadyReplicas is less than the desired Replicas.",
+}
+
+func (ControlPlaneMachineSetStatus) SwaggerDoc() map[string]string {
+	return map_ControlPlaneMachineSetStatus
+}
+
+var map_ControlPlaneMachineSetStrategy = map[string]string{
+	"":     "ControlPlaneMachineSetStrategy defines the strategy for applying updates to the Control Plane Machines managed by the ControlPlaneMachineSet.",
+	"type": "Type defines the type of update strategy that should be used when updating Machines owned by the ControlPlaneMachineSet. Valid values are \"RollingUpdate\" and \"OnDelete\". The current default value is \"RollingUpdate\".",
+}
+
+func (ControlPlaneMachineSetStrategy) SwaggerDoc() map[string]string {
+	return map_ControlPlaneMachineSetStrategy
+}
+
+var map_ControlPlaneMachineSetTemplate = map[string]string{
+	"":                                      "ControlPlaneMachineSetTemplate is a template used by the ControlPlaneMachineSet to create the Machines that it will manage in the future. ",
+	"machineType":                           "MachineType determines the type of Machines that should be managed by the ControlPlaneMachineSet. Currently, the only valid value is machines_v1beta1_machine_openshift_io.",
+	"machines_v1beta1_machine_openshift_io": "OpenShiftMachineV1Beta1Machine defines the template for creating Machines from the v1beta1.machine.openshift.io API group.",
+}
+
+func (ControlPlaneMachineSetTemplate) SwaggerDoc() map[string]string {
+	return map_ControlPlaneMachineSetTemplate
+}
+
+var map_ControlPlaneMachineSetTemplateObjectMeta = map[string]string{
+	"":            "ControlPlaneMachineSetTemplateObjectMeta is a subset of the metav1.ObjectMeta struct. It allows users to specify labels and annotations that will be copied onto Machines created from this template.",
+	"labels":      "Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels",
+	"annotations": "Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. They are not queryable and should be preserved when modifying objects. More info: http://kubernetes.io/docs/user-guide/annotations",
+}
+
+func (ControlPlaneMachineSetTemplateObjectMeta) SwaggerDoc() map[string]string {
+	return map_ControlPlaneMachineSetTemplateObjectMeta
+}
+
+var map_FailureDomains = map[string]string{
+	"":          "FailureDomain represents the different configurations required to spread Machines across failure domains on different platforms.",
+	"platform":  "Platform identifies the platform for which the FailureDomain represents. Currently supported values are AWS, Azure, GCP and OpenStack.",
+	"aws":       "AWS configures failure domain information for the AWS platform.",
+	"azure":     "Azure configures failure domain information for the Azure platform.",
+	"gcp":       "GCP configures failure domain information for the GCP platform.",
+	"openstack": "OpenStack configures failure domain information for the OpenStack platform.",
+}
+
+func (FailureDomains) SwaggerDoc() map[string]string {
+	return map_FailureDomains
+}
+
+var map_GCPFailureDomain = map[string]string{
+	"":     "GCPFailureDomain configures failure domain information for the GCP platform",
+	"zone": "Zone is the zone in which the GCP machine provider will create the VM.",
+}
+
+func (GCPFailureDomain) SwaggerDoc() map[string]string {
+	return map_GCPFailureDomain
+}
+
+var map_OpenShiftMachineV1Beta1MachineTemplate = map[string]string{
+	"":               "OpenShiftMachineV1Beta1MachineTemplate is a template for the ControlPlaneMachineSet to create Machines from the v1beta1.machine.openshift.io API group.",
+	"failureDomains": "FailureDomains is the list of failure domains (sometimes called availability zones) in which the ControlPlaneMachineSet should balance the Control Plane Machines. This will be merged into the ProviderSpec given in the template. This field is optional on platforms that do not require placement information.",
+	"metadata":       "ObjectMeta is the standard object metadata More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata Labels are required to match the ControlPlaneMachineSet selector.",
+	"spec":           "Spec contains the desired configuration of the Control Plane Machines. The ProviderSpec within contains platform specific details for creating the Control Plane Machines. The ProviderSe should be complete apart from the platform specific failure domain field. This will be overriden when the Machines are created based on the FailureDomains field.",
+}
+
+func (OpenShiftMachineV1Beta1MachineTemplate) SwaggerDoc() map[string]string {
+	return map_OpenShiftMachineV1Beta1MachineTemplate
+}
+
+var map_OpenStackFailureDomain = map[string]string{
+	"":                 "OpenStackFailureDomain configures failure domain information for the OpenStack platform",
+	"availabilityZone": "The availability zone from which to launch the server.",
+}
+
+func (OpenStackFailureDomain) SwaggerDoc() map[string]string {
+	return map_OpenStackFailureDomain
+}
+
 var map_NutanixMachineProviderConfig = map[string]string{
 	"":                  "NutanixMachineProviderConfig is the Schema for the nutanixmachineproviderconfigs API Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
 	"cluster":           "cluster is to identify the cluster (the Prism Element under management of the Prism Central), in which the Machine's VM will be created. The cluster identifier (uuid or name) can be obtained from the Prism Central console or using the prism_central API.",

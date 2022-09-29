@@ -4,9 +4,12 @@ package v1
 
 import (
 	"context"
+	json "encoding/json"
+	"fmt"
 	"time"
 
 	v1 "github.com/openshift/api/cloudnetwork/v1"
+	cloudnetworkv1 "github.com/openshift/client-go/cloudnetwork/applyconfigurations/cloudnetwork/v1"
 	scheme "github.com/openshift/client-go/cloudnetwork/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -31,6 +34,8 @@ type CloudPrivateIPConfigInterface interface {
 	List(ctx context.Context, opts metav1.ListOptions) (*v1.CloudPrivateIPConfigList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.CloudPrivateIPConfig, err error)
+	Apply(ctx context.Context, cloudPrivateIPConfig *cloudnetworkv1.CloudPrivateIPConfigApplyConfiguration, opts metav1.ApplyOptions) (result *v1.CloudPrivateIPConfig, err error)
+	ApplyStatus(ctx context.Context, cloudPrivateIPConfig *cloudnetworkv1.CloudPrivateIPConfigApplyConfiguration, opts metav1.ApplyOptions) (result *v1.CloudPrivateIPConfig, err error)
 	CloudPrivateIPConfigExpansion
 }
 
@@ -161,6 +166,60 @@ func (c *cloudPrivateIPConfigs) Patch(ctx context.Context, name string, pt types
 		Name(name).
 		SubResource(subresources...).
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(data).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// Apply takes the given apply declarative configuration, applies it and returns the applied cloudPrivateIPConfig.
+func (c *cloudPrivateIPConfigs) Apply(ctx context.Context, cloudPrivateIPConfig *cloudnetworkv1.CloudPrivateIPConfigApplyConfiguration, opts metav1.ApplyOptions) (result *v1.CloudPrivateIPConfig, err error) {
+	if cloudPrivateIPConfig == nil {
+		return nil, fmt.Errorf("cloudPrivateIPConfig provided to Apply must not be nil")
+	}
+	patchOpts := opts.ToPatchOptions()
+	data, err := json.Marshal(cloudPrivateIPConfig)
+	if err != nil {
+		return nil, err
+	}
+	name := cloudPrivateIPConfig.Name
+	if name == nil {
+		return nil, fmt.Errorf("cloudPrivateIPConfig.Name must be provided to Apply")
+	}
+	result = &v1.CloudPrivateIPConfig{}
+	err = c.client.Patch(types.ApplyPatchType).
+		Resource("cloudprivateipconfigs").
+		Name(*name).
+		VersionedParams(&patchOpts, scheme.ParameterCodec).
+		Body(data).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// ApplyStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
+func (c *cloudPrivateIPConfigs) ApplyStatus(ctx context.Context, cloudPrivateIPConfig *cloudnetworkv1.CloudPrivateIPConfigApplyConfiguration, opts metav1.ApplyOptions) (result *v1.CloudPrivateIPConfig, err error) {
+	if cloudPrivateIPConfig == nil {
+		return nil, fmt.Errorf("cloudPrivateIPConfig provided to Apply must not be nil")
+	}
+	patchOpts := opts.ToPatchOptions()
+	data, err := json.Marshal(cloudPrivateIPConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	name := cloudPrivateIPConfig.Name
+	if name == nil {
+		return nil, fmt.Errorf("cloudPrivateIPConfig.Name must be provided to Apply")
+	}
+
+	result = &v1.CloudPrivateIPConfig{}
+	err = c.client.Patch(types.ApplyPatchType).
+		Resource("cloudprivateipconfigs").
+		Name(*name).
+		SubResource("status").
+		VersionedParams(&patchOpts, scheme.ParameterCodec).
 		Body(data).
 		Do(ctx).
 		Into(result)

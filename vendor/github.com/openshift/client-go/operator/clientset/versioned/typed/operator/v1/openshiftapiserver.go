@@ -4,9 +4,12 @@ package v1
 
 import (
 	"context"
+	json "encoding/json"
+	"fmt"
 	"time"
 
 	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -31,6 +34,8 @@ type OpenShiftAPIServerInterface interface {
 	List(ctx context.Context, opts metav1.ListOptions) (*v1.OpenShiftAPIServerList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.OpenShiftAPIServer, err error)
+	Apply(ctx context.Context, openShiftAPIServer *operatorv1.OpenShiftAPIServerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.OpenShiftAPIServer, err error)
+	ApplyStatus(ctx context.Context, openShiftAPIServer *operatorv1.OpenShiftAPIServerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.OpenShiftAPIServer, err error)
 	OpenShiftAPIServerExpansion
 }
 
@@ -161,6 +166,60 @@ func (c *openShiftAPIServers) Patch(ctx context.Context, name string, pt types.P
 		Name(name).
 		SubResource(subresources...).
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(data).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// Apply takes the given apply declarative configuration, applies it and returns the applied openShiftAPIServer.
+func (c *openShiftAPIServers) Apply(ctx context.Context, openShiftAPIServer *operatorv1.OpenShiftAPIServerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.OpenShiftAPIServer, err error) {
+	if openShiftAPIServer == nil {
+		return nil, fmt.Errorf("openShiftAPIServer provided to Apply must not be nil")
+	}
+	patchOpts := opts.ToPatchOptions()
+	data, err := json.Marshal(openShiftAPIServer)
+	if err != nil {
+		return nil, err
+	}
+	name := openShiftAPIServer.Name
+	if name == nil {
+		return nil, fmt.Errorf("openShiftAPIServer.Name must be provided to Apply")
+	}
+	result = &v1.OpenShiftAPIServer{}
+	err = c.client.Patch(types.ApplyPatchType).
+		Resource("openshiftapiservers").
+		Name(*name).
+		VersionedParams(&patchOpts, scheme.ParameterCodec).
+		Body(data).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// ApplyStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
+func (c *openShiftAPIServers) ApplyStatus(ctx context.Context, openShiftAPIServer *operatorv1.OpenShiftAPIServerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.OpenShiftAPIServer, err error) {
+	if openShiftAPIServer == nil {
+		return nil, fmt.Errorf("openShiftAPIServer provided to Apply must not be nil")
+	}
+	patchOpts := opts.ToPatchOptions()
+	data, err := json.Marshal(openShiftAPIServer)
+	if err != nil {
+		return nil, err
+	}
+
+	name := openShiftAPIServer.Name
+	if name == nil {
+		return nil, fmt.Errorf("openShiftAPIServer.Name must be provided to Apply")
+	}
+
+	result = &v1.OpenShiftAPIServer{}
+	err = c.client.Patch(types.ApplyPatchType).
+		Resource("openshiftapiservers").
+		Name(*name).
+		SubResource("status").
+		VersionedParams(&patchOpts, scheme.ParameterCodec).
 		Body(data).
 		Do(ctx).
 		Into(result)

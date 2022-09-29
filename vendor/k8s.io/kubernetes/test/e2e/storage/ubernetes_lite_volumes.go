@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -93,7 +93,7 @@ func PodsUseStaticPVsOrFail(f *framework.Framework, podCount int, image string) 
 			e2epod.DeletePodOrFail(c, ns, config.pod.Name)
 		}
 		for _, config := range configs {
-			e2epod.WaitForPodNoLongerRunningInNamespace(c, config.pod.Name, ns)
+			e2epod.WaitTimeoutForPodNoLongerRunningOrNotFoundInNamespace(c, config.pod.Name, ns)
 			e2epv.PVPVCCleanup(c, ns, config.pv, config.pvc)
 			err = e2epv.DeletePVSource(config.pvSource)
 			framework.ExpectNoError(err)
