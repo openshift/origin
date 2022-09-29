@@ -4,9 +4,12 @@ package v1beta1
 
 import (
 	"context"
+	json "encoding/json"
+	"fmt"
 	"time"
 
 	v1beta1 "github.com/openshift/api/machine/v1beta1"
+	machinev1beta1 "github.com/openshift/client-go/machine/applyconfigurations/machine/v1beta1"
 	scheme "github.com/openshift/client-go/machine/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -31,6 +34,8 @@ type MachineHealthCheckInterface interface {
 	List(ctx context.Context, opts v1.ListOptions) (*v1beta1.MachineHealthCheckList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.MachineHealthCheck, err error)
+	Apply(ctx context.Context, machineHealthCheck *machinev1beta1.MachineHealthCheckApplyConfiguration, opts v1.ApplyOptions) (result *v1beta1.MachineHealthCheck, err error)
+	ApplyStatus(ctx context.Context, machineHealthCheck *machinev1beta1.MachineHealthCheckApplyConfiguration, opts v1.ApplyOptions) (result *v1beta1.MachineHealthCheck, err error)
 	MachineHealthCheckExpansion
 }
 
@@ -172,6 +177,62 @@ func (c *machineHealthChecks) Patch(ctx context.Context, name string, pt types.P
 		Name(name).
 		SubResource(subresources...).
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(data).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// Apply takes the given apply declarative configuration, applies it and returns the applied machineHealthCheck.
+func (c *machineHealthChecks) Apply(ctx context.Context, machineHealthCheck *machinev1beta1.MachineHealthCheckApplyConfiguration, opts v1.ApplyOptions) (result *v1beta1.MachineHealthCheck, err error) {
+	if machineHealthCheck == nil {
+		return nil, fmt.Errorf("machineHealthCheck provided to Apply must not be nil")
+	}
+	patchOpts := opts.ToPatchOptions()
+	data, err := json.Marshal(machineHealthCheck)
+	if err != nil {
+		return nil, err
+	}
+	name := machineHealthCheck.Name
+	if name == nil {
+		return nil, fmt.Errorf("machineHealthCheck.Name must be provided to Apply")
+	}
+	result = &v1beta1.MachineHealthCheck{}
+	err = c.client.Patch(types.ApplyPatchType).
+		Namespace(c.ns).
+		Resource("machinehealthchecks").
+		Name(*name).
+		VersionedParams(&patchOpts, scheme.ParameterCodec).
+		Body(data).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// ApplyStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
+func (c *machineHealthChecks) ApplyStatus(ctx context.Context, machineHealthCheck *machinev1beta1.MachineHealthCheckApplyConfiguration, opts v1.ApplyOptions) (result *v1beta1.MachineHealthCheck, err error) {
+	if machineHealthCheck == nil {
+		return nil, fmt.Errorf("machineHealthCheck provided to Apply must not be nil")
+	}
+	patchOpts := opts.ToPatchOptions()
+	data, err := json.Marshal(machineHealthCheck)
+	if err != nil {
+		return nil, err
+	}
+
+	name := machineHealthCheck.Name
+	if name == nil {
+		return nil, fmt.Errorf("machineHealthCheck.Name must be provided to Apply")
+	}
+
+	result = &v1beta1.MachineHealthCheck{}
+	err = c.client.Patch(types.ApplyPatchType).
+		Namespace(c.ns).
+		Resource("machinehealthchecks").
+		Name(*name).
+		SubResource("status").
+		VersionedParams(&patchOpts, scheme.ParameterCodec).
 		Body(data).
 		Do(ctx).
 		Into(result)

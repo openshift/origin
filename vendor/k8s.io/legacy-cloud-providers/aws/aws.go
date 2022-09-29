@@ -175,7 +175,9 @@ const ServiceAnnotationLoadBalancerSSLNegotiationPolicy = "service.beta.kubernet
 // ServiceAnnotationLoadBalancerBEProtocol is the annotation used on the service
 // to specify the protocol spoken by the backend (pod) behind a listener.
 // If `http` (default) or `https`, an HTTPS listener that terminates the
-//  connection and parses headers is created.
+//
+//	connection and parses headers is created.
+//
 // If set to `ssl` or `tcp`, a "raw" SSL listener is used.
 // If set to `http` and `aws-load-balancer-ssl-cert` is not used then
 // a HTTP listener is used.
@@ -238,9 +240,9 @@ const ServiceAnnotationLoadBalancerTargetNodeLabels = "service.beta.kubernetes.i
 // subnetID or subnetName from different AZs
 // By default, the controller will auto-discover the subnets. If there are multiple subnets per AZ, auto-discovery
 // will break the tie in the following order -
-//   1. prefer the subnet with the correct role tag. kubernetes.io/role/elb for public and kubernetes.io/role/internal-elb for private access
-//   2. prefer the subnet with the cluster tag kubernetes.io/cluster/<Cluster Name>
-//   3. prefer the subnet that is first in lexicographic order
+//  1. prefer the subnet with the correct role tag. kubernetes.io/role/elb for public and kubernetes.io/role/internal-elb for private access
+//  2. prefer the subnet with the cluster tag kubernetes.io/cluster/<Cluster Name>
+//  3. prefer the subnet that is first in lexicographic order
 const ServiceAnnotationLoadBalancerSubnets = "service.beta.kubernetes.io/aws-load-balancer-subnets"
 
 // Event key when a volume is stuck on attaching state when being attached to a volume
@@ -1207,7 +1209,7 @@ func init() {
 			creds = credentials.NewChainCredentials(
 				[]credentials.Provider{
 					&credentials.EnvProvider{},
-					provider,
+					assumeRoleProvider(provider),
 				})
 		}
 
@@ -3362,6 +3364,21 @@ func (c *Cloud) ensureSecurityGroup(name string, description string, additionalT
 		createRequest.VpcId = &c.vpcID
 		createRequest.GroupName = &name
 		createRequest.Description = &description
+		tags := c.tagging.buildTags(ResourceLifecycleOwned, additionalTags)
+		var awsTags []*ec2.Tag
+		for k, v := range tags {
+			tag := &ec2.Tag{
+				Key:   aws.String(k),
+				Value: aws.String(v),
+			}
+			awsTags = append(awsTags, tag)
+		}
+		createRequest.TagSpecifications = []*ec2.TagSpecification{
+			{
+				ResourceType: aws.String(ec2.ResourceTypeSecurityGroup),
+				Tags:         awsTags,
+			},
+		}
 
 		createResponse, err := c.ec2.CreateSecurityGroup(createRequest)
 		if err != nil {
@@ -3387,14 +3404,6 @@ func (c *Cloud) ensureSecurityGroup(name string, description string, additionalT
 		return "", fmt.Errorf("created security group, but id was not returned: %s", name)
 	}
 
-	err := c.tagging.createTags(c.ec2, groupID, ResourceLifecycleOwned, additionalTags)
-	if err != nil {
-		// If we retry, ensureClusterTags will recover from this - it
-		// will add the missing tags.  We could delete the security
-		// group here, but that doesn't feel like the right thing, as
-		// the caller is likely to retry the create
-		return "", fmt.Errorf("error tagging security group: %q", err)
-	}
 	return groupID, nil
 }
 
@@ -3751,8 +3760,8 @@ func (c *Cloud) buildELBSecurityGroupList(serviceName types.NamespacedName, load
 
 // sortELBSecurityGroupList returns a list of sorted securityGroupIDs based on the original order
 // from buildELBSecurityGroupList. The logic is:
-//  * securityGroups specified by ServiceAnnotationLoadBalancerSecurityGroups appears first in order
-//  * securityGroups specified by ServiceAnnotationLoadBalancerExtraSecurityGroups appears last in order
+//   - securityGroups specified by ServiceAnnotationLoadBalancerSecurityGroups appears first in order
+//   - securityGroups specified by ServiceAnnotationLoadBalancerExtraSecurityGroups appears last in order
 func (c *Cloud) sortELBSecurityGroupList(securityGroupIDs []string, annotations map[string]string) {
 	annotatedSGList := getSGListFromAnnotation(annotations[ServiceAnnotationLoadBalancerSecurityGroups])
 	annotatedExtraSGList := getSGListFromAnnotation(annotations[ServiceAnnotationLoadBalancerExtraSecurityGroups])

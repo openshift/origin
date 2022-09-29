@@ -97,13 +97,13 @@ func (PrometheusRuleRef) SwaggerDoc() map[string]string {
 
 var map_RelabelConfig = map[string]string{
 	"":             "RelabelConfig allows dynamic rewriting of label sets for alerts. See Prometheus documentation: - https://prometheus.io/docs/prometheus/latest/configuration/configuration/#alert_relabel_configs - https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config",
-	"sourceLabels": "sourceLabels select values from existing labels. Their content is concatenated using the configured separator and matched against the configured regular expression for the replace, keep, and drop actions.",
+	"sourceLabels": "sourceLabels select values from existing labels. Their content is concatenated using the configured separator and matched against the configured regular expression for the Replace, Keep, and Drop actions.",
 	"separator":    "separator placed between concatenated source label values. When omitted, Prometheus will use its default value of ';'.",
-	"targetLabel":  "targetLabel to which the resulting value is written in a replace action. It is mandatory for 'replace' and 'hashmod' actions. Regex capture groups are available.",
+	"targetLabel":  "targetLabel to which the resulting value is written in a 'Replace' action. It is mandatory for 'Replace' and 'HashMod' actions. Regex capture groups are available.",
 	"regex":        "regex against which the extracted value is matched. Default is: '(.*)'",
-	"modulus":      "modulus to take of the hash of the source label values.  This can be combined with the 'hashmod' action to set 'target_label' to the 'modulus' of a hash of the concatenated 'source_labels'.",
-	"replacement":  "replacement value against which a regex replace is performed if the regular expression matches. This is required if the action is 'replace' or 'labelmap'. Regex capture groups are available. Default is: '$1'",
-	"action":       "action to perform based on regex matching. Must be one of: replace, keep, drop, hashmod, labelmap, labeldrop, or labelkeep.  Default is: 'replace'",
+	"modulus":      "modulus to take of the hash of the source label values.  This can be combined with the 'HashMod' action to set 'target_label' to the 'modulus' of a hash of the concatenated 'source_labels'.",
+	"replacement":  "replacement value against which a regex replace is performed if the regular expression matches. This is required if the action is 'Replace' or 'LabelMap'. Regex capture groups are available. Default is: '$1'",
+	"action":       "action to perform based on regex matching. Must be one of: Replace, Keep, Drop, HashMod, LabelMap, LabelDrop, or LabelKeep.  Default is: 'Replace'",
 }
 
 func (RelabelConfig) SwaggerDoc() map[string]string {

@@ -31,5 +31,10 @@ func Resource(resource string) schema.GroupResource {
 func addKnownTypes(scheme *runtime.Scheme) error {
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 
+	scheme.AddKnownTypes(GroupVersion,
+		&ControlPlaneMachineSet{},
+		&ControlPlaneMachineSetList{},
+	)
+
 	return nil
 }

@@ -21,6 +21,7 @@ type OperatorV1Interface interface {
 	DNSesGetter
 	EtcdsGetter
 	IngressControllersGetter
+	InsightsOperatorsGetter
 	KubeAPIServersGetter
 	KubeControllerManagersGetter
 	KubeSchedulersGetter
@@ -73,6 +74,10 @@ func (c *OperatorV1Client) Etcds() EtcdInterface {
 
 func (c *OperatorV1Client) IngressControllers(namespace string) IngressControllerInterface {
 	return newIngressControllers(c, namespace)
+}
+
+func (c *OperatorV1Client) InsightsOperators() InsightsOperatorInterface {
+	return newInsightsOperators(c)
 }
 
 func (c *OperatorV1Client) KubeAPIServers() KubeAPIServerInterface {
