@@ -15,7 +15,6 @@ import (
 // - An egress pod called <name>
 // - A NAD called <name>
 //
-//
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 //

@@ -15,3 +15,5 @@ genswaggertypedocs
 .glide/
 .idea/
 _output/
+
+models-schema
