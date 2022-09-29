@@ -1733,6 +1733,14 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc help works as expected": "works as expected [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by all": "by all [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by checking previous scale": "by checking previous scale [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by label": "by label [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by name": "by name [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc label pod": "pod [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc observe works as expected [apigroup:config.openshift.io]": "works as expected [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
@@ -1772,8 +1780,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/framework-test.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/framework-test.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/get.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/get.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
-
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/idle.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/idle.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/image-lookup.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/image-lookup.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
 
