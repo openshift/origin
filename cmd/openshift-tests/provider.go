@@ -49,6 +49,7 @@ func initializeTestFramework(context *e2e.TestContextType, config *exutilcluster
 	context.AllowedNotReadyNodes = -1
 	context.MinStartupPods = -1
 	context.MaxNodesToGather = 0
+	context.KubeConfig = os.Getenv("KUBECONFIG")
 
 	// allow the CSI tests to access test data, but only briefly
 	// TODO: ideally CSI would not use any of these test methods
