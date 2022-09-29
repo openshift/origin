@@ -20,6 +20,8 @@ type EtcdExpansion interface{}
 
 type IngressControllerExpansion interface{}
 
+type InsightsOperatorExpansion interface{}
+
 type KubeAPIServerExpansion interface{}
 
 type KubeControllerManagerExpansion interface{}
