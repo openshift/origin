@@ -1233,7 +1233,7 @@ func sendProbesToHostPort(oc *exutil.CLI, proberPod *v1.Pod, url, targetProtocol
 		go func() {
 			defer wg.Done()
 			time.Sleep(time.Duration(n) * time.Millisecond)
-			output, err := runOcWithRetry(oc.AsAdmin(), "exec", proberPod.Name, "--", "curl", "-s", request)
+			output, err := runOcWithRetry(oc.AsAdmin(), "exec", proberPod.Name, "--", "curl", "--max-time", "15", "-s", request)
 			// Report errors.
 			if err != nil {
 				errChan <- fmt.Errorf("Query failed. Request: %s, Output: %s, Error: %v", request, output, err)
