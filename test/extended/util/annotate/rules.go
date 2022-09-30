@@ -55,12 +55,6 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1957894
 			`\[sig-node\] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret`,
 
-			// The new NetworkPolicy test suite is extremely resource
-			// intensive and causes itself and other concurrently-running
-			// tests to be flaky.
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1980141
-			`\[sig-network\] Netpol `,
-
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1996128
 			`\[sig-network\] \[Feature:IPv6DualStack\] should have ipv4 and ipv6 node podCIDRs`,
 
