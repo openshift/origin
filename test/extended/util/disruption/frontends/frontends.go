@@ -130,8 +130,8 @@ func (t *AvailableTest) Test(f *framework.Framework, done <-chan struct{}, upgra
 	// framework.ProviderIs("gce") removed here in 4.9 due to regression. BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1983758
 	case framework.ProviderIs("azure"), framework.ProviderIs("aws"):
 		if hasAllFixes {
-			framework.Logf("Cluster contains no versions older than 4.8, tolerating no disruption")
-			toleratedDisruption = 0
+			framework.Logf("Cluster contains no versions older than 4.8, tolerating 2.5% disruption")
+			toleratedDisruption = 0.025
 		}
 	}
 	disruption.ExpectNoDisruption(f, toleratedDisruption, end.Sub(start), m.Intervals(time.Time{}, time.Time{}), "Frontends were unreachable during disruption")
