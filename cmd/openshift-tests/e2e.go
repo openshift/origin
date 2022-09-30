@@ -361,10 +361,6 @@ var staticSuites = testSuites{
 				if isDisabled(name) {
 					return false
 				}
-				// Skip NetworkPolicy tests for https://bugzilla.redhat.com/show_bug.cgi?id=1980141
-				if strings.Contains(name, "[Feature:NetworkPolicy]") {
-					return false
-				}
 				// Serial:Self are tests that can't be run in parallel with a copy of itself
 				if strings.Contains(name, "[Serial:Self]") {
 					return false
