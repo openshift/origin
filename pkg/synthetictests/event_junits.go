@@ -47,6 +47,7 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testAPIQuotaEvents(events)...)
 	tests = append(tests, testErrorUpdatingEndpointSlices(events)...)
 	tests = append(tests, testConfigOperatorReadinessProbe(events)...)
+	tests = append(tests, testHttpConnectionLost(events)...)
 
 	return tests
 }
@@ -91,6 +92,8 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testNoExcessiveSecretGrowthDuringUpgrade()...)
 	tests = append(tests, testNoExcessiveConfigMapGrowthDuringUpgrade()...)
 	tests = append(tests, testConfigOperatorReadinessProbe(events)...)
+
+	tests = append(tests, testHttpConnectionLost(events)...)
 
 	return tests
 }

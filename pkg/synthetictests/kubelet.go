@@ -53,6 +53,35 @@ func testKubeletToAPIServerGracefulTermination(events monitorapi.Intervals) []*j
 	return tests
 }
 
+func testHttpConnectionLost(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] http client connection lost"
+
+	var failures []string
+	for _, event := range events {
+		if strings.Contains(event.Message, "reason/HttpClientConnectionLost") {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
+		}
+	}
+
+	// failures during a run always fail the test suite
+	var tests []*junitapi.JUnitTestCase
+	if len(failures) > 0 {
+		tests = append(tests, &junitapi.JUnitTestCase{
+			Name:      testName,
+			SystemOut: strings.Join(failures, "\n"),
+			FailureOutput: &junitapi.FailureOutput{
+				Output: fmt.Sprintf("%d kubelet logs contain errors from http client connections lost unexpectedly.\n\n%v", len(failures), strings.Join(failures, "\n")),
+			},
+		})
+	}
+
+	// do we want this to fail completely or flake?
+	// for now we flake
+	tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
+
+	return tests
+}
+
 func testKubeAPIServerGracefulTermination(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-api-machinery] kube-apiserver terminates within graceful termination period"
 
