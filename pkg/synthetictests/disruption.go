@@ -57,6 +57,26 @@ func testServerAvailability(
 			},
 		}
 	}
+
+	// Check if we got an empty result, which signals we did not have historical data for this NURP and thus
+	// do not want to run the test.
+	if allowedDisruption == nil {
+		// An empty StatisticalDuration implies we did not find any data and thus do not want to run the disruption
+		// test. We'll mark it as a flake and explain why so we can find these tests should anyone need to look.
+		return []*junitapi.JUnitTestCase{
+			{
+				Name:     testName,
+				Duration: jobRunDuration.Seconds(),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("skipping test due to no historical disruption data: %s", disruptionDetails),
+				},
+			},
+			{
+				Name: testName,
+			},
+		}
+	}
+
 	roundedAllowedDisruption := allowedDisruption.Round(time.Second)
 	if allowedDisruption.Milliseconds() == disruption.DefaultAllowedDisruption {
 		// don't round if we're using the default value so we can find this.

@@ -110,23 +110,31 @@ func (b *bestMatcher) BestMatch(name string, jobType platformidentification.JobT
 		}
 	}
 
-	defaultReturn := StatisticalData{
-		DataKey: exactMatchKey,
-		P95:     b.defaultReturn,
-		P99:     b.defaultReturn,
-	}
-	return defaultReturn,
+	// TODO: ensure our core platforms are here, error if not. We need to be sure our aggregated jobs are running this
+	// but in a way that won't require manual code maintenance every release...
+
+	// We now only track disruption data for frequently run jobs where we have enough runs to make a reliable P95 or P99
+	// determination. If we did not record historical data for this NURP combination, we do not wish to enforce
+	// disruption testing on a per job basis. Return an empty data result to signal we have no data, and skip the test.
+	return StatisticalData{},
 		fmt.Sprintf("(no exact or fuzzy match for jobType=%#v)", jobType),
 		nil
 }
 
 func (b *bestMatcher) BestMatchDuration(name string, jobType platformidentification.JobType) (StatisticalDuration, string, error) {
 	rawData, details, err := b.BestMatch(name, jobType)
+	// Empty data implies we have none, and thus do not want to run the test.
+	if rawData == (StatisticalData{}) {
+		return StatisticalDuration{}, details, err
+	}
 	return toStatisticalDuration(rawData), details, err
 }
 
 func (b *bestMatcher) BestMatchP99(name string, jobType platformidentification.JobType) (*time.Duration, string, error) {
 	rawData, details, err := b.BestMatchDuration(name, jobType)
+	if rawData == (StatisticalDuration{}) {
+		return nil, details, err
+	}
 	return &rawData.P99, details, err
 }
 
