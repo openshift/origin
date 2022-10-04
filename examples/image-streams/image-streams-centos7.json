@@ -1,5 +1,5 @@
 {
-  "kind": "List",
+  "kind": "ImageStreamList",
   "apiVersion": "v1",
   "items": [
     {

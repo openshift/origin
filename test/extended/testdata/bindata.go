@@ -2801,7 +2801,7 @@ func examplesDbTemplatesRedisPersistentTemplateJson() (*asset, error) {
 }
 
 var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
-  "kind": "List",
+  "kind": "ImageStreamList",
   "apiVersion": "v1",
   "items": [
     {
