@@ -23,7 +23,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageInfo] Image info", func() {
 
 	oc = exutil.NewCLIWithPodSecurityLevel("image-info", admissionapi.LevelBaseline)
 
-	g.It("should display information about images", func() {
+	g.It("should display information about images [apigroup:image.openshift.io]", func() {
 		ns = oc.Namespace()
 		cli := oc.KubeFramework().PodClient()
 		pod := cli.Create(cliPodWithPullSecret(oc, heredoc.Docf(`

@@ -18,8 +18,6 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
-	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
-	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
@@ -42,7 +40,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 	oc = exutil.NewCLIWithPodSecurityLevel("image-layers", admissionapi.LevelBaseline)
 
 	g.It("should identify a deleted image as missing [apigroup:image.openshift.io]", func() {
-		client := imagev1client.NewForConfigOrDie(oc.AdminConfig()).ImageV1()
+		client := oc.AdminImageClient().ImageV1()
 		_, err := client.ImageStreams(oc.Namespace()).Create(ctx, &imagev1.ImageStream{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test",
@@ -80,7 +78,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 
 	g.It("should return layers from tagged images [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
 		ns = []string{oc.Namespace()}
-		client := imagev1client.NewForConfigOrDie(oc.UserConfig()).ImageV1()
+		client := oc.ImageClient().ImageV1()
 		isi, err := client.ImageStreamImports(oc.Namespace()).Create(ctx, &imagev1.ImageStreamImport{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "1",
@@ -160,7 +158,7 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 `
 
 		g.By("running a build based on our tagged layer")
-		buildClient := buildv1client.NewForConfigOrDie(oc.UserConfig()).BuildV1()
+		buildClient := oc.BuildClient().BuildV1()
 		_, err = buildClient.Builds(oc.Namespace()).Create(ctx, &buildv1.Build{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "output",
