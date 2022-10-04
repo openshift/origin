@@ -25,12 +25,14 @@ func TestGetClosestP95Value(t *testing.T) {
 		jobType   platformidentification.JobType
 		want      historicaldata.StatisticalDuration
 	}{
+		// WARNING: these tests are relying on query_results.json, a file which is updated dynamically and often,
+		// including removing entire releases. This test MUST get refactored to inject it's own current results.
 		{
 			name:      "test-that-failed-in-ci",
 			alertName: "etcdGRPCRequestsSlow",
 			jobType: platformidentification.JobType{
-				Release:      "4.10",
-				FromRelease:  "4.10",
+				Release:      "4.12",
+				FromRelease:  "4.12",
 				Platform:     "gcp",
 				Architecture: "amd64",
 				Network:      "sdn",
@@ -40,8 +42,8 @@ func TestGetClosestP95Value(t *testing.T) {
 				DataKey: historicaldata.DataKey{
 					Name: "etcdGRPCRequestsSlow",
 					JobType: platformidentification.JobType{
-						Release:      "4.10",
-						FromRelease:  "4.10",
+						Release:      "4.12",
+						FromRelease:  "4.12",
 						Platform:     "gcp",
 						Architecture: "amd64",
 						Network:      "sdn",
@@ -49,16 +51,16 @@ func TestGetClosestP95Value(t *testing.T) {
 					},
 				},
 
-				P95: mustDuration("3s"),
-				P99: mustDuration("3s"),
+				P95: mustDuration("4.8s"),
+				P99: mustDuration("1h9m24.72s"),
 			},
 		},
 		{
 			name:      "choose-different-arch",
 			alertName: "etcdGRPCRequestsSlow",
 			jobType: platformidentification.JobType{
-				Release:      "4.10",
-				FromRelease:  "4.10",
+				Release:      "4.12",
+				FromRelease:  "4.12",
 				Platform:     "gcp",
 				Architecture: "not-real",
 				Network:      "sdn",
@@ -68,8 +70,8 @@ func TestGetClosestP95Value(t *testing.T) {
 				DataKey: historicaldata.DataKey{
 					Name: "etcdGRPCRequestsSlow",
 					JobType: platformidentification.JobType{
-						Release:      "4.10",
-						FromRelease:  "4.10",
+						Release:      "4.12",
+						FromRelease:  "4.12",
 						Platform:     "gcp",
 						Architecture: "amd64",
 						Network:      "sdn",
@@ -77,8 +79,8 @@ func TestGetClosestP95Value(t *testing.T) {
 					},
 				},
 
-				P95: mustDuration("3s"),
-				P99: mustDuration("3s"),
+				P95: mustDuration("4.8s"),
+				P99: mustDuration("1h9m24.72s"),
 			},
 		},
 		{
@@ -91,21 +93,7 @@ func TestGetClosestP95Value(t *testing.T) {
 				Architecture: "amd64",
 				Topology:     "missing",
 			},
-			want: historicaldata.StatisticalDuration{
-				DataKey: historicaldata.DataKey{
-					Name: "ingress-to-oauth-server-reused-connections",
-					JobType: platformidentification.JobType{
-						Release:      "4.10",
-						FromRelease:  "4.10",
-						Platform:     "azure",
-						Architecture: "amd64",
-						Topology:     "missing",
-					},
-				},
-
-				P95: mustDuration("3.141s"),
-				P99: mustDuration("3.141s"),
-			},
+			want: historicaldata.StatisticalDuration{},
 		},
 	}
 	for _, tt := range tests {
