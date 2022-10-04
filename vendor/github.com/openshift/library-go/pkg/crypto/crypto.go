@@ -693,6 +693,43 @@ func MakeCAConfigForDuration(name string, caLifetime time.Duration, issuer *CA) 
 	return signerConfig, nil
 }
 
+func (ca *CA) EnsureSubCA(certFile, keyFile, serialFile, name string, expireDays int) (*CA, bool, error) {
+	if subCA, err := GetCA(certFile, keyFile, serialFile); err == nil {
+		return subCA, false, err
+	}
+	subCA, err := ca.MakeAndWriteSubCA(certFile, keyFile, serialFile, name, expireDays)
+	return subCA, true, err
+}
+
+func (ca *CA) MakeAndWriteSubCA(certFile, keyFile, serialFile, name string, expireDays int) (*CA, error) {
+	klog.V(4).Infof("Generating sub-CA certificate in %s, key in %s, serial in %s", certFile, keyFile, serialFile)
+
+	subCAConfig, err := MakeCAConfigForDuration(name, time.Duration(expireDays)*time.Hour*24, ca)
+	if err != nil {
+		return nil, err
+	}
+
+	var serialGenerator SerialGenerator
+	if len(serialFile) > 0 {
+		serialGenerator, err = NewSerialFileGenerator(serialFile)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		serialGenerator = &RandomSerialGenerator{}
+	}
+
+	subCA := &CA{
+		Config:          subCAConfig,
+		SerialGenerator: serialGenerator,
+	}
+
+	if err := subCAConfig.WriteCertConfigFile(certFile, keyFile); err != nil {
+		return subCA, err
+	}
+	return subCA, nil
+}
+
 func (ca *CA) EnsureServerCert(certFile, keyFile string, hostnames sets.String, expireDays int) (*TLSCertificateConfig, bool, error) {
 	certConfig, err := GetServerCert(certFile, keyFile, hostnames)
 	if err != nil {

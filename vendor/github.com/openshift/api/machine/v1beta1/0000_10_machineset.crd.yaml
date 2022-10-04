@@ -2,10 +2,10 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    api-approved.openshift.io: https://github.com/openshift/api/pull/1032
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
-    api-approved.openshift.io: https://github.com/openshift/api/pull/1032
   creationTimestamp: null
   name: machinesets.machine.openshift.io
 spec:
@@ -17,328 +17,542 @@ spec:
     singular: machineset
   scope: Namespaced
   versions:
-    - additionalPrinterColumns:
-        - description: Desired Replicas
-          jsonPath: .spec.replicas
-          name: Desired
-          type: integer
-        - description: Current Replicas
-          jsonPath: .status.replicas
-          name: Current
-          type: integer
-        - description: Ready Replicas
-          jsonPath: .status.readyReplicas
-          name: Ready
-          type: integer
-        - description: Observed number of available replicas
-          jsonPath: .status.availableReplicas
-          name: Available
-          type: string
-        - description: Machineset age
-          jsonPath: .metadata.creationTimestamp
-          name: Age
-          type: date
-      name: v1beta1
-      schema:
-        openAPIV3Schema:
-          description: 'MachineSet ensures that a specified number of machines replicas are running at any given time. Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).'
-          type: object
-          properties:
-            apiVersion:
-              description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-              type: string
-            kind:
-              description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-              type: string
-            metadata:
-              type: object
-            spec:
-              description: MachineSetSpec defines the desired state of MachineSet
-              type: object
-              properties:
-                deletePolicy:
-                  description: DeletePolicy defines the policy used to identify nodes to delete when downscaling. Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
-                  type: string
-                  enum:
-                    - Random
-                    - Newest
-                    - Oldest
-                minReadySeconds:
-                  description: MinReadySeconds is the minimum number of seconds for which a newly created machine should be ready. Defaults to 0 (machine will be considered available as soon as it is ready)
-                  type: integer
-                  format: int32
-                replicas:
-                  description: Replicas is the number of desired replicas. This is a pointer to distinguish between explicit zero and unspecified. Defaults to 1.
-                  type: integer
-                  format: int32
-                  default: 1
-                selector:
-                  description: 'Selector is a label query over machines that should match the replica count. Label keys and values that must match in order to be controlled by this MachineSet. It must match the machine template''s labels. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors'
-                  type: object
-                  properties:
-                    matchExpressions:
-                      description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
-                      type: array
-                      items:
-                        description: A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
-                        type: object
-                        required:
-                          - key
-                          - operator
-                        properties:
-                          key:
-                            description: key is the label key that the selector applies to.
-                            type: string
-                          operator:
-                            description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
-                            type: string
-                          values:
-                            description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
-                            type: array
-                            items:
-                              type: string
-                    matchLabels:
-                      description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
-                      type: object
-                      additionalProperties:
-                        type: string
-                template:
-                  description: Template is the object that describes the machine that will be created if insufficient replicas are detected.
-                  type: object
-                  properties:
-                    metadata:
-                      description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
-                      type: object
+  - additionalPrinterColumns:
+    - description: Desired Replicas
+      jsonPath: .spec.replicas
+      name: Desired
+      type: integer
+    - description: Current Replicas
+      jsonPath: .status.replicas
+      name: Current
+      type: integer
+    - description: Ready Replicas
+      jsonPath: .status.readyReplicas
+      name: Ready
+      type: integer
+    - description: Observed number of available replicas
+      jsonPath: .status.availableReplicas
+      name: Available
+      type: string
+    - description: Machineset age
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: 'MachineSet ensures that a specified number of machines replicas
+          are running at any given time. Compatibility level 2: Stable within a major
+          release for a minimum of 9 months or 3 minor releases (whichever is longer).'
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MachineSetSpec defines the desired state of MachineSet
+            properties:
+              deletePolicy:
+                description: DeletePolicy defines the policy used to identify nodes
+                  to delete when downscaling. Defaults to "Random".  Valid values
+                  are "Random, "Newest", "Oldest"
+                enum:
+                - Random
+                - Newest
+                - Oldest
+                type: string
+              minReadySeconds:
+                description: MinReadySeconds is the minimum number of seconds for
+                  which a newly created machine should be ready. Defaults to 0 (machine
+                  will be considered available as soon as it is ready)
+                format: int32
+                type: integer
+              replicas:
+                default: 1
+                description: Replicas is the number of desired replicas. This is a
+                  pointer to distinguish between explicit zero and unspecified. Defaults
+                  to 1.
+                format: int32
+                type: integer
+              selector:
+                description: 'Selector is a label query over machines that should
+                  match the replica count. Label keys and values that must match in
+                  order to be controlled by this MachineSet. It must match the machine
+                  template''s labels. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors'
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: A label selector requirement is a selector that
+                        contains values, a key, and an operator that relates the key
+                        and values.
                       properties:
-                        annotations:
-                          description: 'Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. They are not queryable and should be preserved when modifying objects. More info: http://kubernetes.io/docs/user-guide/annotations'
-                          type: object
-                          additionalProperties:
-                            type: string
-                        generateName:
-                          description: "GenerateName is an optional prefix, used by the server, to generate a unique name ONLY IF the Name field has not been provided. If this field is used, the name returned to the client will be different than the name passed. This value will also be combined with a unique suffix. The provided value has the same validation rules as the Name field, and may be truncated by the length of the suffix required to make the value unique on the server. \n If this field is specified and the generated name exists, the server will NOT return a 409 - instead, it will either return 201 Created or 500 with Reason ServerTimeout indicating a unique name could not be found in the time allotted, and the client should retry (optionally after the time indicated in the Retry-After header). \n Applied only if Name is not specified. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#idempotency"
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
                           type: string
-                        labels:
-                          description: 'Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels'
-                          type: object
-                          additionalProperties:
-                            type: string
-                        name:
-                          description: 'Name must be unique within a namespace. Is required when creating resources, although some resources may allow a client to request the generation of an appropriate name automatically. Name is primarily intended for creation idempotence and configuration definition. Cannot be updated. More info: http://kubernetes.io/docs/user-guide/identifiers#names'
+                        operator:
+                          description: operator represents a key's relationship to
+                            a set of values. Valid operators are In, NotIn, Exists
+                            and DoesNotExist.
                           type: string
-                        namespace:
-                          description: "Namespace defines the space within each name must be unique. An empty namespace is equivalent to the \"default\" namespace, but \"default\" is the canonical representation. Not all objects are required to be scoped to a namespace - the value of this field for those objects will be empty. \n Must be a DNS_LABEL. Cannot be updated. More info: http://kubernetes.io/docs/user-guide/namespaces"
-                          type: string
-                        ownerReferences:
-                          description: List of objects depended by this object. If ALL objects in the list have been deleted, this object will be garbage collected. If this object is managed by a controller, then an entry in this list will point to this controller, with the controller field set to true. There cannot be more than one managing controller.
-                          type: array
+                        values:
+                          description: values is an array of string values. If the
+                            operator is In or NotIn, the values array must be non-empty.
+                            If the operator is Exists or DoesNotExist, the values
+                            array must be empty. This array is replaced during a strategic
+                            merge patch.
                           items:
-                            description: OwnerReference contains enough information to let you identify an owning object. An owning object must be in the same namespace as the dependent, or be cluster-scoped, so there is no namespace field.
+                            type: string
+                          type: array
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: matchLabels is a map of {key,value} pairs. A single
+                      {key,value} in the matchLabels map is equivalent to an element
+                      of matchExpressions, whose key field is "key", the operator
+                      is "In", and the values array contains only "value". The requirements
+                      are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+              template:
+                description: Template is the object that describes the machine that
+                  will be created if insufficient replicas are detected.
+                properties:
+                  metadata:
+                    description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: 'Annotations is an unstructured key value map
+                          stored with a resource that may be set by external tools
+                          to store and retrieve arbitrary metadata. They are not queryable
+                          and should be preserved when modifying objects. More info:
+                          http://kubernetes.io/docs/user-guide/annotations'
+                        type: object
+                      generateName:
+                        description: "GenerateName is an optional prefix, used by
+                          the server, to generate a unique name ONLY IF the Name field
+                          has not been provided. If this field is used, the name returned
+                          to the client will be different than the name passed. This
+                          value will also be combined with a unique suffix. The provided
+                          value has the same validation rules as the Name field, and
+                          may be truncated by the length of the suffix required to
+                          make the value unique on the server. \n If this field is
+                          specified and the generated name exists, the server will
+                          NOT return a 409 - instead, it will either return 201 Created
+                          or 500 with Reason ServerTimeout indicating a unique name
+                          could not be found in the time allotted, and the client
+                          should retry (optionally after the time indicated in the
+                          Retry-After header). \n Applied only if Name is not specified.
+                          More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#idempotency"
+                        type: string
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: 'Map of string keys and values that can be used
+                          to organize and categorize (scope and select) objects. May
+                          match selectors of replication controllers and services.
+                          More info: http://kubernetes.io/docs/user-guide/labels'
+                        type: object
+                      name:
+                        description: 'Name must be unique within a namespace. Is required
+                          when creating resources, although some resources may allow
+                          a client to request the generation of an appropriate name
+                          automatically. Name is primarily intended for creation idempotence
+                          and configuration definition. Cannot be updated. More info:
+                          http://kubernetes.io/docs/user-guide/identifiers#names'
+                        type: string
+                      namespace:
+                        description: "Namespace defines the space within each name
+                          must be unique. An empty namespace is equivalent to the
+                          \"default\" namespace, but \"default\" is the canonical
+                          representation. Not all objects are required to be scoped
+                          to a namespace - the value of this field for those objects
+                          will be empty. \n Must be a DNS_LABEL. Cannot be updated.
+                          More info: http://kubernetes.io/docs/user-guide/namespaces"
+                        type: string
+                      ownerReferences:
+                        description: List of objects depended by this object. If ALL
+                          objects in the list have been deleted, this object will
+                          be garbage collected. If this object is managed by a controller,
+                          then an entry in this list will point to this controller,
+                          with the controller field set to true. There cannot be more
+                          than one managing controller.
+                        items:
+                          description: OwnerReference contains enough information
+                            to let you identify an owning object. An owning object
+                            must be in the same namespace as the dependent, or be
+                            cluster-scoped, so there is no namespace field.
+                          properties:
+                            apiVersion:
+                              description: API version of the referent.
+                              type: string
+                            blockOwnerDeletion:
+                              description: If true, AND if the owner has the "foregroundDeletion"
+                                finalizer, then the owner cannot be deleted from the
+                                key-value store until this reference is removed. See
+                                https://kubernetes.io/docs/concepts/architecture/garbage-collection/#foreground-deletion
+                                for how the garbage collector interacts with this
+                                field and enforces the foreground deletion. Defaults
+                                to false. To set this field, a user needs "delete"
+                                permission of the owner, otherwise 422 (Unprocessable
+                                Entity) will be returned.
+                              type: boolean
+                            controller:
+                              description: If true, this reference points to the managing
+                                controller.
+                              type: boolean
+                            kind:
+                              description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                              type: string
+                            name:
+                              description: 'Name of the referent. More info: http://kubernetes.io/docs/user-guide/identifiers#names'
+                              type: string
+                            uid:
+                              description: 'UID of the referent. More info: http://kubernetes.io/docs/user-guide/identifiers#uids'
+                              type: string
+                          required:
+                          - apiVersion
+                          - kind
+                          - name
+                          - uid
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        type: array
+                    type: object
+                  spec:
+                    description: 'Specification of the desired behavior of the machine.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status'
+                    properties:
+                      lifecycleHooks:
+                        description: LifecycleHooks allow users to pause operations
+                          on the machine at certain predefined points within the machine
+                          lifecycle.
+                        properties:
+                          preDrain:
+                            description: PreDrain hooks prevent the machine from being
+                              drained. This also blocks further lifecycle events,
+                              such as termination.
+                            items:
+                              description: LifecycleHook represents a single instance
+                                of a lifecycle hook
+                              properties:
+                                name:
+                                  description: Name defines a unique name for the
+                                    lifcycle hook. The name should be unique and descriptive,
+                                    ideally 1-3 words, in CamelCase or it may be namespaced,
+                                    eg. foo.example.com/CamelCase. Names must be unique
+                                    and should only be managed by a single entity.
+                                  maxLength: 256
+                                  minLength: 3
+                                  pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                                  type: string
+                                owner:
+                                  description: Owner defines the owner of the lifecycle
+                                    hook. This should be descriptive enough so that
+                                    users can identify who/what is responsible for
+                                    blocking the lifecycle. This could be the name
+                                    of a controller (e.g. clusteroperator/etcd) or
+                                    an administrator managing the hook.
+                                  maxLength: 512
+                                  minLength: 3
+                                  type: string
+                              required:
+                              - name
+                              - owner
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                          preTerminate:
+                            description: PreTerminate hooks prevent the machine from
+                              being terminated. PreTerminate hooks be actioned after
+                              the Machine has been drained.
+                            items:
+                              description: LifecycleHook represents a single instance
+                                of a lifecycle hook
+                              properties:
+                                name:
+                                  description: Name defines a unique name for the
+                                    lifcycle hook. The name should be unique and descriptive,
+                                    ideally 1-3 words, in CamelCase or it may be namespaced,
+                                    eg. foo.example.com/CamelCase. Names must be unique
+                                    and should only be managed by a single entity.
+                                  maxLength: 256
+                                  minLength: 3
+                                  pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                                  type: string
+                                owner:
+                                  description: Owner defines the owner of the lifecycle
+                                    hook. This should be descriptive enough so that
+                                    users can identify who/what is responsible for
+                                    blocking the lifecycle. This could be the name
+                                    of a controller (e.g. clusteroperator/etcd) or
+                                    an administrator managing the hook.
+                                  maxLength: 512
+                                  minLength: 3
+                                  type: string
+                              required:
+                              - name
+                              - owner
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                        type: object
+                      metadata:
+                        description: ObjectMeta will autopopulate the Node created.
+                          Use this to indicate what labels, annotations, name prefix,
+                          etc., should be used when creating the Node.
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            description: 'Annotations is an unstructured key value
+                              map stored with a resource that may be set by external
+                              tools to store and retrieve arbitrary metadata. They
+                              are not queryable and should be preserved when modifying
+                              objects. More info: http://kubernetes.io/docs/user-guide/annotations'
                             type: object
-                            required:
+                          generateName:
+                            description: "GenerateName is an optional prefix, used
+                              by the server, to generate a unique name ONLY IF the
+                              Name field has not been provided. If this field is used,
+                              the name returned to the client will be different than
+                              the name passed. This value will also be combined with
+                              a unique suffix. The provided value has the same validation
+                              rules as the Name field, and may be truncated by the
+                              length of the suffix required to make the value unique
+                              on the server. \n If this field is specified and the
+                              generated name exists, the server will NOT return a
+                              409 - instead, it will either return 201 Created or
+                              500 with Reason ServerTimeout indicating a unique name
+                              could not be found in the time allotted, and the client
+                              should retry (optionally after the time indicated in
+                              the Retry-After header). \n Applied only if Name is
+                              not specified. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#idempotency"
+                            type: string
+                          labels:
+                            additionalProperties:
+                              type: string
+                            description: 'Map of string keys and values that can be
+                              used to organize and categorize (scope and select) objects.
+                              May match selectors of replication controllers and services.
+                              More info: http://kubernetes.io/docs/user-guide/labels'
+                            type: object
+                          name:
+                            description: 'Name must be unique within a namespace.
+                              Is required when creating resources, although some resources
+                              may allow a client to request the generation of an appropriate
+                              name automatically. Name is primarily intended for creation
+                              idempotence and configuration definition. Cannot be
+                              updated. More info: http://kubernetes.io/docs/user-guide/identifiers#names'
+                            type: string
+                          namespace:
+                            description: "Namespace defines the space within each
+                              name must be unique. An empty namespace is equivalent
+                              to the \"default\" namespace, but \"default\" is the
+                              canonical representation. Not all objects are required
+                              to be scoped to a namespace - the value of this field
+                              for those objects will be empty. \n Must be a DNS_LABEL.
+                              Cannot be updated. More info: http://kubernetes.io/docs/user-guide/namespaces"
+                            type: string
+                          ownerReferences:
+                            description: List of objects depended by this object.
+                              If ALL objects in the list have been deleted, this object
+                              will be garbage collected. If this object is managed
+                              by a controller, then an entry in this list will point
+                              to this controller, with the controller field set to
+                              true. There cannot be more than one managing controller.
+                            items:
+                              description: OwnerReference contains enough information
+                                to let you identify an owning object. An owning object
+                                must be in the same namespace as the dependent, or
+                                be cluster-scoped, so there is no namespace field.
+                              properties:
+                                apiVersion:
+                                  description: API version of the referent.
+                                  type: string
+                                blockOwnerDeletion:
+                                  description: If true, AND if the owner has the "foregroundDeletion"
+                                    finalizer, then the owner cannot be deleted from
+                                    the key-value store until this reference is removed.
+                                    See https://kubernetes.io/docs/concepts/architecture/garbage-collection/#foreground-deletion
+                                    for how the garbage collector interacts with this
+                                    field and enforces the foreground deletion. Defaults
+                                    to false. To set this field, a user needs "delete"
+                                    permission of the owner, otherwise 422 (Unprocessable
+                                    Entity) will be returned.
+                                  type: boolean
+                                controller:
+                                  description: If true, this reference points to the
+                                    managing controller.
+                                  type: boolean
+                                kind:
+                                  description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. More info: http://kubernetes.io/docs/user-guide/identifiers#names'
+                                  type: string
+                                uid:
+                                  description: 'UID of the referent. More info: http://kubernetes.io/docs/user-guide/identifiers#uids'
+                                  type: string
+                              required:
                               - apiVersion
                               - kind
                               - name
                               - uid
-                            properties:
-                              apiVersion:
-                                description: API version of the referent.
-                                type: string
-                              blockOwnerDeletion:
-                                description: If true, AND if the owner has the "foregroundDeletion" finalizer, then the owner cannot be deleted from the key-value store until this reference is removed. See https://kubernetes.io/docs/concepts/architecture/garbage-collection/#foreground-deletion for how the garbage collector interacts with this field and enforces the foreground deletion. Defaults to false. To set this field, a user needs "delete" permission of the owner, otherwise 422 (Unprocessable Entity) will be returned.
-                                type: boolean
-                              controller:
-                                description: If true, this reference points to the managing controller.
-                                type: boolean
-                              kind:
-                                description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                                type: string
-                              name:
-                                description: 'Name of the referent. More info: http://kubernetes.io/docs/user-guide/identifiers#names'
-                                type: string
-                              uid:
-                                description: 'UID of the referent. More info: http://kubernetes.io/docs/user-guide/identifiers#uids'
-                                type: string
-                    spec:
-                      description: 'Specification of the desired behavior of the machine. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status'
-                      type: object
-                      properties:
-                        lifecycleHooks:
-                          description: LifecycleHooks allow users to pause operations on the machine at certain predefined points within the machine lifecycle.
-                          type: object
-                          properties:
-                            preDrain:
-                              description: PreDrain hooks prevent the machine from being drained. This also blocks further lifecycle events, such as termination.
-                              type: array
-                              items:
-                                description: LifecycleHook represents a single instance of a lifecycle hook
-                                type: object
-                                required:
-                                  - name
-                                  - owner
-                                properties:
-                                  name:
-                                    description: Name defines a unique name for the lifcycle hook. The name should be unique and descriptive, ideally 1-3 words, in CamelCase or it may be namespaced, eg. foo.example.com/CamelCase. Names must be unique and should only be managed by a single entity.
-                                    type: string
-                                    maxLength: 256
-                                    minLength: 3
-                                    pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
-                                  owner:
-                                    description: Owner defines the owner of the lifecycle hook. This should be descriptive enough so that users can identify who/what is responsible for blocking the lifecycle. This could be the name of a controller (e.g. clusteroperator/etcd) or an administrator managing the hook.
-                                    type: string
-                                    maxLength: 512
-                                    minLength: 3
-                              x-kubernetes-list-map-keys:
-                                - name
-                              x-kubernetes-list-type: map
-                            preTerminate:
-                              description: PreTerminate hooks prevent the machine from being terminated. PreTerminate hooks be actioned after the Machine has been drained.
-                              type: array
-                              items:
-                                description: LifecycleHook represents a single instance of a lifecycle hook
-                                type: object
-                                required:
-                                  - name
-                                  - owner
-                                properties:
-                                  name:
-                                    description: Name defines a unique name for the lifcycle hook. The name should be unique and descriptive, ideally 1-3 words, in CamelCase or it may be namespaced, eg. foo.example.com/CamelCase. Names must be unique and should only be managed by a single entity.
-                                    type: string
-                                    maxLength: 256
-                                    minLength: 3
-                                    pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
-                                  owner:
-                                    description: Owner defines the owner of the lifecycle hook. This should be descriptive enough so that users can identify who/what is responsible for blocking the lifecycle. This could be the name of a controller (e.g. clusteroperator/etcd) or an administrator managing the hook.
-                                    type: string
-                                    maxLength: 512
-                                    minLength: 3
-                              x-kubernetes-list-map-keys:
-                                - name
-                              x-kubernetes-list-type: map
-                        metadata:
-                          description: ObjectMeta will autopopulate the Node created. Use this to indicate what labels, annotations, name prefix, etc., should be used when creating the Node.
-                          type: object
-                          properties:
-                            annotations:
-                              description: 'Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. They are not queryable and should be preserved when modifying objects. More info: http://kubernetes.io/docs/user-guide/annotations'
                               type: object
-                              additionalProperties:
-                                type: string
-                            generateName:
-                              description: "GenerateName is an optional prefix, used by the server, to generate a unique name ONLY IF the Name field has not been provided. If this field is used, the name returned to the client will be different than the name passed. This value will also be combined with a unique suffix. The provided value has the same validation rules as the Name field, and may be truncated by the length of the suffix required to make the value unique on the server. \n If this field is specified and the generated name exists, the server will NOT return a 409 - instead, it will either return 201 Created or 500 with Reason ServerTimeout indicating a unique name could not be found in the time allotted, and the client should retry (optionally after the time indicated in the Retry-After header). \n Applied only if Name is not specified. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#idempotency"
-                              type: string
-                            labels:
-                              description: 'Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels'
-                              type: object
-                              additionalProperties:
-                                type: string
-                            name:
-                              description: 'Name must be unique within a namespace. Is required when creating resources, although some resources may allow a client to request the generation of an appropriate name automatically. Name is primarily intended for creation idempotence and configuration definition. Cannot be updated. More info: http://kubernetes.io/docs/user-guide/identifiers#names'
-                              type: string
-                            namespace:
-                              description: "Namespace defines the space within each name must be unique. An empty namespace is equivalent to the \"default\" namespace, but \"default\" is the canonical representation. Not all objects are required to be scoped to a namespace - the value of this field for those objects will be empty. \n Must be a DNS_LABEL. Cannot be updated. More info: http://kubernetes.io/docs/user-guide/namespaces"
-                              type: string
-                            ownerReferences:
-                              description: List of objects depended by this object. If ALL objects in the list have been deleted, this object will be garbage collected. If this object is managed by a controller, then an entry in this list will point to this controller, with the controller field set to true. There cannot be more than one managing controller.
-                              type: array
-                              items:
-                                description: OwnerReference contains enough information to let you identify an owning object. An owning object must be in the same namespace as the dependent, or be cluster-scoped, so there is no namespace field.
-                                type: object
-                                required:
-                                  - apiVersion
-                                  - kind
-                                  - name
-                                  - uid
-                                properties:
-                                  apiVersion:
-                                    description: API version of the referent.
-                                    type: string
-                                  blockOwnerDeletion:
-                                    description: If true, AND if the owner has the "foregroundDeletion" finalizer, then the owner cannot be deleted from the key-value store until this reference is removed. See https://kubernetes.io/docs/concepts/architecture/garbage-collection/#foreground-deletion for how the garbage collector interacts with this field and enforces the foreground deletion. Defaults to false. To set this field, a user needs "delete" permission of the owner, otherwise 422 (Unprocessable Entity) will be returned.
-                                    type: boolean
-                                  controller:
-                                    description: If true, this reference points to the managing controller.
-                                    type: boolean
-                                  kind:
-                                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                                    type: string
-                                  name:
-                                    description: 'Name of the referent. More info: http://kubernetes.io/docs/user-guide/identifiers#names'
-                                    type: string
-                                  uid:
-                                    description: 'UID of the referent. More info: http://kubernetes.io/docs/user-guide/identifiers#uids'
-                                    type: string
-                        providerID:
-                          description: ProviderID is the identification ID of the machine provided by the provider. This field must match the provider ID as seen on the node object corresponding to this machine. This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler with cluster-api as provider. Clean-up logic in the autoscaler compares machines to nodes to find out machines at provider which could not get registered as Kubernetes nodes. With cluster-api as a generic out-of-tree provider for autoscaler, this field is required by autoscaler to be able to have a provider view of the list of machines. Another list of nodes is queried from the k8s apiserver and then a comparison is done to find out unregistered machines and are marked for delete. This field will be set by the actuators and consumed by higher level entities like autoscaler that will be interfacing with cluster-api as generic provider.
-                          type: string
-                        providerSpec:
-                          description: ProviderSpec details Provider-specific configuration to use during node creation.
-                          type: object
-                          properties:
-                            value:
-                              description: Value is an inlined, serialized representation of the resource configuration. It is recommended that providers maintain their own versioned API types that should be serialized/deserialized from this field, akin to component config.
-                              type: object
-                              x-kubernetes-preserve-unknown-fields: true
-                        taints:
-                          description: The list of the taints to be applied to the corresponding Node in additive manner. This list will not overwrite any other taints added to the Node on an ongoing basis by other entities. These taints should be actively reconciled e.g. if you ask the machine controller to apply a taint and then manually remove the taint the machine controller will put it back) but not have the machine controller remove any taints
-                          type: array
-                          items:
-                            description: The node this Taint is attached to has the "effect" on any pod that does not tolerate the Taint.
+                              x-kubernetes-map-type: atomic
+                            type: array
+                        type: object
+                      providerID:
+                        description: ProviderID is the identification ID of the machine
+                          provided by the provider. This field must match the provider
+                          ID as seen on the node object corresponding to this machine.
+                          This field is required by higher level consumers of cluster-api.
+                          Example use case is cluster autoscaler with cluster-api
+                          as provider. Clean-up logic in the autoscaler compares machines
+                          to nodes to find out machines at provider which could not
+                          get registered as Kubernetes nodes. With cluster-api as
+                          a generic out-of-tree provider for autoscaler, this field
+                          is required by autoscaler to be able to have a provider
+                          view of the list of machines. Another list of nodes is queried
+                          from the k8s apiserver and then a comparison is done to
+                          find out unregistered machines and are marked for delete.
+                          This field will be set by the actuators and consumed by
+                          higher level entities like autoscaler that will be interfacing
+                          with cluster-api as generic provider.
+                        type: string
+                      providerSpec:
+                        description: ProviderSpec details Provider-specific configuration
+                          to use during node creation.
+                        properties:
+                          value:
+                            description: Value is an inlined, serialized representation
+                              of the resource configuration. It is recommended that
+                              providers maintain their own versioned API types that
+                              should be serialized/deserialized from this field, akin
+                              to component config.
                             type: object
-                            required:
-                              - effect
-                              - key
-                            properties:
-                              effect:
-                                description: Required. The effect of the taint on pods that do not tolerate the taint. Valid effects are NoSchedule, PreferNoSchedule and NoExecute.
-                                type: string
-                              key:
-                                description: Required. The taint key to be applied to a node.
-                                type: string
-                              timeAdded:
-                                description: TimeAdded represents the time at which the taint was added. It is only written for NoExecute taints.
-                                type: string
-                                format: date-time
-                              value:
-                                description: The taint value corresponding to the taint key.
-                                type: string
-            status:
-              description: MachineSetStatus defines the observed state of MachineSet
-              type: object
-              properties:
-                availableReplicas:
-                  description: The number of available replicas (ready for at least minReadySeconds) for this MachineSet.
-                  type: integer
-                  format: int32
-                errorMessage:
-                  type: string
-                errorReason:
-                  description: "In the event that there is a terminal problem reconciling the replicas, both ErrorReason and ErrorMessage will be set. ErrorReason will be populated with a succinct value suitable for machine interpretation, while ErrorMessage will contain a more verbose string suitable for logging and human consumption. \n These fields should not be set for transitive errors that a controller faces that are expected to be fixed automatically over time (like service outages), but instead indicate that something is fundamentally wrong with the MachineTemplate's spec or the configuration of the machine controller, and that manual intervention is required. Examples of terminal errors would be invalid combinations of settings in the spec, values that are unsupported by the machine controller, or the responsible machine controller itself being critically misconfigured. \n Any transient errors that occur during the reconciliation of Machines can be added as events to the MachineSet object and/or logged in the controller's output."
-                  type: string
-                fullyLabeledReplicas:
-                  description: The number of replicas that have labels matching the labels of the machine template of the MachineSet.
-                  type: integer
-                  format: int32
-                observedGeneration:
-                  description: ObservedGeneration reflects the generation of the most recently observed MachineSet.
-                  type: integer
-                  format: int64
-                readyReplicas:
-                  description: The number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is "Ready".
-                  type: integer
-                  format: int32
-                replicas:
-                  description: Replicas is the most recently observed number of replicas.
-                  type: integer
-                  format: int32
-      served: true
-      storage: true
-      subresources:
-        scale:
-          labelSelectorPath: .status.labelSelector
-          specReplicasPath: .spec.replicas
-          statusReplicasPath: .status.replicas
-        status: {}
+                            x-kubernetes-preserve-unknown-fields: true
+                        type: object
+                      taints:
+                        description: The list of the taints to be applied to the corresponding
+                          Node in additive manner. This list will not overwrite any
+                          other taints added to the Node on an ongoing basis by other
+                          entities. These taints should be actively reconciled e.g.
+                          if you ask the machine controller to apply a taint and then
+                          manually remove the taint the machine controller will put
+                          it back) but not have the machine controller remove any
+                          taints
+                        items:
+                          description: The node this Taint is attached to has the
+                            "effect" on any pod that does not tolerate the Taint.
+                          properties:
+                            effect:
+                              description: Required. The effect of the taint on pods
+                                that do not tolerate the taint. Valid effects are
+                                NoSchedule, PreferNoSchedule and NoExecute.
+                              type: string
+                            key:
+                              description: Required. The taint key to be applied to
+                                a node.
+                              type: string
+                            timeAdded:
+                              description: TimeAdded represents the time at which
+                                the taint was added. It is only written for NoExecute
+                                taints.
+                              format: date-time
+                              type: string
+                            value:
+                              description: The taint value corresponding to the taint
+                                key.
+                              type: string
+                          required:
+                          - effect
+                          - key
+                          type: object
+                        type: array
+                    type: object
+                type: object
+            type: object
+          status:
+            description: MachineSetStatus defines the observed state of MachineSet
+            properties:
+              availableReplicas:
+                description: The number of available replicas (ready for at least
+                  minReadySeconds) for this MachineSet.
+                format: int32
+                type: integer
+              errorMessage:
+                type: string
+              errorReason:
+                description: "In the event that there is a terminal problem reconciling
+                  the replicas, both ErrorReason and ErrorMessage will be set. ErrorReason
+                  will be populated with a succinct value suitable for machine interpretation,
+                  while ErrorMessage will contain a more verbose string suitable for
+                  logging and human consumption. \n These fields should not be set
+                  for transitive errors that a controller faces that are expected
+                  to be fixed automatically over time (like service outages), but
+                  instead indicate that something is fundamentally wrong with the
+                  MachineTemplate's spec or the configuration of the machine controller,
+                  and that manual intervention is required. Examples of terminal errors
+                  would be invalid combinations of settings in the spec, values that
+                  are unsupported by the machine controller, or the responsible machine
+                  controller itself being critically misconfigured. \n Any transient
+                  errors that occur during the reconciliation of Machines can be added
+                  as events to the MachineSet object and/or logged in the controller's
+                  output."
+                type: string
+              fullyLabeledReplicas:
+                description: The number of replicas that have labels matching the
+                  labels of the machine template of the MachineSet.
+                format: int32
+                type: integer
+              observedGeneration:
+                description: ObservedGeneration reflects the generation of the most
+                  recently observed MachineSet.
+                format: int64
+                type: integer
+              readyReplicas:
+                description: The number of ready replicas for this MachineSet. A machine
+                  is considered ready when the node has been created and is "Ready".
+                format: int32
+                type: integer
+              replicas:
+                description: Replicas is the most recently observed number of replicas.
+                format: int32
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      scale:
+        labelSelectorPath: .status.labelSelector
+        specReplicasPath: .spec.replicas
+        statusReplicasPath: .status.replicas
+      status: {}
 status:
   acceptedNames:
     kind: ""

@@ -58,6 +58,38 @@ spec:
           spec:
             description: spec holds user settable values for configuration
             properties:
+              driverConfig:
+                description: driverConfig can be used to specify platform specific
+                  driver configuration. When omitted, this means no opinion and the
+                  platform is left to choose reasonable defaults. These defaults are
+                  subject to change over time.
+                properties:
+                  driverType:
+                    description: "driverType indicates type of CSI driver for which
+                      the driverConfig is being applied to. \n Valid values are: \n
+                      * vSphere \n Allows configuration of vsphere CSI driver topology.
+                      \n --- Consumers should treat unknown values as a NO-OP."
+                    enum:
+                    - ""
+                    - vSphere
+                    type: string
+                  vSphere:
+                    description: vsphere is used to configure the vsphere CSI driver.
+                    properties:
+                      topologyCategories:
+                        description: topologyCategories indicates tag categories with
+                          which vcenter resources such as hostcluster or datacenter
+                          were tagged with. If cluster Infrastructure object has a
+                          topology, values specified in Infrastructure object will
+                          be used and modifications to topologyCategories will be
+                          rejected.
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                required:
+                - driverType
+                type: object
               logLevel:
                 default: Normal
                 description: "logLevel is an intent based logging for an overall component.

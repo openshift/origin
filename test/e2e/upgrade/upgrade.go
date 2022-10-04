@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/openshift/origin/test/e2e/upgrade/ingress"
 	"math/rand"
 	"os"
 	"strconv"
@@ -72,6 +73,7 @@ func AllTests() []upgrades.Test {
 		&prometheus.ImagePullsAreFast{},
 		&prometheus.MetricsAvailableAfterUpgradeTest{},
 		&dns.UpgradeTest{},
+		&ingress.UpgradeTest{},
 	}
 }
 
