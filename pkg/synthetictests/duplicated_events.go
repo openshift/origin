@@ -126,6 +126,7 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 
 var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
 	isConsoleReadinessDuringInstallation,
+	isConfigOperatorReadinessFailed,
 }
 
 // allowedUpgradeRepeatedEventPatterns are patterns of events that we should only allow during upgrades, not during normal execution.
@@ -537,6 +538,33 @@ func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.EventInterval,
 	// if the readiness probe failure for this pod happened AFTER the initial installation was complete,
 	// then this probe failure is unexpected and should fail.
 	return isEventDuringInstallation(monitorEvent, kubeClientConfig, regExp)
+}
+
+// isConfigOperatorReadinessFailed returns true if the event matches a readinessFailed error that timed out
+// in the openshift-config-operator.
+// like this:
+// ...ReadinessFailed Get \"https://10.130.0.16:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)"
+func isConfigOperatorReadinessFailed(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
+	regExp := regexp.MustCompile(probeTimeoutMessageRegExpStr)
+	return isConfigOperatorReadinessProbeFailedMessage(monitorEvent, regExp), nil
+}
+
+func isConfigOperatorReadinessProbeFailedMessage(monitorEvent monitorapi.EventInterval, regExp *regexp.Regexp) bool {
+	locatorParts := monitorapi.LocatorParts(monitorEvent.Locator)
+	if ns, ok := locatorParts["ns"]; ok {
+		if ns != "openshift-config-operator" {
+			return false
+		}
+	}
+	if pod, ok := locatorParts["pod"]; ok {
+		if !strings.HasPrefix(pod, "openshift-config-operator") {
+			return false
+		}
+	}
+	if !regExp.MatchString(monitorEvent.Message) {
+		return false
+	}
+	return true
 }
 
 func (d *duplicateEventsEvaluator) getClusterInfo(c *rest.Config) (err error) {
