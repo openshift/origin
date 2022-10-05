@@ -17,7 +17,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
-var _ = g.Describe("[sig-etcd][Serial] etcd [apigroup:config.openshift.io]", func() {
+var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling] etcd [apigroup:config.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("etcd-scaling").AsAdmin()
 

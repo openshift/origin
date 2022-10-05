@@ -364,7 +364,6 @@ func SkipIfUnsupportedPlatform(ctx context.Context, oc *exutil.CLI) {
 	skipUnlessFunctionalMachineAPI(ctx, machineClient)
 	skipIfSingleNode(oc)
 	skipIfBareMetal(oc)
-	skipIfVsphere(oc)
 }
 
 func skipUnlessFunctionalMachineAPI(ctx context.Context, machineClient machinev1beta1client.MachineInterface) {

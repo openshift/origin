@@ -2021,7 +2021,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-etcd][Feature:DisasterRecovery][Disruptive] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss [apigroup:machine.openshift.io][apigroup:operator.openshift.io]": "[Feature:EtcdRecovery] Cluster should restore itself after quorum loss [apigroup:machine.openshift.io][apigroup:operator.openshift.io] [Serial]",
 
-	"[Top Level] [sig-etcd][Serial] etcd [apigroup:config.openshift.io] is able to vertically scale up and down with a single node [Timeout:60m][apigroup:machine.openshift.io]": "is able to vertically scale up and down with a single node [Timeout:60m][apigroup:machine.openshift.io] [Suite:openshift/conformance/serial]",
+	"[Top Level] [sig-etcd][Feature:EtcdVerticalScaling] etcd [apigroup:config.openshift.io] is able to vertically scale up and down with a single node [Timeout:60m][apigroup:machine.openshift.io]": "is able to vertically scale up and down with a single node [Timeout:60m][apigroup:machine.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-imageregistry] Image registry [apigroup:route.openshift.io] should redirect on blob pull [apigroup:image.openshift.io]": "should redirect on blob pull [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
 

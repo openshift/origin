@@ -120,8 +120,7 @@ var staticSuites = testSuites{
 				}
 				return strings.Contains(name, "[Suite:openshift/conformance/serial") || isStandardEarlyOrLateTest(name)
 			},
-			// etcd's vertical scaling test is expensive
-			TestTimeout:         60 * time.Minute,
+			TestTimeout:         40 * time.Minute,
 			SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
 		},
 		PreSuite: suiteWithProviderPreSuite,
@@ -424,6 +423,24 @@ var staticSuites = testSuites{
 			},
 		},
 		PreSuite: suiteWithInitializedProviderPreSuite,
+	},
+	{
+		TestSuite: ginkgo.TestSuite{
+			Name: "openshift/etcd/scaling",
+			Description: templates.LongDesc(`
+		This test suite runs vertical scaling tests to exercise the safe scale-up and scale-down of etcd members.
+		`),
+			Matches: func(name string) bool {
+				if isDisabled(name) {
+					return false
+				}
+				return strings.Contains(name, "[Suite:openshift/etcd/scaling") || strings.Contains(name, "[Feature:EtcdVerticalScaling]") || isStandardEarlyOrLateTest(name)
+			},
+			// etcd's vertical scaling test can take a while for apiserver rollouts to stabilize on the same revision
+			TestTimeout:         60 * time.Minute,
+			SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
+		},
+		PreSuite: suiteWithProviderPreSuite,
 	},
 }
 
