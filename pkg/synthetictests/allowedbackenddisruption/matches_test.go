@@ -97,7 +97,6 @@ func TestGetClosestP95Value(t *testing.T) {
 		name             string
 		args             args
 		expectedDuration *time.Duration
-		expectedDetails  string
 		expectedErr      error
 	}{
 
@@ -197,8 +196,7 @@ func TestGetClosestP95Value(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			matcher := historicaldata.NewMatcherWithHistoricalData(historicalDataMap, 3.141)
-			actualDuration, actualMsg, actualErr := matcher.BestMatchP99(tt.args.backendName, tt.args.jobType)
-			t.Logf(actualMsg)
+			actualDuration, _, actualErr := matcher.BestMatchP99(tt.args.backendName, tt.args.jobType)
 			assert.EqualValues(t, tt.expectedDuration, actualDuration, "unexpected duration")
 			assert.Equal(t, tt.expectedErr, actualErr, "unexpected error")
 		})
