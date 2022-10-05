@@ -60,7 +60,7 @@ var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("pull-secrets")
 
-	g.It("TestAutomaticCreationOfPullSecrets [apigroup:config.openshift.io]", func() {
+	g.It("TestAutomaticCreationOfPullSecrets [apigroup:config.openshift.io][apigroup:image.openshift.io]", func() {
 		t := g.GinkgoT()
 
 		clusterAdminKubeClient := oc.AdminKubeClient()
@@ -129,7 +129,7 @@ var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
 		}
 	})
 
-	g.It("TestDockercfgTokenDeletedController", func() {
+	g.It("TestDockercfgTokenDeletedController [apigroup:image.openshift.io]", func() {
 		t := g.GinkgoT()
 
 		clusterAdminKubeClient := oc.AdminKubeClient()

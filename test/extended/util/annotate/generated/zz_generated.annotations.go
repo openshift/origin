@@ -1979,9 +1979,9 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-devex][Feature:ImageEcosystem][ruby][Slow] hot deploy for openshift ruby image  Rails example should work with hot deploy [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io]": "should work with hot deploy [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io]",
 
-	"[Top Level] [sig-devex][Feature:OpenShiftControllerManager] TestAutomaticCreationOfPullSecrets [apigroup:config.openshift.io]": "TestAutomaticCreationOfPullSecrets [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex][Feature:OpenShiftControllerManager] TestAutomaticCreationOfPullSecrets [apigroup:config.openshift.io][apigroup:image.openshift.io]": "TestAutomaticCreationOfPullSecrets [apigroup:config.openshift.io][apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:OpenShiftControllerManager] TestDockercfgTokenDeletedController": "TestDockercfgTokenDeletedController [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-devex][Feature:OpenShiftControllerManager] TestDockercfgTokenDeletedController [apigroup:image.openshift.io]": "TestDockercfgTokenDeletedController [apigroup:image.openshift.io] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-devex][Feature:Templates] template-api TestTemplate [apigroup:template.openshift.io]": "TestTemplate [apigroup:template.openshift.io] [Suite:openshift/conformance/parallel]",
 
