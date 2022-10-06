@@ -9,6 +9,7 @@ import (
 
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEventCountExtractor(t *testing.T) {
@@ -36,21 +37,18 @@ func TestEventCountExtractor(t *testing.T) {
 			times: 0,
 		},
 		{
-			name:  "pod eviction failure",
-			input: "reason/MalscheduledPod pod/router-default-84c89f5bf8-5rdcb pod/router-default-84c89f5bf8-bg9ql should be one per node, but all were placed on node/ip-10-0-172-166.ec2.internal; evicting pod/router-default-84c89f5bf8-5rdcb (79 times)",
-			times: 79,
+			name:    "pod eviction failure",
+			input:   "reason/MalscheduledPod pod/router-default-84c89f5bf8-5rdcb pod/router-default-84c89f5bf8-bg9ql should be one per node, but all were placed on node/ip-10-0-172-166.ec2.internal; evicting pod/router-default-84c89f5bf8-5rdcb (79 times)",
+			message: "reason/MalscheduledPod pod/router-default-84c89f5bf8-5rdcb pod/router-default-84c89f5bf8-bg9ql should be one per node, but all were placed on node/ip-10-0-172-166.ec2.internal; evicting pod/router-default-84c89f5bf8-5rdcb",
+			times:   79,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			actualMessage, actualCount := getTimesAnEventHappened(test.input)
-			if actualCount != test.times {
-				t.Error(actualCount)
-			}
-			if actualMessage != test.message {
-				t.Error(actualMessage)
-			}
+			assert.Equal(t, test.times, actualCount)
+			assert.Equal(t, test.message, actualMessage)
 		})
 	}
 }
