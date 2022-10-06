@@ -7,48 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
-
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
-
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
-
-var (
-	//go:embed duplicated_events_eviction.json
-	duplicatedEventsEviction []byte
-)
-
-func TestDuplicatedEvents(t *testing.T) {
-	tests := []struct {
-		name   string
-		input  []byte
-		output string
-		times  int
-	}{
-		{
-			name:   "pod eviction failure",
-			input:  duplicatedEventsEviction,
-			output: "1 events happened too frequently\n\nevent happened 79 times",
-			times:  24,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			events, err := monitorserialization.EventsFromJSON(test.input)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			actual := testDuplicatedEventForStableSystem(events, nil, "unit-test")
-			if !strings.Contains(actual[0].FailureOutput.Output, test.output) {
-				t.Error(spew.Sdump(actual[0]))
-			}
-		})
-	}
-}
 
 func TestEventCountExtractor(t *testing.T) {
 	tests := []struct {
