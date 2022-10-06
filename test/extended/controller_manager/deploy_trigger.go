@@ -138,6 +138,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 						Name: updatedImage,
 					},
 					DockerImageReference: updatedPullSpec,
+					DockerImageLayers:    []imagev1.ImageLayer{{Name: "test", LayerSize: 10}},
 				},
 			}
 			if _, err := projectAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(context.Background(), mapping, metav1.CreateOptions{}); err != nil {
@@ -229,6 +230,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 					Name: image,
 				},
 				DockerImageReference: pullSpec,
+				DockerImageLayers:    []imagev1.ImageLayer{{Name: "test", LayerSize: 10}},
 			},
 		}
 
@@ -430,6 +432,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 						Name: image,
 					},
 					DockerImageReference: pullSpec,
+					DockerImageLayers:    []imagev1.ImageLayer{{Name: "test", LayerSize: 10}},
 				},
 			}
 			if _, err := adminImageClient.ImageStreamMappings(oc.Namespace()).Create(context.Background(), mapping, metav1.CreateOptions{}); err != nil {

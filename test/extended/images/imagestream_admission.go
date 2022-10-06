@@ -60,6 +60,7 @@ func TestImageStreamTagsAdmission(t g.GinkgoTInterface, oc *exutil.CLI) {
 				Name: name,
 			},
 			DockerImageReference: imageReference,
+			DockerImageLayers:    []imagev1.ImageLayer{{Name: "test", LayerSize: 10}},
 		}
 		tag := fmt.Sprintf("tag%d", i+1)
 
@@ -245,6 +246,7 @@ func TestImageStreamAdmitSpecUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 				Name: name,
 			},
 			DockerImageReference: imageReference,
+			DockerImageLayers:    []imagev1.ImageLayer{{Name: "test", LayerSize: 10}},
 		}
 		tag := fmt.Sprintf("tag%d", i+1)
 
@@ -378,6 +380,7 @@ func TestImageStreamAdmitStatusUpdate(t g.GinkgoTInterface, oc *exutil.CLI) {
 				Name: name,
 			},
 			DockerImageReference: imageReference,
+			DockerImageLayers:    []imagev1.ImageLayer{{Name: "test", LayerSize: 10}},
 		}
 		images = append(images, image)
 

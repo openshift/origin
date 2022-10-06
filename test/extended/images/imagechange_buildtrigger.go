@@ -247,6 +247,7 @@ func mockImageStreamMapping(stream, image, tag, reference string) *imagev1.Image
 				Name: image,
 			},
 			DockerImageReference: reference,
+			DockerImageLayers:    []imagev1.ImageLayer{{Name: "test", LayerSize: 10}},
 		},
 	}
 }
@@ -328,6 +329,7 @@ func runTest(t g.GinkgoTInterface, oc *exutil.CLI, testname string, projectAdmin
 					Name: "ref-2-random",
 				},
 				DockerImageReference: registryHostname + "/openshift/test-image-trigger:ref-2-random",
+				DockerImageLayers:    []imagev1.ImageLayer{{Name: "test", LayerSize: 10}},
 			},
 		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -414,6 +416,7 @@ func TestMultipleImageChangeBuildTriggers(t g.GinkgoTInterface, oc *exutil.CLI) 
 					Name: name,
 				},
 				DockerImageReference: "registry:5000/openshift/" + name + ":" + tag,
+				DockerImageLayers:    []imagev1.ImageLayer{{Name: "test", LayerSize: 10}},
 			},
 		}
 

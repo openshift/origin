@@ -85,7 +85,7 @@ func GetOpenshiftEtcdStorageData(namespace string) map[schema.GroupVersionResour
 			ExpectedEtcdPath: "openshift.io/imagestreams/" + namespace + "/is1g",
 		},
 		gvr("image.openshift.io", "v1", "images"): {
-			Stub:             `{"dockerImageReference": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest", "metadata": {"name": "image1g"}}`,
+			Stub:             `{"dockerImageReference": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest", "metadata": {"name": "image1g"}, dockerImageLayers: [{"name": "test", "layerSize": 10}]}`,
 			ExpectedEtcdPath: "openshift.io/images/image1g",
 		},
 		// --

@@ -58,6 +58,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 					Name: "an_image_to_be_deleted",
 				},
 				DockerImageReference: "example.com/random/image:latest",
+				DockerImageLayers:    []imagev1.ImageLayer{{Name: "test", LayerSize: 10}},
 			},
 			Tag: "missing",
 		}, metav1.CreateOptions{})

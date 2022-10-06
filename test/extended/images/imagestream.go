@@ -59,6 +59,7 @@ func TestImageStreamMappingCreate(t g.GinkgoTInterface, oc *exutil.CLI) {
 				Name: "image1",
 			},
 			DockerImageReference: "some/other/name",
+			DockerImageLayers:    []imagev1.ImageLayer{{Name: "test", LayerSize: 10}},
 		},
 	}
 	_, err = clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(ctx, mapping, metav1.CreateOptions{})
@@ -79,6 +80,7 @@ func TestImageStreamMappingCreate(t g.GinkgoTInterface, oc *exutil.CLI) {
 				},
 			},
 		},
+		DockerImageLayers: []imagev1.ImageLayer{{Name: "test", LayerSize: 10}},
 	}
 	if _, err := clusterAdminImageClient.Images().Create(ctx, image, metav1.CreateOptions{}); err == nil {
 		t.Fatalf("unexpected non-error")
@@ -228,6 +230,7 @@ func TestImageStreamWithoutDockerImageConfig(t g.GinkgoTInterface, oc *exutil.CL
 		},
 		DockerImageConfig:    string(imageConfigBytes),
 		DockerImageReference: "some/namespace/name",
+		DockerImageLayers:    []imagev1.ImageLayer{{Name: "test", LayerSize: 10}},
 	}
 
 	// create a mapping to an image that doesn't exist

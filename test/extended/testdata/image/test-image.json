@@ -13,6 +13,6 @@
     "ContainerConfig": {},
     "Config": {}
   },
-  "dockerImageLayers": [],
+  "dockerImageLayers": [{"name": "test", "layerSize": 10}],
   "dockerImageMetadataVersion": "1.0"
 }

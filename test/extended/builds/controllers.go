@@ -270,6 +270,7 @@ WaitLoop2:
 				Name: "ref-2-random",
 			},
 			DockerImageReference: registryHostname + "/openshift/test-image-trigger:ref-2-random",
+			DockerImageLayers:    []imagev1.ImageLayer{{Name: "test", LayerSize: 10}},
 		},
 	}, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -625,6 +626,7 @@ func mockImageStreamMapping(stream, image, tag, reference string) *imagev1.Image
 				Name: image,
 			},
 			DockerImageReference: reference,
+			DockerImageLayers:    []imagev1.ImageLayer{{Name: "test", LayerSize: 10}},
 		},
 	}
 }

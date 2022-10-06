@@ -153,6 +153,7 @@ func TestWebhookGitHubPushWithImage(t g.GinkgoTInterface, oc *exutil.CLI) {
 				Name: "myimage",
 			},
 			DockerImageReference: registryHostname + "/" + oc.Namespace() + "/imagestream:success",
+			DockerImageLayers:    []imagev1.ImageLayer{{Name: "test", LayerSize: 10}},
 		},
 	}
 	if _, err := clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(context.Background(), ism, metav1.CreateOptions{}); err != nil {
@@ -243,6 +244,7 @@ func TestWebhookGitHubPushWithImageStream(t g.GinkgoTInterface, oc *exutil.CLI) 
 				Name: "myimage",
 			},
 			DockerImageReference: registryHostname + "/" + oc.Namespace() + "/imagestream:success",
+			DockerImageLayers:    []imagev1.ImageLayer{{Name: "test", LayerSize: 10}},
 		},
 	}
 	if _, err := clusterAdminImageClient.ImageStreamMappings(oc.Namespace()).Create(context.Background(), ism, metav1.CreateOptions{}); err != nil {

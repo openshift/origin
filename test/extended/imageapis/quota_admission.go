@@ -287,6 +287,7 @@ func createImageStreamMapping(oc *exutil.CLI, namespace, name, tag string) error
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 			},
+			DockerImageLayers: []imagev1.ImageLayer{{Name: "test", LayerSize: 10}},
 		},
 		Tag: tag,
 	}, metav1.CreateOptions{})
