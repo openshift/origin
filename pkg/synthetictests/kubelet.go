@@ -16,6 +16,11 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+const (
+	probeTimeoutEventThreshold   = 5
+	probeTimeoutMessageRegExpStr = "reason/ReadinessFailed.*Get.*healthz.*net/http.*request canceled while waiting for connection.*Client.Timeout exceeded"
+)
+
 func testKubeletToAPIServerGracefulTermination(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] kubelet terminates kube-apiserver gracefully"
 
@@ -136,6 +141,31 @@ func testContainerFailures(events monitorapi.Intervals) []*junitapi.JUnitTestCas
 	testCases = append(testCases, &junitapi.JUnitTestCase{Name: excessiveRestartTestName})
 
 	return testCases
+}
+
+func testConfigOperatorReadinessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] openshift-config-operator readiness probe should not fail due to timeout"
+	messageRegExp := regexp.MustCompile(probeTimeoutMessageRegExpStr)
+	var failureOutput string
+	var count int
+	for _, event := range events {
+		if isConfigOperatorReadinessProbeFailedMessage(event, messageRegExp) {
+			// Place the failure time in the message to avoid having to extract the time from the events json file
+			// (in `artifacts) when viewing the test failure output.
+			failureOutput += fmt.Sprintf("%s %s\n", event.From.Format("15:04:05"), event.Message)
+			count++
+		}
+	}
+	test := &junitapi.JUnitTestCase{Name: testName}
+	if count > probeTimeoutEventThreshold {
+		// Flake for now.
+		test.FailureOutput = &junitapi.FailureOutput{
+			Output: failureOutput,
+		}
+		success := &junitapi.JUnitTestCase{Name: testName}
+		return []*junitapi.JUnitTestCase{test, success}
+	}
+	return []*junitapi.JUnitTestCase{test}
 }
 
 func testKubeApiserverProcessOverlap(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
