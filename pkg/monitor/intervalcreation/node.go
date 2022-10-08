@@ -279,10 +279,6 @@ func regexToContainerReference(logLine string, containerReferenceMatch *regexp.R
 
 var reflectorRefRegex = regexp.MustCompile(`object-"(?P<NS>[a-z0-9.-]+)"\/"(?P<POD>[a-z0-9.-]+)"`)
 var reflectorOutputRegex = regexp.MustCompile(`error on the server \("(?P<OUTPUT>.+)"\)`)
-var statusRefRegex = regexp.MustCompile(`podUID=(?P<PODUID>[a-z0-9.-]+) pod="(?P<NS>[a-z0-9.-]+)\/(?P<POD>[a-z0-9.-]+)"`)
-var statusOutputRegex = regexp.MustCompile(`err="(?P<OUTPUT>.+)"`)
-var nodeRefRegex = regexp.MustCompile(`error getting node \\"(?P<NODEID>[a-z0-9.-]+)\\"`)
-var nodeOutputRegex = regexp.MustCompile(`err="(?P<OUTPUT>.+)"`)
 
 func reflectorHttpClientConnectionLostError(logLine string) monitorapi.Intervals {
 	if !strings.Contains(logLine, `http2: client connection lost`) {
@@ -299,6 +295,9 @@ func reflectorHttpClientConnectionLostError(logLine string) monitorapi.Intervals
 	})
 }
 
+var statusRefRegex = regexp.MustCompile(`podUID=(?P<PODUID>[a-z0-9.-]+) pod="(?P<NS>[a-z0-9.-]+)\/(?P<POD>[a-z0-9.-]+)"`)
+var statusOutputRegex = regexp.MustCompile(`err="(?P<OUTPUT>.+)"`)
+
 func statusHttpClientConnectionLostError(logLine string) monitorapi.Intervals {
 	if !strings.Contains(logLine, `http2: client connection lost`) {
 		return nil
@@ -314,6 +313,9 @@ func statusHttpClientConnectionLostError(logLine string) monitorapi.Intervals {
 	})
 }
 
+var nodeRefRegex = regexp.MustCompile(`error getting node \\"(?P<NODEID>[a-z0-9.-]+)\\"`)
+var nodeOutputRegex = regexp.MustCompile(`err="(?P<OUTPUT>.+)"`)
+
 func kubeletNodeHttpClientConnectionLostError(logLine string) monitorapi.Intervals {
 	if !strings.Contains(logLine, `http2: client connection lost`) {
 		return nil
@@ -328,13 +330,12 @@ func kubeletNodeHttpClientConnectionLostError(logLine string) monitorapi.Interva
 		if !nodeRefRegex.MatchString(logLine) {
 			return ""
 		}
-		return nodeRefRegex.FindStringSubmatch(logLine)[1]
+		return "node/" + nodeRefRegex.FindStringSubmatch(logLine)[1]
 	})
 
 }
 
 func commonErrorInterval(logLine string, messageExp *regexp.Regexp, reason string, locator func() string) monitorapi.Intervals {
-
 	messageExp.MatchString(logLine)
 	if !messageExp.MatchString(logLine) {
 		return nil
@@ -364,7 +365,7 @@ func commonErrorInterval(logLine string, messageExp *regexp.Regexp, reason strin
 var kubeletTimeRegex = regexp.MustCompile(`^(?P<MONTH>\S+)\s(?P<DAY>\S+)\s(?P<TIME>\S+)`)
 
 // kubeletLogTime returns Now if there is trouble reading the time.  This will stack the event intervals without
-// parseable times at the end of the run, which will be more clearly visible as a problem than not reporting them.
+// parsable times at the end of the run, which will be more clearly visible as a problem than not reporting them.
 func kubeletLogTime(logLine string) time.Time {
 	kubeletTimeRegex.MatchString(logLine)
 	if !kubeletTimeRegex.MatchString(logLine) {
