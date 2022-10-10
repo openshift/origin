@@ -8,7 +8,6 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	o "github.com/onsi/gomega"
-
 	configv1 "github.com/openshift/api/config/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
@@ -39,22 +38,45 @@ type TestingT interface {
 
 // CreateNewMasterMachine creates a new master node by cloning an existing Machine resource
 func CreateNewMasterMachine(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface) (string, error) {
-	machineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
+	machineToClone, err := FindAnyMasterMachine(ctx, t, machineClient)
 	if err != nil {
 		return "", err
 	}
-	var machineToClone *machinev1beta1.Machine
-	for _, machine := range machineList.Items {
-		machinePhase := pointer.StringDeref(machine.Status.Phase, "Unknown")
-		if machinePhase == "Running" {
-			machineToClone = &machine
-			break
-		}
-		t.Logf("%q machine is in unexpected %q state", machine.Name, machinePhase)
-	}
 
+	clonedMachine, err := CloneMachine(machineToClone, machineClient, t)
+	if err != nil {
+		return "", err
+	}
+	return clonedMachine.Name, nil
+}
+
+func RemoveMachineDeletionHook(machine *machinev1beta1.Machine, machineClient machinev1beta1client.MachineInterface, t TestingT) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// get the latest version of that machine to avoid optimistic concurrency errors on updates
+	machine, err := machineClient.Get(ctx, machine.Name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	var newPreDrainHooks []machinev1beta1.LifecycleHook
+	for _, hook := range machine.Spec.LifecycleHooks.PreDrain {
+		if hook.Name == machineDeletionHookName {
+			continue
+		}
+		newPreDrainHooks = append(newPreDrainHooks, hook)
+	}
+	machine.Spec.LifecycleHooks.PreDrain = newPreDrainHooks
+	if _, err := machineClient.Update(ctx, machine, metav1.UpdateOptions{}); err != nil {
+		return err
+	}
+	t.Logf("successfully removed the deletion hook from machine %v", machine.Name)
+	return nil
+}
+
+func CloneMachine(machineToClone *machinev1beta1.Machine, machineClient machinev1beta1client.MachineInterface, t TestingT) (*machinev1beta1.Machine, error) {
 	if machineToClone == nil {
-		return "", fmt.Errorf("unable to find a running master machine to clone")
+		return nil, fmt.Errorf("unable to find a running master machine to clone")
 	}
 	// assigning a new Name and clearing ProviderID is enough
 	// for MAO to pick it up and provision a new master machine/node
@@ -66,11 +88,28 @@ func CreateNewMasterMachine(ctx context.Context, t TestingT, machineClient machi
 
 	clonedMachine, err := machineClient.Create(context.TODO(), machineToClone, metav1.CreateOptions{})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	t.Logf("Created a new master machine/node %q", clonedMachine.Name)
-	return clonedMachine.Name, nil
+	return clonedMachine, nil
+}
+
+func FindAnyMasterMachine(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface) (*machinev1beta1.Machine, error) {
+	machineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
+	if err != nil {
+		return nil, err
+	}
+	var machineToClone *machinev1beta1.Machine
+	for _, machine := range machineList.Items {
+		machinePhase := pointer.StringDeref(machine.Status.Phase, "Unknown")
+		if machinePhase == "Running" {
+			machineToClone = &machine
+			break
+		}
+		t.Logf("%q machine is in unexpected %q state", machine.Name, machinePhase)
+	}
+	return machineToClone, err
 }
 
 func EnsureMasterMachine(ctx context.Context, t TestingT, machineName string, machineClient machinev1beta1client.MachineInterface) error {
@@ -113,6 +152,11 @@ func EnsureInitialClusterState(ctx context.Context, t TestingT, etcdClientFactor
 
 // EnsureMasterMachinesAndCount checks if there are only 3 running master machines otherwise it returns an error
 func EnsureMasterMachinesAndCount(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface) error {
+	return EnsureMasterMachinesAndCountWith(ctx, t, machineClient, 3)
+}
+
+// EnsureMasterMachinesAndCountWith checks if there are only n running master machines otherwise it returns an error
+func EnsureMasterMachinesAndCountWith(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface, numberOfMachines int) error {
 	waitPollInterval := 15 * time.Second
 	waitPollTimeout := 10 * time.Minute
 	t.Logf("Waiting up to %s for the cluster to reach the expected machines count of 3", waitPollTimeout.String())
@@ -123,12 +167,12 @@ func EnsureMasterMachinesAndCount(ctx context.Context, t TestingT, machineClient
 			return isTransientAPIError(t, err)
 		}
 
-		if len(machineList.Items) != 3 {
+		if len(machineList.Items) != numberOfMachines {
 			var machineNames []string
 			for _, machine := range machineList.Items {
 				machineNames = append(machineNames, machine.Name)
 			}
-			t.Logf("expected exactly 3 master machines, got %d, machines are: %v", len(machineList.Items), machineNames)
+			t.Logf("expected exactly %d master machines, got %d, machines are: %v", numberOfMachines, len(machineList.Items), machineNames)
 			return false, nil
 		}
 

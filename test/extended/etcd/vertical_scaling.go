@@ -10,6 +10,7 @@ import (
 
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	testlibraryapi "github.com/openshift/library-go/test/library/apiserver"
+
 	scalingtestinglibrary "github.com/openshift/origin/test/extended/etcd/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
 
@@ -110,6 +111,83 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling] etcd [apigroup:confi
 
 		err = scalingtestinglibrary.EnsureMasterMachinesAndCount(ctx, g.GinkgoT(), machineClient)
 		err = errors.Wrap(err, "scale-down: timed out waiting for only 3 Running master machines")
+		o.Expect(err).ToNot(o.HaveOccurred())
+	})
+
+	// The following test covers the reverse of a basic vertical scaling scenario.
+	// This is a regression test for https://bugzilla.redhat.com/show_bug.cgi?id=2061062
+	// where going down to two nodes would break quorum due to a static pod rollout.
+	// We're doing the additional legwork to restore a fully functional three node cluster in this scenario.
+	g.It("is able to scale to two members without interruption [Timeout:60m][apigroup:machine.openshift.io]", func() {
+		// set up
+		ctx := context.TODO()
+		etcdClientFactory := scalingtestinglibrary.NewEtcdClientFactory(oc.KubeClient())
+		machineClientSet, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
+		o.Expect(err).ToNot(o.HaveOccurred())
+		machineClient := machineClientSet.MachineV1beta1().Machines("openshift-machine-api")
+		kubeClient := oc.KubeClient()
+
+		// make sure it can be run on the current platform
+		scalingtestinglibrary.SkipIfUnsupportedPlatform(ctx, oc)
+
+		// assert the cluster state before we run the test
+		err = scalingtestinglibrary.EnsureInitialClusterState(ctx, g.GinkgoT(), etcdClientFactory, machineClient, kubeClient)
+		err = errors.Wrap(err, "pre-test: timed out waiting for initial cluster state to have 3 running machines and 3 voting members")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// step 0: ensure clean state after the test
+		defer func() {
+			// since the deletion triggers a new rollout
+			// we need to make sure that the API is stable after the test
+			// so that other e2e test won't hit an API that undergoes a termination (write request might fail)
+			g.GinkgoT().Log("cleaning routine: ensuring initial cluster state and waiting for api servers to stabilize on the same revision")
+			err = scalingtestinglibrary.EnsureInitialClusterState(ctx, g.GinkgoT(), etcdClientFactory, machineClient, kubeClient)
+			err = errors.Wrap(err, "cleaning routine: timed out while ensuring cluster state back to 3 running machines and 3 voting members")
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			err = testlibraryapi.WaitForAPIServerToStabilizeOnTheSameRevision(g.GinkgoT(), oc.KubeClient().CoreV1().Pods("openshift-kube-apiserver"))
+			err = errors.Wrap(err, "cleaning routine: timed out waiting for APIServer pods to stabilize on the same revision")
+			o.Expect(err).ToNot(o.HaveOccurred())
+		}()
+
+		machine, err := scalingtestinglibrary.FindAnyMasterMachine(ctx, g.GinkgoT(), machineClient)
+		err = errors.Wrap(err, "pre-test: finding any control plane machine")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// clean-up: delete the machine and wait until etcd member is removed from the etcd cluster
+		err = machineClient.Delete(ctx, machine.Name, metav1.DeleteOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
+		framework.Logf("successfully deleted the machine %q from the API", machine.Name)
+
+		// we have to manually remove the deletion hook, as the clusterMemberRemovalController and machineDeletionHooksController
+		// will not do it for us in this scenario. Read more about why in https://github.com/openshift/enhancements/pull/943
+		err = scalingtestinglibrary.RemoveMachineDeletionHook(machine, machineClient, g.GinkgoT())
+		o.Expect(err).ToNot(o.HaveOccurred())
+		framework.Logf("successfully removed the machine deletion hook %q from the API", machine.Name)
+
+		// this might seem counter-intuitive at first, but it's part of the regression:
+		// the member count and endpoints config map should not change, as this would roll out a new revision that breaks quorum
+		// thus we assert that the member listing and endpoints stay the exact same even after the machine was deleted
+		err = scalingtestinglibrary.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, 3)
+		err = errors.Wrap(err, "scale-down: timed out waiting for 3 voting members in the etcd cluster and etcd-endpoints configmap")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// bring the old master node back and wait until it is in Running state
+		// TODO this can be disabled with CPMSO, or we can disable the operator
+		cloneMachine, err := scalingtestinglibrary.CloneMachine(machine, machineClient, g.GinkgoT())
+		err = errors.Wrap(err, "scale-up: error cloning machine")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		err = scalingtestinglibrary.EnsureMasterMachine(ctx, g.GinkgoT(), cloneMachine.Name, machineClient)
+		err = errors.Wrapf(err, "scale-up: timed out waiting for machine (%s) to become Running", cloneMachine.Name)
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		err = scalingtestinglibrary.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, 3)
+		err = errors.Wrap(err, "scale-up: timed out waiting for 3 voting members in the etcd cluster and etcd-endpoints configmap")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		err = scalingtestinglibrary.EnsureMasterMachinesAndCount(ctx, g.GinkgoT(), machineClient)
+		err = errors.Wrap(err, "scale-up: timed out waiting for only 3 Running master machines")
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 })
