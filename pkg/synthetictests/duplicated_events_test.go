@@ -7,48 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
-
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
-
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/stretchr/testify/assert"
 )
-
-var (
-	//go:embed duplicated_events_eviction.json
-	duplicatedEventsEviction []byte
-)
-
-func TestDuplicatedEvents(t *testing.T) {
-	tests := []struct {
-		name   string
-		input  []byte
-		output string
-		times  int
-	}{
-		{
-			name:   "pod eviction failure",
-			input:  duplicatedEventsEviction,
-			output: "1 events happened too frequently\n\nevent happened 79 times",
-			times:  24,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			events, err := monitorserialization.EventsFromJSON(test.input)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			actual := testDuplicatedEventForStableSystem(events, nil, "unit-test")
-			if !strings.Contains(actual[0].FailureOutput.Output, test.output) {
-				t.Error(spew.Sdump(actual[0]))
-			}
-		})
-	}
-}
 
 func TestEventCountExtractor(t *testing.T) {
 	tests := []struct {
@@ -75,21 +37,18 @@ func TestEventCountExtractor(t *testing.T) {
 			times: 0,
 		},
 		{
-			name:  "pod eviction failure",
-			input: "reason/MalscheduledPod pod/router-default-84c89f5bf8-5rdcb pod/router-default-84c89f5bf8-bg9ql should be one per node, but all were placed on node/ip-10-0-172-166.ec2.internal; evicting pod/router-default-84c89f5bf8-5rdcb (79 times)",
-			times: 79,
+			name:    "pod eviction failure",
+			input:   "reason/MalscheduledPod pod/router-default-84c89f5bf8-5rdcb pod/router-default-84c89f5bf8-bg9ql should be one per node, but all were placed on node/ip-10-0-172-166.ec2.internal; evicting pod/router-default-84c89f5bf8-5rdcb (79 times)",
+			message: "reason/MalscheduledPod pod/router-default-84c89f5bf8-5rdcb pod/router-default-84c89f5bf8-bg9ql should be one per node, but all were placed on node/ip-10-0-172-166.ec2.internal; evicting pod/router-default-84c89f5bf8-5rdcb",
+			times:   79,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			actualMessage, actualCount := getTimesAnEventHappened(test.input)
-			if actualCount != test.times {
-				t.Error(actualCount)
-			}
-			if actualMessage != test.message {
-				t.Error(actualMessage)
-			}
+			assert.Equal(t, test.times, actualCount)
+			assert.Equal(t, test.message, actualMessage)
 		})
 	}
 }

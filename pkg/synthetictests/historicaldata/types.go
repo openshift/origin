@@ -85,6 +85,13 @@ func NewMatcher(historicalJSON []byte, defaultReturn float64) (BestMatcher, erro
 	}, nil
 }
 
+func NewMatcherWithHistoricalData(data map[DataKey]StatisticalData, defaultReturn float64) BestMatcher {
+	return &bestMatcher{
+		historicalData: data,
+		defaultReturn:  defaultReturn,
+	}
+}
+
 func (b *bestMatcher) BestMatch(name string, jobType platformidentification.JobType) (StatisticalData, string, error) {
 	exactMatchKey := DataKey{
 		Name:    name,

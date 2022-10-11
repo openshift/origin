@@ -1,11 +1,12 @@
 package allowedbackenddisruption
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
+	"github.com/openshift/origin/pkg/synthetictests/historicaldata"
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetClosestP95Value(t *testing.T) {
@@ -21,66 +22,153 @@ func TestGetClosestP95Value(t *testing.T) {
 		backendName string
 		jobType     platformidentification.JobType
 	}
+
+	historicalData := []historicaldata.StatisticalData{
+		{
+			DataKey: historicaldata.DataKey{
+				Name: "kube-api-new-connections",
+				JobType: platformidentification.JobType{
+					Release:      "4.12",
+					FromRelease:  "4.11",
+					Platform:     "aws",
+					Architecture: "amd64",
+					Network:      "ovn",
+					Topology:     "ha",
+				},
+			},
+			P95: 1.578,
+			P99: 2.987,
+		},
+		{
+			DataKey: historicaldata.DataKey{
+				Name: "kube-api-new-connections",
+				JobType: platformidentification.JobType{
+					Release:      "4.12",
+					FromRelease:  "4.12",
+					Platform:     "aws",
+					Architecture: "amd64",
+					Network:      "sdn",
+					Topology:     "single",
+				},
+			},
+			P95: 50.827,
+			P99: 120.458,
+		},
+		{
+			DataKey: historicaldata.DataKey{
+				Name: "openshift-api-new-connections",
+				JobType: platformidentification.JobType{
+					Release:      "4.11",
+					FromRelease:  "4.11",
+					Platform:     "aws",
+					Architecture: "amd64",
+					Network:      "sdn",
+					Topology:     "single",
+				},
+			},
+			P95: 49.419,
+			P99: 70.381,
+		},
+		{
+			DataKey: historicaldata.DataKey{
+				Name: "oauth-api-new-connections",
+				JobType: platformidentification.JobType{
+					Release:      "4.12",
+					FromRelease:  "4.11",
+					Platform:     "aws",
+					Architecture: "amd64",
+					Network:      "sdn",
+					Topology:     "single",
+				},
+			},
+			P95: 20.714,
+			P99: 35.917,
+		},
+	}
+
+	// Convert our slice of statistical data to a map on datakey to match what the matcher needs.
+	// This allows us to define our dest data without duplicating the DataKey struct.
+	historicalDataMap := map[historicaldata.DataKey]historicaldata.StatisticalData{}
+	for _, hd := range historicalData {
+		historicalDataMap[hd.DataKey] = hd
+	}
+
 	tests := []struct {
 		name             string
 		args             args
 		expectedDuration *time.Duration
-		expectedDetails  string
 		expectedErr      error
 	}{
+
+		// Be sure to use unique values here for expectedDuration to ensure we got the correct fallback.
 		{
-			name: "test-that-failed-in-ci",
+			name: "direct match",
 			args: args{
-				backendName: "ingress-to-oauth-server-reused-connections",
+				backendName: "kube-api-new-connections",
 				jobType: platformidentification.JobType{
-					Release:      "4.10",
-					FromRelease:  "4.10",
-					Platform:     "gcp",
+					Release:      "4.12",
+					FromRelease:  "4.11",
+					Platform:     "aws",
 					Architecture: "amd64",
-					Network:      "sdn",
+					Network:      "ovn",
 					Topology:     "ha",
 				},
 			},
-			expectedDuration: mustDuration("14.03s"),
+			expectedDuration: mustDuration("2.987s"),
 		},
 		{
-			name: "fuzzy-match",
+			name: "fuzzy match fallback to minor upgrade",
 			args: args{
-				backendName: "ingress-to-oauth-server-reused-connections",
+				backendName: "kube-api-new-connections",
 				jobType: platformidentification.JobType{
-					Release:      "4.11",
-					FromRelease:  "4.11",
-					Platform:     "azure",
+					Release:      "4.12",
+					FromRelease:  "4.12",
+					Platform:     "aws",
 					Architecture: "amd64",
-					Network:      "sdn",
+					Network:      "ovn",
 					Topology:     "ha",
 				},
 			},
-			expectedDuration: mustDuration("2.3s"),
-			expectedDetails:  `(no exact match for historicaldata.DataKey{Name:"ingress-to-oauth-server-reused-connections", JobType:platformidentification.JobType{Release:"4.11", FromRelease:"4.11", Platform:"azure", Architecture:"amd64", Network:"sdn", Topology:"ha"}}, fell back to historicaldata.DataKey{Name:"ingress-to-oauth-server-reused-connections", JobType:platformidentification.JobType{Release:"4.11", FromRelease:"4.10", Platform:"azure", Architecture:"amd64", Network:"sdn", Topology:"ha"}})`,
+			expectedDuration: mustDuration("2.987s"),
 		},
 		{
-			name: "fuzzy-match-single-ovn-on-sdn",
+			name: "fuzzy match single ovn fallback to sdn",
 			args: args{
-				backendName: "image-registry-reused-connections",
+				backendName: "kube-api-new-connections",
 				jobType: platformidentification.JobType{
-					Release:      "4.10",
-					FromRelease:  "4.10",
+					Release:      "4.12",
+					FromRelease:  "4.12",
+					Platform:     "aws",
+					Architecture: "amd64",
+					Network:      "ovn", // we only defined sdn above, should fall back to it's value
+					Topology:     "single",
+				},
+			},
+			expectedDuration: mustDuration("120.458s"),
+		},
+		{
+			name: "fuzzy match single ovn fallback to sdn previous",
+			args: args{
+				// switching to openshift-api backend, defined above we only have from 4.11->4.11 and sdn
+				backendName: "openshift-api-new-connections",
+				jobType: platformidentification.JobType{
+					Release:      "4.12",
+					FromRelease:  "4.12",
 					Platform:     "aws",
 					Network:      "ovn",
 					Architecture: "amd64",
 					Topology:     "single",
 				},
 			},
-			expectedDuration: mustDuration("3m54.16s"),
-			expectedDetails:  `(no exact match for historicaldata.DataKey{Name:"image-registry-reused-connections", JobType:platformidentification.JobType{Release:"4.10", FromRelease:"4.10", Platform:"aws", Architecture:"amd64", Network:"ovn", Topology:"single"}}, fell back to historicaldata.DataKey{Name:"image-registry-reused-connections", JobType:platformidentification.JobType{Release:"4.10", FromRelease:"4.10", Platform:"aws", Architecture:"amd64", Network:"sdn", Topology:"single"}})`,
+			expectedDuration: mustDuration("70.381s"),
 		},
 		{
-			name: "fuzzy-match-single-ovn-on-sdn-previous",
+			name: "fuzzy match single ovn fallback to sdn previous micro",
 			args: args{
-				backendName: "image-registry-new-connections",
+				// For oauth backend ovn single don't have 4.12 minor, but we have 4.11->4.12 sdn above:
+				backendName: "oauth-api-new-connections",
 				jobType: platformidentification.JobType{
-					Release:      "4.11",
+					Release:      "4.12",
 					FromRelease:  "4.11",
 					Platform:     "aws",
 					Network:      "ovn",
@@ -88,53 +176,29 @@ func TestGetClosestP95Value(t *testing.T) {
 					Topology:     "single",
 				},
 			},
-			expectedDuration: mustDuration("3m54.28s"),
-			expectedDetails:  `(no exact match for historicaldata.DataKey{Name:"image-registry-new-connections", JobType:platformidentification.JobType{Release:"4.11", FromRelease:"4.11", Platform:"aws", Architecture:"amd64", Network:"ovn", Topology:"single"}}, fell back to historicaldata.DataKey{Name:"image-registry-new-connections", JobType:platformidentification.JobType{Release:"4.10", FromRelease:"4.10", Platform:"aws", Architecture:"amd64", Network:"sdn", Topology:"single"}})`,
+			expectedDuration: mustDuration("35.917s"),
 		},
 		{
-			name: "fuzzy-match-single-ovn-on-sdn-previous-micro-release",
-			args: args{
-				backendName: "ingress-to-console-new-connections",
-				jobType: platformidentification.JobType{
-					Release:      "4.11",
-					FromRelease:  "4.10",
-					Platform:     "aws",
-					Network:      "ovn",
-					Architecture: "amd64",
-					Topology:     "single",
-				},
-			},
-			expectedDuration: mustDuration("2102.3s"),
-			expectedDetails:  `(no exact match for historicaldata.DataKey{Name:"ingress-to-console-new-connections", JobType:platformidentification.JobType{Release:"4.11", FromRelease:"4.10", Platform:"aws", Architecture:"amd64", Network:"ovn", Topology:"single"}}, fell back to historicaldata.DataKey{Name:"ingress-to-console-new-connections", JobType:platformidentification.JobType{Release:"4.10", FromRelease:"4.10", Platform:"aws", Architecture:"amd64", Network:"sdn", Topology:"single"}})`,
-		},
-		{
-			name: "missing",
+			name: "no exact or fuzzy match",
 			args: args{
 				backendName: "kube-api-reused-connections",
 				jobType: platformidentification.JobType{
-					Release:      "4.10",
-					FromRelease:  "4.10",
+					Release:      "4.12",
+					FromRelease:  "4.12",
 					Platform:     "azure",
 					Architecture: "amd64",
 					Topology:     "missing",
 				},
 			},
-			expectedDuration: mustDuration("2.718s"),
-			expectedDetails:  `(no exact or fuzzy match for jobType=platformidentification.JobType{Release:"4.10", FromRelease:"4.10", Platform:"azure", Architecture:"amd64", Network:"", Topology:"missing"})`,
+			expectedDuration: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actualDuration, actualDetails, actualErr := GetAllowedDisruption(tt.args.backendName, tt.args.jobType)
-			if got, want := actualDuration, tt.expectedDuration; !reflect.DeepEqual(got, want) {
-				t.Errorf("GetClosestP99Value() = %v, want %v", got, want)
-			}
-			if got, want := actualDetails, tt.expectedDetails; !reflect.DeepEqual(got, want) {
-				t.Errorf("GetClosestP99Value() = %v, want %v", got, want)
-			}
-			if got, want := actualErr, tt.expectedErr; !reflect.DeepEqual(got, want) {
-				t.Errorf("GetClosestP99Value() = %v, want %v", got, want)
-			}
+			matcher := historicaldata.NewMatcherWithHistoricalData(historicalDataMap, 3.141)
+			actualDuration, _, actualErr := matcher.BestMatchP99(tt.args.backendName, tt.args.jobType)
+			assert.EqualValues(t, tt.expectedDuration, actualDuration, "unexpected duration")
+			assert.Equal(t, tt.expectedErr, actualErr, "unexpected error")
 		})
 	}
 }

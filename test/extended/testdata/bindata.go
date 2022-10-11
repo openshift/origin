@@ -2801,8 +2801,8 @@ func examplesDbTemplatesRedisPersistentTemplateJson() (*asset, error) {
 }
 
 var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
-  "kind": "List",
-  "apiVersion": "v1",
+  "kind": "ImageStreamList",
+  "apiVersion": "image.openshift.io/v1",
   "items": [
     {
       "kind": "ImageStream",

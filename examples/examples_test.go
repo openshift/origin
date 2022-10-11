@@ -68,7 +68,6 @@ func TestExampleObjectSchemas(t *testing.T) {
 		},
 		"../examples/image-streams": {
 			"image-streams-centos7": &imagev1.ImageStreamList{},
-			"image-streams-rhel7":   &imagev1.ImageStreamList{},
 		},
 		"../examples/db-templates": {
 			"mysql-persistent-template":      &templatev1.Template{},
