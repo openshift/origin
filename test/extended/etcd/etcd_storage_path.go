@@ -284,6 +284,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 		gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "prioritylevelconfigurations"),
 		gvr("internal.apiserver.k8s.io", "v1alpha1", "storageversions"),
 		gvr("storage.k8s.io", "v1alpha1", "csistoragecapacities"),
+		gvr("networking.k8s.io", "v1alpha1", "clustercidrs"),
 	)
 
 	// Apply output of git diff origin/release-1.XY origin/release-1.X(Y+1) test/integration/etcd/data.go. This is needed
