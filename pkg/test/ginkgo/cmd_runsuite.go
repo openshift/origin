@@ -15,8 +15,11 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/config"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/openshift/origin/test/extended/util/cluster"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -284,6 +287,21 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		return err
 	}
 
+	cl, err := configv1client.NewForConfig(restConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create client for CVO: %v", err)
+	}
+
+	cv, err := cl.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get cvo version object from cluster: %v", err)
+	}
+
+	storageEnabled := true
+	if cluster.KnowsCapability(cv, "Storage") {
+		storageEnabled = cluster.HasCapability(cv, "Storage")
+	}
+
 	pc.SetEvents([]string{setupEvent})
 	pc.Run(ctx)
 
@@ -312,6 +330,12 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	mustGatherTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
 	})
+
+	// no need to count storage tests if storage disabled
+	if !storageEnabled {
+		storageTests = nil
+		fmt.Fprintln(opt.Out, "Skipping [sig-storage] tests because Storage capability disabled")
+	}
 
 	// If user specifies a count, duplicate the kube and openshift tests that many times.
 	expectedTestCount := len(early) + len(late)
