@@ -448,7 +448,6 @@
 // test/extended/testdata/router/router-metrics.yaml
 // test/extended/testdata/router/router-override-domains.yaml
 // test/extended/testdata/router/router-override.yaml
-// test/extended/testdata/router/router-scoped.yaml
 // test/extended/testdata/router/router-shard.yaml
 // test/extended/testdata/router/weighted-router.yaml
 // test/extended/testdata/run_policy/parallel-bc.yaml
@@ -49374,127 +49373,6 @@ func testExtendedTestdataRouterRouterOverrideYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterRouterScopedYaml = []byte(`apiVersion: template.openshift.io/v1
-kind: Template
-parameters:
-- name: IMAGE
-  value: openshift/origin-haproxy-router:latest
-- name: ROUTER_NAME
-  value: "test-scoped"
-- name: DEFAULT_CERTIFICATE
-  value: |-
-    -----BEGIN CERTIFICATE-----
-    MIIDuTCCAqGgAwIBAgIUZYD30F0sJl7HqxE7gAequtxk/HowDQYJKoZIhvcNAQEL
-    BQAwgaExCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJTQzEVMBMGA1UEBwwMRGVmYXVs
-    dCBDaXR5MRwwGgYDVQQKDBNEZWZhdWx0IENvbXBhbnkgTHRkMRAwDgYDVQQLDAdU
-    ZXN0IENBMRowGAYDVQQDDBF3d3cuZXhhbXBsZWNhLmNvbTEiMCAGCSqGSIb3DQEJ
-    ARYTZXhhbXBsZUBleGFtcGxlLmNvbTAeFw0yMjAxMjgwMjU0MDlaFw0zMjAxMjYw
-    MjU0MDlaMHwxGDAWBgNVBAMMD3d3dy5leGFtcGxlLmNvbTELMAkGA1UECAwCU0Mx
-    CzAJBgNVBAYTAlVTMSIwIAYJKoZIhvcNAQkBFhNleGFtcGxlQGV4YW1wbGUuY29t
-    MRAwDgYDVQQKDAdFeGFtcGxlMRAwDgYDVQQLDAdFeGFtcGxlMIIBIjANBgkqhkiG
-    9w0BAQEFAAOCAQ8AMIIBCgKCAQEA71W7gdEnM+Nm4/SA/4jEJ2SPQfVjkCMsIYGO
-    WrLLHq23HkMGstQoPyBnjLY8LmkKQsNhhWGRMWQz6+yGKgI1gh8huhfocuw+HODE
-    K3ugP/3DlaVEQlIQbVzwxDx+K78UqZHecQAJfvakuS/JThxsMf8/pqLuhjAf+t9N
-    k0CO8Z6mNVALtSvyQ+e+zjmzepVtu6WmtJ+8zW9dBQEmg0QCfWFd06836LrfixLk
-    vTRgCn0lzTuj7rSuGjY45JDIvKK4jZGQJKsYN59Wxg1d2CEoXBUJOJjecVdS3NhY
-    ubHNdcm+6Equ5ZmyVEkBmv462rOcednsHU6Ggt/vWSe05EOPVQIDAQABow0wCzAJ
-    BgNVHRMEAjAAMA0GCSqGSIb3DQEBCwUAA4IBAQCHI+fkEr27bJ2IMtFuHpSLpFF3
-    E4R5oVHt8XjflwKmuclyyLa8Z7nXnuvQLHa4jwf0tWUixsmtOyQN4tBI/msMk2PF
-    +ao2amcPoIo2lAg63+jFsIzkr2MEXBPu09wwt86e3XCoqmqT1Psnihh+Ys9KIPnc
-    wMr9muGkOh03O61vo71iaV17UKeGM4bzod333pSQIXLdYnoOuvmKdCsnD00lADoI
-    93DmG/4oYR/mD93QjxPFPDxDxR4isvWGoj7iXx7CFkN7PR9B3IhZt+T//ddeau3y
-    kXK0iSxOhyaqHvl15hHQ8tKPBBJRSDVU4qmaqAYWRXr65yxBoelHhTJQ6Gt4
-    -----END CERTIFICATE-----
-    -----BEGIN PRIVATE KEY-----
-    MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDvVbuB0Scz42bj
-    9ID/iMQnZI9B9WOQIywhgY5assserbceQway1Cg/IGeMtjwuaQpCw2GFYZExZDPr
-    7IYqAjWCHyG6F+hy7D4c4MQre6A//cOVpURCUhBtXPDEPH4rvxSpkd5xAAl+9qS5
-    L8lOHGwx/z+mou6GMB/6302TQI7xnqY1UAu1K/JD577OObN6lW27paa0n7zNb10F
-    ASaDRAJ9YV3Trzfout+LEuS9NGAKfSXNO6PutK4aNjjkkMi8oriNkZAkqxg3n1bG
-    DV3YIShcFQk4mN5xV1Lc2Fi5sc11yb7oSq7lmbJUSQGa/jras5x52ewdToaC3+9Z
-    J7TkQ49VAgMBAAECggEAaCBzqOI3XSLlo+2/pe158e2VSkwZ2h8DVzyHk7xQFPPd
-    RKRCqNEXBYfypUyv2D1JAo0Aw8gUJFoFIPLR2DsHzqn+wXkfX8iaqXO8xXJO4Shl
-    zJiPnw8XKI2UDryG5D+JHNFi5uTuPLfQKOW6fmptRD9aEQS4I9eSQlKe7J7c0g+t
-    pCR1vCp6ZMFIXDgpHhquArI1fjA36nWK0dJkaO9LrTYPgeMIr0KFjEF+W3UPh/af
-    uw/KLjzyzHExwfVBcGZonb6rG1nU/7isUHqK75OhOKDcXpv+7NCBYZ6fu4COlE0O
-    +yGztbRXojWo1upKzzGPM+yoLyNA1aSljpCGOCSljQKBgQD+4i5FzRQ+e1XZxvUt
-    izypHHQcc7y9DfwKTwLXb9EUhmGCmrxVIuM+gm5N/Y/eXDjqtR2bqg7iIFjj3KTS
-    f9djCYT8FqlTtyDBk/qFNLchDX/mrykOuhqIXfT7JpQbk5+qkCy8k2ZJMl2ToNXA
-    WRqRCP4oa1WJMmoJFwo3BIVRIwKBgQDwYh2ryrs/QFE0W082oHAQ3Nrce5JmOtFp
-    70X/v8zZ8ESdeo7KOS0tNLeirBxlDGvUAesKwUHU1YwTgWhl/DkoPtv9INgT8kxS
-    VRcrix9kq62uiD+TKI732mwoG36keJdRECrQYRYjX+mf364EI+DeNmbPs3xsigaF
-    Zdbg+umxJwKBgF4fFelOvuAH2X8PGnDUDvV//VyYXKUPqfgAj1MRBotmyFFbZJqn
-    xHTL44HHVb5OHfKGKUXXeaGFQm36h573+Iio9kPE9ohkgqMZSxSvj8ST4JxGKIo4
-    rR2YXKP17hF05SwuC2cjo0z6XVXruaNLBCV0xa4VXMPKKx/qMyp37+czAoGBAL8c
-    woo6e/QlpmoBzlCX7YD6leaFODeeu6+FVBmo26zJoUOylKOiIZC3QOhL/ac44OGF
-    ROEgFL6pqNw5Hk824BpnH294FVKGaLdsfydXTHY1J7iDCkhtDn1vYl3gvib02RjR
-    ybgx9+/X6V3579fKzpTcm5C2Gk4Qzm5wMQ5dbj4xAoGBANYzYbBu8bItAEE6ohgf
-    D27SPW7VJsHGzbgRNC2SGCBzo3XaTJ0A8IMP+ghl5ndCJdLBz2FpeZLQvxOuopQD
-    J5dJXQxp7y20vh2C1e3wTPlA5CHHKpU1JZAe4THCJUg+EPwa4I+BOlvp71EB7BaH
-    bk65iLoLrUSkxMDi46qTAs5K
-    -----END PRIVATE KEY-----
-- name: UPDATE_STATUS
-  value: "true"
-objects:
-# a scoped router
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: router-scoped
-    labels:
-      test: router-scoped
-  spec:
-    terminationGracePeriodSeconds: 1
-    containers:
-    - name: router
-      image: ${IMAGE}
-      imagePullPolicy: IfNotPresent
-      env:
-      - name: POD_NAMESPACE
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.namespace
-      - name: DEFAULT_CERTIFICATE
-        value: |-
-          ${DEFAULT_CERTIFICATE}
-      args:
-      - "--name=${ROUTER_NAME}"
-      - "--namespace=$(POD_NAMESPACE)"
-      - "--update-status=${UPDATE_STATUS}"
-      - "-v=4"
-      - "--labels=select=first"
-      - "--stats-port=1936"
-      - "--metrics-type=haproxy"
-      hostNetwork: false
-      ports:
-      - containerPort: 80
-      - containerPort: 443
-      - containerPort: 1936
-        name: stats
-        protocol: TCP
-      readinessProbe:
-        initialDelaySeconds: 10
-        httpGet:
-          path: /healthz/ready
-          port: 1936
-    serviceAccountName: default
-`)
-
-func testExtendedTestdataRouterRouterScopedYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterRouterScopedYaml, nil
-}
-
-func testExtendedTestdataRouterRouterScopedYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterRouterScopedYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/router/router-scoped.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataRouterRouterShardYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
@@ -53123,7 +53001,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/router/router-metrics.yaml":                                                      testExtendedTestdataRouterRouterMetricsYaml,
 	"test/extended/testdata/router/router-override-domains.yaml":                                             testExtendedTestdataRouterRouterOverrideDomainsYaml,
 	"test/extended/testdata/router/router-override.yaml":                                                     testExtendedTestdataRouterRouterOverrideYaml,
-	"test/extended/testdata/router/router-scoped.yaml":                                                       testExtendedTestdataRouterRouterScopedYaml,
 	"test/extended/testdata/router/router-shard.yaml":                                                        testExtendedTestdataRouterRouterShardYaml,
 	"test/extended/testdata/router/weighted-router.yaml":                                                     testExtendedTestdataRouterWeightedRouterYaml,
 	"test/extended/testdata/run_policy/parallel-bc.yaml":                                                     testExtendedTestdataRun_policyParallelBcYaml,
@@ -53868,7 +53745,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"router-metrics.yaml":             {testExtendedTestdataRouterRouterMetricsYaml, map[string]*bintree{}},
 					"router-override-domains.yaml":    {testExtendedTestdataRouterRouterOverrideDomainsYaml, map[string]*bintree{}},
 					"router-override.yaml":            {testExtendedTestdataRouterRouterOverrideYaml, map[string]*bintree{}},
-					"router-scoped.yaml":              {testExtendedTestdataRouterRouterScopedYaml, map[string]*bintree{}},
 					"router-shard.yaml":               {testExtendedTestdataRouterRouterShardYaml, map[string]*bintree{}},
 					"weighted-router.yaml":            {testExtendedTestdataRouterWeightedRouterYaml, map[string]*bintree{}},
 				}},
