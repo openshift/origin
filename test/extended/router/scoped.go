@@ -63,12 +63,12 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io][a
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve the correct routes when scoped to a single namespace and label set", func() {
 
-			configPath := exutil.FixturePath("testdata", "router", "router-scoped.yaml")
-			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
-			err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
+			routerPod := createScopedRouterPod(routerImage, "test-scoped", defaultPemData, "true")
+			g.By("creating a router")
+			ns := oc.KubeFramework().Namespace.Name
+			_, err := oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), routerPod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			ns := oc.KubeFramework().Namespace.Name
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
