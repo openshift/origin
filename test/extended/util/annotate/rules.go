@@ -339,6 +339,13 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1825027
 			`\[Feature:Platform\] Managed cluster should ensure control plane operators do not make themselves unevictable`,
 		},
+		// Tests which can't be run/don't make sense to run against a cluster with all optional capabilities disabled
+		"[Skipped:NoOptionalCapabilities]": {
+			// Most storage tests don't pass when the storage capability is disabled.
+			// this list needs to be refined as there are some storage tests we should be able to run.
+			// Tracker for enabling more storage tests: https://issues.redhat.com/browse/OCPPLAN-9509
+			`\[sig-storage\]`,
+		},
 	}
 
 	// labelExcludes temporarily block tests out of a specific suite
