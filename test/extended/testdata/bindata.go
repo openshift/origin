@@ -47774,13 +47774,11 @@ func testExtendedTestdataRouterReencryptServingCertYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterRouterCommonYaml = []byte(`apiVersion: template.openshift.io/v1
-kind: Template
-parameters:
-objects:
-
+var _testExtendedTestdataRouterRouterCommonYaml = []byte(`kind: List
+apiVersion: v1
+items:
 # ensure the router can access routes and endpoints
-- apiVersion: v1
+- apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
     name: system-router
@@ -47788,6 +47786,8 @@ objects:
   - kind: ServiceAccount
     name: default
   roleRef:
+    kind: ClusterRole
+    apiGroup: rbac.authorization.k8s.io
     name: system:router
 
 # two routes that differ only by their labels and names
