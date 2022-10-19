@@ -14,9 +14,11 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
+	utilpointer "k8s.io/utils/pointer"
 
 	routev1 "github.com/openshift/api/route/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
@@ -108,12 +110,12 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io][a
 
 		g.It("should override the route host with a custom value", func() {
 
-			configPath := exutil.FixturePath("testdata", "router", "router-override.yaml")
-			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
-			err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
+			routerPod := createOverrideRouterPod(routerImage)
+			g.By("creating a router")
+			ns := oc.KubeFramework().Namespace.Name
+			_, err := oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), routerPod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			ns := oc.KubeFramework().Namespace.Name
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
@@ -334,4 +336,70 @@ func ingressForName(r *routev1.Route, name string) *routev1.RouteIngress {
 		}
 	}
 	return nil
+}
+
+func createOverrideRouterPod(routerImage string) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "router-override",
+			Labels: map[string]string{
+				"test": "router-override",
+			},
+		},
+		Spec: corev1.PodSpec{
+			TerminationGracePeriodSeconds: utilpointer.Int64(1),
+			Containers: []corev1.Container{
+				{
+					Name:            "router",
+					Image:           routerImage,
+					ImagePullPolicy: corev1.PullIfNotPresent,
+					Env: []corev1.EnvVar{
+						{
+							Name: "POD_NAMESPACE",
+							ValueFrom: &corev1.EnvVarSource{
+								FieldRef: &corev1.ObjectFieldSelector{
+									FieldPath: "metadata.namespace",
+								},
+							},
+						},
+						{
+							Name:  "DEFAULT_CERTIFICATE",
+							Value: defaultPemData,
+						},
+					},
+					Args: []string{
+						"--name=test-override",
+						"--namespace=$(POD_NAMESPACE)",
+						"-v=4",
+						"--override-hostname",
+						"--hostname-template=${name}-${namespace}.myapps.mycompany.com",
+						"--stats-port=1936",
+						"--metrics-type=haproxy",
+					},
+					Ports: []corev1.ContainerPort{
+						{
+							ContainerPort: 80,
+						},
+						{
+							ContainerPort: 443,
+						},
+						{
+							ContainerPort: 1936,
+							Name:          "stats",
+							Protocol:      corev1.ProtocolTCP,
+						},
+					},
+					ReadinessProbe: &corev1.Probe{
+						InitialDelaySeconds: 10,
+						ProbeHandler: corev1.ProbeHandler{
+							HTTPGet: &corev1.HTTPGetAction{
+								Path: "/healthz/ready",
+								Port: intstr.FromInt(1936),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 }
