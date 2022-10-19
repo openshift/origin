@@ -438,7 +438,6 @@
 // test/extended/testdata/router/router-common.yaml
 // test/extended/testdata/router/router-config-manager.yaml
 // test/extended/testdata/router/router-grpc-interop-routes.yaml
-// test/extended/testdata/router/router-grpc-interop.yaml
 // test/extended/testdata/router/router-h2spec-routes.yaml
 // test/extended/testdata/router/router-h2spec.yaml
 // test/extended/testdata/router/router-http-echo-server.yaml
@@ -48296,86 +48295,6 @@ func testExtendedTestdataRouterRouterGrpcInteropRoutesYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterRouterGrpcInteropYaml = []byte(`apiVersion: template.openshift.io/v1
-kind: Template
-parameters:
-- name: IMAGE
-objects:
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: grpc-interop
-    annotations:
-      service.beta.openshift.io/serving-cert-secret-name: service-cert-grpc-interop
-  spec:
-    selector:
-      app: grpc-interop
-    ports:
-    - appProtocol: h2c
-      name: h2c
-      port: 1110
-      protocol: TCP
-      targetPort: 1110
-    - name: https
-      port: 8443
-      protocol: TCP
-      targetPort: 8443
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: grpc-interop
-    labels:
-      app: grpc-interop
-  spec:
-    containers:
-    - image: ${IMAGE}
-      name: server
-      command: ["ingress-operator", "serve-grpc-test-server"]
-      ports:
-      - containerPort: 1110
-        name: h2c
-        protocol: TCP
-      - containerPort: 8443
-        name: https
-        protocol: TCP
-      volumeMounts:
-      - mountPath: /etc/serving-cert
-        name: cert
-      readinessProbe:
-        failureThreshold: 3
-        tcpSocket:
-          port: 8443
-        initialDelaySeconds: 10
-        periodSeconds: 30
-        successThreshold: 1
-      livenessProbe:
-        failureThreshold: 3
-        tcpSocket:
-          port: 8443
-        initialDelaySeconds: 10
-        periodSeconds: 30
-        successThreshold: 1
-    volumes:
-    - name: cert
-      secret:
-        secretName: service-cert-grpc-interop
-`)
-
-func testExtendedTestdataRouterRouterGrpcInteropYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterRouterGrpcInteropYaml, nil
-}
-
-func testExtendedTestdataRouterRouterGrpcInteropYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterRouterGrpcInteropYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/router/router-grpc-interop.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataRouterRouterH2specRoutesYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
@@ -52753,7 +52672,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/router/router-common.yaml":                                                       testExtendedTestdataRouterRouterCommonYaml,
 	"test/extended/testdata/router/router-config-manager.yaml":                                               testExtendedTestdataRouterRouterConfigManagerYaml,
 	"test/extended/testdata/router/router-grpc-interop-routes.yaml":                                          testExtendedTestdataRouterRouterGrpcInteropRoutesYaml,
-	"test/extended/testdata/router/router-grpc-interop.yaml":                                                 testExtendedTestdataRouterRouterGrpcInteropYaml,
 	"test/extended/testdata/router/router-h2spec-routes.yaml":                                                testExtendedTestdataRouterRouterH2specRoutesYaml,
 	"test/extended/testdata/router/router-h2spec.yaml":                                                       testExtendedTestdataRouterRouterH2specYaml,
 	"test/extended/testdata/router/router-http-echo-server.yaml":                                             testExtendedTestdataRouterRouterHttpEchoServerYaml,
@@ -53495,7 +53413,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"router-common.yaml":              {testExtendedTestdataRouterRouterCommonYaml, map[string]*bintree{}},
 					"router-config-manager.yaml":      {testExtendedTestdataRouterRouterConfigManagerYaml, map[string]*bintree{}},
 					"router-grpc-interop-routes.yaml": {testExtendedTestdataRouterRouterGrpcInteropRoutesYaml, map[string]*bintree{}},
-					"router-grpc-interop.yaml":        {testExtendedTestdataRouterRouterGrpcInteropYaml, map[string]*bintree{}},
 					"router-h2spec-routes.yaml":       {testExtendedTestdataRouterRouterH2specRoutesYaml, map[string]*bintree{}},
 					"router-h2spec.yaml":              {testExtendedTestdataRouterRouterH2specYaml, map[string]*bintree{}},
 					"router-http-echo-server.yaml":    {testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
