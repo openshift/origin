@@ -29,7 +29,6 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 	defer g.GinkgoRecover()
 
 	var (
-		grpcRoutesConfigPath      = exutil.FixturePath("testdata", "router", "router-grpc-interop-routes.yaml")
 		grpcRouterShardConfigPath = exutil.FixturePath("testdata", "router", "router-shard.yaml")
 		oc                        = exutil.NewCLIWithPodSecurityLevel("grpc-interop", admissionapi.LevelBaseline)
 		shardConfigPath           string // computed
@@ -48,7 +47,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should pass the gRPC interoperability tests [apigroup:config.openshift.io][apigroup:route.openshift.io][apigroup:template.openshift.io]", func() {
+		g.It("should pass the gRPC interoperability tests [apigroup:config.openshift.io][apigroup:route.openshift.io]", func() {
 			isProxyJob, err := exutil.IsClusterProxyEnabled(oc)
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get proxy configuration")
 			if isProxyJob {
@@ -198,12 +197,110 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			shardFQDN := oc.Namespace() + "." + defaultDomain
 
 			g.By("Creating routes to test for gRPC interoperability")
-			err = oc.Run("new-app").Args("-f", grpcRoutesConfigPath,
-				"-p", "DOMAIN="+shardFQDN,
-				"-p", "TLS_CRT="+pemCrt,
-				"-p", "TLS_KEY="+derKey,
-				"-p", "TYPE="+oc.Namespace()).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			routeType := oc.Namespace()
+			routes := []routev1.Route{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "grpc-interop-h2c",
+						Labels: map[string]string{
+							"type": routeType,
+						},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "grpc-interop-h2c." + shardFQDN,
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(1110),
+						},
+						To: routev1.RouteTargetReference{
+							Kind:   "Service",
+							Name:   "grpc-interop",
+							Weight: utilpointer.Int32(100),
+						},
+						WildcardPolicy: routev1.WildcardPolicyNone,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "grpc-interop-edge",
+						Labels: map[string]string{
+							"type": routeType,
+						},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "grpc-interop-edge." + shardFQDN,
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(1110),
+						},
+						TLS: &routev1.TLSConfig{
+							Termination:                   routev1.TLSTerminationEdge,
+							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+							Key:                           derKey,
+							Certificate:                   pemCrt,
+						},
+						To: routev1.RouteTargetReference{
+							Kind:   "Service",
+							Name:   "grpc-interop",
+							Weight: utilpointer.Int32(100),
+						},
+						WildcardPolicy: routev1.WildcardPolicyNone,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "grpc-interop-reencrypt",
+						Labels: map[string]string{
+							"type": routeType,
+						},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "grpc-interop-reencrypt." + shardFQDN,
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(8443),
+						},
+						TLS: &routev1.TLSConfig{
+							Termination:                   routev1.TLSTerminationReencrypt,
+							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+							Key:                           derKey,
+							Certificate:                   pemCrt,
+						},
+						To: routev1.RouteTargetReference{
+							Kind:   "Service",
+							Name:   "grpc-interop",
+							Weight: utilpointer.Int32(100),
+						},
+						WildcardPolicy: routev1.WildcardPolicyNone,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "grpc-interop-passthrough",
+						Labels: map[string]string{
+							"type": routeType,
+						},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "grpc-interop-passthrough." + shardFQDN,
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(8443),
+						},
+						TLS: &routev1.TLSConfig{
+							Termination:                   routev1.TLSTerminationPassthrough,
+							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+						},
+						To: routev1.RouteTargetReference{
+							Kind:   "Service",
+							Name:   "grpc-interop",
+							Weight: utilpointer.Int32(100),
+						},
+						WildcardPolicy: routev1.WildcardPolicyNone,
+					},
+				},
+			}
+
+			for _, route := range routes {
+				_, err := oc.RouteClient().RouteV1().Routes(ns).Create(context.Background(), &route, metav1.CreateOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
 
 			g.By("Creating a test-specific router shard")
 			shardConfigPath, err = shard.DeployNewRouterShard(oc, 10*time.Minute, shard.Config{
