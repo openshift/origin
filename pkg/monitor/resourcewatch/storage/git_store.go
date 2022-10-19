@@ -42,7 +42,7 @@ const (
 // NewGitStorage returns the resource event handler capable of storing changes observed on resource
 // into a Git repository. Each change is stored as separate commit which means a full history of the
 // resource lifecycle is preserved.
-func NewGitStorage(path string) (cache.ResourceEventHandler, error) {
+func NewGitStorage(path string) (ResourceWatchStore, error) {
 	// If the repo does not exists, do git init
 	if _, err := os.Stat(filepath.Join(path, ".git")); os.IsNotExist(err) {
 		_, err := git.PlainInit(path, false)
@@ -139,7 +139,11 @@ func decodeUnstructuredObject(objUnstructured *unstructured.Unstructured) (strin
 
 // resourceFilename extracts the filename out from the group version kind
 func resourceFilename(name string, gvk schema.GroupVersionKind) string {
-	return strings.ToLower(fmt.Sprintf("%s.%s.%s-%s.yaml", gvk.Kind, gvk.Version, gvk.Group, name))
+	groupStr := ""
+	if gvk.Group != "" {
+		groupStr = fmt.Sprintf(".%s", gvk.Group)
+	}
+	return strings.ToLower(fmt.Sprintf("%s.%s%s-%s.yaml", gvk.Kind, gvk.Version, groupStr, name))
 }
 
 // commit handle different git operators on repository
@@ -253,4 +257,8 @@ func (s *GitStorage) updateRefsFile() {
 	if err := ioutil.WriteFile(filepath.Join(s.path, ".git", "info", "refs"), data, os.ModePerm); err != nil {
 		panic(err)
 	}
+}
+
+// End cleans up the storage. For git, there is no action needed.
+func (s *GitStorage) End() {
 }

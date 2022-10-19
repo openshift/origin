@@ -16,9 +16,18 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Interface) {
-	reMatchFirstQuote := regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)
+var reMatchFirstQuote = regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)
 
+func EventAddOrUpdateFunc(
+	ctx context.Context,
+	m Recorder,
+	client kubernetes.Interface,
+	significantlyBeforeNow time.Time,
+	obj *corev1.Event) {
+	recordAddOrUpdateEvent(ctx, m, client, reMatchFirstQuote, significantlyBeforeNow, obj)
+}
+
+func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Interface) {
 	// filter out events written "now" but with significantly older start times (events
 	// created in test jobs are the most common)
 	significantlyBeforeNow := time.Now().UTC().Add(-15 * time.Minute)

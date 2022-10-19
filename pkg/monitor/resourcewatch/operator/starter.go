@@ -2,12 +2,16 @@ package operator
 
 import (
 	"context"
+	"fmt"
+	"github.com/spf13/cobra"
+	"k8s.io/client-go/kubernetes"
 	"os"
 	"time"
 
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiextensionsv1informer "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/cache"
@@ -21,7 +25,35 @@ import (
 	"github.com/openshift/origin/pkg/monitor/resourcewatch/storage"
 )
 
+var (
+	monitorStoreStr = "monitor"
+	gitStoreStr     = "git"
+	store           = gitStoreStr
+	supportedStore  = sets.String{gitStoreStr: sets.Empty{}, monitorStoreStr: sets.Empty{}}
+	artifactDir     = ""
+)
+
+func AddFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+	flags.StringVar(&store, "store", store, "Store to use for resource watch. Currently supported values are git or monitor.")
+	flags.StringVar(&artifactDir, "artifact-dir", artifactDir, "The directory to write test reports to.")
+}
+
+func Validate() error {
+	if _, ok := supportedStore[store]; !ok {
+		return fmt.Errorf("unknown store %s, valid values are: %+q", store, supportedStore)
+	}
+	if len(artifactDir) == 0 {
+		return fmt.Errorf("missing --artifact-dir")
+	}
+	return nil
+}
+
 func RunOperator(ctx context.Context, controllerCtx *controllercmd.ControllerContext) error {
+	err := Validate()
+	if err != nil {
+		return err
+	}
 	kubeClient, err := apiextensionsclient.NewForConfig(controllerCtx.ProtoKubeConfig)
 	if err != nil {
 		return err
@@ -37,12 +69,22 @@ func RunOperator(ctx context.Context, controllerCtx *controllercmd.ControllerCon
 		return err
 	}
 
-	repositoryPath := "/repository"
-	if repositoryPathEnv := os.Getenv("REPOSITORY_PATH"); len(repositoryPathEnv) > 0 {
-		repositoryPath = repositoryPathEnv
+	var (
+		configStore storage.ResourceWatchStore
+	)
+	if store == monitorStoreStr {
+		eventsClient, err := kubernetes.NewForConfig(controllerCtx.KubeConfig)
+		if err != nil {
+			return err
+		}
+		configStore, err = storage.NewMonitorStorage(artifactDir, eventsClient)
+	} else {
+		repositoryPath := "/repository"
+		if repositoryPathEnv := os.Getenv("REPOSITORY_PATH"); len(repositoryPathEnv) > 0 {
+			repositoryPath = repositoryPathEnv
+		}
+		configStore, err = storage.NewGitStorage(repositoryPath)
 	}
-
-	configStore, err := storage.NewGitStorage(repositoryPath)
 	if err != nil {
 		return err
 	}
@@ -66,6 +108,23 @@ func RunOperator(ctx context.Context, controllerCtx *controllercmd.ControllerCon
 				Version: "v1",
 			},
 		},
+		[]schema.GroupVersionKind{
+			{
+				Group:   "",
+				Version: "v1",
+				Kind:    "Event",
+			},
+			{
+				Group:   "",
+				Version: "v1",
+				Kind:    "Pod",
+			},
+			{
+				Group:   "",
+				Version: "v1",
+				Kind:    "Node",
+			},
+		},
 		controllerCtx.EventRecorder,
 	)
 
@@ -78,6 +137,7 @@ func RunOperator(ctx context.Context, controllerCtx *controllercmd.ControllerCon
 	go clusterOperatorMetric.Run(ctx, 1)
 
 	<-ctx.Done()
+	configStore.End()
 
 	return nil
 }

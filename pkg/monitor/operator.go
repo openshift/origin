@@ -17,22 +17,8 @@ import (
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 )
 
-func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client configclientset.Interface) {
-	coInformer := cache.NewSharedIndexInformer(
-		NewErrorRecordingListWatcher(m, &cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				return client.ConfigV1().ClusterOperators().List(ctx, options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return client.ConfigV1().ClusterOperators().Watch(ctx, options)
-			},
-		}),
-		&configv1.ClusterOperator{},
-		time.Hour,
-		nil,
-	)
-
-	coChangeFns := []func(co, oldCO *configv1.ClusterOperator) []monitorapi.Condition{
+var (
+	coChangeFns = []func(co, oldCO *configv1.ClusterOperator) []monitorapi.Condition{
 		func(co, oldCO *configv1.ClusterOperator) []monitorapi.Condition {
 			var conditions []monitorapi.Condition
 			for i := range co.Status.Conditions {
@@ -80,75 +66,7 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 			return conditions
 		},
 	}
-
-	startTime := time.Now().UTC().Add(-time.Minute)
-	coInformer.AddEventHandler(
-		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				co, ok := obj.(*configv1.ClusterOperator)
-				if !ok {
-					return
-				}
-				// filter out old pods so our monitor doesn't send a big chunk
-				// of co creations
-				if co.CreationTimestamp.Time.Before(startTime) {
-					return
-				}
-				m.Record(monitorapi.Condition{
-					Level:   monitorapi.Info,
-					Locator: monitorapi.OperatorLocator(co.Name),
-					Message: "created",
-				})
-			},
-			DeleteFunc: func(obj interface{}) {
-				co, ok := obj.(*configv1.ClusterOperator)
-				if !ok {
-					return
-				}
-				m.Record(monitorapi.Condition{
-					Level:   monitorapi.Warning,
-					Locator: monitorapi.OperatorLocator(co.Name),
-					Message: "deleted",
-				})
-			},
-			UpdateFunc: func(old, obj interface{}) {
-				co, ok := obj.(*configv1.ClusterOperator)
-				if !ok {
-					return
-				}
-				oldCO, ok := old.(*configv1.ClusterOperator)
-				if !ok {
-					return
-				}
-				if co.UID != oldCO.UID {
-					return
-				}
-				for _, fn := range coChangeFns {
-					m.Record(fn(co, oldCO)...)
-				}
-			},
-		},
-	)
-
-	go coInformer.Run(ctx.Done())
-
-	cvInformer := cache.NewSharedIndexInformer(
-		NewErrorRecordingListWatcher(m, &cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				options.FieldSelector = "metadata.name=version"
-				return client.ConfigV1().ClusterVersions().List(ctx, options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				options.FieldSelector = "metadata.name=version"
-				return client.ConfigV1().ClusterVersions().Watch(ctx, options)
-			},
-		}),
-		&configv1.ClusterVersion{},
-		time.Hour,
-		nil,
-	)
-
-	cvChangeFns := []func(cv, oldCV *configv1.ClusterVersion) []monitorapi.Condition{
+	cvChangeFns = []func(cv, oldCV *configv1.ClusterVersion) []monitorapi.Condition{
 		func(cv, oldCV *configv1.ClusterVersion) []monitorapi.Condition {
 			var conditions []monitorapi.Condition
 			if len(cv.Status.History) == 0 {
@@ -214,51 +132,164 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 			return conditions
 		},
 	}
+)
+
+// ClusterOperatorAddFunc processes add event for cluster operator
+func ClusterOperatorAddFunc(m Recorder, startTime time.Time, obj interface{}) {
+	co, ok := obj.(*configv1.ClusterOperator)
+	if !ok {
+		return
+	}
+	// filter out old pods so our monitor doesn't send a big chunk
+	// of co creations
+	if co.CreationTimestamp.Time.Before(startTime) {
+		return
+	}
+	m.Record(monitorapi.Condition{
+		Level:   monitorapi.Info,
+		Locator: monitorapi.OperatorLocator(co.Name),
+		Message: "created",
+	})
+}
+
+// ClusterOperatorDeleteFunc processes delete event for cluster operator
+func ClusterOperatorDeleteFunc(m Recorder, obj interface{}) {
+	co, ok := obj.(*configv1.ClusterOperator)
+	if !ok {
+		return
+	}
+	m.Record(monitorapi.Condition{
+		Level:   monitorapi.Warning,
+		Locator: monitorapi.OperatorLocator(co.Name),
+		Message: "deleted",
+	})
+}
+
+// ClusterOperatorUpdateFunc processes update event for cluster operator
+func ClusterOperatorUpdateFunc(m Recorder, old, obj interface{}) {
+	co, ok := obj.(*configv1.ClusterOperator)
+	if !ok {
+		return
+	}
+	oldCO, ok := old.(*configv1.ClusterOperator)
+	if !ok {
+		return
+	}
+	if co.UID != oldCO.UID {
+		return
+	}
+	for _, fn := range coChangeFns {
+		m.Record(fn(co, oldCO)...)
+	}
+}
+
+// ClusterVersionAddFunc processes add event for cluster version
+func ClusterVersionAddFunc(m Recorder, startTime time.Time, obj interface{}) {
+	cv, ok := obj.(*configv1.ClusterVersion)
+	if !ok {
+		return
+	}
+	// filter out old pods so our monitor doesn't send a big chunk
+	// of co creations
+	if cv.CreationTimestamp.Time.Before(startTime) {
+		return
+	}
+	m.Record(monitorapi.Condition{
+		Level:   monitorapi.Info,
+		Locator: locateClusterVersion(cv),
+		Message: "created",
+	})
+}
+
+// ClusterVersionDeleteFunc processes delete event for cluster version
+func ClusterVersionDeleteFunc(m Recorder, obj interface{}) {
+	cv, ok := obj.(*configv1.ClusterVersion)
+	if !ok {
+		return
+	}
+	m.Record(monitorapi.Condition{
+		Level:   monitorapi.Warning,
+		Locator: locateClusterVersion(cv),
+		Message: "deleted",
+	})
+}
+
+// ClusterVersionUpdateFunc processes update event for cluster version
+func ClusterVersionUpdateFunc(m Recorder, old, obj interface{}) {
+	cv, ok := obj.(*configv1.ClusterVersion)
+	if !ok {
+		return
+	}
+	oldCV, ok := old.(*configv1.ClusterVersion)
+	if !ok {
+		return
+	}
+	if cv.UID != oldCV.UID {
+		return
+	}
+	for _, fn := range cvChangeFns {
+		m.Record(fn(cv, oldCV)...)
+	}
+}
+
+func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client configclientset.Interface) {
+	coInformer := cache.NewSharedIndexInformer(
+		NewErrorRecordingListWatcher(m, &cache.ListWatch{
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				return client.ConfigV1().ClusterOperators().List(ctx, options)
+			},
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				return client.ConfigV1().ClusterOperators().Watch(ctx, options)
+			},
+		}),
+		&configv1.ClusterOperator{},
+		time.Hour,
+		nil,
+	)
+
+	startTime := time.Now().UTC().Add(-time.Minute)
+	coInformer.AddEventHandler(
+		cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				ClusterOperatorAddFunc(m, startTime, obj)
+			},
+			DeleteFunc: func(obj interface{}) {
+				ClusterOperatorDeleteFunc(m, obj)
+			},
+			UpdateFunc: func(old, obj interface{}) {
+				ClusterOperatorUpdateFunc(m, old, obj)
+			},
+		},
+	)
+
+	go coInformer.Run(ctx.Done())
+
+	cvInformer := cache.NewSharedIndexInformer(
+		NewErrorRecordingListWatcher(m, &cache.ListWatch{
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				options.FieldSelector = "metadata.name=version"
+				return client.ConfigV1().ClusterVersions().List(ctx, options)
+			},
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				options.FieldSelector = "metadata.name=version"
+				return client.ConfigV1().ClusterVersions().Watch(ctx, options)
+			},
+		}),
+		&configv1.ClusterVersion{},
+		time.Hour,
+		nil,
+	)
 
 	cvInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				cv, ok := obj.(*configv1.ClusterVersion)
-				if !ok {
-					return
-				}
-				// filter out old pods so our monitor doesn't send a big chunk
-				// of co creations
-				if cv.CreationTimestamp.Time.Before(startTime) {
-					return
-				}
-				m.Record(monitorapi.Condition{
-					Level:   monitorapi.Info,
-					Locator: locateClusterVersion(cv),
-					Message: "created",
-				})
+				ClusterVersionAddFunc(m, startTime, obj)
 			},
 			DeleteFunc: func(obj interface{}) {
-				cv, ok := obj.(*configv1.ClusterVersion)
-				if !ok {
-					return
-				}
-				m.Record(monitorapi.Condition{
-					Level:   monitorapi.Warning,
-					Locator: locateClusterVersion(cv),
-					Message: "deleted",
-				})
+				ClusterVersionDeleteFunc(m, obj)
 			},
 			UpdateFunc: func(old, obj interface{}) {
-				cv, ok := obj.(*configv1.ClusterVersion)
-				if !ok {
-					return
-				}
-				oldCV, ok := old.(*configv1.ClusterVersion)
-				if !ok {
-					return
-				}
-				if cv.UID != oldCV.UID {
-					return
-				}
-				for _, fn := range cvChangeFns {
-					m.Record(fn(cv, oldCV)...)
-				}
+				ClusterVersionUpdateFunc(m, old, obj)
 			},
 		},
 	)
