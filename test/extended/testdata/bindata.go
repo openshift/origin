@@ -437,7 +437,6 @@
 // test/extended/testdata/router/reencrypt-serving-cert.yaml
 // test/extended/testdata/router/router-common.yaml
 // test/extended/testdata/router/router-config-manager.yaml
-// test/extended/testdata/router/router-grpc-interop-routes.yaml
 // test/extended/testdata/router/router-h2spec-routes.yaml
 // test/extended/testdata/router/router-h2spec.yaml
 // test/extended/testdata/router/router-http-echo-server.yaml
@@ -48193,108 +48192,6 @@ func testExtendedTestdataRouterRouterConfigManagerYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterRouterGrpcInteropRoutesYaml = []byte(`apiVersion: template.openshift.io/v1
-kind: Template
-parameters:
-- name: DOMAIN
-- name: TLS_CRT
-- name: TLS_KEY
-- name: TYPE
-objects:
-- apiVersion: route.openshift.io/v1
-  kind: Route
-  metadata:
-    name: grpc-interop-h2c
-    labels:
-      type: ${TYPE}
-  spec:
-    host: grpc-interop-h2c.${DOMAIN}
-    port:
-      targetPort: 1110
-    to:
-      kind: Service
-      name: grpc-interop
-      weight: 100
-    wildcardPolicy: None
-- apiVersion: route.openshift.io/v1
-  kind: Route
-  metadata:
-    name: grpc-interop-edge
-    labels:
-      type: ${TYPE}
-  spec:
-    host: grpc-interop-edge.${DOMAIN}
-    port:
-      targetPort: 1110
-    tls:
-      termination: edge
-      insecureEdgeTerminationPolicy: Redirect
-      key: |-
-        ${TLS_KEY}
-      certificate: |-
-        ${TLS_CRT}
-    to:
-      kind: Service
-      name: grpc-interop
-      weight: 100
-    wildcardPolicy: None
-- apiVersion: route.openshift.io/v1
-  kind: Route
-  metadata:
-    name: grpc-interop-reencrypt
-    labels:
-      type: ${TYPE}
-  spec:
-    host: grpc-interop-reencrypt.${DOMAIN}
-    port:
-      targetPort: 8443
-    tls:
-      termination: reencrypt
-      insecureEdgeTerminationPolicy: Redirect
-      key: |-
-        ${TLS_KEY}
-      certificate: |-
-        ${TLS_CRT}
-    to:
-      kind: Service
-      name: grpc-interop
-      weight: 100
-    wildcardPolicy: None
-- apiVersion: route.openshift.io/v1
-  kind: Route
-  metadata:
-    name: grpc-interop-passthrough
-    labels:
-      type: ${TYPE}
-  spec:
-    host: grpc-interop-passthrough.${DOMAIN}
-    port:
-      targetPort: 8443
-    tls:
-      termination: passthrough
-      insecureEdgeTerminationPolicy: Redirect
-    to:
-      kind: Service
-      name: grpc-interop
-      weight: 100
-    wildcardPolicy: None
-`)
-
-func testExtendedTestdataRouterRouterGrpcInteropRoutesYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterRouterGrpcInteropRoutesYaml, nil
-}
-
-func testExtendedTestdataRouterRouterGrpcInteropRoutesYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterRouterGrpcInteropRoutesYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/router/router-grpc-interop-routes.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataRouterRouterH2specRoutesYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 parameters:
@@ -52671,7 +52568,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/router/reencrypt-serving-cert.yaml":                                              testExtendedTestdataRouterReencryptServingCertYaml,
 	"test/extended/testdata/router/router-common.yaml":                                                       testExtendedTestdataRouterRouterCommonYaml,
 	"test/extended/testdata/router/router-config-manager.yaml":                                               testExtendedTestdataRouterRouterConfigManagerYaml,
-	"test/extended/testdata/router/router-grpc-interop-routes.yaml":                                          testExtendedTestdataRouterRouterGrpcInteropRoutesYaml,
 	"test/extended/testdata/router/router-h2spec-routes.yaml":                                                testExtendedTestdataRouterRouterH2specRoutesYaml,
 	"test/extended/testdata/router/router-h2spec.yaml":                                                       testExtendedTestdataRouterRouterH2specYaml,
 	"test/extended/testdata/router/router-http-echo-server.yaml":                                             testExtendedTestdataRouterRouterHttpEchoServerYaml,
@@ -53408,20 +53304,19 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"policy-roles.yaml":        {testExtendedTestdataRolesPolicyRolesYaml, map[string]*bintree{}},
 				}},
 				"router": {nil, map[string]*bintree{
-					"ingress.yaml":                    {testExtendedTestdataRouterIngressYaml, map[string]*bintree{}},
-					"reencrypt-serving-cert.yaml":     {testExtendedTestdataRouterReencryptServingCertYaml, map[string]*bintree{}},
-					"router-common.yaml":              {testExtendedTestdataRouterRouterCommonYaml, map[string]*bintree{}},
-					"router-config-manager.yaml":      {testExtendedTestdataRouterRouterConfigManagerYaml, map[string]*bintree{}},
-					"router-grpc-interop-routes.yaml": {testExtendedTestdataRouterRouterGrpcInteropRoutesYaml, map[string]*bintree{}},
-					"router-h2spec-routes.yaml":       {testExtendedTestdataRouterRouterH2specRoutesYaml, map[string]*bintree{}},
-					"router-h2spec.yaml":              {testExtendedTestdataRouterRouterH2specYaml, map[string]*bintree{}},
-					"router-http-echo-server.yaml":    {testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
-					"router-http2-routes.yaml":        {testExtendedTestdataRouterRouterHttp2RoutesYaml, map[string]*bintree{}},
-					"router-http2.yaml":               {testExtendedTestdataRouterRouterHttp2Yaml, map[string]*bintree{}},
-					"router-idle.yaml":                {testExtendedTestdataRouterRouterIdleYaml, map[string]*bintree{}},
-					"router-metrics.yaml":             {testExtendedTestdataRouterRouterMetricsYaml, map[string]*bintree{}},
-					"router-shard.yaml":               {testExtendedTestdataRouterRouterShardYaml, map[string]*bintree{}},
-					"weighted-router.yaml":            {testExtendedTestdataRouterWeightedRouterYaml, map[string]*bintree{}},
+					"ingress.yaml":                 {testExtendedTestdataRouterIngressYaml, map[string]*bintree{}},
+					"reencrypt-serving-cert.yaml":  {testExtendedTestdataRouterReencryptServingCertYaml, map[string]*bintree{}},
+					"router-common.yaml":           {testExtendedTestdataRouterRouterCommonYaml, map[string]*bintree{}},
+					"router-config-manager.yaml":   {testExtendedTestdataRouterRouterConfigManagerYaml, map[string]*bintree{}},
+					"router-h2spec-routes.yaml":    {testExtendedTestdataRouterRouterH2specRoutesYaml, map[string]*bintree{}},
+					"router-h2spec.yaml":           {testExtendedTestdataRouterRouterH2specYaml, map[string]*bintree{}},
+					"router-http-echo-server.yaml": {testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
+					"router-http2-routes.yaml":     {testExtendedTestdataRouterRouterHttp2RoutesYaml, map[string]*bintree{}},
+					"router-http2.yaml":            {testExtendedTestdataRouterRouterHttp2Yaml, map[string]*bintree{}},
+					"router-idle.yaml":             {testExtendedTestdataRouterRouterIdleYaml, map[string]*bintree{}},
+					"router-metrics.yaml":          {testExtendedTestdataRouterRouterMetricsYaml, map[string]*bintree{}},
+					"router-shard.yaml":            {testExtendedTestdataRouterRouterShardYaml, map[string]*bintree{}},
+					"weighted-router.yaml":         {testExtendedTestdataRouterWeightedRouterYaml, map[string]*bintree{}},
 				}},
 				"run_policy": {nil, map[string]*bintree{
 					"parallel-bc.yaml":           {testExtendedTestdataRun_policyParallelBcYaml, map[string]*bintree{}},
