@@ -2593,15 +2593,15 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router converges when multiple routers are writing status": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Router][apigroup:route.openshift.io] when FIPS is disabled the HAProxy router should serve routes when configured with a 1024-bit RSA key [apigroup:template.openshift.io]": " [Feature:Networking-IPv4] [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Router][apigroup:route.openshift.io] when FIPS is disabled the HAProxy router should serve routes when configured with a 1024-bit RSA key": " [Feature:Networking-IPv4] [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Router][apigroup:route.openshift.io] when FIPS is enabled the HAProxy router should not work when configured with a 1024-bit RSA key [apigroup:template.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Router][apigroup:route.openshift.io] when FIPS is enabled the HAProxy router should not work when configured with a 1024-bit RSA key": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router reports the expected host names in admitted routes' statuses": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router should serve the correct routes when running with the haproxy config manager": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router should run even if it has no access to update status [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:template.openshift.io] The HAProxy router should run even if it has no access to update status [apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router should serve the correct routes when running with the haproxy config manager": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:operator.openshift.io][apigroup:apps.openshift.io] The HAProxy router should support reencrypt to services backed by a serving certificate automatically": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
