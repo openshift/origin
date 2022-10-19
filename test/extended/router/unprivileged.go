@@ -49,7 +49,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io][a
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		configPath := exutil.FixturePath("testdata", "router", "router-common.yaml")
-		err = oc.AsAdmin().Run("new-app").Args("-f", configPath).Execute()
+		err = oc.AsAdmin().Run("apply").Args("-f", configPath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 

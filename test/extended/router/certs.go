@@ -95,7 +95,7 @@ u3YLAbyW/lHhOCiZu2iAI8AbmXem9lW6Tr7p/97s0w==
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		configPath := exutil.FixturePath("testdata", "router", "router-common.yaml")
-		err = oc.AsAdmin().Run("new-app").Args("-f", configPath).Execute()
+		err = oc.AsAdmin().Run("apply").Args("-f", configPath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
