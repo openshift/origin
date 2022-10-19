@@ -28,7 +28,7 @@ import (
 
 const changeTimeoutSeconds = 3 * 60
 
-var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:template.openshift.io]", func() {
+var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc          *exutil.CLI
@@ -174,18 +174,18 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io][a
 
 		g.It("should override the route host for overridden domains with a custom value [apigroup:image.openshift.io]", func() {
 
-			configPath := exutil.FixturePath("testdata", "router", "router-override-domains.yaml")
-			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
-			err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
+			routerPod := createOverrideDomainRouterPod(routerImage)
+			g.By("creating a router")
+			ns := oc.KubeFramework().Namespace.Name
+			_, err := oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), routerPod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			ns := oc.KubeFramework().Namespace.Name
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
 
-			g.By(fmt.Sprintf("creating a scoped router with overridden domains from a config file %q", configPath))
+			g.By("creating a scoped router with overridden domains")
 
 			var routerIP string
 			err = wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
@@ -373,6 +373,72 @@ func createOverrideRouterPod(routerImage string) *corev1.Pod {
 						"-v=4",
 						"--override-hostname",
 						"--hostname-template=${name}-${namespace}.myapps.mycompany.com",
+						"--stats-port=1936",
+						"--metrics-type=haproxy",
+					},
+					Ports: []corev1.ContainerPort{
+						{
+							ContainerPort: 80,
+						},
+						{
+							ContainerPort: 443,
+						},
+						{
+							ContainerPort: 1936,
+							Name:          "stats",
+							Protocol:      corev1.ProtocolTCP,
+						},
+					},
+					ReadinessProbe: &corev1.Probe{
+						InitialDelaySeconds: 10,
+						ProbeHandler: corev1.ProbeHandler{
+							HTTPGet: &corev1.HTTPGetAction{
+								Path: "/healthz/ready",
+								Port: intstr.FromInt(1936),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func createOverrideDomainRouterPod(routerImage string) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "router-override-domains",
+			Labels: map[string]string{
+				"test": "router-override-domains",
+			},
+		},
+		Spec: corev1.PodSpec{
+			TerminationGracePeriodSeconds: utilpointer.Int64(1),
+			Containers: []corev1.Container{
+				{
+					Name:            "route",
+					Image:           routerImage,
+					ImagePullPolicy: corev1.PullIfNotPresent,
+					Env: []corev1.EnvVar{
+						{
+							Name: "POD_NAMESPACE",
+							ValueFrom: &corev1.EnvVarSource{
+								FieldRef: &corev1.ObjectFieldSelector{
+									FieldPath: "metadata.namespace",
+								},
+							},
+						},
+						{
+							Name:  "DEFAULT_CERTIFICATE",
+							Value: defaultPemData,
+						},
+					},
+					Args: []string{
+						"--name=test-override-domains",
+						"--namespace=$(POD_NAMESPACE)",
+						"-v=4",
+						"--override-domains=null.ptr,void.str",
+						"--hostname-template=${name}-${namespace}.apps.veto.test",
 						"--stats-port=1936",
 						"--metrics-type=haproxy",
 					},
