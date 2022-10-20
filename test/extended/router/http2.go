@@ -22,8 +22,10 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/pod-security-admission/api"
+	utilpointer "k8s.io/utils/pointer"
 
 	configv1 "github.com/openshift/api/config/v1"
+	routev1 "github.com/openshift/api/route/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 
 	"github.com/openshift/origin/test/extended/router/certgen"
@@ -62,7 +64,6 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 	defer g.GinkgoRecover()
 
 	var (
-		http2RoutesConfigPath      = exutil.FixturePath("testdata", "router", "router-http2-routes.yaml")
 		http2RouterShardConfigPath = exutil.FixturePath("testdata", "router", "router-shard.yaml")
 
 		oc = exutil.NewCLIWithPodSecurityLevel("router-http2", api.LevelBaseline)
@@ -89,7 +90,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should pass the http2 tests [apigroup:image.openshift.io][apigroup:template.openshift.io]", func() {
+		g.It("should pass the http2 tests [apigroup:image.openshift.io]", func() {
 			isProxyJob, err := exutil.IsClusterProxyEnabled(oc)
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get proxy configuration")
 			if isProxyJob {
@@ -248,12 +249,138 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Creating routes to test for http/2 compliance")
-			err = oc.Run("new-app").Args("-f", http2RoutesConfigPath,
-				"-p", "DOMAIN="+shardFQDN,
-				"-p", "TLS_CRT="+pemCrt,
-				"-p", "TLS_KEY="+derKey,
-				"-p", "TYPE="+oc.Namespace()).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			routeType := oc.Namespace()
+			routes := []routev1.Route{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "http2-default-cert-edge",
+						Labels: map[string]string{
+							"type": routeType,
+						},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "http2-default-cert-edge." + shardFQDN,
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(8080),
+						},
+						TLS: &routev1.TLSConfig{
+							Termination:                   routev1.TLSTerminationEdge,
+							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+						},
+						To: routev1.RouteTargetReference{
+							Kind:   "Service",
+							Name:   "http2",
+							Weight: utilpointer.Int32(100),
+						},
+						WildcardPolicy: routev1.WildcardPolicyNone,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "http2-default-cert-reencrypt",
+						Labels: map[string]string{
+							"type": routeType,
+						},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "http2-default-cert-reencrypt." + shardFQDN,
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(8443),
+						},
+						TLS: &routev1.TLSConfig{
+							Termination:                   routev1.TLSTerminationReencrypt,
+							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+						},
+						To: routev1.RouteTargetReference{
+							Kind:   "Service",
+							Name:   "http2",
+							Weight: utilpointer.Int32(100),
+						},
+						WildcardPolicy: routev1.WildcardPolicyNone,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "http2-custom-cert-edge",
+						Labels: map[string]string{
+							"type": routeType,
+						},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "http2-custom-cert-edge." + shardFQDN,
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(8080),
+						},
+						TLS: &routev1.TLSConfig{
+							Termination:                   routev1.TLSTerminationEdge,
+							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+							Key:                           derKey,
+							Certificate:                   pemCrt,
+						},
+						To: routev1.RouteTargetReference{
+							Kind:   "Service",
+							Name:   "http2",
+							Weight: utilpointer.Int32(100),
+						},
+						WildcardPolicy: routev1.WildcardPolicyNone,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "http2-custom-cert-reencrypt",
+						Labels: map[string]string{
+							"type": routeType,
+						},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "http2-custom-cert-reencrypt." + shardFQDN,
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(8443),
+						},
+						TLS: &routev1.TLSConfig{
+							Termination:                   routev1.TLSTerminationReencrypt,
+							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+							Key:                           derKey,
+							Certificate:                   pemCrt,
+						},
+						To: routev1.RouteTargetReference{
+							Kind:   "Service",
+							Name:   "http2",
+							Weight: utilpointer.Int32(100),
+						},
+						WildcardPolicy: routev1.WildcardPolicyNone,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "http2-passthrough",
+						Labels: map[string]string{
+							"type": routeType,
+						},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "http2-passthrough." + shardFQDN,
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(8443),
+						},
+						TLS: &routev1.TLSConfig{
+							Termination:                   routev1.TLSTerminationPassthrough,
+							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+						},
+						To: routev1.RouteTargetReference{
+							Kind:   "Service",
+							Name:   "http2",
+							Weight: utilpointer.Int32(100),
+						},
+						WildcardPolicy: routev1.WildcardPolicyNone,
+					},
+				},
+			}
+
+			for _, route := range routes {
+				_, err := oc.RouteClient().RouteV1().Routes(ns).Create(context.Background(), &route, metav1.CreateOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
 
 			g.By("Creating a test-specific router shard")
 			shardConfigPath, err = shard.DeployNewRouterShard(oc, 10*time.Minute, shard.Config{
