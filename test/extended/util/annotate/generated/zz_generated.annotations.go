@@ -2009,8 +2009,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-devex][Feature:Templates] templateinstance security tests [apigroup:authorization.openshift.io][apigroup:template.openshift.io] should pass security tests [apigroup:route.openshift.io]": "should pass security tests [apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-devex][Feature:Templates] templateservicebroker bind test [apigroup:authorization.openshift.io][apigroup:template.openshift.io] should pass bind tests": "should pass bind tests [Suite:openshift/conformance/parallel]",
-
 	"[Top Level] [sig-devex][Feature:Templates] templateservicebroker end-to-end test [apigroup:template.openshift.io][apigroup:authorization.openshift.io]  should pass an end-to-end test": "should pass an end-to-end test [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-devex][Feature:Templates] templateservicebroker security test [apigroup:template.openshift.io][apigroup:authorization.openshift.io]  should pass security tests": "should pass security tests [Suite:openshift/conformance/parallel]",
