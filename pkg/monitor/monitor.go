@@ -285,7 +285,8 @@ func (m *Monitor) Intervals(from, to time.Time) monitorapi.Intervals {
 // filterSamples converts the sorted samples that are within [from,to) to a set of
 // intervals.
 // TODO: simplify this by having the monitor samplers produce intervals themselves
-//   and make the streaming print logic simply show transitions.
+//
+//	and make the streaming print logic simply show transitions.
 func filterSamples(samples []*sample, from, to time.Time) monitorapi.Intervals {
 	if len(samples) == 0 {
 		return nil

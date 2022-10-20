@@ -293,6 +293,9 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 
 		g.By("Test that scoped storage-admin now an admin in project foo")
 		o.Expect(oc.Run("new-project").Args("--skip-config-write=true", "--as=storage-adm2", "--as-group=system:authenticated:oauth", "--as-group=sytem:authenticated", "policy-can-i").Execute()).NotTo(o.HaveOccurred())
+		defer func() {
+			oc.Run("delete").Args("project/policy-can-i").Execute()
+		}()
 
 		out, err = oc.Run("auth", "can-i").Args("--namespace=policy-can-i", "--as=storage-adm2", "create", "pod", "--all-namespaces").Output()
 		o.Expect(err).To(o.HaveOccurred())
@@ -309,8 +312,6 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		out, err = oc.Run("auth", "can-i").Args("--namespace=policy-can-i", "--as=storage-adm2", "create", "endpoints").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.HaveSuffix("yes"))
-
-		oc.Run("delete").Args("project/policy-can-i").Execute()
 	})
 
 	g.It("role-reapers [apigroup:authorization.openshift.io][apigroup:user.openshift.io]", func() {
@@ -427,12 +428,13 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		o.Expect(oc.Run("adm", "new-project").Args("recreated-project", "--admin=createuser2").Execute()).To(o.Succeed())
-		var out string
-		out, err = oc.Run("get").Args("rolebinding", "admin", "-n", "recreated-project", "-o", "jsonpath={.subjects[*].name}").Output()
+		defer func() {
+			oc.Run("delete").Args("project", "recreated-project").Execute()
+		}()
+
+		out, err := oc.Run("get").Args("rolebinding", "admin", "-n", "recreated-project", "-o", "jsonpath={.subjects[*].name}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("createuser2"))
-
-		oc.Run("delete").Args("project", "recreated-project").Execute()
 	})
 
 	g.It("build-chain [apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:project.openshift.io]", func() {

@@ -285,7 +285,7 @@ func EnsureHealthyMember(t TestingT, etcdClientFactory EtcdClientCreator, member
 // first it looks up a node that corresponds to the machine by comparing the ProviderID field
 // next, it returns the node name as it is used to name an etcd member.
 //
-// In cases the ProviderID is empty it will try to find a node that matches an internal IP address
+// # In cases the ProviderID is empty it will try to find a node that matches an internal IP address
 //
 // note:
 // it will exit and report an error in case the node was not found

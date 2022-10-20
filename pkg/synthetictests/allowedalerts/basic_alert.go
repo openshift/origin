@@ -293,7 +293,6 @@ var imagePullBackoffRegEx = regexp.MustCompile("Back-off pulling image .*registr
 
 // kubePodNotReadyDueToImagePullBackoff returns true if we searched pod events and determined that the
 // KubePodNotReady alert for this pod fired due to an imagePullBackoff event on registry.redhat.io.
-//
 func kubePodNotReadyDueToImagePullBackoff(trackedEventResources monitorapi.InstanceMap, firingIntervals monitorapi.Intervals) bool {
 
 	// Run the check for all firing intervals.

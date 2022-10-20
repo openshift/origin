@@ -42,6 +42,7 @@ order by
 //  2. it allows external people (recall we ship this binary) without access to ocp credentials to have a sense of what is normal on their platform
 //  3. it gives a spot to wire in a dynamic look *if* someone desired to do so and made it conditional to avoid breaking
 //     1 and 2
+//
 //go:embed query_results.json
 var queryResults []byte
 

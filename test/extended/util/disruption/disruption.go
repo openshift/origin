@@ -286,7 +286,6 @@ func filesystemSafeName(s string) string {
 //
 // historically: ".../vendor/k8s.io/kubernetes/test/e2e"
 // go.mod:       "k8s.io/kubernetes@0.18.4/test/e2e"
-//
 func isGoModulePath(packagePath, module, modulePath string) bool {
 	return regexp.MustCompile(fmt.Sprintf(`\b%s(@[^/]*|)/%s\b`, regexp.QuoteMeta(module), regexp.QuoteMeta(modulePath))).MatchString(packagePath)
 }
