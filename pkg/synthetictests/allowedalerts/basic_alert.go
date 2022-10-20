@@ -274,21 +274,6 @@ func (a *basicAlertTest) failOrFlake(ctx context.Context, restConfig *rest.Confi
 	return pass, ""
 }
 
-func monitorEventMatchesNamespace(namespace string) func(event monitorapi.EventInterval) bool {
-	return func(event monitorapi.EventInterval) bool {
-		switch {
-		case len(namespace) == 0:
-			return true
-		case namespace == platformidentification.NamespaceOther:
-			eventNamespace := monitorapi.NamespaceFromLocator(event.Locator)
-			return !platformidentification.KnownNamespaces.Has(eventNamespace)
-		default:
-			eventNamespace := monitorapi.NamespaceFromLocator(event.Locator)
-			return eventNamespace == namespace
-		}
-	}
-}
-
 var imagePullBackoffRegEx = regexp.MustCompile("Back-off pulling image .*registry.redhat.io")
 
 // kubePodNotReadyDueToImagePullBackoff returns true if we searched pod events and determined that the
@@ -363,39 +348,9 @@ func redhatOperatorPodsNotPending(trackedPodResources monitorapi.InstanceMap, fi
 	return true
 }
 
-func (a *basicAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Config, alertIntervals monitorapi.Intervals, resourcesMap monitorapi.ResourcesMap) ([]*junitapi.JUnitTestCase, error) {
-	pendingIntervals := alertIntervals.Filter(
-		monitorapi.And(
-			func(eventInterval monitorapi.EventInterval) bool {
-				locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
-				alertName := monitorapi.AlertFrom(locatorParts)
-				if alertName != a.alertName {
-					return false
-				}
-				if strings.Contains(eventInterval.Message, `alertstate="pending"`) {
-					return true
-				}
-				return false
-			},
-			monitorEventMatchesNamespace(a.namespace),
-		),
-	)
-	firingIntervals := alertIntervals.Filter(
-		monitorapi.And(
-			func(eventInterval monitorapi.EventInterval) bool {
-				locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
-				alertName := monitorapi.AlertFrom(locatorParts)
-				if alertName != a.alertName {
-					return false
-				}
-				if strings.Contains(eventInterval.Message, `alertstate="firing"`) {
-					return true
-				}
-				return false
-			},
-			monitorEventMatchesNamespace(a.namespace),
-		),
-	)
+func (a *basicAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Config, allEventIntervals monitorapi.Intervals, resourcesMap monitorapi.ResourcesMap) ([]*junitapi.JUnitTestCase, error) {
+	pendingIntervals := allEventIntervals.Filter(monitorapi.AlertPendingInNamespace(a.alertName, a.namespace))
+	firingIntervals := allEventIntervals.Filter(monitorapi.AlertFiringInNamespace(a.alertName, a.namespace))
 
 	state, message := a.failOrFlake(ctx, restConfig, firingIntervals, pendingIntervals)
 
@@ -405,7 +360,27 @@ func (a *basicAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Co
 
 			// Since this is due to imagePullBackoff, change the state to flake instead of fail
 			state = flake
+
+			break
 		}
+
+		// we only care about firing intervals that started before the nodes started updating or ended well after they finished
+		nodeUpdates := allEventIntervals.Filter(monitorapi.NodeUpdate)
+		if len(nodeUpdates) == 0 {
+			break
+		}
+		earliestUpdateBegan := nodeUpdates[0].From
+		lastUpdateFinished := nodeUpdates[len(nodeUpdates)-1].From.Add(15 * time.Minute) /* add grace period to wait for the alert to stop firing */
+		firingIntervals = firingIntervals.Filter(
+			monitorapi.Or(
+				monitorapi.StartedBefore(earliestUpdateBegan),
+				monitorapi.EndedAfter(lastUpdateFinished),
+			),
+		)
+
+		// recheck the state and message.
+		state, message = a.failOrFlake(ctx, restConfig, firingIntervals, pendingIntervals)
+
 	case "RedhatOperatorsCatalogError":
 		if state == fail && redhatOperatorPodsNotPending(resourcesMap["pods"], firingIntervals) {
 			state = flake
