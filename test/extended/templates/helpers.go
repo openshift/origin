@@ -178,7 +178,7 @@ var readinessCheckers = map[schema.GroupVersionKind]func(runtime.Object) (bool, 
 	groupVersionKind(batchv1.SchemeGroupVersion, "Job"):         checkJobReadiness,
 }
 
-//TODO candidate for openshift/library-go
+// TODO candidate for openshift/library-go
 func isTerminalPhase(phase buildv1.BuildPhase) bool {
 	switch phase {
 	case buildv1.BuildPhaseNew,
@@ -189,7 +189,7 @@ func isTerminalPhase(phase buildv1.BuildPhase) bool {
 	return true
 }
 
-//TODO candidate for openshift/library-go
+// TODO candidate for openshift/library-go
 func checkBuildReadiness(obj runtime.Object) (bool, bool, error) {
 	b, ok := obj.(*buildv1.Build)
 	if !ok {
@@ -205,7 +205,7 @@ func checkBuildReadiness(obj runtime.Object) (bool, bool, error) {
 	return ready, failed, nil
 }
 
-//TODO candidate for openshift/library-go
+// TODO candidate for openshift/library-go
 func labelValue(name string) string {
 	if len(name) <= validation.DNS1123LabelMaxLength {
 		return name
@@ -213,7 +213,7 @@ func labelValue(name string) string {
 	return name[:validation.DNS1123LabelMaxLength]
 }
 
-//TODO candidate for openshift/library-go
+// TODO candidate for openshift/library-go
 func buildConfigSelector(name string) labels.Selector {
 	return labels.Set{buildv1.BuildConfigLabel: labelValue(name)}.AsSelector()
 }
@@ -286,7 +286,7 @@ func checkDeploymentReadiness(obj runtime.Object) (bool, bool, error) {
 	return ready, failed, nil
 }
 
-//TODO candidate for openshift/library-go
+// TODO candidate for openshift/library-go
 func checkDeploymentConfigReadiness(obj runtime.Object) (bool, bool, error) {
 	dc, ok := obj.(*appsv1.DeploymentConfig)
 	if !ok {

@@ -589,7 +589,7 @@ var scopeDiscoveryRule = rbacv1.PolicyRule{
 	},
 }
 
-//convert SSRR result.  This works well enough for the test
+// convert SSRR result.  This works well enough for the test
 func authzv1_To_rbacv1_PolicyRules(authzv1Rules []authorizationv1.PolicyRule) ([]rbacv1.PolicyRule, error) {
 	ret := []rbacv1.PolicyRule{}
 

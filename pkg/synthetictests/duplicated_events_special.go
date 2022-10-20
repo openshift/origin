@@ -44,7 +44,6 @@ type singleEventCheckRegex struct {
 // if a match is found, marks it as failure or flake depending on if the pattern occurs
 // above the fail/flake thresholds (this allows us to track the occurence as a specific
 // test. If the fail threshold is set to -1, the test will only flake.
-//
 func (s *singleEventCheckRegex) test(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	success := &junitapi.JUnitTestCase{Name: s.testName}
 	var failureOutput, flakeOutput []string
@@ -97,27 +96,30 @@ func newSingleEventCheckRegex(testName, regex string, failThreshold, flakeThresh
 }
 
 // testBackoffPullingRegistryRedhatImage looks for this symptom:
-//   reason/ContainerWait ... Back-off pulling image "registry.redhat.io/openshift4/ose-oauth-proxy:latest"
-//   reason/BackOff Back-off pulling image "registry.redhat.io/openshift4/ose-oauth-proxy:latest"
-// to happen over a certain threshold and marks it as a failure or flake accordingly.
 //
+//	reason/ContainerWait ... Back-off pulling image "registry.redhat.io/openshift4/ose-oauth-proxy:latest"
+//	reason/BackOff Back-off pulling image "registry.redhat.io/openshift4/ose-oauth-proxy:latest"
+//
+// to happen over a certain threshold and marks it as a failure or flake accordingly.
 func testBackoffPullingRegistryRedhatImage(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[sig-arch] should not see excessive pull back-off on registry.redhat.io"
 	return newSingleEventCheckRegex(testName, imagePullRedhatRegEx, math.MaxInt, imagePullRedhatFlakeThreshold).test(events)
 }
 
 // testRequiredInstallerResourcesMissing looks for this symptom:
-//   reason/RequiredInstallerResourcesMissing secrets: etcd-all-certs-3
+//
+//	reason/RequiredInstallerResourcesMissing secrets: etcd-all-certs-3
+//
 // and fails if it happens more than the failure threshold count of 20 and flakes more than the
 // flake threshold.  See https://bugzilla.redhat.com/show_bug.cgi?id=2031564.
-//
 func testRequiredInstallerResourcesMissing(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[bz-etcd] should not see excessive RequiredInstallerResourcesMissing secrets"
 	return newSingleEventCheckRegex(testName, requiredResourcesMissingRegEx, duplicateEventThreshold, requiredResourceMissingFlakeThreshold).test(events)
 }
 
 // testBackoffStartingFailedContainer looks for this symptom in core namespaces:
-//   reason/BackOff Back-off restarting failed container
+//
+//	reason/BackOff Back-off restarting failed container
 func testBackoffStartingFailedContainer(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[sig-cluster-lifecycle] should not see excessive Back-off restarting failed containers"
 
@@ -126,7 +128,8 @@ func testBackoffStartingFailedContainer(events monitorapi.Intervals) []*junitapi
 }
 
 // testBackoffStartingFailedContainerForE2ENamespaces looks for this symptom in e2e namespaces:
-//   reason/BackOff Back-off restarting failed container
+//
+//	reason/BackOff Back-off restarting failed container
 func testBackoffStartingFailedContainerForE2ENamespaces(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[sig-cluster-lifecycle] should not see excessive Back-off restarting failed containers in e2e namespaces"
 

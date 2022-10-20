@@ -1751,7 +1751,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc project --show-labels works for projects [apigroup:project.openshift.io]": "--show-labels works for projects [apigroup:project.openshift.io] [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-cli] oc project can switch between different projects [apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:project.openshift.io]": "can switch between different projects [apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:project.openshift.io] [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-cli] oc project can switch between different projects [apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:project.openshift.io][Serial]": "can switch between different projects [apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:project.openshift.io][Serial] [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-cli] oc rsh specific flags should work well when access to a remote shell": "should work well when access to a remote shell [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
