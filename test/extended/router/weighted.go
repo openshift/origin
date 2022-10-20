@@ -13,28 +13,320 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	utilpointer "k8s.io/utils/pointer"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 	admissionapi "k8s.io/pod-security-admission/api"
 
+	routev1 "github.com/openshift/api/route/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 var _ = g.Describe("[sig-network][Feature:Router][apigroup:config.openshift.io][apigroup:image.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
-		configPath = exutil.FixturePath("testdata", "router", "weighted-router.yaml")
-		oc         = exutil.NewCLIWithPodSecurityLevel("weighted-router", admissionapi.LevelBaseline)
+		oc = exutil.NewCLIWithPodSecurityLevel("weighted-router", admissionapi.LevelBaseline)
 	)
 
 	g.BeforeEach(func() {
 		routerImage, err := exutil.FindRouterImage(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+routerImage).Execute()
+
+		g.By("creating a weighted router")
+
+		g.By("creating a RoleBinding")
+		roleBinding := &rbacv1.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "system-router",
+			},
+			Subjects: []rbacv1.Subject{
+				{
+					Kind: "ServiceAccount",
+					Name: "default",
+				},
+			},
+			RoleRef: rbacv1.RoleRef{
+				Kind:     "ClusterRole",
+				APIGroup: "rbac.authorization.k8s.io",
+				Name:     "system:router",
+			},
+		}
+
+		ns := oc.Namespace()
+		_, err = oc.AdminKubeClient().RbacV1().RoleBindings(ns).Create(context.Background(), roleBinding, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("creating Services")
+		services := []corev1.Service{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "weightedendpoints1",
+					Labels: map[string]string{
+						"test": "router",
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Selector: map[string]string{
+						"test":      "weightedrouter1",
+						"endpoints": "weightedrouter1",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Port: 8080,
+						},
+					},
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "weightedendpoints2",
+					Labels: map[string]string{
+						"test": "router",
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Selector: map[string]string{
+						"test":      "weightedrouter2",
+						"endpoints": "weightedrouter2",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Port: 8080,
+						},
+					},
+				},
+			},
+		}
+
+		for _, service := range services {
+			_, err = oc.AdminKubeClient().CoreV1().Services(ns).Create(context.Background(), &service, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+
+		g.By("creating Routes")
+		routes := []routev1.Route{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "weightedroute",
+					Labels: map[string]string{
+						"test":   "router",
+						"select": "weighted",
+					},
+				},
+				Spec: routev1.RouteSpec{
+					Host: "weighted.example.com",
+					To: routev1.RouteTargetReference{
+						Name:   "weightedendpoints1",
+						Kind:   "Service",
+						Weight: utilpointer.Int32(90),
+					},
+					AlternateBackends: []routev1.RouteTargetReference{
+						{
+							Name:   "weightedendpoints2",
+							Kind:   "Service",
+							Weight: utilpointer.Int32(10),
+						},
+					},
+					Port: &routev1.RoutePort{
+						TargetPort: intstr.FromInt(8080),
+					},
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "zeroweightroute",
+					Labels: map[string]string{
+						"test":   "router",
+						"select": "weighted",
+					},
+				},
+				Spec: routev1.RouteSpec{
+					Host: "zeroweight.example.com",
+					To: routev1.RouteTargetReference{
+						Name:   "weightedendpoints1",
+						Kind:   "Service",
+						Weight: utilpointer.Int32(0),
+					},
+					AlternateBackends: []routev1.RouteTargetReference{
+						{
+							Name:   "weightedendpoints2",
+							Kind:   "Service",
+							Weight: utilpointer.Int32(0),
+						},
+					},
+					Port: &routev1.RoutePort{
+						TargetPort: intstr.FromInt(8080),
+					},
+				},
+			},
+		}
+
+		for _, route := range routes {
+			_, err := oc.RouteClient().RouteV1().Routes(ns).Create(context.Background(), &route, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+
+		g.By("creating route Pods")
+		routerPods := []corev1.Pod{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "weighted-router",
+					Labels: map[string]string{
+						"test": "weighted-router",
+					},
+				},
+				Spec: corev1.PodSpec{
+					TerminationGracePeriodSeconds: utilpointer.Int64(1),
+					Containers: []corev1.Container{
+						{
+							Name:            "router",
+							Image:           routerImage,
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Env: []corev1.EnvVar{
+								{
+									Name: "POD_NAMESPACE",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.namespace",
+										},
+									},
+								},
+								{
+									Name:  "DEFAULT_CERTIFICATE",
+									Value: defaultPemData,
+								},
+							},
+							Args: []string{
+								"--namespace=$(POD_NAMESPACE)",
+								"-v=4",
+								"--labels=select=weighted",
+								"--stats-password=password",
+								"--stats-port=1936",
+								"--stats-user=admin",
+							},
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 80,
+								},
+								{
+									ContainerPort: 443,
+								},
+								{
+									ContainerPort: 1936,
+									Name:          "stats",
+									Protocol:      corev1.ProtocolTCP,
+								},
+							},
+						},
+					},
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "endpoint-1",
+					Labels: map[string]string{
+						"test":      "weightedrouter1",
+						"endpoints": "weightedrouter1",
+					},
+				},
+				Spec: corev1.PodSpec{
+					TerminationGracePeriodSeconds: utilpointer.Int64(1),
+					Containers: []corev1.Container{
+						{
+							Name:  "test",
+							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.40"),
+							Args: []string{
+								"netexec",
+							},
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 8080,
+									Name:          "http",
+								},
+								{
+									ContainerPort: 100,
+									Protocol:      corev1.ProtocolUDP,
+								},
+							},
+						},
+					},
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "endpoint-2",
+					Labels: map[string]string{
+						"test":      "weightedrouter2",
+						"endpoints": "weightedrouter2",
+					},
+				},
+				Spec: corev1.PodSpec{
+					TerminationGracePeriodSeconds: utilpointer.Int64(1),
+					Containers: []corev1.Container{
+						{
+							Name:  "test",
+							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.40"),
+							Args: []string{
+								"netexec",
+							},
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 8080,
+									Name:          "http",
+								},
+								{
+									ContainerPort: 100,
+									Protocol:      corev1.ProtocolUDP,
+								},
+							},
+						},
+					},
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "endpoint-3",
+					Labels: map[string]string{
+						"test":      "weightedrouter2",
+						"endpoints": "weightedrouter2",
+					},
+				},
+				Spec: corev1.PodSpec{
+					TerminationGracePeriodSeconds: utilpointer.Int64(1),
+					Containers: []corev1.Container{
+						{
+							Name:  "test",
+							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.40"),
+							Args: []string{
+								"netexec",
+							},
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 8080,
+									Name:          "http",
+								},
+								{
+									ContainerPort: 100,
+									Protocol:      corev1.ProtocolUDP,
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		for _, pod := range routerPods {
+			_, err = oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), &pod, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
 	})
 
 	g.Describe("The HAProxy router", func() {
@@ -50,8 +342,6 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:config.openshift.io][
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
-
-			g.By(fmt.Sprintf("creating a weighted router from a config file %q", configPath))
 
 			var routerIP string
 			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
