@@ -9,15 +9,20 @@ import (
 	"net/http"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
+	utilpointer "k8s.io/utils/pointer"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	configv1 "github.com/openshift/api/config/v1"
+	routev1 "github.com/openshift/api/route/v1"
 	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
 	exutil "github.com/openshift/origin/test/extended/util"
 
@@ -28,8 +33,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 	defer g.GinkgoRecover()
 
 	var (
-		configPath = exutil.FixturePath("testdata", "router", "router-idle.yaml")
-		oc         = exutil.NewCLIWithPodSecurityLevel("router-idling", admissionapi.LevelBaseline)
+		oc = exutil.NewCLIWithPodSecurityLevel("router-idling", admissionapi.LevelBaseline)
 	)
 
 	// this hook must be registered before the framework namespace teardown
@@ -41,7 +45,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should be able to connect to a service that is idled because a GET on the route will unidle it [apigroup:config.openshift.io][apigroup:template.openshift.io]", func() {
+		g.It("should be able to connect to a service that is idled because a GET on the route will unidle it [apigroup:config.openshift.io]", func() {
 			network, err := oc.AdminConfigClient().ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster network configuration")
 			if !(network.Status.NetworkType == "OVNKubernetes" || network.Status.NetworkType == "OpenShiftSDN") {
@@ -61,9 +65,107 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 
 			timeout := 15 * time.Minute
 
-			g.By(fmt.Sprintf("creating test fixture from a config file %q", configPath))
-			err = oc.Run("new-app").Args("-f", configPath).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred(), "failed to create test fixture")
+			g.By("creating test fixtures")
+			ns := oc.KubeFramework().Namespace.Name
+			idleRoute := &routev1.Route{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "idle-test",
+					Labels: map[string]string{
+						"app": "idle-test",
+					},
+				},
+				Spec: routev1.RouteSpec{
+					Port: &routev1.RoutePort{
+						TargetPort: intstr.FromInt(8080),
+					},
+					To: routev1.RouteTargetReference{
+						Kind: "Service",
+						Name: "idle-test",
+					},
+				},
+			}
+			_, err = oc.RouteClient().RouteV1().Routes(ns).Create(context.Background(), idleRoute, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			idleService := &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "idle-test",
+					Labels: map[string]string{
+						"app": "idle-test",
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Selector: map[string]string{
+						"app": "idle-test",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Port:       8080,
+							Name:       "8080-http",
+							TargetPort: intstr.FromInt(8080),
+							Protocol:   corev1.ProtocolTCP,
+						},
+					},
+				},
+			}
+
+			_, err = oc.AdminKubeClient().CoreV1().Services(ns).Create(context.Background(), idleService, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			idleDeployment := &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "idle-test",
+				},
+				Spec: appsv1.DeploymentSpec{
+					Selector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"app": "idle-test",
+						},
+					},
+					Replicas: utilpointer.Int32(1),
+					Template: corev1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "idle-test",
+							Labels: map[string]string{
+								"app": "idle-test",
+							},
+						},
+
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest",
+									Name:  "idle-test",
+									ReadinessProbe: &corev1.Probe{
+										ProbeHandler: corev1.ProbeHandler{
+											HTTPGet: &corev1.HTTPGetAction{
+												Path: "/",
+												Port: intstr.FromInt(8080),
+											},
+										},
+										InitialDelaySeconds: 3,
+										PeriodSeconds:       3,
+									},
+									Command: []string{
+										"/usr/bin/socat",
+										"TCP4-LISTEN:8080,reuseaddr,fork",
+										`EXEC:'/bin/bash -c \"printf \\\"HTTP/1.0 200 OK\r\n\r\n\\\"; sed -e \\\"/^\r/q\\\"\"'`,
+									},
+									Ports: []corev1.ContainerPort{
+										{
+											ContainerPort: 8080,
+											Protocol:      corev1.ProtocolTCP,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+
+			_, err = oc.AdminKubeClient().AppsV1().Deployments(ns).Create(context.Background(), idleDeployment, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Waiting for pods to be running")
 			err = waitForRunningPods(oc, 1, exutil.ParseLabelsOrDie("app=idle-test"), timeout)
