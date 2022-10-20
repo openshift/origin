@@ -14,8 +14,10 @@ import (
 	o "github.com/onsi/gomega"
 	"golang.org/x/net/http2"
 
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
@@ -60,7 +62,6 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 	defer g.GinkgoRecover()
 
 	var (
-		http2ServiceConfigPath     = exutil.FixturePath("testdata", "router", "router-http2.yaml")
 		http2RoutesConfigPath      = exutil.FixturePath("testdata", "router", "router-http2-routes.yaml")
 		http2RouterShardConfigPath = exutil.FixturePath("testdata", "router", "router-shard.yaml")
 
@@ -109,7 +110,112 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Creating http2 test service")
-			err = oc.Run("new-app").Args("-f", http2ServiceConfigPath, "-p", "IMAGE="+image).Execute()
+			http2service := &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "http2",
+					Annotations: map[string]string{
+						"service.beta.openshift.io/serving-cert-secret-name": "serving-cert-http2",
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Selector: map[string]string{
+						"name": "http2",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "https",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       8443,
+							TargetPort: intstr.FromInt(8443),
+						},
+						{
+							Name:       "http",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       8080,
+							TargetPort: intstr.FromInt(8080),
+						},
+					},
+				},
+			}
+
+			ns := oc.KubeFramework().Namespace.Name
+			_, err = oc.AdminKubeClient().CoreV1().Services(ns).Create(context.Background(), http2service, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Creating http2 test service pod")
+			http2Pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "http2",
+					Labels: map[string]string{
+						"name": "http2",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Image:   image,
+							Name:    "server",
+							Command: []string{"ingress-operator", "serve-http2-test-server"},
+							ReadinessProbe: &corev1.Probe{
+								FailureThreshold: 3,
+								ProbeHandler: corev1.ProbeHandler{
+									TCPSocket: &corev1.TCPSocketAction{
+										Port: intstr.FromInt(8080),
+									},
+								},
+								InitialDelaySeconds: 10,
+								PeriodSeconds:       30,
+								SuccessThreshold:    1,
+							},
+							LivenessProbe: &corev1.Probe{
+								FailureThreshold: 3,
+								ProbeHandler: corev1.ProbeHandler{
+									TCPSocket: &corev1.TCPSocketAction{
+										Port: intstr.FromInt(8080),
+									},
+								},
+								InitialDelaySeconds: 10,
+								PeriodSeconds:       30,
+								SuccessThreshold:    1,
+							},
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 8443,
+									Protocol:      corev1.ProtocolTCP,
+								},
+								{
+									ContainerPort: 8080,
+									Protocol:      corev1.ProtocolTCP,
+								},
+							},
+							Env: []corev1.EnvVar{
+								{
+									Name:  "GODEBUG",
+									Value: "http2debug=1",
+								},
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									MountPath: "/etc/serving-cert",
+									Name:      "cert",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "cert",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: "serving-cert-http2",
+								},
+							},
+						},
+					},
+				},
+			}
+
+			_, err = oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), http2Pod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Waiting for http2 pod to be running")
