@@ -439,7 +439,6 @@
 // test/extended/testdata/router/router-config-manager.yaml
 // test/extended/testdata/router/router-http-echo-server.yaml
 // test/extended/testdata/router/router-http2-routes.yaml
-// test/extended/testdata/router/router-http2.yaml
 // test/extended/testdata/router/router-idle.yaml
 // test/extended/testdata/router/router-metrics.yaml
 // test/extended/testdata/router/router-shard.yaml
@@ -48386,86 +48385,6 @@ func testExtendedTestdataRouterRouterHttp2RoutesYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterRouterHttp2Yaml = []byte(`apiVersion: template.openshift.io/v1
-kind: Template
-parameters:
-- name: IMAGE
-objects:
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: http2
-    annotations:
-      service.beta.openshift.io/serving-cert-secret-name: serving-cert-http2
-  spec:
-    selector:
-      name: http2
-    ports:
-      - name: https
-        protocol: TCP
-        port: 8443
-        targetPort: 8443
-      - name: http
-        protocol: TCP
-        port: 8080
-        targetPort: 8080
-- apiVersion: v1
-  kind: Pod
-  metadata:
-    name: http2
-    labels:
-      name: http2
-  spec:
-    containers:
-    - image: ${IMAGE}
-      name: server
-      command: ["ingress-operator", "serve-http2-test-server"]
-      readinessProbe:
-        failureThreshold: 3
-        tcpSocket:
-          port: 8080
-        initialDelaySeconds: 10
-        periodSeconds: 30
-        successThreshold: 1
-      livenessProbe:
-        failureThreshold: 3
-        tcpSocket:
-          port: 8080
-        initialDelaySeconds: 10
-        periodSeconds: 30
-        successThreshold: 1
-      ports:
-      - containerPort: 8443
-        protocol: TCP
-      - containerPort: 8080
-        protocol: TCP
-      env:
-      - name: GODEBUG
-        value: http2debug=1
-      volumeMounts:
-      - mountPath: /etc/serving-cert
-        name: cert
-    volumes:
-    - name: cert
-      secret:
-        secretName: serving-cert-http2
-`)
-
-func testExtendedTestdataRouterRouterHttp2YamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterRouterHttp2Yaml, nil
-}
-
-func testExtendedTestdataRouterRouterHttp2Yaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterRouterHttp2YamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/router/router-http2.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataRouterRouterIdleYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 objects:
@@ -52284,7 +52203,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/router/router-config-manager.yaml":                                               testExtendedTestdataRouterRouterConfigManagerYaml,
 	"test/extended/testdata/router/router-http-echo-server.yaml":                                             testExtendedTestdataRouterRouterHttpEchoServerYaml,
 	"test/extended/testdata/router/router-http2-routes.yaml":                                                 testExtendedTestdataRouterRouterHttp2RoutesYaml,
-	"test/extended/testdata/router/router-http2.yaml":                                                        testExtendedTestdataRouterRouterHttp2Yaml,
 	"test/extended/testdata/router/router-idle.yaml":                                                         testExtendedTestdataRouterRouterIdleYaml,
 	"test/extended/testdata/router/router-metrics.yaml":                                                      testExtendedTestdataRouterRouterMetricsYaml,
 	"test/extended/testdata/router/router-shard.yaml":                                                        testExtendedTestdataRouterRouterShardYaml,
@@ -53022,7 +52940,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"router-config-manager.yaml":   {testExtendedTestdataRouterRouterConfigManagerYaml, map[string]*bintree{}},
 					"router-http-echo-server.yaml": {testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
 					"router-http2-routes.yaml":     {testExtendedTestdataRouterRouterHttp2RoutesYaml, map[string]*bintree{}},
-					"router-http2.yaml":            {testExtendedTestdataRouterRouterHttp2Yaml, map[string]*bintree{}},
 					"router-idle.yaml":             {testExtendedTestdataRouterRouterIdleYaml, map[string]*bintree{}},
 					"router-metrics.yaml":          {testExtendedTestdataRouterRouterMetricsYaml, map[string]*bintree{}},
 					"router-shard.yaml":            {testExtendedTestdataRouterRouterShardYaml, map[string]*bintree{}},
