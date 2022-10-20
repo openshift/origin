@@ -22,6 +22,7 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 	utilpointer "k8s.io/utils/pointer"
 
+	routev1 "github.com/openshift/api/route/v1"
 	securityv1 "github.com/openshift/api/security/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 
@@ -41,7 +42,6 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 	defer g.GinkgoRecover()
 
 	var (
-		h2specRoutesConfigPath      = exutil.FixturePath("testdata", "router", "router-h2spec-routes.yaml")
 		h2specRouterShardConfigPath = exutil.FixturePath("testdata", "router", "router-shard.yaml")
 
 		oc              = exutil.NewCLIWithPodSecurityLevel("router-h2spec", admissionapi.LevelBaseline)
@@ -66,7 +66,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should pass the h2spec conformance tests [apigroup:config.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:security.openshift.io][apigroup:template.openshift.io]", func() {
+		g.It("should pass the h2spec conformance tests [apigroup:config.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
 			isProxyJob, err := exutil.IsClusterProxyEnabled(oc)
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get proxy configuration")
 			if isProxyJob {
@@ -411,9 +411,33 @@ BFNBRELPe53ZdLKWpf2Sr96vRPRNw
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Creating routes to test for h2spec compliance")
-			err = oc.Run("new-app").Args("-f", h2specRoutesConfigPath,
-				"-p", "DOMAIN="+shardFQDN,
-				"-p", "TYPE="+oc.Namespace()).Execute()
+			h2specRoute := &routev1.Route{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "h2spec-passthrough",
+					Labels: map[string]string{
+						"app":  "h2spec-haproxy",
+						"type": oc.Namespace(),
+					},
+				},
+				Spec: routev1.RouteSpec{
+					Host: "h2spec-passthrough." + shardFQDN,
+					Port: &routev1.RoutePort{
+						TargetPort: intstr.FromInt(8443),
+					},
+					TLS: &routev1.TLSConfig{
+						Termination:                   routev1.TLSTerminationPassthrough,
+						InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+					},
+					To: routev1.RouteTargetReference{
+						Kind:   "Service",
+						Name:   "h2spec-haproxy",
+						Weight: utilpointer.Int32(100),
+					},
+					WildcardPolicy: routev1.WildcardPolicyNone,
+				},
+			}
+
+			_, err = oc.RouteClient().RouteV1().Routes(ns).Create(context.Background(), h2specRoute, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Creating a test-specific router shard")
