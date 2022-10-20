@@ -437,7 +437,6 @@
 // test/extended/testdata/router/reencrypt-serving-cert.yaml
 // test/extended/testdata/router/router-common.yaml
 // test/extended/testdata/router/router-config-manager.yaml
-// test/extended/testdata/router/router-h2spec-routes.yaml
 // test/extended/testdata/router/router-http-echo-server.yaml
 // test/extended/testdata/router/router-http2-routes.yaml
 // test/extended/testdata/router/router-http2.yaml
@@ -48191,48 +48190,6 @@ func testExtendedTestdataRouterRouterConfigManagerYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterRouterH2specRoutesYaml = []byte(`apiVersion: template.openshift.io/v1
-kind: Template
-parameters:
-- name: DOMAIN
-- name: TYPE
-objects:
-- apiVersion: route.openshift.io/v1
-  kind: Route
-  metadata:
-    labels:
-      app: h2spec-haproxy
-      type: ${TYPE}
-    name: h2spec-passthrough
-  spec:
-    host: h2spec-passthrough.${DOMAIN}
-    port:
-      targetPort: 8443
-    tls:
-      termination: passthrough
-      insecureEdgeTerminationPolicy: Redirect
-    to:
-      kind: Service
-      name: h2spec-haproxy
-      weight: 100
-    wildcardPolicy: None
-`)
-
-func testExtendedTestdataRouterRouterH2specRoutesYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterRouterH2specRoutesYaml, nil
-}
-
-func testExtendedTestdataRouterRouterH2specRoutesYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterRouterH2specRoutesYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/router/router-h2spec-routes.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataRouterRouterHttpEchoServerYaml = []byte(`apiVersion: v1
 kind: List
 metadata: {}
@@ -52325,7 +52282,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/router/reencrypt-serving-cert.yaml":                                              testExtendedTestdataRouterReencryptServingCertYaml,
 	"test/extended/testdata/router/router-common.yaml":                                                       testExtendedTestdataRouterRouterCommonYaml,
 	"test/extended/testdata/router/router-config-manager.yaml":                                               testExtendedTestdataRouterRouterConfigManagerYaml,
-	"test/extended/testdata/router/router-h2spec-routes.yaml":                                                testExtendedTestdataRouterRouterH2specRoutesYaml,
 	"test/extended/testdata/router/router-http-echo-server.yaml":                                             testExtendedTestdataRouterRouterHttpEchoServerYaml,
 	"test/extended/testdata/router/router-http2-routes.yaml":                                                 testExtendedTestdataRouterRouterHttp2RoutesYaml,
 	"test/extended/testdata/router/router-http2.yaml":                                                        testExtendedTestdataRouterRouterHttp2Yaml,
@@ -53064,7 +53020,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"reencrypt-serving-cert.yaml":  {testExtendedTestdataRouterReencryptServingCertYaml, map[string]*bintree{}},
 					"router-common.yaml":           {testExtendedTestdataRouterRouterCommonYaml, map[string]*bintree{}},
 					"router-config-manager.yaml":   {testExtendedTestdataRouterRouterConfigManagerYaml, map[string]*bintree{}},
-					"router-h2spec-routes.yaml":    {testExtendedTestdataRouterRouterH2specRoutesYaml, map[string]*bintree{}},
 					"router-http-echo-server.yaml": {testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
 					"router-http2-routes.yaml":     {testExtendedTestdataRouterRouterHttp2RoutesYaml, map[string]*bintree{}},
 					"router-http2.yaml":            {testExtendedTestdataRouterRouterHttp2Yaml, map[string]*bintree{}},
