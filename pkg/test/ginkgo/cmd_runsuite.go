@@ -151,7 +151,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		suite.SyntheticEventTests,
 	}
 
-	tests, err := testsForSuite(config.GinkgoConfig)
+	tests, err := testsForSuite(config.GinkgoConfig, junitSuiteName)
 	if err != nil {
 		return err
 	}

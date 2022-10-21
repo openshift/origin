@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-func E2ETestLocator(testName string) string {
-	return fmt.Sprintf("e2e-test/%q", testName)
+func E2ETestLocator(testName, jUnitSuiteName string) string {
+	return fmt.Sprintf("e2e-test/%q jUnitSuite/%s", testName, jUnitSuiteName)
 }
 
 func IsE2ETest(locator string) bool {
@@ -16,16 +16,15 @@ func IsE2ETest(locator string) bool {
 }
 
 func E2ETestFromLocator(locator string) (string, bool) {
-	if !strings.HasPrefix(locator, "e2e-test/") {
-		return "", false
+	locatorParts := LocatorParts(locator)
+	if quotedTestName, ok := locatorParts["e2e-test"]; ok {
+		testName, err := strconv.Unquote(quotedTestName)
+		if err != nil {
+			return "", false
+		}
+		return testName, true
 	}
-	parts := strings.SplitN(locator, "/", 2)
-	quotedTestName := parts[1]
-	testName, err := strconv.Unquote(quotedTestName)
-	if err != nil {
-		return "", false
-	}
-	return testName, true
+	return "", false
 }
 
 func NodeLocator(testName string) string {

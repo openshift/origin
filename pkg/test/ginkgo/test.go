@@ -15,10 +15,11 @@ import (
 )
 
 type testCase struct {
-	name      string
-	spec      ginkgoSpec
-	location  types.CodeLocation
-	apigroups []string
+	name           string
+	jUnitSuiteName string
+	spec           ginkgoSpec
+	location       types.CodeLocation
+	apigroups      []string
 
 	// identifies which tests can be run in parallel (ginkgo runs suites linearly)
 	testExclusion string
@@ -39,15 +40,16 @@ type testCase struct {
 	previous *testCase
 }
 
-func newTestCase(spec ginkgoSpec) (*testCase, error) {
+func newTestCase(spec ginkgoSpec, jUnitSuiteName string) (*testCase, error) {
 	name := spec.ConcatenatedString()
 	name = strings.TrimPrefix(name, "[Top Level] ")
 
 	summary := spec.Summary("")
 	tc := &testCase{
-		name:     name,
-		spec:     spec,
-		location: summary.ComponentCodeLocations[len(summary.ComponentCodeLocations)-1],
+		name:           name,
+		jUnitSuiteName: jUnitSuiteName,
+		spec:           spec,
+		location:       summary.ComponentCodeLocations[len(summary.ComponentCodeLocations)-1],
 	}
 
 	matches := regexp.MustCompile(`\[apigroup:([^]]*)\]`).FindAllStringSubmatch(name, -1)

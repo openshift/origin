@@ -51,7 +51,7 @@ func (opt *TestOptions) Run(args []string) error {
 		return fmt.Errorf("only a single test name may be passed")
 	}
 
-	tests, err := testsForSuite(config.GinkgoConfig)
+	tests, err := testsForSuite(config.GinkgoConfig, "") // no junitsuitename known when we run individual tests
 	if err != nil {
 		return err
 	}

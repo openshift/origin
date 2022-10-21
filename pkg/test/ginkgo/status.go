@@ -121,7 +121,7 @@ func (s *testStatus) finalizeTest(test *testCase) {
 
 	s.monitorRecorder.Record(monitorapi.Condition{
 		Level:   eventLevel,
-		Locator: monitorapi.E2ETestLocator(test.name),
+		Locator: monitorapi.E2ETestLocator(test.name, test.jUnitSuiteName),
 		Message: eventMessage,
 	})
 }
@@ -140,7 +140,7 @@ func (s *testStatus) OutputCommand(ctx context.Context, test *testCase) {
 func (s *testStatus) Run(ctx context.Context, test *testCase) {
 	s.monitorRecorder.Record(monitorapi.Condition{
 		Level:   monitorapi.Info,
-		Locator: monitorapi.E2ETestLocator(test.name),
+		Locator: monitorapi.E2ETestLocator(test.name, test.jUnitSuiteName),
 		Message: "started",
 	})
 	// if the test was already marked as skipped, skip it.

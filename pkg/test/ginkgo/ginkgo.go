@@ -10,7 +10,7 @@ import (
 	"github.com/onsi/ginkgo/types"
 )
 
-func testsForSuite(cfg config.GinkgoConfigType) ([]*testCase, error) {
+func testsForSuite(cfg config.GinkgoConfigType, jUnitSuiteName string) ([]*testCase, error) {
 	iter := ginkgo.GlobalSuite().Iterator(cfg)
 	var tests []*testCase
 	for {
@@ -21,7 +21,7 @@ func testsForSuite(cfg config.GinkgoConfigType) ([]*testCase, error) {
 			}
 			return nil, err
 		}
-		tc, err := newTestCase(spec)
+		tc, err := newTestCase(spec, jUnitSuiteName)
 		if err != nil {
 			return nil, err
 		}
