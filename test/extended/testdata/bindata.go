@@ -438,7 +438,6 @@
 // test/extended/testdata/router/router-common.yaml
 // test/extended/testdata/router/router-http-echo-server.yaml
 // test/extended/testdata/router/router-metrics.yaml
-// test/extended/testdata/router/router-shard.yaml
 // test/extended/testdata/run_policy/parallel-bc.yaml
 // test/extended/testdata/run_policy/serial-bc.yaml
 // test/extended/testdata/run_policy/serial-latest-only-bc.yaml
@@ -48088,49 +48087,6 @@ func testExtendedTestdataRouterRouterMetricsYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataRouterRouterShardYaml = []byte(`apiVersion: template.openshift.io/v1
-kind: Template
-parameters:
-- name: DOMAIN
-- name: NAMESPACE
-- name: TYPE
-objects:
-- apiVersion: operator.openshift.io/v1
-  kind: IngressController
-  metadata:
-    name: ${TYPE}
-    namespace: ${NAMESPACE}
-    annotations:
-      ingress.operator.openshift.io/default-enable-http2: "true"
-  spec:
-    replicas: 1
-    domain: ${DOMAIN}
-    endpointPublishingStrategy:
-      type: LoadBalancerService
-    nodePlacement:
-      nodeSelector:
-        matchLabels:
-          node-role.kubernetes.io/worker: ""
-    namespaceSelector:
-      matchLabels:
-        type: ${TYPE}
-`)
-
-func testExtendedTestdataRouterRouterShardYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataRouterRouterShardYaml, nil
-}
-
-func testExtendedTestdataRouterRouterShardYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataRouterRouterShardYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/router/router-shard.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataRun_policyParallelBcYaml = []byte(`---
   kind: "List"
   apiVersion: "v1"
@@ -51467,7 +51423,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/router/router-common.yaml":                                                       testExtendedTestdataRouterRouterCommonYaml,
 	"test/extended/testdata/router/router-http-echo-server.yaml":                                             testExtendedTestdataRouterRouterHttpEchoServerYaml,
 	"test/extended/testdata/router/router-metrics.yaml":                                                      testExtendedTestdataRouterRouterMetricsYaml,
-	"test/extended/testdata/router/router-shard.yaml":                                                        testExtendedTestdataRouterRouterShardYaml,
 	"test/extended/testdata/run_policy/parallel-bc.yaml":                                                     testExtendedTestdataRun_policyParallelBcYaml,
 	"test/extended/testdata/run_policy/serial-bc.yaml":                                                       testExtendedTestdataRun_policySerialBcYaml,
 	"test/extended/testdata/run_policy/serial-latest-only-bc.yaml":                                           testExtendedTestdataRun_policySerialLatestOnlyBcYaml,
@@ -52200,7 +52155,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"router-common.yaml":           {testExtendedTestdataRouterRouterCommonYaml, map[string]*bintree{}},
 					"router-http-echo-server.yaml": {testExtendedTestdataRouterRouterHttpEchoServerYaml, map[string]*bintree{}},
 					"router-metrics.yaml":          {testExtendedTestdataRouterRouterMetricsYaml, map[string]*bintree{}},
-					"router-shard.yaml":            {testExtendedTestdataRouterRouterShardYaml, map[string]*bintree{}},
 				}},
 				"run_policy": {nil, map[string]*bintree{
 					"parallel-bc.yaml":           {testExtendedTestdataRun_policyParallelBcYaml, map[string]*bintree{}},
