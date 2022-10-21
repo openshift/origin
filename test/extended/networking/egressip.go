@@ -122,7 +122,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 		// A supported version of OpenShift must hold the CloudPrivateIPConfig CRD.
 		// Otherwise, skip this test.
 		g.By("Verifying that this is a supported version of OpenShift")
-		isSupportedOcpVersion, err := exutil.DoesApiResourceExist(oc, "cloudprivateipconfigs")
+		isSupportedOcpVersion, err := exutil.DoesApiResourceExist(oc.AdminConfig(), "cloudprivateipconfigs")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if !isSupportedOcpVersion {
 			skipper.Skipf("This OCP version is not supported for this test (api-resource cloudprivateipconfigs not found)")
