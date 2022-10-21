@@ -212,16 +212,12 @@
 // test/extended/testdata/cmd/test/cmd/printer.sh
 // test/extended/testdata/cmd/test/cmd/quota.sh
 // test/extended/testdata/cmd/test/cmd/registry.sh
-// test/extended/testdata/cmd/test/cmd/routes.sh
-// test/extended/testdata/cmd/test/cmd/run.sh
 // test/extended/testdata/cmd/test/cmd/secrets.sh
-// test/extended/testdata/cmd/test/cmd/services.sh
 // test/extended/testdata/cmd/test/cmd/set-data.sh
 // test/extended/testdata/cmd/test/cmd/set-image.sh
 // test/extended/testdata/cmd/test/cmd/set-liveness-probe.sh
 // test/extended/testdata/cmd/test/cmd/setbuildhook.sh
 // test/extended/testdata/cmd/test/cmd/setbuildsecret.sh
-// test/extended/testdata/cmd/test/cmd/status.sh
 // test/extended/testdata/cmd/test/cmd/templates.sh
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-custombuild.json
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild.json
@@ -32097,134 +32093,6 @@ func testExtendedTestdataCmdTestCmdRegistrySh() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdRoutesSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-# Cleanup cluster resources created by this test
-(
-  set +e
-  oc delete route foo bar testroute test-route new-route
-  exit 0
-) &>/dev/null
-
-
-os::test::junit::declare_suite_start "cmd/routes"
-
-os::cmd::expect_success 'oc get routes'
-os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-route.json'
-os::cmd::expect_success_and_text 'oc get routes testroute --show-labels' 'rtlabel1'
-os::cmd::expect_success 'oc delete routes testroute'
-os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-service.json'
-os::cmd::expect_success 'oc create route passthrough --service=svc/frontend'
-os::cmd::expect_success 'oc delete routes frontend'
-os::cmd::expect_success 'oc create route edge --path /test --service=services/non-existent --port=80'
-os::cmd::expect_success 'oc delete routes non-existent'
-os::cmd::expect_success 'oc create route edge test-route --service=frontend'
-os::cmd::expect_success 'oc delete routes test-route'
-os::cmd::expect_failure 'oc create route edge new-route'
-os::cmd::expect_success 'oc delete services frontend'
-os::cmd::expect_success 'oc create route edge --insecure-policy=Allow --service=foo --port=80'
-os::cmd::expect_success_and_text 'oc get route foo -o jsonpath="{.spec.tls.insecureEdgeTerminationPolicy}"' 'Allow'
-os::cmd::expect_success 'oc delete routes foo'
-
-os::cmd::expect_success_and_text 'oc create route edge --service foo --port=8080' 'created'
-os::cmd::expect_success_and_text 'oc create route edge --service bar --port=9090' 'created'
-
-# verify that reencrypt routes with no destination CA return the stub PEM block on the old API
-project="$(oc project -q)"
-os::cmd::expect_success_and_text     'oc create route reencrypt --service baz --port=9090' 'created'
-os::cmd::expect_success_and_not_text 'oc get --raw /apis/route.openshift.io/v1/namespaces/${project}/routes/baz' 'This is an empty PEM file'
-
-os::cmd::expect_success_and_text 'oc set route-backends foo' 'routes/foo'
-os::cmd::expect_success_and_text 'oc set route-backends foo' 'Service'
-os::cmd::expect_success_and_text 'oc set route-backends foo' '100'
-os::cmd::expect_failure_and_text 'oc set route-backends foo --zero --equal' 'error: --zero and --equal may not be specified together'
-os::cmd::expect_failure_and_text 'oc set route-backends foo --zero --adjust' 'error: --adjust and --zero may not be specified together'
-os::cmd::expect_failure_and_text 'oc set route-backends foo a=' 'expected NAME=WEIGHT'
-os::cmd::expect_failure_and_text 'oc set route-backends foo =10' 'expected NAME=WEIGHT'
-os::cmd::expect_failure_and_text 'oc set route-backends foo a=a' 'WEIGHT must be a number'
-os::cmd::expect_success_and_text 'oc set route-backends foo a=10' 'updated'
-os::cmd::expect_success_and_text 'oc set route-backends foo a=100' 'updated'
-os::cmd::expect_success_and_text 'oc set route-backends foo a=0' 'updated'
-os::cmd::expect_success_and_text 'oc set route-backends foo' '0'
-os::cmd::expect_success_and_text 'oc get routes foo' 'a'
-os::cmd::expect_success_and_text 'oc set route-backends foo a1=0 b2=0' 'updated'
-os::cmd::expect_success_and_text 'oc set route-backends foo' 'a1'
-os::cmd::expect_success_and_text 'oc set route-backends foo' 'b2'
-os::cmd::expect_success_and_text 'oc set route-backends foo a1=100 b2=50 c3=0' 'updated'
-os::cmd::expect_success_and_text 'oc get routes foo' 'a1\(66%\),b2\(33%\),c3\(0%\)'
-os::cmd::expect_success_and_text 'oc set route-backends foo a1=100 b2=0 c3=0' 'updated'
-os::cmd::expect_success_and_text 'oc set route-backends foo --adjust b2=+10%' 'updated'
-os::cmd::expect_success_and_text 'oc get routes foo' 'a1\(90%\),b2\(10%\),c3\(0%\)'
-os::cmd::expect_success_and_text 'oc set route-backends foo --adjust b2=+25%' 'updated'
-os::cmd::expect_success_and_text 'oc get routes foo' 'a1\(65%\),b2\(35%\),c3\(0%\)'
-os::cmd::expect_success_and_text 'oc set route-backends foo --adjust b2=+99%' 'updated'
-os::cmd::expect_success_and_text 'oc get routes foo' 'a1\(0%\),b2\(100%\),c3\(0%\)'
-os::cmd::expect_success_and_text 'oc set route-backends foo --adjust b2=-51%' 'updated'
-os::cmd::expect_success_and_text 'oc get routes foo' 'a1\(51%\),b2\(49%\),c3\(0%\)'
-os::cmd::expect_success_and_text 'oc set route-backends foo --adjust a1=20%' 'updated'
-os::cmd::expect_success_and_text 'oc get routes foo' 'a1\(20%\),b2\(80%\),c3\(0%\)'
-os::cmd::expect_success_and_text 'oc set route-backends foo --adjust c3=50%' 'updated'
-os::cmd::expect_success_and_text 'oc get routes foo' 'a1\(10%\),b2\(80%\),c3\(10%\)'
-os::cmd::expect_success_and_text 'oc describe routes foo' '25 \(10%\)'
-os::cmd::expect_success_and_text 'oc describe routes foo' '200 \(80%\)'
-os::cmd::expect_success_and_text 'oc describe routes foo' '25 \(10%\)'
-os::cmd::expect_success_and_text 'oc describe routes foo' '<error: endpoints "c3" not found>'
-os::cmd::expect_success_and_text 'oc set route-backends foo --adjust c3=1' 'updated'
-os::cmd::expect_success_and_text 'oc describe routes foo' '1 \(0%\)'
-os::cmd::expect_success_and_text 'oc set route-backends foo --equal' 'updated'
-os::cmd::expect_success_and_text 'oc get routes foo' 'a1\(33%\),b2\(33%\),c3\(33%\)'
-os::cmd::expect_success_and_text 'oc describe routes foo' '100 \(33%\)'
-os::cmd::expect_success_and_text 'oc set route-backends foo --zero' 'updated'
-os::cmd::expect_success_and_text 'oc get routes foo' 'a1\(0%\),b2\(0%\),c3\(0%\)'
-os::cmd::expect_success_and_text 'oc describe routes foo' '0'
-
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdRoutesShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdRoutesSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdRoutesSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdRoutesShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/routes.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdRunSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-os::test::junit::declare_suite_start "cmd/run"
-# This test validates the value of --image for oc run
-os::cmd::expect_success_and_text 'oc create deploymentconfig newdcforimage --image=validimagevalue' 'deploymentconfig.apps.openshift.io/newdcforimage created'
-os::cmd::expect_failure_and_text 'oc run newdcforimage2 --image="InvalidImageValue0192"' 'error: Invalid image name "InvalidImageValue0192": invalid reference format'
-echo "oc run: ok"
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdRunShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdRunSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdRunSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdRunShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/run.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdSecretsSh = []byte(`#!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
@@ -32390,46 +32258,6 @@ func testExtendedTestdataCmdTestCmdSecretsSh() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/secrets.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdServicesSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-# Cleanup cluster resources created by this test
-(
-  set +e
-  oc delete all,templates --all
-  exit 0
-) &>/dev/null
-
-
-os::test::junit::declare_suite_start "cmd/create-service-nodeport"
-# This test validates the 'create service nodeport' command and its "--node-port" and "--tcp" options
-os::cmd::expect_success_and_text 'oc create service nodeport mynodeport --tcp=8080:7777 --node-port=30000' 'service/mynodeport created'
-os::cmd::expect_failure_and_text 'oc create service nodeport mynodeport --tcp=8080:7777 --node-port=30000' 'provided port is already allocated'
-os::cmd::expect_failure_and_text 'oc create service nodeport mynodeport --tcp=8080:7777 --node-port=300' 'provided port is not in the valid range. The range of valid ports is 30000-32767'
-os::cmd::expect_success_and_text 'oc describe service mynodeport' 'NodePort\:.*30000'
-os::cmd::expect_success_and_text 'oc describe service mynodeport' 'NodePort\:.*8080-7777'
-os::cmd::expect_success_and_text 'oc describe --v=8 service mynodeport' 'Response Body'
-
-echo "create-services-nodeport: ok"
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdServicesShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdServicesSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdServicesSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdServicesShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/services.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -32746,114 +32574,6 @@ func testExtendedTestdataCmdTestCmdSetbuildsecretSh() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/setbuildsecret.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataCmdTestCmdStatusSh = []byte(`#!/bin/bash
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
-trap os::test::junit::reconcile_output EXIT
-
-# Cleanup cluster resources created by this test
-(
-  set +e
-  oc delete project project-bar
-  oc delete project project-status
-  exit 0
-) &>/dev/null
-
-login_kubeconfig="${ARTIFACT_DIR}/login.kubeconfig"
-cp "${KUBECONFIG}" "${login_kubeconfig}"
-
-os::test::junit::declare_suite_start "cmd/status"
-# login and ensure no current projects exist
-#os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/server-ca.crt' -u test-user2 -p anything"
-#os::cmd::expect_success 'oc delete project --all'
-#os::cmd::try_until_text "oc get projects -o jsonpath='{.items}'" "^\[\]$"
-#os::cmd::expect_success 'oc logout'
-
-# remove self-provisioner role from user and test login prompt before creating any projects
-#os::cmd::expect_success "oc adm policy remove-cluster-role-from-group self-provisioner system:authenticated:oauth --kubeconfig='${login_kubeconfig}'"
-
-# login as 'test-user2'
-#os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/server-ca.crt' -u test-user2 -p anything"
-
-# make sure ` + "`" + `oc status` + "`" + ` re-uses the correct "no projects" message from ` + "`" + `oc login` + "`" + ` with no self-provisioner role
-#os::cmd::expect_success_and_text 'oc status' "You don't have any projects. Contact your system administrator to request a project"
-os::cmd::expect_success_and_text 'oc status --all-namespaces' "Showing all projects on server"
-# make sure standard login prompt is printed once self-provisioner status is restored
-#os::cmd::expect_success "oc logout"
-#os::cmd::expect_success "oc adm policy add-cluster-role-to-group self-provisioner system:authenticated:oauth --kubeconfig='${login_kubeconfig}'"
-#os::cmd::try_until_text "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/server-ca.crt' -u test-user2 -p anything" "You don't have any projects. You can try to create a new project, by running" $(( 30 * second )) 0.25
-
-# make sure ` + "`" + `oc status` + "`" + ` re-uses the correct "no projects" message from ` + "`" + `oc login` + "`" + `
-#os::cmd::expect_success_and_text 'oc status' "You don't have any projects. You can try to create a new project, by running"
-os::cmd::expect_success_and_text 'oc status -A' "Showing all projects on server"
-# make sure ` + "`" + `oc status` + "`" + ` does not re-use the "no projects" message from ` + "`" + `oc login` + "`" + ` if -n is specified
-#os::cmd::expect_failure_and_text 'oc status -n forbidden' 'Error from server \(Forbidden\): projects.project.openshift.io "forbidden" is forbidden: User "test-user2" cannot get resource "projects" in API group "project.openshift.io" in the namespace "forbidden"'
-
-# create a new project
-os::cmd::expect_success "oc new-project project-bar --display-name='my project' --description='test project'"
-os::cmd::expect_success_and_text "oc project" 'Using project "project-bar"'
-
-# make sure ` + "`" + `oc status` + "`" + ` does not use "no projects" message if there is a project created
-os::cmd::expect_success_and_text 'oc status' "In project my project \(project-bar\) on server"
-#os::cmd::expect_failure_and_text 'oc status -n forbidden' 'Error from server \(Forbidden\): projects.project.openshift.io "forbidden" is forbidden: User "test-user2" cannot get resource "projects" in API group "project.openshift.io" in the namespace "forbidden"'
-
-# create a second project
-os::cmd::expect_success "oc new-project project-bar-2 --display-name='my project 2' --description='test project 2'"
-os::cmd::expect_success_and_text "oc project" 'Using project "project-bar-2"'
-
-# delete the current project ` + "`" + `project-bar-2` + "`" + ` and make sure ` + "`" + `oc status` + "`" + ` does not return the "no projects"
-# message since ` + "`" + `project-bar` + "`" + ` still exists
-os::cmd::expect_success_and_text "oc delete project project-bar-2" 'project.project.openshift.io "project-bar-2" deleted'
-# the deletion is asynchronous and can take a while, so wait until we see the error
-#os::cmd::try_until_text "oc status" 'Error from server \(Forbidden\): projects.project.openshift.io "project-bar-2" is forbidden: User "test-user2" cannot get resource "projects" in API group "project.openshift.io" in the namespace "project-bar-2"'
-
-# delete "project-bar" and test that ` + "`" + `oc status` + "`" + ` still does not return the "no projects" message.
-# Although we are deleting the last remaining project, the current context's namespace is still set
-# to it, therefore ` + "`" + `oc status` + "`" + ` should simply return a forbidden error and not the "no projects" message
-# until the next time the user logs in.
-os::cmd::expect_success "oc project project-bar"
-os::cmd::expect_success "oc delete project project-bar"
-# the deletion is asynchronous and can take a while, so wait until we see the error
-#os::cmd::try_until_text "oc status" 'Error from server \(Forbidden\): projects.project.openshift.io "project-bar" is forbidden: User "test-user2" cannot get resource "projects" in API group "project.openshift.io" in the namespace "project-bar"'
-os::cmd::try_until_not_text "oc get projects" "project-bar"
-os::cmd::try_until_not_text "oc get projects" "project-bar-2"
-#os::cmd::expect_success "oc logout"
-#os::cmd::expect_success_and_text "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/server-ca.crt' -u test-user2 -p anything" "You don't have any projects. You can try to create a new project, by running"
-#os::cmd::expect_success_and_text 'oc status' "You don't have any projects. You can try to create a new project, by running"
-os::cmd::expect_success "oc new-project project-status --display-name='my project' --description='test project'"
-
-# Verify jobs are showing in status
-os::cmd::expect_success "oc create job pi --image=image-registry.openshift-image-registry.svc:5000/openshift/tools:latest -- perl -Mbignum=bpi -wle 'print bpi(2000)'"
-os::cmd::expect_success_and_text "oc status" "job/pi manages image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
-
-# logout
-#os::cmd::expect_success "oc logout"
-
-echo "status: ok"
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdStatusShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdStatusSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdStatusSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdStatusShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/status.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -53098,16 +52818,12 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/printer.sh":                                                         testExtendedTestdataCmdTestCmdPrinterSh,
 	"test/extended/testdata/cmd/test/cmd/quota.sh":                                                           testExtendedTestdataCmdTestCmdQuotaSh,
 	"test/extended/testdata/cmd/test/cmd/registry.sh":                                                        testExtendedTestdataCmdTestCmdRegistrySh,
-	"test/extended/testdata/cmd/test/cmd/routes.sh":                                                          testExtendedTestdataCmdTestCmdRoutesSh,
-	"test/extended/testdata/cmd/test/cmd/run.sh":                                                             testExtendedTestdataCmdTestCmdRunSh,
 	"test/extended/testdata/cmd/test/cmd/secrets.sh":                                                         testExtendedTestdataCmdTestCmdSecretsSh,
-	"test/extended/testdata/cmd/test/cmd/services.sh":                                                        testExtendedTestdataCmdTestCmdServicesSh,
 	"test/extended/testdata/cmd/test/cmd/set-data.sh":                                                        testExtendedTestdataCmdTestCmdSetDataSh,
 	"test/extended/testdata/cmd/test/cmd/set-image.sh":                                                       testExtendedTestdataCmdTestCmdSetImageSh,
 	"test/extended/testdata/cmd/test/cmd/set-liveness-probe.sh":                                              testExtendedTestdataCmdTestCmdSetLivenessProbeSh,
 	"test/extended/testdata/cmd/test/cmd/setbuildhook.sh":                                                    testExtendedTestdataCmdTestCmdSetbuildhookSh,
 	"test/extended/testdata/cmd/test/cmd/setbuildsecret.sh":                                                  testExtendedTestdataCmdTestCmdSetbuildsecretSh,
-	"test/extended/testdata/cmd/test/cmd/status.sh":                                                          testExtendedTestdataCmdTestCmdStatusSh,
 	"test/extended/testdata/cmd/test/cmd/templates.sh":                                                       testExtendedTestdataCmdTestCmdTemplatesSh,
 	"test/extended/testdata/cmd/test/cmd/testdata/application-template-custombuild.json":                     testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild.json":                     testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson,
@@ -53742,16 +53458,12 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							"printer.sh":            {testExtendedTestdataCmdTestCmdPrinterSh, map[string]*bintree{}},
 							"quota.sh":              {testExtendedTestdataCmdTestCmdQuotaSh, map[string]*bintree{}},
 							"registry.sh":           {testExtendedTestdataCmdTestCmdRegistrySh, map[string]*bintree{}},
-							"routes.sh":             {testExtendedTestdataCmdTestCmdRoutesSh, map[string]*bintree{}},
-							"run.sh":                {testExtendedTestdataCmdTestCmdRunSh, map[string]*bintree{}},
 							"secrets.sh":            {testExtendedTestdataCmdTestCmdSecretsSh, map[string]*bintree{}},
-							"services.sh":           {testExtendedTestdataCmdTestCmdServicesSh, map[string]*bintree{}},
 							"set-data.sh":           {testExtendedTestdataCmdTestCmdSetDataSh, map[string]*bintree{}},
 							"set-image.sh":          {testExtendedTestdataCmdTestCmdSetImageSh, map[string]*bintree{}},
 							"set-liveness-probe.sh": {testExtendedTestdataCmdTestCmdSetLivenessProbeSh, map[string]*bintree{}},
 							"setbuildhook.sh":       {testExtendedTestdataCmdTestCmdSetbuildhookSh, map[string]*bintree{}},
 							"setbuildsecret.sh":     {testExtendedTestdataCmdTestCmdSetbuildsecretSh, map[string]*bintree{}},
-							"status.sh":             {testExtendedTestdataCmdTestCmdStatusSh, map[string]*bintree{}},
 							"templates.sh":          {testExtendedTestdataCmdTestCmdTemplatesSh, map[string]*bintree{}},
 							"testdata": {nil, map[string]*bintree{
 								"application-template-custombuild.json": {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson, map[string]*bintree{}},

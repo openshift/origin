@@ -1703,6 +1703,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc can get list of nodes": "can get list of nodes [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc can route traffic to services [apigroup:route.openshift.io]": "can route traffic to services [apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc can run inside of a busybox container": "can run inside of a busybox container [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc completion returns expected help messages": "returns expected help messages [Suite:openshift/conformance/parallel]",
@@ -1755,11 +1757,15 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli] oc rsh specific flags should work well when access to a remote shell": "should work well when access to a remote shell [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-cli] oc run can use --image flag correctly [apigroup:apps.openshift.io]": "can use --image flag correctly [apigroup:apps.openshift.io] [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-cli] oc secret creates and retrieves expected": "creates and retrieves expected [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc service creates and deletes services": "creates and deletes services [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-cli] oc statefulset creates and deletes statefulsets": "creates and deletes statefulsets [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-cli] oc status can show correct status after switching between projects [apigroup:project.openshift.io][apigroup:image.openshift.io][Serial]": "can show correct status after switching between projects [apigroup:project.openshift.io][apigroup:image.openshift.io][Serial] [Suite:openshift/conformance/serial]",
 
 	"[Top Level] [sig-cli] oc status returns expected help messages [apigroup:project.openshift.io][apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:apps.openshift.io][apigroup:route.openshift.io]": "returns expected help messages [apigroup:project.openshift.io][apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:apps.openshift.io][apigroup:route.openshift.io] [Suite:openshift/conformance/parallel]",
 
@@ -1789,13 +1795,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/quota.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/quota.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
 
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/routes.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/routes.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
-
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/run.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/run.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
-
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/secrets.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/secrets.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
-
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/services.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/services.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-data.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/set-data.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
 
@@ -1806,8 +1806,6 @@ var annotations = map[string]string{
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/setbuildhook.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/setbuildhook.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/setbuildsecret.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/setbuildsecret.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
-
-	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/status.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/status.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
 
 	"[Top Level] [sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/templates.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "test/cmd/templates.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]",
 
