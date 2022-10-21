@@ -28,11 +28,7 @@ import (
 var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 
-	var (
-		grpcRouterShardConfigPath = exutil.FixturePath("testdata", "router", "router-shard.yaml")
-		oc                        = exutil.NewCLIWithPodSecurityLevel("grpc-interop", admissionapi.LevelBaseline)
-		shardConfigPath           string // computed
-	)
+	var oc = exutil.NewCLIWithPodSecurityLevel("grpc-interop", admissionapi.LevelBaseline)
 
 	// this hook must be registered before the framework namespace teardown
 	// hook
@@ -41,13 +37,10 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			exutil.DumpPodLogsStartingWith("grpc", oc)
 			exutil.DumpPodLogsStartingWithInNamespace("router", "openshift-ingress", oc.AsAdmin())
 		}
-		if len(shardConfigPath) > 0 {
-			oc.AsAdmin().Run("delete").Args("-n", "openshift-ingress-operator", "-f", shardConfigPath).Execute()
-		}
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should pass the gRPC interoperability tests [apigroup:config.openshift.io][apigroup:route.openshift.io]", func() {
+		g.It("should pass the gRPC interoperability tests [apigroup:config.openshift.io][apigroup:route.openshift.io][apigroup:operator.openshift.io]", func() {
 			isProxyJob, err := exutil.IsClusterProxyEnabled(oc)
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get proxy configuration")
 			if isProxyJob {
@@ -303,11 +296,17 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			}
 
 			g.By("Creating a test-specific router shard")
-			shardConfigPath, err = shard.DeployNewRouterShard(oc, 10*time.Minute, shard.Config{
-				FixturePath: grpcRouterShardConfigPath,
-				Domain:      shardFQDN,
-				Type:        oc.Namespace(),
+			shardIngressCtrl, err := shard.DeployNewRouterShard(oc, 10*time.Minute, shard.Config{
+				Domain: shardFQDN,
+				Type:   oc.Namespace(),
 			})
+			defer func() {
+				if shardIngressCtrl != nil {
+					if err := oc.AdminOperatorClient().OperatorV1().IngressControllers(shardIngressCtrl.Namespace).Delete(context.Background(), shardIngressCtrl.Name, metav1.DeleteOptions{}); err != nil {
+						e2e.Logf("deleting ingress controller failed: %v\n", err)
+					}
+				}
+			}()
 			o.Expect(err).NotTo(o.HaveOccurred(), "new router shard did not rollout")
 
 			// Shard is using a namespace selector so

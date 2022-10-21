@@ -1963,11 +1963,11 @@ var Annotations = map[string]string{
 
 	"[sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should be able to connect to a service that is idled because a GET on the route will unidle it [apigroup:config.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel/minimal]",
 
-	"[sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should pass the gRPC interoperability tests [apigroup:config.openshift.io][apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
+	"[sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should pass the gRPC interoperability tests [apigroup:config.openshift.io][apigroup:route.openshift.io][apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
-	"[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io] The HAProxy router should pass the h2spec conformance tests [apigroup:config.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
+	"[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io] The HAProxy router should pass the h2spec conformance tests [apigroup:config.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:security.openshift.io][apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
-	"[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router should pass the http2 tests [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
+	"[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router should pass the http2 tests [apigroup:image.openshift.io][apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
 	"[sig-network-edge][Feature:Idling] Idling with a single service and DeploymentConfig [apigroup:route.openshift.io] should idle the service and DeploymentConfig properly [apigroup:apps.openshift.io]": " [Disabled:Broken]",
 
