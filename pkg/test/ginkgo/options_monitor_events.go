@@ -161,12 +161,15 @@ func (o *MonitorEventsOptions) GetRecordedResources() monitorapi.ResourcesMap {
 	return o.recordedResources
 }
 
+func (o *MonitorEventsOptions) GetStartTime() *time.Time {
+	return o.startTime
+}
+
 // WriteRunDataToArtifactsDir attempts to write useful run data to the specified directory.
-func (o *MonitorEventsOptions) WriteRunDataToArtifactsDir(artifactDir string) error {
+func (o *MonitorEventsOptions) WriteRunDataToArtifactsDir(artifactDir string, timeSuffix string) error {
 	if o.endTime == nil {
 		return fmt.Errorf("not ended")
 	}
-	timeSuffix := fmt.Sprintf("_%s", o.startTime.UTC().Format("20060102-150405"))
 
 	errs := []error{}
 
