@@ -64,7 +64,29 @@ func OperatorFromLocator(locator string) (string, bool) {
 func LocatorParts(locator string) map[string]string {
 	parts := map[string]string{}
 
-	tags := strings.Split(locator, " ")
+	// sorry but we had to get clever here.
+	// we sometimes use locators with: e2e-test/"my multiword test name" foo/bar
+	// we use a csv splitter on " " to handle the possibility of quotes within a segment:
+	// courtesy of https://stackoverflow.com/questions/47489745/splitting-a-string-at-space-except-inside-quotation-marks
+	// Split string
+	/*
+		r := csv.NewReader(strings.NewReader(locator))
+		r.Comma = ' ' // space
+		r.LazyQuotes = true
+		tags, err := r.Read()
+		if err != nil {
+			log.WithError(err).Fatalf("error parsing locator: %s", locator)
+		}
+	*/
+
+	quoted := false
+	tags := strings.FieldsFunc(locator, func(r rune) bool {
+		if r == '"' {
+			quoted = !quoted
+		}
+		return !quoted && r == ' '
+	})
+
 	for _, tag := range tags {
 		keyValue := strings.SplitN(tag, "/", 2)
 		if len(keyValue) == 1 {
