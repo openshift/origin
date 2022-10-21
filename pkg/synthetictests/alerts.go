@@ -12,7 +12,10 @@ import (
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 )
 
-func testAlerts(events monitorapi.Intervals, restConfig *rest.Config, duration time.Duration, recordedResource *monitorapi.ResourcesMap) []*junitapi.JUnitTestCase {
+func testAlerts(testSuite string, events monitorapi.Intervals, restConfig *rest.Config, duration time.Duration, recordedResource *monitorapi.ResourcesMap) []*junitapi.JUnitTestCase {
+	if len(testSuite) == 0 {
+		testSuite = "MISSING"
+	}
 	ret := []*junitapi.JUnitTestCase{}
 
 	alertTests := allowedalerts.AllAlertTests(context.TODO(), restConfig, duration)
@@ -22,7 +25,7 @@ func testAlerts(events monitorapi.Intervals, restConfig *rest.Config, duration t
 		junit, err := alertTest.InvariantCheck(context.TODO(), restConfig, events, *recordedResource)
 		if err != nil {
 			ret = append(ret, &junitapi.JUnitTestCase{
-				Name: alertTest.InvariantTestName(),
+				Name: alertTest.InvariantTestName() + " for suite/" + testSuite,
 				FailureOutput: &junitapi.FailureOutput{
 					Output: err.Error(),
 				},
