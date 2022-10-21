@@ -41,12 +41,7 @@ type h2specFailingTest struct {
 var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io]", func() {
 	defer g.GinkgoRecover()
 
-	var (
-		h2specRouterShardConfigPath = exutil.FixturePath("testdata", "router", "router-shard.yaml")
-
-		oc              = exutil.NewCLIWithPodSecurityLevel("router-h2spec", admissionapi.LevelBaseline)
-		shardConfigPath string // computed
-	)
+	var oc = exutil.NewCLIWithPodSecurityLevel("router-h2spec", admissionapi.LevelBaseline)
 
 	// this hook must be registered before the framework namespace teardown
 	// hook
@@ -58,15 +53,10 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			}
 			exutil.DumpPodLogsStartingWith("h2spec", oc)
 		}
-		if len(shardConfigPath) > 0 {
-			if err := oc.AsAdmin().Run("delete").Args("-n", "openshift-ingress-operator", "-f", shardConfigPath).Execute(); err != nil {
-				e2e.Logf("deleting ingress controller failed: %v\n", err)
-			}
-		}
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should pass the h2spec conformance tests [apigroup:config.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
+		g.It("should pass the h2spec conformance tests [apigroup:config.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:security.openshift.io][apigroup:operator.openshift.io]", func() {
 			isProxyJob, err := exutil.IsClusterProxyEnabled(oc)
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get proxy configuration")
 			if isProxyJob {
@@ -441,11 +431,17 @@ BFNBRELPe53ZdLKWpf2Sr96vRPRNw
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Creating a test-specific router shard")
-			shardConfigPath, err = shard.DeployNewRouterShard(oc, 10*time.Minute, shard.Config{
-				FixturePath: h2specRouterShardConfigPath,
-				Domain:      shardFQDN,
-				Type:        oc.Namespace(),
+			shardIngressCtrl, err := shard.DeployNewRouterShard(oc, 10*time.Minute, shard.Config{
+				Domain: shardFQDN,
+				Type:   oc.Namespace(),
 			})
+			defer func() {
+				if shardIngressCtrl != nil {
+					if err := oc.AdminOperatorClient().OperatorV1().IngressControllers(shardIngressCtrl.Namespace).Delete(context.Background(), shardIngressCtrl.Name, metav1.DeleteOptions{}); err != nil {
+						e2e.Logf("deleting ingress controller failed: %v\n", err)
+					}
+				}
+			}()
 			o.Expect(err).NotTo(o.HaveOccurred(), "new router shard did not rollout")
 
 			g.By("Getting LB service")
