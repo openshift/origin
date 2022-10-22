@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	"github.com/openshift/api/template"
@@ -40,7 +40,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][postgresql][Slow][Local]
 		// before nfs server to assist with umount issues; as such, need to clean
 		// up prior to the AfterEach processing, to guaranteed deletion order
 		g.By("start cleanup")
-		if g.CurrentGinkgoTestDescription().Failed {
+		if g.CurrentSpecReport().Failed() {
 			exutil.DumpPodStates(oc)
 			exutil.DumpPodLogsStartingWith("", oc)
 			exutil.DumpImageStreams(oc)

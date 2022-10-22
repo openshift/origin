@@ -4,9 +4,12 @@ package v1
 
 import (
 	"context"
+	json "encoding/json"
+	"fmt"
 	"time"
 
 	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -31,6 +34,8 @@ type StorageInterface interface {
 	List(ctx context.Context, opts metav1.ListOptions) (*v1.StorageList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Storage, err error)
+	Apply(ctx context.Context, storage *operatorv1.StorageApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Storage, err error)
+	ApplyStatus(ctx context.Context, storage *operatorv1.StorageApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Storage, err error)
 	StorageExpansion
 }
 
@@ -161,6 +166,60 @@ func (c *storages) Patch(ctx context.Context, name string, pt types.PatchType, d
 		Name(name).
 		SubResource(subresources...).
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(data).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// Apply takes the given apply declarative configuration, applies it and returns the applied storage.
+func (c *storages) Apply(ctx context.Context, storage *operatorv1.StorageApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Storage, err error) {
+	if storage == nil {
+		return nil, fmt.Errorf("storage provided to Apply must not be nil")
+	}
+	patchOpts := opts.ToPatchOptions()
+	data, err := json.Marshal(storage)
+	if err != nil {
+		return nil, err
+	}
+	name := storage.Name
+	if name == nil {
+		return nil, fmt.Errorf("storage.Name must be provided to Apply")
+	}
+	result = &v1.Storage{}
+	err = c.client.Patch(types.ApplyPatchType).
+		Resource("storages").
+		Name(*name).
+		VersionedParams(&patchOpts, scheme.ParameterCodec).
+		Body(data).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// ApplyStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
+func (c *storages) ApplyStatus(ctx context.Context, storage *operatorv1.StorageApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Storage, err error) {
+	if storage == nil {
+		return nil, fmt.Errorf("storage provided to Apply must not be nil")
+	}
+	patchOpts := opts.ToPatchOptions()
+	data, err := json.Marshal(storage)
+	if err != nil {
+		return nil, err
+	}
+
+	name := storage.Name
+	if name == nil {
+		return nil, fmt.Errorf("storage.Name must be provided to Apply")
+	}
+
+	result = &v1.Storage{}
+	err = c.client.Patch(types.ApplyPatchType).
+		Resource("storages").
+		Name(*name).
+		SubResource("status").
+		VersionedParams(&patchOpts, scheme.ParameterCodec).
 		Body(data).
 		Do(ctx).
 		Into(result)
