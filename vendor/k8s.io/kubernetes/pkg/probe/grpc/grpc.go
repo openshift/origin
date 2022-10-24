@@ -24,7 +24,6 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
 	grpchealth "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -56,7 +55,7 @@ func (p grpcProber) Probe(host, service string, port int, timeout time.Duration)
 	opts := []grpc.DialOption{
 		grpc.WithUserAgent(fmt.Sprintf("kube-probe/%s.%s", v.Major, v.Minor)),
 		grpc.WithBlock(),
-		grpc.WithTransportCredentials(insecure.NewCredentials()), //credentials are currently not supported
+		grpc.WithInsecure(), //credentials are currently not supported
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)

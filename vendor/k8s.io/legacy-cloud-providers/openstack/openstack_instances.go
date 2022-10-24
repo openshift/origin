@@ -135,11 +135,6 @@ func (i *Instances) NodeAddresses(ctx context.Context, name types.NodeName) ([]v
 		return addrs, nil
 	}
 
-	// Can't return remote Node addresses using Nova metadata
-	if i.compute == nil {
-		return nil, cloudprovider.NotImplemented
-	}
-
 	addrs, err := getAddressesByName(i.compute, name)
 	if err != nil {
 		return nil, err
@@ -153,11 +148,6 @@ func (i *Instances) NodeAddresses(ctx context.Context, name types.NodeName) ([]v
 // This method will not be called from the node that is requesting this ID. i.e. metadata service
 // and other local methods cannot be used here
 func (i *Instances) NodeAddressesByProviderID(ctx context.Context, providerID string) ([]v1.NodeAddress, error) {
-	// Can't return remote Node addresses using Nova metadata
-	if i.compute == nil {
-		return nil, cloudprovider.NotImplemented
-	}
-
 	instanceID, err := instanceIDFromProviderID(providerID)
 
 	if err != nil {
@@ -181,11 +171,6 @@ func (i *Instances) NodeAddressesByProviderID(ctx context.Context, providerID st
 // InstanceExistsByProviderID returns true if the instance with the given provider id still exist.
 // If false is returned with no error, the instance will be immediately deleted by the cloud controller manager.
 func (i *Instances) InstanceExistsByProviderID(ctx context.Context, providerID string) (bool, error) {
-	// Can't be implemented with Nova metadata
-	if i.compute == nil {
-		return false, cloudprovider.NotImplemented
-	}
-
 	instanceID, err := instanceIDFromProviderID(providerID)
 	if err != nil {
 		return false, err
@@ -204,11 +189,6 @@ func (i *Instances) InstanceExistsByProviderID(ctx context.Context, providerID s
 
 // InstanceShutdownByProviderID returns true if the instances is in safe state to detach volumes
 func (i *Instances) InstanceShutdownByProviderID(ctx context.Context, providerID string) (bool, error) {
-	// Can't be implemented with Nova metadata
-	if i.compute == nil {
-		return false, cloudprovider.NotImplemented
-	}
-
 	instanceID, err := instanceIDFromProviderID(providerID)
 	if err != nil {
 		return false, err
@@ -251,11 +231,6 @@ func (i *Instances) InstanceID(ctx context.Context, name types.NodeName) (string
 		return "/" + md.UUID, nil
 	}
 
-	// Can't be implemented with Nova metadata
-	if i.compute == nil {
-		return "", cloudprovider.NotImplemented
-	}
-
 	srv, err := getServerByName(i.compute, name)
 	if err != nil {
 		if err == ErrNotFound {
@@ -272,11 +247,6 @@ func (i *Instances) InstanceID(ctx context.Context, name types.NodeName) (string
 // This method will not be called from the node that is requesting this ID. i.e. metadata service
 // and other local methods cannot be used here
 func (i *Instances) InstanceTypeByProviderID(ctx context.Context, providerID string) (string, error) {
-	// Can't be implemented with Nova metadata
-	if i.compute == nil {
-		return "", cloudprovider.NotImplemented
-	}
-
 	instanceID, err := instanceIDFromProviderID(providerID)
 
 	if err != nil {
@@ -303,11 +273,6 @@ func (i *Instances) InstanceType(ctx context.Context, name types.NodeName) (stri
 	localName := types.NodeName(md.Name)
 	if localName == name {
 		return getIntanceType()
-	}
-
-	// Can't be implemented with Nova metadata
-	if i.compute == nil {
-		return "", cloudprovider.NotImplemented
 	}
 
 	srv, err := getServerByName(i.compute, name)

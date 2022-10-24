@@ -18,9 +18,7 @@ package portworx
 
 import (
 	"fmt"
-	"net"
 	"os"
-	"strconv"
 
 	"k8s.io/klog/v2"
 	"k8s.io/mount-utils"
@@ -67,12 +65,13 @@ func getPath(uid types.UID, volName string, host volume.VolumeHost) string {
 }
 
 func (plugin *portworxVolumePlugin) IsMigratedToCSI() bool {
-	return utilfeature.DefaultFeatureGate.Enabled(features.CSIMigrationPortworx)
+	return utilfeature.DefaultFeatureGate.Enabled(features.CSIMigration) &&
+		utilfeature.DefaultFeatureGate.Enabled(features.CSIMigrationPortworx)
 }
 
 func (plugin *portworxVolumePlugin) Init(host volume.VolumeHost) error {
 	client, err := volumeclient.NewDriverClient(
-		fmt.Sprintf("http://%s", net.JoinHostPort(host.GetHostName(), strconv.Itoa(osdMgmtDefaultPort))),
+		fmt.Sprintf("http://%s:%d", host.GetHostName(), osdMgmtDefaultPort),
 		pxdDriverName, osdDriverVersion, pxDriverName)
 	if err != nil {
 		return err
@@ -228,10 +227,6 @@ func (plugin *portworxVolumePlugin) SupportsMountOption() bool {
 
 func (plugin *portworxVolumePlugin) SupportsBulkVolumeVerification() bool {
 	return false
-}
-
-func (plugin *portworxVolumePlugin) SupportsSELinuxContextMount(spec *volume.Spec) (bool, error) {
-	return false, nil
 }
 
 func getVolumeSource(

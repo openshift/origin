@@ -19,9 +19,6 @@ type ImageTagMirrorSet struct {
 	// +kubebuilder:validation:Required
 	// +required
 	Spec ImageTagMirrorSetSpec `json:"spec"`
-	// status contains the observed state of the resource.
-	// +optional
-	Status ImageTagMirrorSetStatus `json:"status,omitempty"`
 }
 
 // ImageTagMirrorSetSpec is the specification of the ImageTagMirrorSet CRD.
@@ -55,8 +52,6 @@ type ImageTagMirrorSetSpec struct {
 	// +listType=atomic
 	ImageTagMirrors []ImageTagMirrors `json:"imageTagMirrors"`
 }
-
-type ImageTagMirrorSetStatus struct{}
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

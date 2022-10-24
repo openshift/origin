@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
@@ -40,6 +40,7 @@ import (
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive]", func() {
 	f := framework.NewDefaultFramework("machine-recovery")
 	f.SkipNamespaceCreation = true
+	f.SkipPrivilegedPSPBinding = true
 
 	oc := exutil.NewCLIWithoutNamespace("machine-recovery")
 

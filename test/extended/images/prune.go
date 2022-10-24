@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	"github.com/docker/distribution/manifest/schema1"
@@ -69,7 +69,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentSpecReport().Failed() {
+			if g.CurrentGinkgoTestDescription().Failed {
 				dumpRegistryLogs(oc, startTime)
 			}
 			if *originalAcceptSchema2 {
@@ -97,7 +97,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentSpecReport().Failed() {
+			if g.CurrentGinkgoTestDescription().Failed {
 				dumpRegistryLogs(oc, startTime)
 			}
 			if !*originalAcceptSchema2 {
@@ -125,7 +125,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentSpecReport().Failed() {
+			if g.CurrentGinkgoTestDescription().Failed {
 				dumpRegistryLogs(oc, startTime)
 			}
 			if !*originalAcceptSchema2 {
@@ -153,7 +153,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentSpecReport().Failed() {
+			if g.CurrentGinkgoTestDescription().Failed {
 				dumpRegistryLogs(oc, startTime)
 			}
 			if !*originalAcceptSchema2 {
@@ -181,7 +181,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:opensh
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentSpecReport().Failed() {
+			if g.CurrentGinkgoTestDescription().Failed {
 				dumpRegistryLogs(oc, startTime)
 			}
 			if !*originalAcceptSchema2 {

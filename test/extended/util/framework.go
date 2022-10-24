@@ -18,7 +18,7 @@ import (
 	"sync"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"

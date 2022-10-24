@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -47,7 +46,9 @@ type PriorityAndFairnessClassification struct {
 
 // waitingMark tracks requests waiting rather than being executed
 var waitingMark = &requestWatermark{
-	phase: epmetrics.WaitingPhase,
+	phase:            epmetrics.WaitingPhase,
+	readOnlyObserver: fcmetrics.ReadWriteConcurrencyObserverPairGenerator.Generate(1, 1, []string{epmetrics.ReadOnlyKind}).RequestsWaiting,
+	mutatingObserver: fcmetrics.ReadWriteConcurrencyObserverPairGenerator.Generate(1, 1, []string{epmetrics.MutatingKind}).RequestsWaiting,
 }
 
 var atomicMutatingExecuting, atomicReadOnlyExecuting int32
@@ -65,8 +66,6 @@ func truncateLogField(s string) string {
 	return s
 }
 
-var initAPFOnce sync.Once
-
 // WithPriorityAndFairness limits the number of in-flight
 // requests in a fine-grained way.
 func WithPriorityAndFairness(
@@ -79,13 +78,6 @@ func WithPriorityAndFairness(
 		klog.Warningf("priority and fairness support not found, skipping")
 		return handler
 	}
-	initAPFOnce.Do(func() {
-		initMaxInFlight(0, 0)
-		// Fetching these gauges is delayed until after their underlying metric has been registered
-		// so that this latches onto the efficient implementation.
-		waitingMark.readOnlyObserver = fcmetrics.GetWaitingReadonlyConcurrency()
-		waitingMark.mutatingObserver = fcmetrics.GetWaitingMutatingConcurrency()
-	})
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		requestInfo, ok := apirequest.RequestInfoFrom(ctx)
@@ -133,10 +125,14 @@ func WithPriorityAndFairness(
 			workEstimate := workEstimator(r, classification.FlowSchemaName, classification.PriorityLevelName)
 
 			fcmetrics.ObserveWorkEstimatedSeats(classification.PriorityLevelName, classification.FlowSchemaName, workEstimate.MaxSeats())
-			httplog.AddKeyValue(ctx, "apf_iseats", workEstimate.InitialSeats)
-			httplog.AddKeyValue(ctx, "apf_fseats", workEstimate.FinalSeats)
-			httplog.AddKeyValue(ctx, "apf_additionalLatency", workEstimate.AdditionalLatency)
-
+			// nolint:logcheck // Not using the result of klog.V
+			// inside the if branch is okay, we just use it to
+			// determine whether the additional information should
+			// be added.
+			if klog.V(4).Enabled() {
+				httplog.AddKeyValue(ctx, "apf_iseats", workEstimate.InitialSeats)
+				httplog.AddKeyValue(ctx, "apf_fseats", workEstimate.FinalSeats)
+			}
 			return workEstimate
 		}
 

@@ -1499,13 +1499,18 @@ func KeyctlRestrictKeyring(ringid int, keyType string, restriction string) error
 //sys	keyctlRestrictKeyringByType(cmd int, arg2 int, keyType string, restriction string) (err error) = SYS_KEYCTL
 //sys	keyctlRestrictKeyring(cmd int, arg2 int) (err error) = SYS_KEYCTL
 
-func recvmsgRaw(fd int, iov []Iovec, oob []byte, flags int, rsa *RawSockaddrAny) (n, oobn int, recvflags int, err error) {
+func recvmsgRaw(fd int, p, oob []byte, flags int, rsa *RawSockaddrAny) (n, oobn int, recvflags int, err error) {
 	var msg Msghdr
 	msg.Name = (*byte)(unsafe.Pointer(rsa))
 	msg.Namelen = uint32(SizeofSockaddrAny)
+	var iov Iovec
+	if len(p) > 0 {
+		iov.Base = &p[0]
+		iov.SetLen(len(p))
+	}
 	var dummy byte
 	if len(oob) > 0 {
-		if emptyIovecs(iov) {
+		if len(p) == 0 {
 			var sockType int
 			sockType, err = GetsockoptInt(fd, SOL_SOCKET, SO_TYPE)
 			if err != nil {
@@ -1513,19 +1518,15 @@ func recvmsgRaw(fd int, iov []Iovec, oob []byte, flags int, rsa *RawSockaddrAny)
 			}
 			// receive at least one normal byte
 			if sockType != SOCK_DGRAM {
-				var iova [1]Iovec
-				iova[0].Base = &dummy
-				iova[0].SetLen(1)
-				iov = iova[:]
+				iov.Base = &dummy
+				iov.SetLen(1)
 			}
 		}
 		msg.Control = &oob[0]
 		msg.SetControllen(len(oob))
 	}
-	if len(iov) > 0 {
-		msg.Iov = &iov[0]
-		msg.SetIovlen(len(iov))
-	}
+	msg.Iov = &iov
+	msg.Iovlen = 1
 	if n, err = recvmsg(fd, &msg, flags); err != nil {
 		return
 	}
@@ -1534,15 +1535,18 @@ func recvmsgRaw(fd int, iov []Iovec, oob []byte, flags int, rsa *RawSockaddrAny)
 	return
 }
 
-func sendmsgN(fd int, iov []Iovec, oob []byte, ptr unsafe.Pointer, salen _Socklen, flags int) (n int, err error) {
+func sendmsgN(fd int, p, oob []byte, ptr unsafe.Pointer, salen _Socklen, flags int) (n int, err error) {
 	var msg Msghdr
 	msg.Name = (*byte)(ptr)
 	msg.Namelen = uint32(salen)
+	var iov Iovec
+	if len(p) > 0 {
+		iov.Base = &p[0]
+		iov.SetLen(len(p))
+	}
 	var dummy byte
-	var empty bool
 	if len(oob) > 0 {
-		empty := emptyIovecs(iov)
-		if empty {
+		if len(p) == 0 {
 			var sockType int
 			sockType, err = GetsockoptInt(fd, SOL_SOCKET, SO_TYPE)
 			if err != nil {
@@ -1550,22 +1554,19 @@ func sendmsgN(fd int, iov []Iovec, oob []byte, ptr unsafe.Pointer, salen _Sockle
 			}
 			// send at least one normal byte
 			if sockType != SOCK_DGRAM {
-				var iova [1]Iovec
-				iova[0].Base = &dummy
-				iova[0].SetLen(1)
+				iov.Base = &dummy
+				iov.SetLen(1)
 			}
 		}
 		msg.Control = &oob[0]
 		msg.SetControllen(len(oob))
 	}
-	if len(iov) > 0 {
-		msg.Iov = &iov[0]
-		msg.SetIovlen(len(iov))
-	}
+	msg.Iov = &iov
+	msg.Iovlen = 1
 	if n, err = sendmsg(fd, &msg, flags); err != nil {
 		return 0, err
 	}
-	if len(oob) > 0 && empty {
+	if len(oob) > 0 && len(p) == 0 {
 		n = 0
 	}
 	return n, nil

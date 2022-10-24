@@ -50,7 +50,9 @@ func GetHumanCertDetail(certificate *x509.Certificate) string {
 	for _, ip := range certificate.IPAddresses {
 		validServingNames = append(validServingNames, ip.String())
 	}
-	validServingNames = append(validServingNames, certificate.DNSNames...)
+	for _, dnsName := range certificate.DNSNames {
+		validServingNames = append(validServingNames, dnsName)
+	}
 	servingString := ""
 	if len(validServingNames) > 0 {
 		servingString = fmt.Sprintf(" validServingFor=[%s]", strings.Join(validServingNames, ","))

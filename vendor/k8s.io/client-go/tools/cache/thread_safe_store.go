@@ -47,9 +47,9 @@ type ThreadSafeStore interface {
 	ListKeys() []string
 	Replace(map[string]interface{}, string)
 	Index(indexName string, obj interface{}) ([]interface{}, error)
-	IndexKeys(indexName, indexedValue string) ([]string, error)
+	IndexKeys(indexName, indexKey string) ([]string, error)
 	ListIndexFuncValues(name string) []string
-	ByIndex(indexName, indexedValue string) ([]interface{}, error)
+	ByIndex(indexName, indexKey string) ([]interface{}, error)
 	GetIndexers() Indexers
 
 	// AddIndexers adds more indexers to this store.  If you call this after you already have data

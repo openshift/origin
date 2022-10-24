@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	appsv1 "k8s.io/api/apps/v1"

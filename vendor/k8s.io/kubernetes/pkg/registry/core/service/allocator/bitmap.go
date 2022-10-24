@@ -198,10 +198,6 @@ func (r *AllocationBitmap) Restore(rangeSpec string, data []byte) error {
 	return nil
 }
 
-// Destroy cleans up everything on shutdown.
-func (r *AllocationBitmap) Destroy() {
-}
-
 // randomScanStrategy chooses a random address from the provided big.Int, and then
 // scans forward looking for the next available address (it will wrap the range if
 // necessary).
@@ -254,7 +250,7 @@ func (rss randomScanStrategyWithOffset) AllocateBit(allocated *big.Int, max, cou
 	for i := 0; i < rss.offset; i++ {
 		at := (start + i) % rss.offset
 		if allocated.Bit(at) == 0 {
-			return at, true
+			return i, true
 		}
 	}
 	return 0, false

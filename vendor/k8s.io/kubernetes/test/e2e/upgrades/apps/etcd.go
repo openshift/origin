@@ -21,19 +21,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"path/filepath"
 	"sync"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
-
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2estatefulset "k8s.io/kubernetes/test/e2e/framework/statefulset"
 	e2etestfiles "k8s.io/kubernetes/test/e2e/framework/testfiles"
@@ -114,7 +112,7 @@ func (t *EtcdUpgradeTest) Setup(f *framework.Framework) {
 }
 
 func (t *EtcdUpgradeTest) listUsers() ([]string, error) {
-	r, err := http.Get(fmt.Sprintf("http://%s/list", net.JoinHostPort(t.ip, "8080")))
+	r, err := http.Get(fmt.Sprintf("http://%s:8080/list", t.ip))
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +133,7 @@ func (t *EtcdUpgradeTest) listUsers() ([]string, error) {
 
 func (t *EtcdUpgradeTest) addUser(name string) error {
 	val := map[string][]string{"name": {name}}
-	r, err := http.PostForm(fmt.Sprintf("http://%s/add", net.JoinHostPort(t.ip, "8080")), val)
+	r, err := http.PostForm(fmt.Sprintf("http://%s:8080/add", t.ip), val)
 	if err != nil {
 		return err
 	}

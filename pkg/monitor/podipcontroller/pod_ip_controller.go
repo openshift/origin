@@ -79,11 +79,11 @@ func (c *SimultaneousPodIPController) Enqueue(obj interface{}) {
 func (c *SimultaneousPodIPController) Run(ctx context.Context) {
 	defer utilruntime.HandleCrash()
 
-	fmt.Printf("Starting SimultaneousPodIPController\n")
+	fmt.Printf("Starting SimultaneousPodIPController")
 	defer func() {
-		fmt.Printf("Shutting down SimultaneousPodIPController\n")
+		fmt.Printf("Shutting down SimultaneousPodIPController")
 		c.queue.ShutDown()
-		fmt.Printf("SimultaneousPodIPController shut down\n")
+		fmt.Printf("SimultaneousPodIPController shut down")
 	}()
 
 	if !cache.WaitForNamedCacheSync("SimultaneousPodIPController", ctx.Done(), c.cachesToSync...) {

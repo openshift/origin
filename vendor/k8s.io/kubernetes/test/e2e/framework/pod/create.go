@@ -28,6 +28,11 @@ import (
 	imageutils "k8s.io/kubernetes/test/utils/image"
 )
 
+var (
+	// BusyBoxImage is the image URI of BusyBox.
+	BusyBoxImage = imageutils.GetE2EImage(imageutils.BusyBox)
+)
+
 // Config is a struct containing all arguments for creating a pod.
 // SELinux testing requires to pass HostIPC and HostPID as boolean arguments.
 type Config struct {
@@ -42,7 +47,7 @@ type Config struct {
 	SeLinuxLabel           *v1.SELinuxOptions
 	FsGroup                *int64
 	NodeSelection          NodeSelection
-	ImageID                imageutils.ImageID
+	ImageID                int
 	PodFSGroupChangePolicy *v1.PodFSGroupChangePolicy
 }
 

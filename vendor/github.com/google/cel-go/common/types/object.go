@@ -53,24 +53,24 @@ func NewObject(adapter ref.TypeAdapter,
 }
 
 func (o *protoObj) ConvertToNative(typeDesc reflect.Type) (interface{}, error) {
-	srcPB := o.value
-	if reflect.TypeOf(srcPB).AssignableTo(typeDesc) {
-		return srcPB, nil
+	pb := o.value
+	if reflect.TypeOf(pb).AssignableTo(typeDesc) {
+		return pb, nil
 	}
 	if reflect.TypeOf(o).AssignableTo(typeDesc) {
 		return o, nil
 	}
 	switch typeDesc {
 	case anyValueType:
-		_, isAny := srcPB.(*anypb.Any)
+		_, isAny := pb.(*anypb.Any)
 		if isAny {
-			return srcPB, nil
+			return pb, nil
 		}
-		return anypb.New(srcPB)
+		return anypb.New(pb)
 	case jsonValueType:
 		// Marshal the proto to JSON first, and then rehydrate as protobuf.Value as there is no
 		// support for direct conversion from proto.Message to protobuf.Value.
-		bytes, err := protojson.Marshal(srcPB)
+		bytes, err := protojson.Marshal(pb)
 		if err != nil {
 			return nil, err
 		}
@@ -88,10 +88,7 @@ func (o *protoObj) ConvertToNative(typeDesc reflect.Type) (interface{}, error) {
 			val := reflect.New(typeDesc.Elem()).Interface()
 			dstPB, ok := val.(proto.Message)
 			if ok {
-				err := pb.Merge(dstPB, srcPB)
-				if err != nil {
-					return nil, fmt.Errorf("type conversion error: %v", err)
-				}
+				proto.Merge(dstPB, pb)
 				return dstPB, nil
 			}
 		}

@@ -18,18 +18,16 @@ limitations under the License.
 // source: api.proto
 
 /*
-Package pluginregistration is a generated protocol buffer package.
+	Package pluginregistration is a generated protocol buffer package.
 
-It is generated from these files:
+	It is generated from these files:
+		api.proto
 
-	api.proto
-
-It has these top-level messages:
-
-	PluginInfo
-	RegistrationStatus
-	RegistrationStatusResponse
-	InfoRequest
+	It has these top-level messages:
+		PluginInfo
+		RegistrationStatus
+		RegistrationStatusResponse
+		InfoRequest
 */
 package pluginregistration
 

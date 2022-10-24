@@ -178,7 +178,7 @@ type Linger struct {
 }
 
 type Iovec struct {
-	Base *byte
+	Base *int8
 	Len  uint64
 }
 

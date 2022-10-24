@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 
 	v1 "k8s.io/api/core/v1"
@@ -235,9 +235,7 @@ var _ = SIGDescribe("InitContainer [NodeConformance]", func() {
 
 		framework.ExpectEqual(len(endPod.Status.InitContainerStatuses), 2)
 		for _, status := range endPod.Status.InitContainerStatuses {
-			if !status.Ready {
-				framework.Failf("init container %s should be in Ready status", status.Name)
-			}
+			framework.ExpectEqual(status.Ready, true)
 			gomega.Expect(status.State.Terminated).NotTo(gomega.BeNil())
 			gomega.Expect(status.State.Terminated.ExitCode).To(gomega.BeZero())
 		}
@@ -314,9 +312,7 @@ var _ = SIGDescribe("InitContainer [NodeConformance]", func() {
 
 		framework.ExpectEqual(len(endPod.Status.InitContainerStatuses), 2)
 		for _, status := range endPod.Status.InitContainerStatuses {
-			if !status.Ready {
-				framework.Failf("init container %s should be in Ready status", status.Name)
-			}
+			framework.ExpectEqual(status.Ready, true)
 			gomega.Expect(status.State.Terminated).NotTo(gomega.BeNil())
 			gomega.Expect(status.State.Terminated.ExitCode).To(gomega.BeZero())
 		}

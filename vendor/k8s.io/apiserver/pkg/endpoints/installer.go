@@ -25,7 +25,7 @@ import (
 	"time"
 	"unicode"
 
-	restful "github.com/emicklei/go-restful/v3"
+	restful "github.com/emicklei/go-restful"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -1050,7 +1050,7 @@ func AddObjectParams(ws *restful.WebService, route *restful.RouteBuilder, obj in
 			}
 			switch sf.Type.Kind() {
 			case reflect.Interface, reflect.Struct:
-			case reflect.Pointer:
+			case reflect.Ptr:
 				// TODO: This is a hack to let metav1.Time through. This needs to be fixed in a more generic way eventually. bug #36191
 				if (sf.Type.Elem().Kind() == reflect.Interface || sf.Type.Elem().Kind() == reflect.Struct) && strings.TrimPrefix(sf.Type.String(), "*") != "metav1.Time" {
 					continue

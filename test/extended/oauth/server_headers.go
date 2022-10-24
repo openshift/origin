@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"net/url"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
+	t "github.com/onsi/ginkgo/extensions/table"
 	o "github.com/onsi/gomega"
 
 	"k8s.io/client-go/rest"
@@ -39,7 +40,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.ope
 		oauthServerCleanup()
 	})
 
-	g.DescribeTable("expected headers returned from the",
+	t.DescribeTable("expected headers returned from the",
 		func(path string) {
 			checkUrl, err := url.Parse(oauthServerAddr)
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -92,14 +93,14 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.ope
 
 			o.Expect(resp.Header).To(o.Equal(allHeaders))
 		},
-		g.Entry("root URL", "/"),
-		g.Entry("login URL for when there is only one IDP", "/login"),
-		g.Entry("login URL for the bootstrap IDP", "/login/kube:admin"),
-		g.Entry("login URL for the allow all IDP", "/login/anypassword"),
-		g.Entry("logout URL", "/logout"),
-		g.Entry("token URL", "/oauth/token"),
-		g.Entry("authorize URL", "/oauth/authorize"),
-		g.Entry("grant URL", "/oauth/authorize/approve"),
-		g.Entry("token request URL", "/oauth/token/request"),
+		t.Entry("root URL", "/"),
+		t.Entry("login URL for when there is only one IDP", "/login"),
+		t.Entry("login URL for the bootstrap IDP", "/login/kube:admin"),
+		t.Entry("login URL for the allow all IDP", "/login/anypassword"),
+		t.Entry("logout URL", "/logout"),
+		t.Entry("token URL", "/oauth/token"),
+		t.Entry("authorize URL", "/oauth/authorize"),
+		t.Entry("grant URL", "/oauth/authorize/approve"),
+		t.Entry("token request URL", "/oauth/token/request"),
 	)
 })

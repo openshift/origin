@@ -66,6 +66,9 @@ type Interface interface {
 		execFn func(),
 	)
 
+	// MaintainObservations is a helper for maintaining statistics.
+	MaintainObservations(stopCh <-chan struct{})
+
 	// Run monitors config objects from the main apiservers and causes
 	// any needed changes to local behavior.  This method ceases
 	// activity and returns after the given channel is closed.
@@ -97,8 +100,8 @@ func New(
 		FlowcontrolClient:      flowcontrolClient,
 		ServerConcurrencyLimit: serverConcurrencyLimit,
 		RequestWaitLimit:       requestWaitLimit,
-		ReqsGaugeVec:           metrics.PriorityLevelConcurrencyGaugeVec,
-		ExecSeatsGaugeVec:      metrics.PriorityLevelExecutionSeatsGaugeVec,
+		ReqsObsPairGenerator:   metrics.PriorityLevelConcurrencyObserverPairGenerator,
+		ExecSeatsObsGenerator:  metrics.PriorityLevelExecutionSeatsObserverGenerator,
 		QueueSetFactory:        fqs.NewQueueSetFactory(clk),
 	})
 }
@@ -137,11 +140,11 @@ type TestableConfig struct {
 	// RequestWaitLimit configured on the server
 	RequestWaitLimit time.Duration
 
-	// GaugeVec for metrics about requests, broken down by phase and priority_level
-	ReqsGaugeVec metrics.RatioedGaugeVec
+	// ObsPairGenerator for metrics about requests
+	ReqsObsPairGenerator metrics.RatioedChangeObserverPairGenerator
 
-	// RatioedGaugePairVec for metrics about seats occupied by all phases of execution
-	ExecSeatsGaugeVec metrics.RatioedGaugeVec
+	// RatioedChangeObserverPairGenerator for metrics about seats occupied by all phases of execution
+	ExecSeatsObsGenerator metrics.RatioedChangeObserverGenerator
 
 	// QueueSetFactory for the queuing implementation
 	QueueSetFactory fq.QueueSetFactory

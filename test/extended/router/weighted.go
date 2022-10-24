@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -40,8 +40,8 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:config.openshift.io][
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve a route that points to two services and respect weights", func() {
 			defer func() {
-				if g.CurrentSpecReport().Failed() {
-					dumpWeightedRouterLogs(oc, g.CurrentSpecReport().FullText())
+				if g.CurrentGinkgoTestDescription().Failed {
+					dumpWeightedRouterLogs(oc, g.CurrentGinkgoTestDescription().FullTestText)
 				}
 			}()
 

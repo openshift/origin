@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting"
 
@@ -113,7 +113,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance security tes
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentSpecReport().Failed() {
+			if g.CurrentGinkgoTestDescription().Failed {
 				templateinstances, err := cli.AdminTemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).List(context.Background(), metav1.ListOptions{})
 				if err == nil {
 					fmt.Fprintf(g.GinkgoWriter, "TemplateInstances: %#v", templateinstances.Items)

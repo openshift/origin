@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -34,7 +34,7 @@ RUN curl -vvv hello-nodejs:8080
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentSpecReport().Failed() {
+			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)

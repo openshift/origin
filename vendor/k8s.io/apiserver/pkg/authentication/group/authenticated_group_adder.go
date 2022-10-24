@@ -51,16 +51,11 @@ func (g *AuthenticatedGroupAdder) AuthenticateRequest(req *http.Request) (*authe
 		}
 	}
 
-	newGroups := make([]string, 0, len(r.User.GetGroups())+1)
-	newGroups = append(newGroups, r.User.GetGroups()...)
-	newGroups = append(newGroups, user.AllAuthenticated)
-
-	ret := *r // shallow copy
-	ret.User = &user.DefaultInfo{
+	r.User = &user.DefaultInfo{
 		Name:   r.User.GetName(),
 		UID:    r.User.GetUID(),
-		Groups: newGroups,
+		Groups: append(r.User.GetGroups(), user.AllAuthenticated),
 		Extra:  r.User.GetExtra(),
 	}
-	return &ret, true, nil
+	return r, true, nil
 }

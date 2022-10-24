@@ -87,7 +87,7 @@ func (td *TypeDescription) FieldByName(name string) (*FieldDescription, bool) {
 // MaybeUnwrap accepts a proto message as input and unwraps it to a primitive CEL type if possible.
 //
 // This method returns the unwrapped value and 'true', else the original value and 'false'.
-func (td *TypeDescription) MaybeUnwrap(msg proto.Message) (interface{}, bool, error) {
+func (td *TypeDescription) MaybeUnwrap(msg proto.Message) (interface{}, bool) {
 	return unwrap(td, msg)
 }
 
@@ -118,7 +118,7 @@ func NewFieldDescription(fieldDesc protoreflect.FieldDescriptor) *FieldDescripti
 	switch fieldDesc.Kind() {
 	case protoreflect.EnumKind:
 		reflectType = reflectTypeOf(protoreflect.EnumNumber(0))
-	case protoreflect.GroupKind, protoreflect.MessageKind:
+	case protoreflect.MessageKind:
 		zeroMsg = dynamicpb.NewMessage(fieldDesc.Message())
 		reflectType = reflectTypeOf(zeroMsg)
 	default:
@@ -248,8 +248,8 @@ func (fd *FieldDescription) GetFrom(target interface{}) (interface{}, error) {
 		return &Map{Map: fv, KeyType: fd.KeyType, ValueType: fd.ValueType}, nil
 	case protoreflect.Message:
 		// Make sure to unwrap well-known protobuf types before returning.
-		unwrapped, _, err := fd.MaybeUnwrapDynamic(fv)
-		return unwrapped, err
+		unwrapped, _ := fd.MaybeUnwrapDynamic(fv)
+		return unwrapped, nil
 	default:
 		return fv, nil
 	}
@@ -267,8 +267,7 @@ func (fd *FieldDescription) IsMap() bool {
 
 // IsMessage returns true if the field is of message type.
 func (fd *FieldDescription) IsMessage() bool {
-	kind := fd.desc.Kind()
-	return kind == protoreflect.MessageKind || kind == protoreflect.GroupKind
+	return fd.desc.Kind() == protoreflect.MessageKind
 }
 
 // IsOneof returns true if the field is declared within a oneof block.
@@ -289,7 +288,7 @@ func (fd *FieldDescription) IsList() bool {
 //
 // This function returns the unwrapped value and 'true' on success, or the original value
 // and 'false' otherwise.
-func (fd *FieldDescription) MaybeUnwrapDynamic(msg protoreflect.Message) (interface{}, bool, error) {
+func (fd *FieldDescription) MaybeUnwrapDynamic(msg protoreflect.Message) (interface{}, bool) {
 	return unwrapDynamic(fd, msg)
 }
 
@@ -317,7 +316,7 @@ func (fd *FieldDescription) Zero() proto.Message {
 }
 
 func (fd *FieldDescription) typeDefToType() *exprpb.Type {
-	if fd.desc.Kind() == protoreflect.MessageKind || fd.desc.Kind() == protoreflect.GroupKind {
+	if fd.desc.Kind() == protoreflect.MessageKind {
 		msgType := string(fd.desc.Message().FullName())
 		if wk, found := CheckedWellKnowns[msgType]; found {
 			return wk
@@ -362,63 +361,63 @@ func checkedWrap(t *exprpb.Type) *exprpb.Type {
 // input message is a *dynamicpb.Message which obscures the typing information from Go.
 //
 // Returns the unwrapped value and 'true' if unwrapped, otherwise the input value and 'false'.
-func unwrap(desc description, msg proto.Message) (interface{}, bool, error) {
+func unwrap(desc description, msg proto.Message) (interface{}, bool) {
 	switch v := msg.(type) {
 	case *anypb.Any:
 		dynMsg, err := v.UnmarshalNew()
 		if err != nil {
-			return v, false, err
+			return v, false
 		}
 		return unwrapDynamic(desc, dynMsg.ProtoReflect())
 	case *dynamicpb.Message:
 		return unwrapDynamic(desc, v)
 	case *dpb.Duration:
-		return v.AsDuration(), true, nil
+		return v.AsDuration(), true
 	case *tpb.Timestamp:
-		return v.AsTime(), true, nil
+		return v.AsTime(), true
 	case *structpb.Value:
 		switch v.GetKind().(type) {
 		case *structpb.Value_BoolValue:
-			return v.GetBoolValue(), true, nil
+			return v.GetBoolValue(), true
 		case *structpb.Value_ListValue:
-			return v.GetListValue(), true, nil
+			return v.GetListValue(), true
 		case *structpb.Value_NullValue:
-			return structpb.NullValue_NULL_VALUE, true, nil
+			return structpb.NullValue_NULL_VALUE, true
 		case *structpb.Value_NumberValue:
-			return v.GetNumberValue(), true, nil
+			return v.GetNumberValue(), true
 		case *structpb.Value_StringValue:
-			return v.GetStringValue(), true, nil
+			return v.GetStringValue(), true
 		case *structpb.Value_StructValue:
-			return v.GetStructValue(), true, nil
+			return v.GetStructValue(), true
 		default:
-			return structpb.NullValue_NULL_VALUE, true, nil
+			return structpb.NullValue_NULL_VALUE, true
 		}
 	case *wrapperspb.BoolValue:
-		return v.GetValue(), true, nil
+		return v.GetValue(), true
 	case *wrapperspb.BytesValue:
-		return v.GetValue(), true, nil
+		return v.GetValue(), true
 	case *wrapperspb.DoubleValue:
-		return v.GetValue(), true, nil
+		return v.GetValue(), true
 	case *wrapperspb.FloatValue:
-		return float64(v.GetValue()), true, nil
+		return float64(v.GetValue()), true
 	case *wrapperspb.Int32Value:
-		return int64(v.GetValue()), true, nil
+		return int64(v.GetValue()), true
 	case *wrapperspb.Int64Value:
-		return v.GetValue(), true, nil
+		return v.GetValue(), true
 	case *wrapperspb.StringValue:
-		return v.GetValue(), true, nil
+		return v.GetValue(), true
 	case *wrapperspb.UInt32Value:
-		return uint64(v.GetValue()), true, nil
+		return uint64(v.GetValue()), true
 	case *wrapperspb.UInt64Value:
-		return v.GetValue(), true, nil
+		return v.GetValue(), true
 	}
-	return msg, false, nil
+	return msg, false
 }
 
 // unwrapDynamic unwraps a reflected protobuf Message value.
 //
 // Returns the unwrapped value and 'true' if unwrapped, otherwise the input value and 'false'.
-func unwrapDynamic(desc description, refMsg protoreflect.Message) (interface{}, bool, error) {
+func unwrapDynamic(desc description, refMsg protoreflect.Message) (interface{}, bool) {
 	msg := refMsg.Interface()
 	if !refMsg.IsValid() {
 		msg = desc.Zero()
@@ -433,22 +432,18 @@ func unwrapDynamic(desc description, refMsg protoreflect.Message) (interface{}, 
 		// unwrapped before being returned to the caller. Otherwise, the dynamic protobuf object
 		// represented by the Any will be returned.
 		unwrappedAny := &anypb.Any{}
-		err := Merge(unwrappedAny, msg)
-		if err != nil {
-			return nil, false, err
-		}
+		proto.Merge(unwrappedAny, msg)
 		dynMsg, err := unwrappedAny.UnmarshalNew()
 		if err != nil {
 			// Allow the error to move further up the stack as it should result in an type
 			// conversion error if the caller does not recover it somehow.
-			return nil, false, err
+			return unwrappedAny, true
 		}
 		// Attempt to unwrap the dynamic type, otherwise return the dynamic message.
-		unwrapped, nested, err := unwrapDynamic(desc, dynMsg.ProtoReflect())
-		if err == nil && nested {
-			return unwrapped, true, nil
+		if unwrapped, nested := unwrapDynamic(desc, dynMsg.ProtoReflect()); nested {
+			return unwrapped, true
 		}
-		return dynMsg, true, err
+		return dynMsg, true
 	case "google.protobuf.BoolValue",
 		"google.protobuf.BytesValue",
 		"google.protobuf.DoubleValue",
@@ -461,49 +456,34 @@ func unwrapDynamic(desc description, refMsg protoreflect.Message) (interface{}, 
 		// The msg value is ignored when dealing with wrapper types as they have a null or value
 		// behavior, rather than the standard zero value behavior of other proto message types.
 		if !refMsg.IsValid() {
-			return structpb.NullValue_NULL_VALUE, true, nil
+			return structpb.NullValue_NULL_VALUE, true
 		}
 		valueField := refMsg.Descriptor().Fields().ByName("value")
-		return refMsg.Get(valueField).Interface(), true, nil
+		return refMsg.Get(valueField).Interface(), true
 	case "google.protobuf.Duration":
 		unwrapped := &dpb.Duration{}
-		err := Merge(unwrapped, msg)
-		if err != nil {
-			return nil, false, err
-		}
-		return unwrapped.AsDuration(), true, nil
+		proto.Merge(unwrapped, msg)
+		return unwrapped.AsDuration(), true
 	case "google.protobuf.ListValue":
 		unwrapped := &structpb.ListValue{}
-		err := Merge(unwrapped, msg)
-		if err != nil {
-			return nil, false, err
-		}
-		return unwrapped, true, nil
+		proto.Merge(unwrapped, msg)
+		return unwrapped, true
 	case "google.protobuf.NullValue":
-		return structpb.NullValue_NULL_VALUE, true, nil
+		return structpb.NullValue_NULL_VALUE, true
 	case "google.protobuf.Struct":
 		unwrapped := &structpb.Struct{}
-		err := Merge(unwrapped, msg)
-		if err != nil {
-			return nil, false, err
-		}
-		return unwrapped, true, nil
+		proto.Merge(unwrapped, msg)
+		return unwrapped, true
 	case "google.protobuf.Timestamp":
 		unwrapped := &tpb.Timestamp{}
-		err := Merge(unwrapped, msg)
-		if err != nil {
-			return nil, false, err
-		}
-		return unwrapped.AsTime(), true, nil
+		proto.Merge(unwrapped, msg)
+		return unwrapped.AsTime(), true
 	case "google.protobuf.Value":
 		unwrapped := &structpb.Value{}
-		err := Merge(unwrapped, msg)
-		if err != nil {
-			return nil, false, err
-		}
+		proto.Merge(unwrapped, msg)
 		return unwrap(desc, unwrapped)
 	}
-	return msg, false, nil
+	return msg, false
 }
 
 // reflectTypeOf intercepts the reflect.Type call to ensure that dynamicpb.Message types preserve

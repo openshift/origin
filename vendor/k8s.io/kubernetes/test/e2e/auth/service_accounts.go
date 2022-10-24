@@ -44,7 +44,7 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 	utilptr "k8s.io/utils/pointer"
 
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 )
 
 const rootCAConfigMapName = "kube-root-ca.crt"
@@ -117,21 +117,13 @@ var _ = SIGDescribe("ServiceAccounts", func() {
 		tokenReview := &authenticationv1.TokenReview{Spec: authenticationv1.TokenReviewSpec{Token: mountedToken}}
 		tokenReview, err = f.ClientSet.AuthenticationV1().TokenReviews().Create(context.TODO(), tokenReview, metav1.CreateOptions{})
 		framework.ExpectNoError(err)
-		if !tokenReview.Status.Authenticated {
-			framework.Fail("tokenReview is not authenticated")
-		}
+		framework.ExpectEqual(tokenReview.Status.Authenticated, true)
 		framework.ExpectEqual(tokenReview.Status.Error, "")
 		framework.ExpectEqual(tokenReview.Status.User.Username, "system:serviceaccount:"+f.Namespace.Name+":"+sa.Name)
 		groups := sets.NewString(tokenReview.Status.User.Groups...)
-		if !groups.Has("system:authenticated") {
-			framework.Failf("expected system:authenticated group, had %v", groups.List())
-		}
-		if !groups.Has("system:serviceaccounts") {
-			framework.Failf("expected system:serviceaccounts group, had %v", groups.List())
-		}
-		if !groups.Has("system:serviceaccounts:" + f.Namespace.Name) {
-			framework.Failf("expected system:serviceaccounts:%s group, had %v", f.Namespace.Name, groups.List())
-		}
+		framework.ExpectEqual(groups.Has("system:authenticated"), true, fmt.Sprintf("expected system:authenticated group, had %v", groups.List()))
+		framework.ExpectEqual(groups.Has("system:serviceaccounts"), true, fmt.Sprintf("expected system:serviceaccounts group, had %v", groups.List()))
+		framework.ExpectEqual(groups.Has("system:serviceaccounts:"+f.Namespace.Name), true, fmt.Sprintf("expected system:serviceaccounts:"+f.Namespace.Name+" group, had %v", groups.List()))
 	})
 
 	/*
@@ -683,9 +675,8 @@ var _ = SIGDescribe("ServiceAccounts", func() {
 				break
 			}
 		}
-		if !eventFound {
-			framework.Failf("failed to find %v event", watch.Added)
-		}
+		framework.ExpectEqual(eventFound, true, "failed to find %v event", watch.Added)
+
 		ginkgo.By("patching the ServiceAccount")
 		boolFalse := false
 		testServiceAccountPatchData, err := json.Marshal(v1.ServiceAccount{
@@ -701,9 +692,8 @@ var _ = SIGDescribe("ServiceAccounts", func() {
 				break
 			}
 		}
-		if !eventFound {
-			framework.Failf("failed to find %v event", watch.Modified)
-		}
+		framework.ExpectEqual(eventFound, true, "failed to find %v event", watch.Modified)
+
 		ginkgo.By("finding ServiceAccount in list of all ServiceAccounts (by LabelSelector)")
 		serviceAccountList, err := f.ClientSet.CoreV1().ServiceAccounts("").List(context.TODO(), metav1.ListOptions{LabelSelector: testServiceAccountStaticLabelsFlat})
 		framework.ExpectNoError(err, "failed to list ServiceAccounts by LabelSelector")
@@ -714,9 +704,8 @@ var _ = SIGDescribe("ServiceAccounts", func() {
 				break
 			}
 		}
-		if !foundServiceAccount {
-			framework.Fail("failed to find the created ServiceAccount")
-		}
+		framework.ExpectEqual(foundServiceAccount, true, "failed to find the created ServiceAccount")
+
 		ginkgo.By("deleting the ServiceAccount")
 		err = f.ClientSet.CoreV1().ServiceAccounts(testNamespaceName).DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{})
 		framework.ExpectNoError(err, "failed to delete the ServiceAccount by Collection")
@@ -727,9 +716,7 @@ var _ = SIGDescribe("ServiceAccounts", func() {
 				break
 			}
 		}
-		if !eventFound {
-			framework.Failf("failed to find %v event", watch.Deleted)
-		}
+		framework.ExpectEqual(eventFound, true, "failed to find %v event", watch.Deleted)
 	})
 
 	/*

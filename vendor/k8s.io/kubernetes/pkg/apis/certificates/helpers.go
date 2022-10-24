@@ -50,22 +50,16 @@ var (
 	uriSANNotAllowedErr           = fmt.Errorf("URI subjectAltNames are not allowed")
 )
 
-var (
-	kubeletServingRequiredUsages = sets.NewString(
-		string(UsageDigitalSignature),
-		string(UsageKeyEncipherment),
-		string(UsageServerAuth),
-	)
-	kubeletServingRequiredUsagesNoRSA = sets.NewString(
-		string(UsageDigitalSignature),
-		string(UsageServerAuth),
-	)
+var kubeletServingRequiredUsages = sets.NewString(
+	string(UsageDigitalSignature),
+	string(UsageKeyEncipherment),
+	string(UsageServerAuth),
 )
 
-func IsKubeletServingCSR(req *x509.CertificateRequest, usages sets.String, allowOmittingUsageKeyEncipherment bool) bool {
-	return ValidateKubeletServingCSR(req, usages, allowOmittingUsageKeyEncipherment) == nil
+func IsKubeletServingCSR(req *x509.CertificateRequest, usages sets.String) bool {
+	return ValidateKubeletServingCSR(req, usages) == nil
 }
-func ValidateKubeletServingCSR(req *x509.CertificateRequest, usages sets.String, allowOmittingUsageKeyEncipherment bool) error {
+func ValidateKubeletServingCSR(req *x509.CertificateRequest, usages sets.String) error {
 	if !reflect.DeepEqual([]string{"system:nodes"}, req.Subject.Organization) {
 		return organizationNotSystemNodesErr
 	}
@@ -82,14 +76,8 @@ func ValidateKubeletServingCSR(req *x509.CertificateRequest, usages sets.String,
 		return uriSANNotAllowedErr
 	}
 
-	if allowOmittingUsageKeyEncipherment {
-		if !kubeletServingRequiredUsages.Equal(usages) && !kubeletServingRequiredUsagesNoRSA.Equal(usages) {
-			return fmt.Errorf("usages did not match %v", kubeletServingRequiredUsages.List())
-		}
-	} else {
-		if !kubeletServingRequiredUsages.Equal(usages) {
-			return fmt.Errorf("usages did not match %v", kubeletServingRequiredUsages.List())
-		}
+	if !kubeletServingRequiredUsages.Equal(usages) {
+		return fmt.Errorf("usages did not match %v", kubeletServingRequiredUsages.List())
 	}
 
 	if !strings.HasPrefix(req.Subject.CommonName, "system:node:") {
@@ -99,22 +87,16 @@ func ValidateKubeletServingCSR(req *x509.CertificateRequest, usages sets.String,
 	return nil
 }
 
-var (
-	kubeletClientRequiredUsagesNoRSA = sets.NewString(
-		string(UsageDigitalSignature),
-		string(UsageClientAuth),
-	)
-	kubeletClientRequiredUsages = sets.NewString(
-		string(UsageDigitalSignature),
-		string(UsageKeyEncipherment),
-		string(UsageClientAuth),
-	)
+var kubeletClientRequiredUsages = sets.NewString(
+	string(UsageDigitalSignature),
+	string(UsageKeyEncipherment),
+	string(UsageClientAuth),
 )
 
-func IsKubeletClientCSR(req *x509.CertificateRequest, usages sets.String, allowOmittingUsageKeyEncipherment bool) bool {
-	return ValidateKubeletClientCSR(req, usages, allowOmittingUsageKeyEncipherment) == nil
+func IsKubeletClientCSR(req *x509.CertificateRequest, usages sets.String) bool {
+	return ValidateKubeletClientCSR(req, usages) == nil
 }
-func ValidateKubeletClientCSR(req *x509.CertificateRequest, usages sets.String, allowOmittingUsageKeyEncipherment bool) error {
+func ValidateKubeletClientCSR(req *x509.CertificateRequest, usages sets.String) error {
 	if !reflect.DeepEqual([]string{"system:nodes"}, req.Subject.Organization) {
 		return organizationNotSystemNodesErr
 	}
@@ -136,14 +118,8 @@ func ValidateKubeletClientCSR(req *x509.CertificateRequest, usages sets.String, 
 		return commonNameNotSystemNode
 	}
 
-	if allowOmittingUsageKeyEncipherment {
-		if !kubeletClientRequiredUsages.Equal(usages) && !kubeletClientRequiredUsagesNoRSA.Equal(usages) {
-			return fmt.Errorf("usages did not match %v", kubeletClientRequiredUsages.List())
-		}
-	} else {
-		if !kubeletClientRequiredUsages.Equal(usages) {
-			return fmt.Errorf("usages did not match %v", kubeletClientRequiredUsages.List())
-		}
+	if !kubeletClientRequiredUsages.Equal(usages) {
+		return fmt.Errorf("usages did not match %v", kubeletClientRequiredUsages.List())
 	}
 
 	return nil

@@ -73,7 +73,7 @@ type PrintFlags struct {
 	OutputFlagSpecified func() bool
 }
 
-// Complete sets NamePrintFlags operation flag from successTemplate
+// Complete sets NamePrintFlags operation flag from sucessTemplate
 func (f *PrintFlags) Complete(successTemplate string) error {
 	return f.NamePrintFlags.Complete(successTemplate)
 }

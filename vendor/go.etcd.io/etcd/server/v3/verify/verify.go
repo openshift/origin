@@ -108,7 +108,8 @@ func MustVerifyIfEnabled(cfg Config) {
 }
 
 func validateConsistentIndex(cfg Config, hardstate *raftpb.HardState, snapshot *walpb.Snapshot, be backend.Backend) error {
-	index, term := cindex.ReadConsistentIndex(be.ReadTx())
+	tx := be.BatchTx()
+	index, term := cindex.ReadConsistentIndex(tx)
 	if cfg.ExactIndex && index != hardstate.Commit {
 		return fmt.Errorf("backend.ConsistentIndex (%v) expected == WAL.HardState.commit (%v)", index, hardstate.Commit)
 	}

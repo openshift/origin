@@ -313,8 +313,6 @@ func clusterRoles() []rbacv1.ClusterRole {
 				rbacv1helpers.NewRule(Write...).Groups(policyGroup).Resources("poddisruptionbudgets").RuleOrDie(),
 
 				rbacv1helpers.NewRule(Write...).Groups(networkingGroup).Resources("networkpolicies", "ingresses").RuleOrDie(),
-
-				rbacv1helpers.NewRule(ReadWrite...).Groups(coordinationGroup).Resources("leases").RuleOrDie(),
 			},
 		},
 		{

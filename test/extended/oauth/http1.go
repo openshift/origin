@@ -3,7 +3,7 @@ package oauth
 import (
 	"net/http"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"golang.org/x/net/http2"
 

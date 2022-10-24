@@ -75,7 +75,7 @@ pushd "${kubernetes}" > /dev/null
 git checkout "${version}"
 make WHAT=cmd/kubectl
 make WHAT=test/e2e/e2e.test
-make WHAT=vendor/github.com/onsi/ginkgo/v2/ginkgo
+make WHAT=vendor/github.com/onsi/ginkgo/ginkgo
 export PATH="${kubernetes}/_output/local/bin/$( os::build::host_platform ):${PATH}"
 
 kubectl version  > "${test_report_dir}/version.txt"

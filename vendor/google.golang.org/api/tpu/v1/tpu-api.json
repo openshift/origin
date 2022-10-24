@@ -3,7 +3,7 @@
     "oauth2": {
       "scopes": {
         "https://www.googleapis.com/auth/cloud-platform": {
-          "description": "See, edit, configure, and delete your Google Cloud data and see the email address for your Google Account."
+          "description": "See, edit, configure, and delete your Google Cloud Platform data"
         }
       }
     }
@@ -430,7 +430,7 @@
                   ]
                 },
                 "stop": {
-                  "description": "Stops a node, this operation is only available with single TPU nodes.",
+                  "description": "Stops a node.",
                   "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/nodes/{nodesId}:stop",
                   "httpMethod": "POST",
                   "id": "tpu.projects.locations.nodes.stop",
@@ -659,7 +659,7 @@
       }
     }
   },
-  "revision": "20210824",
+  "revision": "20210414",
   "rootUrl": "https://tpu.googleapis.com/",
   "schemas": {
     "AcceleratorType": {
@@ -971,7 +971,7 @@
           "enumDescriptions": [
             "TPU node state is not known/set.",
             "TPU node is being created.",
-            "TPU node has been created.",
+            "TPU node has been created and is fully usable.",
             "TPU node is restarting.",
             "TPU node is undergoing reimaging.",
             "TPU node is being deleted.",
@@ -1047,40 +1047,33 @@
       "id": "OperationMetadata",
       "properties": {
         "apiVersion": {
-          "description": "Output only. API version used to start the operation.",
-          "readOnly": true,
+          "description": "[Output only] API version used to start the operation.",
           "type": "string"
         },
         "cancelRequested": {
-          "description": "Output only. Identifies whether the user has requested cancellation of the operation. Operations that have been cancelled successfully have Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.",
-          "readOnly": true,
+          "description": "[Output only] Identifies whether the user has requested cancellation of the operation. Operations that have successfully been cancelled have Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.",
           "type": "boolean"
         },
         "createTime": {
-          "description": "Output only. The time the operation was created.",
+          "description": "[Output only] The time the operation was created.",
           "format": "google-datetime",
-          "readOnly": true,
           "type": "string"
         },
         "endTime": {
-          "description": "Output only. The time the operation finished running.",
+          "description": "[Output only] The time the operation finished running.",
           "format": "google-datetime",
-          "readOnly": true,
           "type": "string"
         },
         "statusDetail": {
-          "description": "Output only. Human-readable status of the operation, if any.",
-          "readOnly": true,
+          "description": "[Output only] Human-readable status of the operation, if any.",
           "type": "string"
         },
         "target": {
-          "description": "Output only. Server-defined resource path for the target of the operation.",
-          "readOnly": true,
+          "description": "[Output only] Server-defined resource path for the target of the operation.",
           "type": "string"
         },
         "verb": {
-          "description": "Output only. Name of the verb executed by the operation.",
-          "readOnly": true,
+          "description": "[Output only] Name of the verb executed by the operation.",
           "type": "string"
         }
       },

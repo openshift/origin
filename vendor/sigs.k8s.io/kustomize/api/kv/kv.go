@@ -133,6 +133,7 @@ func (kvl *loader) keyValuesFromLines(content []byte) ([]types.Pair, error) {
 }
 
 // KeyValuesFromLine returns a kv with blank key if the line is empty or a comment.
+// The value will be retrieved from the environment if necessary.
 func (kvl *loader) keyValuesFromLine(line []byte, currentLine int) (types.Pair, error) {
 	kv := types.Pair{}
 
@@ -163,12 +164,7 @@ func (kvl *loader) keyValuesFromLine(line []byte, currentLine int) (types.Pair, 
 		kv.Value = data[1]
 	} else {
 		// No value (no `=` in the line) is a signal to obtain the value
-		// from the environment. This behaviour was accidentally imported from kubectl code, and
-		// will be removed in the next major release of Kustomize.
-		_, _ = fmt.Fprintln(os.Stderr, "WARNING: "+
-			"This Kustomization is relying on a bug that loads values from the environment "+
-			"when they are omitted from an env file. "+
-			"This behaviour will be removed in the next major release of Kustomize.")
+		// from the environment.
 		kv.Value = os.Getenv(key)
 	}
 	kv.Key = key

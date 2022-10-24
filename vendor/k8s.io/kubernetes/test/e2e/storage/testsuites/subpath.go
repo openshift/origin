@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 
 	v1 "k8s.io/api/core/v1"
@@ -40,6 +40,7 @@ import (
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
 	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
+	"k8s.io/kubernetes/test/e2e/storage/utils"
 	storageutils "k8s.io/kubernetes/test/e2e/storage/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 	admissionapi "k8s.io/pod-security-admission/api"
@@ -100,7 +101,7 @@ func (s *subPathTestSuite) DefineTests(driver storageframework.TestDriver, patte
 		config        *storageframework.PerTestConfig
 		driverCleanup func()
 
-		hostExec          storageutils.HostExec
+		hostExec          utils.HostExec
 		resource          *storageframework.VolumeResource
 		roVolSource       *v1.VolumeSource
 		pod               *v1.Pod
@@ -126,7 +127,7 @@ func (s *subPathTestSuite) DefineTests(driver storageframework.TestDriver, patte
 		l.migrationCheck = newMigrationOpCheck(f.ClientSet, f.ClientConfig(), driver.GetDriverInfo().InTreePluginName)
 		testVolumeSizeRange := s.GetTestSuiteInfo().SupportedSizeRange
 		l.resource = storageframework.CreateVolumeResource(driver, l.config, pattern, testVolumeSizeRange)
-		l.hostExec = storageutils.NewHostExec(f)
+		l.hostExec = utils.NewHostExec(f)
 
 		// Setup subPath test dependent resource
 		volType := pattern.VolType
@@ -961,7 +962,7 @@ func TestPodContainerRestartWithConfigmapModified(f *framework.Framework, origin
 
 }
 
-func testSubpathReconstruction(f *framework.Framework, hostExec storageutils.HostExec, pod *v1.Pod, forceDelete bool) {
+func testSubpathReconstruction(f *framework.Framework, hostExec utils.HostExec, pod *v1.Pod, forceDelete bool) {
 	// This is mostly copied from TestVolumeUnmountsFromDeletedPodWithForceOption()
 
 	// Disruptive test run serially, we can cache all voluem global mount
@@ -970,7 +971,7 @@ func testSubpathReconstruction(f *framework.Framework, hostExec storageutils.Hos
 	framework.ExpectNoError(err, "while listing schedulable nodes")
 	globalMountPointsByNode := make(map[string]sets.String, len(nodeList.Items))
 	for _, node := range nodeList.Items {
-		globalMountPointsByNode[node.Name] = storageutils.FindVolumeGlobalMountPoints(hostExec, &node)
+		globalMountPointsByNode[node.Name] = utils.FindVolumeGlobalMountPoints(hostExec, &node)
 	}
 
 	// Change to busybox
@@ -1003,11 +1004,11 @@ func testSubpathReconstruction(f *framework.Framework, hostExec storageutils.Hos
 	}
 	framework.ExpectNotEqual(podNode, nil, "pod node should exist in schedulable nodes")
 
-	storageutils.TestVolumeUnmountsFromDeletedPodWithForceOption(f.ClientSet, f, pod, forceDelete, true)
+	utils.TestVolumeUnmountsFromDeletedPodWithForceOption(f.ClientSet, f, pod, forceDelete, true)
 
 	if podNode != nil {
 		mountPoints := globalMountPointsByNode[podNode.Name]
-		mountPointsAfter := storageutils.FindVolumeGlobalMountPoints(hostExec, podNode)
+		mountPointsAfter := utils.FindVolumeGlobalMountPoints(hostExec, podNode)
 		s1 := mountPointsAfter.Difference(mountPoints)
 		s2 := mountPoints.Difference(mountPointsAfter)
 		gomega.Expect(s1).To(gomega.BeEmpty(), "global mount points leaked: %v", s1)

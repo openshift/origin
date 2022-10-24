@@ -23,9 +23,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	api "k8s.io/api/core/v1"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/klog/v2"
-	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/util"
 	volumetypes "k8s.io/kubernetes/pkg/volume/util/types"
@@ -79,17 +77,6 @@ func (c *csiPlugin) nodeExpandWithClient(
 	if pv == nil {
 		return false, fmt.Errorf("Expander.NodeExpand failed to find associated PersistentVolume for plugin %s", c.GetPluginName())
 	}
-	nodeExpandSecrets := map[string]string{}
-	expandClient := c.host.GetKubeClient()
-	if utilfeature.DefaultFeatureGate.Enabled(features.CSINodeExpandSecret) {
-		if csiSource.NodeExpandSecretRef != nil {
-			nodeExpandSecrets, err = getCredentialsFromSecret(expandClient, csiSource.NodeExpandSecretRef)
-			if err != nil {
-				return false, fmt.Errorf("expander.NodeExpand failed to get NodeExpandSecretRef %s/%s: %v",
-					csiSource.NodeExpandSecretRef.Namespace, csiSource.NodeExpandSecretRef.Name, err)
-			}
-		}
-	}
 
 	opts := csiResizeOptions{
 		volumePath:        resizeOptions.DeviceMountPath,
@@ -99,7 +86,6 @@ func (c *csiPlugin) nodeExpandWithClient(
 		fsType:            csiSource.FSType,
 		accessMode:        api.ReadWriteOnce,
 		mountOptions:      pv.Spec.MountOptions,
-		secrets:           nodeExpandSecrets,
 	}
 
 	if !fsVolume {

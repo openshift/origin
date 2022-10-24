@@ -117,15 +117,15 @@ func splitHostIntPort(s string) (string, int, error) {
 	return host, portInt, err
 }
 
-type invalidPlugins struct {
+type removedPlugins struct {
 	schemeGroupVersion string
 	plugins            []string
 }
 
-// invalidPluginsByVersion maintains a list of removed/deprecated plugins in each version.
+// removedPluginsByVersion maintains a list of removed plugins in each version.
 // Remember to add an entry to that list when creating a new component config
-// version (even if the list of invalid plugins is empty).
-var invalidPluginsByVersion = []invalidPlugins{
+// version (even if the list of removed plugins is empty).
+var removedPluginsByVersion = []removedPlugins{
 	{
 		schemeGroupVersion: v1beta2.SchemeGroupVersion.String(),
 		plugins:            []string{},
@@ -134,16 +134,12 @@ var invalidPluginsByVersion = []invalidPlugins{
 		schemeGroupVersion: v1beta3.SchemeGroupVersion.String(),
 		plugins:            []string{},
 	},
-	{
-		schemeGroupVersion: v1.SchemeGroupVersion.String(),
-		plugins:            []string{"SelectorSpread"},
-	},
 }
 
-// isPluginInvalid checks if a given plugin was removed/deprecated in the given component
+// isPluginRemoved checks if a given plugin was removed in the given component
 // config version or earlier.
-func isPluginInvalid(apiVersion string, name string) (bool, string) {
-	for _, dp := range invalidPluginsByVersion {
+func isPluginRemoved(apiVersion string, name string) (bool, string) {
+	for _, dp := range removedPluginsByVersion {
 		for _, plugin := range dp.plugins {
 			if name == plugin {
 				return true, dp.schemeGroupVersion
@@ -156,11 +152,11 @@ func isPluginInvalid(apiVersion string, name string) (bool, string) {
 	return false, ""
 }
 
-func validatePluginSetForInvalidPlugins(path *field.Path, apiVersion string, ps config.PluginSet) []error {
+func validatePluginSetForRemovedPlugins(path *field.Path, apiVersion string, ps config.PluginSet) []error {
 	var errs []error
 	for i, plugin := range ps.Enabled {
-		if invalid, invalidVersion := isPluginInvalid(apiVersion, plugin.Name); invalid {
-			errs = append(errs, field.Invalid(path.Child("enabled").Index(i), plugin.Name, fmt.Sprintf("was invalid in version %q (KubeSchedulerConfiguration is version %q)", invalidVersion, apiVersion)))
+		if removed, removedVersion := isPluginRemoved(apiVersion, plugin.Name); removed {
+			errs = append(errs, field.Invalid(path.Child("enabled").Index(i), plugin.Name, fmt.Sprintf("was removed in version %q (KubeSchedulerConfiguration is version %q)", removedVersion, apiVersion)))
 		}
 	}
 	return errs
@@ -204,7 +200,7 @@ func validatePluginConfig(path *field.Path, apiVersion string, profile *config.K
 
 		pluginsPath := path.Child("plugins")
 		for s, p := range stagesToPluginSet {
-			errs = append(errs, validatePluginSetForInvalidPlugins(
+			errs = append(errs, validatePluginSetForRemovedPlugins(
 				pluginsPath.Child(s), apiVersion, p)...)
 		}
 	}
@@ -220,8 +216,8 @@ func validatePluginConfig(path *field.Path, apiVersion string, profile *config.K
 		} else {
 			seenPluginConfig.Insert(name)
 		}
-		if invalid, invalidVersion := isPluginInvalid(apiVersion, name); invalid {
-			errs = append(errs, field.Invalid(pluginConfigPath, name, fmt.Sprintf("was invalid in version %q (KubeSchedulerConfiguration is version %q)", invalidVersion, apiVersion)))
+		if removed, removedVersion := isPluginRemoved(apiVersion, name); removed {
+			errs = append(errs, field.Invalid(pluginConfigPath, name, fmt.Sprintf("was removed in version %q (KubeSchedulerConfiguration is version %q)", removedVersion, apiVersion)))
 		} else if validateFunc, ok := m[name]; ok {
 			// type mismatch, no need to validate the `args`.
 			if reflect.TypeOf(args) != reflect.ValueOf(validateFunc).Type().In(1) {

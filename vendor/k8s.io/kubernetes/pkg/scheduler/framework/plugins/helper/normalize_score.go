@@ -21,9 +21,8 @@ import (
 )
 
 // DefaultNormalizeScore generates a Normalize Score function that can normalize the
-// scores from [0, max(scores)] to [0, maxPriority]. If reverse is set to true, it
-// reverses the scores by subtracting it from maxPriority.
-// Note: The input scores are always assumed to be non-negative integers.
+// scores to [0, maxPriority]. If reverse is set to true, it reverses the scores by
+// subtracting it from maxPriority.
 func DefaultNormalizeScore(maxPriority int64, reverse bool, scores framework.NodeScoreList) *framework.Status {
 	var maxCount int64
 	for i := range scores {

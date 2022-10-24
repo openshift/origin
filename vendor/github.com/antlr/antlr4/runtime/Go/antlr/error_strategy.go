@@ -16,7 +16,7 @@ type ErrorStrategy interface {
 	RecoverInline(Parser) Token
 	Recover(Parser, RecognitionException)
 	Sync(Parser)
-	InErrorRecoveryMode(Parser) bool
+	inErrorRecoveryMode(Parser) bool
 	ReportError(Parser, RecognitionException)
 	ReportMatch(Parser)
 }
@@ -40,7 +40,7 @@ func NewDefaultErrorStrategy() *DefaultErrorStrategy {
 	// error". This is used to suppress Reporting multiple error messages while
 	// attempting to recover from a detected syntax error.
 	//
-	// @see //InErrorRecoveryMode
+	// @see //inErrorRecoveryMode
 	//
 	d.errorRecoveryMode = false
 
@@ -71,7 +71,7 @@ func (d *DefaultErrorStrategy) beginErrorCondition(recognizer Parser) {
 	d.errorRecoveryMode = true
 }
 
-func (d *DefaultErrorStrategy) InErrorRecoveryMode(recognizer Parser) bool {
+func (d *DefaultErrorStrategy) inErrorRecoveryMode(recognizer Parser) bool {
 	return d.errorRecoveryMode
 }
 
@@ -118,7 +118,7 @@ func (d *DefaultErrorStrategy) ReportMatch(recognizer Parser) {
 func (d *DefaultErrorStrategy) ReportError(recognizer Parser, e RecognitionException) {
 	// if we've already Reported an error and have not Matched a token
 	// yet successfully, don't Report any errors.
-	if d.InErrorRecoveryMode(recognizer) {
+	if d.inErrorRecoveryMode(recognizer) {
 		return // don't Report spurious errors
 	}
 	d.beginErrorCondition(recognizer)
@@ -209,7 +209,7 @@ func (d *DefaultErrorStrategy) Recover(recognizer Parser, e RecognitionException
 //
 func (d *DefaultErrorStrategy) Sync(recognizer Parser) {
 	// If already recovering, don't try to Sync
-	if d.InErrorRecoveryMode(recognizer) {
+	if d.inErrorRecoveryMode(recognizer) {
 		return
 	}
 
@@ -312,7 +312,7 @@ func (d *DefaultErrorStrategy) ReportFailedPredicate(recognizer Parser, e *Faile
 // @param recognizer the parser instance
 //
 func (d *DefaultErrorStrategy) ReportUnwantedToken(recognizer Parser) {
-	if d.InErrorRecoveryMode(recognizer) {
+	if d.inErrorRecoveryMode(recognizer) {
 		return
 	}
 	d.beginErrorCondition(recognizer)
@@ -341,7 +341,7 @@ func (d *DefaultErrorStrategy) ReportUnwantedToken(recognizer Parser) {
 // @param recognizer the parser instance
 //
 func (d *DefaultErrorStrategy) ReportMissingToken(recognizer Parser) {
-	if d.InErrorRecoveryMode(recognizer) {
+	if d.inErrorRecoveryMode(recognizer) {
 		return
 	}
 	d.beginErrorCondition(recognizer)
@@ -738,11 +738,7 @@ func (b *BailErrorStrategy) Recover(recognizer Parser, e RecognitionException) {
 	context := recognizer.GetParserRuleContext()
 	for context != nil {
 		context.SetException(e)
-		if parent, ok := context.GetParent().(ParserRuleContext); ok {
-			context = parent
-		} else {
-			context = nil
-		}
+		context = context.GetParent().(ParserRuleContext)
 	}
 	panic(NewParseCancellationException()) // TODO we don't emit e properly
 }

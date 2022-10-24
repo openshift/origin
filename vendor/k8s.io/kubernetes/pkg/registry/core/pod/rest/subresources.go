@@ -49,12 +49,6 @@ func (r *ProxyREST) New() runtime.Object {
 	return &api.PodProxyOptions{}
 }
 
-// Destroy cleans up resources on shutdown.
-func (r *ProxyREST) Destroy() {
-	// Given that underlying store is shared with REST,
-	// we don't destroy it here explicitly.
-}
-
 // ConnectMethods returns the list of HTTP methods that can be proxied
 func (r *ProxyREST) ConnectMethods() []string {
 	return proxyMethods
@@ -97,12 +91,6 @@ func (r *AttachREST) New() runtime.Object {
 	return &api.PodAttachOptions{}
 }
 
-// Destroy cleans up resources on shutdown.
-func (r *AttachREST) Destroy() {
-	// Given that underlying store is shared with REST,
-	// we don't destroy it here explicitly.
-}
-
 // Connect returns a handler for the pod exec proxy
 func (r *AttachREST) Connect(ctx context.Context, name string, opts runtime.Object, responder rest.Responder) (http.Handler, error) {
 	attachOpts, ok := opts.(*api.PodAttachOptions)
@@ -140,12 +128,6 @@ func (r *ExecREST) New() runtime.Object {
 	return &api.PodExecOptions{}
 }
 
-// Destroy cleans up resources on shutdown.
-func (r *ExecREST) Destroy() {
-	// Given that underlying store is shared with REST,
-	// we don't destroy it here explicitly.
-}
-
 // Connect returns a handler for the pod exec proxy
 func (r *ExecREST) Connect(ctx context.Context, name string, opts runtime.Object, responder rest.Responder) (http.Handler, error) {
 	execOpts, ok := opts.(*api.PodExecOptions)
@@ -181,12 +163,6 @@ var _ = rest.Connecter(&PortForwardREST{})
 // New returns an empty podPortForwardOptions object
 func (r *PortForwardREST) New() runtime.Object {
 	return &api.PodPortForwardOptions{}
-}
-
-// Destroy cleans up resources on shutdown.
-func (r *PortForwardREST) Destroy() {
-	// Given that underlying store is shared with REST,
-	// we don't destroy it here explicitly.
 }
 
 // NewConnectOptions returns the versioned object that represents the
