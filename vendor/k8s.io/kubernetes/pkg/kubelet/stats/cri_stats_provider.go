@@ -74,9 +74,10 @@ type criStatsProvider struct {
 	clock clock.Clock
 
 	// cpuUsageCache caches the cpu usage for containers.
-	cpuUsageCache               map[string]*cpuUsageRecord
-	mutex                       sync.RWMutex
-	podAndContainerStatsFromCRI bool
+	cpuUsageCache                  map[string]*cpuUsageRecord
+	mutex                          sync.RWMutex
+	disableAcceleratorUsageMetrics bool
+	podAndContainerStatsFromCRI    bool
 }
 
 // newCRIStatsProvider returns a containerStatsProvider implementation that
@@ -87,17 +88,19 @@ func newCRIStatsProvider(
 	runtimeService internalapi.RuntimeService,
 	imageService internalapi.ImageManagerService,
 	hostStatsProvider HostStatsProvider,
+	disableAcceleratorUsageMetrics,
 	podAndContainerStatsFromCRI bool,
 ) containerStatsProvider {
 	return &criStatsProvider{
-		cadvisor:                    cadvisor,
-		resourceAnalyzer:            resourceAnalyzer,
-		runtimeService:              runtimeService,
-		imageService:                imageService,
-		hostStatsProvider:           hostStatsProvider,
-		cpuUsageCache:               make(map[string]*cpuUsageRecord),
-		podAndContainerStatsFromCRI: podAndContainerStatsFromCRI,
-		clock:                       clock.RealClock{},
+		cadvisor:                       cadvisor,
+		resourceAnalyzer:               resourceAnalyzer,
+		runtimeService:                 runtimeService,
+		imageService:                   imageService,
+		hostStatsProvider:              hostStatsProvider,
+		cpuUsageCache:                  make(map[string]*cpuUsageRecord),
+		disableAcceleratorUsageMetrics: disableAcceleratorUsageMetrics,
+		podAndContainerStatsFromCRI:    podAndContainerStatsFromCRI,
+		clock:                          clock.RealClock{},
 	}
 }
 
@@ -880,6 +883,11 @@ func (p *criStatsProvider) addCadvisorContainerStats(
 	}
 	if memory != nil {
 		cs.Memory = memory
+	}
+
+	if !p.disableAcceleratorUsageMetrics {
+		accelerators := cadvisorInfoToAcceleratorStats(caPodStats)
+		cs.Accelerators = accelerators
 	}
 }
 

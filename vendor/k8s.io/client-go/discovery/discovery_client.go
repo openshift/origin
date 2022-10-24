@@ -52,9 +52,6 @@ const (
 	// defaultTimeout is the maximum amount of time per request when no timeout has been set on a RESTClient.
 	// Defaults to 32s in order to have a distinguishable length of time, relative to other timeouts that exist.
 	defaultTimeout = 32 * time.Second
-
-	// defaultBurst is the default burst to be used with the discovery client's token bucket rate limiter
-	defaultBurst = 300
 )
 
 // DiscoveryInterface holds the methods that discover server-supported API groups,
@@ -459,13 +456,12 @@ func setDiscoveryDefaults(config *restclient.Config) error {
 	if config.Timeout == 0 {
 		config.Timeout = defaultTimeout
 	}
-	// if a burst limit is not already configured
-	if config.Burst == 0 {
+	if config.Burst == 0 && config.QPS < 100 {
 		// discovery is expected to be bursty, increase the default burst
 		// to accommodate looking up resource info for many API groups.
 		// matches burst set by ConfigFlags#ToDiscoveryClient().
 		// see https://issue.k8s.io/86149
-		config.Burst = defaultBurst
+		config.Burst = 100
 	}
 	codec := runtime.NoopEncoder{Decoder: scheme.Codecs.UniversalDecoder()}
 	config.NegotiatedSerializer = serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{Serializer: codec})

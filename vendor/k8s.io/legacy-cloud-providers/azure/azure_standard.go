@@ -39,6 +39,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	cloudprovider "k8s.io/cloud-provider"
+	"k8s.io/component-base/featuregate"
 	"k8s.io/klog/v2"
 	azcache "k8s.io/legacy-cloud-providers/azure/cache"
 	"k8s.io/legacy-cloud-providers/azure/metrics"
@@ -46,6 +47,10 @@ import (
 )
 
 const (
+	// IPv6DualStack is here to avoid having to import features pkg
+	// and violate import rules
+	IPv6DualStack featuregate.Feature = "IPv6DualStack"
+
 	loadBalancerMinimumPriority = 500
 	loadBalancerMaximumPriority = 4096
 
@@ -271,10 +276,8 @@ func isInternalLoadBalancer(lb *network.LoadBalancer) bool {
 // SingleStack -v4 (pre v1.16) => BackendPool name == clusterName
 // SingleStack -v6 => BackendPool name == <clusterName>-IPv6 (all cluster bootstrap uses this name)
 // DualStack
-//
-//		=> IPv4 BackendPool name == clusterName
-//	 => IPv6 BackendPool name == <clusterName>-IPv6
-//
+//	=> IPv4 BackendPool name == clusterName
+//  => IPv6 BackendPool name == <clusterName>-IPv6
 // This means:
 // clusters moving from IPv4 to dualstack will require no changes
 // clusters moving from IPv6 to dualstack will require no changes as the IPv4 backend pool will created with <clusterName>
@@ -427,7 +430,7 @@ outer:
 
 var polyTable = crc32.MakeTable(crc32.Koopman)
 
-// MakeCRC32 : convert string to CRC32 format
+//MakeCRC32 : convert string to CRC32 format
 func MakeCRC32(str string) string {
 	crc := crc32.New(polyTable)
 	crc.Write([]byte(str))
@@ -823,9 +826,7 @@ func (as *availabilitySet) EnsureHostInPool(service *v1.Service, nodeName types.
 		}
 
 		klog.Errorf("error: az.EnsureHostInPool(%s), az.VMSet.GetPrimaryInterface.Get(%s, %s), err=%v", nodeName, vmName, vmSetName, err)
-		if err != cloudprovider.InstanceNotFound {
-			return "", "", "", nil, err
-		}
+		return "", "", "", nil, err
 	}
 
 	if nic.ProvisioningState != nil && *nic.ProvisioningState == nicFailedState {

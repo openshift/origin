@@ -239,7 +239,7 @@ func encodeObject(obj runtime.Object, gv schema.GroupVersion, serializer runtime
 
 	return &runtime.Unknown{
 		Raw:         buf.Bytes(),
-		ContentType: mediaType,
+		ContentType: runtime.ContentTypeJSON,
 	}, nil
 }
 

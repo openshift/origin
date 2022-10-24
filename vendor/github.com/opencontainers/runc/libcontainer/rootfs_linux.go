@@ -577,7 +577,6 @@ func checkProcMount(rootfs, dest, source string) error {
 		"/proc/loadavg",
 		"/proc/slabinfo",
 		"/proc/net/dev",
-		"/proc/sys/kernel/ns_last_pid",
 	}
 	for _, valid := range validProcMounts {
 		path, err := filepath.Rel(filepath.Join(rootfs, valid), dest)

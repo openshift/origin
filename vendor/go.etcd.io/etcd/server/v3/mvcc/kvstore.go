@@ -119,7 +119,7 @@ func NewStore(lg *zap.Logger, b backend.Backend, le lease.Lessor, cfg StoreConfi
 	}
 
 	tx := s.b.BatchTx()
-	tx.LockOutsideApply()
+	tx.Lock()
 	tx.UnsafeCreateBucket(buckets.Key)
 	tx.UnsafeCreateBucket(buckets.Meta)
 	tx.Unlock()
@@ -238,7 +238,7 @@ func (s *store) updateCompactRev(rev int64) (<-chan struct{}, error) {
 	revToBytes(revision{main: rev}, rbytes)
 
 	tx := s.b.BatchTx()
-	tx.LockInsideApply()
+	tx.Lock()
 	tx.UnsafePut(buckets.Meta, scheduledCompactKeyName, rbytes)
 	tx.Unlock()
 	// ensure that desired compaction is persisted
@@ -334,7 +334,7 @@ func (s *store) restore() error {
 	keyToLease := make(map[string]lease.LeaseID)
 
 	// restore index
-	tx := s.b.ReadTx()
+	tx := s.b.BatchTx()
 	tx.Lock()
 
 	_, finishedCompactBytes := tx.UnsafeRange(buckets.Meta, finishedCompactKeyName, nil, 0)

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	"github.com/openshift/api/template"
@@ -203,7 +203,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][mysql][Slow] openshift m
 	var nfspod = &kapiv1.Pod{}
 	var cleanup = func() {
 		g.By("start cleanup")
-		if g.CurrentSpecReport().Failed() {
+		if g.CurrentGinkgoTestDescription().Failed {
 			exutil.DumpPodStates(oc)
 			exutil.DumpPodLogsStartingWith("", oc)
 			exutil.DumpPersistentVolumeInfo(oc)

@@ -22,7 +22,7 @@ import (
 	"path"
 	"syscall"
 
-	"github.com/emicklei/go-restful/v3"
+	"github.com/emicklei/go-restful"
 )
 
 // Logs adds handlers for the /logs path serving log files from /var/log.

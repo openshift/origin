@@ -19,6 +19,7 @@
 package grpc
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 
@@ -26,7 +27,6 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/internal/channelz"
 	"google.golang.org/grpc/internal/grpcsync"
-	"google.golang.org/grpc/internal/pretty"
 	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/serviceconfig"
 )
@@ -97,7 +97,10 @@ func (ccr *ccResolverWrapper) UpdateState(s resolver.State) error {
 	if ccr.done.HasFired() {
 		return nil
 	}
-	ccr.addChannelzTraceEvent(s)
+	channelz.Infof(logger, ccr.cc.channelzID, "ccResolverWrapper: sending update to cc: %v", s)
+	if channelz.IsOn() {
+		ccr.addChannelzTraceEvent(s)
+	}
 	ccr.curState = s
 	if err := ccr.cc.updateResolverState(ccr.curState, nil); err == balancer.ErrBadResolverState {
 		return balancer.ErrBadResolverState
@@ -122,7 +125,10 @@ func (ccr *ccResolverWrapper) NewAddress(addrs []resolver.Address) {
 	if ccr.done.HasFired() {
 		return
 	}
-	ccr.addChannelzTraceEvent(resolver.State{Addresses: addrs, ServiceConfig: ccr.curState.ServiceConfig})
+	channelz.Infof(logger, ccr.cc.channelzID, "ccResolverWrapper: sending new addresses to cc: %v", addrs)
+	if channelz.IsOn() {
+		ccr.addChannelzTraceEvent(resolver.State{Addresses: addrs, ServiceConfig: ccr.curState.ServiceConfig})
+	}
 	ccr.curState.Addresses = addrs
 	ccr.cc.updateResolverState(ccr.curState, nil)
 }
@@ -135,7 +141,7 @@ func (ccr *ccResolverWrapper) NewServiceConfig(sc string) {
 	if ccr.done.HasFired() {
 		return
 	}
-	channelz.Infof(logger, ccr.cc.channelzID, "ccResolverWrapper: got new service config: %s", sc)
+	channelz.Infof(logger, ccr.cc.channelzID, "ccResolverWrapper: got new service config: %v", sc)
 	if ccr.cc.dopts.disableServiceConfig {
 		channelz.Info(logger, ccr.cc.channelzID, "Service config lookups disabled; ignoring config")
 		return
@@ -145,7 +151,9 @@ func (ccr *ccResolverWrapper) NewServiceConfig(sc string) {
 		channelz.Warningf(logger, ccr.cc.channelzID, "ccResolverWrapper: error parsing service config: %v", scpr.Err)
 		return
 	}
-	ccr.addChannelzTraceEvent(resolver.State{Addresses: ccr.curState.Addresses, ServiceConfig: scpr})
+	if channelz.IsOn() {
+		ccr.addChannelzTraceEvent(resolver.State{Addresses: ccr.curState.Addresses, ServiceConfig: scpr})
+	}
 	ccr.curState.ServiceConfig = scpr
 	ccr.cc.updateResolverState(ccr.curState, nil)
 }
@@ -172,5 +180,8 @@ func (ccr *ccResolverWrapper) addChannelzTraceEvent(s resolver.State) {
 	} else if len(ccr.curState.Addresses) == 0 && len(s.Addresses) > 0 {
 		updates = append(updates, "resolver returned new addresses")
 	}
-	channelz.Infof(logger, ccr.cc.channelzID, "Resolver state updated: %s (%v)", pretty.ToJSON(s), strings.Join(updates, "; "))
+	channelz.AddTraceEvent(logger, ccr.cc.channelzID, 0, &channelz.TraceEventDesc{
+		Desc:     fmt.Sprintf("Resolver state updated: %+v (%v)", s, strings.Join(updates, "; ")),
+		Severity: channelz.CtInfo,
+	})
 }

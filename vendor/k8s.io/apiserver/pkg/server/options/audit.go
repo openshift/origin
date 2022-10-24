@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -526,9 +525,6 @@ func (o *AuditLogOptions) getWriter() (io.Writer, error) {
 }
 
 func (o *AuditLogOptions) ensureLogFile() error {
-	if err := os.MkdirAll(filepath.Dir(o.Path), 0700); err != nil {
-		return err
-	}
 	mode := os.FileMode(0600)
 	f, err := os.OpenFile(o.Path, os.O_CREATE|os.O_APPEND|os.O_RDWR, mode)
 	if err != nil {

@@ -16,7 +16,7 @@ import (
 
 	admissionapi "k8s.io/pod-security-admission/api"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 
@@ -260,7 +260,7 @@ func finalizeTest(start time.Time, tc *junit.TestCase, ts *junit.TestSuite, f *f
 		}
 	}
 	// if we have a panic but it hasn't been recorded by ginkgo, panic now
-	if !g.CurrentSpecReport().Failed() {
+	if !g.CurrentGinkgoTestDescription().Failed {
 		framework.Logf("%q: panic: %v", tc.Name, r)
 		func() {
 			defer g.GinkgoRecover()

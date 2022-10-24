@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,6 +30,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 
 	f := framework.NewDefaultFramework("oc-adm")
 	f.SkipNamespaceCreation = true
+	f.SkipPrivilegedPSPBinding = true
 
 	oc := exutil.NewCLIWithoutNamespace("oc-adm").AsAdmin()
 	ocns := exutil.NewCLI("oc-adm-ns").AsAdmin()

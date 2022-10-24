@@ -40,7 +40,7 @@ import (
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
 
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 )
 
 var _ = SIGDescribe("RuntimeClass", func() {
@@ -80,7 +80,7 @@ var _ = SIGDescribe("RuntimeClass", func() {
 		framework.ExpectEqual(p.Status.Phase, v1.PodPending, "Pod phase isn't pending")
 	})
 
-	// This test requires that the PreconfiguredRuntimeClassHandler has already been set up on nodes.
+	// This test requires that the PreconfiguredRuntimeHandler has already been set up on nodes.
 	// The test CANNOT be made a Conformance as it depends on a container runtime to have a specific handler installed and working.
 	ginkgo.It("should run a Pod requesting a RuntimeClass with a configured handler [NodeFeature:RuntimeHandler]", func() {
 		// Requires special setup of test-handler which is only done in GCE kube-up environment
@@ -219,9 +219,7 @@ var _ = SIGDescribe("RuntimeClass", func() {
 					}
 				}
 			}
-			if !found {
-				framework.Failf("expected RuntimeClass API group/version, got %#v", discoveryGroups.Groups)
-			}
+			framework.ExpectEqual(found, true, fmt.Sprintf("expected RuntimeClass API group/version, got %#v", discoveryGroups.Groups))
 		}
 
 		ginkgo.By("getting /apis/node.k8s.io")
@@ -236,9 +234,7 @@ var _ = SIGDescribe("RuntimeClass", func() {
 					break
 				}
 			}
-			if !found {
-				framework.Failf("expected RuntimeClass API version, got %#v", group.Versions)
-			}
+			framework.ExpectEqual(found, true, fmt.Sprintf("expected RuntimeClass API version, got %#v", group.Versions))
 		}
 
 		ginkgo.By("getting /apis/node.k8s.io/" + rcVersion)
@@ -252,9 +248,7 @@ var _ = SIGDescribe("RuntimeClass", func() {
 					found = true
 				}
 			}
-			if !found {
-				framework.Failf("expected runtimeclasses, got %#v", resources.APIResources)
-			}
+			framework.ExpectEqual(found, true, fmt.Sprintf("expected runtimeclasses, got %#v", resources.APIResources))
 		}
 
 		// Main resource create/read/update/watch operations
@@ -263,9 +257,7 @@ var _ = SIGDescribe("RuntimeClass", func() {
 		createdRC, err := rcClient.Create(context.TODO(), rc, metav1.CreateOptions{})
 		framework.ExpectNoError(err)
 		_, err = rcClient.Create(context.TODO(), rc, metav1.CreateOptions{})
-		if !apierrors.IsAlreadyExists(err) {
-			framework.Failf("expected 409, got %#v", err)
-		}
+		framework.ExpectEqual(apierrors.IsAlreadyExists(err), true, fmt.Sprintf("expected 409, got %#v", err))
 		_, err = rcClient.Create(context.TODO(), rc2, metav1.CreateOptions{})
 		framework.ExpectNoError(err)
 
@@ -304,14 +296,10 @@ var _ = SIGDescribe("RuntimeClass", func() {
 		for sawAdded, sawPatched, sawUpdated := false, false, false; !sawAdded && !sawPatched && !sawUpdated; {
 			select {
 			case evt, ok := <-rcWatch.ResultChan():
-				if !ok {
-					framework.Fail("watch channel should not close")
-				}
+				framework.ExpectEqual(ok, true, "watch channel should not close")
 				if evt.Type == watch.Modified {
 					watchedRC, isRC := evt.Object.(*nodev1.RuntimeClass)
-					if !isRC {
-						framework.Failf("expected RC, got %T", evt.Object)
-					}
+					framework.ExpectEqual(isRC, true, fmt.Sprintf("expected RC, got %T", evt.Object))
 					if watchedRC.Annotations["patched"] == "true" {
 						framework.Logf("saw patched annotations")
 						sawPatched = true
@@ -323,9 +311,7 @@ var _ = SIGDescribe("RuntimeClass", func() {
 					}
 				} else if evt.Type == watch.Added {
 					_, isRC := evt.Object.(*nodev1.RuntimeClass)
-					if !isRC {
-						framework.Failf("expected RC, got %T", evt.Object)
-					}
+					framework.ExpectEqual(isRC, true, fmt.Sprintf("expected RC, got %T", evt.Object))
 					sawAdded = true
 				}
 
@@ -341,9 +327,7 @@ var _ = SIGDescribe("RuntimeClass", func() {
 		err = rcClient.Delete(context.TODO(), createdRC.Name, metav1.DeleteOptions{})
 		framework.ExpectNoError(err)
 		_, err = rcClient.Get(context.TODO(), createdRC.Name, metav1.GetOptions{})
-		if !apierrors.IsNotFound(err) {
-			framework.Failf("expected 404, got %#v", err)
-		}
+		framework.ExpectEqual(apierrors.IsNotFound(err), true, fmt.Sprintf("expected 404, got %#v", err))
 		rcs, err = rcClient.List(context.TODO(), metav1.ListOptions{LabelSelector: "test=" + f.UniqueName})
 		framework.ExpectNoError(err)
 		framework.ExpectEqual(len(rcs.Items), 2, "filtered list should have 2 items")
@@ -376,9 +360,7 @@ func createRuntimeClass(f *framework.Framework, name, handler string, overhead *
 func expectPodRejection(f *framework.Framework, pod *v1.Pod) {
 	_, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
 	framework.ExpectError(err, "should be forbidden")
-	if !apierrors.IsForbidden(err) {
-		framework.Failf("expected forbidden error, got %#v", err)
-	}
+	framework.ExpectEqual(apierrors.IsForbidden(err), true, "should be forbidden error")
 }
 
 // expectPodSuccess waits for the given pod to terminate successfully.

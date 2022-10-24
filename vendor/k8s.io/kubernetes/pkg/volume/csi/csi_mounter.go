@@ -24,6 +24,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"k8s.io/klog/v2"
+
 	authenticationv1 "k8s.io/api/authentication/v1"
 	api "k8s.io/api/core/v1"
 	storage "k8s.io/api/storage/v1"
@@ -31,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/util"
@@ -40,7 +41,7 @@ import (
 	utilstrings "k8s.io/utils/strings"
 )
 
-// TODO (vladimirvivien) move this in a central loc later
+//TODO (vladimirvivien) move this in a central loc later
 var (
 	volDataKey = struct {
 		specVolID,
@@ -48,8 +49,7 @@ var (
 		driverName,
 		nodeName,
 		attachmentID,
-		volumeLifecycleMode,
-		seLinuxMountContext string
+		volumeLifecycleMode string
 	}{
 		"specVolID",
 		"volumeHandle",
@@ -57,7 +57,6 @@ var (
 		"nodeName",
 		"attachmentID",
 		"volumeLifecycleMode",
-		"seLinuxMountContext",
 	}
 )
 
@@ -71,7 +70,7 @@ type csiMountMgr struct {
 	volumeID            string
 	specVolumeID        string
 	readOnly            bool
-	needSELinuxRelabel  bool
+	supportsSELinux     bool
 	spec                *volume.Spec
 	pod                 *api.Pod
 	podUID              types.UID
@@ -134,6 +133,9 @@ func (c *csiMountMgr) SetUpAt(dir string, mounterArgs volume.MounterArgs) error 
 
 	switch {
 	case volSrc != nil:
+		if !utilfeature.DefaultFeatureGate.Enabled(features.CSIInlineVolume) {
+			return fmt.Errorf("CSIInlineVolume feature required")
+		}
 		if c.volumeLifecycleMode != storage.VolumeLifecycleEphemeral {
 			return fmt.Errorf("unexpected volume mode: %s", c.volumeLifecycleMode)
 		}
@@ -243,18 +245,6 @@ func (c *csiMountMgr) SetUpAt(dir string, mounterArgs volume.MounterArgs) error 
 		}
 	}
 
-	var selinuxLabelMount bool
-	if utilfeature.DefaultFeatureGate.Enabled(features.SELinuxMountReadWriteOncePod) {
-		support, err := c.plugin.SupportsSELinuxContextMount(c.spec)
-		if err != nil {
-			return errors.New(log("failed to query for SELinuxMount support: %s", err))
-		}
-		if support {
-			mountOptions = util.AddSELinuxMountOption(mountOptions, mounterArgs.SELinuxLabel)
-			selinuxLabelMount = true
-		}
-	}
-
 	err = csi.NodePublishVolume(
 		ctx,
 		volumeHandle,
@@ -280,12 +270,10 @@ func (c *csiMountMgr) SetUpAt(dir string, mounterArgs volume.MounterArgs) error 
 		return err
 	}
 
-	if !selinuxLabelMount {
-		c.needSELinuxRelabel, err = c.kubeVolHost.GetHostUtil().GetSELinuxSupport(dir)
-		if err != nil {
-			// The volume is mounted. Return UncertainProgressError, so kubelet will unmount it when user deletes the pod.
-			return volumetypes.NewUncertainProgressError(fmt.Sprintf("error checking for SELinux support: %s", err))
-		}
+	c.supportsSELinux, err = c.kubeVolHost.GetHostUtil().GetSELinuxSupport(dir)
+	if err != nil {
+		// The volume is mounted. Return UncertainProgressError, so kubelet will unmount it when user deletes the pod.
+		return volumetypes.NewUncertainProgressError(fmt.Sprintf("error checking for SELinux support: %s", err))
 	}
 
 	if !driverSupportsCSIVolumeMountGroup && c.supportsFSGroup(fsType, mounterArgs.FsGroup, c.fsGroupPolicy) {
@@ -362,7 +350,7 @@ func (c *csiMountMgr) GetAttributes() volume.Attributes {
 	return volume.Attributes{
 		ReadOnly:       c.readOnly,
 		Managed:        !c.readOnly,
-		SELinuxRelabel: c.needSELinuxRelabel,
+		SELinuxRelabel: c.supportsSELinux,
 	}
 }
 
@@ -427,6 +415,10 @@ func (c *csiMountMgr) supportsFSGroup(fsType string, fsGroup *int64, driverPolic
 		}
 		return true
 	} else if c.spec.Volume != nil && c.spec.Volume.CSI != nil {
+		if !utilfeature.DefaultFeatureGate.Enabled(features.CSIInlineVolume) {
+			klog.V(4).Info(log("mounter.SetupAt WARNING: skipping fsGroup, CSIInlineVolume feature required"))
+			return false
+		}
 		// Inline CSI volumes are always mounted with RWO AccessMode by SetUpAt
 		return true
 	}

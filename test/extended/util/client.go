@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -594,7 +594,7 @@ func (c *CLI) setupNamespacePodSecurity(ns string) error {
 
 // TeardownProject removes projects created by this test.
 func (c *CLI) TeardownProject() {
-	if len(c.Namespace()) > 0 && g.CurrentSpecReport().Failed() && framework.TestContext.DumpLogsOnFailure {
+	if len(c.Namespace()) > 0 && g.CurrentGinkgoTestDescription().Failed && framework.TestContext.DumpLogsOnFailure {
 		framework.DumpAllNamespaceInfo(c.kubeFramework.ClientSet, c.Namespace())
 	}
 

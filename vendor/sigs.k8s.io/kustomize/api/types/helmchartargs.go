@@ -71,7 +71,7 @@ type HelmChart struct {
 
 	// IncludeCRDs specifies if Helm should also generate CustomResourceDefinitions.
 	// Defaults to 'false'.
-	IncludeCRDs bool `json:"includeCRDs,omitempty" yaml:"includeCRDs,omitempty"` // nolint: tagliatelle
+	IncludeCRDs bool `json:"includeCRDs,omitempty" yaml:"includeCRDs,omitempty"`
 }
 
 // HelmChartArgs contains arguments to helm.
@@ -96,8 +96,8 @@ type HelmChartArgs struct {
 // per-chart params and global chart-independent parameters.
 func SplitHelmParameters(
 	oldArgs []HelmChartArgs) (charts []HelmChart, globals HelmGlobals) {
-	for i, old := range oldArgs {
-		charts = append(charts, makeHelmChartFromHca(&oldArgs[i]))
+	for _, old := range oldArgs {
+		charts = append(charts, makeHelmChartFromHca(&old))
 		if old.HelmHome != "" {
 			// last non-empty wins
 			globals.ConfigHome = old.HelmHome

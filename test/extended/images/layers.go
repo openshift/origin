@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
@@ -30,7 +30,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 	ctx := context.Background()
 
 	g.AfterEach(func() {
-		if g.CurrentSpecReport().Failed() {
+		if g.CurrentGinkgoTestDescription().Failed {
 			for _, s := range ns {
 				exutil.DumpPodLogsStartingWithInNamespace("", s, oc)
 			}

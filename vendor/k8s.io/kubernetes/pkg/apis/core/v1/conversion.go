@@ -303,7 +303,6 @@ func Convert_core_PodSpec_To_v1_PodSpec(in *core.PodSpec, out *v1.PodSpec, s con
 		out.HostNetwork = in.SecurityContext.HostNetwork
 		out.HostIPC = in.SecurityContext.HostIPC
 		out.ShareProcessNamespace = in.SecurityContext.ShareProcessNamespace
-		out.HostUsers = in.SecurityContext.HostUsers
 	}
 
 	return nil
@@ -359,7 +358,6 @@ func Convert_v1_PodSpec_To_core_PodSpec(in *v1.PodSpec, out *core.PodSpec, s con
 	out.SecurityContext.HostPID = in.HostPID
 	out.SecurityContext.HostIPC = in.HostIPC
 	out.SecurityContext.ShareProcessNamespace = in.ShareProcessNamespace
-	out.SecurityContext.HostUsers = in.HostUsers
 
 	return nil
 }

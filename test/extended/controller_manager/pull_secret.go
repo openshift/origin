@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
@@ -123,7 +123,7 @@ var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
 	oc := exutil.NewCLI("pull-secrets")
 
 	g.AfterEach(func() {
-		if g.CurrentSpecReport().Failed() {
+		if g.CurrentGinkgoTestDescription().Failed {
 			g.By("dumping openshift-controller-manager logs")
 			exutil.DumpPodLogsStartingWithInNamespace("controller-manager", "openshift-controller-manager", oc.AsAdmin())
 		}

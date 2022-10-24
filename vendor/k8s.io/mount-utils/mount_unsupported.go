@@ -74,17 +74,6 @@ func (mounter *Mounter) IsLikelyNotMountPoint(file string) (bool, error) {
 	return true, errUnsupported
 }
 
-// canSafelySkipMountPointCheck always returns false on unsupported platforms
-func (mounter *Mounter) canSafelySkipMountPointCheck() bool {
-	return false
-}
-
-// IsMountPoint determines if a directory is a mountpoint.
-// It always returns an error on unsupported platforms.
-func (mounter *Mounter) IsMountPoint(file string) (bool, error) {
-	return false, errUnsupported
-}
-
 // GetMountRefs always returns an error on unsupported platforms
 func (mounter *Mounter) GetMountRefs(pathname string) ([]string, error) {
 	return nil, errUnsupported
@@ -96,10 +85,4 @@ func (mounter *SafeFormatAndMount) formatAndMountSensitive(source string, target
 
 func (mounter *SafeFormatAndMount) diskLooksUnformatted(disk string) (bool, error) {
 	return true, errUnsupported
-}
-
-// IsMountPoint determines if a directory is a mountpoint.
-// It always returns an error on unsupported platforms.
-func (mounter *SafeFormatAndMount) IsMountPoint(file string) (bool, error) {
-	return false, errUnsupported
 }

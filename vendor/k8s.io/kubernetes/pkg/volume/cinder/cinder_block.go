@@ -155,8 +155,7 @@ var _ volume.BlockVolumeMapper = &cinderVolumeMapper{}
 
 // GetGlobalMapPath returns global map path and error
 // path: plugins/kubernetes.io/{PluginName}/volumeDevices/volumeID
-//
-//	plugins/kubernetes.io/cinder/volumeDevices/vol-XXXXXX
+//       plugins/kubernetes.io/cinder/volumeDevices/vol-XXXXXX
 func (cd *cinderVolume) GetGlobalMapPath(spec *volume.Spec) (string, error) {
 	pdName, _, _, err := getVolumeInfo(spec)
 	if err != nil {

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	bmhelper "github.com/openshift/origin/test/extended/baremetal"
 	"github.com/stretchr/objx"

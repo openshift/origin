@@ -206,10 +206,7 @@ func (p *protoTypeRegistry) NativeToValue(value interface{}) ref.Val {
 		if !found {
 			return NewErr("unknown type: '%s'", typeName)
 		}
-		unwrapped, isUnwrapped, err := td.MaybeUnwrap(v)
-		if err != nil {
-			return UnsupportedRefValConversionErr(v)
-		}
+		unwrapped, isUnwrapped := td.MaybeUnwrap(v)
 		if isUnwrapped {
 			return p.NativeToValue(unwrapped)
 		}
@@ -397,10 +394,7 @@ func nativeToValue(a ref.TypeAdapter, value interface{}) (ref.Val, bool) {
 		if !found {
 			return nil, false
 		}
-		val, unwrapped, err := td.MaybeUnwrap(v)
-		if err != nil {
-			return UnsupportedRefValConversionErr(v), true
-		}
+		val, unwrapped := td.MaybeUnwrap(v)
 		if !unwrapped {
 			return nil, false
 		}

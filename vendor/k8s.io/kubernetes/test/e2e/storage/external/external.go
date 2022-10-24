@@ -42,7 +42,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
 
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 )
 
 // DriverDefinition needs to be filled in via a .yaml or .json
@@ -203,18 +203,11 @@ func loadDriverDefinition(filename string) (*driverDefinition, error) {
 		return nil, fmt.Errorf("%s: %w", filename, err)
 	}
 
-	// To ensure backward compatibility: if controller expansion is enabled,
-	// then set both online and offline expansion to true
+	// to ensure backward compatibility if controller expansion is enabled then set online expansion to true
 	if _, ok := driver.GetDriverInfo().Capabilities[storageframework.CapOnlineExpansion]; !ok &&
 		driver.GetDriverInfo().Capabilities[storageframework.CapControllerExpansion] {
 		caps := driver.DriverInfo.Capabilities
 		caps[storageframework.CapOnlineExpansion] = true
-		driver.DriverInfo.Capabilities = caps
-	}
-	if _, ok := driver.GetDriverInfo().Capabilities[storageframework.CapOfflineExpansion]; !ok &&
-		driver.GetDriverInfo().Capabilities[storageframework.CapControllerExpansion] {
-		caps := driver.DriverInfo.Capabilities
-		caps[storageframework.CapOfflineExpansion] = true
 		driver.DriverInfo.Capabilities = caps
 	}
 	return driver, nil

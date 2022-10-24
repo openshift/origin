@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	kapi "k8s.io/api/core/v1"
@@ -26,7 +26,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 	var ns string
 
 	g.AfterEach(func() {
-		if g.CurrentSpecReport().Failed() && len(ns) > 0 {
+		if g.CurrentGinkgoTestDescription().Failed && len(ns) > 0 {
 			exutil.DumpPodLogsStartingWithInNamespace("", ns, oc)
 		}
 	})

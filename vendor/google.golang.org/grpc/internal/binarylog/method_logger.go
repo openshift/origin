@@ -48,11 +48,7 @@ func (g *callIDGenerator) reset() {
 var idGen callIDGenerator
 
 // MethodLogger is the sub-logger for each method.
-type MethodLogger interface {
-	Log(LogEntryConfig)
-}
-
-type methodLogger struct {
+type MethodLogger struct {
 	headerMaxLen, messageMaxLen uint64
 
 	callID          uint64
@@ -61,8 +57,8 @@ type methodLogger struct {
 	sink Sink // TODO(blog): make this plugable.
 }
 
-func newMethodLogger(h, m uint64) *methodLogger {
-	return &methodLogger{
+func newMethodLogger(h, m uint64) *MethodLogger {
+	return &MethodLogger{
 		headerMaxLen:  h,
 		messageMaxLen: m,
 
@@ -73,10 +69,8 @@ func newMethodLogger(h, m uint64) *methodLogger {
 	}
 }
 
-// Build is an internal only method for building the proto message out of the
-// input event. It's made public to enable other library to reuse as much logic
-// in methodLogger as possible.
-func (ml *methodLogger) Build(c LogEntryConfig) *pb.GrpcLogEntry {
+// Log creates a proto binary log entry, and logs it to the sink.
+func (ml *MethodLogger) Log(c LogEntryConfig) {
 	m := c.toProto()
 	timestamp, _ := ptypes.TimestampProto(time.Now())
 	m.Timestamp = timestamp
@@ -91,15 +85,11 @@ func (ml *methodLogger) Build(c LogEntryConfig) *pb.GrpcLogEntry {
 	case *pb.GrpcLogEntry_Message:
 		m.PayloadTruncated = ml.truncateMessage(pay.Message)
 	}
-	return m
+
+	ml.sink.Write(m)
 }
 
-// Log creates a proto binary log entry, and logs it to the sink.
-func (ml *methodLogger) Log(c LogEntryConfig) {
-	ml.sink.Write(ml.Build(c))
-}
-
-func (ml *methodLogger) truncateMetadata(mdPb *pb.Metadata) (truncated bool) {
+func (ml *MethodLogger) truncateMetadata(mdPb *pb.Metadata) (truncated bool) {
 	if ml.headerMaxLen == maxUInt {
 		return false
 	}
@@ -129,7 +119,7 @@ func (ml *methodLogger) truncateMetadata(mdPb *pb.Metadata) (truncated bool) {
 	return truncated
 }
 
-func (ml *methodLogger) truncateMessage(msgPb *pb.Message) (truncated bool) {
+func (ml *MethodLogger) truncateMessage(msgPb *pb.Message) (truncated bool) {
 	if ml.messageMaxLen == maxUInt {
 		return false
 	}

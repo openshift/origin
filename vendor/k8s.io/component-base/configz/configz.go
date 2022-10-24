@@ -18,26 +18,25 @@ limitations under the License.
 //
 // Each component that wants to serve its ComponentConfig creates a Config
 // object, and the program should call InstallHandler once. e.g.,
+//  func main() {
+//  	boatConfig := getBoatConfig()
+//  	planeConfig := getPlaneConfig()
 //
-//	func main() {
-//		boatConfig := getBoatConfig()
-//		planeConfig := getPlaneConfig()
+//  	bcz, err := configz.New("boat")
+//  	if err != nil {
+//  		panic(err)
+//  	}
+//  	bcz.Set(boatConfig)
 //
-//		bcz, err := configz.New("boat")
-//		if err != nil {
-//			panic(err)
-//		}
-//		bcz.Set(boatConfig)
+//  	pcz, err := configz.New("plane")
+//  	if err != nil {
+//  		panic(err)
+//  	}
+//  	pcz.Set(planeConfig)
 //
-//		pcz, err := configz.New("plane")
-//		if err != nil {
-//			panic(err)
-//		}
-//		pcz.Set(planeConfig)
-//
-//		configz.InstallHandler(http.DefaultServeMux)
-//		http.ListenAndServe(":8080", http.DefaultServeMux)
-//	}
+//  	configz.InstallHandler(http.DefaultServeMux)
+//  	http.ListenAndServe(":8080", http.DefaultServeMux)
+//  }
 package configz
 
 import (

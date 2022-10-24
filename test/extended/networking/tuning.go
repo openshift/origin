@@ -6,7 +6,8 @@ import (
 	"strings"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
+	t "github.com/onsi/ginkgo/extensions/table"
 	o "github.com/onsi/gomega"
 
 	kapiv1 "k8s.io/api/core/v1"
@@ -78,7 +79,7 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 			o.Expect(result).To(o.Equal(sysctl.Value), "incorrect sysctl value")
 		}
 	})
-	g.DescribeTable("pod should not start for sysctls not on whitelist", func(sysctl, value string) {
+	t.DescribeTable("pod should not start for sysctls not on whitelist", func(sysctl, value string) {
 		namespace := f.Namespace.Name
 		tuningNADName := "tuningnadwithdisallowedsysctls"
 		err := createTuningNAD(oc.AdminConfig(), namespace, tuningNADName, map[string]string{sysctl: value})
@@ -100,8 +101,8 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 			return pod.Status.Phase
 		}, 15*time.Second, 3*time.Second).Should(o.Equal(kapiv1.PodPending))
 	},
-		g.Entry("net.ipv4.conf.all.send_redirects", "net.ipv4.conf.all.send_redirects", "1"),
-		g.Entry("net.ipv4.conf.IFNAME.arp_filter", "net.ipv4.conf.IFNAME.arp_filter", "1"),
+		t.Entry("net.ipv4.conf.all.send_redirects", "net.ipv4.conf.all.send_redirects", "1"),
+		t.Entry("net.ipv4.conf.IFNAME.arp_filter", "net.ipv4.conf.IFNAME.arp_filter", "1"),
 	)
 
 	g.It("pod sysctls should not affect node", func() {

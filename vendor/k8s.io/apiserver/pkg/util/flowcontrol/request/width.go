@@ -25,16 +25,28 @@ import (
 	"k8s.io/klog/v2"
 )
 
+const (
+	// the minimum number of seats a request must occupy
+	minimumSeats = 1
+
+	// the maximum number of seats a request can occupy
+	//
+	// NOTE: work_estimate_seats_samples metric uses the value of maximumSeats
+	// as the upper bound, so when we change maximumSeats we should also
+	// update the buckets of the metric.
+	maximumSeats = 10
+)
+
 // WorkEstimate carries three of the four parameters that determine the work in a request.
 // The fourth parameter is the duration of the initial phase of execution.
 type WorkEstimate struct {
 	// InitialSeats is the number of seats occupied while the server is
 	// executing this request.
-	InitialSeats uint64
+	InitialSeats uint
 
 	// FinalSeats is the number of seats occupied at the end,
 	// during the AdditionalLatency.
-	FinalSeats uint64
+	FinalSeats uint
 
 	// AdditionalLatency specifies the additional duration the seats allocated
 	// to this request must be reserved after the given request had finished.
@@ -64,12 +76,10 @@ type watchCountGetterFunc func(*apirequest.RequestInfo) int
 // NewWorkEstimator estimates the work that will be done by a given request,
 // if no WorkEstimatorFunc matches the given request then the default
 // work estimate of 1 seat is allocated to the request.
-func NewWorkEstimator(objectCountFn objectCountGetterFunc, watchCountFn watchCountGetterFunc, config *WorkEstimatorConfig) WorkEstimatorFunc {
+func NewWorkEstimator(objectCountFn objectCountGetterFunc, watchCountFn watchCountGetterFunc) WorkEstimatorFunc {
 	estimator := &workEstimator{
-		minimumSeats:          config.MinimumSeats,
-		maximumSeats:          config.MaximumSeats,
-		listWorkEstimator:     newListWorkEstimator(objectCountFn, config),
-		mutatingWorkEstimator: newMutatingWorkEstimator(watchCountFn, config),
+		listWorkEstimator:     newListWorkEstimator(objectCountFn),
+		mutatingWorkEstimator: newMutatingWorkEstimator(watchCountFn),
 	}
 	return estimator.estimate
 }
@@ -84,10 +94,6 @@ func (e WorkEstimatorFunc) EstimateWork(r *http.Request, flowSchemaName, priorit
 }
 
 type workEstimator struct {
-	// the minimum number of seats a request must occupy
-	minimumSeats uint64
-	// the maximum number of seats a request can occupy
-	maximumSeats uint64
 	// listWorkEstimator estimates work for list request(s)
 	listWorkEstimator WorkEstimatorFunc
 	// mutatingWorkEstimator calculates the width of mutating request(s)
@@ -99,7 +105,7 @@ func (e *workEstimator) estimate(r *http.Request, flowSchemaName, priorityLevelN
 	if !ok {
 		klog.ErrorS(fmt.Errorf("no RequestInfo found in context"), "Failed to estimate work for the request", "URI", r.RequestURI)
 		// no RequestInfo should never happen, but to be on the safe side let's return maximumSeats
-		return WorkEstimate{InitialSeats: e.maximumSeats}
+		return WorkEstimate{InitialSeats: maximumSeats}
 	}
 
 	switch requestInfo.Verb {
@@ -109,5 +115,5 @@ func (e *workEstimator) estimate(r *http.Request, flowSchemaName, priorityLevelN
 		return e.mutatingWorkEstimator.EstimateWork(r, flowSchemaName, priorityLevelName)
 	}
 
-	return WorkEstimate{InitialSeats: e.minimumSeats}
+	return WorkEstimate{InitialSeats: minimumSeats}
 }

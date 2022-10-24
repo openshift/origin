@@ -1,4 +1,3 @@
-//go:build !windows
 // +build !windows
 
 package archive // import "github.com/docker/docker/pkg/archive"

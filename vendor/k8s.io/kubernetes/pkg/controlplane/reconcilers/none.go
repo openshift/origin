@@ -44,6 +44,3 @@ func (r *noneEndpointReconciler) RemoveEndpoints(serviceName string, ip net.IP, 
 
 func (r *noneEndpointReconciler) StopReconciling() {
 }
-
-func (r *noneEndpointReconciler) Destroy() {
-}

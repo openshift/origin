@@ -84,8 +84,7 @@ func TestBackendSampler_checkConnection(t *testing.T) {
 				connectionType:        NewConnectionType,
 				path:                  "/302-bad-response",
 			},
-			// TODO: should this be error when Location header is not set?
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name: "302-no-expect",

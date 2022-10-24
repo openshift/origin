@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
@@ -57,7 +57,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 
 		g.Context("start-build test context", func() {
 			g.AfterEach(func() {
-				if g.CurrentSpecReport().Failed() {
+				if g.CurrentGinkgoTestDescription().Failed {
 					exutil.DumpPodStates(oc)
 					exutil.DumpPodLogsStartingWith("", oc)
 				}

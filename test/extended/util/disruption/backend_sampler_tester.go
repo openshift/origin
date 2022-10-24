@@ -7,7 +7,7 @@ import (
 
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/synthetictests/allowedbackenddisruption"

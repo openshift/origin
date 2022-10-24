@@ -32,7 +32,7 @@ import (
 
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/google/uuid"
-	oteltrace "go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -55,6 +55,7 @@ import (
 	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	apiopenapi "k8s.io/apiserver/pkg/endpoints/openapi"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/features"
 	genericfeatures "k8s.io/apiserver/pkg/features"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/server/dynamiccertificates"
@@ -64,6 +65,7 @@ import (
 	"k8s.io/apiserver/pkg/server/routes"
 	serverstore "k8s.io/apiserver/pkg/server/storage"
 	"k8s.io/apiserver/pkg/storageversion"
+	"k8s.io/apiserver/pkg/util/feature"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	utilflowcontrol "k8s.io/apiserver/pkg/util/flowcontrol"
 	flowcontrolrequest "k8s.io/apiserver/pkg/util/flowcontrol/request"
@@ -144,7 +146,7 @@ type Config struct {
 	ExternalAddress string
 
 	// TracerProvider can provide a tracer, which records spans for distributed tracing.
-	TracerProvider oteltrace.TracerProvider
+	TracerProvider *trace.TracerProvider
 
 	//===========================================================================
 	// Fields you probably don't care about changing
@@ -265,18 +267,6 @@ type Config struct {
 
 	// StorageVersionManager holds the storage versions of the API resources installed by this server.
 	StorageVersionManager storageversion.Manager
-
-	// SendRetryAfterWhileNotReadyOnce, if enabled, the apiserver will
-	// reject all incoming requests with a 503 status code and a
-	// 'Retry-After' response header until the apiserver has fully
-	// initialized, except for requests from a designated debugger group.
-	// This option ensures that the system stays consistent even when
-	// requests are received before the server has been initialized.
-	// In particular, it prevents child deletion in case of GC or/and
-	// orphaned content in case of the namespaces controller.
-	// NOTE: this option is applicable to Microshift only,
-	//  this should never be enabled for OCP.
-	SendRetryAfterWhileNotReadyOnce bool
 }
 
 // EventSink allows to create events.
@@ -346,7 +336,7 @@ type AuthorizationInfo struct {
 func NewConfig(codecs serializer.CodecFactory) *Config {
 	defaultHealthChecks := []healthz.HealthChecker{healthz.PingHealthz, healthz.LogHealthz}
 	var id string
-	if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.APIServerIdentity) {
+	if feature.DefaultFeatureGate.Enabled(features.APIServerIdentity) {
 		id = "kube-apiserver-" + uuid.New().String()
 	}
 	lifecycleSignals := newLifecycleSignals()
@@ -393,11 +383,10 @@ func NewConfig(codecs serializer.CodecFactory) *Config {
 		// Generic API servers have no inherent long-running subresources
 		LongRunningFunc:           genericfilters.BasicLongRunningRequestCheck(sets.NewString("watch"), sets.NewString()),
 		lifecycleSignals:          lifecycleSignals,
-		StorageObjectCountTracker: flowcontrolrequest.NewStorageObjectCountTracker(),
+		StorageObjectCountTracker: flowcontrolrequest.NewStorageObjectCountTracker(lifecycleSignals.ShutdownInitiated.Signaled()),
 
 		APIServerID:           id,
 		StorageVersionManager: storageversion.NewDefaultManager(),
-		TracerProvider:        oteltrace.NewNoopTracerProvider(),
 	}
 }
 
@@ -476,15 +465,11 @@ type CompletedConfig struct {
 // of our configured apiserver. We should prefer this to adding healthChecks directly to
 // the config unless we explicitly want to add a healthcheck only to a specific health endpoint.
 func (c *Config) AddHealthChecks(healthChecks ...healthz.HealthChecker) {
-	c.HealthzChecks = append(c.HealthzChecks, healthChecks...)
-	c.LivezChecks = append(c.LivezChecks, healthChecks...)
-	c.ReadyzChecks = append(c.ReadyzChecks, healthChecks...)
-}
-
-// AddReadyzChecks adds a health check to our config to be exposed by the readyz endpoint
-// of our configured apiserver.
-func (c *Config) AddReadyzChecks(healthChecks ...healthz.HealthChecker) {
-	c.ReadyzChecks = append(c.ReadyzChecks, healthChecks...)
+	for _, check := range healthChecks {
+		c.HealthzChecks = append(c.HealthzChecks, check)
+		c.LivezChecks = append(c.LivezChecks, check)
+		c.ReadyzChecks = append(c.ReadyzChecks, check)
+	}
 }
 
 // AddPostStartHook allows you to add a PostStartHook that will later be added to the server itself in a New call.
@@ -554,11 +539,6 @@ func completeOpenAPI(config *openapicommon.Config, version *version.Info) {
 			config.Info.Version = "unversioned"
 		}
 	}
-}
-
-// DrainedNotify returns a lifecycle signal of genericapiserver already drained while shutting down.
-func (c *Config) DrainedNotify() <-chan struct{} {
-	return c.lifecycleSignals.InFlightRequestsDrained.Signaled()
 }
 
 // HasBeenReadySignal exposes a server's lifecycle signal which is signaled when the readyz endpoint succeeds for the first time.
@@ -812,6 +792,7 @@ func (c completedConfig) New(name string, delegationTarget DelegationTarget) (*G
 	if s.isPostStartHookRegistered(priorityAndFairnessConfigConsumerHookName) {
 	} else if c.FlowControl != nil {
 		err := s.AddPostStartHook(priorityAndFairnessConfigConsumerHookName, func(context PostStartHookContext) error {
+			go c.FlowControl.MaintainObservations(context.StopCh)
 			go c.FlowControl.Run(context.StopCh)
 			return nil
 		})
@@ -843,19 +824,6 @@ func (c completedConfig) New(name string, delegationTarget DelegationTarget) (*G
 				return nil
 			})
 			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	// Add PostStartHook for maintenaing the object count tracker.
-	if c.StorageObjectCountTracker != nil {
-		const storageObjectCountTrackerHookName = "storage-object-count-tracker-hook"
-		if !s.isPostStartHookRegistered(storageObjectCountTrackerHookName) {
-			if err := s.AddPostStartHook(storageObjectCountTrackerHookName, func(context PostStartHookContext) error {
-				go c.StorageObjectCountTracker.RunUntil(context.StopCh)
-				return nil
-			}); err != nil {
 				return nil, err
 			}
 		}
@@ -903,18 +871,12 @@ func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 	handler = filterlatency.TrackStarted(handler, "authorization")
 
 	if c.FlowControl != nil {
-		workEstimatorCfg := flowcontrolrequest.DefaultWorkEstimatorConfig()
-		requestWorkEstimator := flowcontrolrequest.NewWorkEstimator(
-			c.StorageObjectCountTracker.Get, c.FlowControl.GetInterestedWatchCount, workEstimatorCfg)
+		requestWorkEstimator := flowcontrolrequest.NewWorkEstimator(c.StorageObjectCountTracker.Get, c.FlowControl.GetInterestedWatchCount)
 		handler = filterlatency.TrackCompleted(handler)
 		handler = genericfilters.WithPriorityAndFairness(handler, c.LongRunningFunc, c.FlowControl, requestWorkEstimator)
 		handler = filterlatency.TrackStarted(handler, "priorityandfairness")
 	} else {
 		handler = genericfilters.WithMaxInFlightLimit(handler, c.MaxRequestsInFlight, c.MaxMutatingRequestsInFlight, c.LongRunningFunc)
-	}
-
-	if c.SendRetryAfterWhileNotReadyOnce {
-		handler = genericfilters.WithNotReady(handler, c.lifecycleSignals.HasBeenReady.Signaled())
 	}
 
 	handler = filterlatency.TrackCompleted(handler)
@@ -952,7 +914,7 @@ func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 	handler = genericapifilters.WithCacheControl(handler)
 	handler = genericfilters.WithHSTS(handler, c.HSTSDirectives)
 	if c.ShutdownSendRetryAfter {
-		handler = genericfilters.WithRetryAfter(handler, c.lifecycleSignals.NotAcceptingNewRequest.Signaled())
+		handler = genericfilters.WithRetryAfter(handler, c.lifecycleSignals.AfterShutdownDelayDuration.Signaled())
 	}
 	handler = genericfilters.WithOptInRetryAfter(handler, c.newServerFullyInitializedFunc())
 	handler = genericfilters.WithHTTPLogging(handler, c.newIsTerminatingFunc())
@@ -993,7 +955,7 @@ func installAPI(s *GenericAPIServer, c *Config) {
 	if c.EnableDiscovery {
 		s.Handler.GoRestfulContainer.Add(s.DiscoveryGroupManager.WebService())
 	}
-	if c.FlowControl != nil && utilfeature.DefaultFeatureGate.Enabled(genericfeatures.APIPriorityAndFairness) {
+	if c.FlowControl != nil && feature.DefaultFeatureGate.Enabled(features.APIPriorityAndFairness) {
 		c.FlowControl.Install(s.Handler.NonGoRestfulMux)
 	}
 }

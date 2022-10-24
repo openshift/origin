@@ -132,6 +132,23 @@ func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase
 	}
 }
 
+func setTestExclusion(tests []*testCase, fn func(suitePath string, t *testCase) bool) {
+	for _, test := range tests {
+		summary := test.spec.Summary("")
+		var suitePath string
+		for _, loc := range summary.ComponentCodeLocations {
+			if len(loc.FileName) > 0 {
+				if !strings.HasSuffix(loc.FileName, "/k8s.io/kubernetes/test/e2e/framework/framework.go") {
+					suitePath = loc.FileName
+				}
+			}
+		}
+		if fn(suitePath, test) {
+			test.testExclusion = suitePath
+		}
+	}
+}
+
 func copyTests(tests []*testCase) []*testCase {
 	copied := make([]*testCase, 0, len(tests))
 	for _, t := range tests {

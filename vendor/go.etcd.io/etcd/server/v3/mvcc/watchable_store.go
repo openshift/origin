@@ -355,11 +355,8 @@ func (s *watchableStore) syncWatchers() int {
 	tx := s.store.b.ReadTx()
 	tx.RLock()
 	revs, vs := tx.UnsafeRange(buckets.Key, minBytes, maxBytes, 0)
-	evs := kvsToEvents(s.store.lg, wg, revs, vs)
-	// Must unlock after kvsToEvents, because vs (come from boltdb memory) is not deep copy.
-	// We can only unlock after Unmarshal, which will do deep copy.
-	// Otherwise we will trigger SIGSEGV during boltdb re-mmap.
 	tx.RUnlock()
+	evs := kvsToEvents(s.store.lg, wg, revs, vs)
 
 	var victims watcherBatch
 	wb := newWatcherBatch(wg, evs)

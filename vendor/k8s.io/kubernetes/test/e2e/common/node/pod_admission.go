@@ -18,8 +18,7 @@ package node
 
 import (
 	"context"
-
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -84,7 +83,7 @@ func findLinuxNode(f *framework.Framework) (v1.Node, error) {
 		}
 	}
 
-	if !foundNode {
+	if foundNode == false {
 		e2eskipper.Skipf("Could not find and ready and schedulable Linux nodes")
 	}
 

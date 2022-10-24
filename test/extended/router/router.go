@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,7 +30,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io
 	// this hook must be registered before the framework namespace teardown
 	// hook
 	g.AfterEach(func() {
-		if g.CurrentSpecReport().Failed() {
+		if g.CurrentGinkgoTestDescription().Failed {
 			currlabel := "router=router"
 			for _, ns := range []string{"default", "openshift-ingress", "tectonic-ingress"} {
 				//Search the router by label

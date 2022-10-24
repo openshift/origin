@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/storage"
 	storeerr "k8s.io/apiserver/pkg/storage/errors"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
@@ -52,8 +53,6 @@ type Etcd struct {
 
 	baseKey  string
 	resource schema.GroupResource
-
-	destroyFn func()
 }
 
 // Etcd implements allocator.Interface and rangeallocation.RangeRegistry
@@ -68,13 +67,16 @@ func NewEtcd(alloc allocator.Snapshottable, baseKey string, config *storagebacke
 		return nil, err
 	}
 
-	var once sync.Once
+	// TODO : Remove RegisterStorageCleanup below when PR
+	// https://github.com/kubernetes/kubernetes/pull/50690
+	// merges as that shuts down storage properly
+	registry.RegisterStorageCleanup(d)
+
 	return &Etcd{
-		alloc:     alloc,
-		storage:   storage,
-		baseKey:   baseKey,
-		resource:  config.GroupResource,
-		destroyFn: func() { once.Do(d) },
+		alloc:    alloc,
+		storage:  storage,
+		baseKey:  baseKey,
+		resource: config.GroupResource,
 	}, nil
 }
 
@@ -218,7 +220,7 @@ func (e *Etcd) CreateOrUpdate(snapshot *api.RangeAllocation) error {
 	return err
 }
 
-// Has implements allocator.Interface::Has
+// Implements allocator.Interface::Has
 func (e *Etcd) Has(item int) bool {
 	e.lock.Lock()
 	defer e.lock.Unlock()
@@ -226,15 +228,10 @@ func (e *Etcd) Has(item int) bool {
 	return e.alloc.Has(item)
 }
 
-// Free implements allocator.Interface::Free
+// Implements allocator.Interface::Free
 func (e *Etcd) Free() int {
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
 	return e.alloc.Free()
-}
-
-// Destroy implement allocator.Interface::Destroy
-func (e *Etcd) Destroy() {
-	e.destroyFn()
 }
