@@ -1121,9 +1121,13 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestAllowedSCCViaRBAC [apigroup:project.openshift.io][apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:security.openshift.io]": "TestAllowedSCCViaRBAC [apigroup:project.openshift.io][apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:security.openshift.io] [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestAllowedSCCViaRBAC with service account [apigroup:security.openshift.io]": "TestAllowedSCCViaRBAC with service account [apigroup:security.openshift.io] [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestPodDefaultCapabilities": "TestPodDefaultCapabilities [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestPodUpdateSCCEnforcement [apigroup:user.openshift.io][apigroup:authorization.openshift.io]": "TestPodUpdateSCCEnforcement [apigroup:user.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]",
+
+	"[Top Level] [sig-auth][Feature:SecurityContextConstraints]  TestPodUpdateSCCEnforcement with service account": "TestPodUpdateSCCEnforcement with service account [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-auth][Feature:UserAPI] groups should work [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:authorization.openshift.io]": "groups should work [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]",
 
