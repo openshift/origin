@@ -15,6 +15,8 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	prometheustypes "github.com/prometheus/common/model"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -84,6 +86,12 @@ func FetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Confi
 	if err != nil {
 		return nil, err
 	}
+
+	_, err = kubeClient.CoreV1().Namespaces().Get(ctx, "openshift-monitoring", metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return []monitorapi.EventInterval{}, nil
+	}
+
 	prometheusClient, err := metrics.NewPrometheusClient(ctx, kubeClient, routeClient)
 	if err != nil {
 		return nil, err
