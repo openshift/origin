@@ -1025,29 +1025,29 @@ func turnOffRateLimiting(config *rest.Config) *rest.Config {
 
 func (c *CLI) WaitForAccessAllowed(review *kubeauthorizationv1.SelfSubjectAccessReview, user string) error {
 	if user == "system:anonymous" {
-		return waitForAccess(kubernetes.NewForConfigOrDie(rest.AnonymousClientConfig(c.AdminConfig())), true, review)
+		return WaitForAccess(kubernetes.NewForConfigOrDie(rest.AnonymousClientConfig(c.AdminConfig())), true, review)
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(c.GetClientConfigForUser(user))
 	if err != nil {
 		FatalErr(err)
 	}
-	return waitForAccess(kubeClient, true, review)
+	return WaitForAccess(kubeClient, true, review)
 }
 
 func (c *CLI) WaitForAccessDenied(review *kubeauthorizationv1.SelfSubjectAccessReview, user string) error {
 	if user == "system:anonymous" {
-		return waitForAccess(kubernetes.NewForConfigOrDie(rest.AnonymousClientConfig(c.AdminConfig())), false, review)
+		return WaitForAccess(kubernetes.NewForConfigOrDie(rest.AnonymousClientConfig(c.AdminConfig())), false, review)
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(c.GetClientConfigForUser(user))
 	if err != nil {
 		FatalErr(err)
 	}
-	return waitForAccess(kubeClient, false, review)
+	return WaitForAccess(kubeClient, false, review)
 }
 
-func waitForAccess(c kubernetes.Interface, allowed bool, review *kubeauthorizationv1.SelfSubjectAccessReview) error {
+func WaitForAccess(c kubernetes.Interface, allowed bool, review *kubeauthorizationv1.SelfSubjectAccessReview) error {
 	return wait.Poll(time.Second, time.Minute, func() (bool, error) {
 		response, err := c.AuthorizationV1().SelfSubjectAccessReviews().Create(context.Background(), review, metav1.CreateOptions{})
 		if err != nil {

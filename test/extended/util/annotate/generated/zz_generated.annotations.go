@@ -813,9 +813,13 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:SecurityContextConstraints]  TestAllowedSCCViaRBAC [apigroup:project.openshift.io][apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-auth][Feature:SecurityContextConstraints]  TestAllowedSCCViaRBAC with service account [apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-auth][Feature:SecurityContextConstraints]  TestPodDefaultCapabilities": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:SecurityContextConstraints]  TestPodUpdateSCCEnforcement [apigroup:user.openshift.io][apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-auth][Feature:SecurityContextConstraints]  TestPodUpdateSCCEnforcement with service account": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:UserAPI] groups should work [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
