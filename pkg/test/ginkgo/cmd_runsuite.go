@@ -16,6 +16,7 @@ import (
 
 	"github.com/onsi/ginkgo/config"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -505,7 +506,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 			fmt.Fprintf(opt.Out, "error: Unable to write e2e JUnit xml results: %v", err)
 		}
 
-		if err := WriteJobRunTestFailureSummary(opt.JUnitDir, timeSuffix, finalSuiteResults); err != nil {
+		if err := riskanalysis.WriteJobRunTestFailureSummary(opt.JUnitDir, timeSuffix, finalSuiteResults); err != nil {
 			fmt.Fprintf(opt.Out, "error: Unable to write e2e job run failures summary: %v", err)
 		}
 	}

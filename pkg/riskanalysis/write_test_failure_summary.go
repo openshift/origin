@@ -1,4 +1,4 @@
-package ginkgo
+package riskanalysis
 
 import (
 	"encoding/json"
@@ -9,35 +9,6 @@ import (
 
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
-
-// Define types, these are subsets of the sippy APIs of the same name, copied here to eliminate a lot of the cruft.
-// ProwJobRunTest defines a join table linking tests to the job runs they execute in, along with the status for
-// that execution.
-// We're getting dangerously close to being able to live push results after a job run.
-
-type ProwJobRun struct {
-	ProwJob ProwJob
-	URL     string
-	Tests   []ProwJobRunTest
-}
-
-type ProwJob struct {
-	Name string
-}
-
-type Test struct {
-	Name string
-}
-
-type Suite struct {
-	Name string
-}
-
-type ProwJobRunTest struct {
-	Test   Test
-	Suite  Suite
-	Status int // would like to use smallint here, but gorm auto-migrate breaks trying to change the type every start
-}
 
 // WriteJobRunTestFailureSummary writes a more minimal json file summarizing a little info about the
 // job run, and what tests flaked and failed. (successful tests are omitted)
@@ -73,6 +44,10 @@ func WriteJobRunTestFailureSummary(artifactDir, timeSuffix string, finalSuiteRes
 			// if no failures, it is neither a fail nor a flake:
 			continue
 		}
+		if v.Failed && v.Passed {
+			// skip flakes for now, we're not ready to process them yet:
+			continue
+		}
 		jr.Tests = append(jr.Tests, ProwJobRunTest{
 			Test:   Test{Name: k},
 			Suite:  Suite{Name: finalSuiteResults.Name},
@@ -84,7 +59,7 @@ func WriteJobRunTestFailureSummary(artifactDir, timeSuffix string, finalSuiteRes
 	if err != nil {
 		return err
 	}
-	outputFile := filepath.Join(artifactDir, fmt.Sprintf("test-flakes-and-failures-%s.json", timeSuffix))
+	outputFile := filepath.Join(artifactDir, fmt.Sprintf("test-flakes-and-failures%s.json", timeSuffix))
 	return ioutil.WriteFile(outputFile, jsonContent, 0644)
 }
 
