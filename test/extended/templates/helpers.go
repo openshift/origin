@@ -2,9 +2,7 @@ package templates
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 
@@ -33,8 +31,6 @@ import (
 	"github.com/openshift/library-go/pkg/apps/appsutil"
 
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
-
-	osbclient "github.com/openshift/origin/test/extended/templates/openservicebroker/client"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -141,22 +137,6 @@ func setUser(cli *exutil.CLI, user *userv1.User) {
 		g.By(fmt.Sprintf("testing as %s user", user.Name))
 		cli.ChangeUser(user.Name)
 	}
-}
-
-// TSBClient returns a client to the running template service broker
-func TSBClient(oc *exutil.CLI) (osbclient.Client, error) {
-	svc, err := oc.AdminKubeClient().CoreV1().Services("openshift-template-service-broker").Get(context.Background(), "apiserver", metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	return osbclient.NewClient(&http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		},
-	}, "https://"+svc.Spec.ClusterIP+"/brokers/template.openshift.io"), nil
 }
 
 // readinessCheckers maps GroupKinds to the appropriate function.  Note that in
