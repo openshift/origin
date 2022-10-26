@@ -73,6 +73,30 @@ func CreateNewMasterMachine(ctx context.Context, t TestingT, machineClient machi
 	return clonedMachine.Name, nil
 }
 
+func FailRandomlyChosenMasterMachine(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface) (string, error) {
+	machineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
+	if err != nil {
+		return "", err
+	}
+	if len(machineList.Items) == 0 {
+		return "", fmt.Errorf("no master machine found")
+	}
+
+	var machineToFail *machinev1beta1.Machine
+	//machineIndexToFail := rand.Intn(len(machineList.Items))
+	machineToFail = &machineList.Items[0]
+	// update victim machine's status
+	machineToFail.Status.NodeRef = nil
+	machineToFail.Status.Phase = pointer.String("Failed")
+	failedMachine, err := machineClient.UpdateStatus(context.TODO(), machineToFail, metav1.UpdateOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	t.Logf("Failed master machine/node %q", failedMachine)
+	return failedMachine.Name, nil
+}
+
 func EnsureMasterMachine(ctx context.Context, t TestingT, machineName string, machineClient machinev1beta1client.MachineInterface) error {
 	waitPollInterval := 15 * time.Second
 	// This timeout should be tuned for the platform that takes the longest to provision a node and result
