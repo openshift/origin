@@ -85,36 +85,25 @@ func CreateNewMasterMachine(ctx context.Context, t TestingT, machineClient machi
 	return clonedMachine.Name, nil
 }
 
-func FailRandomlyChosenMasterMachine(ctx context.Context, t TestingT, kubeClient kubernetes.Interface, machineClient machinev1beta1client.MachineInterface) (string, error) {
-	machineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
+// FailFirstMasterMachine picks the first master machine as a victim. It terminates the machine by provider
+func FailFirstMasterMachine(ctx context.Context, t TestingT, kubeClient kubernetes.Interface, machineClient machinev1beta1client.MachineInterface) (string, error) {
+	masterMachineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to list master machines: %w", err)
 	}
-	if len(machineList.Items) == 0 {
+	if len(masterMachineList.Items) == 0 {
 		return "", fmt.Errorf("no master machine found")
 	}
 
-	var machineToFail *machinev1beta1.Machine
-	machineToFail = &machineList.Items[0]
-	//// update victim machine's status
-	//machineToFail.Status.NodeRef = nil
-	//machineToFail.Status.Phase = pointer.String("Failed")
-	//failedMachine, err := machineClient.UpdateStatus(context.TODO(), machineToFail, metav1.UpdateOptions{})
-	//if err != nil {
-	//	return "", err
-	//}
-	//
-	//t.Logf("Failed master machine/node %q", failedMachine)
-	//return failedMachine.Name, nil
-
-	err = terminateMachineAWS(kubeClient, machineToFail)
+	victimMachine := &masterMachineList.Items[0]
+	err = terminateByProvider(kubeClient, victimMachine)
 	if err != nil {
-		t.Logf("failed to terminate ec2 instance backing machine %v: %w", machineToFail, err)
-		return "", fmt.Errorf("failed to terminate ec2 instance backing machine %v: %w", machineToFail, err)
+		t.Logf("failed to terminate instance backing machine %v: %w", victimMachine, err)
+		return "", fmt.Errorf("failed to terminate instance backing machine %v: %w", victimMachine, err)
 	}
 
-	t.Logf("successfully terminated ec2 instance backing machine %v", machineToFail)
-	return machineToFail.Name, nil
+	t.Logf("successfully terminated instance backing machine %v", victimMachine)
+	return victimMachine.Name, nil
 }
 
 func EnsureMasterMachine(ctx context.Context, t TestingT, machineName string, machineClient machinev1beta1client.MachineInterface) error {
@@ -538,15 +527,15 @@ func rootAWSCredentials(kubeClient kubernetes.Interface) (map[string][]byte, err
 	return secret.Data, nil
 }
 
-func terminateMachineAWS(kubeClient kubernetes.Interface, machineToFail *machinev1beta1.Machine) error {
+func terminateByProvider(kubeClient kubernetes.Interface, machineToFail *machinev1beta1.Machine) error {
 	if machineToFail == nil {
-		return fmt.Errorf("can not terminate machine %v, it can not be nil", machineToFail)
+		return fmt.Errorf("can not terminate a nil machine %v", machineToFail)
 	}
 
 	// retrieve cluster client credentials
 	data, err := rootAWSCredentials(kubeClient)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve AWS credentials secret: %w", err)
+		return fmt.Errorf("failed to retrieve provider credentials secret: %w", err)
 	}
 	keyID := string(data[awsAccessKeyId])
 	secretKey := string(data[awsSecretAccessKey])
@@ -565,15 +554,15 @@ func terminateMachineAWS(kubeClient kubernetes.Interface, machineToFail *machine
 	}
 
 	// retrieve instanceId by private dns name
-	instanceId, err := getInstanceIdByInternalDNS(ec2Client, *machineInternalDNS)
+	instanceId, err := getInstanceIdByInternalDNS(ec2Client, machineInternalDNS)
 	if err != nil {
 		return err
 	}
 
 	// attempt to terminate the instance
-	_, err = ec2Client.TerminateInstances(&ec2.TerminateInstancesInput{InstanceIds: []*string{instanceId}})
+	_, err = ec2Client.TerminateInstances(&ec2.TerminateInstancesInput{InstanceIds: []*string{aws.String(instanceId)}})
 	if err != nil {
-		return fmt.Errorf("failed to terminate machine %v, with instanceId %v and internal dns name %v", *machineToFail, *instanceId, *machineInternalDNS)
+		return fmt.Errorf("failed to terminate machine %v, with instanceId %v and internal dns name %v", *machineToFail, instanceId, *machineInternalDNS)
 	}
 
 	// success
@@ -583,37 +572,37 @@ func terminateMachineAWS(kubeClient kubernetes.Interface, machineToFail *machine
 func getInternalDNSFromMachine(machine *machinev1beta1.Machine) (*string, error) {
 	for _, address := range machine.Status.Addresses {
 		if address.Type == corev1.NodeInternalDNS {
-			return &address.Address, nil
+			return aws.String(address.Address), nil
 		}
 	}
 	return nil, fmt.Errorf("could not find internal dns name for machine %v", machine)
 }
 
-func getInstanceIdByInternalDNS(client *ec2.EC2, internalDNS string) (*string, error) {
+func getInstanceIdByInternalDNS(client *ec2.EC2, internalDNS *string) (string, error) {
 	// filter ec2 instances by private-dns-name which is the same as machine's InternalDNS
 	result, err := client.DescribeInstances(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{
 				Name: aws.String(ec2InstanceInternalDNSFilterKey),
 				Values: []*string{
-					aws.String(internalDNS),
+					internalDNS,
 				},
 			},
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("could not describe ec2 instances: %w", err)
+		return "", fmt.Errorf("could not describe ec2 instances: %w", err)
 	}
 
 	// retrieve the instance-id of the match
 	for _, reservation := range result.Reservations {
 		for _, instance := range reservation.Instances {
-			if internalDNS == *instance.PrivateDnsName {
-				return instance.InstanceId, nil
+			if aws.StringValue(internalDNS) == aws.StringValue(instance.PrivateDnsName) {
+				return aws.StringValue(instance.InstanceId), nil
 			}
 		}
 	}
 
 	// not found
-	return nil, fmt.Errorf("could not find matching ec2 instance with private dns name %v", internalDNS)
+	return "", fmt.Errorf("could not find matching ec2 instance with private dns name %v", internalDNS)
 }

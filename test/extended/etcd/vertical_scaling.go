@@ -119,7 +119,6 @@ var _ = g.Describe("[sig-etcd][Serial] etcd [apigroup:config.openshift.io]", fun
 	// The test ends validating the size of the cluster, and asserting the member was removed from the etcd cluster by contacting MemberList API.
 	g.It("is able to replace failed master machine from 3 master nodes cluster [Timeout:60m][apigroup:machine.openshift.io]", func() {
 		// set up
-		// TODO: shall we refactor this into `BeforeEach()`
 		ctx := context.TODO()
 		etcdClientFactory := scalingtestinglibrary.NewEtcdClientFactory(oc.KubeClient())
 		machineClientSet, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
@@ -128,17 +127,14 @@ var _ = g.Describe("[sig-etcd][Serial] etcd [apigroup:config.openshift.io]", fun
 		kubeClient := oc.KubeClient()
 
 		// make sure it can be run on the current platform
-		// TODO: shall we refactor this into `JustBeforeEach()`
 		scalingtestinglibrary.SkipIfUnsupportedPlatform(ctx, oc)
 
 		// assert the cluster state before we run the test
-		// TODO: shall we refactor this into `JustBeforeEach()`
 		err = scalingtestinglibrary.EnsureInitialClusterState(ctx, g.GinkgoT(), etcdClientFactory, machineClient, kubeClient)
 		err = errors.Wrap(err, "pre-test: timed out waiting for initial cluster state to have 3 running machines and 3 voting members")
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		// step 0: ensure clean state after the test
-		// TODO: shall we refactor this into `AfterEach()`
 		defer func() {
 			// since the deletion triggers a new rollout
 			// we need to make sure that the API is stable after the test
@@ -153,8 +149,9 @@ var _ = g.Describe("[sig-etcd][Serial] etcd [apigroup:config.openshift.io]", fun
 			o.Expect(err).ToNot(o.HaveOccurred())
 		}()
 
-		// step 1: edit one of the master machine's status to be failed/unhealthy
-		machineName, err := scalingtestinglibrary.FailRandomlyChosenMasterMachine(ctx, g.GinkgoT(), kubeClient, machineClient)
+		// step 1: terminate ec2 instance backing a master machine, resulting in unhealthy etcd cluster
+		//         this test case always picks the first master machine as a victim
+		machineName, err := scalingtestinglibrary.FailFirstMasterMachine(ctx, g.GinkgoT(), kubeClient, machineClient)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		// step 2: delete the failed machine and wait until etcd member is removed from the etcd cluster
