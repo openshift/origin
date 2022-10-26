@@ -3,6 +3,10 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"strings"
 	"time"
 
@@ -29,9 +33,17 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-const masterMachineLabelSelector = "machine.openshift.io/cluster-api-machine-role" + "=" + "master"
-const machineDeletionHookName = "EtcdQuorumOperator"
-const machineDeletionHookOwner = "clusteroperator/etcd"
+const (
+	masterMachineLabelSelector      = "machine.openshift.io/cluster-api-machine-role" + "=" + "master"
+	machineDeletionHookName         = "EtcdQuorumOperator"
+	machineDeletionHookOwner        = "clusteroperator/etcd"
+	awsSecretNameSpace              = "kube-system"
+	awsSecretName                   = "aws-creds"
+	awsAccessKeyId                  = "aws_access_key_id"
+	awsSecretAccessKey              = "aws_secret_access_key"
+	awsRegionKey                    = "machine.openshift.io/region"
+	ec2InstanceInternalDNSFilterKey = "private-dns-name"
+)
 
 type TestingT interface {
 	Logf(format string, args ...interface{})
@@ -73,7 +85,7 @@ func CreateNewMasterMachine(ctx context.Context, t TestingT, machineClient machi
 	return clonedMachine.Name, nil
 }
 
-func FailRandomlyChosenMasterMachine(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface) (string, error) {
+func FailRandomlyChosenMasterMachine(ctx context.Context, t TestingT, kubeClient kubernetes.Interface, machineClient machinev1beta1client.MachineInterface) (string, error) {
 	machineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
 	if err != nil {
 		return "", err
@@ -83,18 +95,26 @@ func FailRandomlyChosenMasterMachine(ctx context.Context, t TestingT, machineCli
 	}
 
 	var machineToFail *machinev1beta1.Machine
-	//machineIndexToFail := rand.Intn(len(machineList.Items))
 	machineToFail = &machineList.Items[0]
-	// update victim machine's status
-	machineToFail.Status.NodeRef = nil
-	machineToFail.Status.Phase = pointer.String("Failed")
-	failedMachine, err := machineClient.UpdateStatus(context.TODO(), machineToFail, metav1.UpdateOptions{})
+	//// update victim machine's status
+	//machineToFail.Status.NodeRef = nil
+	//machineToFail.Status.Phase = pointer.String("Failed")
+	//failedMachine, err := machineClient.UpdateStatus(context.TODO(), machineToFail, metav1.UpdateOptions{})
+	//if err != nil {
+	//	return "", err
+	//}
+	//
+	//t.Logf("Failed master machine/node %q", failedMachine)
+	//return failedMachine.Name, nil
+
+	err = terminateMachineAWS(kubeClient, machineToFail)
 	if err != nil {
-		return "", err
+		t.Logf("failed to terminate ec2 instance backing machine %v: %w", machineToFail, err)
+		return "", fmt.Errorf("failed to terminate ec2 instance backing machine %v: %w", machineToFail, err)
 	}
 
-	t.Logf("Failed master machine/node %q", failedMachine)
-	return failedMachine.Name, nil
+	t.Logf("successfully terminated ec2 instance backing machine %v", machineToFail)
+	return machineToFail.Name, nil
 }
 
 func EnsureMasterMachine(ctx context.Context, t TestingT, machineName string, machineClient machinev1beta1client.MachineInterface) error {
@@ -389,6 +409,8 @@ func SkipIfUnsupportedPlatform(ctx context.Context, oc *exutil.CLI) {
 	skipIfSingleNode(oc)
 	skipIfBareMetal(oc)
 	skipIfVsphere(oc)
+	skipIfGCP(oc)
+	skipIfOpenStack(oc)
 }
 
 func skipUnlessFunctionalMachineAPI(ctx context.Context, machineClient machinev1beta1client.MachineInterface) {
@@ -453,6 +475,24 @@ func skipIfVsphere(oc *exutil.CLI) {
 	}
 }
 
+func skipIfGCP(oc *exutil.CLI) {
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	if infra.Status.PlatformStatus.Type == configv1.GCPPlatformType {
+		e2eskipper.Skipf("this test is currently broken on the GCP platform and needs to be fixed")
+	}
+}
+
+func skipIfOpenStack(oc *exutil.CLI) {
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	if infra.Status.PlatformStatus.Type == configv1.OpenStackPlatformType {
+		e2eskipper.Skipf("this test is currently broken on the OpenStack platform and needs to be fixed")
+	}
+}
+
 func hasMachineDeletionHook(machine *machinev1beta1.Machine) bool {
 	for _, hook := range machine.Spec.LifecycleHooks.PreDrain {
 		if hook.Name == machineDeletionHookName && hook.Owner == machineDeletionHookOwner {
@@ -488,4 +528,92 @@ func isTransientAPIError(t TestingT, err error) (bool, error) {
 
 func isClientConnectionLost(err error) bool {
 	return strings.Contains(err.Error(), "client connection lost")
+}
+
+func rootAWSCredentials(kubeClient kubernetes.Interface) (map[string][]byte, error) {
+	secret, err := kubeClient.CoreV1().Secrets(awsSecretNameSpace).Get(context.TODO(), awsSecretName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get credentials secret %s/%s: %w", awsSecretNameSpace, awsSecretName, err)
+	}
+	return secret.Data, nil
+}
+
+func terminateMachineAWS(kubeClient kubernetes.Interface, machineToFail *machinev1beta1.Machine) error {
+	if machineToFail == nil {
+		return fmt.Errorf("can not terminate machine %v, it can not be nil", machineToFail)
+	}
+
+	// retrieve cluster client credentials
+	data, err := rootAWSCredentials(kubeClient)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve AWS credentials secret: %w", err)
+	}
+	keyID := string(data[awsAccessKeyId])
+	secretKey := string(data[awsSecretAccessKey])
+	region := machineToFail.GetLabels()[awsRegionKey]
+
+	// create AWS EC2 client
+	awsSession := session.Must(session.NewSession(&aws.Config{
+		Credentials: credentials.NewStaticCredentials(keyID, secretKey, ""),
+	}))
+	ec2Client := ec2.New(awsSession, aws.NewConfig().WithRegion(region))
+
+	// retrieve machine private dns name for filtering
+	machineInternalDNS, err := getInternalDNSFromMachine(machineToFail)
+	if err != nil {
+		return err
+	}
+
+	// retrieve instanceId by private dns name
+	instanceId, err := getInstanceIdByInternalDNS(ec2Client, *machineInternalDNS)
+	if err != nil {
+		return err
+	}
+
+	// attempt to terminate the instance
+	_, err = ec2Client.TerminateInstances(&ec2.TerminateInstancesInput{InstanceIds: []*string{instanceId}})
+	if err != nil {
+		return fmt.Errorf("failed to terminate machine %v, with instanceId %v and internal dns name %v", *machineToFail, *instanceId, *machineInternalDNS)
+	}
+
+	// success
+	return nil
+}
+
+func getInternalDNSFromMachine(machine *machinev1beta1.Machine) (*string, error) {
+	for _, address := range machine.Status.Addresses {
+		if address.Type == corev1.NodeInternalDNS {
+			return &address.Address, nil
+		}
+	}
+	return nil, fmt.Errorf("could not find internal dns name for machine %v", machine)
+}
+
+func getInstanceIdByInternalDNS(client *ec2.EC2, internalDNS string) (*string, error) {
+	// filter ec2 instances by private-dns-name which is the same as machine's InternalDNS
+	result, err := client.DescribeInstances(&ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String(ec2InstanceInternalDNSFilterKey),
+				Values: []*string{
+					aws.String(internalDNS),
+				},
+			},
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("could not describe ec2 instances: %w", err)
+	}
+
+	// retrieve the instance-id of the match
+	for _, reservation := range result.Reservations {
+		for _, instance := range reservation.Instances {
+			if internalDNS == *instance.PrivateDnsName {
+				return instance.InstanceId, nil
+			}
+		}
+	}
+
+	// not found
+	return nil, fmt.Errorf("could not find matching ec2 instance with private dns name %v", internalDNS)
 }

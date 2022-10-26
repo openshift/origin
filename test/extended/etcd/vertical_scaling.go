@@ -115,7 +115,7 @@ var _ = g.Describe("[sig-etcd][Serial] etcd [apigroup:config.openshift.io]", fun
 
 	// The following test covers replacing a failed master machine from 3 master nodes cluster.
 	// It starts by setting one of the master machine to be failed/unhealthy.
-	// The failed machine is expected to be replaced automatically.
+	// After the failed machine is being deleted, it is expected to be replaced automatically
 	// The test ends validating the size of the cluster, and asserting the member was removed from the etcd cluster by contacting MemberList API.
 	g.It("is able to replace failed master machine from 3 master nodes cluster [Timeout:60m][apigroup:machine.openshift.io]", func() {
 		// set up
@@ -154,11 +154,11 @@ var _ = g.Describe("[sig-etcd][Serial] etcd [apigroup:config.openshift.io]", fun
 		}()
 
 		// step 1: edit one of the master machine's status to be failed/unhealthy
-		machineName, err := scalingtestinglibrary.FailRandomlyChosenMasterMachine(ctx, g.GinkgoT(), machineClient)
+		machineName, err := scalingtestinglibrary.FailRandomlyChosenMasterMachine(ctx, g.GinkgoT(), kubeClient, machineClient)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		// step 2: delete the failed machine and wait until etcd member is removed from the etcd cluster
-		memberName, err := scalingtestinglibrary.MachineNameToEtcdMemberName(ctx, oc.KubeClient(), machineClient, machineName)
+		memberName, err := scalingtestinglibrary.MachineNameToEtcdMemberName(ctx, kubeClient, machineClient, machineName)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		err = machineClient.Delete(ctx, machineName, metav1.DeleteOptions{})
