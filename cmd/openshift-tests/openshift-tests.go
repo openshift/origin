@@ -142,7 +142,7 @@ func newTestFailureRiskAnalysisCommand() *cobra.Command {
 		Use:   "risk-analysis",
 		Short: "Performs risk analysis on test failures",
 		Long: templates.LongDesc(`
-Uses the test-flakes-and-failures json files written along-side our junit xml
+Uses the test failure summary json files written along-side our junit xml
 files after an invocation of openshift-tests. If multiple files are present
 (multiple invocations of openshift-tests) we will merge them into one.
 Results are then submitted to sippy which will return an analysis of per-test
