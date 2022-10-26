@@ -59,7 +59,8 @@ func WriteJobRunTestFailureSummary(artifactDir, timeSuffix string, finalSuiteRes
 	if err != nil {
 		return err
 	}
-	outputFile := filepath.Join(artifactDir, fmt.Sprintf("test-flakes-and-failures%s.json", timeSuffix))
+	outputFile := filepath.Join(artifactDir, fmt.Sprintf("%s%s.json",
+		testFailureSummaryFilePrefix, timeSuffix))
 	return ioutil.WriteFile(outputFile, jsonContent, 0644)
 }
 

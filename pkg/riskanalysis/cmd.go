@@ -20,7 +20,7 @@ type Options struct {
 	JUnitDir    string
 }
 
-const testFailureSummaryFilePrefix = "test-flakes-and-failures"
+const testFailureSummaryFilePrefix = "test-failures-summary"
 
 // Run performs the test risk analysis by reading the output files from the test run, submitting them to sippy,
 // and writing out the analysis result as a new artifact.
