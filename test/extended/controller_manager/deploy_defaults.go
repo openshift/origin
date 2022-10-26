@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"time"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	exutil "github.com/openshift/origin/test/extended/util"

@@ -34,9 +34,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elbv2"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 
-	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -528,6 +528,14 @@ func (c *Cloud) createListenerV2(loadBalancerArn *string, mapping nlbPortMapping
 		return nil, err
 	}
 
+	elbTags := []*elbv2.Tag{}
+	for k, v := range tags {
+		elbTags = append(elbTags, &elbv2.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		})
+	}
+
 	createListernerInput := &elbv2.CreateListenerInput{
 		LoadBalancerArn: loadBalancerArn,
 		Port:            aws.Int64(mapping.FrontendPort),
@@ -536,6 +544,7 @@ func (c *Cloud) createListenerV2(loadBalancerArn *string, mapping nlbPortMapping
 			TargetGroupArn: target.TargetGroupArn,
 			Type:           aws.String(elbv2.ActionTypeEnumForward),
 		}},
+		Tags: elbTags,
 	}
 	if mapping.FrontendProtocol == "TLS" {
 		if mapping.SSLPolicy != "" {
@@ -595,6 +604,15 @@ func (c *Cloud) ensureTargetGroup(targetGroup *elbv2.TargetGroup, serviceName ty
 			input.HealthCheckPath = aws.String(mapping.HealthCheckConfig.Path)
 		}
 
+		if len(tags) != 0 {
+			targetGroupTags := make([]*elbv2.Tag, 0, len(tags))
+			for k, v := range tags {
+				targetGroupTags = append(targetGroupTags, &elbv2.Tag{
+					Key: aws.String(k), Value: aws.String(v),
+				})
+			}
+			input.Tags = targetGroupTags
+		}
 		result, err := c.elbv2.CreateTargetGroup(input)
 		if err != nil {
 			return nil, fmt.Errorf("error creating load balancer target group: %q", err)
@@ -603,27 +621,7 @@ func (c *Cloud) ensureTargetGroup(targetGroup *elbv2.TargetGroup, serviceName ty
 			return nil, fmt.Errorf("expected only one target group on CreateTargetGroup, got %d groups", len(result.TargetGroups))
 		}
 
-		if len(tags) != 0 {
-			targetGroupTags := make([]*elbv2.Tag, 0, len(tags))
-			for k, v := range tags {
-				targetGroupTags = append(targetGroupTags, &elbv2.Tag{
-					Key: aws.String(k), Value: aws.String(v),
-				})
-			}
-			tgArn := aws.StringValue(result.TargetGroups[0].TargetGroupArn)
-			if _, err := c.elbv2.AddTags(&elbv2.AddTagsInput{
-				ResourceArns: []*string{aws.String(tgArn)},
-				Tags:         targetGroupTags,
-			}); err != nil {
-				return nil, fmt.Errorf("error adding tags for targetGroup %s due to %q", tgArn, err)
-			}
-		}
-
 		tg := result.TargetGroups[0]
-		tgARN := aws.StringValue(tg.TargetGroupArn)
-		if err := c.ensureTargetGroupTargets(tgARN, expectedTargets, nil); err != nil {
-			return nil, err
-		}
 		return tg, nil
 	}
 
@@ -840,8 +838,12 @@ func (c *Cloud) updateInstanceSecurityGroupsForNLB(lbName string, instances map[
 		for sgID, sg := range clusterSGs {
 			sgPerms := NewIPPermissionSet(sg.IpPermissions...).Ungroup()
 			if desiredSGIDs.Has(sgID) {
-				if err := c.updateInstanceSecurityGroupForNLBTraffic(sgID, sgPerms, healthRuleAnnotation, "tcp", healthCheckPorts, subnetCIDRs); err != nil {
-					return err
+				// If the client rule is 1) all addresses 2) tcp and 3) has same ports as the healthcheck,
+				// then the health rules are a subset of the client rule and are not needed.
+				if len(clientCIDRs) != 1 || clientCIDRs[0] != "0.0.0.0/0" || clientProtocol != "tcp" || !healthCheckPorts.Equal(clientPorts) {
+					if err := c.updateInstanceSecurityGroupForNLBTraffic(sgID, sgPerms, healthRuleAnnotation, "tcp", healthCheckPorts, subnetCIDRs); err != nil {
+						return err
+					}
 				}
 				if err := c.updateInstanceSecurityGroupForNLBTraffic(sgID, sgPerms, clientRuleAnnotation, clientProtocol, clientPorts, clientCIDRs); err != nil {
 					return err
@@ -1240,7 +1242,8 @@ func (c *Cloud) ensureLoadBalancer(namespacedName types.NamespacedName, loadBala
 
 // syncElbListeners computes a plan to reconcile the desired vs actual state of the listeners on an ELB
 // NOTE: there exists an O(nlgn) implementation for this function. However, as the default limit of
-//       listeners per elb is 100, this implementation is reduced from O(m*n) => O(n).
+//
+//	listeners per elb is 100, this implementation is reduced from O(m*n) => O(n).
 func syncElbListeners(loadBalancerName string, listeners []*elb.Listener, listenerDescriptions []*elb.ListenerDescription) ([]*elb.Listener, []*int64) {
 	foundSet := make(map[int]bool)
 	removals := []*int64{}

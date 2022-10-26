@@ -44,8 +44,17 @@ spec:
                   description: Required configuration for connecting to the chart repo
                   type: object
                   properties:
+                    basicAuthConfig:
+                      description: basicAuthConfig is an optional reference to a secret by name that contains the basic authentication credentials to present when connecting to the server. The key "username" is used locate the username. The key "password" is used to locate the password. The namespace for this secret must be same as the namespace where the project helm chart repository is getting instantiated.
+                      type: object
+                      required:
+                        - name
+                      properties:
+                        name:
+                          description: name is the metadata.name of the referenced secret
+                          type: string
                     ca:
-                      description: ca is an optional reference to a config map by name containing the PEM-encoded CA bundle. It is used as a trust anchor to validate the TLS certificate presented by the remote server. The key "ca-bundle.crt" is used to locate the data. If empty, the default system roots are used. The namespace for this config map is openshift-config.
+                      description: ca is an optional reference to a config map by name containing the PEM-encoded CA bundle. It is used as a trust anchor to validate the TLS certificate presented by the remote server. The key "ca-bundle.crt" is used to locate the data. If empty, the default system roots are used. The namespace for this configmap must be same as the namespace where the project helm chart repository is getting instantiated.
                       type: object
                       required:
                         - name
@@ -54,7 +63,7 @@ spec:
                           description: name is the metadata.name of the referenced config map
                           type: string
                     tlsClientConfig:
-                      description: tlsClientConfig is an optional reference to a secret by name that contains the PEM-encoded TLS client certificate and private key to present when connecting to the server. The key "tls.crt" is used to locate the client certificate. The key "tls.key" is used to locate the private key. The namespace for this secret is openshift-config.
+                      description: tlsClientConfig is an optional reference to a secret by name that contains the PEM-encoded TLS client certificate and private key to present when connecting to the server. The key "tls.crt" is used to locate the client certificate. The key "tls.key" is used to locate the private key. The namespace for this secret must be same as the namespace where the project helm chart repository is getting instantiated.
                       type: object
                       required:
                         - name
@@ -73,7 +82,7 @@ spec:
                   maxLength: 2048
                   minLength: 1
                 disabled:
-                  description: If set to true, disable the repo usage in the cluster/namespace
+                  description: If set to true, disable the repo usage in the namespace
                   type: boolean
                 name:
                   description: Optional associated human readable repository name, it can be used by UI for displaying purposes
@@ -88,7 +97,7 @@ spec:
                   description: conditions is a list of conditions and their statuses
                   type: array
                   items:
-                    description: "Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, type FooStatus struct{     // Represents the observations of a foo's current state.     // Known .status.conditions.type are: \"Available\", \"Progressing\", and \"Degraded\"     // +patchMergeKey=type     // +patchStrategy=merge     // +listType=map     // +listMapKey=type     Conditions []metav1.Condition `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"` \n     // other fields }"
+                    description: "Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, \n \ttype FooStatus struct{ \t    // Represents the observations of a foo's current state. \t    // Known .status.conditions.type are: \"Available\", \"Progressing\", and \"Degraded\" \t    // +patchMergeKey=type \t    // +patchStrategy=merge \t    // +listType=map \t    // +listMapKey=type \t    Conditions []metav1.Condition `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"` \n \t    // other fields \t}"
                     type: object
                     required:
                       - lastTransitionTime

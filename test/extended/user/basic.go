@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"time"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"

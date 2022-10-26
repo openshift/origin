@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
@@ -23,7 +23,7 @@ func Before(oc *exutil.CLI) {
 }
 
 func After(oc *exutil.CLI) {
-	if g.CurrentGinkgoTestDescription().Failed {
+	if g.CurrentSpecReport().Failed() {
 		exutil.DumpPodStates(oc)
 		exutil.DumpConfigMapStates(oc)
 		exutil.DumpPodLogsStartingWith("", oc)
