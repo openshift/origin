@@ -61,6 +61,7 @@ var _ = g.Describe("[sig-arch] ClusterOperators [apigroup:config.openshift.io]",
 
 		})
 
+		oc := exutil.NewCLI("clusteroperators")
 		g.Specify("at least one related object that is not a namespace", func() {
 			controlplaneTopology, err := exutil.GetControlPlaneTopology(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
