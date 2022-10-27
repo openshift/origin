@@ -149,38 +149,44 @@ var _ = g.Describe("[sig-etcd][Serial] etcd [apigroup:config.openshift.io]", fun
 			o.Expect(err).ToNot(o.HaveOccurred())
 		}()
 
-		// step 1: terminate ec2 instance backing a master machine, resulting in unhealthy etcd cluster
-		//         this test case always picks the first master machine as a victim
-		machineName, err := scalingtestinglibrary.FailFirstMasterMachine(ctx, g.GinkgoT(), kubeClient, machineClient)
+		// step 1: terminate ec2 instance backing a random master machine, resulting in unhealthy etcd cluster
+		victimMachineName, err := scalingtestinglibrary.FailStopRandomMasterMachine(ctx, g.GinkgoT(), kubeClient, machineClient)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-		// step 2: delete the failed machine and wait until etcd member is removed from the etcd cluster
-		memberName, err := scalingtestinglibrary.MachineNameToEtcdMemberName(ctx, kubeClient, machineClient, machineName)
+		// assert that scaling down does NOT occur before deleting the victim machine explicitly from api-server
+		err = scalingtestinglibrary.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, 3)
+		err = errors.Wrap(err, "scale-down: timed out waiting for 3 voting members in the etcd cluster and etcd-endpoints configmap")
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-		err = machineClient.Delete(ctx, machineName, metav1.DeleteOptions{})
+		// step 2: delete the victim machine and wait until etcd member is removed from the etcd cluster
+		memberName, err := scalingtestinglibrary.MachineNameToEtcdMemberName(ctx, kubeClient, machineClient, victimMachineName)
 		o.Expect(err).ToNot(o.HaveOccurred())
-		framework.Logf("successfully deleted the machine %q from the API", machineName)
 
-		err = scalingtestinglibrary.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, 2)
-		err = errors.Wrap(err, "scale-down: timed out waiting for 2 voting members in the etcd cluster and etcd-endpoints configmap")
+		err = machineClient.Delete(ctx, victimMachineName, metav1.DeleteOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
+		framework.Logf("successfully deleted master machine %q from the API", victimMachineName)
 
 		err = scalingtestinglibrary.EnsureMemberRemoved(g.GinkgoT(), etcdClientFactory, memberName)
 		err = errors.Wrapf(err, "scale-down: timed out waiting for member (%v) to be removed", memberName)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-		// step3:  wait until a new member shows up and check if it is healthy
-		//         and until all kube-api servers have reached the same revision
-		//         this additional step is the best-effort of ensuring they
-		//         have observed the new member before disruption
-		err = scalingtestinglibrary.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, 3)
-		err = errors.Wrap(err, "scale-up: timed out waiting for 3 voting members in the etcd cluster and etcd-endpoints configmap")
+		// assert that scaling down did occur only after deleting the victim machine explicitly from api-server
+		err = scalingtestinglibrary.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, 2)
+		err = errors.Wrap(err, "scale-down: timed out waiting for 2 voting members in the etcd cluster and etcd-endpoints configmap")
 		o.Expect(err).ToNot(o.HaveOccurred())
 
+		// step3:  wait until a new member shows up and check if it is healthy
+		//         wait until all kube-api servers have reached the same revision
+		//         this additional step is the best-effort of ensuring they
+		//         have observed the new member before disruption
 		g.GinkgoT().Log("waiting for api servers to stabilize on the same revision")
 		err = testlibraryapi.WaitForAPIServerToStabilizeOnTheSameRevision(g.GinkgoT(), oc.KubeClient().CoreV1().Pods("openshift-kube-apiserver"))
 		err = errors.Wrap(err, "scale-up: timed out waiting for APIServer pods to stabilize on the same revision")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// assert that scaling up did occur automatically in response to scaling-down
+		err = scalingtestinglibrary.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, 3)
+		err = errors.Wrap(err, "scale-up: timed out waiting for 3 voting members in the etcd cluster and etcd-endpoints configmap")
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 })

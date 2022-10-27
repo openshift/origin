@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -34,15 +35,14 @@ import (
 )
 
 const (
-	masterMachineLabelSelector      = "machine.openshift.io/cluster-api-machine-role" + "=" + "master"
-	machineDeletionHookName         = "EtcdQuorumOperator"
-	machineDeletionHookOwner        = "clusteroperator/etcd"
-	awsSecretNameSpace              = "kube-system"
-	awsSecretName                   = "aws-creds"
-	awsAccessKeyId                  = "aws_access_key_id"
-	awsSecretAccessKey              = "aws_secret_access_key"
-	awsRegionKey                    = "machine.openshift.io/region"
-	ec2InstanceInternalDNSFilterKey = "private-dns-name"
+	masterMachineLabelSelector = "machine.openshift.io/cluster-api-machine-role" + "=" + "master"
+	machineDeletionHookName    = "EtcdQuorumOperator"
+	machineDeletionHookOwner   = "clusteroperator/etcd"
+	awsSecretNameSpace         = "kube-system"
+	awsSecretName              = "aws-creds"
+	awsAccessKeyId             = "aws_access_key_id"
+	awsSecretAccessKey         = "aws_secret_access_key"
+	awsRegionKey               = "machine.openshift.io/region"
 )
 
 type TestingT interface {
@@ -85,8 +85,8 @@ func CreateNewMasterMachine(ctx context.Context, t TestingT, machineClient machi
 	return clonedMachine.Name, nil
 }
 
-// FailFirstMasterMachine picks the first master machine as a victim. It terminates the machine by provider
-func FailFirstMasterMachine(ctx context.Context, t TestingT, kubeClient kubernetes.Interface, machineClient machinev1beta1client.MachineInterface) (string, error) {
+// FailStopRandomMasterMachine picks a random master machine as a victim. It terminates the machine in a fail-stop manner.
+func FailStopRandomMasterMachine(ctx context.Context, t TestingT, kubeClient kubernetes.Interface, machineClient machinev1beta1client.MachineInterface) (string, error) {
 	masterMachineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
 	if err != nil {
 		return "", fmt.Errorf("failed to list master machines: %w", err)
@@ -95,14 +95,16 @@ func FailFirstMasterMachine(ctx context.Context, t TestingT, kubeClient kubernet
 		return "", fmt.Errorf("no master machine found")
 	}
 
-	victimMachine := &masterMachineList.Items[0]
-	err = terminateMachine(kubeClient, victimMachine)
+	// randomly chosen victim machine
+	randomIdx := rand.Intn(len(masterMachineList.Items))
+	victimMachine := &masterMachineList.Items[randomIdx]
+	err = terminateVictimMachine(kubeClient, victimMachine)
 	if err != nil {
-		t.Logf("failed to terminate instance backing machine %v: %w", victimMachine, err)
-		return "", fmt.Errorf("failed to terminate instance backing machine %v: %w", victimMachine, err)
+		t.Logf("failed to terminate the victim machine' instance %v: %w", *victimMachine, err)
+		return "", fmt.Errorf("failed to terminate the victim machine' instance %v: %w", *victimMachine, err)
 	}
 
-	t.Logf("successfully terminated instance backing machine %v", victimMachine)
+	t.Logf("successfully terminated the victim machine's instance %v", *victimMachine)
 	return victimMachine.Name, nil
 }
 
@@ -527,29 +529,27 @@ func rootAWSCredentials(kubeClient kubernetes.Interface) (map[string][]byte, err
 	return secret.Data, nil
 }
 
-func terminateMachine(kubeClient kubernetes.Interface, victimMachine *machinev1beta1.Machine) error {
+func terminateVictimMachine(kubeClient kubernetes.Interface, victimMachine *machinev1beta1.Machine) error {
 	if victimMachine == nil {
-		return fmt.Errorf("can not terminate a nil machine %v", victimMachine)
+		return fmt.Errorf("victim machine can not be nil:  %v", victimMachine)
 	}
 
 	// retrieve cluster client credentials
-	data, err := rootAWSCredentials(kubeClient)
+	awsCreds, err := rootAWSCredentials(kubeClient)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve provider credentials secret: %w", err)
+		return fmt.Errorf("failed to retrieve provider credentials: %w", err)
 	}
-	keyID := string(data[awsAccessKeyId])
-	secretKey := string(data[awsSecretAccessKey])
+	keyID := string(awsCreds[awsAccessKeyId])
+	secretKey := string(awsCreds[awsSecretAccessKey])
 	region := victimMachine.GetLabels()[awsRegionKey]
 
 	// create AWS EC2 client
-	awsSession := session.Must(session.NewSession(&aws.Config{
-		Credentials: credentials.NewStaticCredentials(keyID, secretKey, ""),
-	}))
+	awsSession := session.Must(session.NewSession(&aws.Config{Credentials: credentials.NewStaticCredentials(keyID, secretKey, "")}))
 	ec2Client := ec2.New(awsSession, aws.NewConfig().WithRegion(region))
 
 	// find instance-id of the victim machine
-	splitIndex := strings.LastIndex(aws.StringValue(victimMachine.Spec.ProviderID), "/")
-	victimMachineInstanceId := aws.StringValue(victimMachine.Spec.ProviderID)[splitIndex+1:]
+	splitIdx := strings.LastIndex(aws.StringValue(victimMachine.Spec.ProviderID), "/")
+	victimMachineInstanceId := aws.StringValue(victimMachine.Spec.ProviderID)[splitIdx+1:]
 
 	// attempt to terminate the instance
 	_, err = ec2Client.TerminateInstances(&ec2.TerminateInstancesInput{InstanceIds: []*string{aws.String(victimMachineInstanceId)}})
