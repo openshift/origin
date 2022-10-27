@@ -8,7 +8,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	testlibraryapi "github.com/openshift/library-go/test/library/apiserver"
 	scalingtestinglibrary "github.com/openshift/origin/test/extended/etcd/helpers"
@@ -162,16 +161,6 @@ var _ = g.Describe("[sig-etcd][Serial] etcd [apigroup:config.openshift.io]", fun
 		// step 2: delete the victim machine and wait until etcd member is removed from the etcd cluster
 		memberName, err := scalingtestinglibrary.MachineNameToEtcdMemberName(ctx, kubeClient, machineClient, victimMachineName)
 		o.Expect(err).ToNot(o.HaveOccurred())
-
-		// wait till the victim's machine phase becomes `Failed`
-		o.Eventually(func() (*machinev1beta1.Machine, error) {
-			machine, err := machineClient.Get(ctx, victimMachineName, metav1.GetOptions{})
-			if err != nil {
-				return nil, err
-			}
-
-			return machine, nil
-		}).Should(o.HaveField("Status.Phase", o.BeEquivalentTo("Failed")))
 
 		// once victim machine is `Failed`, delete from api-server
 		err = machineClient.Delete(ctx, victimMachineName, metav1.DeleteOptions{})
