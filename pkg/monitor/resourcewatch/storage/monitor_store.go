@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
 	corev1 "k8s.io/api/core/v1"
+	_ "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -78,7 +79,6 @@ func (s *monitorStorage) OnAdd(obj interface{}) {
 			if err != nil {
 				klog.Warningf("Decoding %s failed with error: %v", objUnstructured.GetName(), err)
 			}
-
 			monitor.NodeAddFunc(nodeObj)
 		}
 	case gvk.Group == "" && gvk.Kind == "Pod":
@@ -99,8 +99,7 @@ func (s *monitorStorage) OnAdd(obj interface{}) {
 			if err != nil {
 				klog.Warningf("Decoding %s failed with error: %v", objUnstructured.GetName(), err)
 			}
-
-			monitor.ClusterOperatorAddFunc(s.monitor, time.Time{}, &coObj)
+			monitor.ClusterOperatorAddFunc(s.monitor, s.startTime, &coObj)
 		}
 	case gvk.Group == "config.openshift.io" && gvk.Kind == "ClusterVersion":
 		{
@@ -109,8 +108,7 @@ func (s *monitorStorage) OnAdd(obj interface{}) {
 			if err != nil {
 				klog.Warningf("Decoding %s failed with error: %v", objUnstructured.GetName(), err)
 			}
-
-			monitor.ClusterOperatorAddFunc(s.monitor, time.Time{}, &cvObj)
+			monitor.ClusterVersionAddFunc(s.monitor, s.startTime, &cvObj)
 		}
 	default:
 		{
@@ -192,7 +190,7 @@ func (s *monitorStorage) OnUpdate(old, obj interface{}) {
 				klog.Warningf("Decoding %s failed with error: %v", objUnstructured.GetName(), err)
 			}
 
-			oldObj := configv1.ClusterOperator{}
+			oldObj := configv1.ClusterVersion{}
 			err = decodeObject(oldObjUnstructured, &oldObj)
 			if err != nil {
 				klog.Warningf("Decoding %s failed with error: %v", oldObjUnstructured.GetName(), err)
@@ -226,7 +224,7 @@ func (s *monitorStorage) OnDelete(obj interface{}) {
 			if err != nil {
 				klog.Warningf("Decoding %s failed with error: %v", objUnstructured.GetName(), err)
 			}
-			monitor.NodeDeleteFunc(s.monitor, nodeObj)
+			monitor.NodeDeleteFunc(s.monitor, &nodeObj)
 		}
 	case gvk.Group == "" && gvk.Kind == "Pod":
 		{
@@ -255,7 +253,7 @@ func (s *monitorStorage) OnDelete(obj interface{}) {
 				klog.Warningf("Decoding %s failed with error: %v", objUnstructured.GetName(), err)
 			}
 
-			monitor.ClusterOperatorDeleteFunc(s.monitor, &cvObj)
+			monitor.ClusterVersionDeleteFunc(s.monitor, &cvObj)
 		}
 	default:
 		{
@@ -284,5 +282,14 @@ func (s *monitorStorage) End() {
 	if err != nil {
 		klog.Warningf("Failed to write event data, err: %v", err)
 		return
+	}
+}
+
+func init() {
+	if err := corev1.AddToScheme(coreScheme); err != nil {
+		panic(err)
+	}
+	if err := configv1.Install(coreScheme); err != nil {
+		panic(err)
 	}
 }

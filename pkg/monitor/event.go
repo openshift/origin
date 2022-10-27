@@ -18,6 +18,7 @@ import (
 
 var reMatchFirstQuote = regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)
 
+// EventAddOrUpdateFunc processes add and update for events
 func EventAddOrUpdateFunc(
 	ctx context.Context,
 	m Recorder,
