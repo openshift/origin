@@ -217,7 +217,7 @@ func recoverClusterToInitialStateIfNeeded(ctx context.Context, t TestingT, machi
 // this method won't fail immediately on errors, this is useful during scaling down operation until the feature can ensure this operation to be graceful
 func EnsureVotingMembersCount(ctx context.Context, t TestingT, etcdClientFactory EtcdClientCreator, kubeClient kubernetes.Interface, expectedMembersCount int) error {
 	waitPollInterval := 15 * time.Second
-	waitPollTimeout := 10 * time.Minute
+	waitPollTimeout := 25 * time.Minute
 	t.Logf("Waiting up to %s for the cluster to reach the expected member count of %v", waitPollTimeout.String(), expectedMembersCount)
 
 	return wait.Poll(waitPollInterval, waitPollTimeout, func() (bool, error) {
