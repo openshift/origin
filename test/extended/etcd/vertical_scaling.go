@@ -81,7 +81,7 @@ var _ = g.Describe("[sig-etcd][Serial] etcd [apigroup:config.openshift.io]", fun
 		//         this additional step is the best-effort of ensuring they
 		//         have observed the new member before disruption
 		err = scalingtestinglibrary.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, 4)
-		err = errors.Wrap(err, "scale-up: timed out waiting for 4 voting members in the etcd cluster and etcd-endpoints configmap")
+		err = errors.Wrap(err, "scale-up: timed out waiting for 4 voting members in the etcd cluster")
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		memberName, err := scalingtestinglibrary.MachineNameToEtcdMemberName(ctx, oc.KubeClient(), machineClient, machineName)
@@ -101,7 +101,7 @@ var _ = g.Describe("[sig-etcd][Serial] etcd [apigroup:config.openshift.io]", fun
 		framework.Logf("successfully deleted the machine %q from the API", machineName)
 
 		err = scalingtestinglibrary.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, 3)
-		err = errors.Wrap(err, "scale-down: timed out waiting for 3 voting members in the etcd cluster and etcd-endpoints configmap")
+		err = errors.Wrap(err, "scale-down: timed out waiting for 3 voting members in the etcd cluster")
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		err = scalingtestinglibrary.EnsureMemberRemoved(g.GinkgoT(), etcdClientFactory, memberName)
@@ -155,7 +155,7 @@ var _ = g.Describe("[sig-etcd][Serial] etcd [apigroup:config.openshift.io]", fun
 
 		// assert that scaling down does NOT occur before deleting the victim machine explicitly from api-server
 		err = scalingtestinglibrary.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, 3)
-		err = errors.Wrap(err, "scale-down: timed out waiting for 3 voting members in the etcd cluster and etcd-endpoints configmap")
+		err = errors.Wrap(err, "scale-down: timed out waiting for 3 voting members in the etcd cluster")
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		// step 2: delete the victim machine and wait until etcd member is removed from the etcd cluster
@@ -173,7 +173,7 @@ var _ = g.Describe("[sig-etcd][Serial] etcd [apigroup:config.openshift.io]", fun
 
 		// assert that scaling down did occur only after deleting the victim machine explicitly from api-server
 		err = scalingtestinglibrary.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, 2)
-		err = errors.Wrap(err, "scale-down: timed out waiting for 2 voting members in the etcd cluster and etcd-endpoints configmap")
+		err = errors.Wrap(err, "scale-down: timed out waiting for 2 voting members in the etcd cluster")
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		// step3:  wait until a new member shows up and check if it is healthy
@@ -187,7 +187,7 @@ var _ = g.Describe("[sig-etcd][Serial] etcd [apigroup:config.openshift.io]", fun
 
 		// assert that scaling up did occur automatically in response to scaling-down
 		err = scalingtestinglibrary.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, 3)
-		err = errors.Wrap(err, "scale-up: timed out waiting for 3 voting members in the etcd cluster and etcd-endpoints configmap")
+		err = errors.Wrap(err, "scale-up: timed out waiting for 3 voting members in the etcd cluster")
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 })

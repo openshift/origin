@@ -155,6 +155,7 @@ func EnsureMasterMachinesAndCount(ctx context.Context, t TestingT, machineClient
 	return wait.Poll(waitPollInterval, waitPollTimeout, func() (bool, error) {
 		machineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
 		if err != nil {
+			t.Logf("@MUSTAFA: can not list master machines: %w", err)
 			return isTransientAPIError(t, err)
 		}
 
@@ -249,20 +250,6 @@ func EnsureVotingMembersCount(ctx context.Context, t TestingT, etcdClientFactory
 			return false, nil
 		}
 		t.Logf("cluster has reached the expected number of %v voting members, the members are: %v", expectedMembersCount, votingMemberNames)
-
-		t.Logf("ensuring that the openshift-etcd/etcd-endpoints cm has the expected number of %v voting members", expectedMembersCount)
-		etcdEndpointsConfigMap, err := kubeClient.CoreV1().ConfigMaps("openshift-etcd").Get(ctx, "etcd-endpoints", metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-		currentVotingMemberIPListSet := sets.NewString()
-		for _, votingMemberIP := range etcdEndpointsConfigMap.Data {
-			currentVotingMemberIPListSet.Insert(votingMemberIP)
-		}
-		if currentVotingMemberIPListSet.Len() != expectedMembersCount {
-			t.Logf("unexpected number of voting members in the openshift-etcd/etcd-endpoints cm, expected exactly %d, got: %v, current members are: %v", expectedMembersCount, currentVotingMemberIPListSet.Len(), currentVotingMemberIPListSet.List())
-			return false, nil
-		}
 		return true, nil
 	})
 }
