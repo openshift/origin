@@ -21,6 +21,7 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.1.2
 	github.com/heketi/tests v0.0.0-20151005000721-f3775cbcefd6 // indirect
+	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.3.0
 	github.com/lestrrat-go/jspointer v0.0.0-20181205001929-82fadba7561c // indirect
 	github.com/lestrrat-go/jsref v0.0.0-20181205001954-1b590508f37d // indirect
 	github.com/lestrrat-go/jsschema v0.0.0-20181205002244-5c81c58ffcc3 // indirect
@@ -28,6 +29,7 @@ require (
 	github.com/lestrrat-go/pdebug v0.0.0-20200204225717-4d6bd78da58d // indirect
 	github.com/lestrrat-go/structinfo v0.0.0-20190212233437-acd51874663b // indirect
 	github.com/lestrrat/go-jsschema v0.0.0-20181205002244-5c81c58ffcc3
+	github.com/lithammer/dedent v1.1.0
 	github.com/lpabon/godbc v0.1.1 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/onsi/ginkgo v4.7.0-origin.0+incompatible
