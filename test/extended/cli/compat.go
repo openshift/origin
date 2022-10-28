@@ -29,8 +29,8 @@ var _ = g.Describe("[sig-cli] oc", func() {
 
 	oc = exutil.NewCLIWithPodSecurityLevel("cli", admissionapi.LevelBaseline)
 
-	g.It("can run inside of a busybox container [apigroup:image.openshift.io]", func() {
-		ns := oc.Namespace()
+	g.It("can run inside of a busybox container", func() {
+		ns = oc.Namespace()
 		cli := oc.KubeFramework().PodClient()
 
 		_, err := oc.KubeClient().RbacV1().RoleBindings(ns).Create(context.Background(), &rbacv1.RoleBinding{

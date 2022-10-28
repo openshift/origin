@@ -16,7 +16,7 @@ var _ = g.Describe("[sig-cli] oc observe", func() {
 
 	oc := exutil.NewCLIWithoutNamespace("oc-observe").AsAdmin()
 
-	g.It("works as expected", func() {
+	g.It("works as expected [apigroup:config.openshift.io]", func() {
 		g.By("Find out the clusterIP of the kubernetes.default service")
 		kubernetesSVC, err := oc.AdminKubeClient().CoreV1().Services("default").Get(context.Background(), "kubernetes", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -33,6 +33,10 @@ var _ = g.Describe("[sig-cli] oc observe", func() {
 		out, err = oc.Run("observe").Args("daemonsets", "--once").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.Or(o.ContainSubstring("Sync ended"), o.ContainSubstring("Nothing to sync, exiting immediately")))
+
+		out, err = oc.Run("observe").Args("clusteroperators", "--once").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("kube-apiserver"))
 
 		out, err = oc.Run("observe").Args("services", "--once", "--all-namespaces").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -102,11 +106,5 @@ var _ = g.Describe("[sig-cli] oc observe", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("Sync should_be_passed"))
 		o.Expect(os.Unsetenv("MYENV")).NotTo(o.HaveOccurred())
-	})
-
-	g.It("works as expected with cluster operators [apigroup:config.openshift.io]", func() {
-		out, err := oc.Run("observe").Args("clusteroperators", "--once").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("kube-apiserver"))
 	})
 })

@@ -615,7 +615,7 @@ var Annotations = map[string]string{
 
 	"[sig-arch] Managed cluster should ensure platform components have system-* priority class associated": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch] Managed cluster should ensure pods use downstream images from our release image with proper ImagePullPolicy [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch] Managed cluster should ensure pods use downstream images from our release image with proper ImagePullPolicy": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch] Managed cluster should have operators on the cluster version [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -655,323 +655,323 @@ var Annotations = map[string]string{
 
 	"[sig-arch][Late] operators should not create watch channels very often [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Cloud Compute][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-cloud-controller-manager": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Cloud Compute][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cloud-controller-manager": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Cloud Compute][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-cloud-controller-manager-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Cloud Compute][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cloud-controller-manager-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Cloud Compute][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-machine-approver": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Cloud Compute][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-machine-approver": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Cloud Compute][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-machine-api": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Cloud Compute][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-machine-api": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Cloud Compute][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-cloud-controller-manager": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Cloud Compute][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cloud-controller-manager": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Cloud Compute][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-cloud-controller-manager-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Cloud Compute][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cloud-controller-manager-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Cloud Compute][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-machine-approver": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Cloud Compute][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-machine-approver": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Cloud Compute][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-machine-api": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Cloud Compute][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-machine-api": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Cloud Credential Operator][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-cloud-credential-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Cloud Credential Operator][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cloud-credential-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Cloud Credential Operator][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-cloud-credential-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Cloud Credential Operator][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cloud-credential-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Cluster Version Operator][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-version": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Cluster Version Operator][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-version": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Cluster Version Operator][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-version": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Cluster Version Operator][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-version": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-DNS][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-dns": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-DNS][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-dns": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-DNS][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-dns-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-DNS][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-dns-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-DNS][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-dns": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-DNS][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-dns": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-DNS][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-dns-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-DNS][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-dns-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-etcd": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Etcd][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-etcd": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-etcd-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Etcd][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-etcd-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-etcd": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Etcd][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-etcd": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-etcd-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Etcd][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-etcd-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Image Registry][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-image-registry": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Image Registry][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-image-registry": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Image Registry][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-image-registry": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Image Registry][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-image-registry": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Machine Config Operator][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-machine-config-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Machine Config Operator][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-machine-config-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Machine Config Operator][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-machine-config-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Machine Config Operator][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-machine-config-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Management Console][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-console": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Management Console][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-console": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Management Console][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-console-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Management Console][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-console-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Management Console][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-console": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Management Console][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-console": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Management Console][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-console-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Management Console][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-console-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Monitoring][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-monitoring": " [Disabled:Unimplemented]",
+	"[sig-arch][bz-Monitoring][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-monitoring": " [Disabled:Unimplemented]",
 
-	"[sig-arch][bz-Monitoring][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-monitoring": " [Disabled:Unimplemented]",
+	"[sig-arch][bz-Monitoring][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-monitoring": " [Disabled:Unimplemented]",
 
-	"[sig-arch][bz-Networking][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-cloud-network-config-controller": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cloud-network-config-controller": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Networking][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-host-network": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-host-network": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Networking][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-multus": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-multus": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Networking][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-network-diagnostics": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-network-diagnostics": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Networking][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-network-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-network-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Networking][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-ovn-kubernetes": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-ovn-kubernetes": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Networking][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-cloud-network-config-controller": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cloud-network-config-controller": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Networking][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-host-network": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-host-network": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Networking][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-multus": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-multus": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Networking][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-network-diagnostics": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-network-diagnostics": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Networking][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-network-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-network-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Networking][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-ovn-kubernetes": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Networking][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-ovn-kubernetes": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Node Tuning Operator][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-node-tuning-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Node Tuning Operator][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-node-tuning-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Node Tuning Operator][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-node-tuning-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Node Tuning Operator][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-node-tuning-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-OLM][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-marketplace": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-OLM][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-marketplace": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-OLM][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-operator-lifecycle-manager": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-OLM][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-operator-lifecycle-manager": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-OLM][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-operators": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-OLM][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-operators": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-OLM][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-marketplace": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-OLM][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-marketplace": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-OLM][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-operator-lifecycle-manager": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-OLM][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-operator-lifecycle-manager": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-OLM][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-operators": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-OLM][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-operators": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-OLM][Late] Alerts [apigroup:monitoring.coreos.com] alert/RedhatOperatorsCatalogError should not be at or above info": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-OLM][Late] Alerts alert/RedhatOperatorsCatalogError should not be at or above info": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-OLM][Late] Alerts [apigroup:monitoring.coreos.com] alert/RedhatOperatorsCatalogError should not be at or above pending": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-OLM][Late] Alerts alert/RedhatOperatorsCatalogError should not be at or above pending": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Routing][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-ingress": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Routing][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-ingress": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Routing][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-ingress-canary": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Routing][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-ingress-canary": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Routing][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-ingress-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Routing][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-ingress-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Routing][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-ingress": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Routing][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-ingress": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Routing][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-ingress-canary": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Routing][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-ingress-canary": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Routing][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-ingress-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Routing][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-ingress-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Samples][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-samples-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Samples][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-samples-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Samples][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-samples-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Samples][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-samples-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Storage][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-csi-drivers": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Storage][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-csi-drivers": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Storage][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-storage-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Storage][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-cluster-storage-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Storage][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-csi-drivers": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Storage][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-csi-drivers": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Storage][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-storage-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Storage][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-cluster-storage-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in all the other namespaces": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in all the other namespaces": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/default": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/default": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/kube-system": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/kube-system": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-config": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-config": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-config-managed": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-config-managed": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-insights": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-insights": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-kni-infra": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-kni-infra": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-nutanix-infra": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-nutanix-infra": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-openstack-infra": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-openstack-infra": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-ovirt-infra": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-ovirt-infra": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-user-workload-monitoring": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-user-workload-monitoring": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-vsphere-infra": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-vsphere-infra": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in all the other namespaces": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in all the other namespaces": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/default": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/default": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/kube-system": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/kube-system": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-config": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-config": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-config-managed": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-config-managed": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-insights": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-insights": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-kni-infra": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-kni-infra": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-nutanix-infra": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-nutanix-infra": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-openstack-infra": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-openstack-infra": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-ovirt-infra": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-ovirt-infra": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-user-workload-monitoring": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-user-workload-monitoring": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-Unknown][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-vsphere-infra": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-Unknown][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-vsphere-infra": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-apiserver-auth][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-authentication": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-apiserver-auth][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-authentication": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-apiserver-auth][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-authentication-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-apiserver-auth][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-authentication-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-apiserver-auth][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-authentication": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-apiserver-auth][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-authentication": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-apiserver-auth][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-authentication-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-apiserver-auth][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-authentication-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-config-operator][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-config-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-config-operator][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-config-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-config-operator][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-config-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-config-operator][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-config-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/etcdGRPCRequestsSlow should not be at or above info": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-etcd][Late] Alerts alert/etcdGRPCRequestsSlow should not be at or above info": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/etcdGRPCRequestsSlow should not be at or above pending": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-etcd][Late] Alerts alert/etcdGRPCRequestsSlow should not be at or above pending": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/etcdHighCommitDurations should not be at or above info": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-etcd][Late] Alerts alert/etcdHighCommitDurations should not be at or above info": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/etcdHighCommitDurations should not be at or above pending": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-etcd][Late] Alerts alert/etcdHighCommitDurations should not be at or above pending": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/etcdHighFsyncDurations should not be at or above info": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-etcd][Late] Alerts alert/etcdHighFsyncDurations should not be at or above info": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/etcdHighFsyncDurations should not be at or above pending": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-etcd][Late] Alerts alert/etcdHighFsyncDurations should not be at or above pending": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/etcdHighNumberOfFailedGRPCRequests should not be at or above info": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-etcd][Late] Alerts alert/etcdHighNumberOfFailedGRPCRequests should not be at or above info": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/etcdHighNumberOfFailedGRPCRequests should not be at or above pending": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-etcd][Late] Alerts alert/etcdHighNumberOfFailedGRPCRequests should not be at or above pending": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/etcdHighNumberOfLeaderChanges should not be at or above info": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-etcd][Late] Alerts alert/etcdHighNumberOfLeaderChanges should not be at or above info": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/etcdHighNumberOfLeaderChanges should not be at or above pending": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-etcd][Late] Alerts alert/etcdHighNumberOfLeaderChanges should not be at or above pending": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/etcdInsufficientMembers should not be at or above info": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-etcd][Late] Alerts alert/etcdInsufficientMembers should not be at or above info": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/etcdInsufficientMembers should not be at or above pending": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-etcd][Late] Alerts alert/etcdInsufficientMembers should not be at or above pending": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/etcdMemberCommunicationSlow should not be at or above info": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-etcd][Late] Alerts alert/etcdMemberCommunicationSlow should not be at or above info": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/etcdMemberCommunicationSlow should not be at or above pending": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-etcd][Late] Alerts alert/etcdMemberCommunicationSlow should not be at or above pending": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/etcdMembersDown should not be at or above info": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-etcd][Late] Alerts alert/etcdMembersDown should not be at or above info": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/etcdMembersDown should not be at or above pending": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-etcd][Late] Alerts alert/etcdMembersDown should not be at or above pending": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/etcdNoLeader should not be at or above info": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-etcd][Late] Alerts alert/etcdNoLeader should not be at or above info": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-etcd][Late] Alerts [apigroup:monitoring.coreos.com] alert/etcdNoLeader should not be at or above pending": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-etcd][Late] Alerts alert/etcdNoLeader should not be at or above pending": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-apiserver][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubeAPIErrorBudgetBurn should not be at or above info": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-apiserver][Late] Alerts alert/KubeAPIErrorBudgetBurn should not be at or above info": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-apiserver][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubeAPIErrorBudgetBurn should not be at or above pending": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-apiserver][Late] Alerts alert/KubeAPIErrorBudgetBurn should not be at or above pending": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-apiserver][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubeClientErrors should not be at or above info": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-apiserver][Late] Alerts alert/KubeClientErrors should not be at or above info": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-apiserver][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubeClientErrors should not be at or above pending": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-apiserver][Late] Alerts alert/KubeClientErrors should not be at or above pending": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-apiserver][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-kube-apiserver": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-kube-apiserver": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-apiserver][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-kube-apiserver-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-kube-apiserver-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-apiserver][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-apiserver": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-apiserver": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-apiserver][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-apiserver-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-apiserver-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-controller-manager][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-kube-controller-manager": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-controller-manager][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-kube-controller-manager": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-controller-manager][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-kube-controller-manager-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-controller-manager][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-kube-controller-manager-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-controller-manager][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-controller-manager": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-controller-manager][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-controller-manager": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-controller-manager][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-controller-manager-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-controller-manager][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-controller-manager-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-scheduler][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-kube-scheduler": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-scheduler][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-kube-scheduler": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-scheduler][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-kube-scheduler-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-scheduler][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-kube-scheduler-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-scheduler][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-scheduler": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-scheduler][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-scheduler": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-scheduler][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-scheduler-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-scheduler][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-scheduler-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-storage-version-migrator][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-kube-storage-version-migrator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-storage-version-migrator][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-kube-storage-version-migrator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-storage-version-migrator][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-kube-storage-version-migrator-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-storage-version-migrator][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-kube-storage-version-migrator-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-storage-version-migrator][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-storage-version-migrator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-storage-version-migrator][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-storage-version-migrator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-kube-storage-version-migrator][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-storage-version-migrator-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-kube-storage-version-migrator][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-kube-storage-version-migrator-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-machine config operator][Late] Alerts [apigroup:monitoring.coreos.com] alert/MCDDrainError should not be at or above info": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-machine config operator][Late] Alerts alert/MCDDrainError should not be at or above info": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-machine config operator][Late] Alerts [apigroup:monitoring.coreos.com] alert/MCDDrainError should not be at or above pending": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-machine config operator][Late] Alerts alert/MCDDrainError should not be at or above pending": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-monitoring][Late] Alerts [apigroup:monitoring.coreos.com] alert/PrometheusOperatorWatchErrors should not be at or above info": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-monitoring][Late] Alerts alert/PrometheusOperatorWatchErrors should not be at or above info": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-monitoring][Late] Alerts [apigroup:monitoring.coreos.com] alert/PrometheusOperatorWatchErrors should not be at or above pending": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-monitoring][Late] Alerts alert/PrometheusOperatorWatchErrors should not be at or above pending": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-monitoring][Late] Alerts [apigroup:monitoring.coreos.com] alert/Watchdog must have no gaps or changes": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-monitoring][Late] Alerts alert/Watchdog must have no gaps or changes": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-oauth-apiserver][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-oauth-apiserver": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-oauth-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-oauth-apiserver": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-oauth-apiserver][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-oauth-apiserver": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-oauth-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-oauth-apiserver": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-openshift-apiserver][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-apiserver": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-openshift-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-apiserver": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-openshift-apiserver][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-apiserver-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-openshift-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-apiserver-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-openshift-apiserver][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-apiserver": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-openshift-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-apiserver": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-openshift-apiserver][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-apiserver-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-openshift-apiserver][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-apiserver-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-openshift-controller-manager][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-controller-manager": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-openshift-controller-manager][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-controller-manager": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-openshift-controller-manager][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-controller-manager-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-openshift-controller-manager][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-controller-manager-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-openshift-controller-manager][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-controller-manager": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-openshift-controller-manager][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-controller-manager": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-openshift-controller-manager][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-controller-manager-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-openshift-controller-manager][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-controller-manager-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-samples][Late] Alerts [apigroup:monitoring.coreos.com] alert/SamplesImagestreamImportFailing should not be at or above info": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-samples][Late] Alerts alert/SamplesImagestreamImportFailing should not be at or above info": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-samples][Late] Alerts [apigroup:monitoring.coreos.com] alert/SamplesImagestreamImportFailing should not be at or above pending": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-samples][Late] Alerts alert/SamplesImagestreamImportFailing should not be at or above pending": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-service-ca][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-service-ca": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-service-ca][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-service-ca": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-service-ca][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above info in ns/openshift-service-ca-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-service-ca][Late] Alerts alert/KubePodNotReady should not be at or above info in ns/openshift-service-ca-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-service-ca][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-service-ca": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-service-ca][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-service-ca": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-service-ca][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePodNotReady should not be at or above pending in ns/openshift-service-ca-operator": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-service-ca][Late] Alerts alert/KubePodNotReady should not be at or above pending in ns/openshift-service-ca-operator": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-storage][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePersistentVolumeErrors should not be at or above info": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-storage][Late] Alerts alert/KubePersistentVolumeErrors should not be at or above info": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-storage][Late] Alerts [apigroup:monitoring.coreos.com] alert/KubePersistentVolumeErrors should not be at or above pending": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-storage][Late] Alerts alert/KubePersistentVolumeErrors should not be at or above pending": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-storage][Late] Alerts [apigroup:monitoring.coreos.com] alert/VSphereOpenshiftNodeHealthFail should not be at or above info": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-storage][Late] Alerts alert/VSphereOpenshiftNodeHealthFail should not be at or above info": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][bz-storage][Late] Alerts [apigroup:monitoring.coreos.com] alert/VSphereOpenshiftNodeHealthFail should not be at or above pending": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][bz-storage][Late] Alerts alert/VSphereOpenshiftNodeHealthFail should not be at or above pending": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth] Certificates API [Privileged:ClusterAdmin] should support CSR API operations [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -1687,7 +1687,7 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc adm role-reapers [apigroup:authorization.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm role-selectors [apigroup:template.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc adm role-selectors": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc adm serviceaccounts": " [Suite:openshift/conformance/parallel]",
 
@@ -1703,23 +1703,11 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc api-resources can output expected information about api-resources": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc api-resources can output expected information about build.openshift.io api-resources [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc api-resources can output expected information about image.openshift.io api-resources [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc api-resources can output expected information about operator.openshift.io api-resources [apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc api-resources can output expected information about project.openshift.io api-resources [apigroup:project.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc api-resources can output expected information about route.openshift.io api-resources and api-version [apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc api-resources can output expected information about snapshot.storage.k8s.io api-resources [apigroup:snapshot.storage.k8s.io]": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-cli] oc basics can create and interact with a list of resources": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc basics can create deploymentconfig and clusterquota [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc basics can create deploymentconfig and clusterquota": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc basics can describe an OAuth access token [apigroup:oauth.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc basics can describe an OAuth access token": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc basics can get version information from API": " [Suite:openshift/conformance/parallel]",
 
@@ -1727,9 +1715,9 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc basics can output expected --dry-run text": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc basics can patch resources [apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc basics can patch resources": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc basics can process templates [apigroup:template.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc basics can process templates": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc basics can show correct whoami result": " [Suite:openshift/conformance/parallel]",
 
@@ -1747,7 +1735,7 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc can route traffic to services [apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc can run inside of a busybox container [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc can run inside of a busybox container": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc completion returns expected help messages": " [Suite:openshift/conformance/parallel]",
 
@@ -1767,45 +1755,11 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc explain networking types when using openshift-sdn should contain proper fields description for special networking types": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain proper fields description for apps.openshift.io [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc explain should contain proper fields description for authorization.openshift.io [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc explain should contain proper fields description for config.openshift.io [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc explain should contain proper fields description for console.openshift.io [apigroup:console.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc explain should contain proper fields description for image.openshift.io [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc explain should contain proper fields description for oauth.openshift.io [apigroup:oauth.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc explain should contain proper fields description for project.openshift.io [apigroup:project.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc explain should contain proper fields description for route.openshift.io [apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc explain should contain proper fields description for security.internal.openshift.io [apigroup:security.internal.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc explain should contain proper fields description for security.openshift.io [apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc explain should contain proper fields description for template.openshift.io [apigroup:template.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc explain should contain proper fields description for user.openshift.io [apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc explain should contain proper fields description for special types": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc explain should contain proper spec+status for CRDs [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain spec+status for apps.openshift.io [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc explain should contain spec+status for build.openshift.io [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc explain should contain spec+status for image.openshift.io [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc explain should contain spec+status for project.openshift.io [apigroup:project.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc explain should contain spec+status for route.openshift.io [apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc explain should contain spec+status for security.openshift.io [apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc explain should contain spec+status for template.openshift.io [apigroup:template.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc explain should contain spec+status for builtinTypes": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc expose can ensure the expose command is functioning as expected [apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -1821,11 +1775,9 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc label pod": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc observe works as expected with cluster operators [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc observe works as expected [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc observe works as expected": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc probe can ensure the probe command is functioning as expected on deploymentconfigs [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc probe can ensure the probe command is functioning as expected on deploymentconfigs": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc probe can ensure the probe command is functioning as expected on pods": " [Suite:openshift/conformance/parallel]",
 
@@ -2227,7 +2179,7 @@ var Annotations = map[string]string{
 
 	"[sig-instrumentation] MetricsGrabber should grab all metrics from a Scheduler.": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should have a AlertmanagerReceiversNotConfigured alert in firing state": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should have a AlertmanagerReceiversNotConfigured alert in firing state": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should have important platform topology metrics [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -2243,7 +2195,7 @@ var Annotations = map[string]string{
 
 	"[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster shouldn't have failing rules evaluation": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster when using openshift-sdn should be able to get the sdn ovs flows": " [Suite:openshift/conformance/parallel]",
 
@@ -2283,19 +2235,19 @@ var Annotations = map[string]string{
 
 	"[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router should pass the http2 tests [apigroup:image.openshift.io][apigroup:template.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
-	"[sig-network-edge][Feature:Idling] Idling with a single service and DeploymentConfig [apigroup:route.openshift.io] should idle the service and DeploymentConfig properly [apigroup:apps.openshift.io]": " [Disabled:Broken]",
+	"[sig-network-edge][Feature:Idling] Idling with a single service and DeploymentConfig should idle the service and DeploymentConfig properly [apigroup:apps.openshift.io]": " [Disabled:Broken]",
 
 	"[sig-network-edge][Feature:Idling] Idling with a single service and ReplicationController should idle the service and ReplicationController properly": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network-edge][Feature:Idling] Unidling [apigroup:apps.openshift.io][apigroup:route.openshift.io] should handle many TCP connections by possibly dropping those over a certain bound [Serial]": " [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/serial]",
+	"[sig-network-edge][Feature:Idling] Unidling should handle many TCP connections by possibly dropping those over a certain bound [Serial]": " [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/serial]",
 
-	"[sig-network-edge][Feature:Idling] Unidling [apigroup:apps.openshift.io][apigroup:route.openshift.io] should handle many UDP senders (by continuing to drop all packets on the floor) [Serial]": " [Suite:openshift/conformance/serial]",
+	"[sig-network-edge][Feature:Idling] Unidling should handle many UDP senders (by continuing to drop all packets on the floor) [Serial]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-network-edge][Feature:Idling] Unidling [apigroup:apps.openshift.io][apigroup:route.openshift.io] should work with TCP (when fully idled)": " [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel]",
+	"[sig-network-edge][Feature:Idling] Unidling should work with TCP (when fully idled)": " [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel]",
 
-	"[sig-network-edge][Feature:Idling] Unidling [apigroup:apps.openshift.io][apigroup:route.openshift.io] should work with TCP (while idling)": " [Disabled:Broken] [Skipped:Network/OVNKubernetes]",
+	"[sig-network-edge][Feature:Idling] Unidling should work with TCP (while idling)": " [Disabled:Broken] [Skipped:Network/OVNKubernetes]",
 
-	"[sig-network-edge][Feature:Idling] Unidling [apigroup:apps.openshift.io][apigroup:route.openshift.io] should work with UDP": " [Suite:openshift/conformance/parallel]",
+	"[sig-network-edge][Feature:Idling] Unidling should work with UDP": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network] CVE-2021-29923 IPv4 Service Type ClusterIP with leading zeros should work interpreted as decimal": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2841,9 +2793,9 @@ var Annotations = map[string]string{
 
 	"[sig-network] services basic functionality should allow connections to another pod on the same node via a service IP": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network] services when running openshift ipv4 cluster ensures external ip policy is configured correctly on the cluster [apigroup:config.openshift.io] [Serial]": " [Suite:openshift/conformance/serial]",
+	"[sig-network] services when running openshift ipv4 cluster ensures external ip policy is configured correctly on the cluster [Serial]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-network] services when running openshift ipv4 cluster on bare metal [apigroup:config.openshift.io] ensures external auto assign cidr is configured correctly on the cluster [apigroup:config.openshift.io] [Serial]": " [Suite:openshift/conformance/serial]",
+	"[sig-network] services when running openshift ipv4 cluster on bare metal [apigroup:config.openshift.io] ensures external auto assign cidr is configured correctly on the cluster [Serial]": " [Suite:openshift/conformance/serial]",
 
 	"[sig-network] services when using a plugin in a mode that does not isolate namespaces by default should allow connections to pods in different namespaces on different nodes via service IPs": " [Suite:openshift/conformance/parallel]",
 
@@ -2883,7 +2835,7 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:EgressRouterCNI] when using openshift ovn-kubernetes should ensure ipv6 egressrouter cni resources are created [apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Multus] should use multus to create net1 device from network-attachment-definition [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Multus] should use multus to create net1 device from network-attachment-definition": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Network Policy Audit logging] when using openshift ovn-kubernetes should ensure acl logs are created and correct [apigroup:project.openshift.io][apigroup:network.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -2925,21 +2877,21 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:template.openshift.io] The HAProxy router should serve the correct routes when scoped to a single namespace and label set": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Whereabouts] should assign unique IP addresses to each pod in the event of a race condition case [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Whereabouts] should assign unique IP addresses to each pod in the event of a race condition case": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Whereabouts] should use whereabouts net-attach-def to limit IP ranges for newly created pods [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Whereabouts] should use whereabouts net-attach-def to limit IP ranges for newly created pods": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:tuning] pod should not start for sysctls not on whitelist [apigroup:k8s.cni.cncf.io] net.ipv4.conf.IFNAME.arp_filter": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:tuning] pod should not start for sysctls not on whitelist net.ipv4.conf.IFNAME.arp_filter": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:tuning] pod should not start for sysctls not on whitelist [apigroup:k8s.cni.cncf.io] net.ipv4.conf.all.send_redirects": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:tuning] pod should not start for sysctls not on whitelist net.ipv4.conf.all.send_redirects": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:tuning] pod should start with all sysctl on whitelist [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:tuning] pod should start with all sysctl on whitelist": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:tuning] pod sysctl should not affect existing pods [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:tuning] pod sysctl should not affect existing pods": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:tuning] pod sysctl should not affect newly created pods [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:tuning] pod sysctl should not affect newly created pods": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:tuning] pod sysctls should not affect node [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:tuning] pod sysctls should not affect node": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][endpoints] admission [apigroup:config.openshift.io] blocks manual creation of EndpointSlices pointing to the cluster or service network": " [Suite:openshift/conformance/parallel]",
 

@@ -20,8 +20,7 @@ import (
 
 var _ = Describe("[sig-arch] Managed cluster", func() {
 	oc := exutil.NewCLIWithoutNamespace("operators")
-
-	It("should ensure pods use downstream images from our release image with proper ImagePullPolicy [apigroup:config.openshift.io]", func() {
+	It("should ensure pods use downstream images from our release image with proper ImagePullPolicy", func() {
 		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
 			e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions")
 		}

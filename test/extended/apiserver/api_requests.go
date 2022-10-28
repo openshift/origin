@@ -11,6 +11,7 @@ import (
 	apiserverv1 "github.com/openshift/api/apiserver/v1"
 	configv1 "github.com/openshift/api/config/v1"
 	apiserverclientv1 "github.com/openshift/client-go/apiserver/clientset/versioned/typed/apiserver/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
@@ -95,7 +96,13 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		apirequestCountClient, err := apiserverclientv1.NewForConfig(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+		clientConfig, err := framework.LoadConfig(true)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		configClient, err := configclient.NewForConfig(clientConfig)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		type platformUpperBound map[string]int64

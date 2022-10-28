@@ -60,7 +60,7 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel("tuning", admissionapi.LevelPrivileged)
 	f := oc.KubeFramework()
 
-	g.It("pod should start with all sysctl on whitelist [apigroup:k8s.cni.cncf.io]", func() {
+	g.It("pod should start with all sysctl on whitelist", func() {
 		namespace := f.Namespace.Name
 		sysctls := map[string]string{}
 		for _, sysctl := range whitelistedSysctls {
@@ -78,7 +78,7 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 			o.Expect(result).To(o.Equal(sysctl.Value), "incorrect sysctl value")
 		}
 	})
-	g.DescribeTable("pod should not start for sysctls not on whitelist [apigroup:k8s.cni.cncf.io]", func(sysctl, value string) {
+	g.DescribeTable("pod should not start for sysctls not on whitelist", func(sysctl, value string) {
 		namespace := f.Namespace.Name
 		tuningNADName := "tuningnadwithdisallowedsysctls"
 		err := createTuningNAD(oc.AdminConfig(), namespace, tuningNADName, map[string]string{sysctl: value})
@@ -104,7 +104,7 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 		g.Entry("net.ipv4.conf.IFNAME.arp_filter", "net.ipv4.conf.IFNAME.arp_filter", "1"),
 	)
 
-	g.It("pod sysctls should not affect node [apigroup:k8s.cni.cncf.io]", func() {
+	g.It("pod sysctls should not affect node", func() {
 		namespace := f.Namespace.Name
 		g.By("creating a preexisting pod to check host sysctl")
 		nodePod := frameworkpod.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, "nodeaccess-pod-", func(pod *kapiv1.Pod) {
@@ -161,7 +161,7 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 		o.Expect(hostSysctlValue).Should(o.Equal(hostSysctlValue2))
 	})
 
-	g.It("pod sysctl should not affect existing pods [apigroup:k8s.cni.cncf.io]", func() {
+	g.It("pod sysctl should not affect existing pods", func() {
 		namespace := f.Namespace.Name
 		path := fmt.Sprintf(sysctlPath, "net1")
 		err := createNAD(oc.AdminConfig(), namespace, baseNAD)
@@ -190,7 +190,7 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 		o.Expect(podOutputBeforeSysctlAplied).Should(o.Equal(podOutputAfterSysctlAplied))
 	})
 
-	g.It("pod sysctl should not affect newly created pods [apigroup:k8s.cni.cncf.io]", func() {
+	g.It("pod sysctl should not affect newly created pods", func() {
 		namespace := f.Namespace.Name
 		path := fmt.Sprintf(sysctlPath, "net1")
 

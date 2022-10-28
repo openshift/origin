@@ -11,8 +11,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kube-openapi/pkg/util/sets"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	config "github.com/openshift/api/config/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -43,10 +45,12 @@ var _ = g.Describe("[sig-arch] ClusterOperators [apigroup:config.openshift.io]",
 		"support",
 	)
 
-	oc := exutil.NewCLIWithoutNamespace("clusteroperators")
-
 	g.BeforeEach(func() {
-		clusterOperatorsList, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().List(context.Background(), metav1.ListOptions{})
+		kubeConfig, err := e2e.LoadConfig()
+		o.Expect(err).ToNot(o.HaveOccurred())
+		configClient, err := configclient.NewForConfig(kubeConfig)
+		o.Expect(err).ToNot(o.HaveOccurred())
+		clusterOperatorsList, err := configClient.ClusterOperators().List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 		clusterOperators = clusterOperatorsList.Items
 	})

@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -26,6 +27,9 @@ var (
 
 var _ = g.Describe("[sig-cli] oc adm", func() {
 	defer g.GinkgoRecover()
+
+	f := framework.NewDefaultFramework("oc-adm")
+	f.SkipNamespaceCreation = true
 
 	oc := exutil.NewCLIWithoutNamespace("oc-adm").AsAdmin()
 	ocns := exutil.NewCLI("oc-adm-ns").AsAdmin()
@@ -359,7 +363,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		oc.Run("delete").Args("-f", "-").InputString(policyClusterRoles).Execute()
 	})
 
-	g.It("role-selectors [apigroup:template.openshift.io]", func() {
+	g.It("role-selectors", func() {
 		clusterRole := gen.GenerateName("basic-user2-")
 		clusterBinding := gen.GenerateName("basic-users2-")
 		// template processing requires a namespaced client

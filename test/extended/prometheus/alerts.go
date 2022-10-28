@@ -14,9 +14,7 @@ func init() {
 	for i := range alertTests {
 		alertTest := alertTests[i]
 
-		// These tests make use of Prometheus metrics, which are not present in the absence of cluster-monitoring-operator, the owner for
-		// the api groups tagged here.
-		var _ = g.Describe("[sig-arch]"+alertTest.TestNamePrefix()+" [apigroup:monitoring.coreos.com]", func() {
+		var _ = g.Describe("[sig-arch]"+alertTest.TestNamePrefix(), func() {
 			defer g.GinkgoRecover()
 			var (
 				oc = exutil.NewCLIWithoutNamespace("prometheus")
