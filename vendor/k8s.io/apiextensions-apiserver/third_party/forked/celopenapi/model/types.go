@@ -20,12 +20,15 @@ import (
 	"time"
 
 	"github.com/google/cel-go/cel"
+	"github.com/google/cel-go/checker/decls"
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
 	"github.com/google/cel-go/common/types/traits"
 
 	exprpb "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 	"google.golang.org/protobuf/proto"
+
+	"k8s.io/apiextensions-apiserver/pkg/apiserver/schema"
 )
 
 const (
@@ -38,11 +41,8 @@ func NewListType(elem *DeclType, maxItems int64) *DeclType {
 		name:         "list",
 		ElemType:     elem,
 		MaxElements:  maxItems,
-		celType:      cel.ListType(elem.CelType()),
+		exprType:     decls.NewListType(elem.ExprType()),
 		defaultValue: NewListValue(),
-		// a list can always be represented as [] in JSON, so hardcode the min size
-		// to 2
-		MinSerializedSize: 2,
 	}
 }
 
@@ -53,11 +53,8 @@ func NewMapType(key, elem *DeclType, maxProperties int64) *DeclType {
 		KeyType:      key,
 		ElemType:     elem,
 		MaxElements:  maxProperties,
-		celType:      cel.MapType(key.CelType(), elem.CelType()),
+		exprType:     decls.NewMapType(key.ExprType(), elem.ExprType()),
 		defaultValue: NewMapValue(),
-		// a map can always be represented as {} in JSON, so hardcode the min size
-		// to 2
-		MinSerializedSize: 2,
 	}
 }
 
@@ -66,23 +63,40 @@ func NewObjectType(name string, fields map[string]*DeclField) *DeclType {
 	t := &DeclType{
 		name:      name,
 		Fields:    fields,
-		celType:   cel.ObjectType(name),
+		exprType:  decls.NewObjectType(name),
 		traitMask: traits.FieldTesterType | traits.IndexerType,
-		// an object could potentially be larger than the min size we default to here ({}),
-		// but we rely upon the caller to change MinSerializedSize accordingly if they add
-		// properties to the object
-		MinSerializedSize: 2,
 	}
 	t.defaultValue = NewObjectValue(t)
 	return t
 }
 
-func newSimpleTypeWithMinSize(name string, celType *cel.Type, zeroVal ref.Val, minSize int64) *DeclType {
+// NewObjectTypeRef returns a reference to an object type by name
+func NewObjectTypeRef(name string) *DeclType {
+	t := &DeclType{
+		name:      name,
+		exprType:  decls.NewObjectType(name),
+		traitMask: traits.FieldTesterType | traits.IndexerType,
+	}
+	return t
+}
+
+// NewTypeParam creates a type parameter type with a simple name.
+//
+// Type parameters are resolved at compilation time to concrete types, or CEL 'dyn' type if no
+// type assignment can be inferred.
+func NewTypeParam(name string) *DeclType {
 	return &DeclType{
-		name: name,
-		celType: celType,
+		name:      name,
+		TypeParam: true,
+		exprType:  decls.NewTypeParamType(name),
+	}
+}
+
+func newSimpleType(name string, exprType *exprpb.Type, zeroVal ref.Val) *DeclType {
+	return &DeclType{
+		name:         name,
+		exprType:     exprType,
 		defaultValue: zeroVal,
-		MinSerializedSize: minSize,
 	}
 }
 
@@ -90,19 +104,15 @@ func newSimpleTypeWithMinSize(name string, celType *cel.Type, zeroVal ref.Val, m
 type DeclType struct {
 	fmt.Stringer
 
-	name string
-	// Fields contains a map of escaped CEL identifier field names to field declarations.
+	name        string
 	Fields      map[string]*DeclField
 	KeyType     *DeclType
 	ElemType    *DeclType
 	TypeParam   bool
 	Metadata    map[string]string
 	MaxElements int64
-	// MinSerializedSize represents the smallest possible size in bytes that
-	// the DeclType could be serialized to in JSON.
-	MinSerializedSize int64
 
-	celType      *cel.Type
+	exprType     *exprpb.Type
 	traitMask    int
 	defaultValue ref.Val
 }
@@ -141,16 +151,15 @@ func (t *DeclType) MaybeAssignTypeName(name string) *DeclType {
 			return t
 		}
 		return &DeclType{
-			name:              name,
-			Fields:            fieldMap,
-			KeyType:           t.KeyType,
-			ElemType:          t.ElemType,
-			TypeParam:         t.TypeParam,
-			Metadata:          t.Metadata,
-			celType:           cel.ObjectType(name),
-			traitMask:         t.traitMask,
-			defaultValue:      t.defaultValue,
-			MinSerializedSize: t.MinSerializedSize,
+			name:         name,
+			Fields:       fieldMap,
+			KeyType:      t.KeyType,
+			ElemType:     t.ElemType,
+			TypeParam:    t.TypeParam,
+			Metadata:     t.Metadata,
+			exprType:     decls.NewObjectType(name),
+			traitMask:    t.traitMask,
+			defaultValue: t.defaultValue,
 		}
 	}
 	if t.IsMap() {
@@ -173,13 +182,8 @@ func (t *DeclType) MaybeAssignTypeName(name string) *DeclType {
 }
 
 // ExprType returns the CEL expression type of this declaration.
-func (t *DeclType) ExprType() (*exprpb.Type, error) {
-	return cel.TypeToExprType(t.celType)
-}
-
-// CelType returns the CEL type of this declaration.
-func (t *DeclType) CelType() *cel.Type {
-	return t.celType
+func (t *DeclType) ExprType() *exprpb.Type {
+	return t.exprType
 }
 
 // FindField returns the DeclField with the given name if present.
@@ -309,13 +313,14 @@ func (f *DeclField) EnumValues() []ref.Val {
 
 // NewRuleTypes returns an Open API Schema-based type-system which is CEL compatible.
 func NewRuleTypes(kind string,
-	declType *DeclType,
+	schema *schema.Structural,
+	isResourceRoot bool,
 	res Resolver) (*RuleTypes, error) {
 	// Note, if the schema indicates that it's actually based on another proto
 	// then prefer the proto definition. For expressions in the proto, a new field
 	// annotation will be needed to indicate the expected environment and type of
 	// the expression.
-	schemaTypes, err := newSchemaTypeProvider(kind, declType)
+	schemaTypes, err := newSchemaTypeProvider(kind, schema, isResourceRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -323,6 +328,7 @@ func NewRuleTypes(kind string,
 		return nil, nil
 	}
 	return &RuleTypes{
+		Schema:              schema,
 		ruleSchemaDeclTypes: schemaTypes,
 		resolver:            res,
 	}, nil
@@ -332,6 +338,7 @@ func NewRuleTypes(kind string,
 // type-system.
 type RuleTypes struct {
 	ref.TypeProvider
+	Schema              *schema.Structural
 	ruleSchemaDeclTypes *schemaTypeProvider
 	typeAdapter         ref.TypeAdapter
 	resolver            Resolver
@@ -356,16 +363,13 @@ func (rt *RuleTypes) EnvOptions(tp ref.TypeProvider) ([]cel.EnvOption, error) {
 	rtWithTypes := &RuleTypes{
 		TypeProvider:        tp,
 		typeAdapter:         ta,
+		Schema:              rt.Schema,
 		ruleSchemaDeclTypes: rt.ruleSchemaDeclTypes,
 		resolver:            rt.resolver,
 	}
 	for name, declType := range rt.ruleSchemaDeclTypes.types {
 		tpType, found := tp.FindType(name)
-		expT, err := declType.ExprType()
-		if err != nil {
-			return nil, fmt.Errorf("fail to get cel type: %s", err)
-		}
-		if found && !proto.Equal(tpType, expT) {
+		if found && !proto.Equal(tpType, declType.ExprType()) {
 			return nil, fmt.Errorf(
 				"type %s definition differs between CEL environment and rule", name)
 		}
@@ -373,7 +377,9 @@ func (rt *RuleTypes) EnvOptions(tp ref.TypeProvider) ([]cel.EnvOption, error) {
 	return []cel.EnvOption{
 		cel.CustomTypeProvider(rtWithTypes),
 		cel.CustomTypeAdapter(rtWithTypes),
-		cel.Variable("rule", rt.ruleSchemaDeclTypes.root.CelType()),
+		cel.Declarations(
+			decls.NewVar("rule", rt.ruleSchemaDeclTypes.root.ExprType()),
+		),
 	}, nil
 }
 
@@ -390,11 +396,7 @@ func (rt *RuleTypes) FindType(typeName string) (*exprpb.Type, bool) {
 	}
 	declType, found := rt.findDeclType(typeName)
 	if found {
-		expT, err := declType.ExprType()
-		if err != nil {
-			return expT, false
-		}
-		return expT, found
+		return declType.ExprType(), found
 	}
 	return rt.TypeProvider.FindType(typeName)
 }
@@ -422,23 +424,15 @@ func (rt *RuleTypes) FindFieldType(typeName, fieldName string) (*ref.FieldType, 
 	f, found := st.Fields[fieldName]
 	if found {
 		ft := f.Type
-		expT, err := ft.ExprType()
-		if err != nil {
-			return nil, false
-		}
 		return &ref.FieldType{
-			Type: expT,
+			Type: ft.ExprType(),
 		}, true
 	}
 	// This could be a dynamic map.
 	if st.IsMap() {
 		et := st.ElemType
-		expT, err := et.ExprType()
-		if err != nil {
-			return nil, false
-		}
 		return &ref.FieldType{
-			Type: expT,
+			Type: et.ExprType(),
 		}, true
 	}
 	return nil, false
@@ -502,11 +496,12 @@ func (rt *RuleTypes) convertToCustomType(dyn *DynValue, declType *DeclType) *Dyn
 	}
 }
 
-func newSchemaTypeProvider(kind string, declType *DeclType) (*schemaTypeProvider, error) {
-	if declType == nil {
+func newSchemaTypeProvider(kind string, schema *schema.Structural, isResourceRoot bool) (*schemaTypeProvider, error) {
+	delType := SchemaDeclType(schema, isResourceRoot)
+	if delType == nil {
 		return nil, nil
 	}
-	root := declType.MaybeAssignTypeName(kind)
+	root := delType.MaybeAssignTypeName(kind)
 	types := FieldTypeMap(kind, root)
 	return &schemaTypeProvider{
 		root:  root,
@@ -522,44 +517,42 @@ type schemaTypeProvider struct {
 var (
 	// AnyType is equivalent to the CEL 'protobuf.Any' type in that the value may have any of the
 	// types supported.
-	AnyType = newSimpleTypeWithMinSize("any", cel.AnyType, nil, 1)
+	AnyType = newSimpleType("any", decls.Any, nil)
 
 	// BoolType is equivalent to the CEL 'bool' type.
-	BoolType = newSimpleTypeWithMinSize("bool", cel.BoolType, types.False, minBoolSize)
+	BoolType = newSimpleType("bool", decls.Bool, types.False)
 
 	// BytesType is equivalent to the CEL 'bytes' type.
-	BytesType = newSimpleTypeWithMinSize("bytes", cel.BytesType, types.Bytes([]byte{}), minStringSize)
+	BytesType = newSimpleType("bytes", decls.Bytes, types.Bytes([]byte{}))
 
 	// DoubleType is equivalent to the CEL 'double' type which is a 64-bit floating point value.
-	DoubleType = newSimpleTypeWithMinSize("double", cel.DoubleType, types.Double(0), minNumberSize)
+	DoubleType = newSimpleType("double", decls.Double, types.Double(0))
 
 	// DurationType is equivalent to the CEL 'duration' type.
-	DurationType = newSimpleTypeWithMinSize("duration", cel.DurationType, types.Duration{Duration: time.Duration(0)}, minDurationSizeJSON)
+	DurationType = newSimpleType("duration", decls.Duration, types.Duration{Duration: time.Duration(0)})
 
 	// DateType is equivalent to the CEL 'date' type.
-	DateType = newSimpleTypeWithMinSize("date", cel.TimestampType, types.Timestamp{Time: time.Time{}}, dateSizeJSON)
+	DateType = newSimpleType("date", decls.Timestamp, types.Timestamp{Time: time.Time{}})
 
 	// DynType is the equivalent of the CEL 'dyn' concept which indicates that the type will be
 	// determined at runtime rather than compile time.
-	DynType = newSimpleTypeWithMinSize("dyn", cel.DynType, nil, 1)
+	DynType = newSimpleType("dyn", decls.Dyn, nil)
 
 	// IntType is equivalent to the CEL 'int' type which is a 64-bit signed int.
-	IntType = newSimpleTypeWithMinSize("int", cel.IntType, types.IntZero, minNumberSize)
+	IntType = newSimpleType("int", decls.Int, types.IntZero)
 
 	// NullType is equivalent to the CEL 'null_type'.
-	NullType = newSimpleTypeWithMinSize("null_type", cel.NullType, types.NullValue, 4)
+	NullType = newSimpleType("null_type", decls.Null, types.NullValue)
 
 	// StringType is equivalent to the CEL 'string' type which is expected to be a UTF-8 string.
 	// StringType values may either be string literals or expression strings.
-	StringType = newSimpleTypeWithMinSize("string", cel.StringType, types.String(""), minStringSize)
+	StringType = newSimpleType("string", decls.String, types.String(""))
 
 	// TimestampType corresponds to the well-known protobuf.Timestamp type supported within CEL.
-	// Note that both the OpenAPI date and date-time types map onto TimestampType, so not all types
-	// labeled as Timestamp will necessarily have the same MinSerializedSize.
-	TimestampType = newSimpleTypeWithMinSize("timestamp", cel.TimestampType, types.Timestamp{Time: time.Time{}}, dateSizeJSON)
+	TimestampType = newSimpleType("timestamp", decls.Timestamp, types.Timestamp{Time: time.Time{}})
 
 	// UintType is equivalent to the CEL 'uint' type.
-	UintType = newSimpleTypeWithMinSize("uint", cel.UintType, types.Uint(0), 1)
+	UintType = newSimpleType("uint", decls.Uint, types.Uint(0))
 
 	// ListType is equivalent to the CEL 'list' type.
 	ListType = NewListType(AnyType, noMaxLength)

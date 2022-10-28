@@ -190,9 +190,7 @@ func (az *Cloud) EnsureLoadBalancer(ctx context.Context, clusterName string, ser
 	lbStatus, err := az.getServiceLoadBalancerStatus(service, lb)
 	if err != nil {
 		klog.Errorf("getServiceLoadBalancerStatus(%s) failed: %v", serviceName, err)
-		if err != cloudprovider.InstanceNotFound {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	var serviceIP *string
@@ -2144,7 +2142,7 @@ func shouldReleaseExistingOwnedPublicIP(existingPip *network.PublicIPAddress, lb
 		(ipTagRequest.IPTagsRequestedByAnnotation && !areIPTagsEquivalent(currentIPTags, ipTagRequest.IPTags))
 }
 
-// ensurePIPTagged ensures the public IP of the service is tagged as configured
+//  ensurePIPTagged ensures the public IP of the service is tagged as configured
 func (az *Cloud) ensurePIPTagged(service *v1.Service, pip *network.PublicIPAddress) bool {
 	configTags := parseTags(az.Tags)
 	annotationTags := make(map[string]*string)

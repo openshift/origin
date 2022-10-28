@@ -17,16 +17,11 @@ limitations under the License.
 package builder
 
 import (
-	"fmt"
-	"strings"
-
+	"k8s.io/klog/v2"
 	"k8s.io/kube-openapi/pkg/aggregator"
 	"k8s.io/kube-openapi/pkg/spec3"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
-
-const metadataGV = "io.k8s.apimachinery.pkg.apis.meta.v1"
-const autoscalingGV = "io.k8s.api.autoscaling.v1"
 
 // MergeSpecs aggregates all OpenAPI specs, reusing the metadata of the first, static spec as the basis.
 // The static spec has the highest priority, and its paths and definitions won't get overlapped by
@@ -88,29 +83,28 @@ func mergeSpec(dest, source *spec.Swagger) {
 }
 
 // MergeSpecsV3 merges OpenAPI v3 specs for CRDs
-// Conflicts belonging to the meta.v1 or autoscaling.v1 group versions are skipped as all CRDs reference those types
-// Other conflicts will result in an error
+// For V3, the static spec is never merged with the individual CRD specs so no conflict resolution is necessary
 func MergeSpecsV3(crdSpecs ...*spec3.OpenAPI) (*spec3.OpenAPI, error) {
+	// create shallow copy of staticSpec, but replace paths and definitions because we modify them.
 	crdSpec := &spec3.OpenAPI{}
 	if len(crdSpecs) > 0 {
 		crdSpec.Version = crdSpecs[0].Version
 		crdSpec.Info = crdSpecs[0].Info
 	}
 	for _, s := range crdSpecs {
-		err := mergeSpecV3(crdSpec, s)
-		if err != nil {
-			return nil, err
-		}
+		// merge specs without checking conflicts, since the naming controller prevents
+		// conflicts between user-defined CRDs
+		mergeSpecV3(crdSpec, s)
 	}
+
 	return crdSpec, nil
 }
 
 // mergeSpecV3 copies paths and definitions from source to dest, mutating dest, but not source.
-// Conflicts belonging to the meta.v1 or autoscaling.v1 group versions are skipped as all CRDs reference those types
-// Other conflicts will result in an error
-func mergeSpecV3(dest, source *spec3.OpenAPI) error {
+// We assume that conflicts do not matter.
+func mergeSpecV3(dest, source *spec3.OpenAPI) {
 	if source == nil || source.Paths == nil {
-		return nil
+		return
 	}
 	if dest.Paths == nil {
 		dest.Paths = &spec3.Paths{}
@@ -124,10 +118,7 @@ func mergeSpecV3(dest, source *spec3.OpenAPI) error {
 			dest.Components.Schemas = map[string]*spec.Schema{}
 		}
 		if _, exists := dest.Components.Schemas[k]; exists {
-			if strings.HasPrefix(k, metadataGV) || strings.HasPrefix(k, autoscalingGV) {
-				continue
-			}
-			return fmt.Errorf("OpenAPI V3 merge schema conflict on %s", k)
+			klog.Warningf("Should not happen: OpenAPI V3 merge schema conflict on %s", k)
 		}
 		dest.Components.Schemas[k] = v
 	}
@@ -137,5 +128,4 @@ func mergeSpecV3(dest, source *spec3.OpenAPI) error {
 		}
 		dest.Paths.Paths[k] = v
 	}
-	return nil
 }

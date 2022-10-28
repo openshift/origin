@@ -1,7 +1,7 @@
 package oauth
 
 import (
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	admissionapi "k8s.io/pod-security-admission/api"

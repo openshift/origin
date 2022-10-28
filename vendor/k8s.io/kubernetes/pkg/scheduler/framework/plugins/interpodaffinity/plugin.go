@@ -30,8 +30,10 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/names"
 )
 
-// Name is the name of the plugin used in the plugin registry and configurations.
-const Name = names.InterPodAffinity
+const (
+	// Name is the name of the plugin used in the plugin registry and configurations.
+	Name = names.InterPodAffinity
+)
 
 var _ framework.PreFilterPlugin = &InterPodAffinity{}
 var _ framework.FilterPlugin = &InterPodAffinity{}

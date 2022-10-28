@@ -79,13 +79,9 @@ type podStateProvider interface {
 //
 // kubeClient - used to fetch PV and PVC objects from the API server
 // loopSleepDuration - the amount of time the populator loop sleeps between
-//
-//	successive executions
-//
+//     successive executions
 // podManager - the kubelet podManager that is the source of truth for the pods
-//
-//	that exist on this host
-//
+//     that exist on this host
 // desiredStateOfWorld - the cache to populate
 func NewDesiredStateOfWorldPopulator(
 	kubeClient clientset.Interface,
@@ -255,6 +251,7 @@ func (dswp *desiredStateOfWorldPopulator) findAndRemoveDeletedPods() {
 			continue
 		}
 		klog.V(4).InfoS("Removing volume from desired state", "pod", klog.KObj(volumeToMount.Pod), "podUID", volumeToMount.Pod.UID, "volumeName", volumeToMountSpecName)
+
 		dswp.desiredStateOfWorld.DeletePodFromVolume(
 			volumeToMount.PodName, volumeToMount.VolumeName)
 		dswp.deleteProcessedPod(volumeToMount.PodName)
@@ -283,7 +280,7 @@ func (dswp *desiredStateOfWorldPopulator) processPodVolumes(
 	}
 
 	allVolumesAdded := true
-	mounts, devices, seLinuxContainerContexts := util.GetPodVolumeNames(pod)
+	mounts, devices := util.GetPodVolumeNames(pod)
 
 	// Process volume spec for each volume defined in pod
 	for _, podVolume := range pod.Spec.Volumes {
@@ -304,7 +301,7 @@ func (dswp *desiredStateOfWorldPopulator) processPodVolumes(
 
 		// Add volume to desired state of world
 		uniqueVolumeName, err := dswp.desiredStateOfWorld.AddPodToVolume(
-			uniquePodName, pod, volumeSpec, podVolume.Name, volumeGidValue, seLinuxContainerContexts[podVolume.Name])
+			uniquePodName, pod, volumeSpec, podVolume.Name, volumeGidValue)
 		if err != nil {
 			klog.ErrorS(err, "Failed to add volume to desiredStateOfWorld", "pod", klog.KObj(pod), "volumeName", podVolume.Name, "volumeSpecName", volumeSpec.Name())
 			dswp.desiredStateOfWorld.AddErrorToPod(uniquePodName, err.Error())

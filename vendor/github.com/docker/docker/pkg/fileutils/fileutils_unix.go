@@ -1,4 +1,3 @@
-//go:build linux || freebsd
 // +build linux freebsd
 
 package fileutils // import "github.com/docker/docker/pkg/fileutils"

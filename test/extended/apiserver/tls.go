@@ -3,7 +3,7 @@ package apiserver
 import (
 	"crypto/tls"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 
 	"github.com/openshift/library-go/pkg/crypto"
 	exutil "github.com/openshift/origin/test/extended/util"

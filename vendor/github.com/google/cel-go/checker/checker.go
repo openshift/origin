@@ -80,10 +80,10 @@ func (c *checker) check(e *exprpb.Expr) {
 		return
 	}
 
-	switch e.GetExprKind().(type) {
+	switch e.ExprKind.(type) {
 	case *exprpb.Expr_ConstExpr:
 		literal := e.GetConstExpr()
-		switch literal.GetConstantKind().(type) {
+		switch literal.ConstantKind.(type) {
 		case *exprpb.Constant_BoolValue:
 			c.checkBoolLiteral(e)
 		case *exprpb.Constant_BytesValue:
@@ -149,8 +149,8 @@ func (c *checker) checkIdent(e *exprpb.Expr) {
 	identExpr := e.GetIdentExpr()
 	// Check to see if the identifier is declared.
 	if ident := c.env.LookupIdent(identExpr.GetName()); ident != nil {
-		c.setType(e, ident.GetIdent().GetType())
-		c.setReference(e, newIdentReference(ident.GetName(), ident.GetIdent().GetValue()))
+		c.setType(e, ident.GetIdent().Type)
+		c.setReference(e, newIdentReference(ident.GetName(), ident.GetIdent().Value))
 		// Overwrite the identifier with its fully qualified name.
 		identExpr.Name = ident.GetName()
 		return
@@ -168,9 +168,11 @@ func (c *checker) checkSelect(e *exprpb.Expr) {
 	if found {
 		ident := c.env.LookupIdent(qname)
 		if ident != nil {
-			// We don't check for a TestOnly expression here since the `found` result is
-			// always going to be false for TestOnly expressions.
-
+			if sel.TestOnly {
+				c.errors.expressionDoesNotSelectField(c.location(e))
+				c.setType(e, decls.Bool)
+				return
+			}
 			// Rewrite the node to be a variable reference to the resolved fully-qualified
 			// variable name.
 			c.setType(e, ident.GetIdent().Type)
@@ -186,24 +188,27 @@ func (c *checker) checkSelect(e *exprpb.Expr) {
 	}
 
 	// Interpret as field selection, first traversing down the operand.
-	c.check(sel.GetOperand())
-	targetType := substitute(c.mappings, c.getType(sel.GetOperand()), false)
+	c.check(sel.Operand)
+	targetType := c.getType(sel.Operand)
 	// Assume error type by default as most types do not support field selection.
 	resultType := decls.Error
 	switch kindOf(targetType) {
 	case kindMap:
 		// Maps yield their value type as the selection result type.
 		mapType := targetType.GetMapType()
-		resultType = mapType.GetValueType()
+		resultType = mapType.ValueType
 	case kindObject:
 		// Objects yield their field type declaration as the selection result type, but only if
 		// the field is defined.
 		messageType := targetType
-		if fieldType, found := c.lookupFieldType(c.location(e), messageType.GetMessageType(), sel.GetField()); found {
+		if fieldType, found := c.lookupFieldType(
+			c.location(e),
+			messageType.GetMessageType(),
+			sel.Field); found {
 			resultType = fieldType.Type
 		}
 	case kindTypeParam:
-		// Set the operand type to DYN to prevent assignment to a potentially incorrect type
+		// Set the operand type to DYN to prevent assignment to a potentionally incorrect type
 		// at a later point in type-checking. The isAssignable call will update the type
 		// substitutions for the type param under the covers.
 		c.isAssignable(decls.Dyn, targetType)
@@ -221,7 +226,7 @@ func (c *checker) checkSelect(e *exprpb.Expr) {
 	if sel.TestOnly {
 		resultType = decls.Bool
 	}
-	c.setType(e, substitute(c.mappings, resultType, false))
+	c.setType(e, resultType)
 }
 
 func (c *checker) checkCall(e *exprpb.Expr) {
@@ -317,39 +322,35 @@ func (c *checker) resolveOverload(
 
 	var resultType *exprpb.Type
 	var checkedRef *exprpb.Reference
-	for _, overload := range fn.GetFunction().GetOverloads() {
-		// Determine whether the overload is currently considered.
-		if c.env.isOverloadDisabled(overload.GetOverloadId()) {
-			continue
-		}
-
-		// Ensure the call style for the overload matches.
-		if (target == nil && overload.GetIsInstanceFunction()) ||
-			(target != nil && !overload.GetIsInstanceFunction()) {
+	for _, overload := range fn.GetFunction().Overloads {
+		if (target == nil && overload.IsInstanceFunction) ||
+			(target != nil && !overload.IsInstanceFunction) {
 			// not a compatible call style.
 			continue
 		}
 
 		overloadType := decls.NewFunctionType(overload.ResultType, overload.Params...)
-		if len(overload.GetTypeParams()) > 0 {
+		if len(overload.TypeParams) > 0 {
 			// Instantiate overload's type with fresh type variables.
 			substitutions := newMapping()
-			for _, typePar := range overload.GetTypeParams() {
+			for _, typePar := range overload.TypeParams {
 				substitutions.add(decls.NewTypeParamType(typePar), c.newTypeVar())
 			}
 			overloadType = substitute(substitutions, overloadType, false)
 		}
 
-		candidateArgTypes := overloadType.GetFunction().GetArgTypes()
+		candidateArgTypes := overloadType.GetFunction().ArgTypes
 		if c.isAssignableList(argTypes, candidateArgTypes) {
 			if checkedRef == nil {
-				checkedRef = newFunctionReference(overload.GetOverloadId())
+				checkedRef = newFunctionReference(overload.OverloadId)
 			} else {
-				checkedRef.OverloadId = append(checkedRef.GetOverloadId(), overload.GetOverloadId())
+				checkedRef.OverloadId = append(checkedRef.OverloadId, overload.OverloadId)
 			}
 
 			// First matching overload, determines result type.
-			fnResultType := substitute(c.mappings, overloadType.GetFunction().GetResultType(), false)
+			fnResultType := substitute(c.mappings,
+				overloadType.GetFunction().ResultType,
+				false)
 			if resultType == nil {
 				resultType = fnResultType
 			} else if !isDyn(resultType) && !proto.Equal(fnResultType, resultType) {
@@ -370,7 +371,7 @@ func (c *checker) resolveOverload(
 func (c *checker) checkCreateList(e *exprpb.Expr) {
 	create := e.GetListExpr()
 	var elemType *exprpb.Type
-	for _, e := range create.GetElements() {
+	for _, e := range create.Elements {
 		c.check(e)
 		elemType = c.joinTypes(c.location(e), elemType, c.getType(e))
 	}
@@ -383,7 +384,7 @@ func (c *checker) checkCreateList(e *exprpb.Expr) {
 
 func (c *checker) checkCreateStruct(e *exprpb.Expr) {
 	str := e.GetStructExpr()
-	if str.GetMessageName() != "" {
+	if str.MessageName != "" {
 		c.checkCreateMessage(e)
 	} else {
 		c.checkCreateMap(e)
@@ -414,22 +415,22 @@ func (c *checker) checkCreateMessage(e *exprpb.Expr) {
 	msgVal := e.GetStructExpr()
 	// Determine the type of the message.
 	messageType := decls.Error
-	decl := c.env.LookupIdent(msgVal.GetMessageName())
+	decl := c.env.LookupIdent(msgVal.MessageName)
 	if decl == nil {
 		c.errors.undeclaredReference(
-			c.location(e), c.env.container.Name(), msgVal.GetMessageName())
+			c.location(e), c.env.container.Name(), msgVal.MessageName)
 		return
 	}
 	// Ensure the type name is fully qualified in the AST.
 	msgVal.MessageName = decl.GetName()
 	c.setReference(e, newIdentReference(decl.GetName(), nil))
 	ident := decl.GetIdent()
-	identKind := kindOf(ident.GetType())
+	identKind := kindOf(ident.Type)
 	if identKind != kindError {
 		if identKind != kindType {
-			c.errors.notAType(c.location(e), ident.GetType())
+			c.errors.notAType(c.location(e), ident.Type)
 		} else {
-			messageType = ident.GetType().GetType()
+			messageType = ident.Type.GetType()
 			if kindOf(messageType) != kindObject {
 				c.errors.notAMessageType(c.location(e), messageType)
 				messageType = decls.Error
@@ -445,12 +446,12 @@ func (c *checker) checkCreateMessage(e *exprpb.Expr) {
 	// Check the field initializers.
 	for _, ent := range msgVal.GetEntries() {
 		field := ent.GetFieldKey()
-		value := ent.GetValue()
+		value := ent.Value
 		c.check(value)
 
 		fieldType := decls.Error
 		if t, found := c.lookupFieldType(
-			c.locationByID(ent.GetId()),
+			c.locationByID(ent.Id),
 			messageType.GetMessageType(),
 			field); found {
 			fieldType = t.Type
@@ -464,48 +465,48 @@ func (c *checker) checkCreateMessage(e *exprpb.Expr) {
 
 func (c *checker) checkComprehension(e *exprpb.Expr) {
 	comp := e.GetComprehensionExpr()
-	c.check(comp.GetIterRange())
-	c.check(comp.GetAccuInit())
-	accuType := c.getType(comp.GetAccuInit())
-	rangeType := substitute(c.mappings, c.getType(comp.GetIterRange()), false)
+	c.check(comp.IterRange)
+	c.check(comp.AccuInit)
+	accuType := c.getType(comp.AccuInit)
+	rangeType := c.getType(comp.IterRange)
 	var varType *exprpb.Type
 
 	switch kindOf(rangeType) {
 	case kindList:
-		varType = rangeType.GetListType().GetElemType()
+		varType = rangeType.GetListType().ElemType
 	case kindMap:
 		// Ranges over the keys.
-		varType = rangeType.GetMapType().GetKeyType()
+		varType = rangeType.GetMapType().KeyType
 	case kindDyn, kindError, kindTypeParam:
-		// Set the range type to DYN to prevent assignment to a potentially incorrect type
+		// Set the range type to DYN to prevent assignment to a potentionally incorrect type
 		// at a later point in type-checking. The isAssignable call will update the type
 		// substitutions for the type param under the covers.
 		c.isAssignable(decls.Dyn, rangeType)
 		// Set the range iteration variable to type DYN as well.
 		varType = decls.Dyn
 	default:
-		c.errors.notAComprehensionRange(c.location(comp.GetIterRange()), rangeType)
+		c.errors.notAComprehensionRange(c.location(comp.IterRange), rangeType)
 		varType = decls.Error
 	}
 
 	// Create a scope for the comprehension since it has a local accumulation variable.
 	// This scope will contain the accumulation variable used to compute the result.
 	c.env = c.env.enterScope()
-	c.env.Add(decls.NewVar(comp.GetAccuVar(), accuType))
+	c.env.Add(decls.NewVar(comp.AccuVar, accuType))
 	// Create a block scope for the loop.
 	c.env = c.env.enterScope()
-	c.env.Add(decls.NewVar(comp.GetIterVar(), varType))
+	c.env.Add(decls.NewVar(comp.IterVar, varType))
 	// Check the variable references in the condition and step.
-	c.check(comp.GetLoopCondition())
-	c.assertType(comp.GetLoopCondition(), decls.Bool)
-	c.check(comp.GetLoopStep())
-	c.assertType(comp.GetLoopStep(), accuType)
+	c.check(comp.LoopCondition)
+	c.assertType(comp.LoopCondition, decls.Bool)
+	c.check(comp.LoopStep)
+	c.assertType(comp.LoopStep, accuType)
 	// Exit the loop's block scope before checking the result.
 	c.env = c.env.exitScope()
-	c.check(comp.GetResult())
+	c.check(comp.Result)
 	// Exit the comprehension scope.
 	c.env = c.env.exitScope()
-	c.setType(e, substitute(c.mappings, c.getType(comp.GetResult()), false))
+	c.setType(e, c.getType(comp.Result))
 }
 
 // Checks compatibility of joined types, and returns the most general common type.
@@ -571,25 +572,25 @@ func (c *checker) lookupFieldType(l common.Location, messageType string, fieldNa
 }
 
 func (c *checker) setType(e *exprpb.Expr, t *exprpb.Type) {
-	if old, found := c.types[e.GetId()]; found && !proto.Equal(old, t) {
+	if old, found := c.types[e.Id]; found && !proto.Equal(old, t) {
 		c.errors.ReportError(c.location(e),
 			"(Incompatible) Type already exists for expression: %v(%d) old:%v, new:%v", e, e.GetId(), old, t)
 		return
 	}
-	c.types[e.GetId()] = t
+	c.types[e.Id] = t
 }
 
 func (c *checker) getType(e *exprpb.Expr) *exprpb.Type {
-	return c.types[e.GetId()]
+	return c.types[e.Id]
 }
 
 func (c *checker) setReference(e *exprpb.Expr, r *exprpb.Reference) {
-	if old, found := c.references[e.GetId()]; found && !proto.Equal(old, r) {
+	if old, found := c.references[e.Id]; found && !proto.Equal(old, r) {
 		c.errors.ReportError(c.location(e),
-			"Reference already exists for expression: %v(%d) old:%v, new:%v", e, e.GetId(), old, r)
+			"Reference already exists for expression: %v(%d) old:%v, new:%v", e, e.Id, old, r)
 		return
 	}
-	c.references[e.GetId()] = r
+	c.references[e.Id] = r
 }
 
 func (c *checker) assertType(e *exprpb.Expr, t *exprpb.Type) {
@@ -611,7 +612,7 @@ func newResolution(checkedRef *exprpb.Reference, t *exprpb.Type) *overloadResolu
 }
 
 func (c *checker) location(e *exprpb.Expr) common.Location {
-	return c.locationByID(e.GetId())
+	return c.locationByID(e.Id)
 }
 
 func (c *checker) locationByID(id int64) common.Location {
@@ -619,7 +620,7 @@ func (c *checker) locationByID(id int64) common.Location {
 	var line = 1
 	if offset, found := positions[id]; found {
 		col := int(offset)
-		for _, lineOffset := range c.sourceInfo.GetLineOffsets() {
+		for _, lineOffset := range c.sourceInfo.LineOffsets {
 			if lineOffset < offset {
 				line++
 				col = int(offset - lineOffset)

@@ -26,6 +26,7 @@ type Resource struct {
 	refVarNames []string
 }
 
+// nolint
 var BuildAnnotations = []string{
 	utils.BuildAnnotationPreviousKinds,
 	utils.BuildAnnotationPreviousNames,
@@ -255,9 +256,13 @@ func (r *Resource) appendCsvAnnotation(name, value string) {
 	if value == "" {
 		return
 	}
-	currentValue := r.getCsvAnnotation(name)
-	newValue := strings.Join(append(currentValue, value), ",")
-	if err := r.RNode.PipeE(kyaml.SetAnnotation(name, newValue)); err != nil {
+	annotations := r.GetAnnotations()
+	if existing, ok := annotations[name]; ok {
+		annotations[name] = existing + "," + value
+	} else {
+		annotations[name] = value
+	}
+	if err := r.SetAnnotations(annotations); err != nil {
 		panic(err)
 	}
 }

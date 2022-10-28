@@ -1,6 +1,7 @@
 package matchers
 
 import (
+	"github.com/onsi/gomega/internal/oraclematcher"
 	"github.com/onsi/gomega/types"
 )
 
@@ -25,5 +26,5 @@ func (m *NotMatcher) NegatedFailureMessage(actual interface{}) (message string) 
 }
 
 func (m *NotMatcher) MatchMayChangeInTheFuture(actual interface{}) bool {
-	return types.MatchMayChangeInTheFuture(m.Matcher, actual) // just return m.Matcher's value
+	return oraclematcher.MatchMayChangeInTheFuture(m.Matcher, actual) // just return m.Matcher's value
 }

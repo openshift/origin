@@ -17,9 +17,7 @@ limitations under the License.
 package prober
 
 import (
-	"fmt"
 	"math/rand"
-	"strings"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -27,7 +25,6 @@ import (
 	"k8s.io/component-base/metrics"
 	"k8s.io/klog/v2"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
-	"k8s.io/kubernetes/pkg/apis/apps"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/prober/results"
 )
@@ -77,10 +74,6 @@ type worker struct {
 	proberResultsSuccessfulMetricLabels metrics.Labels
 	proberResultsFailedMetricLabels     metrics.Labels
 	proberResultsUnknownMetricLabels    metrics.Labels
-	// proberDurationMetricLabels holds the labels attached to this worker
-	// for the ProberDuration metric by result.
-	proberDurationSuccessfulMetricLabels metrics.Labels
-	proberDurationUnknownMetricLabels    metrics.Labels
 }
 
 // Creates and starts a new probe worker.
@@ -114,21 +107,12 @@ func newWorker(
 		w.initialValue = results.Unknown
 	}
 
-	podName := getPodLabelName(w.pod)
-
 	basicMetricLabels := metrics.Labels{
 		"probe_type": w.probeType.String(),
 		"container":  w.container.Name,
-		"pod":        podName,
+		"pod":        w.pod.Name,
 		"namespace":  w.pod.Namespace,
 		"pod_uid":    string(w.pod.UID),
-	}
-
-	proberDurationLabels := metrics.Labels{
-		"probe_type": w.probeType.String(),
-		"container":  w.container.Name,
-		"pod":        podName,
-		"namespace":  w.pod.Namespace,
 	}
 
 	w.proberResultsSuccessfulMetricLabels = deepCopyPrometheusLabels(basicMetricLabels)
@@ -139,9 +123,6 @@ func newWorker(
 
 	w.proberResultsUnknownMetricLabels = deepCopyPrometheusLabels(basicMetricLabels)
 	w.proberResultsUnknownMetricLabels["result"] = probeResultUnknown
-
-	w.proberDurationSuccessfulMetricLabels = deepCopyPrometheusLabels(proberDurationLabels)
-	w.proberDurationUnknownMetricLabels = deepCopyPrometheusLabels(proberDurationLabels)
 
 	return w
 }
@@ -170,8 +151,6 @@ func (w *worker) run() {
 		ProberResults.Delete(w.proberResultsSuccessfulMetricLabels)
 		ProberResults.Delete(w.proberResultsFailedMetricLabels)
 		ProberResults.Delete(w.proberResultsUnknownMetricLabels)
-		ProberDuration.Delete(w.proberDurationSuccessfulMetricLabels)
-		ProberDuration.Delete(w.proberDurationUnknownMetricLabels)
 	}()
 
 probeLoop:
@@ -202,7 +181,6 @@ func (w *worker) doProbe() (keepGoing bool) {
 	defer func() { recover() }() // Actually eat panics (HandleCrash takes care of logging)
 	defer runtime.HandleCrash(func(_ interface{}) { keepGoing = true })
 
-	startTime := time.Now()
 	status, ok := w.probeManager.statusManager.GetPodStatus(w.pod.UID)
 	if !ok {
 		// Either the pod has not been created yet, or it was already deleted.
@@ -283,7 +261,9 @@ func (w *worker) doProbe() (keepGoing bool) {
 		}
 	}
 
-	// Note, exec probe does NOT have access to pod environment variables or downward API
+	// TODO: in order for exec probes to correctly handle downward API env, we must be able to reconstruct
+	// the full container environment here, OR we must make a call to the CRI in order to get those environment
+	// values from the running container.
 	result, err := w.probeManager.prober.probe(w.probeType, w.pod, status, w.container, w.containerID)
 	if err != nil {
 		// Prober error, throw away the result.
@@ -293,12 +273,10 @@ func (w *worker) doProbe() (keepGoing bool) {
 	switch result {
 	case results.Success:
 		ProberResults.With(w.proberResultsSuccessfulMetricLabels).Inc()
-		ProberDuration.With(w.proberDurationSuccessfulMetricLabels).Observe(time.Since(startTime).Seconds())
 	case results.Failure:
 		ProberResults.With(w.proberResultsFailedMetricLabels).Inc()
 	default:
 		ProberResults.With(w.proberResultsUnknownMetricLabels).Inc()
-		ProberDuration.With(w.proberDurationUnknownMetricLabels).Observe(time.Since(startTime).Seconds())
 	}
 
 	if w.lastResult == result {
@@ -334,16 +312,4 @@ func deepCopyPrometheusLabels(m metrics.Labels) metrics.Labels {
 		ret[k] = v
 	}
 	return ret
-}
-
-func getPodLabelName(pod *v1.Pod) string {
-	podName := pod.Name
-	if pod.GenerateName != "" {
-		podNameSlice := strings.Split(pod.Name, "-")
-		podName = strings.Join(podNameSlice[:len(podNameSlice)-1], "-")
-		if label, ok := pod.GetLabels()[apps.DefaultDeploymentUniqueLabelKey]; ok {
-			podName = strings.ReplaceAll(podName, fmt.Sprintf("-%s", label), "")
-		}
-	}
-	return podName
 }

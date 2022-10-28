@@ -3,7 +3,7 @@ package util
 import (
 	"fmt"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 )
 
 // DumpAndReturnTagging takes and array of tags and obtains the hex image IDs, dumps them to ginkgo for printing, and then returns them

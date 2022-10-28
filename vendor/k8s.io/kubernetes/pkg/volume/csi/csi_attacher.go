@@ -26,6 +26,9 @@ import (
 	"strings"
 	"time"
 
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/klog/v2"
+
 	v1 "k8s.io/api/core/v1"
 	storage "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,12 +36,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/volume"
-	"k8s.io/kubernetes/pkg/volume/util"
 	volumetypes "k8s.io/kubernetes/pkg/volume/util/types"
 	"k8s.io/utils/clock"
 )
@@ -331,9 +331,8 @@ func (c *csiAttacher) MountDevice(spec *volume.Spec, devicePath string, deviceMo
 	klog.V(4).Info(log("created target path successfully [%s]", deviceMountPath))
 	dataDir := filepath.Dir(deviceMountPath)
 	data := map[string]string{
-		volDataKey.volHandle:           csiSource.VolumeHandle,
-		volDataKey.driverName:          csiSource.Driver,
-		volDataKey.seLinuxMountContext: deviceMounterArgs.SELinuxLabel,
+		volDataKey.volHandle:  csiSource.VolumeHandle,
+		volDataKey.driverName: csiSource.Driver,
 	}
 
 	err = saveVolumeData(dataDir, volDataFileName, data)
@@ -370,16 +369,6 @@ func (c *csiAttacher) MountDevice(spec *volume.Spec, devicePath string, deviceMo
 	var mountOptions []string
 	if spec.PersistentVolume != nil && spec.PersistentVolume.Spec.MountOptions != nil {
 		mountOptions = spec.PersistentVolume.Spec.MountOptions
-	}
-
-	if utilfeature.DefaultFeatureGate.Enabled(features.SELinuxMountReadWriteOncePod) {
-		support, err := c.plugin.SupportsSELinuxContextMount(spec)
-		if err != nil {
-			return errors.New(log("failed to query for SELinuxMount support: %s", err))
-		}
-		if support {
-			mountOptions = util.AddSELinuxMountOption(mountOptions, deviceMounterArgs.SELinuxLabel)
-		}
 	}
 
 	var nodeStageFSGroupArg *int64

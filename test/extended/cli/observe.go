@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 

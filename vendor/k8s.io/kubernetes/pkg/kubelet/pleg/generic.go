@@ -325,25 +325,29 @@ func (g *GenericPLEG) relist() {
 func getContainersFromPods(pods ...*kubecontainer.Pod) []*kubecontainer.Container {
 	cidSet := sets.NewString()
 	var containers []*kubecontainer.Container
-	fillCidSet := func(cs []*kubecontainer.Container) {
-		for _, c := range cs {
-			cid := c.ID.ID
+	for _, p := range pods {
+		if p == nil {
+			continue
+		}
+		for _, c := range p.Containers {
+			cid := string(c.ID.ID)
 			if cidSet.Has(cid) {
 				continue
 			}
 			cidSet.Insert(cid)
 			containers = append(containers, c)
 		}
-	}
-
-	for _, p := range pods {
-		if p == nil {
-			continue
-		}
-		fillCidSet(p.Containers)
 		// Update sandboxes as containers
 		// TODO: keep track of sandboxes explicitly.
-		fillCidSet(p.Sandboxes)
+		for _, c := range p.Sandboxes {
+			cid := string(c.ID.ID)
+			if cidSet.Has(cid) {
+				continue
+			}
+			cidSet.Insert(cid)
+			containers = append(containers, c)
+		}
+
 	}
 	return containers
 }

@@ -40,7 +40,8 @@ func (sf *Filter) String() string {
 }
 
 func (sf *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
-	if err := sf.setup(); err != nil {
+	err := sf.setup()
+	if err != nil {
 		return nil, err
 	}
 	sf.FunctionFilter.Run = sf.Run

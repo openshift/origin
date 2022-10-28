@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -31,6 +31,7 @@ import (
 var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 	f := framework.NewDefaultFramework("cluster-resiliency")
 	f.SkipNamespaceCreation = true
+	f.SkipPrivilegedPSPBinding = true
 
 	oc := exutil.NewCLIWithoutNamespace("cluster-resiliency")
 

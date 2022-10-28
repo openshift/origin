@@ -44,7 +44,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/network/common"
 	admissionapi "k8s.io/pod-security-admission/api"
 
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 )
 
 const (
@@ -102,7 +102,7 @@ var _ = common.SIGDescribe("Loadbalancing: L7", func() {
 
 		// Platform specific cleanup
 		ginkgo.AfterEach(func() {
-			if ginkgo.CurrentSpecReport().Failed() {
+			if ginkgo.CurrentGinkgoTestDescription().Failed {
 				e2eingress.DescribeIng(ns)
 			}
 			if jig.Ingress == nil {
@@ -147,7 +147,7 @@ var _ = common.SIGDescribe("Loadbalancing: L7", func() {
 
 		// Platform specific cleanup
 		ginkgo.AfterEach(func() {
-			if ginkgo.CurrentSpecReport().Failed() {
+			if ginkgo.CurrentGinkgoTestDescription().Failed {
 				e2eingress.DescribeIng(ns)
 			}
 			if jig.Ingress == nil {

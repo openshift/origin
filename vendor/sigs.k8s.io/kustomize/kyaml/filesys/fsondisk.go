@@ -9,8 +9,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-
-	"sigs.k8s.io/kustomize/kyaml/errors"
 )
 
 var _ FileSystem = fsOnDisk{}
@@ -130,7 +128,7 @@ func (fsOnDisk) ReadFile(name string) ([]byte, error) { return ioutil.ReadFile(n
 
 // WriteFile delegates to ioutil.WriteFile with read/write permissions.
 func (fsOnDisk) WriteFile(name string, c []byte) error {
-	return errors.Wrap(ioutil.WriteFile(name, c, 0666)) //nolint:gosec
+	return ioutil.WriteFile(name, c, 0666)
 }
 
 // Walk delegates to filepath.Walk.

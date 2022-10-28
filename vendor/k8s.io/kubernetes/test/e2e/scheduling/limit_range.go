@@ -38,7 +38,7 @@ import (
 	imageutils "k8s.io/kubernetes/test/utils/image"
 	admissionapi "k8s.io/pod-security-admission/api"
 
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 )
 
 const (
@@ -75,10 +75,20 @@ var _ = SIGDescribe("LimitRange", func() {
 		framework.ExpectNoError(err, "failed to query for limitRanges")
 		framework.ExpectEqual(len(limitRanges.Items), 0)
 
+		listCompleted := make(chan bool, 1)
 		lw := &cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				options.LabelSelector = selector.String()
 				limitRanges, err := f.ClientSet.CoreV1().LimitRanges(f.Namespace.Name).List(context.TODO(), options)
+				if err == nil {
+					select {
+					case listCompleted <- true:
+						framework.Logf("observed the limitRanges list")
+						return limitRanges, err
+					default:
+						framework.Logf("channel blocked")
+					}
+				}
 				return limitRanges, err
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
@@ -86,14 +96,8 @@ var _ = SIGDescribe("LimitRange", func() {
 				return f.ClientSet.CoreV1().LimitRanges(f.Namespace.Name).Watch(context.TODO(), options)
 			},
 		}
-		_, informer, w, _ := watchtools.NewIndexerInformerWatcher(lw, &v1.LimitRange{})
+		_, _, w, _ := watchtools.NewIndexerInformerWatcher(lw, &v1.LimitRange{})
 		defer w.Stop()
-
-		ctx, cancelCtx := context.WithTimeout(context.TODO(), wait.ForeverTestTimeout)
-		defer cancelCtx()
-		if !cache.WaitForCacheSync(ctx.Done(), informer.HasSynced) {
-			framework.Failf("Timeout while waiting for LimitRange informer to sync")
-		}
 
 		ginkgo.By("Submitting a LimitRange")
 		limitRange, err = f.ClientSet.CoreV1().LimitRanges(f.Namespace.Name).Create(context.TODO(), limitRange, metav1.CreateOptions{})
@@ -101,12 +105,17 @@ var _ = SIGDescribe("LimitRange", func() {
 
 		ginkgo.By("Verifying LimitRange creation was observed")
 		select {
-		case event, _ := <-w.ResultChan():
-			if event.Type != watch.Added {
-				framework.Failf("Failed to observe limitRange creation : %v", event)
+		case <-listCompleted:
+			select {
+			case event, _ := <-w.ResultChan():
+				if event.Type != watch.Added {
+					framework.Failf("Failed to observe limitRange creation : %v", event)
+				}
+			case <-time.After(e2eservice.RespondingTimeout):
+				framework.Failf("Timeout while waiting for LimitRange creation")
 			}
 		case <-time.After(e2eservice.RespondingTimeout):
-			framework.Failf("Timeout while waiting for LimitRange creation")
+			framework.Failf("Timeout while waiting for LimitRange list complete")
 		}
 
 		ginkgo.By("Fetching the LimitRange to ensure it has proper values")

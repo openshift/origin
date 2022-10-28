@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
+
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"github.com/prometheus/common/model"
 
 	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	"github.com/openshift/origin/test/extended/prometheus/client"
 	exutil "github.com/openshift/origin/test/extended/util"
 )

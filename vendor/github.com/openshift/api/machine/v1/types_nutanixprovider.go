@@ -81,7 +81,6 @@ const (
 // +union
 type NutanixResourceIdentifier struct {
 	// Type is the identifier type to use for this resource.
-	// +unionDiscriminator
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum:=uuid;name
 	Type NutanixIdentifierType `json:"type"`

@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"

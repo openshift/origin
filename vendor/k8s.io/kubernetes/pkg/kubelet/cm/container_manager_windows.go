@@ -30,9 +30,11 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/tools/record"
 	internalapi "k8s.io/cri-api/pkg/apis"
 	podresourcesapi "k8s.io/kubelet/pkg/apis/podresources/v1"
+	kubefeatures "k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	"k8s.io/kubernetes/pkg/kubelet/cm/admission"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager"
@@ -70,11 +72,10 @@ func (cm *containerManagerImpl) Start(node *v1.Node,
 	activePods ActivePodsFunc,
 	sourcesReady config.SourcesReady,
 	podStatusProvider status.PodStatusProvider,
-	runtimeService internalapi.RuntimeService,
-	localStorageCapacityIsolation bool) error {
+	runtimeService internalapi.RuntimeService) error {
 	klog.V(2).InfoS("Starting Windows container manager")
 
-	if localStorageCapacityIsolation {
+	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.LocalStorageCapacityIsolation) {
 		rootfs, err := cm.cadvisorInterface.RootFsInfo()
 		if err != nil {
 			return fmt.Errorf("failed to get rootfs info: %v", err)
@@ -170,7 +171,7 @@ func (cm *containerManagerImpl) GetNodeAllocatableReservation() v1.ResourceList 
 	return result
 }
 
-func (cm *containerManagerImpl) GetCapacity(localStorageCapacityIsolation bool) v1.ResourceList {
+func (cm *containerManagerImpl) GetCapacity() v1.ResourceList {
 	return cm.capacity
 }
 

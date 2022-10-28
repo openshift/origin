@@ -46,7 +46,6 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/internal/heap"
 	"k8s.io/kubernetes/pkg/scheduler/metrics"
 	"k8s.io/kubernetes/pkg/scheduler/util"
-	"k8s.io/utils/clock"
 )
 
 const (
@@ -127,17 +126,17 @@ func NominatedNodeName(pod *v1.Pod) string {
 // The head of PriorityQueue is the highest priority pending pod. This structure
 // has two sub queues and a additional data structure, namely: activeQ,
 // backoffQ and unschedulablePods.
-//   - activeQ holds pods that are being considered for scheduling.
-//   - backoffQ holds pods that moved from unschedulablePods and will move to
-//     activeQ when their backoff periods complete.
-//   - unschedulablePods holds pods that were already attempted for scheduling and
-//     are currently determined to be unschedulable.
+// - activeQ holds pods that are being considered for scheduling.
+// - backoffQ holds pods that moved from unschedulablePods and will move to
+//   activeQ when their backoff periods complete.
+// - unschedulablePods holds pods that were already attempted for scheduling and
+//   are currently determined to be unschedulable.
 type PriorityQueue struct {
 	// PodNominator abstracts the operations to maintain nominated Pods.
 	framework.PodNominator
 
 	stop  chan struct{}
-	clock clock.Clock
+	clock util.Clock
 
 	// pod initial backoff duration.
 	podInitialBackoffDuration time.Duration
@@ -176,7 +175,7 @@ type PriorityQueue struct {
 }
 
 type priorityQueueOptions struct {
-	clock                             clock.Clock
+	clock                             util.Clock
 	podInitialBackoffDuration         time.Duration
 	podMaxBackoffDuration             time.Duration
 	podMaxInUnschedulablePodsDuration time.Duration
@@ -187,8 +186,8 @@ type priorityQueueOptions struct {
 // Option configures a PriorityQueue
 type Option func(*priorityQueueOptions)
 
-// WithClock sets clock for PriorityQueue, the default clock is clock.RealClock.
-func WithClock(clock clock.Clock) Option {
+// WithClock sets clock for PriorityQueue, the default clock is util.RealClock.
+func WithClock(clock util.Clock) Option {
 	return func(o *priorityQueueOptions) {
 		o.clock = clock
 	}
@@ -230,7 +229,7 @@ func WithPodMaxInUnschedulablePodsDuration(duration time.Duration) Option {
 }
 
 var defaultPriorityQueueOptions = priorityQueueOptions{
-	clock:                             clock.RealClock{},
+	clock:                             util.RealClock{},
 	podInitialBackoffDuration:         DefaultPodInitialBackoffDuration,
 	podMaxBackoffDuration:             DefaultPodMaxBackoffDuration,
 	podMaxInUnschedulablePodsDuration: DefaultPodMaxInUnschedulablePodsDuration,
@@ -415,7 +414,7 @@ func (p *PriorityQueue) AddUnschedulableIfNotPresent(pInfo *framework.QueuedPodI
 	}
 	if p.moveRequestCycle >= podSchedulingCycle {
 		if err := p.podBackoffQ.Add(pInfo); err != nil {
-			return fmt.Errorf("error adding pod %v to the backoff queue: %v", klog.KObj(pod), err)
+			return fmt.Errorf("error adding pod %v to the backoff queue: %v", pod.Name, err)
 		}
 		metrics.SchedulerQueueIncomingPods.WithLabelValues("backoff", ScheduleAttemptFailure).Inc()
 	} else {
@@ -432,7 +431,7 @@ func (p *PriorityQueue) AddUnschedulableIfNotPresent(pInfo *framework.QueuedPodI
 func (p *PriorityQueue) flushBackoffQCompleted() {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	activated := false
+	broadcast := false
 	for {
 		rawPodInfo := p.podBackoffQ.Peek()
 		if rawPodInfo == nil {
@@ -450,10 +449,10 @@ func (p *PriorityQueue) flushBackoffQCompleted() {
 		}
 		p.activeQ.Add(rawPodInfo)
 		metrics.SchedulerQueueIncomingPods.WithLabelValues("active", BackoffComplete).Inc()
-		activated = true
+		broadcast = true
 	}
 
-	if activated {
+	if broadcast {
 		p.cond.Broadcast()
 	}
 }
@@ -625,7 +624,7 @@ func (p *PriorityQueue) MoveAllToActiveOrBackoffQueue(event framework.ClusterEve
 
 // NOTE: this function assumes lock has been acquired in caller
 func (p *PriorityQueue) movePodsToActiveOrBackoffQueue(podInfoList []*framework.QueuedPodInfo, event framework.ClusterEvent) {
-	activated := false
+	moved := false
 	for _, pInfo := range podInfoList {
 		// If the event doesn't help making the Pod schedulable, continue.
 		// Note: we don't run the check if pInfo.UnschedulablePlugins is nil, which denotes
@@ -634,6 +633,7 @@ func (p *PriorityQueue) movePodsToActiveOrBackoffQueue(podInfoList []*framework.
 		if len(pInfo.UnschedulablePlugins) != 0 && !p.podMatchesEvent(pInfo, event) {
 			continue
 		}
+		moved = true
 		pod := pInfo.Pod
 		if p.isPodBackingoff(pInfo) {
 			if err := p.podBackoffQ.Add(pInfo); err != nil {
@@ -646,14 +646,13 @@ func (p *PriorityQueue) movePodsToActiveOrBackoffQueue(podInfoList []*framework.
 			if err := p.activeQ.Add(pInfo); err != nil {
 				klog.ErrorS(err, "Error adding pod to the scheduling queue", "pod", klog.KObj(pod))
 			} else {
-				activated = true
 				metrics.SchedulerQueueIncomingPods.WithLabelValues("active", event.Label).Inc()
 				p.unschedulablePods.delete(pod)
 			}
 		}
 	}
 	p.moveRequestCycle = p.schedulingCycle
-	if activated {
+	if moved {
 		p.cond.Broadcast()
 	}
 }

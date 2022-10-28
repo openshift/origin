@@ -108,10 +108,6 @@ func (plugin *hostPathPlugin) SupportsBulkVolumeVerification() bool {
 	return false
 }
 
-func (plugin *hostPathPlugin) SupportsSELinuxContextMount(spec *volume.Spec) (bool, error) {
-	return false, nil
-}
-
 func (plugin *hostPathPlugin) GetAccessModes() []v1.PersistentVolumeAccessMode {
 	return []v1.PersistentVolumeAccessMode{
 		v1.ReadWriteOnce,

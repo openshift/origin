@@ -10,7 +10,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -36,7 +36,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] s2i build with environmen
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentSpecReport().Failed() {
+			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)

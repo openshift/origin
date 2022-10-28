@@ -41,17 +41,11 @@ func (g *TokenGroupAdder) AuthenticateToken(ctx context.Context, token string) (
 	if err != nil || !ok {
 		return nil, ok, err
 	}
-
-	newGroups := make([]string, 0, len(r.User.GetGroups())+len(g.Groups))
-	newGroups = append(newGroups, r.User.GetGroups()...)
-	newGroups = append(newGroups, g.Groups...)
-
-	ret := *r // shallow copy
-	ret.User = &user.DefaultInfo{
+	r.User = &user.DefaultInfo{
 		Name:   r.User.GetName(),
 		UID:    r.User.GetUID(),
-		Groups: newGroups,
+		Groups: append(r.User.GetGroups(), g.Groups...),
 		Extra:  r.User.GetExtra(),
 	}
-	return &ret, true, nil
+	return r, true, nil
 }

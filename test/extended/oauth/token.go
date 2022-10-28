@@ -8,7 +8,7 @@ import (
 
 	"github.com/pborman/uuid"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"github.com/openshift/client-go/user/clientset/versioned"
 	"k8s.io/apimachinery/pkg/api/errors"

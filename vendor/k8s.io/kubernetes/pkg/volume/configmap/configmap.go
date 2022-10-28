@@ -90,10 +90,6 @@ func (plugin *configMapPlugin) SupportsBulkVolumeVerification() bool {
 	return false
 }
 
-func (plugin *configMapPlugin) SupportsSELinuxContextMount(spec *volume.Spec) (bool, error) {
-	return false, nil
-}
-
 func (plugin *configMapPlugin) NewMounter(spec *volume.Spec, pod *v1.Pod, opts volume.VolumeOptions) (volume.Mounter, error) {
 	return &configMapVolumeMounter{
 		configMapVolume: &configMapVolume{

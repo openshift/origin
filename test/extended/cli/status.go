@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	"k8s.io/apimachinery/pkg/util/wait"

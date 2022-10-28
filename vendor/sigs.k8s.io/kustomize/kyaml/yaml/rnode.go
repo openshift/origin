@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/errors"
 	"sigs.k8s.io/kustomize/kyaml/internal/forked/github.com/go-yaml/yaml"
 	"sigs.k8s.io/kustomize/kyaml/sliceutil"
-	"sigs.k8s.io/kustomize/kyaml/utils"
 	"sigs.k8s.io/kustomize/kyaml/yaml/internal/k8sgen/pkg/labels"
 )
 
@@ -1208,7 +1207,7 @@ func (rn *RNode) GetString(path string) (string, error) {
 // assuming we keep the var feature in kustomize.
 // The other end of this is: refvar.go:updateNodeValue.
 func (rn *RNode) GetFieldValue(path string) (interface{}, error) {
-	fields := convertSliceIndex(utils.SmarterPathSplitter(path, "."))
+	fields := convertSliceIndex(strings.Split(path, "."))
 	rn, err := rn.Pipe(Lookup(fields...))
 	if err != nil {
 		return nil, err

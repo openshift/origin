@@ -26,6 +26,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -421,7 +422,7 @@ func (s *Plugin) mountServiceAccountToken(serviceAccount *corev1.ServiceAccount,
 func TokenVolumeSource() *api.ProjectedVolumeSource {
 	return &api.ProjectedVolumeSource{
 		// explicitly set default value, see #104464
-		DefaultMode: pointer.Int32(corev1.ProjectedVolumeSourceDefaultMode),
+		DefaultMode: pointer.Int32(v1.ProjectedVolumeSourceDefaultMode),
 		Sources: []api.VolumeProjection{
 			{
 				ServiceAccountToken: &api.ServiceAccountTokenProjection{

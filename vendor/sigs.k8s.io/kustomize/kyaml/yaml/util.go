@@ -67,4 +67,5 @@ func keyLineBeforeSeqElem(lines []string, seqElemIndex int) string {
 		return parts[0] // throw away the trailing comment part
 	}
 	return ""
+
 }

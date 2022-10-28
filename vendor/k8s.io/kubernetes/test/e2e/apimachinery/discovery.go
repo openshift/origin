@@ -30,7 +30,7 @@ import (
 	"k8s.io/kubernetes/test/utils/crd"
 	admissionapi "k8s.io/pod-security-admission/api"
 
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 )
 
 var storageVersionServerVersion = utilversion.MustParseSemantic("v1.13.99")

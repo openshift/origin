@@ -96,10 +96,6 @@ func (plugin *localVolumePlugin) SupportsBulkVolumeVerification() bool {
 	return false
 }
 
-func (plugin *localVolumePlugin) SupportsSELinuxContextMount(spec *volume.Spec) (bool, error) {
-	return false, nil
-}
-
 func (plugin *localVolumePlugin) GetAccessModes() []v1.PersistentVolumeAccessMode {
 	// The current meaning of AccessMode is how many nodes can attach to it, not how many pods can mount it
 	return []v1.PersistentVolumeAccessMode{
@@ -416,7 +412,7 @@ func (plugin *localVolumePlugin) NodeExpand(resizeOptions volume.NodeResizeOptio
 	case hostutil.FileTypeDirectory:
 		// if the given local volume path is of already filesystem directory, return directly because
 		// we do not want to prevent mount operation from succeeding.
-		klog.InfoS("Expansion of directory based local volumes is NO-OP", "local-volume-path", localDevicePath)
+		klog.InfoS("expansion of directory based local volumes is NO-OP", "local-volume-path", localDevicePath)
 		return true, nil
 	default:
 		return false, fmt.Errorf("only directory and block device are supported")

@@ -113,16 +113,25 @@ func (c *connection) clientHandshake(dialAddress string, config *ClientConfig) e
 	return c.clientAuthenticate(config)
 }
 
-// verifyHostKeySignature verifies the host key obtained in the key exchange.
-// algo is the negotiated algorithm, and may be a certificate type.
+// verifyHostKeySignature verifies the host key obtained in the key
+// exchange.
 func verifyHostKeySignature(hostKey PublicKey, algo string, result *kexResult) error {
 	sig, rest, ok := parseSignatureBody(result.Signature)
 	if len(rest) > 0 || !ok {
 		return errors.New("ssh: signature parse error")
 	}
 
-	if a := underlyingAlgo(algo); sig.Format != a {
-		return fmt.Errorf("ssh: invalid signature algorithm %q, expected %q", sig.Format, a)
+	// For keys, underlyingAlgo is exactly algo. For certificates,
+	// we have to look up the underlying key algorithm that SSH
+	// uses to evaluate signatures.
+	underlyingAlgo := algo
+	for sigAlgo, certAlgo := range certAlgoNames {
+		if certAlgo == algo {
+			underlyingAlgo = sigAlgo
+		}
+	}
+	if sig.Format != underlyingAlgo {
+		return fmt.Errorf("ssh: invalid signature algorithm %q, expected %q", sig.Format, underlyingAlgo)
 	}
 
 	return hostKey.Verify(result.H, sig)
@@ -228,11 +237,11 @@ type ClientConfig struct {
 	// be used for the connection. If empty, a reasonable default is used.
 	ClientVersion string
 
-	// HostKeyAlgorithms lists the public key algorithms that the client will
-	// accept from the server for host key authentication, in order of
+	// HostKeyAlgorithms lists the key types that the client will
+	// accept from the server as host key, in order of
 	// preference. If empty, a reasonable default is used. Any
-	// string returned from a PublicKey.Type method may be used, or
-	// any of the CertAlgo and KeyAlgo constants.
+	// string returned from PublicKey.Type method may be used, or
+	// any of the CertAlgoXxxx and KeyAlgoXxxx constants.
 	HostKeyAlgorithms []string
 
 	// Timeout is the maximum amount of time for the TCP connection to establish.

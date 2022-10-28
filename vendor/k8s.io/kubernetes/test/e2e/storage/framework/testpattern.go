@@ -102,9 +102,8 @@ var (
 	}
 	// DefaultFsGenericEphemeralVolume is TestPattern for "Generic Ephemeral-volume (default fs)"
 	DefaultFsGenericEphemeralVolume = TestPattern{
-		Name:           "Generic Ephemeral-volume (default fs)",
-		VolType:        GenericEphemeralVolume,
-		AllowExpansion: true,
+		Name:    "Generic Ephemeral-volume (default fs)",
+		VolType: GenericEphemeralVolume,
 	}
 	// DefaultFsPreprovisionedPV is TestPattern for "Pre-provisioned PV (default fs)"
 	DefaultFsPreprovisionedPV = TestPattern{
@@ -300,11 +299,10 @@ var (
 	}
 	// BlockVolModeGenericEphemeralVolume is for generic ephemeral inline volumes in raw block mode.
 	BlockVolModeGenericEphemeralVolume = TestPattern{
-		Name:           "Generic Ephemeral-volume (block volmode) (late-binding)",
-		VolType:        GenericEphemeralVolume,
-		VolMode:        v1.PersistentVolumeBlock,
-		BindingMode:    storagev1.VolumeBindingWaitForFirstConsumer,
-		AllowExpansion: true,
+		Name:        "Generic Ephemeral-volume (block volmode) (late-binding)",
+		VolType:     GenericEphemeralVolume,
+		VolMode:     v1.PersistentVolumeBlock,
+		BindingMode: storagev1.VolumeBindingWaitForFirstConsumer,
 	}
 
 	// Definitions for snapshot case

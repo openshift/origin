@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	s "github.com/onsi/gomega/gstruct"
 	t "github.com/onsi/gomega/types"

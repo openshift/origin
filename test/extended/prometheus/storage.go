@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	imageeco "github.com/openshift/origin/test/extended/image_ecosystem"
@@ -37,7 +37,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds with a context dir
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentSpecReport().Failed() {
+			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)

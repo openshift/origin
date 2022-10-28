@@ -123,10 +123,6 @@ func (plugin *cinderPlugin) SupportsBulkVolumeVerification() bool {
 	return false
 }
 
-func (plugin *cinderPlugin) SupportsSELinuxContextMount(spec *volume.Spec) (bool, error) {
-	return false, nil
-}
-
 var _ volume.VolumePluginWithAttachLimits = &cinderPlugin{}
 
 func (plugin *cinderPlugin) GetVolumeLimits() (map[string]int64, error) {

@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"k8s.io/apiserver/pkg/storage/value"
-	"k8s.io/apiserver/pkg/storage/value/encrypt/envelope/metrics"
 	"k8s.io/utils/lru"
 
 	"golang.org/x/crypto/cryptobyte"
@@ -35,7 +34,7 @@ import (
 
 func init() {
 	value.RegisterMetrics()
-	metrics.RegisterMetrics()
+	registerMetrics()
 }
 
 // Service allows encrypting and decrypting data using an external Key Management Service.
@@ -82,7 +81,7 @@ func NewEnvelopeTransformer(envelopeService Service, cacheSize int, baseTransfor
 
 // TransformFromStorage decrypts data encrypted by this transformer using envelope encryption.
 func (t *envelopeTransformer) TransformFromStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, bool, error) {
-	metrics.RecordArrival(metrics.FromStorageLabel, time.Now())
+	recordArrival(fromStorageLabel, time.Now())
 
 	// Read the 16 bit length-of-DEK encoded at the start of the encrypted DEK. 16 bits can
 	// represent a maximum key length of 65536 bytes. We are using a 256 bit key, whose
@@ -120,7 +119,7 @@ func (t *envelopeTransformer) TransformFromStorage(ctx context.Context, data []b
 
 // TransformToStorage encrypts data to be written to disk using envelope encryption.
 func (t *envelopeTransformer) TransformToStorage(ctx context.Context, data []byte, dataCtx value.Context) ([]byte, error) {
-	metrics.RecordArrival(metrics.ToStorageLabel, time.Now())
+	recordArrival(toStorageLabel, time.Now())
 	newKey, err := generateKey(32)
 	if err != nil {
 		return nil, err
@@ -166,7 +165,7 @@ func (t *envelopeTransformer) addTransformer(encKey []byte, key []byte) (value.T
 	// cannot hash []uint8.
 	if t.cacheEnabled {
 		t.transformers.Add(base64.StdEncoding.EncodeToString(encKey), transformer)
-		metrics.RecordDekCacheFillPercent(float64(t.transformers.Len()) / float64(t.cacheSize))
+		dekCacheFillPercent.Set(float64(t.transformers.Len()) / float64(t.cacheSize))
 	}
 	return transformer, nil
 }

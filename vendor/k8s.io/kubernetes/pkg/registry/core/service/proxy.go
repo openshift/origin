@@ -46,12 +46,6 @@ func (r *ProxyREST) New() runtime.Object {
 	return &api.ServiceProxyOptions{}
 }
 
-// Destroy cleans up resources on shutdown.
-func (r *ProxyREST) Destroy() {
-	// Given no underlying store, we don't destroy anything
-	// here explicitly.
-}
-
 // ConnectMethods returns the list of HTTP methods that can be proxied
 func (r *ProxyREST) ConnectMethods() []string {
 	return proxyMethods

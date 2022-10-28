@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	kapiv1 "k8s.io/api/core/v1"
@@ -60,7 +60,7 @@ func defineTest(name string, t tc, oc *exutil.CLI) {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the pod to be running")
-			err = e2epod.WaitForPodSuccessInNamespaceSlow(oc.KubeClient(), pod.Name, oc.Namespace())
+			err = e2epod.WaitForPodRunningInNamespaceSlow(oc.KubeClient(), pod.Name, oc.Namespace())
 			if err != nil {
 				p, e := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pod.Name, metav1.GetOptions{})
 				if e != nil {
@@ -113,7 +113,7 @@ func defineTest(name string, t tc, oc *exutil.CLI) {
 			_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), pod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = e2epod.WaitForPodSuccessInNamespaceSlow(oc.KubeClient(), pod.Name, oc.Namespace())
+			err = e2epod.WaitForPodRunningInNamespaceSlow(oc.KubeClient(), pod.Name, oc.Namespace())
 			if err != nil {
 				p, e := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pod.Name, metav1.GetOptions{})
 				if e != nil {
@@ -172,7 +172,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][Slow] openshift images s
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentSpecReport().Failed() {
+			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}

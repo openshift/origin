@@ -58,12 +58,6 @@ func (rs *REST) New() runtime.Object {
 	return &api.ComponentStatus{}
 }
 
-// Destroy cleans up resources on shutdown.
-func (r *REST) Destroy() {
-	// Given no underlying store, we don't destroy anything
-	// here explicitly.
-}
-
 func (rs *REST) NewList() runtime.Object {
 	return &api.ComponentStatusList{}
 }

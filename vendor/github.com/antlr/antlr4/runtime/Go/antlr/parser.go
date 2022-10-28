@@ -425,7 +425,7 @@ func (p *BaseParser) Consume() Token {
 	}
 	hasListener := p.parseListeners != nil && len(p.parseListeners) > 0
 	if p.BuildParseTrees || hasListener {
-		if p.errHandler.InErrorRecoveryMode(p) {
+		if p.errHandler.inErrorRecoveryMode(p) {
 			node := p.ctx.AddErrorNode(o)
 			if p.parseListeners != nil {
 				for _, l := range p.parseListeners {

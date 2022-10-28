@@ -24,7 +24,7 @@ import (
 	"time"
 
 	jsonpatch "github.com/evanphx/json-patch"
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"

@@ -25,7 +25,6 @@ import (
 	"math"
 	"net"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -132,7 +131,7 @@ type http2Client struct {
 	kpDormant bool
 
 	// Fields below are for channelz metric collection.
-	channelzID *channelz.Identifier
+	channelzID int64 // channelz unique identification number
 	czData     *channelzData
 
 	onGoAway func(GoAwayReason)
@@ -147,20 +146,13 @@ func dial(ctx context.Context, fn func(context.Context, string) (net.Conn, error
 	address := addr.Addr
 	networkType, ok := networktype.Get(addr)
 	if fn != nil {
-		// Special handling for unix scheme with custom dialer. Back in the day,
-		// we did not have a unix resolver and therefore targets with a unix
-		// scheme would end up using the passthrough resolver. So, user's used a
-		// custom dialer in this case and expected the original dial target to
-		// be passed to the custom dialer. Now, we have a unix resolver. But if
-		// a custom dialer is specified, we want to retain the old behavior in
-		// terms of the address being passed to the custom dialer.
 		if networkType == "unix" && !strings.HasPrefix(address, "\x00") {
-			// Supported unix targets are either "unix://absolute-path" or
-			// "unix:relative-path".
-			if filepath.IsAbs(address) {
-				return fn(ctx, "unix://"+address)
-			}
-			return fn(ctx, "unix:"+address)
+			// For backward compatibility, if the user dialed "unix:///path",
+			// the passthrough resolver would be used and the user's custom
+			// dialer would see "unix:///path". Since the unix resolver is used
+			// and the address is now "/path", prepend "unix://" so the user's
+			// custom dialer sees the same address.
+			return fn(ctx, "unix://"+address)
 		}
 		return fn(ctx, address)
 	}
@@ -200,12 +192,6 @@ func newHTTP2Client(connectCtx, ctx context.Context, addr resolver.Address, opts
 			cancel()
 		}
 	}()
-
-	// gRPC, resolver, balancer etc. can specify arbitrary data in the
-	// Attributes field of resolver.Address, which is shoved into connectCtx
-	// and passed to the dialer and credential handshaker. This makes it possible for
-	// address specific arbitrary data to reach custom dialers and credential handshakers.
-	connectCtx = icredentials.NewClientHandshakeInfoContext(connectCtx, credentials.ClientHandshakeInfo{Attributes: addr.Attributes})
 
 	conn, err := dial(connectCtx, opts.Dialer, addr, opts.UseProxy, opts.UserAgent)
 	if err != nil {
@@ -251,6 +237,11 @@ func newHTTP2Client(connectCtx, ctx context.Context, addr resolver.Address, opts
 		}
 	}
 	if transportCreds != nil {
+		// gRPC, resolver, balancer etc. can specify arbitrary data in the
+		// Attributes field of resolver.Address, which is shoved into connectCtx
+		// and passed to the credential handshaker. This makes it possible for
+		// address specific arbitrary data to reach the credential handshaker.
+		connectCtx = icredentials.NewClientHandshakeInfoContext(connectCtx, credentials.ClientHandshakeInfo{Attributes: addr.Attributes})
 		rawConn := conn
 		// Pull the deadline from the connectCtx, which will be used for
 		// timeouts in the authentication protocol handshake. Can ignore the
@@ -351,9 +342,8 @@ func newHTTP2Client(connectCtx, ctx context.Context, addr resolver.Address, opts
 		}
 		t.statsHandler.HandleConn(t.ctx, connBegin)
 	}
-	t.channelzID, err = channelz.RegisterNormalSocket(t, opts.ChannelzParentID, fmt.Sprintf("%s -> %s", t.localAddr, t.remoteAddr))
-	if err != nil {
-		return nil, err
+	if channelz.IsOn() {
+		t.channelzID = channelz.RegisterNormalSocket(t, opts.ChannelzParentID, fmt.Sprintf("%s -> %s", t.localAddr, t.remoteAddr))
 	}
 	if t.keepaliveEnabled {
 		t.kpDormancyCond = sync.NewCond(&t.mu)
@@ -589,7 +579,7 @@ func (t *http2Client) getTrAuthData(ctx context.Context, audience string) (map[s
 				return nil, err
 			}
 
-			return nil, status.Errorf(codes.Unauthenticated, "transport: per-RPC creds failed due to error: %v", err)
+			return nil, status.Errorf(codes.Unauthenticated, "transport: %v", err)
 		}
 		for k, v := range data {
 			// Capital header names are illegal in HTTP/2.
@@ -626,21 +616,12 @@ func (t *http2Client) getCallAuthData(ctx context.Context, audience string, call
 	return callAuthData, nil
 }
 
-// NewStreamError wraps an error and reports additional information.  Typically
-// NewStream errors result in transparent retry, as they mean nothing went onto
-// the wire.  However, there are two notable exceptions:
-//
-// 1. If the stream headers violate the max header list size allowed by the
-//    server.  It's possible this could succeed on another transport, even if
-//    it's unlikely, but do not transparently retry.
-// 2. If the credentials errored when requesting their headers.  In this case,
-//    it's possible a retry can fix the problem, but indefinitely transparently
-//    retrying is not appropriate as it is likely the credentials, if they can
-//    eventually succeed, would need I/O to do so.
+// NewStreamError wraps an error and reports additional information.
 type NewStreamError struct {
 	Err error
 
-	AllowTransparentRetry bool
+	DoNotRetry  bool
+	PerformedIO bool
 }
 
 func (e NewStreamError) Error() string {
@@ -649,11 +630,25 @@ func (e NewStreamError) Error() string {
 
 // NewStream creates a stream and registers it into the transport as "active"
 // streams.  All non-nil errors returned will be *NewStreamError.
-func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (*Stream, error) {
+func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Stream, err error) {
+	defer func() {
+		if err != nil {
+			nse, ok := err.(*NewStreamError)
+			if !ok {
+				nse = &NewStreamError{Err: err}
+			}
+			if len(t.perRPCCreds) > 0 || callHdr.Creds != nil {
+				// We may have performed I/O in the per-RPC creds callback, so do not
+				// allow transparent retry.
+				nse.PerformedIO = true
+			}
+			err = nse
+		}
+	}()
 	ctx = peer.NewContext(ctx, t.getPeer())
 	headerFields, err := t.createHeaderFields(ctx, callHdr)
 	if err != nil {
-		return nil, &NewStreamError{Err: err, AllowTransparentRetry: false}
+		return nil, err
 	}
 	s := t.newStream(ctx, callHdr)
 	cleanup := func(err error) {
@@ -753,24 +748,23 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (*Stream,
 			return true
 		}, hdr)
 		if err != nil {
-			// Connection closed.
-			return nil, &NewStreamError{Err: err, AllowTransparentRetry: true}
+			return nil, err
 		}
 		if success {
 			break
 		}
 		if hdrListSizeErr != nil {
-			return nil, &NewStreamError{Err: hdrListSizeErr}
+			return nil, &NewStreamError{Err: hdrListSizeErr, DoNotRetry: true}
 		}
 		firstTry = false
 		select {
 		case <-ch:
-		case <-ctx.Done():
-			return nil, &NewStreamError{Err: ContextErr(ctx.Err())}
+		case <-s.ctx.Done():
+			return nil, ContextErr(s.ctx.Err())
 		case <-t.goAway:
-			return nil, &NewStreamError{Err: errStreamDrain, AllowTransparentRetry: true}
+			return nil, errStreamDrain
 		case <-t.ctx.Done():
-			return nil, &NewStreamError{Err: ErrConnClosing, AllowTransparentRetry: true}
+			return nil, ErrConnClosing
 		}
 	}
 	if t.statsHandler != nil {
@@ -899,7 +893,9 @@ func (t *http2Client) Close(err error) {
 	t.controlBuf.finish()
 	t.cancel()
 	t.conn.Close()
-	channelz.RemoveEntry(t.channelzID)
+	if channelz.IsOn() {
+		channelz.RemoveEntry(t.channelzID)
+	}
 	// Append info about previous goaways if there were any, since this may be important
 	// for understanding the root cause for this connection to be closed.
 	_, goAwayDebugMessage := t.GetGoAwayReason()
@@ -1081,7 +1077,7 @@ func (t *http2Client) handleData(f *http2.DataFrame) {
 	}
 	// The server has closed the stream without sending trailers.  Record that
 	// the read direction is closed, and set the status appropriately.
-	if f.StreamEnded() {
+	if f.FrameHeader.Flags.Has(http2.FlagDataEndStream) {
 		t.closeStream(s, io.EOF, false, http2.ErrCodeNo, status.New(codes.Internal, "server closed the stream without sending trailers"), nil, true)
 	}
 }
@@ -1411,6 +1407,26 @@ func (t *http2Client) operateHeaders(frame *http2.MetaHeadersFrame) {
 	}
 
 	isHeader := false
+	defer func() {
+		if t.statsHandler != nil {
+			if isHeader {
+				inHeader := &stats.InHeader{
+					Client:      true,
+					WireLength:  int(frame.Header().Length),
+					Header:      s.header.Copy(),
+					Compression: s.recvCompress,
+				}
+				t.statsHandler.HandleRPC(s.ctx, inHeader)
+			} else {
+				inTrailer := &stats.InTrailer{
+					Client:     true,
+					WireLength: int(frame.Header().Length),
+					Trailer:    s.trailer.Copy(),
+				}
+				t.statsHandler.HandleRPC(s.ctx, inTrailer)
+			}
+		}
+	}()
 
 	// If headerChan hasn't been closed yet
 	if atomic.CompareAndSwapUint32(&s.headerChanClosed, 0, 1) {
@@ -1430,25 +1446,6 @@ func (t *http2Client) operateHeaders(frame *http2.MetaHeadersFrame) {
 			s.noHeaders = true
 		}
 		close(s.headerChan)
-	}
-
-	if t.statsHandler != nil {
-		if isHeader {
-			inHeader := &stats.InHeader{
-				Client:      true,
-				WireLength:  int(frame.Header().Length),
-				Header:      metadata.MD(mdata).Copy(),
-				Compression: s.recvCompress,
-			}
-			t.statsHandler.HandleRPC(s.ctx, inHeader)
-		} else {
-			inTrailer := &stats.InTrailer{
-				Client:     true,
-				WireLength: int(frame.Header().Length),
-				Trailer:    metadata.MD(mdata).Copy(),
-			}
-			t.statsHandler.HandleRPC(s.ctx, inTrailer)
-		}
 	}
 
 	if !endStream {
@@ -1556,7 +1553,7 @@ func minTime(a, b time.Duration) time.Duration {
 	return b
 }
 
-// keepalive running in a separate goroutine makes sure the connection is alive by sending pings.
+// keepalive running in a separate goroutune makes sure the connection is alive by sending pings.
 func (t *http2Client) keepalive() {
 	p := &ping{data: [8]byte{}}
 	// True iff a ping has been sent, and no data has been received since then.

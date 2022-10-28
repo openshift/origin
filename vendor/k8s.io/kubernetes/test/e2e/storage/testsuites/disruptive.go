@@ -17,16 +17,17 @@ limitations under the License.
 package testsuites
 
 import (
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/errors"
+	errors "k8s.io/apimachinery/pkg/util/errors"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
+	"k8s.io/kubernetes/test/e2e/storage/utils"
 	storageutils "k8s.io/kubernetes/test/e2e/storage/utils"
 	admissionapi "k8s.io/pod-security-admission/api"
 )
@@ -132,18 +133,18 @@ func (s *disruptiveTestSuite) DefineTests(driver storageframework.TestDriver, pa
 	disruptiveTestTable := []disruptiveTest{
 		{
 			testItStmt:   "Should test that pv written before kubelet restart is readable after restart.",
-			runTestFile:  storageutils.TestKubeletRestartsAndRestoresMount,
-			runTestBlock: storageutils.TestKubeletRestartsAndRestoresMap,
+			runTestFile:  utils.TestKubeletRestartsAndRestoresMount,
+			runTestBlock: utils.TestKubeletRestartsAndRestoresMap,
 		},
 		{
 			testItStmt: "Should test that pv used in a pod that is deleted while the kubelet is down cleans up when the kubelet returns.",
 			// File test is covered by subpath testsuite
-			runTestBlock: storageutils.TestVolumeUnmapsFromDeletedPod,
+			runTestBlock: utils.TestVolumeUnmapsFromDeletedPod,
 		},
 		{
 			testItStmt: "Should test that pv used in a pod that is force deleted while the kubelet is down cleans up when the kubelet returns.",
 			// File test is covered by subpath testsuite
-			runTestBlock: storageutils.TestVolumeUnmapsFromForceDeletedPod,
+			runTestBlock: utils.TestVolumeUnmapsFromForceDeletedPod,
 		},
 	}
 

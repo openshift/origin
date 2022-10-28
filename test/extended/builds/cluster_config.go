@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	buildv1 "github.com/openshift/api/build/v1"
@@ -172,7 +172,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter
 		})
 
 		g.JustAfterEach(func() {
-			if g.CurrentSpecReport().Failed() {
+			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 				exutil.DumpConfigMapStates(oc)

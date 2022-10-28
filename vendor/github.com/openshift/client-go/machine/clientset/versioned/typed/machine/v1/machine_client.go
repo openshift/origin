@@ -12,16 +12,11 @@ import (
 
 type MachineV1Interface interface {
 	RESTClient() rest.Interface
-	ControlPlaneMachineSetsGetter
 }
 
 // MachineV1Client is used to interact with features provided by the machine.openshift.io group.
 type MachineV1Client struct {
 	restClient rest.Interface
-}
-
-func (c *MachineV1Client) ControlPlaneMachineSets(namespace string) ControlPlaneMachineSetInterface {
-	return newControlPlaneMachineSets(c, namespace)
 }
 
 // NewForConfig creates a new MachineV1Client for the given config.
