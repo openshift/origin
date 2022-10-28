@@ -4,9 +4,12 @@ package v1
 
 import (
 	"context"
+	json "encoding/json"
+	"fmt"
 	"time"
 
 	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -31,6 +34,8 @@ type ServiceCatalogControllerManagerInterface interface {
 	List(ctx context.Context, opts metav1.ListOptions) (*v1.ServiceCatalogControllerManagerList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ServiceCatalogControllerManager, err error)
+	Apply(ctx context.Context, serviceCatalogControllerManager *operatorv1.ServiceCatalogControllerManagerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ServiceCatalogControllerManager, err error)
+	ApplyStatus(ctx context.Context, serviceCatalogControllerManager *operatorv1.ServiceCatalogControllerManagerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ServiceCatalogControllerManager, err error)
 	ServiceCatalogControllerManagerExpansion
 }
 
@@ -161,6 +166,60 @@ func (c *serviceCatalogControllerManagers) Patch(ctx context.Context, name strin
 		Name(name).
 		SubResource(subresources...).
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(data).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// Apply takes the given apply declarative configuration, applies it and returns the applied serviceCatalogControllerManager.
+func (c *serviceCatalogControllerManagers) Apply(ctx context.Context, serviceCatalogControllerManager *operatorv1.ServiceCatalogControllerManagerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ServiceCatalogControllerManager, err error) {
+	if serviceCatalogControllerManager == nil {
+		return nil, fmt.Errorf("serviceCatalogControllerManager provided to Apply must not be nil")
+	}
+	patchOpts := opts.ToPatchOptions()
+	data, err := json.Marshal(serviceCatalogControllerManager)
+	if err != nil {
+		return nil, err
+	}
+	name := serviceCatalogControllerManager.Name
+	if name == nil {
+		return nil, fmt.Errorf("serviceCatalogControllerManager.Name must be provided to Apply")
+	}
+	result = &v1.ServiceCatalogControllerManager{}
+	err = c.client.Patch(types.ApplyPatchType).
+		Resource("servicecatalogcontrollermanagers").
+		Name(*name).
+		VersionedParams(&patchOpts, scheme.ParameterCodec).
+		Body(data).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// ApplyStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
+func (c *serviceCatalogControllerManagers) ApplyStatus(ctx context.Context, serviceCatalogControllerManager *operatorv1.ServiceCatalogControllerManagerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ServiceCatalogControllerManager, err error) {
+	if serviceCatalogControllerManager == nil {
+		return nil, fmt.Errorf("serviceCatalogControllerManager provided to Apply must not be nil")
+	}
+	patchOpts := opts.ToPatchOptions()
+	data, err := json.Marshal(serviceCatalogControllerManager)
+	if err != nil {
+		return nil, err
+	}
+
+	name := serviceCatalogControllerManager.Name
+	if name == nil {
+		return nil, fmt.Errorf("serviceCatalogControllerManager.Name must be provided to Apply")
+	}
+
+	result = &v1.ServiceCatalogControllerManager{}
+	err = c.client.Patch(types.ApplyPatchType).
+		Resource("servicecatalogcontrollermanagers").
+		Name(*name).
+		SubResource("status").
+		VersionedParams(&patchOpts, scheme.ParameterCodec).
 		Body(data).
 		Do(ctx).
 		Into(result)

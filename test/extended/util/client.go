@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -594,7 +594,7 @@ func (c *CLI) setupNamespacePodSecurity(ns string) error {
 
 // TeardownProject removes projects created by this test.
 func (c *CLI) TeardownProject() {
-	if len(c.Namespace()) > 0 && g.CurrentGinkgoTestDescription().Failed && framework.TestContext.DumpLogsOnFailure {
+	if len(c.Namespace()) > 0 && g.CurrentSpecReport().Failed() && framework.TestContext.DumpLogsOnFailure {
 		framework.DumpAllNamespaceInfo(c.kubeFramework.ClientSet, c.Namespace())
 	}
 
@@ -1029,29 +1029,29 @@ func turnOffRateLimiting(config *rest.Config) *rest.Config {
 
 func (c *CLI) WaitForAccessAllowed(review *kubeauthorizationv1.SelfSubjectAccessReview, user string) error {
 	if user == "system:anonymous" {
-		return waitForAccess(kubernetes.NewForConfigOrDie(rest.AnonymousClientConfig(c.AdminConfig())), true, review)
+		return WaitForAccess(kubernetes.NewForConfigOrDie(rest.AnonymousClientConfig(c.AdminConfig())), true, review)
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(c.GetClientConfigForUser(user))
 	if err != nil {
 		FatalErr(err)
 	}
-	return waitForAccess(kubeClient, true, review)
+	return WaitForAccess(kubeClient, true, review)
 }
 
 func (c *CLI) WaitForAccessDenied(review *kubeauthorizationv1.SelfSubjectAccessReview, user string) error {
 	if user == "system:anonymous" {
-		return waitForAccess(kubernetes.NewForConfigOrDie(rest.AnonymousClientConfig(c.AdminConfig())), false, review)
+		return WaitForAccess(kubernetes.NewForConfigOrDie(rest.AnonymousClientConfig(c.AdminConfig())), false, review)
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(c.GetClientConfigForUser(user))
 	if err != nil {
 		FatalErr(err)
 	}
-	return waitForAccess(kubeClient, false, review)
+	return WaitForAccess(kubeClient, false, review)
 }
 
-func waitForAccess(c kubernetes.Interface, allowed bool, review *kubeauthorizationv1.SelfSubjectAccessReview) error {
+func WaitForAccess(c kubernetes.Interface, allowed bool, review *kubeauthorizationv1.SelfSubjectAccessReview) error {
 	return wait.Poll(time.Second, time.Minute, func() (bool, error) {
 		response, err := c.AuthorizationV1().SelfSubjectAccessReviews().Create(context.Background(), review, metav1.CreateOptions{})
 		if err != nil {

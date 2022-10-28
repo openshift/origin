@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	kapiv1 "k8s.io/api/core/v1"
@@ -216,7 +216,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 	})
 
 	g.Describe("Idling", func() {
-		g.Context("with a single service and DeploymentConfig", func() {
+		g.Context("with a single service and DeploymentConfig [apigroup:route.openshift.io]", func() {
 			g.BeforeEach(func() {
 				framework.BeforeEach()
 				fixture = echoServerFixture
@@ -239,7 +239,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 		})
 	})
 
-	g.Describe("Unidling", func() {
+	g.Describe("Unidling [apigroup:apps.openshift.io][apigroup:route.openshift.io]", func() {
 		g.BeforeEach(func() {
 			framework.BeforeEach()
 			fixture = echoServerFixture

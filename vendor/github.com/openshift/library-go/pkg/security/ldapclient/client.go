@@ -1,14 +1,16 @@
 package ldapclient
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
 
 	"github.com/openshift/library-go/pkg/security/ldaputil"
+	"golang.org/x/net/proxy"
 	"k8s.io/client-go/util/cert"
 
-	"gopkg.in/ldap.v2"
+	"github.com/go-ldap/ldap/v3"
 )
 
 // NewLDAPClientConfig returns a new LDAP client config
@@ -57,6 +59,49 @@ type ldapClientConfig struct {
 // ldapClientConfig is an Config
 var _ Config = &ldapClientConfig{}
 
+// ldapDial is the same as ldap.Dial except that it uses a proxyDialer that respects
+// the ALL_PROXY environment variable rather than using net.DialTimeout
+// While upstream exposes an ldap.DialWithDialer, we can not use it as it takes
+// a *net.Dialer as argument rather than an interface, which makes it impossible
+// to pass the proxyDialer.
+func ldapDial(network, addr string) (*ldap.Conn, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), ldap.DefaultTimeout)
+	defer cancel()
+
+	c, err := proxy.FromEnvironment().(proxy.ContextDialer).DialContext(ctx, network, addr)
+	if err != nil {
+		return nil, ldap.NewError(ldap.ErrorNetwork, err)
+	}
+	conn := ldap.NewConn(c, false)
+	conn.Start()
+	return conn, nil
+}
+
+// ldapDialTLS is the same as ldap.Dial except that it uses a proxyDialer that respects
+// the ALL_PROXY environment variable rather than using net.DialTimeout
+// While upstream exposes an ldap.DialWithDialer, we can not use it as it takes
+// a *net.Dialer as argument rather than an interface, which makes it impossible
+// to pass the proxyDialer.
+func ldapDialTLS(network, addr string, config *tls.Config) (*ldap.Conn, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), ldap.DefaultTimeout)
+	defer cancel()
+
+	dc, err := proxy.FromEnvironment().(proxy.ContextDialer).DialContext(ctx, network, addr)
+	if err != nil {
+		return nil, ldap.NewError(ldap.ErrorNetwork, err)
+	}
+	c := tls.Client(dc, config)
+	err = c.Handshake()
+	if err != nil {
+		// Handshake error, close the established connection before we return an error
+		dc.Close()
+		return nil, ldap.NewError(ldap.ErrorNetwork, err)
+	}
+	conn := ldap.NewConn(c, true)
+	conn.Start()
+	return conn, nil
+}
+
 // Connect returns an established LDAP connection, or an error if the connection could not
 // be made (or successfully upgraded to TLS). If no error is returned, the caller is responsible for
 // closing the connection
@@ -77,7 +122,7 @@ func (l *ldapClientConfig) Connect() (ldap.Client, error) {
 
 	switch l.scheme {
 	case ldaputil.SchemeLDAP:
-		con, err := ldap.Dial("tcp", l.host)
+		con, err := ldapDial("tcp", l.host)
 		if err != nil {
 			return nil, err
 		}
@@ -98,7 +143,7 @@ func (l *ldapClientConfig) Connect() (ldap.Client, error) {
 		return con, nil
 
 	case ldaputil.SchemeLDAPS:
-		return ldap.DialTLS("tcp", l.host, tlsConfig)
+		return ldapDialTLS("tcp", l.host, tlsConfig)
 
 	default:
 		return nil, fmt.Errorf("unsupported scheme %q", l.scheme)

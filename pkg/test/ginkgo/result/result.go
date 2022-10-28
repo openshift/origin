@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -16,7 +16,7 @@ var (
 
 // Flakef records a flake for the currently running Ginkgo test.
 func Flakef(format string, options ...interface{}) {
-	if _, ok := ginkgo.GlobalSuite().CurrentRunningSpecSummary(); !ok {
+	if len(ginkgo.GetSuite().CurrentSpecReport().ContainerHierarchyTexts) == 0 {
 		panic("Flakef called outside of a running Ginkgo test")
 	}
 	fmt.Fprintf(ginkgo.GinkgoWriter, time.Now().Format(time.StampMilli)+": INFO: "+format+"\n", options...)

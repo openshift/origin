@@ -1288,6 +1288,26 @@ spec:
                           storage services. Optional, defaults based on the Region
                           that is provided.
                         type: string
+                      trustedCA:
+                        description: "trustedCA is a reference to a config map containing
+                          a CA bundle. The image registry and its operator use certificates
+                          from this bundle to verify S3 server certificates. \n The
+                          namespace for the config map referenced by trustedCA is
+                          \"openshift-config\". The key for the bundle in the config
+                          map is \"ca-bundle.crt\"."
+                        properties:
+                          name:
+                            description: name is the metadata.name of the referenced
+                              config map. This field must adhere to standard config
+                              map naming restrictions. The name must consist solely
+                              of alphanumeric characters, hyphens (-) and periods
+                              (.). It has a maximum length of 253 characters. If this
+                              field is not specified or is empty string, the default
+                              trust bundle will be used.
+                            maxLength: 253
+                            pattern: ^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                        type: object
                       virtualHostedStyle:
                         description: virtualHostedStyle enables using S3 virtual hosted
                           style bucket paths with a custom RegionEndpoint Optional,
@@ -1425,6 +1445,19 @@ spec:
                             only "value". The requirements are ANDed.
                           type: object
                       type: object
+                    matchLabelKeys:
+                      description: MatchLabelKeys is a set of pod label keys to select
+                        the pods over which spreading will be calculated. The keys
+                        are used to lookup values from the incoming pod labels, those
+                        key-value labels are ANDed with labelSelector to select the
+                        group of existing pods over which spreading will be calculated
+                        for the incoming pod. Keys that don't exist in the incoming
+                        pod labels will be ignored. A null or empty list means only
+                        match against labelSelector.
+                      items:
+                        type: string
+                      type: array
+                      x-kubernetes-list-type: atomic
                     maxSkew:
                       description: 'MaxSkew describes the degree to which pods may
                         be unevenly distributed. When `whenUnsatisfiable=DoNotSchedule`,
@@ -1465,11 +1498,31 @@ spec:
                         minimum\" is treated as 0. In this situation, new pod with
                         the same labelSelector cannot be scheduled, because computed
                         skew will be 3(3 - 0) if new Pod is scheduled to any of the
-                        three zones, it will violate MaxSkew. \n This is an alpha
-                        field and requires enabling MinDomainsInPodTopologySpread
-                        feature gate."
+                        three zones, it will violate MaxSkew. \n This is a beta field
+                        and requires the MinDomainsInPodTopologySpread feature gate
+                        to be enabled (enabled by default)."
                       format: int32
                       type: integer
+                    nodeAffinityPolicy:
+                      description: "NodeAffinityPolicy indicates how we will treat
+                        Pod's nodeAffinity/nodeSelector when calculating pod topology
+                        spread skew. Options are: - Honor: only nodes matching nodeAffinity/nodeSelector
+                        are included in the calculations. - Ignore: nodeAffinity/nodeSelector
+                        are ignored. All nodes are included in the calculations. \n
+                        If this value is nil, the behavior is equivalent to the Honor
+                        policy. This is a alpha-level feature enabled by the NodeInclusionPolicyInPodTopologySpread
+                        feature flag."
+                      type: string
+                    nodeTaintsPolicy:
+                      description: "NodeTaintsPolicy indicates how we will treat node
+                        taints when calculating pod topology spread skew. Options
+                        are: - Honor: nodes without taints, along with tainted nodes
+                        for which the incoming pod has a toleration, are included.
+                        - Ignore: node taints are ignored. All nodes are included.
+                        \n If this value is nil, the behavior is equivalent to the
+                        Ignore policy. This is a alpha-level feature enabled by the
+                        NodeInclusionPolicyInPodTopologySpread feature flag."
+                      type: string
                     topologyKey:
                       description: TopologyKey is the key of node labels. Nodes that
                         have a label with this key and identical values are considered
@@ -1477,10 +1530,11 @@ spec:
                         as a "bucket", and try to put balanced number of pods into
                         each bucket. We define a domain as a particular instance of
                         a topology. Also, we define an eligible domain as a domain
-                        whose nodes match the node selector. e.g. If TopologyKey is
-                        "kubernetes.io/hostname", each Node is a domain of that topology.
-                        And, if TopologyKey is "topology.kubernetes.io/zone", each
-                        zone is a domain of that topology. It's a required field.
+                        whose nodes meet the requirements of nodeAffinityPolicy and
+                        nodeTaintsPolicy. e.g. If TopologyKey is "kubernetes.io/hostname",
+                        each Node is a domain of that topology. And, if TopologyKey
+                        is "topology.kubernetes.io/zone", each zone is a domain of
+                        that topology. It's a required field.
                       type: string
                     whenUnsatisfiable:
                       description: 'WhenUnsatisfiable indicates how to deal with a
@@ -1515,7 +1569,6 @@ spec:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
             required:
-            - managementState
             - replicas
             type: object
           status:
@@ -1818,6 +1871,26 @@ spec:
                           storage services. Optional, defaults based on the Region
                           that is provided.
                         type: string
+                      trustedCA:
+                        description: "trustedCA is a reference to a config map containing
+                          a CA bundle. The image registry and its operator use certificates
+                          from this bundle to verify S3 server certificates. \n The
+                          namespace for the config map referenced by trustedCA is
+                          \"openshift-config\". The key for the bundle in the config
+                          map is \"ca-bundle.crt\"."
+                        properties:
+                          name:
+                            description: name is the metadata.name of the referenced
+                              config map. This field must adhere to standard config
+                              map naming restrictions. The name must consist solely
+                              of alphanumeric characters, hyphens (-) and periods
+                              (.). It has a maximum length of 253 characters. If this
+                              field is not specified or is empty string, the default
+                              trust bundle will be used.
+                            maxLength: 253
+                            pattern: ^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                        type: object
                       virtualHostedStyle:
                         description: virtualHostedStyle enables using S3 virtual hosted
                           style bucket paths with a custom RegionEndpoint Optional,

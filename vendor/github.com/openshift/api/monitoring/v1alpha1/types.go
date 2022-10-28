@@ -291,7 +291,7 @@ type LabelName string
 type RelabelConfig struct {
 	// sourceLabels select values from existing labels. Their content is
 	// concatenated using the configured separator and matched against the
-	// configured regular expression for the replace, keep, and drop actions.
+	// configured regular expression for the Replace, Keep, and Drop actions.
 	//
 	// +optional
 	SourceLabels []LabelName `json:"sourceLabels,omitempty"`
@@ -302,8 +302,8 @@ type RelabelConfig struct {
 	// +optional
 	Separator string `json:"separator,omitempty"`
 
-	// targetLabel to which the resulting value is written in a replace action.
-	// It is mandatory for 'replace' and 'hashmod' actions. Regex capture groups
+	// targetLabel to which the resulting value is written in a 'Replace' action.
+	// It is mandatory for 'Replace' and 'HashMod' actions. Regex capture groups
 	// are available.
 	//
 	// +optional
@@ -315,21 +315,21 @@ type RelabelConfig struct {
 	Regex string `json:"regex,omitempty"`
 
 	// modulus to take of the hash of the source label values.  This can be
-	// combined with the 'hashmod' action to set 'target_label' to the 'modulus'
+	// combined with the 'HashMod' action to set 'target_label' to the 'modulus'
 	// of a hash of the concatenated 'source_labels'.
 	//
 	// +optional
 	Modulus uint64 `json:"modulus,omitempty"`
 
 	// replacement value against which a regex replace is performed if the regular
-	// expression matches. This is required if the action is 'replace' or
-	// 'labelmap'. Regex capture groups are available. Default is: '$1'
+	// expression matches. This is required if the action is 'Replace' or
+	// 'LabelMap'. Regex capture groups are available. Default is: '$1'
 	//
 	// +optional
 	Replacement string `json:"replacement,omitempty"`
 
-	// action to perform based on regex matching. Must be one of: replace, keep,
-	// drop, hashmod, labelmap, labeldrop, or labelkeep.  Default is: 'replace'
+	// action to perform based on regex matching. Must be one of: Replace, Keep,
+	// Drop, HashMod, LabelMap, LabelDrop, or LabelKeep.  Default is: 'Replace'
 	//
 	// +kubebuilder:validation:Enum=Replace;Keep;Drop;HashMod;LabelMap;LabelDrop;LabelKeep
 	// +kubebuilder:default=Replace

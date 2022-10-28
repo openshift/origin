@@ -8,6 +8,36 @@ conventions](https://github.com/openshift/enhancements/blob/master/CONVENTIONS.m
 and then follow the instructions below to regenerate CRDs (if necessary) and
 submit a pull request with your new API definitions and generated files.
 
+### required labels
+
+In addition to the standard `lgtm` and `approved` labels this repository requires either:
+
+`bugzilla/valid-bug` - applied if your PR references a valid bugzilla bug
+
+OR
+
+`qe-approved`, `docs-approved`, and `px-approved` - these labels can be applied by anyone in the openshift org via the `/label` command.
+
+Who should apply these qe/docs/px labels?
+- For a no-FF team who is merging a feature before code freeze, they need to get those labels applied to their api repo PR by the appropriate teams (i.e. qe, docs, px)
+- For a FF(traditional) team who is merging a feature before FF, they can self-apply the labels(via /label commands), they are basically irrelevant for those teams
+- For a FF team who is merging a feature after FF, the PR should be rejected barring an exception
+
+Why are these labels needed?
+
+We need a way for no-FF teams to be able to merge post-FF that does not require a BZ.  For non-shared repos that mechanism is the 
+qe/docs/px-approved labels.  We are expanding that mechanism to shared repos because the alternative would be that no-FF teams would
+put a dummy `bugzilla/valid-bug` label on their feature PRs in order to be able to merge them after feature freeze.  Since most
+individuals can't apply a `bugzilla/valid-bug` label to a PR, this introduces additional obstacles on those PRs.  Conversely, anyone
+can apply the docs/qe/px-approved labels, so "FF" teams that need to apply these labels to merge can do so w/o needing to involve
+anyone additional.
+
+Does this mean feature-freeze teams can use the no-FF process to merge code?
+
+No, signing a team up to be a no-FF team includes some basic education on the process and includes ensuring the associated QE+Docs
+participants are aware the team is moving to that model.  If you'd like to sign your team up, please speak with Gina Hargan who will
+be happy to help on-board your team.
+
 ## generating CRD schemas
 
 Since Kubernetes 1.16, every CRD created in `apiextensions.k8s.io/v1` is required to have a [structural OpenAPIV3 schema](https://kubernetes.io/blog/2019/06/20/crd-structural-schema/). The schemas provide server-side validation for fields, as well as providing the descriptions for `oc explain`. Moreover, schemas ensure structural consistency of data in etcd. Without it anything can be stored in a resource which can have security implications. As we host many of our CRDs in this repo along with their corresponding Go types we also require them to have schemas. However, the following instructions apply for CRDs that are not hosted here as well.

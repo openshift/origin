@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	kapiv1 "k8s.io/api/core/v1"
@@ -74,7 +74,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 	var ns string
 
 	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed && len(ns) > 0 {
+		if g.CurrentSpecReport().Failed() && len(ns) > 0 {
 			exutil.DumpPodLogsStartingWithInNamespace("", ns, oc)
 		}
 	})

@@ -3,7 +3,7 @@ package prometheus
 import (
 	"context"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -14,7 +14,9 @@ func init() {
 	for i := range alertTests {
 		alertTest := alertTests[i]
 
-		var _ = g.Describe("[sig-arch]"+alertTest.TestNamePrefix(), func() {
+		// These tests make use of Prometheus metrics, which are not present in the absence of cluster-monitoring-operator, the owner for
+		// the api groups tagged here.
+		var _ = g.Describe("[sig-arch]"+alertTest.TestNamePrefix()+" [apigroup:monitoring.coreos.com]", func() {
 			defer g.GinkgoRecover()
 			var (
 				oc = exutil.NewCLIWithoutNamespace("prometheus")

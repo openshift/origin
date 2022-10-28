@@ -4,8 +4,7 @@ import (
 	"context"
 	"time"
 
-	g "github.com/onsi/ginkgo"
-	t "github.com/onsi/ginkgo/extensions/table"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	v1 "k8s.io/api/core/v1"
@@ -19,7 +18,7 @@ import (
 
 var _ = g.Describe("[sig-arch] [Conformance] sysctl", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel("sysctl", admissionapi.LevelPrivileged)
-	t.DescribeTable("whitelists", func(sysctl, value, path, defaultSysctlValue string) {
+	g.DescribeTable("whitelists", func(sysctl, value, path, defaultSysctlValue string) {
 		f := oc.KubeFramework()
 		var preexistingPod *v1.Pod
 		var err error
@@ -75,14 +74,14 @@ var _ = g.Describe("[sig-arch] [Conformance] sysctl", func() {
 			o.Expect(podOutput).Should(o.Equal(defaultSysctlValue))
 		})
 	},
-		t.Entry("kernel.shm_rmid_forced", "kernel.shm_rmid_forced", "1", "/proc/sys/kernel/shm_rmid_forced", "0"),
-		t.Entry("net.ipv4.ip_local_port_range", "net.ipv4.ip_local_port_range", "32769\t61001", "/proc/sys/net/ipv4/ip_local_port_range", "32768\t60999"),
-		t.Entry("net.ipv4.tcp_syncookies", "net.ipv4.tcp_syncookies", "0", "/proc/sys/net/ipv4/tcp_syncookies", "1"),
-		t.Entry("net.ipv4.ping_group_range", "net.ipv4.ping_group_range", "1\t0", "/proc/sys/net/ipv4/ping_group_range", "0\t2147483647"),
-		t.Entry("net.ipv4.ip_unprivileged_port_start", "net.ipv4.ip_unprivileged_port_start", "1002", "/proc/sys/net/ipv4/ip_unprivileged_port_start", "1024"),
+		g.Entry("kernel.shm_rmid_forced", "kernel.shm_rmid_forced", "1", "/proc/sys/kernel/shm_rmid_forced", "0"),
+		g.Entry("net.ipv4.ip_local_port_range", "net.ipv4.ip_local_port_range", "32769\t61001", "/proc/sys/net/ipv4/ip_local_port_range", "32768\t60999"),
+		g.Entry("net.ipv4.tcp_syncookies", "net.ipv4.tcp_syncookies", "0", "/proc/sys/net/ipv4/tcp_syncookies", "1"),
+		g.Entry("net.ipv4.ping_group_range", "net.ipv4.ping_group_range", "1\t0", "/proc/sys/net/ipv4/ping_group_range", "0\t2147483647"),
+		g.Entry("net.ipv4.ip_unprivileged_port_start", "net.ipv4.ip_unprivileged_port_start", "1002", "/proc/sys/net/ipv4/ip_unprivileged_port_start", "1024"),
 	)
 
-	t.DescribeTable("pod should not start for sysctl not on whitelist", func(sysctl, value string) {
+	g.DescribeTable("pod should not start for sysctl not on whitelist", func(sysctl, value string) {
 		f := oc.KubeFramework()
 		podDefinition := frameworkpod.NewAgnhostPod(f.Namespace.Name, "sysctl-pod", nil, nil, nil)
 		podDefinition.Spec.SecurityContext.Sysctls = []v1.Sysctl{{Name: sysctl, Value: value}}
@@ -97,7 +96,7 @@ var _ = g.Describe("[sig-arch] [Conformance] sysctl", func() {
 		})
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not be able to create pod")
 	},
-		t.Entry("kernel.msgmax", "kernel.msgmax", "1000"),
-		t.Entry("net.ipv4.ip_dynaddr", "net.ipv4.ip_dynaddr", "1"),
+		g.Entry("kernel.msgmax", "kernel.msgmax", "1000"),
+		g.Entry("net.ipv4.ip_dynaddr", "net.ipv4.ip_dynaddr", "1"),
 	)
 })

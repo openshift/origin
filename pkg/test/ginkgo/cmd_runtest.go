@@ -6,11 +6,10 @@ import (
 	"io"
 	"regexp"
 	"strings"
+	"time"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
-	"github.com/onsi/ginkgo/types"
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
@@ -36,6 +35,8 @@ type TestOptions struct {
 	ErrOut io.Writer
 }
 
+var _ ginkgo.GinkgoTestingT = &TestOptions{}
+
 func NewTestOptions(out io.Writer, errOut io.Writer) *TestOptions {
 	return &TestOptions{
 		MonitorEventsOptions: NewMonitorEventsOptions(out, errOut),
@@ -51,7 +52,9 @@ func (opt *TestOptions) Run(args []string) error {
 		return fmt.Errorf("only a single test name may be passed")
 	}
 
-	tests, err := testsForSuite(config.GinkgoConfig)
+	// Ignore the upstream suite behavior within test execution
+	ginkgo.GetSuite().ClearBeforeAndAfterSuiteNodes()
+	tests, err := testsForSuite()
 	if err != nil {
 		return err
 	}
@@ -63,7 +66,7 @@ func (opt *TestOptions) Run(args []string) error {
 		}
 	}
 	if test == nil {
-		return fmt.Errorf("no test exists with that name")
+		return fmt.Errorf("no test exists with that name: %s", args[0])
 	}
 
 	if opt.DryRun {
@@ -82,19 +85,23 @@ func (opt *TestOptions) Run(args []string) error {
 		}
 	}
 
-	config.GinkgoConfig.FocusString = fmt.Sprintf("^%s$", regexp.QuoteMeta(" [Top Level] "+test.name))
-	config.DefaultReporterConfig.NoColor = true
-	w := ginkgo.GinkgoWriterType()
-	w.SetStream(true)
-	reporter := NewMinimalReporter(test.name, test.location)
-	ginkgo.GlobalSuite().Run(reporter, "", []reporters.Reporter{reporter}, w, config.GinkgoConfig)
-	summary, setup := reporter.Summary()
-	if summary == nil && setup != nil {
-		summary = &types.SpecSummary{
-			Failure: setup.Failure,
-			State:   setup.State,
-		}
-	}
+	suiteConfig, reporterConfig := ginkgo.GinkgoConfiguration()
+	suiteConfig.FocusStrings = []string{fmt.Sprintf("^ %s$", regexp.QuoteMeta(test.name))}
+
+	// These settings are matched to upstream's ginkgo configuration. See:
+	// https://github.com/kubernetes/kubernetes/blob/v1.25.0/test/e2e/framework/test_context.go#L354-L355
+	// Turn on EmitSpecProgress to get spec progress (especially on interrupt)
+	suiteConfig.EmitSpecProgress = true
+	// Randomize specs as well as suites
+	suiteConfig.RandomizeAllSpecs = true
+	// turn off stdout/stderr capture see https://github.com/kubernetes/kubernetes/pull/111240
+	suiteConfig.OutputInterceptorMode = "none"
+	// https://github.com/kubernetes/kubernetes/blob/v1.25.0/hack/ginkgo-e2e.sh#L172-L173
+	suiteConfig.Timeout = 24 * time.Hour
+	reporterConfig.NoColor = true
+
+	ginkgo.SetReporterConfig(reporterConfig)
+	ginkgo.GetSuite().RunSpec(test.spec, ginkgo.Labels{}, "", ginkgo.GetFailer(), ginkgo.GetWriter(), suiteConfig)
 
 	if opt.EnableMonitor {
 		if err := opt.MonitorEventsOptions.End(ctx, restConfig, ""); err != nil {
@@ -105,16 +112,20 @@ func (opt *TestOptions) Run(args []string) error {
 		}
 	}
 
-	// TODO: print stack line?
+	var summary types.SpecReport
+	for _, report := range ginkgo.GetSuite().GetReport().SpecReports {
+		if report.NumAttempts > 0 {
+			summary = report
+		}
+	}
+
 	switch {
-	case summary == nil:
-		return fmt.Errorf("test suite set up failed, see logs")
-	case summary.Passed():
+	case summary.State == types.SpecStatePassed:
 		if s, ok := result.LastFlake(); ok {
 			fmt.Fprintf(opt.ErrOut, "flake: %s\n", s)
 			return ExitError{Code: 4}
 		}
-	case summary.Skipped():
+	case summary.State == types.SpecStateSkipped:
 		if len(summary.Failure.Message) > 0 {
 			fmt.Fprintf(opt.ErrOut, "skip [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.Message)
 		}
@@ -122,7 +133,7 @@ func (opt *TestOptions) Run(args []string) error {
 			fmt.Fprintf(opt.ErrOut, "skip [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.ForwardedPanic)
 		}
 		return ExitError{Code: 3}
-	case summary.Failed(), summary.Panicked():
+	case summary.State == types.SpecStateFailed, summary.State == types.SpecStatePanicked, summary.State == types.SpecStateInterrupted:
 		if len(summary.Failure.ForwardedPanic) > 0 {
 			if len(summary.Failure.Location.FullStackTrace) > 0 {
 				fmt.Fprintf(opt.ErrOut, "\n%s\n", summary.Failure.Location.FullStackTrace)
@@ -136,6 +147,11 @@ func (opt *TestOptions) Run(args []string) error {
 		return fmt.Errorf("unrecognized test case outcome: %#v", summary)
 	}
 	return nil
+}
+
+func (opt *TestOptions) Fail() {
+	// this function allows us to pass TestOptions as the first argument,
+	// it's empty becase we have failure check mechanism implemented above.
 }
 
 func lastFilenameSegment(filename string) string {

@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	v1 "k8s.io/api/core/v1"
@@ -20,7 +20,8 @@ import (
 
 var _ = Describe("[sig-arch] Managed cluster", func() {
 	oc := exutil.NewCLIWithoutNamespace("operators")
-	It("should ensure pods use downstream images from our release image with proper ImagePullPolicy", func() {
+
+	It("should ensure pods use downstream images from our release image with proper ImagePullPolicy [apigroup:config.openshift.io]", func() {
 		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
 			e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions")
 		}

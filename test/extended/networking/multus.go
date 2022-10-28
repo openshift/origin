@@ -3,7 +3,7 @@ package networking
 import (
 	"fmt"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	v1 "k8s.io/api/core/v1"
@@ -24,7 +24,7 @@ var _ = g.Describe("[sig-network][Feature:Multus]", func() {
 
 	// Multus is already installed on origin. These tests aims to verify the integrity of the installation.
 
-	g.It("should use multus to create net1 device from network-attachment-definition", func() {
+	g.It("should use multus to create net1 device from network-attachment-definition [apigroup:k8s.cni.cncf.io]", func() {
 		var err error
 		ns = f.Namespace.Name
 

@@ -175,7 +175,6 @@
 // test/extended/testdata/builds/webhook/github/testdata/pushevent.json
 // test/extended/testdata/builds/webhook/gitlab/testdata/pushevent-not-master-branch.json
 // test/extended/testdata/builds/webhook/gitlab/testdata/pushevent.json
-// test/extended/testdata/cli/pod-with-two-containers.yaml
 // test/extended/testdata/cluster/master-vert.yaml
 // test/extended/testdata/cluster/quickstarts/cakephp-mysql.json
 // test/extended/testdata/cluster/quickstarts/dancer-mysql.json
@@ -24141,57 +24140,6 @@ func testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson() (*asset, err
 	return a, nil
 }
 
-var _testExtendedTestdataCliPodWithTwoContainersYaml = []byte(`kind: Pod
-apiVersion: v1
-metadata:
-  name: doublecontainers
-  labels:
-    name: hello-centos
-spec:
-  containers:
-  - name: hello-centos
-    image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
-    command:
-      - /bin/sleep
-      - infinity
-    resources:
-      limits:
-        memory: 256Mi
-    terminationMessagePath: "/dev/termination-log"
-    imagePullPolicy: IfNotPresent
-    securityContext: {}
-  - name: hello-centos-2
-    image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
-    command:
-      - /bin/sleep
-      - infinity
-    resources:
-      limits:
-        memory: 256Mi
-    terminationMessagePath: "/dev/termination-log1"
-    imagePullPolicy: IfNotPresent
-    securityContext: {}
-  restartPolicy: Always
-  dnsPolicy: ClusterFirst
-  serviceAccount: ''
-status: {}
-`)
-
-func testExtendedTestdataCliPodWithTwoContainersYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataCliPodWithTwoContainersYaml, nil
-}
-
-func testExtendedTestdataCliPodWithTwoContainersYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataCliPodWithTwoContainersYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cli/pod-with-two-containers.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataClusterMasterVertYaml = []byte(`provider: local
 ClusterLoader:
   cleanup: true
@@ -34326,7 +34274,7 @@ var _testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson = []byte(`
     "containers": [
       {
         "name": "hello-openshift",
-        "image": "k8s.gcr.io/e2e-test-images/agnhost:2.39",
+        "image": "registry.k8s.io/e2e-test-images/agnhost:2.40",
         "args": ["netexec"],
         "ports": [
           {
@@ -38455,7 +38403,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+                image: registry.k8s.io/e2e-test-images/agnhost:2.40
       - kind: Route
         apiVersion: route.openshift.io/v1
         metadata:
@@ -42655,7 +42603,7 @@ items:
           replicationcontroller: idling-echo
       spec:
         containers:
-        - image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+        - image: registry.k8s.io/e2e-test-images/agnhost:2.40
           name: idling-echo-server
           args: [ "netexec", "--http-port", "8675" ]
           ports:
@@ -42721,7 +42669,7 @@ items:
           deploymentconfig: idling-echo
       spec:
         containers:
-        - image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+        - image: registry.k8s.io/e2e-test-images/agnhost:2.40
           name: idling-echo-server
           args: [ "netexec", "--http-port", "8675", "--udp-port", "3090" ]
           ports:
@@ -47675,7 +47623,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -47693,7 +47641,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -47728,7 +47676,7 @@ items:
       app: serving-cert
   spec:
     containers:
-    - image: k8s.gcr.io/e2e-test-images/nginx:1.15-2
+    - image: registry.k8s.io/e2e-test-images/nginx:1.15-2
       name: serve
       command:
         - /usr/sbin/nginx
@@ -47932,7 +47880,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -48094,7 +48042,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -48109,7 +48057,7 @@ objects:
       app: secure-endpoint
   spec:
     containers:
-    - image: k8s.gcr.io/e2e-test-images/nginx:1.15-2
+    - image: registry.k8s.io/e2e-test-images/nginx:1.15-2
       name: serve
       command:
         - /usr/sbin/nginx
@@ -49147,7 +49095,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -49165,7 +49113,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -49768,7 +49716,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -49786,7 +49734,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -49804,7 +49752,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -51207,7 +51155,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+                image: registry.k8s.io/e2e-test-images/agnhost:2.40
 `)
 
 func testExtendedTestdataTemplatesTemplateinstance_badobjectYamlBytes() ([]byte, error) {
@@ -51267,7 +51215,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+                image: registry.k8s.io/e2e-test-images/agnhost:2.40
       - kind: Route
         apiVersion: route.openshift.io/v1
         metadata:
@@ -52781,7 +52729,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/webhook/github/testdata/pushevent.json":                                   testExtendedTestdataBuildsWebhookGithubTestdataPusheventJson,
 	"test/extended/testdata/builds/webhook/gitlab/testdata/pushevent-not-master-branch.json":                 testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJson,
 	"test/extended/testdata/builds/webhook/gitlab/testdata/pushevent.json":                                   testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson,
-	"test/extended/testdata/cli/pod-with-two-containers.yaml":                                                testExtendedTestdataCliPodWithTwoContainersYaml,
 	"test/extended/testdata/cluster/master-vert.yaml":                                                        testExtendedTestdataClusterMasterVertYaml,
 	"test/extended/testdata/cluster/quickstarts/cakephp-mysql.json":                                          testExtendedTestdataClusterQuickstartsCakephpMysqlJson,
 	"test/extended/testdata/cluster/quickstarts/dancer-mysql.json":                                           testExtendedTestdataClusterQuickstartsDancerMysqlJson,
@@ -53091,11 +53038,13 @@ var _bindata = map[string]func() (*asset, error){
 // directory embedded in the file by go-bindata.
 // For example if you run go-bindata on data/... and data contains the
 // following hierarchy:
-//     data/
-//       foo.txt
-//       img/
-//         a.png
-//         b.png
+//
+//	data/
+//	  foo.txt
+//	  img/
+//	    a.png
+//	    b.png
+//
 // then AssetDir("data") would return []string{"foo.txt", "img"}
 // AssetDir("data/img") would return []string{"a.png", "b.png"}
 // AssetDir("foo.txt") and AssetDir("notexist") would return an error
@@ -53401,9 +53350,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							}},
 						}},
 					}},
-				}},
-				"cli": {nil, map[string]*bintree{
-					"pod-with-two-containers.yaml": {testExtendedTestdataCliPodWithTwoContainersYaml, map[string]*bintree{}},
 				}},
 				"cluster": {nil, map[string]*bintree{
 					"master-vert.yaml": {testExtendedTestdataClusterMasterVertYaml, map[string]*bintree{}},
