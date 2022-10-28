@@ -33,7 +33,7 @@ import (
 	imageutils "k8s.io/kubernetes/test/utils/image"
 	admissionapi "k8s.io/pod-security-admission/api"
 
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 )
 
 var _ = utils.SIGDescribe("HostPathType Directory [Slow]", func() {

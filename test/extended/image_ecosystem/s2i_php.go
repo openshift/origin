@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -30,7 +30,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][php][Slow] hot deploy fo
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentSpecReport().Failed() {
+			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}

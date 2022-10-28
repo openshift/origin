@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -13,7 +13,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-imageregistry][Serial] Image signature workflow", func() {
+var _ = g.Describe("[sig-imageregistry][Serial][Suite:openshift/registry/serial] Image signature workflow", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -22,7 +22,7 @@ var _ = g.Describe("[sig-imageregistry][Serial] Image signature workflow", func(
 	)
 
 	g.AfterEach(func() {
-		if g.CurrentSpecReport().Failed() {
+		if g.CurrentGinkgoTestDescription().Failed {
 			exutil.DumpPodStates(oc)
 			exutil.DumpConfigMapStates(oc)
 			exutil.DumpPodLogsStartingWith("", oc)

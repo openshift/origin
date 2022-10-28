@@ -1,4 +1,3 @@
-//go:build !linux && !windows
 // +build !linux,!windows
 
 package system // import "github.com/docker/docker/pkg/system"

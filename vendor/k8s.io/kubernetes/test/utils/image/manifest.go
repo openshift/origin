@@ -123,16 +123,16 @@ func readFromURL(url string, writer io.Writer) error {
 var (
 	initRegistry = RegistryList{
 		GcAuthenticatedRegistry:  "gcr.io/authenticated-image-pulling",
-		PromoterE2eRegistry:      "registry.k8s.io/e2e-test-images",
-		BuildImageRegistry:       "registry.k8s.io/build-image",
+		PromoterE2eRegistry:      "k8s.gcr.io/e2e-test-images",
+		BuildImageRegistry:       "k8s.gcr.io/build-image",
 		InvalidRegistry:          "invalid.registry.k8s.io/invalid",
-		GcEtcdRegistry:           "registry.k8s.io",
-		GcRegistry:               "registry.k8s.io",
-		SigStorageRegistry:       "registry.k8s.io/sig-storage",
+		GcEtcdRegistry:           "k8s.gcr.io",
+		GcRegistry:               "k8s.gcr.io",
+		SigStorageRegistry:       "k8s.gcr.io/sig-storage",
 		PrivateRegistry:          "gcr.io/k8s-authenticated-test",
 		MicrosoftRegistry:        "mcr.microsoft.com",
 		DockerLibraryRegistry:    "docker.io/library",
-		CloudProviderGcpRegistry: "registry.k8s.io/cloud-provider-gcp",
+		CloudProviderGcpRegistry: "k8s.gcr.io/cloud-provider-gcp",
 	}
 
 	registry = initReg()
@@ -141,11 +141,9 @@ var (
 	imageConfigs, originalImageConfigs = initImageConfigs(registry)
 )
 
-type ImageID int
-
 const (
 	// None is to be used for unset/default images
-	None ImageID = iota
+	None = iota
 	// Agnhost image
 	Agnhost
 	// AgnhostPrivate image
@@ -164,8 +162,10 @@ const (
 	CudaVectorAdd
 	// CudaVectorAdd2 image
 	CudaVectorAdd2
-	// DistrolessIptables Image
-	DistrolessIptables
+	// DebianIptables Image
+	DebianIptables
+	// EchoServer image
+	EchoServer
 	// Etcd image
 	Etcd
 	// GlusterDynamicProvisioner image
@@ -229,9 +229,9 @@ const (
 	WindowsServer
 )
 
-func initImageConfigs(list RegistryList) (map[ImageID]Config, map[ImageID]Config) {
-	configs := map[ImageID]Config{}
-	configs[Agnhost] = Config{list.PromoterE2eRegistry, "agnhost", "2.40"}
+func initImageConfigs(list RegistryList) (map[int]Config, map[int]Config) {
+	configs := map[int]Config{}
+	configs[Agnhost] = Config{list.PromoterE2eRegistry, "agnhost", "2.39"}
 	configs[AgnhostPrivate] = Config{list.PrivateRegistry, "agnhost", "2.6"}
 	configs[AuthenticatedAlpine] = Config{list.GcAuthenticatedRegistry, "alpine", "3.7"}
 	configs[AuthenticatedWindowsNanoServer] = Config{list.GcAuthenticatedRegistry, "windows-nanoserver", "v1"}
@@ -240,8 +240,9 @@ func initImageConfigs(list RegistryList) (map[ImageID]Config, map[ImageID]Config
 	configs[BusyBox] = Config{list.PromoterE2eRegistry, "busybox", "1.29-2"}
 	configs[CudaVectorAdd] = Config{list.PromoterE2eRegistry, "cuda-vector-add", "1.0"}
 	configs[CudaVectorAdd2] = Config{list.PromoterE2eRegistry, "cuda-vector-add", "2.2"}
-	configs[DistrolessIptables] = Config{list.BuildImageRegistry, "distroless-iptables", "v0.1.1"}
-	configs[Etcd] = Config{list.GcEtcdRegistry, "etcd", "3.5.4-0"}
+	configs[DebianIptables] = Config{list.BuildImageRegistry, "debian-iptables", "bullseye-v1.3.0"}
+	configs[EchoServer] = Config{list.PromoterE2eRegistry, "echoserver", "2.4"}
+	configs[Etcd] = Config{list.GcEtcdRegistry, "etcd", "3.5.3-0"}
 	configs[GlusterDynamicProvisioner] = Config{list.PromoterE2eRegistry, "glusterdynamic-provisioner", "v1.3"}
 	configs[Httpd] = Config{list.PromoterE2eRegistry, "httpd", "2.4.38-2"}
 	configs[HttpdNew] = Config{list.PromoterE2eRegistry, "httpd", "2.4.39-2"}
@@ -255,11 +256,11 @@ func initImageConfigs(list RegistryList) (map[ImageID]Config, map[ImageID]Config
 	configs[NginxNew] = Config{list.PromoterE2eRegistry, "nginx", "1.15-2"}
 	configs[NodePerfNpbEp] = Config{list.PromoterE2eRegistry, "node-perf/npb-ep", "1.2"}
 	configs[NodePerfNpbIs] = Config{list.PromoterE2eRegistry, "node-perf/npb-is", "1.2"}
-	configs[NodePerfTfWideDeep] = Config{list.PromoterE2eRegistry, "node-perf/tf-wide-deep", "1.2"}
+	configs[NodePerfTfWideDeep] = Config{list.PromoterE2eRegistry, "node-perf/tf-wide-deep", "1.1"}
 	configs[Nonewprivs] = Config{list.PromoterE2eRegistry, "nonewprivs", "1.3"}
 	configs[NonRoot] = Config{list.PromoterE2eRegistry, "nonroot", "1.2"}
 	// Pause - when these values are updated, also update cmd/kubelet/app/options/container_runtime.go
-	configs[Pause] = Config{list.GcRegistry, "pause", "3.8"}
+	configs[Pause] = Config{list.GcRegistry, "pause", "3.7"}
 	configs[Perl] = Config{list.PromoterE2eRegistry, "perl", "5.26"}
 	configs[PrometheusDummyExporter] = Config{list.GcRegistry, "prometheus-dummy-exporter", "v0.1.0"}
 	configs[PrometheusToSd] = Config{list.GcRegistry, "prometheus-to-sd", "v0.5.0"}
@@ -273,7 +274,7 @@ func initImageConfigs(list RegistryList) (map[ImageID]Config, map[ImageID]Config
 	configs[VolumeRBDServer] = Config{list.PromoterE2eRegistry, "volume/rbd", "1.0.4"}
 	configs[WindowsServer] = Config{list.MicrosoftRegistry, "windows", "1809"}
 
-	// This adds more config entries. Those have no pre-defined ImageID number,
+	// This adds more config entries. Those have no pre-defined index number,
 	// but will be used via ReplaceRegistryInImageURL when deploying
 	// CSI drivers (test/e2e/storage/util/create.go).
 	appendCSIImageConfigs(configs)
@@ -289,8 +290,8 @@ func initImageConfigs(list RegistryList) (map[ImageID]Config, map[ImageID]Config
 
 // GetMappedImageConfigs returns the images if they were mapped to the provided
 // image repository.
-func GetMappedImageConfigs(originalImageConfigs map[ImageID]Config, repo string) map[ImageID]Config {
-	configs := make(map[ImageID]Config)
+func GetMappedImageConfigs(originalImageConfigs map[int]Config, repo string) map[int]Config {
+	configs := make(map[int]Config)
 	for i, config := range originalImageConfigs {
 		switch i {
 		case InvalidRegistryImage, AuthenticatedAlpine,
@@ -302,7 +303,7 @@ func GetMappedImageConfigs(originalImageConfigs map[ImageID]Config, repo string)
 			continue
 		}
 
-		// Build a new tag with the ImageID, a hash of the image spec (to be unique) and
+		// Build a new tag with a the index, a hash of the image spec (to be unique) and
 		// shorten and make the pull spec "safe" so it will fit in the tag
 		configs[i] = getRepositoryMappedConfig(i, config, repo)
 	}
@@ -315,11 +316,11 @@ var (
 )
 
 // getRepositoryMappedConfig maps an existing image to the provided repo, generating a
-// tag that is unique with the input config. The tag will contain the imageID, a hash of
+// tag that is unique with the input config. The tag will contain the index, a hash of
 // the image spec (to be unique) and shorten and make the pull spec "safe" so it will
-// fit in the tag to allow a human to recognize the value. If imageID is None, then no
-// imageID will be added to the tag.
-func getRepositoryMappedConfig(imageID ImageID, config Config, repo string) Config {
+// fit in the tag to allow a human to recognize the value. If index is -1, then no
+// index will be added to the tag.
+func getRepositoryMappedConfig(index int, config Config, repo string) Config {
 	parts := strings.SplitN(repo, "/", 2)
 	registry, name := parts[0], parts[1]
 
@@ -336,10 +337,10 @@ func getRepositoryMappedConfig(imageID ImageID, config Config, repo string) Conf
 		shortName = shortName[len(shortName)-maxLength:]
 	}
 	var version string
-	if imageID == None {
+	if index == -1 {
 		version = fmt.Sprintf("e2e-%s-%s", shortName, hash)
 	} else {
-		version = fmt.Sprintf("e2e-%d-%s-%s", imageID, shortName, hash)
+		version = fmt.Sprintf("e2e-%d-%s-%s", index, shortName, hash)
 	}
 
 	return Config{
@@ -350,22 +351,22 @@ func getRepositoryMappedConfig(imageID ImageID, config Config, repo string) Conf
 }
 
 // GetOriginalImageConfigs returns the configuration before any mapping rules.
-func GetOriginalImageConfigs() map[ImageID]Config {
+func GetOriginalImageConfigs() map[int]Config {
 	return originalImageConfigs
 }
 
 // GetImageConfigs returns the map of imageConfigs
-func GetImageConfigs() map[ImageID]Config {
+func GetImageConfigs() map[int]Config {
 	return imageConfigs
 }
 
 // GetConfig returns the Config object for an image
-func GetConfig(image ImageID) Config {
+func GetConfig(image int) Config {
 	return imageConfigs[image]
 }
 
 // GetE2EImage returns the fully qualified URI to an image (including version)
-func GetE2EImage(image ImageID) string {
+func GetE2EImage(image int) string {
 	return fmt.Sprintf("%s/%s:%s", imageConfigs[image].registry, imageConfigs[image].name, imageConfigs[image].version)
 }
 
@@ -393,10 +394,10 @@ func replaceRegistryInImageURLWithList(imageURL string, reg RegistryList) (strin
 	registryAndUser := strings.Join(parts[:countParts-1], "/")
 
 	if repo := os.Getenv("KUBE_TEST_REPO"); len(repo) > 0 {
-		imageID := None
+		index := -1
 		for i, v := range originalImageConfigs {
 			if v.GetE2EImage() == imageURL {
-				imageID = i
+				index = i
 				break
 			}
 		}
@@ -404,7 +405,7 @@ func replaceRegistryInImageURLWithList(imageURL string, reg RegistryList) (strin
 		if len(last) == 1 {
 			return "", fmt.Errorf("image %q is required to be in an image:tag format", imageURL)
 		}
-		config := getRepositoryMappedConfig(imageID, Config{
+		config := getRepositoryMappedConfig(index, Config{
 			registry: parts[0],
 			name:     strings.Join([]string{strings.Join(parts[1:countParts-1], "/"), last[0]}, "/"),
 			version:  last[1],

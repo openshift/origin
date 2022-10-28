@@ -139,7 +139,7 @@ The top-level describe container should also specify the bucket into which the t
 package extended
 
 import (
-    g "github.com/onsi/ginkgo/v2"
+    g "github.com/onsi/ginkgo"
     o "github.com/onsi/gomega"
 )
 

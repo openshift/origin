@@ -19,8 +19,7 @@ package storagebackend
 import (
 	"time"
 
-	oteltrace "go.opentelemetry.io/otel/trace"
-
+	"go.opentelemetry.io/otel/trace"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/server/egressselector"
@@ -36,8 +35,7 @@ const (
 
 	DefaultCompactInterval      = 5 * time.Minute
 	DefaultDBMetricPollInterval = 30 * time.Second
-	DefaultHealthcheckTimeout   = 2 * time.Second
-	DefaultReadinessTimeout     = 2 * time.Second
+	DefaultHealthcheckTimeout   = 10 * time.Second
 )
 
 // TransportConfig holds all connection related info,  i.e. equal TransportConfig means equal servers we talk to.
@@ -51,7 +49,7 @@ type TransportConfig struct {
 	// function to determine the egress dialer. (i.e. konnectivity server dialer)
 	EgressLookup egressselector.Lookup
 	// The TracerProvider can add tracing the connection
-	TracerProvider oteltrace.TracerProvider
+	TracerProvider *trace.TracerProvider
 }
 
 // Config is configuration for creating a storage backend.
@@ -86,8 +84,6 @@ type Config struct {
 	DBMetricPollInterval time.Duration
 	// HealthcheckTimeout specifies the timeout used when checking health
 	HealthcheckTimeout time.Duration
-	// ReadycheckTimeout specifies the timeout used when checking readiness
-	ReadycheckTimeout time.Duration
 
 	LeaseManagerConfig etcd3.LeaseManagerConfig
 
@@ -121,8 +117,6 @@ func NewDefaultConfig(prefix string, codec runtime.Codec) *Config {
 		CompactionInterval:   DefaultCompactInterval,
 		DBMetricPollInterval: DefaultDBMetricPollInterval,
 		HealthcheckTimeout:   DefaultHealthcheckTimeout,
-		ReadycheckTimeout:    DefaultReadinessTimeout,
 		LeaseManagerConfig:   etcd3.NewDefaultLeaseManagerConfig(),
-		Transport:            TransportConfig{TracerProvider: oteltrace.NewNoopTracerProvider()},
 	}
 }

@@ -32,14 +32,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/util/dryrun"
-	"k8s.io/apiserver/pkg/util/feature"
 	policyclient "k8s.io/client-go/kubernetes/typed/policy/v1"
 	"k8s.io/client-go/util/retry"
 	pdbhelper "k8s.io/component-helpers/apps/poddisruptionbudget"
 	podutil "k8s.io/kubernetes/pkg/api/pod"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/policy"
-	"k8s.io/kubernetes/pkg/features"
 )
 
 const (
@@ -97,12 +95,6 @@ func (r *EvictionREST) New() runtime.Object {
 	return &policy.Eviction{}
 }
 
-// Destroy cleans up resources on shutdown.
-func (r *EvictionREST) Destroy() {
-	// Given that underlying store is shared with REST,
-	// we don't destroy it here explicitly.
-}
-
 // Propagate dry-run takes the dry-run option from the request and pushes it into the eviction object.
 // It returns an error if they have non-matching dry-run options.
 func propagateDryRun(eviction *policy.Eviction, options *metav1.CreateOptions) (*metav1.DeleteOptions, error) {
@@ -155,10 +147,11 @@ func (r *EvictionREST) Create(ctx context.Context, name string, obj runtime.Obje
 	}
 
 	err = retry.OnError(EvictionsRetry, shouldRetry, func() error {
-		pod, err = getPod(r, ctx, eviction.Name)
+		obj, err = r.store.Get(ctx, eviction.Name, &metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
+		pod = obj.(*api.Pod)
 
 		// Evicting a terminal pod should result in direct deletion of pod as it already caused disruption by the time we are evicting.
 		// There is no need to check for pdb.
@@ -179,7 +172,7 @@ func (r *EvictionREST) Create(ctx context.Context, name string, obj runtime.Obje
 			deleteOptions = deleteOptions.DeepCopy()
 			setPreconditionsResourceVersion(deleteOptions, &pod.ResourceVersion)
 		}
-		err = addConditionAndDeletePod(r, ctx, eviction.Name, rest.ValidateAllObjectFunc, deleteOptions)
+		_, _, err = r.store.Delete(ctx, eviction.Name, rest.ValidateAllObjectFunc, deleteOptions)
 		if err != nil {
 			return err
 		}
@@ -277,7 +270,7 @@ func (r *EvictionREST) Create(ctx context.Context, name string, obj runtime.Obje
 	}
 
 	// Try the delete
-	err = addConditionAndDeletePod(r, ctx, eviction.Name, rest.ValidateAllObjectFunc, deleteOptions)
+	_, _, err = r.store.Delete(ctx, eviction.Name, rest.ValidateAllObjectFunc, deleteOptions)
 	if err != nil {
 		if errors.IsConflict(err) && updateDeletionOptions &&
 			(originalDeleteOptions.Preconditions == nil || originalDeleteOptions.Preconditions.ResourceVersion == nil) {
@@ -291,41 +284,6 @@ func (r *EvictionREST) Create(ctx context.Context, name string, obj runtime.Obje
 
 	// Success!
 	return &metav1.Status{Status: metav1.StatusSuccess}, nil
-}
-
-func addConditionAndDeletePod(r *EvictionREST, ctx context.Context, name string, validation rest.ValidateObjectFunc, options *metav1.DeleteOptions) error {
-	if feature.DefaultFeatureGate.Enabled(features.PodDisruptionConditions) {
-		pod, err := getPod(r, ctx, name)
-		if err != nil {
-			return err
-		}
-		conditionAppender := func(_ context.Context, newObj, _ runtime.Object) (runtime.Object, error) {
-			podObj := newObj.(*api.Pod)
-			podutil.UpdatePodCondition(&podObj.Status, &api.PodCondition{
-				Type:    api.AlphaNoCompatGuaranteeDisruptionTarget,
-				Status:  api.ConditionTrue,
-				Reason:  "EvictionByEvictionAPI",
-				Message: "Eviction API: evicting",
-			})
-			return podObj, nil
-		}
-
-		podCopyUpdated := rest.DefaultUpdatedObjectInfo(pod, conditionAppender)
-
-		if _, _, err = r.store.Update(ctx, name, podCopyUpdated, rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc, false, &metav1.UpdateOptions{}); err != nil {
-			return err
-		}
-	}
-	_, _, err := r.store.Delete(ctx, name, rest.ValidateAllObjectFunc, options)
-	return err
-}
-
-func getPod(r *EvictionREST, ctx context.Context, name string) (*api.Pod, error) {
-	obj, err := r.store.Get(ctx, name, &metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return obj.(*api.Pod), nil
 }
 
 func setPreconditionsResourceVersion(deleteOptions *metav1.DeleteOptions, resourceVersion *string) {

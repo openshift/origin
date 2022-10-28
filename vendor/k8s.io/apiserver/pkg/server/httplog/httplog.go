@@ -251,7 +251,7 @@ func SetStacktracePredicate(ctx context.Context, pred StacktracePred) {
 // Log is intended to be called once at the end of your request handler, via defer
 func (rl *respLogger) Log() {
 	latency := time.Since(rl.startTime)
-	auditID := request.GetAuditIDTruncated(rl.req.Context())
+	auditID := request.GetAuditIDTruncated(rl.req)
 
 	verb := rl.req.Method
 	if requestInfo, ok := request.RequestInfoFrom(rl.req.Context()); ok {

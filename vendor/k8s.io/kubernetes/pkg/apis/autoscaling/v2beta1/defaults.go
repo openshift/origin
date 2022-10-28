@@ -21,7 +21,6 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
-	"k8s.io/utils/pointer"
 )
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
@@ -30,7 +29,8 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 
 func SetDefaults_HorizontalPodAutoscaler(obj *autoscalingv2beta1.HorizontalPodAutoscaler) {
 	if obj.Spec.MinReplicas == nil {
-		obj.Spec.MinReplicas = pointer.Int32(1)
+		minReplicas := int32(1)
+		obj.Spec.MinReplicas = &minReplicas
 	}
 
 	if len(obj.Spec.Metrics) == 0 {

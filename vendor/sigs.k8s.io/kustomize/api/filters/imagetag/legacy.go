@@ -6,7 +6,6 @@ package imagetag
 import (
 	"sigs.k8s.io/kustomize/api/internal/utils"
 	"sigs.k8s.io/kustomize/api/types"
-	"sigs.k8s.io/kustomize/kyaml/errors"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -82,7 +81,9 @@ func (f findFieldsFilter) walk(node *yaml.RNode) error {
 			return nil
 		})
 	case yaml.SequenceNode:
-		return errors.Wrap(node.VisitElements(f.walk))
+		return node.VisitElements(func(n *yaml.RNode) error {
+			return f.walk(n)
+		})
 	}
 	return nil
 }

@@ -17,7 +17,7 @@ limitations under the License.
 package network
 
 import (
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework"

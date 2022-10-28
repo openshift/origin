@@ -32,7 +32,6 @@ import (
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/util"
-	utiltrace "k8s.io/utils/trace"
 )
 
 // volumeStatCalculator calculates volume metrics for a given pod periodically in the background and caches the result
@@ -134,11 +133,7 @@ func (s *volumeStatCalculator) calcAndStoreStats() {
 	var ephemeralStats []stats.VolumeStats
 	var persistentStats []stats.VolumeStats
 	for name, v := range metricVolumes {
-		metric, err := func() (*volume.Metrics, error) {
-			trace := utiltrace.New(fmt.Sprintf("Calculate volume metrics of %v for pod %v/%v", name, s.pod.Namespace, s.pod.Name))
-			defer trace.LogIfLong(1 * time.Second)
-			return v.GetMetrics()
-		}()
+		metric, err := v.GetMetrics()
 		if err != nil {
 			// Expected for Volumes that don't support Metrics
 			if !volume.IsNotSupported(err) {

@@ -25,7 +25,7 @@ import (
 	"os"
 	"strings"
 
-	gettext "github.com/chai2010/gettext-go"
+	"github.com/chai2010/gettext-go/gettext"
 	"k8s.io/klog/v2"
 )
 
@@ -125,9 +125,9 @@ func LoadTranslations(root string, getLanguageFn func() string) error {
 	if err := w.Close(); err != nil {
 		return err
 	}
-	gettext.BindLocale(gettext.New("k8s", root+".zip", buf.Bytes()))
-	gettext.SetDomain("k8s")
-	gettext.SetLanguage(langStr)
+	gettext.BindTextdomain("k8s", root+".zip", buf.Bytes())
+	gettext.Textdomain("k8s")
+	gettext.SetLocale(langStr)
 	return nil
 }
 

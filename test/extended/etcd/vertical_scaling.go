@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"

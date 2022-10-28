@@ -28,7 +28,7 @@ import (
 	clientgoclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	tracing "k8s.io/component-base/tracing"
+	"k8s.io/component-base/traces"
 )
 
 // CoreAPIOptions contains options to configure the connection to a core API Kubernetes apiserver.
@@ -73,7 +73,7 @@ func (o *CoreAPIOptions) ApplyTo(config *server.RecommendedConfig) error {
 		}
 	}
 	if feature.DefaultFeatureGate.Enabled(features.APIServerTracing) {
-		kubeconfig.Wrap(tracing.WrapperFor(config.TracerProvider))
+		kubeconfig.Wrap(traces.WrapperFor(config.TracerProvider))
 	}
 	clientgoExternalClient, err := clientgoclientset.NewForConfig(kubeconfig)
 	if err != nil {

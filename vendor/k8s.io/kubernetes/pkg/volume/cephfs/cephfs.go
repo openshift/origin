@@ -85,10 +85,6 @@ func (plugin *cephfsPlugin) SupportsBulkVolumeVerification() bool {
 	return false
 }
 
-func (plugin *cephfsPlugin) SupportsSELinuxContextMount(spec *volume.Spec) (bool, error) {
-	return false, nil
-}
-
 func (plugin *cephfsPlugin) GetAccessModes() []v1.PersistentVolumeAccessMode {
 	return []v1.PersistentVolumeAccessMode{
 		v1.ReadWriteOnce,
@@ -344,9 +340,7 @@ func (cephfsVolume *cephfs) execFuseMount(mountpoint string) error {
 		klog.V(4).Info("cephfs mount begin using fuse.")
 
 		keyringPath := cephfsVolume.GetKeyringPath()
-		if err := os.MkdirAll(keyringPath, 0750); err != nil {
-			return err
-		}
+		os.MkdirAll(keyringPath, 0750)
 
 		payload := make(map[string]util.FileProjection, 1)
 		var fileProjection util.FileProjection

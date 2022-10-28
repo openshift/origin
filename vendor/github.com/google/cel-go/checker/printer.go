@@ -32,22 +32,22 @@ func (a *semanticAdorner) GetMetadata(elem interface{}) string {
 	if !isExpr {
 		return result
 	}
-	t := a.checks.TypeMap[e.GetId()]
+	t := a.checks.TypeMap[e.Id]
 	if t != nil {
 		result += "~"
 		result += FormatCheckedType(t)
 	}
 
-	switch e.GetExprKind().(type) {
+	switch e.ExprKind.(type) {
 	case *exprpb.Expr_IdentExpr,
 		*exprpb.Expr_CallExpr,
 		*exprpb.Expr_StructExpr,
 		*exprpb.Expr_SelectExpr:
-		if ref, found := a.checks.ReferenceMap[e.GetId()]; found {
+		if ref, found := a.checks.ReferenceMap[e.Id]; found {
 			if len(ref.GetOverloadId()) == 0 {
 				result += "^" + ref.Name
 			} else {
-				for i, overload := range ref.GetOverloadId() {
+				for i, overload := range ref.OverloadId {
 					if i == 0 {
 						result += "^"
 					} else {

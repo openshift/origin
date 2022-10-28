@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	admissionapi "k8s.io/pod-security-admission/api"
@@ -29,7 +29,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] result image should have proper
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentSpecReport().Failed() {
+			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)

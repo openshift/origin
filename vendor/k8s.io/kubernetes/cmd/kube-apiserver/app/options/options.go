@@ -29,7 +29,6 @@ import (
 	"k8s.io/component-base/logs"
 	"k8s.io/component-base/metrics"
 
-	logsapi "k8s.io/component-base/logs/api/v1"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/cluster/ports"
 	"k8s.io/kubernetes/pkg/controlplane/reconcilers"
@@ -76,8 +75,7 @@ type ServerRunOptions struct {
 	ProxyClientCertFile string
 	ProxyClientKeyFile  string
 
-	EnableAggregatorRouting             bool
-	AggregatorRejectForwardingRedirects bool
+	EnableAggregatorRouting bool
 
 	MasterCount            int
 	EndpointReconcilerType string
@@ -135,8 +133,7 @@ func NewServerRunOptions() *ServerRunOptions {
 			},
 			HTTPTimeout: time.Duration(5) * time.Second,
 		},
-		ServiceNodePortRange:                kubeoptions.DefaultServiceNodePortRange,
-		AggregatorRejectForwardingRedirects: true,
+		ServiceNodePortRange: kubeoptions.DefaultServiceNodePortRange,
 	}
 
 	// Overwrite the default for storage data format.
@@ -160,7 +157,7 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	s.EgressSelector.AddFlags(fss.FlagSet("egress selector"))
 	s.Admission.AddFlags(fss.FlagSet("admission"))
 	s.Metrics.AddFlags(fss.FlagSet("metrics"))
-	logsapi.AddFlags(s.Logs, fss.FlagSet("logs"))
+	s.Logs.AddFlags(fss.FlagSet("logs"))
 	s.Traces.AddFlags(fss.FlagSet("traces"))
 
 	// Note: the weird ""+ in below lines seems to be the only way to get gofmt to
@@ -205,7 +202,7 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 		"overlap with any IP ranges assigned to nodes or pods. Max of two dual-stack CIDRs is allowed.")
 
 	fs.Var(&s.ServiceNodePortRange, "service-node-port-range", ""+
-		"A port range to reserve for services with NodePort visibility.  This must not overlap with the ephemeral port range on nodes.  "+
+		"A port range to reserve for services with NodePort visibility. "+
 		"Example: '30000-32767'. Inclusive at both ends of the range.")
 
 	// Kubelet related flags:
@@ -247,9 +244,6 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 
 	fs.BoolVar(&s.EnableAggregatorRouting, "enable-aggregator-routing", s.EnableAggregatorRouting,
 		"Turns on aggregator routing requests to endpoints IP rather than cluster IP.")
-
-	fs.BoolVar(&s.AggregatorRejectForwardingRedirects, "aggregator-reject-forwarding-redirect", s.AggregatorRejectForwardingRedirects,
-		"Aggregator reject forwarding redirect response back to client.")
 
 	fs.StringVar(&s.ServiceAccountSigningKeyFile, "service-account-signing-key-file", s.ServiceAccountSigningKeyFile, ""+
 		"Path to the file that contains the current private key of the service account token issuer. The issuer will sign issued ID tokens with this private key.")

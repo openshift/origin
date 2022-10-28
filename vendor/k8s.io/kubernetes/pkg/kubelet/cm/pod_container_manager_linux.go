@@ -19,12 +19,13 @@ package cm
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"strings"
 
 	libcontainercgroups "github.com/opencontainers/runc/libcontainer/cgroups"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -239,7 +240,7 @@ func (m *podContainerManagerImpl) GetAllPodsFromCgroups() (map[types.UID]CgroupN
 			// get the subsystems QoS cgroup absolute name
 			qcConversion := m.cgroupManager.Name(qosContainerName)
 			qc := path.Join(val, qcConversion)
-			dirInfo, err := os.ReadDir(qc)
+			dirInfo, err := ioutil.ReadDir(qc)
 			if err != nil {
 				if os.IsNotExist(err) {
 					continue

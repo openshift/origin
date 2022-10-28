@@ -78,8 +78,8 @@ func (rmF *Factory) NewResMapFromBytes(b []byte) (ResMap, error) {
 func (rmF *Factory) NewResMapFromConfigMapArgs(
 	kvLdr ifc.KvLoader, argList []types.ConfigMapArgs) (ResMap, error) {
 	var resources []*resource.Resource
-	for i := range argList {
-		res, err := rmF.resF.MakeConfigMap(kvLdr, &argList[i])
+	for _, args := range argList {
+		res, err := rmF.resF.MakeConfigMap(kvLdr, &args)
 		if err != nil {
 			return nil, errors.Wrap(err, "NewResMapFromConfigMapArgs")
 		}
@@ -103,8 +103,8 @@ func (rmF *Factory) FromConfigMapArgs(
 func (rmF *Factory) NewResMapFromSecretArgs(
 	kvLdr ifc.KvLoader, argsList []types.SecretArgs) (ResMap, error) {
 	var resources []*resource.Resource
-	for i := range argsList {
-		res, err := rmF.resF.MakeSecret(kvLdr, &argsList[i])
+	for _, args := range argsList {
+		res, err := rmF.resF.MakeSecret(kvLdr, &args)
 		if err != nil {
 			return nil, errors.Wrap(err, "NewResMapFromSecretArgs")
 		}

@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -121,9 +121,6 @@ func CreateVolumeResource(driver TestDriver, config *PerTestConfig, pattern Test
 					VolumeAttributes: attributes,
 				},
 			}
-			if pattern.FsType != "" {
-				r.VolSource.CSI.FSType = &pattern.FsType
-			}
 		}
 	default:
 		framework.Failf("VolumeResource doesn't support: %s", pattern.VolType)
@@ -176,7 +173,7 @@ func (r *VolumeResource) CleanupResource() error {
 			ginkgo.By("Deleting pvc")
 			// We only delete the PVC so that PV (and disk) can be cleaned up by dynamic provisioner
 			if r.Pv != nil && r.Pv.Spec.PersistentVolumeReclaimPolicy != v1.PersistentVolumeReclaimDelete {
-				framework.Failf("Test framework does not currently support Dynamically Provisioned Persistent Volume %v specified with reclaim policy that isn't %v",
+				framework.Failf("Test framework does not currently support Dynamically Provisioned Persistent Volume %v specified with reclaim policy that isnt %v",
 					r.Pv.Name, v1.PersistentVolumeReclaimDelete)
 			}
 			if r.Pvc != nil {
@@ -207,7 +204,7 @@ func (r *VolumeResource) CleanupResource() error {
 				}
 
 				if pv != nil {
-					err = e2epv.WaitForPersistentVolumeDeleted(f.ClientSet, pv.Name, 5*time.Second, f.Timeouts.PVDelete)
+					err = e2epv.WaitForPersistentVolumeDeleted(f.ClientSet, pv.Name, 5*time.Second, 5*time.Minute)
 					if err != nil {
 						cleanUpErrs = append(cleanUpErrs, fmt.Errorf(
 							"persistent Volume %v not deleted by dynamic provisioner: %w", pv.Name, err))

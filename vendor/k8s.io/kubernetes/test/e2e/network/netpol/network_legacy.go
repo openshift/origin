@@ -28,7 +28,7 @@ import (
 
 	"k8s.io/kubernetes/test/e2e/storage/utils"
 
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -776,15 +776,15 @@ var _ = common.SIGDescribe("NetworkPolicyLegacy [LinuxOnly]", func() {
 			framework.ExpectNoError(err, "Error creating Network Policy %v: %v", policy.ObjectMeta.Name, err)
 
 			testCanConnect(f, f.Namespace, "client-a", service, clientAAllowedPort)
-			e2epod.WaitForPodNotFoundInNamespace(f.ClientSet, "client-a", f.Namespace.Name, f.Timeouts.PodDelete)
+			e2epod.WaitForPodNotFoundInNamespace(f.ClientSet, "client-a", f.Namespace.Name, framework.PodDeleteTimeout)
 			framework.ExpectNoError(err, "Expected pod to be not found.")
 
 			testCannotConnect(f, f.Namespace, "client-b", service, clientAAllowedPort)
-			e2epod.WaitForPodNotFoundInNamespace(f.ClientSet, "client-b", f.Namespace.Name, f.Timeouts.PodDelete)
+			e2epod.WaitForPodNotFoundInNamespace(f.ClientSet, "client-b", f.Namespace.Name, framework.PodDeleteTimeout)
 			framework.ExpectNoError(err, "Expected pod to be not found.")
 
 			testCannotConnect(f, f.Namespace, "client-a", service, clientANotAllowedPort)
-			e2epod.WaitForPodNotFoundInNamespace(f.ClientSet, "client-a", f.Namespace.Name, f.Timeouts.PodDelete)
+			e2epod.WaitForPodNotFoundInNamespace(f.ClientSet, "client-a", f.Namespace.Name, framework.PodDeleteTimeout)
 			framework.ExpectNoError(err, "Expected pod to be not found.")
 
 			const (
@@ -823,7 +823,7 @@ var _ = common.SIGDescribe("NetworkPolicyLegacy [LinuxOnly]", func() {
 			defer cleanupNetworkPolicy(f, policy)
 
 			testCannotConnect(f, f.Namespace, "client-b", service, clientBNotAllowedPort)
-			e2epod.WaitForPodNotFoundInNamespace(f.ClientSet, "client-b", f.Namespace.Name, f.Timeouts.PodDelete)
+			e2epod.WaitForPodNotFoundInNamespace(f.ClientSet, "client-b", f.Namespace.Name, framework.PodDeleteTimeout)
 			framework.ExpectNoError(err, "Expected pod to be not found.")
 
 			testCannotConnect(f, f.Namespace, "client-a", service, clientBNotAllowedPort)
@@ -1780,7 +1780,7 @@ var _ = common.SIGDescribe("NetworkPolicy [Feature:SCTPConnectivity][LinuxOnly][
 
 			// Create a pod with name 'client-cannot-connect', which will attempt to communicate with the server,
 			// but should not be able to now that isolation is on.
-			testCannotConnectProtocol(f, f.Namespace, "client-cannot-connect", service, 80, v1.ProtocolSCTP)
+			testCannotConnect(f, f.Namespace, "client-cannot-connect", service, 80)
 		})
 
 		ginkgo.It("should enforce policy based on Ports [Feature:NetworkPolicy]", func() {

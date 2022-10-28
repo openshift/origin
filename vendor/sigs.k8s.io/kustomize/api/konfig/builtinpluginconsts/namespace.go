@@ -6,9 +6,15 @@ package builtinpluginconsts
 const (
 	namespaceFieldSpecs = `
 namespace:
+- path: metadata/namespace
+  create: true
 - path: metadata/name
   kind: Namespace
   create: true
+- path: subjects
+  kind: RoleBinding
+- path: subjects
+  kind: ClusterRoleBinding
 - path: spec/service/namespace
   group: apiregistration.k8s.io
   kind: APIService

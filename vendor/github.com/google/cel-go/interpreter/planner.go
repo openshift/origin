@@ -77,7 +77,7 @@ func newUncheckedPlanner(disp Dispatcher,
 	}
 }
 
-// planner is an implementation of the interpretablePlanner interface.
+// planner is an implementatio of the interpretablePlanner interface.
 type planner struct {
 	disp        Dispatcher
 	provider    ref.TypeProvider
@@ -95,7 +95,7 @@ type planner struct {
 // such as state-tracking, expression re-write, and possibly efficient thread-safe memoization of
 // repeated expressions.
 func (p *planner) Plan(expr *exprpb.Expr) (Interpretable, error) {
-	switch expr.GetExprKind().(type) {
+	switch expr.ExprKind.(type) {
 	case *exprpb.Expr_CallExpr:
 		return p.decorate(p.planCall(expr))
 	case *exprpb.Expr_IdentExpr:
@@ -146,10 +146,10 @@ func (p *planner) planIdent(expr *exprpb.Expr) (Interpretable, error) {
 
 func (p *planner) planCheckedIdent(id int64, identRef *exprpb.Reference) (Interpretable, error) {
 	// Plan a constant reference if this is the case for this simple identifier.
-	if identRef.GetValue() != nil {
+	if identRef.Value != nil {
 		return p.Plan(&exprpb.Expr{Id: id,
 			ExprKind: &exprpb.Expr_ConstExpr{
-				ConstExpr: identRef.GetValue(),
+				ConstExpr: identRef.Value,
 			}})
 	}
 
@@ -157,9 +157,9 @@ func (p *planner) planCheckedIdent(id int64, identRef *exprpb.Reference) (Interp
 	// registered with the provider.
 	cType := p.typeMap[id]
 	if cType.GetType() != nil {
-		cVal, found := p.provider.FindIdent(identRef.GetName())
+		cVal, found := p.provider.FindIdent(identRef.Name)
 		if !found {
-			return nil, fmt.Errorf("reference to undefined type: %s", identRef.GetName())
+			return nil, fmt.Errorf("reference to undefined type: %s", identRef.Name)
 		}
 		return NewConstValue(id, cVal), nil
 	}
@@ -167,15 +167,14 @@ func (p *planner) planCheckedIdent(id int64, identRef *exprpb.Reference) (Interp
 	// Otherwise, return the attribute for the resolved identifier name.
 	return &evalAttr{
 		adapter: p.adapter,
-		attr:    p.attrFactory.AbsoluteAttribute(id, identRef.GetName()),
+		attr:    p.attrFactory.AbsoluteAttribute(id, identRef.Name),
 	}, nil
 }
 
 // planSelect creates an Interpretable with either:
-//
-//	a) selects a field from a map or proto.
-//	b) creates a field presence test for a select within a has() macro.
-//	c) resolves the select expression to a namespaced identifier.
+//  a) selects a field from a map or proto.
+//  b) creates a field presence test for a select within a has() macro.
+//  c) resolves the select expression to a namespaced identifier.
 func (p *planner) planSelect(expr *exprpb.Expr) (Interpretable, error) {
 	// If the Select id appears in the reference map from the CheckedExpr proto then it is either
 	// a namespaced identifier or enum value.
@@ -194,7 +193,7 @@ func (p *planner) planSelect(expr *exprpb.Expr) (Interpretable, error) {
 	var fieldType *ref.FieldType
 	opType := p.typeMap[sel.GetOperand().GetId()]
 	if opType.GetMessageType() != "" {
-		ft, found := p.provider.FindFieldType(opType.GetMessageType(), sel.GetField())
+		ft, found := p.provider.FindFieldType(opType.GetMessageType(), sel.Field)
 		if found && ft.IsSet != nil && ft.GetFrom != nil {
 			fieldType = ft
 		}
@@ -214,15 +213,15 @@ func (p *planner) planSelect(expr *exprpb.Expr) (Interpretable, error) {
 	if sel.TestOnly {
 		// Return the test only eval expression.
 		return &evalTestOnly{
-			id:        expr.GetId(),
-			field:     types.String(sel.GetField()),
+			id:        expr.Id,
+			field:     types.String(sel.Field),
 			fieldType: fieldType,
 			op:        op,
 		}, nil
 	}
 	// Build a qualifier.
 	qual, err := p.attrFactory.NewQualifier(
-		opType, expr.GetId(), sel.GetField())
+		opType, expr.Id, sel.Field)
 	if err != nil {
 		return nil, err
 	}
@@ -303,18 +302,8 @@ func (p *planner) planCall(expr *exprpb.Expr) (Interpretable, error) {
 	case 0:
 		return p.planCallZero(expr, fnName, oName, fnDef)
 	case 1:
-		// If the FunctionOp has been used, then use it as it may exist for the purposes
-		// of dynamic dispatch within a singleton function implementation.
-		if fnDef != nil && fnDef.Unary == nil && fnDef.Function != nil {
-			return p.planCallVarArgs(expr, fnName, oName, fnDef, args)
-		}
 		return p.planCallUnary(expr, fnName, oName, fnDef, args)
 	case 2:
-		// If the FunctionOp has been used, then use it as it may exist for the purposes
-		// of dynamic dispatch within a singleton function implementation.
-		if fnDef != nil && fnDef.Binary == nil && fnDef.Function != nil {
-			return p.planCallVarArgs(expr, fnName, oName, fnDef, args)
-		}
 		return p.planCallBinary(expr, fnName, oName, fnDef, args)
 	default:
 		return p.planCallVarArgs(expr, fnName, oName, fnDef, args)
@@ -330,7 +319,7 @@ func (p *planner) planCallZero(expr *exprpb.Expr,
 		return nil, fmt.Errorf("no such overload: %s()", function)
 	}
 	return &evalZeroArity{
-		id:       expr.GetId(),
+		id:       expr.Id,
 		function: function,
 		overload: overload,
 		impl:     impl.Function,
@@ -345,23 +334,20 @@ func (p *planner) planCallUnary(expr *exprpb.Expr,
 	args []Interpretable) (Interpretable, error) {
 	var fn functions.UnaryOp
 	var trait int
-	var nonStrict bool
 	if impl != nil {
 		if impl.Unary == nil {
 			return nil, fmt.Errorf("no such overload: %s(arg)", function)
 		}
 		fn = impl.Unary
 		trait = impl.OperandTrait
-		nonStrict = impl.NonStrict
 	}
 	return &evalUnary{
-		id:        expr.GetId(),
-		function:  function,
-		overload:  overload,
-		arg:       args[0],
-		trait:     trait,
-		impl:      fn,
-		nonStrict: nonStrict,
+		id:       expr.Id,
+		function: function,
+		overload: overload,
+		arg:      args[0],
+		trait:    trait,
+		impl:     fn,
 	}, nil
 }
 
@@ -373,24 +359,21 @@ func (p *planner) planCallBinary(expr *exprpb.Expr,
 	args []Interpretable) (Interpretable, error) {
 	var fn functions.BinaryOp
 	var trait int
-	var nonStrict bool
 	if impl != nil {
 		if impl.Binary == nil {
 			return nil, fmt.Errorf("no such overload: %s(lhs, rhs)", function)
 		}
 		fn = impl.Binary
 		trait = impl.OperandTrait
-		nonStrict = impl.NonStrict
 	}
 	return &evalBinary{
-		id:        expr.GetId(),
-		function:  function,
-		overload:  overload,
-		lhs:       args[0],
-		rhs:       args[1],
-		trait:     trait,
-		impl:      fn,
-		nonStrict: nonStrict,
+		id:       expr.Id,
+		function: function,
+		overload: overload,
+		lhs:      args[0],
+		rhs:      args[1],
+		trait:    trait,
+		impl:     fn,
 	}, nil
 }
 
@@ -402,23 +385,20 @@ func (p *planner) planCallVarArgs(expr *exprpb.Expr,
 	args []Interpretable) (Interpretable, error) {
 	var fn functions.FunctionOp
 	var trait int
-	var nonStrict bool
 	if impl != nil {
 		if impl.Function == nil {
 			return nil, fmt.Errorf("no such overload: %s(...)", function)
 		}
 		fn = impl.Function
 		trait = impl.OperandTrait
-		nonStrict = impl.NonStrict
 	}
 	return &evalVarArgs{
-		id:        expr.GetId(),
-		function:  function,
-		overload:  overload,
-		args:      args,
-		trait:     trait,
-		impl:      fn,
-		nonStrict: nonStrict,
+		id:       expr.Id,
+		function: function,
+		overload: overload,
+		args:     args,
+		trait:    trait,
+		impl:     fn,
 	}, nil
 }
 
@@ -426,7 +406,7 @@ func (p *planner) planCallVarArgs(expr *exprpb.Expr,
 func (p *planner) planCallEqual(expr *exprpb.Expr,
 	args []Interpretable) (Interpretable, error) {
 	return &evalEq{
-		id:  expr.GetId(),
+		id:  expr.Id,
 		lhs: args[0],
 		rhs: args[1],
 	}, nil
@@ -436,7 +416,7 @@ func (p *planner) planCallEqual(expr *exprpb.Expr,
 func (p *planner) planCallNotEqual(expr *exprpb.Expr,
 	args []Interpretable) (Interpretable, error) {
 	return &evalNe{
-		id:  expr.GetId(),
+		id:  expr.Id,
 		lhs: args[0],
 		rhs: args[1],
 	}, nil
@@ -446,7 +426,7 @@ func (p *planner) planCallNotEqual(expr *exprpb.Expr,
 func (p *planner) planCallLogicalAnd(expr *exprpb.Expr,
 	args []Interpretable) (Interpretable, error) {
 	return &evalAnd{
-		id:  expr.GetId(),
+		id:  expr.Id,
 		lhs: args[0],
 		rhs: args[1],
 	}, nil
@@ -456,7 +436,7 @@ func (p *planner) planCallLogicalAnd(expr *exprpb.Expr,
 func (p *planner) planCallLogicalOr(expr *exprpb.Expr,
 	args []Interpretable) (Interpretable, error) {
 	return &evalOr{
-		id:  expr.GetId(),
+		id:  expr.Id,
 		lhs: args[0],
 		rhs: args[1],
 	}, nil
@@ -487,7 +467,7 @@ func (p *planner) planCallConditional(expr *exprpb.Expr,
 
 	return &evalAttr{
 		adapter: p.adapter,
-		attr:    p.attrFactory.ConditionalAttribute(expr.GetId(), cond, tAttr, fAttr),
+		attr:    p.attrFactory.ConditionalAttribute(expr.Id, cond, tAttr, fAttr),
 	}, nil
 }
 
@@ -542,7 +522,7 @@ func (p *planner) planCreateList(expr *exprpb.Expr) (Interpretable, error) {
 		elems[i] = elemVal
 	}
 	return &evalList{
-		id:      expr.GetId(),
+		id:      expr.Id,
 		elems:   elems,
 		adapter: p.adapter,
 	}, nil
@@ -571,7 +551,7 @@ func (p *planner) planCreateStruct(expr *exprpb.Expr) (Interpretable, error) {
 		vals[i] = valVal
 	}
 	return &evalMap{
-		id:      expr.GetId(),
+		id:      expr.Id,
 		keys:    keys,
 		vals:    vals,
 		adapter: p.adapter,
@@ -597,7 +577,7 @@ func (p *planner) planCreateObj(expr *exprpb.Expr) (Interpretable, error) {
 		vals[i] = val
 	}
 	return &evalObj{
-		id:       expr.GetId(),
+		id:       expr.Id,
 		typeName: typeName,
 		fields:   fields,
 		vals:     vals,
@@ -629,7 +609,7 @@ func (p *planner) planComprehension(expr *exprpb.Expr) (Interpretable, error) {
 		return nil, err
 	}
 	return &evalFold{
-		id:        expr.GetId(),
+		id:        expr.Id,
 		accuVar:   fold.AccuVar,
 		accu:      accu,
 		iterVar:   fold.IterVar,
@@ -647,12 +627,12 @@ func (p *planner) planConst(expr *exprpb.Expr) (Interpretable, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewConstValue(expr.GetId(), val), nil
+	return NewConstValue(expr.Id, val), nil
 }
 
 // constValue converts a proto Constant value to a ref.Val.
 func (p *planner) constValue(c *exprpb.Constant) (ref.Val, error) {
-	switch c.GetConstantKind().(type) {
+	switch c.ConstantKind.(type) {
 	case *exprpb.Constant_BoolValue:
 		return p.adapter.NativeToValue(c.GetBoolValue()), nil
 	case *exprpb.Constant_BytesValue:

@@ -39,7 +39,10 @@ func syncOrder(from, to *yaml.RNode) error {
 			return syncOrder(fNode.Value, tNode.Value)
 		})
 	case yaml.SequenceNode:
-		return VisitElements(from, to, syncOrder) // Traverse each list element
+		return VisitElements(from, to, func(fNode, tNode *yaml.RNode) error {
+			// Traverse each list element
+			return syncOrder(fNode, tNode)
+		})
 	}
 	return nil
 }

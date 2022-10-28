@@ -65,7 +65,7 @@ var (
 			`\[sig-network\] \[Feature:IPv6DualStack\] should have ipv4 and ipv6 node podCIDRs`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=2004074
-			`\[sig-network-edge\]\[Feature:Idling\] Unidling \[apigroup:apps.openshift.io\]\[apigroup:route.openshift.io\] should work with TCP \(while idling\)`,
+			`\[sig-network-edge\]\[Feature:Idling\] Unidling should work with TCP \(while idling\)`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=2070929
 			`\[sig-network\]\[Feature:EgressIP\]\[apigroup:config.openshift.io\] \[internal-targets\]`,
@@ -171,7 +171,7 @@ var (
 			`\[sig-devex\]\[Feature:Templates\] templateinstance readiness test  should report ready soon after all annotated objects are ready`,
 			`\[sig-operator\] an end user can use OLM can subscribe to the operator`,
 			`\[sig-network\] Networking should provide Internet connection for containers`,
-			`\[sig-imageregistry\]\[Serial\] Image signature workflow can push a signed image to openshift registry and verify it`,
+			`\[sig-imageregistry\]\[Serial\]\[Suite:openshift/registry/serial\] Image signature workflow can push a signed image to openshift registry and verify it`,
 
 			// Need to access non-cached images like ruby and mongodb
 			`\[sig-apps\]\[Feature:DeploymentConfig\] deploymentconfigs with multiple image change triggers should run a successful deployment with a trigger used by different containers`,
@@ -239,7 +239,7 @@ var (
 			`\[sig-imageregistry\]\[Feature:ImageTriggers\] Annotation trigger reconciles after the image is overwritten`,
 			`\[sig-imageregistry\]\[Feature:Image\] oc tag should change image reference for internal images`,
 			`\[sig-imageregistry\]\[Feature:Image\] oc tag should work when only imagestreams api is available`,
-			`\[sig-instrumentation\] Prometheus \[apigroup:image.openshift.io\] when installed on the cluster should have a AlertmanagerReceiversNotConfigured alert in firing state`,
+			`\[sig-instrumentation\] Prometheus when installed on the cluster should have a AlertmanagerReceiversNotConfigured alert in firing state`,
 			`\[sig-instrumentation\] Prometheus when installed on the cluster should have important platform topology metrics`,
 			`\[sig-instrumentation\] Prometheus when installed on the cluster should have non-Pod host cAdvisor metrics`,
 			`\[sig-instrumentation\] Prometheus when installed on the cluster should provide ingress metrics`,
@@ -247,7 +247,7 @@ var (
 			`\[sig-instrumentation\] Prometheus when installed on the cluster should report telemetry \[Late\]`,
 			`\[sig-instrumentation\] Prometheus when installed on the cluster should start and expose a secured proxy and unsecured metrics`,
 			`\[sig-instrumentation\] Prometheus when installed on the cluster shouldn't have failing rules evaluation`,
-			`\[sig-instrumentation\] Prometheus \[apigroup:image.openshift.io\] when installed on the cluster shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured \[Early\]`,
+			`\[sig-instrumentation\] Prometheus when installed on the cluster shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured \[Early\]`,
 			`\[sig-instrumentation\] Prometheus when installed on the cluster when using openshift-sdn should be able to get the sdn ovs flows`,
 			`\[sig-instrumentation\]\[Late\] OpenShift alerting rules \[apigroup:image.openshift.io\] should have a valid severity label`,
 			`\[sig-instrumentation\]\[Late\] OpenShift alerting rules \[apigroup:image.openshift.io\] should have description and summary annotations`,
@@ -304,8 +304,8 @@ var (
 			`NetworkPolicy.*named port`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1989169: unidling tests are flaky under ovn-kubernetes
-			`Unidling \[apigroup:apps.openshift.io\]\[apigroup:route.openshift.io\] should work with TCP`,
-			`Unidling \[apigroup:apps.openshift.io\]\[apigroup:route.openshift.io\] should handle many TCP connections`,
+			`Unidling should work with TCP`,
+			`Unidling should handle many TCP connections`,
 		},
 		"[Skipped:ibmroks]": {
 			// skip Gluster tests (not supported on ROKS worker nodes)
@@ -347,4 +347,7 @@ var (
 			`\[sig-storage\]`,
 		},
 	}
+
+	// labelExcludes temporarily block tests out of a specific suite
+	labelExcludes = map[string][]string{}
 )

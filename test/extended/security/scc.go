@@ -2,26 +2,19 @@ package security
 
 import (
 	"context"
-	"fmt"
 	"strings"
-	"time"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	authenticationv1 "k8s.io/api/authentication/v1"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
-	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
-	restclient "k8s.io/client-go/rest"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	securityv1 "github.com/openshift/api/security/v1"
@@ -40,70 +33,57 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	g.It("TestPodUpdateSCCEnforcement [apigroup:user.openshift.io][apigroup:authorization.openshift.io]", func() {
 		t := g.GinkgoT()
 
+		clusterAdminKubeClientset := oc.AdminKubeClient()
+
 		projectName := oc.Namespace()
 		haroldUser := oc.CreateUser("harold-").Name
 		haroldClientConfig := oc.GetClientConfigForUser(haroldUser)
 		haroldKubeClient := kubernetes.NewForConfigOrDie(haroldClientConfig)
 		authorization.AddUserAdminToProject(oc, projectName, haroldUser)
 
-		RunTestPodUpdateSCCEnforcement(ctx, haroldKubeClient, oc.AdminKubeClient(), projectName, t)
-	})
+		// so cluster-admin can create privileged pods, but harold cannot.  This means that harold should not be able
+		// to update the privileged pods either, even if he lies about its privileged nature
+		privilegedPod := getPrivilegedPod("unsafe")
 
-	g.It("TestPodUpdateSCCEnforcement with service account", func() {
-		t := g.GinkgoT()
+		if _, err := haroldKubeClient.CoreV1().Pods(projectName).Create(ctx, privilegedPod, metav1.CreateOptions{}); !isForbiddenBySCC(err) {
+			t.Fatalf("missing forbidden: %v", err)
+		}
 
-		projectName := oc.Namespace()
-		sa := createServiceAccount(ctx, oc, projectName)
-		createPodAdminRoleOrDie(ctx, oc, sa)
-		restrictedClient, _ := createClientFromServiceAccount(oc, sa)
+		actualPod, err := clusterAdminKubeClientset.CoreV1().Pods(projectName).Create(ctx, privilegedPod, metav1.CreateOptions{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 
-		RunTestPodUpdateSCCEnforcement(ctx, restrictedClient, oc.AdminKubeClient(), projectName, t)
+		actualPod.Spec.Containers[0].Image = "something-nefarious"
+		if _, err := haroldKubeClient.CoreV1().Pods(projectName).Update(ctx, actualPod, metav1.UpdateOptions{}); !isForbiddenBySCC(err) {
+			t.Fatalf("missing forbidden: %v", err)
+		}
+
+		// try to connect to /exec subresource as harold
+		haroldCorev1Rest := haroldKubeClient.CoreV1().RESTClient()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		result := &metav1.Status{}
+		err = haroldCorev1Rest.Post().
+			Resource("pods").
+			Namespace(projectName).
+			Name(actualPod.Name).
+			SubResource("exec").
+			Param("container", "first").
+			Do(ctx).
+			Into(result)
+		if !isForbiddenBySCCExecRestrictions(err) {
+			t.Fatalf("missing forbidden by SCCExecRestrictions: %v", err)
+		}
+
+		// try to lie about the privileged nature
+		actualPod.Spec.HostPID = false
+		if _, err := haroldKubeClient.CoreV1().Pods(projectName).Update(context.Background(), actualPod, metav1.UpdateOptions{}); err == nil {
+			t.Fatalf("missing error: %v", err)
+		}
 	})
 })
-
-func RunTestPodUpdateSCCEnforcement(ctx context.Context, restrictedClient, clusterAdminKubeClientset kubernetes.Interface, namespace string, t g.GinkgoTInterface) {
-	// so cluster-admin can create privileged pods, but harold cannot.  This means that harold should not be able
-	// to update the privileged pods either, even if he lies about its privileged nature
-	privilegedPod := getPrivilegedPod("unsafe")
-
-	if _, err := restrictedClient.CoreV1().Pods(namespace).Create(ctx, privilegedPod, metav1.CreateOptions{}); !isForbiddenBySCC(err) {
-		t.Fatalf("missing forbidden: %v", err)
-	}
-
-	actualPod, err := clusterAdminKubeClientset.CoreV1().Pods(namespace).Create(ctx, privilegedPod, metav1.CreateOptions{})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	actualPod.Spec.Containers[0].Image = "something-nefarious"
-	if _, err := restrictedClient.CoreV1().Pods(namespace).Update(ctx, actualPod, metav1.UpdateOptions{}); !isForbiddenBySCC(err) {
-		t.Fatalf("missing forbidden: %v", err)
-	}
-
-	// try to connect to /exec subresource as harold
-	haroldCorev1Rest := restrictedClient.CoreV1().RESTClient()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	result := &metav1.Status{}
-	err = haroldCorev1Rest.Post().
-		Resource("pods").
-		Namespace(namespace).
-		Name(actualPod.Name).
-		SubResource("exec").
-		Param("container", "first").
-		Do(ctx).
-		Into(result)
-	if !isForbiddenBySCCExecRestrictions(err) {
-		t.Fatalf("missing forbidden by SCCExecRestrictions: %v", err)
-	}
-
-	// try to lie about the privileged nature
-	actualPod.Spec.HostPID = false
-	if _, err := restrictedClient.CoreV1().Pods(namespace).Update(context.Background(), actualPod, metav1.UpdateOptions{}); err == nil {
-		t.Fatalf("missing error: %v", err)
-	}
-}
 
 var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	ctx := context.Background()
@@ -122,7 +102,24 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 		user1 := oc.CreateUser("user1-").Name
 		user2 := oc.CreateUser("user2-").Name
 
+		clusterRole := "all-scc-" + oc.Namespace()
+		rule := rbacv1helpers.NewRule("use").Groups("security.openshift.io").Resources("securitycontextconstraints").RuleOrDie()
+
+		// set a up cluster role that allows access to all SCCs
+		if _, err := clusterAdminKubeClientset.RbacV1().ClusterRoles().Create(
+			ctx,
+			&rbacv1.ClusterRole{
+				ObjectMeta: metav1.ObjectMeta{Name: clusterRole},
+				Rules:      []rbacv1.PolicyRule{rule},
+			},
+			metav1.CreateOptions{},
+		); err != nil {
+			t.Fatal(err)
+		}
+		oc.AddExplicitResourceToDelete(rbacv1.SchemeGroupVersion.WithResource("clusterroles"), "", clusterRole)
+
 		// set up 2 projects for 2 users
+
 		authorization.AddUserAdminToProject(oc, project1, user1)
 		user1Config := oc.GetClientConfigForUser(user1)
 		user1Client := kubernetes.NewForConfigOrDie(user1Config)
@@ -133,231 +130,140 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 		user2Client := kubernetes.NewForConfigOrDie(user2Config)
 		user2SecurityClient := securityv1client.NewForConfigOrDie(user2Config)
 
-		RunTestAllowedSCCViaRBAC(
-			ctx,
-			oc,
-			clusterAdminKubeClientset, user1Client, user2Client,
-			user1SecurityClient, user2SecurityClient,
-			project1, project2,
-			rbacv1.Subject{Kind: rbacv1.UserKind, APIGroup: rbacv1helpers.GroupName, Name: user1},
-			rbacv1.Subject{Kind: rbacv1.UserKind, APIGroup: rbacv1helpers.GroupName, Name: user2},
-			t,
-		)
-	})
+		createOpts := metav1.CreateOptions{}
 
-	g.It("TestAllowedSCCViaRBAC with service account [apigroup:security.openshift.io]", func() {
-		t := g.GinkgoT()
-
-		clusterAdminKubeClientset := oc.AdminKubeClient()
-
-		newNamespace := &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: fmt.Sprintf("%s-namespace-2", oc.Namespace()),
-			},
+		// user1 cannot make a privileged pod
+		if _, err := user1Client.CoreV1().Pods(project1).Create(ctx, getPrivilegedPod("test1"), createOpts); !isForbiddenBySCC(err) {
+			t.Fatalf("missing forbidden for user1: %v", err)
 		}
-		_, err := oc.AdminKubeClient().CoreV1().Namespaces().Create(context.Background(), newNamespace, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		oc.AddExplicitResourceToDelete(corev1.SchemeGroupVersion.WithResource("namespaces"), "", newNamespace.Name)
 
-		namespace1 := oc.Namespace()
-		namespace2 := newNamespace.Name
+		// user2 cannot make a privileged pod
+		if _, err := user2Client.CoreV1().Pods(project2).Create(ctx, getPrivilegedPod("test2"), createOpts); !isForbiddenBySCC(err) {
+			t.Fatalf("missing forbidden for user2: %v", err)
+		}
 
-		sa1 := createServiceAccount(ctx, oc, namespace1)
-		createPodAdminRoleOrDie(ctx, oc, sa1)
-		createPodSecurityPolicySelfSubjectReviewsRoleBindingOrDie(ctx, oc, sa1)
+		// this should allow user1 to make a privileged pod in project1
+		rb := rbacv1helpers.NewRoleBindingForClusterRole(clusterRole, project1).Users(user1).BindingOrDie()
+		if _, err := clusterAdminKubeClientset.RbacV1().RoleBindings(project1).Create(ctx, &rb, createOpts); err != nil {
+			t.Fatal(err)
+		}
 
-		sa2 := createServiceAccount(ctx, oc, namespace2)
-		createPodAdminRoleOrDie(ctx, oc, sa2)
-		createPodSecurityPolicySelfSubjectReviewsRoleBindingOrDie(ctx, oc, sa2)
+		// this should allow user1 to make pods in project2
+		rbEditUser1Project2 := rbacv1helpers.NewRoleBindingForClusterRole("edit", project2).Users(user1).BindingOrDie()
+		if _, err := clusterAdminKubeClientset.RbacV1().RoleBindings(project2).Create(ctx, &rbEditUser1Project2, createOpts); err != nil {
+			t.Fatal(err)
+		}
 
-		// set up 2 namespaces for 2 service accounts
-		sa1Client, sa1SecurityClient := createClientFromServiceAccount(oc, sa1)
-		sa2Client, sa2SecurityClient := createClientFromServiceAccount(oc, sa2)
+		// this should allow user2 to make pods in project1
+		rbEditUser2Project1 := rbacv1helpers.NewRoleBindingForClusterRole("edit", project1).Users(user2).BindingOrDie()
+		if _, err := clusterAdminKubeClientset.RbacV1().RoleBindings(project1).Create(ctx, &rbEditUser2Project1, createOpts); err != nil {
+			t.Fatal(err)
+		}
 
-		RunTestAllowedSCCViaRBAC(
-			ctx,
-			oc,
-			clusterAdminKubeClientset, sa1Client, sa2Client,
-			sa1SecurityClient, sa2SecurityClient,
-			namespace1, namespace2,
-			rbacv1.Subject{Kind: rbacv1.ServiceAccountKind, Namespace: sa1.Namespace, Name: sa1.Name},
-			rbacv1.Subject{Kind: rbacv1.ServiceAccountKind, Namespace: sa2.Namespace, Name: sa2.Name},
-			t,
-		)
+		// this should allow user2 to make a privileged pod in all projects
+		crb := rbacv1helpers.NewClusterBinding(clusterRole).Users(user2).BindingOrDie()
+		if _, err := clusterAdminKubeClientset.RbacV1().ClusterRoleBindings().Create(ctx, &crb, createOpts); err != nil {
+			t.Fatal(err)
+		}
+		oc.AddExplicitResourceToDelete(rbacv1.SchemeGroupVersion.WithResource("clusterrolebindings"), "", crb.Name)
+
+		// wait for RBAC to catch up to user1 role binding for SCC
+		if err := oc.WaitForAccessAllowed(&kubeauthorizationv1.SelfSubjectAccessReview{
+			Spec: kubeauthorizationv1.SelfSubjectAccessReviewSpec{
+				ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
+					Namespace: project1,
+					Verb:      rule.Verbs[0],
+					Group:     rule.APIGroups[0],
+					Resource:  rule.Resources[0],
+				},
+			},
+		}, user1); err != nil {
+			t.Fatal(err)
+		}
+
+		// wait for RBAC to catch up to user1 role binding for edit
+		if err := oc.WaitForAccessAllowed(&kubeauthorizationv1.SelfSubjectAccessReview{
+			Spec: kubeauthorizationv1.SelfSubjectAccessReviewSpec{
+				ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
+					Namespace: project2,
+					Verb:      "create",
+					Group:     "",
+					Resource:  "pods",
+				},
+			},
+		}, user1); err != nil {
+			t.Fatal(err)
+		}
+
+		// wait for RBAC to catch up to user2 role binding
+		if err := oc.WaitForAccessAllowed(&kubeauthorizationv1.SelfSubjectAccessReview{
+			Spec: kubeauthorizationv1.SelfSubjectAccessReviewSpec{
+				ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
+					Namespace: project1,
+					Verb:      "create",
+					Group:     "",
+					Resource:  "pods",
+				},
+			},
+		}, user2); err != nil {
+			t.Fatal(err)
+		}
+
+		// wait for RBAC to catch up to user2 cluster role binding
+		if err := oc.WaitForAccessAllowed(&kubeauthorizationv1.SelfSubjectAccessReview{
+			Spec: kubeauthorizationv1.SelfSubjectAccessReviewSpec{
+				ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
+					Namespace: project2,
+					Verb:      rule.Verbs[0],
+					Group:     rule.APIGroups[0],
+					Resource:  rule.Resources[0],
+				},
+			},
+		}, user2); err != nil {
+			t.Fatal(err)
+		}
+
+		// user1 can make a privileged pod in project1
+		if _, err := user1Client.CoreV1().Pods(project1).Create(ctx, getPrivilegedPod("test3"), createOpts); err != nil {
+			t.Fatalf("user1 failed to create pod in project1 via local binding: %v", err)
+		}
+
+		// user1 cannot make a privileged pod in project2
+		if _, err := user1Client.CoreV1().Pods(project2).Create(ctx, getPrivilegedPod("test4"), createOpts); !isForbiddenBySCC(err) {
+			t.Fatalf("missing forbidden for user1 in project2: %v", err)
+		}
+
+		// user2 can make a privileged pod in project1
+		if _, err := user2Client.CoreV1().Pods(project1).Create(ctx, getPrivilegedPod("test5"), createOpts); err != nil {
+			t.Fatalf("user2 failed to create pod in project1 via cluster binding: %v", err)
+		}
+
+		// user2 can make a privileged pod in project2
+		if _, err := user2Client.CoreV1().Pods(project2).Create(ctx, getPrivilegedPod("test6"), createOpts); err != nil {
+			t.Fatalf("user2 failed to create pod in project2 via cluster binding: %v", err)
+		}
+
+		// make sure PSP self subject review works since that is based by the same SCC logic but has different wiring
+
+		// user1 can make a privileged pod in project1
+		user1PSPReview, err := user1SecurityClient.PodSecurityPolicySelfSubjectReviews(project1).Create(ctx, runAsRootPSPSSR(), createOpts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if allowedBy := user1PSPReview.Status.AllowedBy; allowedBy == nil || allowedBy.Name != "anyuid" {
+			t.Fatalf("user1 failed PSP SSR in project1: %v", allowedBy)
+		}
+
+		// user2 can make a privileged pod in project2
+		user2PSPReview, err := user2SecurityClient.PodSecurityPolicySelfSubjectReviews(project2).Create(ctx, runAsRootPSPSSR(), createOpts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if allowedBy := user2PSPReview.Status.AllowedBy; allowedBy == nil || allowedBy.Name != "anyuid" {
+			t.Fatalf("user2 failed PSP SSR in project2: %v", allowedBy)
+		}
 	})
 })
-
-func addSubjectsToClusterRoleBindingBuilder(builder *rbacv1helpers.ClusterRoleBindingBuilder, subjects ...rbacv1.Subject) *rbacv1helpers.ClusterRoleBindingBuilder {
-	for _, subject := range subjects {
-		builder.ClusterRoleBinding.Subjects = append(builder.ClusterRoleBinding.Subjects, subject)
-	}
-	return builder
-}
-
-func addSubjectsToRoleBindingBuilder(builder *rbacv1helpers.RoleBindingBuilder, subjects ...rbacv1.Subject) *rbacv1helpers.RoleBindingBuilder {
-	for _, subject := range subjects {
-		builder.RoleBinding.Subjects = append(builder.RoleBinding.Subjects, subject)
-	}
-	return builder
-}
-
-func RunTestAllowedSCCViaRBAC(
-	ctx context.Context,
-	oc *exutil.CLI,
-	clusterAdminKubeClientset, clientset1, clientset2 kubernetes.Interface,
-	securityClientset1, securityClientset2 *securityv1client.SecurityV1Client,
-	namespace1, namespace2 string,
-	subject1, subject2 rbacv1.Subject,
-	t g.GinkgoTInterface,
-) {
-	clusterRole := "all-scc-" + namespace1
-	rule := rbacv1helpers.NewRule("use").Groups("security.openshift.io").Resources("securitycontextconstraints").RuleOrDie()
-
-	// set a up cluster role that allows access to all SCCs
-	_, err := clusterAdminKubeClientset.RbacV1().ClusterRoles().Create(
-		ctx,
-		&rbacv1.ClusterRole{
-			ObjectMeta: metav1.ObjectMeta{Name: clusterRole},
-			Rules:      []rbacv1.PolicyRule{rule},
-		},
-		metav1.CreateOptions{},
-	)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	oc.AddExplicitResourceToDelete(rbacv1.SchemeGroupVersion.WithResource("clusterroles"), "", clusterRole)
-
-	createOpts := metav1.CreateOptions{}
-
-	// subject1 cannot make a privileged pod
-	if _, err := clientset1.CoreV1().Pods(namespace1).Create(ctx, getPrivilegedPod("test1"), createOpts); !isForbiddenBySCC(err) {
-		t.Fatalf("missing forbidden for serviceaccount1: %v", err)
-	}
-
-	// subject2 cannot make a privileged pod
-	if _, err := clientset2.CoreV1().Pods(namespace2).Create(ctx, getPrivilegedPod("test2"), createOpts); !isForbiddenBySCC(err) {
-		t.Fatalf("missing forbidden for serviceaccount2: %v", err)
-	}
-
-	// this should allow subject1 to make a privileged pod in namespace1
-	rb := addSubjectsToRoleBindingBuilder(rbacv1helpers.NewRoleBindingForClusterRole(clusterRole, namespace1), subject1).BindingOrDie()
-	if _, err := clusterAdminKubeClientset.RbacV1().RoleBindings(namespace1).Create(ctx, &rb, createOpts); err != nil {
-		t.Fatal(err)
-	}
-
-	// this should allow subject1 to make pods in namespace2
-	rbEditUser1Project2 := addSubjectsToRoleBindingBuilder(rbacv1helpers.NewRoleBindingForClusterRole("edit", namespace2), subject1).BindingOrDie()
-	if _, err := clusterAdminKubeClientset.RbacV1().RoleBindings(namespace2).Create(ctx, &rbEditUser1Project2, createOpts); err != nil {
-		t.Fatal(err)
-	}
-
-	// this should allow subject2 to make pods in namespace1
-	rbEditUser2Project1 := addSubjectsToRoleBindingBuilder(rbacv1helpers.NewRoleBindingForClusterRole("edit", namespace1), subject2).BindingOrDie()
-	if _, err := clusterAdminKubeClientset.RbacV1().RoleBindings(namespace1).Create(ctx, &rbEditUser2Project1, createOpts); err != nil {
-		t.Fatal(err)
-	}
-
-	// this should allow subject2 to make a privileged pod in all namespaces
-	crb := addSubjectsToClusterRoleBindingBuilder(rbacv1helpers.NewClusterBinding(clusterRole), subject2).BindingOrDie()
-	if _, err := clusterAdminKubeClientset.RbacV1().ClusterRoleBindings().Create(ctx, &crb, createOpts); err != nil {
-		t.Fatal(err)
-	}
-	oc.AddExplicitResourceToDelete(rbacv1.SchemeGroupVersion.WithResource("clusterrolebindings"), "", crb.Name)
-
-	// wait for RBAC to catch up to subject1 role binding for SCC
-	if err := exutil.WaitForAccess(clientset1, true, &kubeauthorizationv1.SelfSubjectAccessReview{
-		Spec: kubeauthorizationv1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
-				Namespace: namespace1,
-				Verb:      rule.Verbs[0],
-				Group:     rule.APIGroups[0],
-				Resource:  rule.Resources[0],
-			},
-		},
-	}); err != nil {
-		t.Fatal(err)
-	}
-
-	// wait for RBAC to catch up to subject1 role binding for edit
-	if err := exutil.WaitForAccess(clientset1, true, &kubeauthorizationv1.SelfSubjectAccessReview{
-		Spec: kubeauthorizationv1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
-				Namespace: namespace2,
-				Verb:      "create",
-				Group:     "",
-				Resource:  "pods",
-			},
-		},
-	}); err != nil {
-		t.Fatal(err)
-	}
-
-	// wait for RBAC to catch up to subject2 role binding
-	if err := exutil.WaitForAccess(clientset2, true, &kubeauthorizationv1.SelfSubjectAccessReview{
-		Spec: kubeauthorizationv1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
-				Namespace: namespace1,
-				Verb:      "create",
-				Group:     "",
-				Resource:  "pods",
-			},
-		},
-	}); err != nil {
-		t.Fatal(err)
-	}
-
-	// wait for RBAC to catch up to subject2 cluster role binding
-	if err := exutil.WaitForAccess(clientset2, true, &kubeauthorizationv1.SelfSubjectAccessReview{
-		Spec: kubeauthorizationv1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
-				Namespace: namespace2,
-				Verb:      rule.Verbs[0],
-				Group:     rule.APIGroups[0],
-				Resource:  rule.Resources[0],
-			},
-		},
-	}); err != nil {
-		t.Fatal(err)
-	}
-
-	// subject1 can make a privileged pod in namespace1
-	if _, err := clientset1.CoreV1().Pods(namespace1).Create(ctx, getPrivilegedPod("test3"), createOpts); err != nil {
-		t.Fatalf("subject1 failed to create pod in namespace1 via local binding: %v", err)
-	}
-
-	// subject1 cannot make a privileged pod in namespace2
-	if _, err := clientset1.CoreV1().Pods(namespace2).Create(ctx, getPrivilegedPod("test4"), createOpts); !isForbiddenBySCC(err) {
-		t.Fatalf("missing forbidden for serviceaccount1 in namespace2: %v", err)
-	}
-
-	// subject2 can make a privileged pod in namespace1
-	if _, err := clientset2.CoreV1().Pods(namespace1).Create(ctx, getPrivilegedPod("test5"), createOpts); err != nil {
-		t.Fatalf("subject2 failed to create pod in namespace1 via cluster binding: %v", err)
-	}
-
-	// subject2 can make a privileged pod in namespace2
-	if _, err := clientset2.CoreV1().Pods(namespace2).Create(ctx, getPrivilegedPod("test6"), createOpts); err != nil {
-		t.Fatalf("subject2 failed to create pod in namespace2 via cluster binding: %v", err)
-	}
-
-	// make sure PSP self subject review works since that is based by the same SCC logic but has different wiring
-
-	// subject1 can make a privileged pod in namespace1
-	subject1PSPReview, err := securityClientset1.PodSecurityPolicySelfSubjectReviews(namespace1).Create(ctx, runAsRootPSPSSR(), createOpts)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if allowedBy := subject1PSPReview.Status.AllowedBy; allowedBy == nil || allowedBy.Name != "anyuid" {
-		t.Fatalf("subject1 failed PSP SSR in namespace1: %v", allowedBy)
-	}
-
-	// subject2 can make a privileged pod in namespace2
-	subject2PSPReview, err := securityClientset2.PodSecurityPolicySelfSubjectReviews(namespace2).Create(ctx, runAsRootPSPSSR(), createOpts)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if allowedBy := subject2PSPReview.Status.AllowedBy; allowedBy == nil || allowedBy.Name != "anyuid" {
-		t.Fatalf("subject2 failed PSP SSR in namespace2: %v", allowedBy)
-	}
-}
 
 var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	defer g.GinkgoRecover()
@@ -432,112 +338,4 @@ func runAsRootPSPSSR() *securityv1.PodSecurityPolicySelfSubjectReview {
 			},
 		},
 	}
-}
-
-func createPodAdminRoleOrDie(ctx context.Context, oc *exutil.CLI, sa *corev1.ServiceAccount) {
-	framework.Logf("Creating role")
-	rule := rbacv1helpers.NewRule("create", "update").Groups("").Resources("pods", "pods/exec").RuleOrDie()
-	_, err := oc.AdminKubeClient().RbacV1().Roles(sa.Namespace).Create(
-		ctx,
-		&rbacv1.Role{
-			ObjectMeta: metav1.ObjectMeta{Name: "podadmin"},
-			Rules:      []rbacv1.PolicyRule{rule},
-		},
-		metav1.CreateOptions{},
-	)
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	framework.Logf("Creating rolebinding")
-	_, err = oc.AdminKubeClient().RbacV1().RoleBindings(sa.Namespace).Create(ctx, &rbacv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:    sa.Namespace,
-			GenerateName: "podadmin-",
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind: "ServiceAccount",
-				Name: sa.Name,
-			},
-		},
-		RoleRef: rbacv1.RoleRef{
-			Kind: "Role",
-			Name: "podadmin",
-		},
-	}, metav1.CreateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-}
-
-func createServiceAccount(ctx context.Context, oc *exutil.CLI, namespace string) *corev1.ServiceAccount {
-	framework.Logf("Creating ServiceAccount")
-	sa, err := oc.AdminKubeClient().CoreV1().ServiceAccounts(namespace).Create(ctx, &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{GenerateName: "test-sa-"}}, metav1.CreateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	framework.Logf("Waiting for ServiceAccount %q to be provisioned...", sa.Name)
-	err = wait.Poll(100*time.Millisecond, 3*time.Minute, func() (bool, error) {
-		_, err := oc.AdminKubeClient().CoreV1().ServiceAccounts(namespace).Get(context.Background(), sa.Name, metav1.GetOptions{})
-		if err != nil {
-			// If we can't access the service accounts, let's wait till the controller
-			// create it.
-			if kapierrs.IsNotFound(err) || kapierrs.IsForbidden(err) {
-				e2e.Logf("Waiting for service account %q to be available: %v (will retry) ...", sa.Name, err)
-				return false, nil
-			}
-			return false, fmt.Errorf("Failed to get service account %q: %v", sa.Name, err)
-		}
-		return true, nil
-	})
-
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	return sa
-}
-
-func createPodSecurityPolicySelfSubjectReviewsRoleBindingOrDie(ctx context.Context, oc *exutil.CLI, sa *corev1.ServiceAccount) {
-	framework.Logf("Creating podsecuritypolicyselfsubjectreviews role")
-	rule := rbacv1helpers.NewRule("create").Groups("security.openshift.io").Resources("podsecuritypolicyselfsubjectreviews").RuleOrDie()
-	_, err := oc.AdminKubeClient().RbacV1().Roles(sa.Namespace).Create(
-		ctx,
-		&rbacv1.Role{
-			ObjectMeta: metav1.ObjectMeta{Name: "pspssr"},
-			Rules:      []rbacv1.PolicyRule{rule},
-		},
-		metav1.CreateOptions{},
-	)
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	framework.Logf("Creating podsecuritypolicyselfsubjectreviews rolebinding")
-	_, err = oc.AdminKubeClient().RbacV1().RoleBindings(sa.Namespace).Create(ctx, &rbacv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:    sa.Namespace,
-			GenerateName: "podadmin-",
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind: "ServiceAccount",
-				Name: sa.Name,
-			},
-		},
-		RoleRef: rbacv1.RoleRef{
-			Kind: "Role",
-			Name: "pspssr",
-		},
-	}, metav1.CreateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-}
-
-func createClientFromServiceAccount(oc *exutil.CLI, sa *corev1.ServiceAccount) (*kubernetes.Clientset, *securityv1client.SecurityV1Client) {
-	// create a new token request for the service account and use it to build a client for it
-	tokenRequest := &authenticationv1.TokenRequest{
-		Spec: authenticationv1.TokenRequestSpec{
-			Audiences: []string{"https://kubernetes.default.svc"},
-		},
-	}
-	framework.Logf("Creating service account token")
-	bootstrapperToken, err := oc.AdminKubeClient().CoreV1().ServiceAccounts(sa.Namespace).CreateToken(context.TODO(), sa.Name, tokenRequest, metav1.CreateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	saClientConfig := restclient.AnonymousClientConfig(oc.AdminConfig())
-	saClientConfig.BearerToken = bootstrapperToken.Status.Token
-
-	return kubernetes.NewForConfigOrDie(saClientConfig), securityv1client.NewForConfigOrDie(saClientConfig)
 }

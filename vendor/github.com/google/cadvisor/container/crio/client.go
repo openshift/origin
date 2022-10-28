@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"sync"
@@ -142,11 +141,7 @@ func (c *crioClientImpl) ContainerInfo(id string) (*ContainerInfo, error) {
 	// golang's http.Do doesn't return an error if non 200 response code is returned
 	// handle this case here, rather than failing to decode the body
 	if resp.StatusCode != http.StatusOK {
-		respBody, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("Error finding container %s: Status %d", id, resp.StatusCode)
-		}
-		return nil, fmt.Errorf("Error finding container %s: Status %d returned error %s", id, resp.StatusCode, string(respBody))
+		return nil, fmt.Errorf("Error finding container %s: Status %d returned error %s", id, resp.StatusCode, resp.Body)
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&cInfo); err != nil {

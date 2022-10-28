@@ -93,7 +93,8 @@ type Endpoint struct {
 	// +optional
 	DeprecatedTopology map[string]string
 	// nodeName represents the name of the Node hosting this endpoint. This can
-	// be used to determine endpoints local to a Node.
+	// be used to determine endpoints local to a Node. This field can be enabled
+	// with the EndpointSliceNodeName feature gate.
 	// +optional
 	NodeName *string
 	// zone is the name of the Zone this endpoint exists in.

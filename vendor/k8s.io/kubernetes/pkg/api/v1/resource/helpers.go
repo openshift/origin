@@ -24,6 +24,8 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/kubernetes/pkg/features"
 )
 
 // PodRequestsAndLimits returns a dictionary of all defined resources summed up for all
@@ -127,6 +129,11 @@ func GetResourceRequestQuantity(pod *v1.Pod, resourceName v1.ResourceName) resou
 		requestQuantity = resource.Quantity{Format: resource.BinarySI}
 	default:
 		requestQuantity = resource.Quantity{Format: resource.DecimalSI}
+	}
+
+	if resourceName == v1.ResourceEphemeralStorage && !utilfeature.DefaultFeatureGate.Enabled(features.LocalStorageCapacityIsolation) {
+		// if the local storage capacity isolation feature gate is disabled, pods request 0 disk
+		return requestQuantity
 	}
 
 	for _, container := range pod.Spec.Containers {

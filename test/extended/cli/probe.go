@@ -3,7 +3,7 @@ package cli
 import (
 	"os"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	admissionapi "k8s.io/pod-security-admission/api"
@@ -88,7 +88,7 @@ var _ = g.Describe("[sig-cli] oc probe", func() {
 		oc.Run("delete").Args("-f", file).Execute()
 	})
 
-	g.It("can ensure the probe command is functioning as expected on deploymentconfigs [apigroup:apps.openshift.io]", func() {
+	g.It("can ensure the probe command is functioning as expected on deploymentconfigs", func() {
 		g.By("creating a test-deployment-config deploymentconfig")
 		err := oc.Run("create").Args("-f", deploymentConfig).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())

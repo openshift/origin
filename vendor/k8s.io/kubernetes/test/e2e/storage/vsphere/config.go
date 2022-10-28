@@ -85,11 +85,6 @@ type ConfigFile struct {
 		DefaultDatastore string `gcfg:"default-datastore"`
 		ResourcePoolPath string `gcfg:"resourcepool-path"`
 	}
-	// Tag categories and tags which correspond to "built-in node labels: zones and region"
-	Labels struct {
-		Zone   string `gcfg:"zone"`
-		Region string `gcfg:"region"`
-	}
 }
 
 // GetVSphereInstances parses vsphere.conf and returns VSphere instances

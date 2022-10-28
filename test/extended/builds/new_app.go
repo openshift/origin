@@ -3,7 +3,7 @@ package builds
 import (
 	"context"
 
-	g "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -43,13 +43,13 @@ var _ = g.Describe("[sig-builds][Feature:Builds] oc new-app", func() {
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentSpecReport().Failed() {
+			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}
-			deployutil.DeploymentConfigFailureTrap(oc, a58, g.CurrentSpecReport().Failed())
-			deployutil.DeploymentConfigFailureTrap(oc, a59, g.CurrentSpecReport().Failed())
+			deployutil.DeploymentConfigFailureTrap(oc, a58, g.CurrentGinkgoTestDescription().Failed)
+			deployutil.DeploymentConfigFailureTrap(oc, a59, g.CurrentGinkgoTestDescription().Failed)
 		})
 
 		g.It("should succeed with a --name of 58 characters [apigroup:build.openshift.io]", func() {

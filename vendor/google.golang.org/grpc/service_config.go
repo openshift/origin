@@ -218,7 +218,7 @@ type jsonSC struct {
 }
 
 func init() {
-	internal.ParseServiceConfig = parseServiceConfig
+	internal.ParseServiceConfigForTesting = parseServiceConfig
 }
 func parseServiceConfig(js string) *serviceconfig.ParseResult {
 	if len(js) == 0 {
@@ -381,9 +381,6 @@ func init() {
 //
 // If any of them is NOT *ServiceConfig, return false.
 func equalServiceConfig(a, b serviceconfig.Config) bool {
-	if a == nil && b == nil {
-		return true
-	}
 	aa, ok := a.(*ServiceConfig)
 	if !ok {
 		return false

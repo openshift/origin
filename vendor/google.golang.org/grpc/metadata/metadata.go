@@ -188,9 +188,7 @@ func FromIncomingContext(ctx context.Context) (MD, bool) {
 		// map, and there's no guarantee that the MD attached to the context is
 		// created using our helper functions.
 		key := strings.ToLower(k)
-		s := make([]string, len(v))
-		copy(s, v)
-		out[key] = s
+		out[key] = v
 	}
 	return out, true
 }
@@ -228,9 +226,7 @@ func FromOutgoingContext(ctx context.Context) (MD, bool) {
 		// map, and there's no guarantee that the MD attached to the context is
 		// created using our helper functions.
 		key := strings.ToLower(k)
-		s := make([]string, len(v))
-		copy(s, v)
-		out[key] = s
+		out[key] = v
 	}
 	for _, added := range raw.added {
 		if len(added)%2 == 1 {

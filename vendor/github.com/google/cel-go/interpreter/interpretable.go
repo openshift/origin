@@ -421,13 +421,12 @@ func (zero *evalZeroArity) Args() []Interpretable {
 }
 
 type evalUnary struct {
-	id        int64
-	function  string
-	overload  string
-	arg       Interpretable
-	trait     int
-	impl      functions.UnaryOp
-	nonStrict bool
+	id       int64
+	function string
+	overload string
+	arg      Interpretable
+	trait    int
+	impl     functions.UnaryOp
 }
 
 // ID implements the Interpretable interface method.
@@ -439,13 +438,12 @@ func (un *evalUnary) ID() int64 {
 func (un *evalUnary) Eval(ctx Activation) ref.Val {
 	argVal := un.arg.Eval(ctx)
 	// Early return if the argument to the function is unknown or error.
-	strict := !un.nonStrict
-	if strict && types.IsUnknownOrError(argVal) {
+	if types.IsUnknownOrError(argVal) {
 		return argVal
 	}
 	// If the implementation is bound and the argument value has the right traits required to
 	// invoke it, then call the implementation.
-	if un.impl != nil && (un.trait == 0 || (!strict && types.IsUnknownOrError(argVal)) || argVal.Type().HasTrait(un.trait)) {
+	if un.impl != nil && (un.trait == 0 || argVal.Type().HasTrait(un.trait)) {
 		return un.impl(argVal)
 	}
 	// Otherwise, if the argument is a ReceiverType attempt to invoke the receiver method on the
@@ -480,14 +478,13 @@ func (un *evalUnary) Args() []Interpretable {
 }
 
 type evalBinary struct {
-	id        int64
-	function  string
-	overload  string
-	lhs       Interpretable
-	rhs       Interpretable
-	trait     int
-	impl      functions.BinaryOp
-	nonStrict bool
+	id       int64
+	function string
+	overload string
+	lhs      Interpretable
+	rhs      Interpretable
+	trait    int
+	impl     functions.BinaryOp
 }
 
 // ID implements the Interpretable interface method.
@@ -500,18 +497,15 @@ func (bin *evalBinary) Eval(ctx Activation) ref.Val {
 	lVal := bin.lhs.Eval(ctx)
 	rVal := bin.rhs.Eval(ctx)
 	// Early return if any argument to the function is unknown or error.
-	strict := !bin.nonStrict
-	if strict {
-		if types.IsUnknownOrError(lVal) {
-			return lVal
-		}
-		if types.IsUnknownOrError(rVal) {
-			return rVal
-		}
+	if types.IsUnknownOrError(lVal) {
+		return lVal
+	}
+	if types.IsUnknownOrError(rVal) {
+		return rVal
 	}
 	// If the implementation is bound and the argument value has the right traits required to
 	// invoke it, then call the implementation.
-	if bin.impl != nil && (bin.trait == 0 || (!strict && types.IsUnknownOrError(lVal)) || lVal.Type().HasTrait(bin.trait)) {
+	if bin.impl != nil && (bin.trait == 0 || lVal.Type().HasTrait(bin.trait)) {
 		return bin.impl(lVal, rVal)
 	}
 	// Otherwise, if the argument is a ReceiverType attempt to invoke the receiver method on the
@@ -543,13 +537,12 @@ func (bin *evalBinary) Args() []Interpretable {
 }
 
 type evalVarArgs struct {
-	id        int64
-	function  string
-	overload  string
-	args      []Interpretable
-	trait     int
-	impl      functions.FunctionOp
-	nonStrict bool
+	id       int64
+	function string
+	overload string
+	args     []Interpretable
+	trait    int
+	impl     functions.FunctionOp
 }
 
 // NewCall creates a new call Interpretable.
@@ -572,17 +565,16 @@ func (fn *evalVarArgs) ID() int64 {
 func (fn *evalVarArgs) Eval(ctx Activation) ref.Val {
 	argVals := make([]ref.Val, len(fn.args))
 	// Early return if any argument to the function is unknown or error.
-	strict := !fn.nonStrict
 	for i, arg := range fn.args {
 		argVals[i] = arg.Eval(ctx)
-		if strict && types.IsUnknownOrError(argVals[i]) {
+		if types.IsUnknownOrError(argVals[i]) {
 			return argVals[i]
 		}
 	}
 	// If the implementation is bound and the argument value has the right traits required to
 	// invoke it, then call the implementation.
 	arg0 := argVals[0]
-	if fn.impl != nil && (fn.trait == 0 || (!strict && types.IsUnknownOrError(arg0)) || arg0.Type().HasTrait(fn.trait)) {
+	if fn.impl != nil && (fn.trait == 0 || arg0.Type().HasTrait(fn.trait)) {
 		return fn.impl(argVals...)
 	}
 	// Otherwise, if the argument is a ReceiverType attempt to invoke the receiver method on the
@@ -685,19 +677,7 @@ func (m *evalMap) Eval(ctx Activation) ref.Val {
 }
 
 func (m *evalMap) InitVals() []Interpretable {
-	if len(m.keys) != len(m.vals) {
-		return nil
-	}
-	result := make([]Interpretable, len(m.keys)+len(m.vals))
-	idx := 0
-	for i, k := range m.keys {
-		v := m.vals[i]
-		result[idx] = k
-		idx++
-		result[idx] = v
-		idx++
-	}
-	return result
+	return append(m.keys, m.vals...)
 }
 
 func (m *evalMap) Type() ref.Type {
@@ -835,9 +815,7 @@ func (fold *evalFold) Eval(ctx Activation) ref.Val {
 	varActivationPool.Put(accuCtx)
 	// Convert a mutable list to an immutable one, if the comprehension has generated a list as a result.
 	if !types.IsUnknownOrError(res) && buildingList {
-		if _, ok := res.(traits.MutableLister); ok {
-			res = res.(traits.MutableLister).ToImmutableList()
-		}
+		res = res.(traits.MutableLister).ToImmutableList()
 	}
 	return res
 }
@@ -874,7 +852,7 @@ func (fold *evalFold) Cost() (min, max int64) {
 		iMax + aMax + cMax*rangeCnt + sMax*rangeCnt + rMax
 }
 
-// Optional Interpretable implementations that specialize, subsume, or extend the core evaluation
+// Optional Intepretable implementations that specialize, subsume, or extend the core evaluation
 // plan via decorators.
 
 // evalSetMembership is an Interpretable implementation which tests whether an input value
@@ -991,7 +969,7 @@ func (e *evalWatchConstQual) Qualify(vars Activation, obj interface{}) (interfac
 	return out, err
 }
 
-// QualifierValueEquals tests whether the incoming value is equal to the qualifying constant.
+// QualifierValueEquals tests whether the incoming value is equal to the qualificying constant.
 func (e *evalWatchConstQual) QualifierValueEquals(value interface{}) bool {
 	qve, ok := e.ConstantQualifier.(qualifierValueEquator)
 	return ok && qve.QualifierValueEquals(value)

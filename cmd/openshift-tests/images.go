@@ -54,19 +54,17 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 
 	initialDefaults := k8simage.GetOriginalImageConfigs()
 	exceptions := image.Exceptions.List()
-	defaults := map[k8simage.ImageID]k8simage.Config{}
-
-imageLoop:
+	defaults := map[int]k8simage.Config{}
 	for i, config := range initialDefaults {
 		for _, exception := range exceptions {
 			if strings.Contains(config.GetE2EImage(), exception) {
-				continue imageLoop
+				continue
 			}
+			defaults[i] = config
 		}
-		defaults[i] = config
 	}
-
 	updated := k8simage.GetMappedImageConfigs(defaults, ref.Exact())
+
 	openshiftDefaults := image.OriginalImages()
 	openshiftUpdated := image.GetMappedImages(openshiftDefaults, defaultTestImageMirrorLocation)
 
@@ -166,15 +164,15 @@ func verifyImagesWithoutEnv() error {
 		}
 		existing, ok := defaults[index]
 		if !ok {
-			return fmt.Errorf("image %q not found in upstream images, must be moved to test/extended/util/image.  Upstream mappings are:\n%v", originalPullSpec, defaults)
+			return fmt.Errorf("image %q not found in upstream images, must be moved to test/extended/util/image", originalPullSpec)
 		}
 		if existing.GetE2EImage() != originalPullSpec {
-			return fmt.Errorf("image %q defines index %d but is defined upstream as %q, must be fixed in test/extended/util/image.  Upstream mappings are:\n%v", originalPullSpec, index, existing.GetE2EImage(), defaults)
+			return fmt.Errorf("image %q defines index %d but is defined upstream as %q, must be fixed in test/extended/util/image", originalPullSpec, index, existing.GetE2EImage())
 		}
 		mirror := image.LocationFor(originalPullSpec)
 		upstreamMirror := k8simage.GetE2EImage(index)
 		if mirror != upstreamMirror {
-			return fmt.Errorf("image %q defines index %d and mirror %q but is mirrored upstream as %q, must be fixed in test/extended/util/image.  Upstream mappings are:\n%v", originalPullSpec, index, mirror, upstreamMirror, defaults)
+			return fmt.Errorf("image %q defines index %d and mirror %q but is mirrored upstream as %q, must be fixed in test/extended/util/image", originalPullSpec, index, mirror, upstreamMirror)
 		}
 	}
 

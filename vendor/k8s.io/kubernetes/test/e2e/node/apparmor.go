@@ -23,7 +23,7 @@ import (
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
 
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 )
 
 var _ = SIGDescribe("AppArmor", func() {
@@ -36,7 +36,7 @@ var _ = SIGDescribe("AppArmor", func() {
 			e2esecurity.LoadAppArmorProfiles(f.Namespace.Name, f.ClientSet)
 		})
 		ginkgo.AfterEach(func() {
-			if !ginkgo.CurrentSpecReport().Failed() {
+			if !ginkgo.CurrentGinkgoTestDescription().Failed {
 				return
 			}
 			e2ekubectl.LogFailedContainers(f.ClientSet, f.Namespace.Name, framework.Logf)

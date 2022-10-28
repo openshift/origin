@@ -554,8 +554,7 @@ func (cm *containerManagerImpl) Start(node *v1.Node,
 	activePods ActivePodsFunc,
 	sourcesReady config.SourcesReady,
 	podStatusProvider status.PodStatusProvider,
-	runtimeService internalapi.RuntimeService,
-	localStorageCapacityIsolation bool) error {
+	runtimeService internalapi.RuntimeService) error {
 
 	// Initialize CPU manager
 	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.CPUManager) {
@@ -579,7 +578,7 @@ func (cm *containerManagerImpl) Start(node *v1.Node,
 	// allocatable of the node
 	cm.nodeInfo = node
 
-	if localStorageCapacityIsolation {
+	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.LocalStorageCapacityIsolation) {
 		rootfs, err := cm.cadvisorInterface.RootFsInfo()
 		if err != nil {
 			return fmt.Errorf("failed to get rootfs info: %v", err)
@@ -862,6 +861,7 @@ func getContainer(pid int) (string, error) {
 //
 // The reason of leaving kernel threads at root cgroup is that we don't want to tie the
 // execution of these threads with to-be defined /system quota and create priority inversions.
+//
 func ensureSystemCgroups(rootCgroupPath string, manager cgroups.Manager) error {
 	// Move non-kernel PIDs to the system container.
 	// Only keep errors on latest attempt.
@@ -914,31 +914,7 @@ func isKernelPid(pid int) bool {
 	return err != nil && os.IsNotExist(err)
 }
 
-// GetCapacity returns node capacity data for "cpu", "memory", "ephemeral-storage", and "huge-pages*"
-// At present this method is only invoked when introspecting ephemeral storage
-func (cm *containerManagerImpl) GetCapacity(localStorageCapacityIsolation bool) v1.ResourceList {
-	if localStorageCapacityIsolation {
-		// We store allocatable ephemeral-storage in the capacity property once we Start() the container manager
-		if _, ok := cm.capacity[v1.ResourceEphemeralStorage]; !ok {
-			// If we haven't yet stored the capacity for ephemeral-storage, we can try to fetch it directly from cAdvisor,
-			if cm.cadvisorInterface != nil {
-				rootfs, err := cm.cadvisorInterface.RootFsInfo()
-				if err != nil {
-					klog.ErrorS(err, "Unable to get rootfs data from cAdvisor interface")
-					// If the rootfsinfo retrieval from cAdvisor fails for any reason, fallback to returning the capacity property with no ephemeral storage data
-					return cm.capacity
-				}
-				// We don't want to mutate cm.capacity here so we'll manually construct a v1.ResourceList from it,
-				// and add ephemeral-storage
-				capacityWithEphemeralStorage := v1.ResourceList{}
-				for rName, rQuant := range cm.capacity {
-					capacityWithEphemeralStorage[rName] = rQuant
-				}
-				capacityWithEphemeralStorage[v1.ResourceEphemeralStorage] = cadvisor.EphemeralStorageCapacityFromFsInfo(rootfs)[v1.ResourceEphemeralStorage]
-				return capacityWithEphemeralStorage
-			}
-		}
-	}
+func (cm *containerManagerImpl) GetCapacity() v1.ResourceList {
 	return cm.capacity
 }
 

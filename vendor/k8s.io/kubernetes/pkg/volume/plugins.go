@@ -70,7 +70,6 @@ var (
 		"kubernetes.io/storageos": "The StorageOS volume provider is deprecated and will be removed in a future release",
 		"kubernetes.io/quobyte":   "The Quobyte volume provider is deprecated and will be removed in a future release",
 		"kubernetes.io/flocker":   "The Flocker volume provider is deprecated and will be removed in a future release",
-		"kubernetes.io/glusterfs": "The GlusterFS volume provider is deprecated and will be removed soon after in a subsequent release",
 	}
 )
 
@@ -187,10 +186,6 @@ type VolumePlugin interface {
 	// of enabling bulk polling of all nodes. This can speed up verification of
 	// attached volumes by quite a bit, but underlying pluging must support it.
 	SupportsBulkVolumeVerification() bool
-
-	// SupportsSELinuxContextMount returns true if volume plugins supports
-	// mount -o context=XYZ for a given volume.
-	SupportsSELinuxContextMount(spec *Spec) (bool, error)
 }
 
 // PersistentVolumePlugin is an extended interface of VolumePlugin and is used
@@ -344,13 +339,6 @@ type KubeletVolumeHost interface {
 	WaitForCacheSync() error
 	// Returns hostutil.HostUtils
 	GetHostUtil() hostutil.HostUtils
-	// GetHostIDsForPod if the pod uses user namespaces, takes the uid and
-	// gid inside the container and returns the host UID and GID those are
-	// mapped to on the host. If containerUID/containerGID is nil, then it
-	// returns the host UID/GID for ID 0 inside the container.
-	// If the pod is not using user namespaces, as there is no mapping needed, the
-	// same containerUID and containerGID params are returned.
-	GetHostIDsForPod(pod *v1.Pod, containerUID, containerGID *int64) (hostUID, hostGID *int64, err error)
 }
 
 // AttachDetachVolumeHost is a AttachDetach Controller specific interface that plugins can use
@@ -674,33 +662,34 @@ func (pm *VolumePluginMgr) FindPluginBySpec(spec *Spec) (VolumePlugin, error) {
 		return nil, fmt.Errorf("could not find plugin because volume spec is nil")
 	}
 
-	var match VolumePlugin
-	matchedPluginNames := []string{}
+	matches := []VolumePlugin{}
 	for _, v := range pm.plugins {
 		if v.CanSupport(spec) {
-			match = v
-			matchedPluginNames = append(matchedPluginNames, v.GetPluginName())
+			matches = append(matches, v)
 		}
 	}
 
 	pm.refreshProbedPlugins()
 	for _, plugin := range pm.probedPlugins {
 		if plugin.CanSupport(spec) {
-			match = plugin
-			matchedPluginNames = append(matchedPluginNames, plugin.GetPluginName())
+			matches = append(matches, plugin)
 		}
 	}
 
-	if len(matchedPluginNames) == 0 {
+	if len(matches) == 0 {
 		return nil, fmt.Errorf("no volume plugin matched")
 	}
-	if len(matchedPluginNames) > 1 {
+	if len(matches) > 1 {
+		matchedPluginNames := []string{}
+		for _, plugin := range matches {
+			matchedPluginNames = append(matchedPluginNames, plugin.GetPluginName())
+		}
 		return nil, fmt.Errorf("multiple volume plugins matched: %s", strings.Join(matchedPluginNames, ","))
 	}
 
 	// Issue warning if the matched provider is deprecated
-	pm.logDeprecation(match.GetPluginName())
-	return match, nil
+	pm.logDeprecation(matches[0].GetPluginName())
+	return matches[0], nil
 }
 
 // FindPluginByName fetches a plugin by name or by legacy name.  If no plugin
@@ -1055,11 +1044,11 @@ func (pm *VolumePluginMgr) Run(stopCh <-chan struct{}) {
 // plugin implementations.  The following attributes can be overridden per
 // plugin via configuration:
 //
-//  1. pod.Spec.Volumes[0].VolumeSource must be overridden.  Recycler
+// 1.  pod.Spec.Volumes[0].VolumeSource must be overridden.  Recycler
 //     implementations without a valid VolumeSource will fail.
-//  2. pod.GenerateName helps distinguish recycler pods by name.  Recommended.
+// 2.  pod.GenerateName helps distinguish recycler pods by name.  Recommended.
 //     Default is "pv-recycler-".
-//  3. pod.Spec.ActiveDeadlineSeconds gives the recycler pod a maximum timeout
+// 3.  pod.Spec.ActiveDeadlineSeconds gives the recycler pod a maximum timeout
 //     before failing.  Recommended.  Default is 60 seconds.
 //
 // See HostPath and NFS for working recycler examples
@@ -1085,7 +1074,7 @@ func NewPersistentVolumeRecyclerPodTemplate() *v1.Pod {
 			Containers: []v1.Container{
 				{
 					Name:    "pv-recycler",
-					Image:   "registry.k8s.io/debian-base:v2.0.0",
+					Image:   "k8s.gcr.io/debian-base:v2.0.0",
 					Command: []string{"/bin/sh"},
 					Args:    []string{"-c", "test -e /scrub && rm -rf /scrub/..?* /scrub/.[!.]* /scrub/*  && test -z \"$(ls -A /scrub)\" || exit 1"},
 					VolumeMounts: []v1.VolumeMount{

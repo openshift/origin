@@ -92,7 +92,7 @@ type EventRecorder interface {
 	// Event constructs an event from the given information and puts it in the queue for sending.
 	// 'object' is the object this event is about. Event will make a reference-- or you may also
 	// pass a reference to the object directly.
-	// 'eventtype' of this event, and can be one of Normal, Warning. New types could be added in future
+	// 'type' of this event, and can be one of Normal, Warning. New types could be added in future
 	// 'reason' is the reason this event is generated. 'reason' should be short and unique; it
 	// should be in UpperCamelCase format (starting with a capital letter). "reason" will be used
 	// to automate handling of events, so imagine people writing switch statements to handle them.
@@ -298,10 +298,7 @@ func (e *eventBroadcasterImpl) StartStructuredLogging(verbosity klog.Level) watc
 // StartEventWatcher starts sending events received from this EventBroadcaster to the given event handler function.
 // The return value can be ignored or used to stop recording, if desired.
 func (e *eventBroadcasterImpl) StartEventWatcher(eventHandler func(*v1.Event)) watch.Interface {
-	watcher, err := e.Watch()
-	if err != nil {
-		klog.Errorf("Unable start event watcher: '%v' (will not retry!)", err)
-	}
+	watcher := e.Watch()
 	go func() {
 		defer utilruntime.HandleCrash()
 		for watchEvent := range watcher.ResultChan() {
@@ -349,12 +346,7 @@ func (recorder *recorderImpl) generateEvent(object runtime.Object, annotations m
 	// when we go to shut down this broadcaster.  Just drop events if we get overloaded,
 	// and log an error if that happens (we've configured the broadcaster to drop
 	// outgoing events anyway).
-	sent, err := recorder.ActionOrDrop(watch.Added, event)
-	if err != nil {
-		klog.Errorf("unable to record event: %v (will not retry!)", err)
-		return
-	}
-	if !sent {
+	if sent := recorder.ActionOrDrop(watch.Added, event); !sent {
 		klog.Errorf("unable to record event: too many queued events, dropped event %#v", event)
 	}
 }

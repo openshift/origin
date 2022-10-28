@@ -27,6 +27,7 @@ import (
 )
 
 /*
+
 If seccomp profiles are specified, only runtime default and localhost profiles are allowed.
 
 v1.0 - v1.18:
@@ -43,6 +44,7 @@ spec.containers[*].securityContext.seccompProfile.type
 spec.initContainers[*].securityContext.seccompProfile.type
 
 **Allowed Values:** 'RuntimeDefault', 'Localhost', undefined
+
 */
 const (
 	annotationKeyPod             = "seccomp.security.alpha.kubernetes.io/pod"

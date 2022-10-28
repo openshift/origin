@@ -25,23 +25,35 @@ import (
 	"k8s.io/apiserver/pkg/util/flowcontrol/metrics"
 )
 
-func newMutatingWorkEstimator(countFn watchCountGetterFunc, config *WorkEstimatorConfig) WorkEstimatorFunc {
+const (
+	watchesPerSeat          = 10.0
+	eventAdditionalDuration = 5 * time.Millisecond
+	// TODO(wojtekt): Remove it once we tune the algorithm to not fail
+	// scalability tests.
+	enableMutatingWorkEstimator = true
+)
+
+func newMutatingWorkEstimator(countFn watchCountGetterFunc) WorkEstimatorFunc {
+	return newTestMutatingWorkEstimator(countFn, enableMutatingWorkEstimator)
+}
+
+func newTestMutatingWorkEstimator(countFn watchCountGetterFunc, enabled bool) WorkEstimatorFunc {
 	estimator := &mutatingWorkEstimator{
-		config:  config,
 		countFn: countFn,
+		enabled: enabled,
 	}
 	return estimator.estimate
 }
 
 type mutatingWorkEstimator struct {
-	config  *WorkEstimatorConfig
 	countFn watchCountGetterFunc
+	enabled bool
 }
 
 func (e *mutatingWorkEstimator) estimate(r *http.Request, flowSchemaName, priorityLevelName string) WorkEstimate {
 	// TODO(wojtekt): Remove once we tune the algorithm to not fail
 	// scalability tests.
-	if !e.config.Enabled {
+	if !e.enabled {
 		return WorkEstimate{
 			InitialSeats: 1,
 		}
@@ -53,8 +65,8 @@ func (e *mutatingWorkEstimator) estimate(r *http.Request, flowSchemaName, priori
 		// let's return a large value.
 		return WorkEstimate{
 			InitialSeats:      1,
-			FinalSeats:        e.config.MaximumSeats,
-			AdditionalLatency: e.config.eventAdditionalDuration(),
+			FinalSeats:        maximumSeats,
+			AdditionalLatency: eventAdditionalDuration,
 		}
 	}
 	watchCount := e.countFn(requestInfo)
@@ -74,7 +86,7 @@ func (e *mutatingWorkEstimator) estimate(r *http.Request, flowSchemaName, priori
 	// is taking 1/Nth of a seat for M milliseconds.
 	// We allow the accounting of that work in P&F to be reshaped into another
 	// rectangle of equal area for practical reasons.
-	var finalSeats uint64
+	var finalSeats uint
 	var additionalLatency time.Duration
 
 	// TODO: Make this unconditional after we tune the algorithm better.
@@ -82,12 +94,12 @@ func (e *mutatingWorkEstimator) estimate(r *http.Request, flowSchemaName, priori
 	//   the request finishes even if there is a small number of watches.
 	//   However, until we tune the estimation we want to stay on the safe side
 	//   an avoid introducing additional latency for almost every single request.
-	if watchCount >= int(e.config.WatchesPerSeat) {
+	if watchCount >= watchesPerSeat {
 		// TODO: As described in the KEP, we should take into account that not all
 		//   events are equal and try to estimate the cost of a single event based on
 		//   some historical data about size of events.
-		finalSeats = uint64(math.Ceil(float64(watchCount) / e.config.WatchesPerSeat))
-		finalWork := SeatsTimesDuration(float64(finalSeats), e.config.eventAdditionalDuration())
+		finalSeats = uint(math.Ceil(float64(watchCount) / watchesPerSeat))
+		finalWork := SeatsTimesDuration(float64(finalSeats), eventAdditionalDuration)
 
 		// While processing individual events is highly parallel,
 		// the design/implementation of P&F has a couple limitations that
@@ -117,8 +129,8 @@ func (e *mutatingWorkEstimator) estimate(r *http.Request, flowSchemaName, priori
 		//
 		// TODO: Confirm that the current cap of maximumSeats allow us to
 		//   achieve the above.
-		if finalSeats > e.config.MaximumSeats {
-			finalSeats = e.config.MaximumSeats
+		if finalSeats > maximumSeats {
+			finalSeats = maximumSeats
 		}
 		additionalLatency = finalWork.DurationPerSeat(float64(finalSeats))
 	}
