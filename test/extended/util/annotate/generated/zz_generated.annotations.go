@@ -2849,6 +2849,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network][Feature:Whereabouts] should use whereabouts net-attach-def to limit IP ranges for newly created pods": "should use whereabouts net-attach-def to limit IP ranges for newly created pods [Suite:openshift/conformance/parallel]",
 
+	"[Top Level] [sig-network][Feature:bond] should create a pod with bond interface": "should create a pod with bond interface [Suite:openshift/conformance/parallel]",
+
 	"[Top Level] [sig-network][Feature:tuning] pod should not start for sysctls not on whitelist net.ipv4.conf.IFNAME.arp_filter": "net.ipv4.conf.IFNAME.arp_filter [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-network][Feature:tuning] pod should not start for sysctls not on whitelist net.ipv4.conf.all.send_redirects": "net.ipv4.conf.all.send_redirects [Suite:openshift/conformance/parallel]",
