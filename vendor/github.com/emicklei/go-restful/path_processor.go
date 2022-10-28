@@ -29,6 +29,11 @@ func (d defaultPathProcessor) ExtractParameters(r *Route, _ *WebService, urlPath
 		} else {
 			value = urlParts[i]
 		}
+		if r.hasCustomVerb && hasCustomVerb(key) {
+			key = removeCustomVerb(key)
+			value = removeCustomVerb(value)
+		}
+
 		if strings.HasPrefix(key, "{") { // path-parameter
 			if colon := strings.Index(key, ":"); colon != -1 {
 				// extract by regex

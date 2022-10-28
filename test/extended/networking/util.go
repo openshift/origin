@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
+	nadclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
@@ -22,7 +24,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -559,24 +560,20 @@ func InOVNKubernetesContext(body func()) {
 }
 
 func createNetworkAttachmentDefinition(config *rest.Config, namespace string, name string, nadConfig string) error {
-	nadClient, err := networkAttachmentDefinitionClient(config)
+	nad := netattdefv1.NetworkAttachmentDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: netattdefv1.NetworkAttachmentDefinitionSpec{
+			Config: nadConfig,
+		},
+	}
+	client, err := nadclient.NewForConfig(config)
 	if err != nil {
 		return err
 	}
-	networkAttachmentDefintion := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "k8s.cni.cncf.io/v1",
-			"kind":       "NetworkAttachmentDefinition",
-			"metadata": map[string]interface{}{
-				"name":      name,
-				"namespace": namespace,
-			},
-			"spec": map[string]interface{}{
-				"config": nadConfig,
-			},
-		},
-	}
-	_, err = nadClient.Namespace(namespace).Create(context.TODO(), networkAttachmentDefintion, metav1.CreateOptions{})
+	_, err = client.K8sCniCncfIoV1().NetworkAttachmentDefinitions(namespace).Create(context.Background(), &nad, metav1.CreateOptions{})
 	return err
 }
 
