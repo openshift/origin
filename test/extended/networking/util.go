@@ -10,6 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/client-go/rest"
+
+	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
+	nadclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned"
 	projectv1 "github.com/openshift/api/project/v1"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	"github.com/openshift/library-go/pkg/network/networkutils"
@@ -20,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -416,4 +421,22 @@ func InOVNKubernetesContext(body func()) {
 			body()
 		},
 	)
+}
+
+func createNetworkAttachmentDefinition(config *rest.Config, namespace string, name string, nadConfig string) error {
+	nad := netattdefv1.NetworkAttachmentDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: netattdefv1.NetworkAttachmentDefinitionSpec{
+			Config: nadConfig,
+		},
+	}
+	client, err := nadclient.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+	_, err = client.K8sCniCncfIoV1().NetworkAttachmentDefinitions(namespace).Create(context.Background(), &nad, metav1.CreateOptions{})
+	return err
 }
