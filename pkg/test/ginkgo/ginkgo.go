@@ -1,7 +1,6 @@
 package ginkgo
 
 import (
-	"fmt"
 	"math/rand"
 
 	"github.com/onsi/ginkgo/v2"
@@ -19,8 +18,6 @@ func testsForSuite() ([]*testCase, error) {
 	ginkgo.GetSuite().WalkTests(func(name string, spec types.TestSpec) {
 		if append, ok := generated.Annotations[name]; ok {
 			spec.AppendText(append)
-		} else {
-			panic(fmt.Sprintf("unable to find test %s", name))
 		}
 		tc, err := newTestCaseFromGinkgoSpec(spec)
 		if err != nil {
