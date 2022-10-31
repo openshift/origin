@@ -969,7 +969,7 @@ func (r *Request) transformResponseWithContext(ctx context.Context, resp *http.R
 	bodyReadStart := time.Now()
 	var body []byte
 	if resp.Body != nil {
-		data, err := ioutil.ReadAll(resp.Body)
+		data, err := ReadAll(bodyReadCtx, resp.Body)
 		switch err.(type) {
 		case nil:
 			body = data
