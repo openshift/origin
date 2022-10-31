@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
@@ -33,9 +34,12 @@ func WriteJobRunTestFailureSummary(artifactDir, timeSuffix string, finalSuiteRes
 		}
 	}
 
+	// If we can't parse this, we submit without it, it is not required.
+	jobRunID, _ := strconv.Atoi(os.Getenv("BUILD_ID"))
+
 	jr := ProwJobRun{
+		ID:      jobRunID,
 		ProwJob: ProwJob{Name: os.Getenv("JOB_NAME")},
-		URL:     os.Getenv("JOB_URL"), // just a guess, may not exist
 		Tests:   []ProwJobRunTest{},
 	}
 
