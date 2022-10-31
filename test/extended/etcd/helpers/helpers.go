@@ -3,14 +3,14 @@ package helpers
 import (
 	"context"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"math/rand"
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/davecgh/go-spew/spew"
 	o "github.com/onsi/gomega"
 
@@ -18,7 +18,6 @@ import (
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	machinev1beta1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1"
-
 	bmhelper "github.com/openshift/origin/test/extended/baremetal"
 	exutil "github.com/openshift/origin/test/extended/util"
 
@@ -155,7 +154,7 @@ func EnsureMasterMachinesAndCount(ctx context.Context, t TestingT, machineClient
 	return wait.Poll(waitPollInterval, waitPollTimeout, func() (bool, error) {
 		machineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
 		if err != nil {
-			t.Logf("@MUSTAFA: can not list master machines: %w", err)
+			t.Logf("can not list master machines: %w", err)
 			return isTransientAPIError(t, err)
 		}
 
