@@ -63,8 +63,7 @@ func (opt *Options) Run() error {
 		finalProwJobRun.Tests = append(finalProwJobRun.Tests, pjr.Tests...)
 	}
 
-	// TODO: query sippy
-	url := "http://localhost:8080/api/jobs/runs/risk_analysis"
+	url := "https://sippy.dptools.openshift.org/api/jobs/runs/risk_analysis"
 	inputBytes, err := json.Marshal(finalProwJobRun)
 	if err != nil {
 		return errors.Wrap(err, "error marshalling results")
