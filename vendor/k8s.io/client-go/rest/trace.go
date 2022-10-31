@@ -5,6 +5,7 @@ import (
 	"strings"
 	"fmt"
 	"time"
+	"io"
 
 	"github.com/onsi/ginkgo/v2"
 )
@@ -65,4 +66,26 @@ func nowStamp() string {
 func GinkgoLogf(format string, args ...interface{}){
 	level:="INFO"
 	fmt.Fprintf(ginkgo.GinkgoWriter, nowStamp()+": "+level+": "+format+"\n", args...)
+}
+
+func ReadAll(ctx context.Context, r io.Reader) ([]byte, error) {
+	b := make([]byte, 0, 512)
+	count := 0
+	for {
+		count++
+		if len(b) == cap(b) {
+			// Add more capacity (let append pick how much).
+			b = append(b, 0)[:len(b)]
+		}
+		n, err := r.Read(b[len(b):cap(b)])
+		b = b[:len(b)+n]
+		if err != nil {
+			if err == io.EOF {
+				err = nil
+			}
+
+			GinkgoLogf("reading took %v reads", count)
+			return b, err
+		}
+	}
 }
