@@ -730,7 +730,9 @@ func (c *CLI) AdminTemplateClient() templatev1client.Interface {
 
 // KubeClient provides a Kubernetes client for the current namespace
 func (c *CLI) KubeClient() kubernetes.Interface {
-	return kubernetes.NewForConfigOrDie(c.UserConfig())
+	config := c.UserConfig()
+	config.AcceptContentTypes = "application/vnd.kubernetes.protobuf"
+	return kubernetes.NewForConfigOrDie(config)
 }
 
 func (c *CLI) DynamicClient() dynamic.Interface {
