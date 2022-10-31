@@ -929,7 +929,7 @@ func (r *Request) Do(ctx context.Context) Result {
 		transformContext := AddStep(ctx, "Transform")
 		start := time.Now()
 		defer StepEnd(transformContext, start)
-		result = r.transformResponse(resp, req)
+		result = r.transformResponseWithContext(transformContext, resp, req)
 	})
 	if err != nil {
 		return Result{err: err}
@@ -961,6 +961,12 @@ func (r *Request) DoRaw(ctx context.Context) ([]byte, error) {
 
 // transformResponse converts an API response into a structured API object
 func (r *Request) transformResponse(resp *http.Response, req *http.Request) Result {
+	return r.transformResponseWithContext(context.TODO(), resp, req)
+}
+
+func (r *Request) transformResponseWithContext(ctx context.Context, resp *http.Response, req *http.Request) Result {
+	bodyReadCtx := AddStep(ctx, "BodyRead")
+	bodyReadStart := time.Now()
 	var body []byte
 	if resp.Body != nil {
 		data, err := ioutil.ReadAll(resp.Body)
@@ -988,10 +994,14 @@ func (r *Request) transformResponse(resp *http.Response, req *http.Request) Resu
 			}
 		}
 	}
+	StepEnd(bodyReadCtx, bodyReadStart)
+
 
 	glogBody("Response Body", body)
 
 	// verify the content type is accurate
+	allDecoderCtx := AddStep(ctx, "DecoderIdentification")
+	allDecoderStart := time.Now()
 	var decoder runtime.Decoder
 	contentType := resp.Header.Get("Content-Type")
 	if len(contentType) == 0 {
@@ -1003,6 +1013,8 @@ func (r *Request) transformResponse(resp *http.Response, req *http.Request) Resu
 		if err != nil {
 			return Result{err: errors.NewInternalError(err)}
 		}
+		negotiateCtx := AddStep(allDecoderCtx, "Negotiate")
+		negotiateStart := time.Now()
 		decoder, err = r.c.content.Negotiator.Decoder(mediaType, params)
 		if err != nil {
 			// if we fail to negotiate a decoder, treat this as an unstructured error
@@ -1019,7 +1031,9 @@ func (r *Request) transformResponse(resp *http.Response, req *http.Request) Resu
 				warnings:    handleWarnings(resp.Header, r.warningHandler),
 			}
 		}
+		StepEnd(negotiateCtx, negotiateStart)
 	}
+	StepEnd(allDecoderCtx, allDecoderStart)
 
 	switch {
 	case resp.StatusCode == http.StatusSwitchingProtocols:
