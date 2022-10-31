@@ -81,17 +81,30 @@ func (c *nodes) Get(ctx context.Context, name string, options metav1.GetOptions)
 
 // List takes label and field selectors, and returns the list of Nodes that match those selectors.
 func (c *nodes) List(ctx context.Context, opts metav1.ListOptions) (result *v1.NodeList, err error) {
+	overallCtx := AddStep(ctx, "ClientList")
+	overallStart := time.Now()
+	defer StepEnd(overallCtx, overallStart)
+
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
 	}
 	result = &v1.NodeList{}
-	err = c.client.Get().
+
+	doCtx := AddStep(overallCtx, "Do")
+	doStart := time.Now()
+	doResult := c.client.Get().
 		Resource("nodes").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do(ctx).
-		Into(result)
+		Do(ctx)
+	StepEnd(doCtx, doStart)
+
+	intoCtx := AddStep(overallCtx, "Decode")
+	intoStart := time.Now()
+	err = doResult.Into(result)
+	StepEnd(intoCtx, intoStart)
+
 	return
 }
 

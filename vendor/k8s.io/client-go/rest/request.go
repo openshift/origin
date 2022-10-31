@@ -904,6 +904,10 @@ func (r *Request) newHTTPRequest(ctx context.Context) (*http.Request, error) {
 // fn at most once. It will return an error if a problem occurred prior to connecting to the
 // server - the provided function is responsible for handling server errors.
 func (r *Request) request(ctx context.Context, fn func(*http.Request, *http.Response)) error {
+	overallCtx := AddStep(ctx, "Request")
+	overallStart := time.Now()
+	defer StepEnd(overallCtx, overallStart)
+
 	// Metrics for total request latency
 	start := time.Now()
 	defer func() {
@@ -1003,6 +1007,9 @@ func (r *Request) request(ctx context.Context, fn func(*http.Request, *http.Resp
 func (r *Request) Do(ctx context.Context) Result {
 	var result Result
 	err := r.request(ctx, func(req *http.Request, resp *http.Response) {
+		transformContext := AddStep(ctx, "Transform")
+		start := time.Now()
+		defer StepEnd(transformContext, start)
 		result = r.transformResponse(resp, req)
 	})
 	if err != nil {
