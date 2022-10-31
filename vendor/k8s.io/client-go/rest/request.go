@@ -824,6 +824,10 @@ func (r *Request) newHTTPRequest(ctx context.Context) (*http.Request, error) {
 // server - the provided function is responsible for handling server errors.
 func (r *Request) request(ctx context.Context, fn func(*http.Request, *http.Response)) error {
 	//Metrics for total request latency
+	overallCtx := AddStep(ctx, "Request")
+	overallStart := time.Now()
+	defer StepEnd(overallCtx, overallStart)
+
 	start := time.Now()
 	defer func() {
 		metrics.RequestLatency.Observe(ctx, r.verb, *r.URL(), time.Since(start))
@@ -922,6 +926,9 @@ func (r *Request) request(ctx context.Context, fn func(*http.Request, *http.Resp
 func (r *Request) Do(ctx context.Context) Result {
 	var result Result
 	err := r.request(ctx, func(req *http.Request, resp *http.Response) {
+		transformContext := AddStep(ctx, "Transform")
+		start := time.Now()
+		defer StepEnd(transformContext, start)
 		result = r.transformResponse(resp, req)
 	})
 	if err != nil {

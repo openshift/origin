@@ -79,7 +79,7 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 
 		listStepCtx := exutil.AddStep(testCtx, "listStep")
 		listStart := time.Now()
-		nodeList, err := oc.KubeClient().CoreV1().Nodes().List(testCtx, metav1.ListOptions{})
+		nodeList, err := oc.KubeClient().CoreV1().Nodes().List(listStepCtx, metav1.ListOptions{})
 		exutil.StepEnd(listStepCtx, listStart)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
