@@ -153,6 +153,9 @@ var _ = g.Describe("[sig-etcd][Serial] etcd [apigroup:config.openshift.io]", fun
 		victimMachineName, err := scalingtestinglibrary.FailStopRandomMasterMachine(ctx, g.GinkgoT(), kubeClient, machineClient)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
+		// recreate etcd client to existing master node
+		etcdClientFactory = scalingtestinglibrary.NewEtcdClientFactory(oc.KubeClient())
+
 		// assert that scaling down does NOT occur before deleting the victim machine explicitly from api-server
 		err = scalingtestinglibrary.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, 3)
 		err = errors.Wrap(err, "scale-down: timed out waiting for 3 voting members in the etcd cluster")
