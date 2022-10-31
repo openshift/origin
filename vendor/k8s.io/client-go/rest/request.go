@@ -1075,7 +1075,7 @@ func (r *Request) transformResponseWithContext(ctx context.Context, resp *http.R
 			}
 		}
 	}
-	GinkgoLogf("read %v bytes", len(body))
+	GinkgoLogf("read %v bytes from %T %#v", len(body), resp.Body, resp.Body)
 	StepEnd(bodyReadCtx, bodyReadStart)
 
 
