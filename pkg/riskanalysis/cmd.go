@@ -18,6 +18,7 @@ import (
 type Options struct {
 	Out, ErrOut io.Writer
 	JUnitDir    string
+	SippyURL    string
 }
 
 const testFailureSummaryFilePrefix = "test-failures-summary"
@@ -63,13 +64,12 @@ func (opt *Options) Run() error {
 		finalProwJobRun.Tests = append(finalProwJobRun.Tests, pjr.Tests...)
 	}
 
-	url := "https://sippy.dptools.openshift.org/api/jobs/runs/risk_analysis"
 	inputBytes, err := json.Marshal(finalProwJobRun)
 	if err != nil {
 		return errors.Wrap(err, "error marshalling results")
 	}
 
-	req, err := http.NewRequest("GET", url, bytes.NewBuffer(inputBytes))
+	req, err := http.NewRequest("GET", opt.SippyURL, bytes.NewBuffer(inputBytes))
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
 	resp, err := client.Do(req)

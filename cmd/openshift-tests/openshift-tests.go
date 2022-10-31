@@ -132,6 +132,8 @@ func newRunMonitorCommand() *cobra.Command {
 	return cmd
 }
 
+const sippyDefaultURL = "https://sippy.dptools.openshift.org/api/jobs/runs/risk_analysis"
+
 func newTestFailureRiskAnalysisCommand() *cobra.Command {
 	riskAnalysisOpts := &riskanalysis.Options{
 		Out:    os.Stdout,
@@ -158,6 +160,9 @@ The resulting analysis is then also written to the junit artifacts directory.
 		"junit-dir", riskAnalysisOpts.JUnitDir,
 		"The directory where test reports were written, and analysis file will be stored.")
 	cmd.MarkFlagRequired("junit-dir")
+	cmd.Flags().StringVar(&riskAnalysisOpts.SippyURL,
+		"sippy-url", sippyDefaultURL,
+		"Sippy URL API endpoint")
 	return cmd
 }
 
