@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/openshift/origin/test/extended/testdata"
 	"github.com/pkg/errors"
 )
 
@@ -22,6 +23,7 @@ type Options struct {
 }
 
 const testFailureSummaryFilePrefix = "test-failures-summary"
+const sippyURL = "https://sippy.dptools.openshift.org/sippy-ng/"
 
 // Run performs the test risk analysis by reading the output files from the test run, submitting them to sippy,
 // and writing out the analysis result as a new artifact.
@@ -90,6 +92,15 @@ func (opt *Options) Run() error {
 		return errors.Wrap(err, "error writing risk analysis json artifact")
 	}
 	fmt.Fprintf(opt.Out, "Successfully wrote: %s\n", outputFile)
+
+	// Write html file for spyglass
+	riskAnalysisHTMLTemplate := testdata.MustAsset("e2echart/test-risk-analysis.html")
+	html := bytes.ReplaceAll(riskAnalysisHTMLTemplate, []byte("TEST_RISK_ANALYSIS_SIPPY_URL_GOES_HERE"), []byte(sippyURL))
+	html = bytes.ReplaceAll(html, []byte("TEST_RISK_ANALYSIS_JSON_GOES_HERE"), riskAnalysisBytes)
+	path := filepath.Join(opt.JUnitDir, fmt.Sprintf("%s.html", "test-risk-analysis"))
+	if err := ioutil.WriteFile(path, html, 0644); err != nil {
+		return err
+	}
 
 	return nil
 }

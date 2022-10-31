@@ -479,6 +479,7 @@
 // test/extended/testdata/test-secret.json
 // test/extended/testdata/verifyservice-pipeline-template.yaml
 // e2echart/e2e-chart-template.html
+// e2echart/test-risk-analysis.html
 package testdata
 
 import (
@@ -52554,6 +52555,126 @@ func e2echartE2eChartTemplateHtml() (*asset, error) {
 	return a, nil
 }
 
+var _e2echartTestRiskAnalysisHtml = []byte(`<html lang="en">
+<head>
+    <title>Risk Analysis</title>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <meta name="description"
+          content="Risk analysis is performed by Sippy to attempt to determine if the failures in this job are abnormal when compared to results for similar jobs over the past week, and amidst on-going incidents in the CI infrastructure. Risk analysis API will not catch everything and is a relatively simple implementation today, please reach out to the Technical Release Team if you spot abnormalities or have suggestions.">
+</head>
+<body onLoad="buildTestCaseTable('#test_case_results')">
+<p>
+    <a target="_blank" href="TEST_RISK_ANALYSIS_SIPPY_URL_GOES_HERE">Link to Sippy</a>
+</p>
+
+<table id="test_case_results" border="1" width="100%">
+</table>
+<p>&nbsp;</p>
+
+<script>
+    var testResult = TEST_RISK_ANALYSIS_JSON_GOES_HERE
+    var testLinkPrefix = "https://sippy.dptools.openshift.org/sippy-ng/tests/"
+    var testLinkSuffix = "/analysis?test="
+
+    function buildOpenBugs(openBugs) {
+        td$ = $('<td/>')
+        if (openBugs.length > 0) {
+            cell$ = $('<ul/>')
+            for (var i = 0; i < openBugs.length; i++) {
+                li$ = $('<li>')
+                bug = "<a target=\"_blank\" href=" + openBugs[i].url + ">" + openBugs[i].id + "</a>: " + openBugs[i].summary
+                li$.append($('<li>').html(bug))
+                cell$.append(li$)
+            }
+            td$.append(cell$)
+        }
+        return td$
+    }
+
+    function buildRiskReasons(reasons) {
+        td$ = $('<td/>')
+        if (reasons.length > 0) {
+            cell$ = $('<ul/>')
+            for (var i = 0; i < reasons.length; i++) {
+                li$ = $('<li>')
+                li$.append($('<li>').html(reasons[i]))
+                cell$.append(li$)
+            }
+            td$.append(cell$)
+        }
+        return td$
+    }
+
+    function buildRiskLevel(level) {
+        td$ = $('<td/>')
+        if (level.Level >= 10) {
+            td$.css("background-color", "red");
+        } else if (level.Level >= 5) {
+            td$.css("background-color", "yellow");
+        } else {
+            td$.css("background-color", "green");
+        }
+        td$.append(level.Name)
+        return td$
+    }
+
+    // Build Test Case Table
+    function buildTestCaseTable(selector) {
+        // Add table headers
+        addColumnHeaders(selector);
+
+        // Build Overall Row
+        var row$ = $('<tr/>');
+        row$.append($('<td/>').html("Overall"));
+        row$.append(buildRiskLevel(testResult.OverallRisk.Level))
+        row$.append(buildRiskReasons(testResult.OverallRisk.Reasons))
+        row$.append(buildOpenBugs(testResult.OpenBugs))
+        $(selector).append(row$);
+
+        // First sort the tests by risk factor
+        testResult.Tests.sort(function(a, b){return b.Risk.Level.Level - a.Risk.Level.Level})
+        // Build rows for all tests
+        for (var i = 0; i < testResult.Tests.length; i++) {
+            var row$ = $('<tr/>');
+            testUrl = encodeURI(testLinkPrefix + testResult.Release + testLinkSuffix + testResult.Tests[i].Name)
+            row$.append($('<td/>').html("<a target=\"_blank\" href=" + testUrl + ">" + testResult.Tests[i].Name + "</a>"));
+            row$.append(buildRiskLevel(testResult.Tests[i].Risk.Level))
+            row$.append(buildRiskReasons(testResult.Tests[i].Risk.Reasons))
+            row$.append(buildOpenBugs(testResult.Tests[i].OpenBugs))
+            $(selector).append(row$);
+        }
+    }
+
+    function addColumnHeaders(selector) {
+        var headerTr$ = $('<tr/>');
+        headerTr$.append($('<th/>').html("Test Name"));
+        headerTr$.append($('<th/>').html("Risk Level"));
+        headerTr$.append($('<th/>').html("Risk Reason"));
+        headerTr$.append($('<th/>').html("Open Bugs"));
+
+        $(selector).append(headerTr$);
+    }
+
+</script>
+
+</body>
+</html>`)
+
+func e2echartTestRiskAnalysisHtmlBytes() ([]byte, error) {
+	return _e2echartTestRiskAnalysisHtml, nil
+}
+
+func e2echartTestRiskAnalysisHtml() (*asset, error) {
+	bytes, err := e2echartTestRiskAnalysisHtmlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "e2echart/test-risk-analysis.html", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 // Asset loads and returns the asset for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -53085,6 +53206,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/test-secret.json":                                                                testExtendedTestdataTestSecretJson,
 	"test/extended/testdata/verifyservice-pipeline-template.yaml":                                            testExtendedTestdataVerifyservicePipelineTemplateYaml,
 	"e2echart/e2e-chart-template.html":                                                                       e2echartE2eChartTemplateHtml,
+	"e2echart/test-risk-analysis.html":                                                                       e2echartTestRiskAnalysisHtml,
 }
 
 // AssetDir returns the file names below a certain
@@ -53130,6 +53252,7 @@ type bintree struct {
 var _bintree = &bintree{nil, map[string]*bintree{
 	"e2echart": {nil, map[string]*bintree{
 		"e2e-chart-template.html": {e2echartE2eChartTemplateHtml, map[string]*bintree{}},
+		"test-risk-analysis.html": {e2echartTestRiskAnalysisHtml, map[string]*bintree{}},
 	}},
 	"examples": {nil, map[string]*bintree{
 		"db-templates": {nil, map[string]*bintree{
