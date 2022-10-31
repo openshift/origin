@@ -61,3 +61,8 @@ func StepEnd(ctx context.Context, startTime time.Time) {
 func nowStamp() string {
 	return time.Now().Format(time.StampMilli)
 }
+
+func GinkgoLogf(format string, args ...interface{}){
+	level:="INFO"
+	fmt.Fprintf(ginkgo.GinkgoWriter, nowStamp()+": "+level+": "+format+"\n", args...)
+}
