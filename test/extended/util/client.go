@@ -139,6 +139,14 @@ func NewCLI(project string) *CLI {
 // without a namespace. Should be called outside of a Ginkgo .It()
 // function. Use SetupProject() to create a project for this namespace.
 func NewCLIWithoutNamespace(project string) *CLI {
+	return NewCLIWithoutNamespaceWithContext(context.TODO(), project)
+}
+
+func NewCLIWithoutNamespaceWithContext(ctx context.Context, project string) *CLI {
+	ctx = AddStep(ctx, "NewCLIWithoutNamespaceWithContext")
+	start := time.Now()
+	defer StepEnd(ctx, start)
+
 	cli := &CLI{
 		kubeFramework: &framework.Framework{
 			SkipNamespaceCreation:    true,
@@ -155,9 +163,10 @@ func NewCLIWithoutNamespace(project string) *CLI {
 		adminConfigPath:  KubeConfigPath(),
 		withoutNamespace: true,
 	}
-	g.AfterEach(cli.TeardownProject)
-	g.AfterEach(cli.kubeFramework.AfterEach)
-	g.BeforeEach(cli.kubeFramework.BeforeEach)
+
+	g.AfterEach(wrapFuncWithStep(ctx, "TearDownProject", cli.TeardownProject))
+	g.AfterEach(wrapFuncWithStep(ctx, "KubeAfterEach", cli.kubeFramework.AfterEach))
+	g.BeforeEach(wrapFuncWithStep(ctx, "KubeBeforeEach", cli.kubeFramework.BeforeEach))
 	return cli
 }
 
@@ -606,6 +615,16 @@ func (c *CLI) TeardownProject() {
 	for _, resource := range c.resourcesToDelete {
 		err := dynamicClient.Resource(resource.Resource).Namespace(resource.Namespace).Delete(context.Background(), resource.Name, metav1.DeleteOptions{})
 		framework.Logf("Deleted %v, err: %v", resource, err)
+	}
+}
+
+func wrapFuncWithStep(ctx context.Context, stepName string, fn func()) func() {
+	return func() {
+		ctx = AddStep(ctx, stepName)
+		start := time.Now()
+		defer StepEnd(ctx, start)
+
+		fn()
 	}
 }
 

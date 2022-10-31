@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -64,13 +65,22 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Early] Managed clu
 
 var _ = g.Describe("[sig-node] Managed cluster", func() {
 	defer g.GinkgoRecover()
+
+	ctx := context.Background()
+	ctx = exutil.WithDescription(ctx, "[sig-node] Managed cluster")
+
 	var (
-		oc = exutil.NewCLIWithoutNamespace("managed-cluster-node").AsAdmin()
+		oc = exutil.NewCLIWithoutNamespaceWithContext(exutil.AddStep(ctx, "initializing"), "managed-cluster-node").AsAdmin()
 	)
 
 	var staticNodeNames []string
 	g.It("record the number of nodes at the beginning of the tests [Early]", func() {
-		nodeList, err := oc.KubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+		testCtx := exutil.WithTestName(ctx, "record the number of nodes at the beginning of the tests [Early]")
+
+		listStepCtx := exutil.AddStep(testCtx, "listStep")
+		listStart := time.Now()
+		nodeList, err := oc.KubeClient().CoreV1().Nodes().List(testCtx, metav1.ListOptions{})
+		exutil.StepEnd(listStepCtx, listStart)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		for _, node := range nodeList.Items {
