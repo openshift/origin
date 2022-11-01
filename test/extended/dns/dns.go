@@ -9,8 +9,10 @@ import (
 	"io/ioutil"
 	"net"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
 
 	kapiv1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
@@ -26,6 +28,7 @@ import (
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 func createDNSPod(namespace, probeCmd string) *kapiv1.Pod {
@@ -553,5 +556,48 @@ var _ = Describe("[sig-network-edge] DNS", func() {
 		By("creating a pod to probe DNS")
 		pod := createDNSPod(f.Namespace.Name, cmd)
 		validateDNSResults(f, pod, expect, times)
+	})
+
+	It("should answer queries using the local DNS endpoint", func() {
+		ctx := context.Background()
+
+		By("starting an exec pod for running queries")
+
+		queryPodExec, err := exutil.NewPodExecutor(oc, "dnsquery", image.ShellImage())
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		queryPod, err := f.ClientSet.CoreV1().Pods(oc.Namespace()).Get(ctx, "dnsquery", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("DNS query pod is on node: %q", queryPod.Spec.NodeName)
+
+		By("finding the exec pod's local DNS endpoint")
+
+		// We find the local dns pod by filtering for pods in the openshift-dns namespace and owned by default
+		// dns daemonset, then making sure that the pod is on the same node, is running, and is not being deleted.
+		// Note: We expect there to be a pod co-located with query pod at all times, even if there is a taint applied
+		// to the cluster under test. The taint should apply both the query pod and DNS pod together.
+		dnsPodLabel := exutil.ParseLabelsOrDie("dns.operator.openshift.io/daemonset-dns=default")
+		isLocalReadyPod := func(pod kapiv1.Pod) bool {
+			return exutil.CheckPodIsReady(pod) && pod.Spec.NodeName == queryPod.Spec.NodeName
+		}
+		localDnsPodsNames, err := exutil.WaitForPods(f.ClientSet.CoreV1().Pods("openshift-dns"), dnsPodLabel, isLocalReadyPod, 1, 1*time.Minute)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(localDnsPodsNames).To(o.HaveLen(1))
+		localDnsPodsName := localDnsPodsNames[0]
+		e2e.Logf("Local DNS Pod: %q", localDnsPodsName)
+
+		// This queries for the hostname of the server responding to the DNS request enabled by the chaos plugin.
+		// More information: https://coredns.io/plugins/chaos/
+		hostnameDig := "dig +short +notcp +noall +answer CH TXT hostname.bind"
+		attempts := 10
+
+		By(fmt.Sprintf("running this command %d times: %s", attempts, hostnameDig))
+		for i := 1; i <= attempts; i++ {
+			digOut, err := queryPodExec.Exec(hostnameDig)
+			dnsPodFound := strings.Trim(digOut, `"`)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(dnsPodFound).To(o.Equal(localDnsPodsName), "expected DNS chaos query to always use the local DNS pod %q, but received %q", localDnsPodsName, dnsPodFound)
+		}
+
 	})
 })
