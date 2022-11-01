@@ -32,11 +32,15 @@ type ClusterOperatorMetricController struct {
 	clusterOperatorClient configv1client.ClusterOperatorsGetter
 }
 
-func NewClusterOperatorMetricController(clusterOperatorInformer cache.SharedInformer, clusterOperatorGetter configv1client.ClusterOperatorsGetter, recorder events.Recorder) factory.Controller {
+func NewClusterOperatorMetricController(
+	clusterOperatorInformer cache.SharedInformer,
+	clusterOperatorGetter configv1client.ClusterOperatorsGetter,
+	recorder events.Recorder) factory.Controller {
 	c := &ClusterOperatorMetricController{
 		clusterOperatorClient: clusterOperatorGetter,
 	}
-	return factory.New().WithInformers(clusterOperatorInformer).WithSync(c.sync).ResyncEvery(1*time.Minute).ToController("ClusterOperatorMetricController", recorder.WithComponentSuffix("cluster-operator-metric"))
+	return factory.New().WithInformers(clusterOperatorInformer).WithSync(c.sync).ResyncEvery(1*time.Minute).
+		ToController("ClusterOperatorMetricController", recorder.WithComponentSuffix("cluster-operator-metric"))
 }
 
 func (c *ClusterOperatorMetricController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
@@ -46,7 +50,8 @@ func (c *ClusterOperatorMetricController) sync(ctx context.Context, syncCtx fact
 	}
 	for _, operator := range clusterOperators.Items {
 		for _, condition := range operator.Status.Conditions {
-			clusterOperatorStateMetric.WithLabelValues(operator.Name, string(condition.Type), string(condition.Status)).Set(float64(condition.LastTransitionTime.Unix()))
+			clusterOperatorStateMetric.WithLabelValues(operator.Name, string(condition.Type),
+				string(condition.Status)).Set(float64(condition.LastTransitionTime.Unix()))
 		}
 	}
 	return nil
