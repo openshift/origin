@@ -3,7 +3,7 @@ package builds
 import (
 	"fmt"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	admissionapi "k8s.io/pod-security-admission/api"
@@ -26,7 +26,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] build without output image", fu
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				exutil.DumpPodStates(oc)
 				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)

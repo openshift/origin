@@ -9,7 +9,7 @@ import (
 	"net/http/httputil"
 	"strings"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"github.com/opencontainers/go-digest"
 	imageregistryv1 "github.com/openshift/api/imageregistry/v1"
@@ -44,7 +44,7 @@ var _ = g.Describe("[sig-imageregistry] Image registry [apigroup:route.openshift
 
 	g.AfterEach(func() {
 		oc.AdminRouteClient().RouteV1().Routes(routeNamespace).Delete(context.TODO(), routeName, metav1.DeleteOptions{})
-		if g.CurrentGinkgoTestDescription().Failed && len(ns) > 0 {
+		if g.CurrentSpecReport().Failed() && len(ns) > 0 {
 			exutil.DumpPodLogsStartingWithInNamespace("", ns, oc)
 		}
 	})

@@ -46,7 +46,7 @@ spec:
                     type: object
                     properties:
                       action:
-                        description: 'action to perform based on regex matching. Must be one of: replace, keep, drop, hashmod, labelmap, labeldrop, or labelkeep.  Default is: ''replace'''
+                        description: 'action to perform based on regex matching. Must be one of: Replace, Keep, Drop, HashMod, LabelMap, LabelDrop, or LabelKeep.  Default is: ''Replace'''
                         type: string
                         default: Replace
                         enum:
@@ -58,27 +58,27 @@ spec:
                           - LabelDrop
                           - LabelKeep
                       modulus:
-                        description: modulus to take of the hash of the source label values.  This can be combined with the 'hashmod' action to set 'target_label' to the 'modulus' of a hash of the concatenated 'source_labels'.
+                        description: modulus to take of the hash of the source label values.  This can be combined with the 'HashMod' action to set 'target_label' to the 'modulus' of a hash of the concatenated 'source_labels'.
                         type: integer
                         format: int64
                       regex:
                         description: 'regex against which the extracted value is matched. Default is: ''(.*)'''
                         type: string
                       replacement:
-                        description: 'replacement value against which a regex replace is performed if the regular expression matches. This is required if the action is ''replace'' or ''labelmap''. Regex capture groups are available. Default is: ''$1'''
+                        description: 'replacement value against which a regex replace is performed if the regular expression matches. This is required if the action is ''Replace'' or ''LabelMap''. Regex capture groups are available. Default is: ''$1'''
                         type: string
                       separator:
                         description: separator placed between concatenated source label values. When omitted, Prometheus will use its default value of ';'.
                         type: string
                       sourceLabels:
-                        description: sourceLabels select values from existing labels. Their content is concatenated using the configured separator and matched against the configured regular expression for the replace, keep, and drop actions.
+                        description: sourceLabels select values from existing labels. Their content is concatenated using the configured separator and matched against the configured regular expression for the Replace, Keep, and Drop actions.
                         type: array
                         items:
                           description: LabelName is a valid Prometheus label name which may only contain ASCII letters, numbers, and underscores.
                           type: string
                           pattern: ^[a-zA-Z_][a-zA-Z0-9_]*$
                       targetLabel:
-                        description: targetLabel to which the resulting value is written in a replace action. It is mandatory for 'replace' and 'hashmod' actions. Regex capture groups are available.
+                        description: targetLabel to which the resulting value is written in a 'Replace' action. It is mandatory for 'Replace' and 'HashMod' actions. Regex capture groups are available.
                         type: string
             status:
               description: status describes the current state of this AlertRelabelConfig object.
@@ -88,7 +88,7 @@ spec:
                   description: conditions contains details on the state of the AlertRelabelConfig, may be empty.
                   type: array
                   items:
-                    description: "Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, type FooStatus struct{     // Represents the observations of a foo's current state.     // Known .status.conditions.type are: \"Available\", \"Progressing\", and \"Degraded\"     // +patchMergeKey=type     // +patchStrategy=merge     // +listType=map     // +listMapKey=type     Conditions []metav1.Condition `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"` \n     // other fields }"
+                    description: "Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, \n \ttype FooStatus struct{ \t    // Represents the observations of a foo's current state. \t    // Known .status.conditions.type are: \"Available\", \"Progressing\", and \"Degraded\" \t    // +patchMergeKey=type \t    // +patchStrategy=merge \t    // +listType=map \t    // +listMapKey=type \t    Conditions []metav1.Condition `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"` \n \t    // other fields \t}"
                     type: object
                     required:
                       - lastTransitionTime

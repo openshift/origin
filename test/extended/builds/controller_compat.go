@@ -1,7 +1,7 @@
 package builds
 
 import (
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -19,7 +19,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] build controller", func()
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}

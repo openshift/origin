@@ -4,9 +4,12 @@ package v1alpha1
 
 import (
 	"context"
+	json "encoding/json"
+	"fmt"
 	"time"
 
 	v1alpha1 "github.com/openshift/api/operator/v1alpha1"
+	operatorv1alpha1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1alpha1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -30,6 +33,7 @@ type ImageContentSourcePolicyInterface interface {
 	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.ImageContentSourcePolicyList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.ImageContentSourcePolicy, err error)
+	Apply(ctx context.Context, imageContentSourcePolicy *operatorv1alpha1.ImageContentSourcePolicyApplyConfiguration, opts v1.ApplyOptions) (result *v1alpha1.ImageContentSourcePolicy, err error)
 	ImageContentSourcePolicyExpansion
 }
 
@@ -145,6 +149,31 @@ func (c *imageContentSourcePolicies) Patch(ctx context.Context, name string, pt 
 		Name(name).
 		SubResource(subresources...).
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(data).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// Apply takes the given apply declarative configuration, applies it and returns the applied imageContentSourcePolicy.
+func (c *imageContentSourcePolicies) Apply(ctx context.Context, imageContentSourcePolicy *operatorv1alpha1.ImageContentSourcePolicyApplyConfiguration, opts v1.ApplyOptions) (result *v1alpha1.ImageContentSourcePolicy, err error) {
+	if imageContentSourcePolicy == nil {
+		return nil, fmt.Errorf("imageContentSourcePolicy provided to Apply must not be nil")
+	}
+	patchOpts := opts.ToPatchOptions()
+	data, err := json.Marshal(imageContentSourcePolicy)
+	if err != nil {
+		return nil, err
+	}
+	name := imageContentSourcePolicy.Name
+	if name == nil {
+		return nil, fmt.Errorf("imageContentSourcePolicy.Name must be provided to Apply")
+	}
+	result = &v1alpha1.ImageContentSourcePolicy{}
+	err = c.client.Patch(types.ApplyPatchType).
+		Resource("imagecontentsourcepolicies").
+		Name(*name).
+		VersionedParams(&patchOpts, scheme.ParameterCodec).
 		Body(data).
 		Do(ctx).
 		Into(result)
