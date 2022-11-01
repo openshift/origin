@@ -26,13 +26,16 @@ var (
 )
 
 type ConfigObserverController struct {
-	crdLister          apiextensionsv1lister.CustomResourceDefinitionLister
-	crdInformer        cache.SharedIndexInformer
-	dynamicClient      dynamic.Interface
-	dynamicInformers   []*dynamicConfigInformer
-	cachedDiscovery    discovery.CachedDiscoveryInterface
-	monitoredResources []schema.GroupVersion
-	storageHandler     cache.ResourceEventHandler
+	crdLister        apiextensionsv1lister.CustomResourceDefinitionLister
+	crdInformer      cache.SharedIndexInformer
+	dynamicClient    dynamic.Interface
+	dynamicInformers []*dynamicConfigInformer
+	cachedDiscovery  discovery.CachedDiscoveryInterface
+	// monitoredResourceGVs are group+versions we want to monitor all resources beneath.
+	monitoredResourceGVs []schema.GroupVersion
+	// monitoredResourceGVKs are specific group+version+kinds we want to monitor for. (as opposed to everything in the group)
+	monitoredResourceGVKs []schema.GroupVersionKind
+	storageHandler        cache.ResourceEventHandler
 }
 
 func NewConfigObserverController(
@@ -40,22 +43,25 @@ func NewConfigObserverController(
 	crdInformer cache.SharedIndexInformer,
 	discoveryClient *discovery.DiscoveryClient,
 	configStorage cache.ResourceEventHandler,
-	monitoredResources []schema.GroupVersion,
+	monitoredResourceGVs []schema.GroupVersion,
+	monitoredResourceGVKs []schema.GroupVersionKind,
 	recorder events.Recorder,
 ) factory.Controller {
 	c := &ConfigObserverController{
-		dynamicClient:      dynamicClient,
-		crdInformer:        crdInformer,
-		storageHandler:     configStorage,
-		monitoredResources: monitoredResources,
-		cachedDiscovery:    memory.NewMemCacheClient(discoveryClient),
+		dynamicClient:         dynamicClient,
+		crdInformer:           crdInformer,
+		storageHandler:        configStorage,
+		monitoredResourceGVs:  monitoredResourceGVs,
+		monitoredResourceGVKs: monitoredResourceGVKs,
+		cachedDiscovery:       memory.NewMemCacheClient(discoveryClient),
 	}
 	c.crdLister = apiextensionsv1lister.NewCustomResourceDefinitionLister(c.crdInformer.GetIndexer())
 
 	return factory.New().WithInformers(c.crdInformer).ResyncEvery(defaultResyncDuration).WithSync(c.sync).ToController("ConfigObserverController", recorder.WithComponentSuffix("config-observer-controller"))
 }
 
-// currentResourceKinds returns list of group version configKind for OpenShift configuration types.
+// currentResourceKinds returns list of group version kind for each resource we want to watch currently.
+// We may be watching for CRDs which do not initially exist, thus why this is "current" resource kinds.
 func (c *ConfigObserverController) currentResourceKinds() ([]schema.GroupVersionKind, error) {
 	observedCrds, err := c.crdLister.List(labels.Everything())
 	if err != nil {
@@ -66,7 +72,7 @@ func (c *ConfigObserverController) currentResourceKinds() ([]schema.GroupVersion
 		currentKinds           = sets.NewString()
 	)
 	for _, crd := range observedCrds {
-		for _, gv := range c.monitoredResources {
+		for _, gv := range c.monitoredResourceGVs {
 			if !strings.HasSuffix(crd.GetName(), "."+gv.Group) {
 				continue
 			}
@@ -86,24 +92,31 @@ func (c *ConfigObserverController) currentResourceKinds() ([]schema.GroupVersion
 				currentConfigResources = append(currentConfigResources, gvk)
 			}
 		}
-
+		for _, gvk := range c.monitoredResourceGVKs {
+			if currentKinds.Has(gvk.Kind) {
+				continue
+			}
+			currentKinds.Insert(gvk.Kind)
+			currentConfigResources = append(currentConfigResources, gvk)
+		}
 	}
 	return currentConfigResources, nil
 }
 
 func (c *ConfigObserverController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
-	current, err := c.currentResourceKinds()
+	currentResourcesToMonitor, err := c.currentResourceKinds()
 	if err != nil {
 		return err
 	}
 
-	// TODO: The CRD delete case is not handled
+	// TODO: The CRD delete case is not handled. This would require shutting down an observer on a GVK that
+	// no longer exists?
 	var (
 		currentList      []string
 		needObserverList []string
 		kindNeedObserver []schema.GroupVersionKind
 	)
-	for _, configKind := range current {
+	for _, configKind := range currentResourcesToMonitor {
 		currentList = append(currentList, configKind.String())
 		hasObserver := false
 		for _, o := range c.dynamicInformers {
