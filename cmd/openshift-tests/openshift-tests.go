@@ -13,29 +13,30 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/monitor_cmd"
-	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
-
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-
-	"github.com/onsi/ginkgo"
-	"github.com/openshift/library-go/pkg/image/reference"
-	"github.com/openshift/library-go/pkg/serviceability"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	utilflag "k8s.io/component-base/cli/flag"
-	"k8s.io/component-base/logs"
-	"k8s.io/klog/v2"
-	"k8s.io/kubectl/pkg/util/templates"
-
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/monitor_cmd"
 	"github.com/openshift/origin/pkg/monitor/resourcewatch/cmd"
+	"github.com/openshift/origin/pkg/riskanalysis"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/pkg/version"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/cluster"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
+	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
+
+	"github.com/openshift/library-go/pkg/image/reference"
+	"github.com/openshift/library-go/pkg/serviceability"
+
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	utilflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2"
+	"k8s.io/kubectl/pkg/util/templates"
+
+	"github.com/onsi/ginkgo"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 func main() {
@@ -76,6 +77,7 @@ func main() {
 		newImagesCommand(),
 		newRunTestCommand(),
 		newRunMonitorCommand(),
+		newTestFailureRiskAnalysisCommand(),
 		cmd.NewRunResourceWatchCommand(),
 		monitor_cmd.NewTimelineCommand(genericclioptions.IOStreams{
 			In:     os.Stdin,
@@ -127,6 +129,40 @@ func newRunMonitorCommand() *cobra.Command {
 			return monitorOpt.Run()
 		},
 	}
+	return cmd
+}
+
+const sippyDefaultURL = "https://sippy.dptools.openshift.org/api/jobs/runs/risk_analysis"
+
+func newTestFailureRiskAnalysisCommand() *cobra.Command {
+	riskAnalysisOpts := &riskanalysis.Options{
+		Out:    os.Stdout,
+		ErrOut: os.Stderr,
+	}
+
+	cmd := &cobra.Command{
+		Use:   "risk-analysis",
+		Short: "Performs risk analysis on test failures",
+		Long: templates.LongDesc(`
+Uses the test failure summary json files written along-side our junit xml
+files after an invocation of openshift-tests. If multiple files are present
+(multiple invocations of openshift-tests) we will merge them into one.
+Results are then submitted to sippy which will return an analysis of per-test
+and overall risk level given historical pass rates on the failed tests.
+The resulting analysis is then also written to the junit artifacts directory.
+`),
+
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return riskAnalysisOpts.Run()
+		},
+	}
+	cmd.Flags().StringVar(&riskAnalysisOpts.JUnitDir,
+		"junit-dir", riskAnalysisOpts.JUnitDir,
+		"The directory where test reports were written, and analysis file will be stored.")
+	cmd.MarkFlagRequired("junit-dir")
+	cmd.Flags().StringVar(&riskAnalysisOpts.SippyURL,
+		"sippy-url", sippyDefaultURL,
+		"Sippy URL API endpoint")
 	return cmd
 }
 

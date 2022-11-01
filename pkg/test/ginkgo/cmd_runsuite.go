@@ -16,6 +16,7 @@ import (
 
 	"github.com/onsi/ginkgo/config"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -444,11 +445,14 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	var syntheticTestResults []*junitapi.JUnitTestCase
 	var syntheticFailure bool
 
+	timeSuffix := fmt.Sprintf("_%s", opt.MonitorEventsOptions.GetStartTime().
+		UTC().Format("20060102-150405"))
+
 	if err := opt.MonitorEventsOptions.End(ctx, restConfig, opt.JUnitDir); err != nil {
 		return err
 	}
 	if len(opt.JUnitDir) > 0 {
-		if err := opt.MonitorEventsOptions.WriteRunDataToArtifactsDir(opt.JUnitDir); err != nil {
+		if err := opt.MonitorEventsOptions.WriteRunDataToArtifactsDir(opt.JUnitDir, timeSuffix); err != nil {
 			fmt.Fprintf(opt.ErrOut, "error: Failed to write run-data: %v\n", err)
 		}
 	}
@@ -497,8 +501,13 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	}
 
 	if len(opt.JUnitDir) > 0 {
-		if err := writeJUnitReport("junit_e2e", junitSuiteName, tests, opt.JUnitDir, duration, opt.ErrOut, syntheticTestResults...); err != nil {
-			fmt.Fprintf(opt.Out, "error: Unable to write e2e JUnit results: %v", err)
+		finalSuiteResults := generateJUnitTestSuiteResults(junitSuiteName, duration, tests, syntheticTestResults...)
+		if err := writeJUnitReport(finalSuiteResults, "junit_e2e", timeSuffix, opt.JUnitDir, opt.ErrOut); err != nil {
+			fmt.Fprintf(opt.Out, "error: Unable to write e2e JUnit xml results: %v", err)
+		}
+
+		if err := riskanalysis.WriteJobRunTestFailureSummary(opt.JUnitDir, timeSuffix, finalSuiteResults); err != nil {
+			fmt.Fprintf(opt.Out, "error: Unable to write e2e job run failures summary: %v", err)
 		}
 	}
 
