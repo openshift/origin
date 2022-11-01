@@ -466,32 +466,38 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 
 		if len(syntheticTestResults) > 0 {
 			// mark any failures by name
-			failing, flaky := sets.NewString(), sets.NewString()
+			failingSyntheticTestNames, flakySyntheticTestNames := sets.NewString(), sets.NewString()
 			for _, test := range syntheticTestResults {
 				if test.FailureOutput != nil {
-					failing.Insert(test.Name)
+					failingSyntheticTestNames.Insert(test.Name)
 				}
 			}
 			// if a test has both a pass and a failure, flag it
 			// as a flake
 			for _, test := range syntheticTestResults {
 				if test.FailureOutput == nil {
-					if failing.Has(test.Name) {
-						flaky.Insert(test.Name)
+					if failingSyntheticTestNames.Has(test.Name) {
+						flakySyntheticTestNames.Insert(test.Name)
 					}
 				}
 			}
-			failing = failing.Difference(flaky)
-			if failing.Len() > 0 {
-				fmt.Fprintf(buf, "Failing invariants:\n\n%s\n\n", strings.Join(failing.List(), "\n"))
+			failingSyntheticTestNames = failingSyntheticTestNames.Difference(flakySyntheticTestNames)
+			if failingSyntheticTestNames.Len() > 0 {
+				fmt.Fprintf(buf, "Failing invariants:\n\n%s\n\n", strings.Join(failingSyntheticTestNames.List(), "\n"))
 				syntheticFailure = true
 			}
-			if flaky.Len() > 0 {
-				fmt.Fprintf(buf, "Flaky invariants:\n\n%s\n\n", strings.Join(flaky.List(), "\n"))
+			if flakySyntheticTestNames.Len() > 0 {
+				fmt.Fprintf(buf, "Flaky invariants:\n\n%s\n\n", strings.Join(flakySyntheticTestNames.List(), "\n"))
 			}
 		}
 
-		opt.Out.Write(buf.Bytes())
+		// we only write the buffer if we have an artifact location
+		if len(opt.JUnitDir) > 0 {
+			filename := fmt.Sprintf("openshift-tests-monitor_%s.txt", opt.StartTime.UTC().Format("20060102-150405"))
+			if err := ioutil.WriteFile(filepath.Join(opt.JUnitDir, filename), buf.Bytes(), 0644); err != nil {
+				fmt.Fprintf(opt.ErrOut, "error: Failed to write monitor data: %v\n", err)
+			}
+		}
 	}
 
 	// report the outcome of the test
