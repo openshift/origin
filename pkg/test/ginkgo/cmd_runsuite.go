@@ -135,6 +135,8 @@ func max(a, b int) int {
 }
 
 func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
+	ctx := context.Background()
+
 	if len(opt.Regex) > 0 {
 		if err := filterWithRegex(suite, opt.Regex); err != nil {
 			return err
@@ -216,8 +218,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	}
 
 	if opt.PrintCommands {
-		status := newTestStatus(opt.Out, true, len(tests), time.Minute, monitor.NewNoOpMonitor(), opt.AsEnv())
-		newParallelTestQueue().Execute(context.Background(), tests, 1, status.OutputCommand)
+		newParallelTestQueue(newCommandContext(opt.AsEnv())).OutputCommands(ctx, tests, opt.Out)
 		return nil
 	}
 	if opt.DryRun {
@@ -346,7 +347,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	tests = nil
 
 	// run our Early tests
-	q := newParallelTestQueue()
+	q := newParallelTestQueue(newCommandContext(opt.AsEnv()))
 	q.Execute(testCtx, early, parallelism, status.Run)
 	tests = append(tests, early...)
 
@@ -422,7 +423,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 			}
 		}
 
-		q := newParallelTestQueue()
+		q := newParallelTestQueue(newCommandContext(opt.AsEnv()))
 		status := newTestStatus(ioutil.Discard, opt.IncludeSuccessOutput, len(retries), timeout, monitorEventRecorder, opt.AsEnv())
 		q.Execute(testCtx, retries, parallelism, status.Run)
 		var flaky []string

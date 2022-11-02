@@ -3,6 +3,8 @@ package ginkgo
 import (
 	"container/ring"
 	"context"
+	"fmt"
+	"io"
 	"strings"
 	"sync"
 )
@@ -16,6 +18,8 @@ type parallelByFileTestQueue struct {
 	lock   sync.Mutex
 	queue  *ring.Ring
 	active map[string]struct{}
+
+	commandContext commandContext
 }
 
 type nopLock struct{}
@@ -25,10 +29,11 @@ func (nopLock) Unlock() {}
 
 type TestFunc func(ctx context.Context, test *testCase)
 
-func newParallelTestQueue() *parallelByFileTestQueue {
+func newParallelTestQueue(commandContext commandContext) *parallelByFileTestQueue {
 	return &parallelByFileTestQueue{
-		cond:   sync.NewCond(nopLock{}),
-		active: make(map[string]struct{}),
+		cond:           sync.NewCond(nopLock{}),
+		active:         make(map[string]struct{}),
+		commandContext: commandContext,
 	}
 }
 
@@ -89,6 +94,21 @@ func (q *parallelByFileTestQueue) Take(ctx context.Context, fn TestFunc) bool {
 		defer q.done(test)
 		fn(ctx, test)
 		return true
+	}
+}
+
+// OutputCommand prints to stdout what would have been executed.
+func (q *parallelByFileTestQueue) OutputCommands(ctx context.Context, tests []*testCase, out io.Writer) {
+	// for some reason we split the serial and parallel when printing the command
+	serial, parallel := splitTests(tests, func(t *testCase) bool { return strings.Contains(t.name, "[Serial]") })
+
+	for _, curr := range parallel {
+		commandString := q.commandContext.commandString(curr)
+		fmt.Fprintln(out, commandString)
+	}
+	for _, curr := range serial {
+		commandString := q.commandContext.commandString(curr)
+		fmt.Fprintln(out, commandString)
 	}
 }
 

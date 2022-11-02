@@ -1,14 +1,12 @@
 package ginkgo
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"sort"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -124,17 +122,6 @@ func (s *testStatus) finalizeTest(test *testCase) {
 		Locator: monitorapi.E2ETestLocator(test.name),
 		Message: eventMessage,
 	})
-}
-
-// OutputCommand prints to stdout what would have been executed.
-func (s *testStatus) OutputCommand(ctx context.Context, test *testCase) {
-	buf := &bytes.Buffer{}
-	for _, env := range s.env {
-		parts := strings.SplitN(env, "=", 2)
-		fmt.Fprintf(buf, "%s=%q ", parts[0], parts[1])
-	}
-	fmt.Fprintf(buf, "%s %s %q", os.Args[0], "run-test", test.name)
-	fmt.Fprintln(s.out, buf.String())
 }
 
 func (s *testStatus) Run(ctx context.Context, test *testCase) {
