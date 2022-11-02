@@ -187,22 +187,6 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		}
 	}
 
-	// This ensures that tests in the identified paths do not run in parallel, because
-	// the test suite reuses shared resources without considering whether another test
-	// could be running at the same time. While these are technically [Serial], ginkgo
-	// parallel mode provides this guarantee. Doing this for all suites would be too
-	// slow.
-	setTestExclusion(tests, func(suitePath string, t *testCase) bool {
-		for _, name := range []string{
-			"/k8s.io/kubernetes/test/e2e/apps/disruption.go",
-		} {
-			if strings.HasSuffix(suitePath, name) {
-				return true
-			}
-		}
-		return false
-	})
-
 	tests = suite.Filter(tests)
 	if len(tests) == 0 {
 		return fmt.Errorf("suite %q does not contain any tests", suite.Name)

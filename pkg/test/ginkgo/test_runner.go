@@ -16,9 +16,13 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
+type testSuiteRunner interface {
+	RunOneTest(ctx context.Context, test *testCase)
+}
+
 // testRunner contains all the content required to run a test.  It must be threadsafe and must be re-useable
 // across multiple parallel RunOneTest invocations.
-type testSuiteRunner struct {
+type testSuiteRunnerImpl struct {
 	commandContext        *commandContext
 	testOutput            testOutputConfig
 	testSuiteProgress     *testSuiteProgress
@@ -26,7 +30,7 @@ type testSuiteRunner struct {
 }
 
 // RunOneTest runs a test, mutates the testCase with result, and reports the result
-func (r *testSuiteRunner) RunOneTest(ctx context.Context, test *testCase) {
+func (r *testSuiteRunnerImpl) RunOneTest(ctx context.Context, test *testCase) {
 	// this construct is a little odd, but the defer statements that ensure we run at the end have the variables
 	// assigned/resolved at the time defer statement is created, which means that pointer must remain consistent.
 	// however, we can change the values of the content, so we assign the content lower down to have a cleaner set of
@@ -234,7 +238,7 @@ func recordTestResultInLog(testRunResult *testRunResultHandle, out io.Writer, in
 	default:
 		out.Write(testRunResult.testOutputBytes)
 		fmt.Fprintln(out)
-		fmt.Fprintf(out, "UNKNOWN_TEST_STATE=%q: (%s) %s %q\n\n", testRunResult.testState, testRunResult.duration, testRunResult.end.UTC().Format("2006-01-02T15:04:05"), testRunResult.name)
+		fmt.Fprintf(out, "UNKNOWN_TEST_STATE=%q: (%s) %s %q\n\n", testRunResult.testState, testRunResult.duration(), testRunResult.end.UTC().Format("2006-01-02T15:04:05"), testRunResult.name)
 	}
 }
 
