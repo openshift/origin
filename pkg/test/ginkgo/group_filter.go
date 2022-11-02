@@ -48,7 +48,7 @@ func (agf *apiGroupFilter) markSkippedWhenAPIGroupNotServed(tests []*testCase) {
 		if !agf.apiGroups.HasAll(test.apigroups...) {
 			missingAPIGroups := sets.NewString(test.apigroups...).Difference(agf.apiGroups)
 			test.skipped = true
-			test.out = []byte(fmt.Sprintf("skipped because the following required API groups are missing: %v", strings.Join(missingAPIGroups.List(), ",")))
+			test.testOutputBytes = []byte(fmt.Sprintf("skipped because the following required API groups are missing: %v", strings.Join(missingAPIGroups.List(), ",")))
 			continue
 		}
 	}

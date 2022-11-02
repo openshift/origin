@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -217,8 +218,18 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		opt.StartTime = start
 	}
 
+	timeout := opt.Timeout
+	if timeout == 0 {
+		timeout = suite.TestTimeout
+	}
+	if timeout == 0 {
+		timeout = 15 * time.Minute
+	}
+
+	testRunnerContext := newCommandContext(opt.AsEnv(), timeout)
+
 	if opt.PrintCommands {
-		newParallelTestQueue(newCommandContext(opt.AsEnv())).OutputCommands(ctx, tests, opt.Out)
+		newParallelTestQueue(testRunnerContext).OutputCommands(ctx, tests, opt.Out)
 		return nil
 	}
 	if opt.DryRun {
@@ -245,13 +256,6 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	}
 	if parallelism == 0 {
 		parallelism = 10
-	}
-	timeout := opt.Timeout
-	if timeout == 0 {
-		timeout = suite.TestTimeout
-	}
-	if timeout == 0 {
-		timeout = 15 * time.Minute
 	}
 
 	ctx, cancelFn := context.WithCancel(context.Background())
@@ -294,6 +298,8 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	if len(tests) == 1 && count == 1 {
 		includeSuccess = true
 	}
+	testOutputLock := &sync.Mutex{}
+	testOutputConfig := newTestOutputConfig(testOutputLock, opt.Out, monitorEventRecorder, includeSuccess)
 
 	early, notEarly := splitTests(tests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Early]")
@@ -332,47 +338,41 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	}
 	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(mustGatherTests)
 
-	status := newTestStatus(opt.Out, includeSuccess, expectedTestCount, timeout, monitorEventRecorder, opt.AsEnv())
+	abortFn := neverAbort
 	testCtx := ctx
 	if opt.FailFast {
-		var cancelFn context.CancelFunc
-		testCtx, cancelFn = context.WithCancel(testCtx)
-		status.AfterTest(func(t *testCase) {
-			if t.failed {
-				cancelFn()
-			}
-		})
+		abortFn, testCtx = abortOnFailure(ctx)
 	}
 
 	tests = nil
 
 	// run our Early tests
-	q := newParallelTestQueue(newCommandContext(opt.AsEnv()))
-	q.Execute(testCtx, early, parallelism, status.Run)
+	q := newParallelTestQueue(testRunnerContext)
+	q.Execute(testCtx, early, parallelism, testOutputConfig, abortFn)
 	tests = append(tests, early...)
 
 	// TODO: will move to the monitor
 	pc.SetEvents([]string{upgradeEvent})
 
-	// Run kube, storage, openshift, and must-gather tests. If user specified a count of -1,
+	// RunTestInNewProcess kube, storage, openshift, and must-gather tests. If user specified a count of -1,
 	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
 		kubeTestsCopy := copyTests(kubeTests)
-		q.Execute(testCtx, kubeTestsCopy, parallelism, status.Run)
+		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
 		tests = append(tests, kubeTestsCopy...)
 
 		// I thought about randomizing the order of the kube, storage, and openshift tests, but storage dominates our e2e runs, so it doesn't help much.
 		storageTestsCopy := copyTests(storageTests)
-		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), status.Run) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
+		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
 		tests = append(tests, storageTestsCopy...)
 
 		openshiftTestsCopy := copyTests(openshiftTests)
-		q.Execute(testCtx, openshiftTestsCopy, parallelism, status.Run)
+		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
 		tests = append(tests, openshiftTestsCopy...)
 
 		// run the must-gather tests after parallel tests to reduce resource contention
 		mustGatherTestsCopy := copyTests(mustGatherTests)
-		q.Execute(testCtx, mustGatherTestsCopy, parallelism, status.Run)
+		q.Execute(testCtx, mustGatherTestsCopy, parallelism, testOutputConfig, abortFn)
 		tests = append(tests, mustGatherTestsCopy...)
 	}
 
@@ -380,7 +380,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	pc.SetEvents([]string{postUpgradeEvent})
 
 	// run Late test suits after everything else
-	q.Execute(testCtx, late, parallelism, status.Run)
+	q.Execute(testCtx, late, parallelism, testOutputConfig, abortFn)
 	tests = append(tests, late...)
 
 	// TODO: will move to the monitor
@@ -423,9 +423,8 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 			}
 		}
 
-		q := newParallelTestQueue(newCommandContext(opt.AsEnv()))
-		status := newTestStatus(ioutil.Discard, opt.IncludeSuccessOutput, len(retries), timeout, monitorEventRecorder, opt.AsEnv())
-		q.Execute(testCtx, retries, parallelism, status.Run)
+		q := newParallelTestQueue(testRunnerContext)
+		q.Execute(testCtx, retries, parallelism, testOutputConfig, abortFn)
 		var flaky []string
 		var repeatFailures []*testCase
 		for _, test := range retries {

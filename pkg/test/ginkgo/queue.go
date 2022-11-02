@@ -19,7 +19,7 @@ type parallelByFileTestQueue struct {
 	queue  *ring.Ring
 	active map[string]struct{}
 
-	commandContext commandContext
+	commandContext *commandContext
 }
 
 type nopLock struct{}
@@ -29,7 +29,7 @@ func (nopLock) Unlock() {}
 
 type TestFunc func(ctx context.Context, test *testCase)
 
-func newParallelTestQueue(commandContext commandContext) *parallelByFileTestQueue {
+func newParallelTestQueue(commandContext *commandContext) *parallelByFileTestQueue {
 	return &parallelByFileTestQueue{
 		cond:           sync.NewCond(nopLock{}),
 		active:         make(map[string]struct{}),
@@ -112,11 +112,35 @@ func (q *parallelByFileTestQueue) OutputCommands(ctx context.Context, tests []*t
 	}
 }
 
-func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase, parallelism int, testFn TestFunc) {
+// testAbortFunc can be called to abort the running tests.
+type testAbortFunc func(testRunResult *testRunResultHandle)
+
+func neverAbort(_ *testRunResultHandle) {}
+
+// abortOnFailure returns an abort function and a context that will be cancelled on the abort.
+func abortOnFailure(parentContext context.Context) (testAbortFunc, context.Context) {
+	testCtx, cancelFn := context.WithCancel(parentContext)
+	return func(testRunResult *testRunResultHandle) {
+		if isTestFailed(testRunResult.testState) {
+			cancelFn()
+		}
+	}, testCtx
+}
+
+// tests are currently being mutated during the run process.
+func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase, parallelism int, testOutput testOutputConfig, maybeAbortOnFailureFn testAbortFunc) {
 	defer q.Close()
 
 	if ctx.Err() != nil {
 		return
+	}
+
+	testSuiteProgress := newTestSuiteProgress(len(tests))
+	testSuiteRunner := &testSuiteRunner{
+		commandContext:        q.commandContext,
+		testOutput:            testOutput,
+		testSuiteProgress:     testSuiteProgress,
+		maybeAbortOnFailureFn: maybeAbortOnFailureFn,
 	}
 
 	serial, parallel := splitTests(tests, func(t *testCase) bool { return strings.Contains(t.name, "[Serial]") })
@@ -133,9 +157,7 @@ func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase
 	for i := 0; i < parallelism; i++ {
 		go func(i int) {
 			defer wg.Done()
-			for q.Take(ctx, func(ctx context.Context, test *testCase) {
-				testFn(ctx, test)
-			}) {
+			for q.Take(ctx, testSuiteRunner.RunOneTest) {
 				if ctx.Err() != nil {
 					return
 				}
@@ -148,7 +170,7 @@ func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase
 		if ctx.Err() != nil {
 			return
 		}
-		testFn(ctx, test)
+		testSuiteRunner.RunOneTest(ctx, test)
 	}
 }
 
