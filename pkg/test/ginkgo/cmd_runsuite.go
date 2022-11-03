@@ -338,7 +338,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	// TODO: will move to the monitor
 	pc.SetEvents([]string{upgradeEvent})
 
-	// RunTestInNewProcess kube, storage, openshift, and must-gather tests. If user specified a count of -1,
+	// Run kube, storage, openshift, and must-gather tests. If user specified a count of -1,
 	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
 		kubeTestsCopy := copyTests(kubeTests)

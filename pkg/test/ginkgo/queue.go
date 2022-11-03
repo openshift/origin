@@ -133,34 +133,6 @@ func isSerialTest(test *testCase) bool {
 		return true
 	}
 
-	// Original Clayton comment
-	// This ensures that tests in the identified paths do not run in parallel, because
-	// the test suite reuses shared resources without considering whether another test
-	// could be running at the same time. While these are technically [Serial], ginkgo
-	// parallel mode provides this guarantee. Doing this for all suites would be too
-	// slow.
-	// David comment - trying to simplify the queuing logic, this one package seems small
-	// enough to run serially
-	if test.spec == nil {
-		return false
-	}
-	summary := test.spec.Summary("")
-	var suitePath string
-	for _, loc := range summary.ComponentCodeLocations {
-		if len(loc.FileName) > 0 {
-			if !strings.HasSuffix(loc.FileName, "/k8s.io/kubernetes/test/e2e/framework/framework.go") {
-				suitePath = loc.FileName
-			}
-		}
-	}
-	for _, serialPath := range []string{
-		"/k8s.io/kubernetes/test/e2e/apps/disruption.go",
-	} {
-		if strings.HasSuffix(suitePath, serialPath) {
-			return true
-		}
-	}
-
 	return false
 }
 
