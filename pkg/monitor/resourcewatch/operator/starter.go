@@ -66,6 +66,33 @@ func RunOperator(ctx context.Context, controllerCtx *controllercmd.ControllerCon
 				Version: "v1",
 			},
 		},
+		[]schema.GroupVersionKind{
+			{
+				Group:   "apps",
+				Version: "v1",
+				Kind:    "Deployment",
+			},
+			{
+				Group:   "apps",
+				Version: "v1",
+				Kind:    "DaemonSet",
+			},
+			{
+				Group:   "",
+				Version: "v1",
+				Kind:    "Event",
+			},
+			{
+				Group:   "",
+				Version: "v1",
+				Kind:    "Pod",
+			},
+			{
+				Group:   "",
+				Version: "v1",
+				Kind:    "Node",
+			},
+		},
 		controllerCtx.EventRecorder,
 	)
 
