@@ -149,6 +149,25 @@ var _ = SIGDescribe("Projected configMap", func() {
 		ginkgo.By("Creating the pod")
 		f.PodClient().CreateSync(pod)
 
+
+		watcher, err := f.ClientSet.CoreV1().ConfigMaps(f.Namespace.Name).Watch(context.TODO(), metav1.ListOptions{})
+		defer watcher.Stop()
+		go func() {
+			framework.Logf("STARTING!")
+			for {
+				watchEvent, ok := <-watcher.ResultChan()
+				if !ok {
+					break
+				}
+				name := "unknown"
+				if configmap, ok := watchEvent.Object.(*v1.ConfigMap); ok {
+					name = configmap.Name
+				}
+				framework.Logf("WATCH type=%v, name=%v", watchEvent.Type, name)
+			}
+			framework.Logf("EXIT!")
+		}()
+
 		pollLogs := func() (string, error) {
 			return e2epod.GetPodLogs(f.ClientSet, f.Namespace.Name, pod.Name, pod.Spec.Containers[0].Name)
 		}
@@ -163,6 +182,7 @@ var _ = SIGDescribe("Projected configMap", func() {
 
 		ginkgo.By("waiting to observe update in volume")
 		gomega.Eventually(pollLogs, podLogTimeout, framework.Poll).Should(gomega.ContainSubstring("value-2"))
+		framework.Logf("SUCCESS!")
 	})
 
 	/*
