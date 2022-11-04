@@ -16,6 +16,7 @@ import (
 
 	"github.com/onsi/ginkgo/config"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -56,9 +57,10 @@ type Options struct {
 
 	CommandEnv []string
 
-	DryRun        bool
-	PrintCommands bool
-	Out, ErrOut   io.Writer
+	DryRun         bool
+	SkipInvariants bool
+	PrintCommands  bool
+	Out, ErrOut    io.Writer
 
 	StartTime time.Time
 }
@@ -457,7 +459,14 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		}
 	}
 
-	if events := opt.MonitorEventsOptions.GetEvents(); len(events) > 0 {
+	var events monitorapi.Intervals
+	shouldRunInvariants := !opt.SkipInvariants
+	if shouldRunInvariants {
+		events := opt.MonitorEventsOptions.GetEvents()
+		shouldRunInvariants = len(events) > 0
+	}
+
+	if shouldRunInvariants {
 		var buf *bytes.Buffer
 		syntheticTestResults, buf, _ = createSyntheticTestsFromMonitor(events, duration)
 		currResState := opt.MonitorEventsOptions.GetRecordedResources()

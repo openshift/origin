@@ -526,6 +526,7 @@ func bindOptions(opt *runOptions, flags *pflag.FlagSet) {
 
 func bindTestOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {
 	flags.BoolVar(&opt.DryRun, "dry-run", opt.DryRun, "Print the tests to run without executing them.")
+	flags.BoolVar(&opt.SkipInvariants, "skip-invariants", opt.SkipInvariants, "Skip invariant tests.")
 	flags.BoolVar(&opt.PrintCommands, "print-commands", opt.PrintCommands, "Print the sub-commands that would be executed instead.")
 	flags.StringVar(&opt.JUnitDir, "junit-dir", opt.JUnitDir, "The directory to write test reports to.")
 	flags.StringVarP(&opt.TestFile, "file", "f", opt.TestFile, "Create a suite from the newline-delimited test names in this file.")
