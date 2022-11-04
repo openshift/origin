@@ -15,9 +15,9 @@ func (tn *TreeNode) AppendChild(child *TreeNode) {
 
 func (tn *TreeNode) AncestorNodeChain() Nodes {
 	if tn.Parent == nil || tn.Parent.Node.IsZero() {
-		return Nodes{tn.Node}
+		return Nodes{&tn.Node}
 	}
-	return append(tn.Parent.AncestorNodeChain(), tn.Node)
+	return append(tn.Parent.AncestorNodeChain(), &tn.Node)
 }
 
 type TreeNodes []*TreeNode
@@ -25,7 +25,7 @@ type TreeNodes []*TreeNode
 func (tn TreeNodes) Nodes() Nodes {
 	out := make(Nodes, len(tn))
 	for i := range tn {
-		out[i] = tn[i].Node
+		out[i] = &tn[i].Node
 	}
 	return out
 }
@@ -47,7 +47,7 @@ func GenerateSpecsFromTreeRoot(tree *TreeNode) Specs {
 
 		nodes := make(Nodes, len(trees))
 		for i := range trees {
-			nodes[i] = trees[i].Node
+			nodes[i] = &trees[i].Node
 			nodes[i].NestingLevel = nestingLevel
 		}
 
@@ -55,7 +55,7 @@ func GenerateSpecsFromTreeRoot(tree *TreeNode) Specs {
 			if !nodes[i].NodeType.Is(types.NodeTypesForContainerAndIt) {
 				continue
 			}
-			leftNodes, rightNodes := nodes.SplitAround(nodes[i])
+			leftNodes, rightNodes := nodes.SplitAround(*nodes[i])
 			leftNodes = leftNodes.WithoutType(types.NodeTypesForContainerAndIt)
 			rightNodes = rightNodes.WithoutType(types.NodeTypesForContainerAndIt)
 

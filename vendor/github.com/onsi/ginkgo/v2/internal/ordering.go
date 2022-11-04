@@ -36,7 +36,7 @@ func OrderSpecs(specs Specs, suiteConfig types.SuiteConfig) (GroupedSpecIndices,
 	for idx, spec := range specs {
 		groupNode := spec.Nodes.FirstNodeMarkedOrdered()
 		if groupNode.IsZero() {
-			groupNode = spec.Nodes.FirstNodeWithType(types.NodeTypeIt)
+			groupNode = *spec.Nodes.FirstNodeWithType(types.NodeTypeIt)
 		}
 		executionGroups[groupNode.ID] = append(executionGroups[groupNode.ID], idx)
 		if len(executionGroups[groupNode.ID]) == 1 {

@@ -35,17 +35,17 @@ func runOncePairsForSpec(spec Spec) runOncePairs {
 	containers := spec.Nodes.WithType(types.NodeTypeContainer)
 	for _, node := range spec.Nodes {
 		if node.NodeType.Is(types.NodeTypeBeforeAll | types.NodeTypeAfterAll) {
-			pairs = append(pairs, runOncePairForNode(node, containers.FirstWithNestingLevel(node.NestingLevel-1).ID))
+			pairs = append(pairs, runOncePairForNode(*node, containers.FirstWithNestingLevel(node.NestingLevel-1).ID))
 		} else if node.NodeType.Is(types.NodeTypeBeforeEach|types.NodeTypeJustBeforeEach|types.NodeTypeAfterEach|types.NodeTypeJustAfterEach) && node.MarkedOncePerOrdered {
 			passedIntoAnOrderedContainer := false
-			firstOrderedContainerDeeperThanNode := containers.FirstSatisfying(func(container Node) bool {
+			firstOrderedContainerDeeperThanNode := containers.FirstSatisfying(func(container *Node) bool {
 				passedIntoAnOrderedContainer = passedIntoAnOrderedContainer || container.MarkedOrdered
 				return container.NestingLevel >= node.NestingLevel && passedIntoAnOrderedContainer
 			})
 			if firstOrderedContainerDeeperThanNode.IsZero() {
 				continue
 			}
-			pairs = append(pairs, runOncePairForNode(node, firstOrderedContainerDeeperThanNode.ID))
+			pairs = append(pairs, runOncePairForNode(*node, firstOrderedContainerDeeperThanNode.ID))
 		}
 	}
 
@@ -178,13 +178,13 @@ func (g *group) attemptSpec(isFinalAttempt bool, spec Spec) {
 		if !oncePair.isZero() && g.runOnceTracker[oncePair].Is(types.SpecStatePassed) {
 			continue
 		}
-		g.suite.currentSpecReport.State, g.suite.currentSpecReport.Failure = g.suite.runNode(node, interruptStatus.Channel, spec.Nodes.BestTextFor(node))
+		g.suite.currentSpecReport.State, g.suite.currentSpecReport.Failure = g.suite.runNode(*node, interruptStatus.Channel, spec.Nodes.BestTextFor(*node))
 		g.suite.currentSpecReport.RunTime = time.Since(g.suite.currentSpecReport.StartTime)
 		if !oncePair.isZero() {
 			g.runOnceTracker[oncePair] = g.suite.currentSpecReport.State
 		}
 		if g.suite.currentSpecReport.State != types.SpecStatePassed {
-			terminatingNode, terminatingPair = node, oncePair
+			terminatingNode, terminatingPair = *node, oncePair
 			break
 		}
 	}
@@ -202,7 +202,7 @@ func (g *group) attemptSpec(isFinalAttempt bool, spec Spec) {
 			nodes = append(nodes, g.suite.cleanupNodes.WithType(types.NodeTypeCleanupAfterEach).Reverse()...)
 			nodes = append(nodes, g.suite.cleanupNodes.WithType(types.NodeTypeCleanupAfterAll).Reverse()...)
 		}
-		nodes = nodes.Filter(func(node Node) bool {
+		nodes = nodes.Filter(func(node *Node) bool {
 			if afterNodeWasRun[node.ID] {
 				//this node has already been run on this attempt, don't rerun it
 				return false
@@ -260,7 +260,7 @@ func (g *group) attemptSpec(isFinalAttempt bool, spec Spec) {
 
 		for _, node := range nodes {
 			afterNodeWasRun[node.ID] = true
-			state, failure := g.suite.runNode(node, g.suite.interruptHandler.Status().Channel, spec.Nodes.BestTextFor(node))
+			state, failure := g.suite.runNode(*node, g.suite.interruptHandler.Status().Channel, spec.Nodes.BestTextFor(*node))
 			g.suite.currentSpecReport.RunTime = time.Since(g.suite.currentSpecReport.StartTime)
 			if g.suite.currentSpecReport.State == types.SpecStatePassed || state == types.SpecStateAborted {
 				g.suite.currentSpecReport.State = state
@@ -407,17 +407,17 @@ func (g *group) oldRun(specs Specs) {
 
 			interruptStatus := suite.interruptHandler.Status()
 			deepestNestingLevelAttained := -1
-			var nodes = spec.Nodes.WithType(types.NodeTypeBeforeAll).Filter(func(n Node) bool {
+			var nodes = spec.Nodes.WithType(types.NodeTypeBeforeAll).Filter(func(n *Node) bool {
 				return nodeState[n.ID] != types.SpecStatePassed
 			})
 			nodes = nodes.CopyAppend(spec.Nodes.WithType(types.NodeTypeBeforeEach)...).SortedByAscendingNestingLevel()
 			nodes = nodes.CopyAppend(spec.Nodes.WithType(types.NodeTypeJustBeforeEach).SortedByAscendingNestingLevel()...)
 			nodes = nodes.CopyAppend(spec.Nodes.WithType(types.NodeTypeIt)...)
 
-			var terminatingNode Node
+			var terminatingNode *Node
 			for j := range nodes {
 				deepestNestingLevelAttained = max(deepestNestingLevelAttained, nodes[j].NestingLevel)
-				suite.currentSpecReport.State, suite.currentSpecReport.Failure = suite.runNode(nodes[j], interruptStatus.Channel, spec.Nodes.BestTextFor(nodes[j]))
+				suite.currentSpecReport.State, suite.currentSpecReport.Failure = suite.runNode(*nodes[j], interruptStatus.Channel, spec.Nodes.BestTextFor(*nodes[j]))
 				suite.currentSpecReport.RunTime = time.Since(suite.currentSpecReport.StartTime)
 				nodeState[nodes[j].ID] = suite.currentSpecReport.State
 				if suite.currentSpecReport.State != types.SpecStatePassed {
@@ -430,7 +430,7 @@ func (g *group) oldRun(specs Specs) {
 			// pull out some shared code so we aren't repeating ourselves down below. this just runs after and cleanup nodes
 			runAfterAndCleanupNodes := func(nodes Nodes) {
 				for j := range nodes {
-					state, failure := suite.runNode(nodes[j], suite.interruptHandler.Status().Channel, spec.Nodes.BestTextFor(nodes[j]))
+					state, failure := suite.runNode(*nodes[j], suite.interruptHandler.Status().Channel, spec.Nodes.BestTextFor(*nodes[j]))
 					suite.currentSpecReport.RunTime = time.Since(suite.currentSpecReport.StartTime)
 					nodeState[nodes[j].ID] = state
 					if suite.currentSpecReport.State == types.SpecStatePassed || state == types.SpecStateAborted {
@@ -448,7 +448,7 @@ func (g *group) oldRun(specs Specs) {
 
 			// pull out a helper that captures the logic of whether or not we should run a given After node.
 			// there is complexity here stemming from the fact that we allow nested ordered contexts and flakey retries
-			shouldRunAfterNode := func(n Node) bool {
+			shouldRunAfterNode := func(n *Node) bool {
 				if n.NodeType.Is(types.NodeTypeAfterEach | types.NodeTypeJustAfterEach) {
 					return true
 				}

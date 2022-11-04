@@ -26,7 +26,7 @@ func (s Spec) Text() string {
 }
 
 func (s Spec) FirstNodeWithType(nodeTypes types.NodeType) Node {
-	return s.Nodes.FirstNodeWithType(nodeTypes)
+	return *s.Nodes.FirstNodeWithType(nodeTypes)
 }
 
 func (s Spec) FlakeAttempts() int {

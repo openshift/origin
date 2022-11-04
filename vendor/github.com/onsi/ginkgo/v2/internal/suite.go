@@ -60,7 +60,7 @@ func (suite *Suite) BuildTree() error {
 	// We now enter PhaseBuildTree where these top level containers are entered and added to the spec tree
 	suite.phase = PhaseBuildTree
 	for _, topLevelContainer := range suite.topLevelContainers {
-		err := suite.PushNode(topLevelContainer)
+		err := suite.PushNode(*topLevelContainer)
 		if err != nil {
 			return err
 		}
@@ -140,7 +140,7 @@ func (suite *Suite) PushNode(node Node) error {
 		// the user an opportunity to load suiteConfiguration information in the `TestX` go spec hook just before `RunSpecs`
 		// is invoked.  This makes the lifecycle easier to reason about and solves issues like #693.
 		if suite.phase == PhaseBuildTopLevel {
-			suite.topLevelContainers = append(suite.topLevelContainers, node)
+			suite.topLevelContainers = append(suite.topLevelContainers, &node)
 			return nil
 		}
 		if suite.phase == PhaseBuildTree {
@@ -189,7 +189,7 @@ func (suite *Suite) pushSuiteNode(node Node) error {
 		}
 	}
 
-	suite.suiteNodes = append(suite.suiteNodes, node)
+	suite.suiteNodes = append(suite.suiteNodes, &node)
 	return nil
 }
 
@@ -213,13 +213,13 @@ func (suite *Suite) pushCleanupNode(node Node) error {
 
 	node.NodeIDWhereCleanupWasGenerated = suite.currentNode.ID
 	node.NestingLevel = suite.currentNode.NestingLevel
-	suite.cleanupNodes = append(suite.cleanupNodes, node)
+	suite.cleanupNodes = append(suite.cleanupNodes, &node)
 
 	return nil
 }
 
 /*
-  Spec Running methods - used during PhaseRun
+Spec Running methods - used during PhaseRun
 */
 func (suite *Suite) CurrentSpecReport() types.SpecReport {
 	suite.currentSpecReportUserAccessLock.Lock()
@@ -357,7 +357,7 @@ func (suite *Suite) runBeforeSuite(numSpecsThatWillBeRun int) {
 			ParallelProcess:  suite.config.ParallelProcess,
 		}
 		suite.reporter.WillRun(suite.currentSpecReport)
-		suite.runSuiteNode(beforeSuiteNode, interruptStatus.Channel)
+		suite.runSuiteNode(*beforeSuiteNode, interruptStatus.Channel)
 		if suite.currentSpecReport.State.Is(types.SpecStateSkipped) {
 			suite.report.SpecialSuiteFailureReasons = append(suite.report.SpecialSuiteFailureReasons, "Suite skipped in BeforeSuite")
 			suite.skipAll = true
@@ -375,7 +375,7 @@ func (suite *Suite) runAfterSuiteCleanup(numSpecsThatWillBeRun int) {
 			ParallelProcess:  suite.config.ParallelProcess,
 		}
 		suite.reporter.WillRun(suite.currentSpecReport)
-		suite.runSuiteNode(afterSuiteNode, suite.interruptHandler.Status().Channel)
+		suite.runSuiteNode(*afterSuiteNode, suite.interruptHandler.Status().Channel)
 		suite.processCurrentSpecReport()
 	}
 
@@ -388,7 +388,7 @@ func (suite *Suite) runAfterSuiteCleanup(numSpecsThatWillBeRun int) {
 				ParallelProcess:  suite.config.ParallelProcess,
 			}
 			suite.reporter.WillRun(suite.currentSpecReport)
-			suite.runSuiteNode(cleanupNode, suite.interruptHandler.Status().Channel)
+			suite.runSuiteNode(*cleanupNode, suite.interruptHandler.Status().Channel)
 			suite.processCurrentSpecReport()
 		}
 	}
@@ -403,7 +403,7 @@ func (suite *Suite) runReportAfterSuite() {
 			ParallelProcess:  suite.config.ParallelProcess,
 		}
 		suite.reporter.WillRun(suite.currentSpecReport)
-		suite.runReportAfterSuiteNode(node, suite.report)
+		suite.runReportAfterSuiteNode(*node, suite.report)
 		suite.processCurrentSpecReport()
 	}
 }
@@ -432,7 +432,7 @@ func (suite *Suite) reportEach(spec Spec, nodeType types.NodeType) {
 			nodeType, nodeType, nodeType,
 			nodes[i].CodeLocation,
 		))
-		state, failure := suite.runNode(nodes[i], nil, spec.Nodes.BestTextFor(nodes[i]))
+		state, failure := suite.runNode(*nodes[i], nil, spec.Nodes.BestTextFor(*nodes[i]))
 		suite.interruptHandler.ClearInterruptPlaceholderMessage()
 		// If the spec is not in a failure state (i.e. it's Passed/Skipped/Pending) and the reporter has failed, override the state.
 		// Also, if the reporter is every aborted - always override the state to propagate the abort

@@ -363,9 +363,9 @@ func (n Node) IsZero() bool {
 }
 
 /* Nodes */
-type Nodes []Node
+type Nodes []*Node
 
-func (n Nodes) CopyAppend(nodes ...Node) Nodes {
+func (n Nodes) CopyAppend(nodes ...*Node) Nodes {
 	numN := len(n)
 	out := make(Nodes, numN+len(nodes))
 	for i, node := range n {
@@ -394,13 +394,13 @@ func (n Nodes) SplitAround(pivot Node) (Nodes, Nodes) {
 	return left, right
 }
 
-func (n Nodes) FirstNodeWithType(nodeTypes types.NodeType) Node {
+func (n Nodes) FirstNodeWithType(nodeTypes types.NodeType) *Node {
 	for i := range n {
 		if n[i].NodeType.Is(nodeTypes) {
 			return n[i]
 		}
 	}
-	return Node{}
+	return &Node{}
 }
 
 func (n Nodes) WithType(nodeTypes types.NodeType) Nodes {
@@ -461,7 +461,7 @@ func (n Nodes) WithoutNode(nodeToExclude Node) Nodes {
 	return out
 }
 
-func (n Nodes) Filter(filter func(Node) bool) Nodes {
+func (n Nodes) Filter(filter func(*Node) bool) Nodes {
 	trufa, count := make([]bool, len(n)), 0
 	for i := range n {
 		if filter(n[i]) {
@@ -479,10 +479,10 @@ func (n Nodes) Filter(filter func(Node) bool) Nodes {
 	return out
 }
 
-func (n Nodes) FirstSatisfying(filter func(Node) bool) Node {
+func (n Nodes) FirstSatisfying(filter func(*Node) bool) Node {
 	for i := range n {
 		if filter(n[i]) {
-			return n[i]
+			return *n[i]
 		}
 	}
 	return Node{}
@@ -528,7 +528,7 @@ func (n Nodes) SortedByAscendingNestingLevel() Nodes {
 func (n Nodes) FirstWithNestingLevel(level int) Node {
 	for i := range n {
 		if n[i].NestingLevel == level {
-			return n[i]
+			return *n[i]
 		}
 	}
 	return Node{}
@@ -637,7 +637,7 @@ func (n Nodes) HasNodeMarkedSerial() bool {
 func (n Nodes) FirstNodeMarkedOrdered() Node {
 	for i := range n {
 		if n[i].MarkedOrdered {
-			return n[i]
+			return *n[i]
 		}
 	}
 	return Node{}
