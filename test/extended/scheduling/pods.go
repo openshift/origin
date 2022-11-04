@@ -134,7 +134,7 @@ var _ = g.Describe("[sig-scheduling][Early]", func() {
 		})
 	})
 
-	g.Describe("The openshift-console console pods [apigroup:console.openshift.io", func() {
+	g.Describe("The openshift-console console pods [apigroup:console.openshift.io]", func() {
 		g.It("should be scheduled on different nodes", func() {
 			requirePodsOnDifferentNodesTest{namespace: "openshift-console", deployment: "console"}.run(oc)
 		})
