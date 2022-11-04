@@ -734,8 +734,8 @@ github.com/openshift/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20221
 github.com/openshift/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20221020223141-4bd0702b5791/go.mod h1:uwrVisPpPeSGMZ5iQpWy4wDJPZEsnAL8gce90+qOgXc=
 github.com/openshift/library-go v0.0.0-20220831200629-330d9097d0f0 h1:WImCesg6dS8HXcvFpbGHMe/nKDzXSwSRXERid+XhUcQ=
 github.com/openshift/library-go v0.0.0-20220831200629-330d9097d0f0/go.mod h1:KPBAXGaq7pPmA+1wUVtKr5Axg3R68IomWDkzaOxIhxM=
-github.com/openshift/onsi-ginkgo/v2 v2.0.0-20221018202518-d6fe52fe5a42 h1:uNvQxWunw5DkTEyq1Oqb93RU88Xjz96y9Z8GU+/pmqI=
-github.com/openshift/onsi-ginkgo/v2 v2.0.0-20221018202518-d6fe52fe5a42/go.mod h1:MEH45j8TBi6u9BMogfbp0stKC5cdGjumZj5Y7AG4VIk=
+github.com/openshift/onsi-ginkgo/v2 v2.0.0-20221104153651-0e2187c0d222 h1:+15z+Kj4lKcHr7AswtSKb4FEvYgjrTOUINVhozvpBxw=
+github.com/openshift/onsi-ginkgo/v2 v2.0.0-20221104153651-0e2187c0d222/go.mod h1:MEH45j8TBi6u9BMogfbp0stKC5cdGjumZj5Y7AG4VIk=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/pborman/uuid v1.2.0 h1:J7Q5mO4ysT1dv8hyrUGHb9+ooztCXu1D8MY8DZYsu3g=

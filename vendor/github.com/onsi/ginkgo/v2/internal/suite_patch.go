@@ -27,8 +27,15 @@ func (suite *Suite) WalkTests(fn AnnotateFunc) {
 	}
 }
 
+func (suite *Suite) InPhaseBuildTree() bool {
+	return suite.phase == PhaseBuildTree
+}
+
 func (suite *Suite) ClearBeforeAndAfterSuiteNodes() {
-	suite.BuildTree()
+	// Don't build the tree multiple times, it results in multiple initing of tests
+	if !suite.InPhaseBuildTree() {
+		suite.BuildTree()
+	}
 	newNodes := Nodes{}
 	for _, node := range suite.suiteNodes {
 		if node.NodeType == types.NodeTypeBeforeSuite || node.NodeType == types.NodeTypeAfterSuite || node.NodeType == types.NodeTypeSynchronizedBeforeSuite || node.NodeType == types.NodeTypeSynchronizedAfterSuite {
