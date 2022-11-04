@@ -129,6 +129,9 @@ func newRunMonitorCommand() *cobra.Command {
 			return monitorOpt.Run()
 		},
 	}
+	cmd.Flags().StringVar(&monitorOpt.ArtifactDir,
+		"artifact-dir", monitorOpt.ArtifactDir,
+		"The directory where monitor events will be stored.")
 	return cmd
 }
 
