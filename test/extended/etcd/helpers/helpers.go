@@ -386,8 +386,6 @@ func SkipIfUnsupportedPlatform(ctx context.Context, oc *exutil.CLI) {
 	skipIfSingleNode(oc)
 	skipIfBareMetal(oc)
 	skipIfVsphere(oc)
-	skipIfGCP(oc)
-	skipIfOpenStack(oc)
 }
 
 func skipUnlessFunctionalMachineAPI(ctx context.Context, machineClient machinev1beta1client.MachineInterface) {
@@ -449,24 +447,6 @@ func skipIfVsphere(oc *exutil.CLI) {
 
 	if infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType {
 		e2eskipper.Skipf("this test is currently broken on the vsphere platform and needs to be fixed (BZ2094919)")
-	}
-}
-
-func skipIfGCP(oc *exutil.CLI) {
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	if infra.Status.PlatformStatus.Type == configv1.GCPPlatformType {
-		e2eskipper.Skipf("this test is currently broken on the GCP platform and needs to be fixed")
-	}
-}
-
-func skipIfOpenStack(oc *exutil.CLI) {
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	if infra.Status.PlatformStatus.Type == configv1.OpenStackPlatformType {
-		e2eskipper.Skipf("this test is currently broken on the OpenStack platform and needs to be fixed")
 	}
 }
 
