@@ -38,7 +38,7 @@ aliases:
   - mandre # Shift on Stack
   - miabbott # CoreOS
   - pedjak # App Services
-  - petr-muller # Test Platform
+  - jmguzik # Test Platform
   - romfreiman # Single Node OpenShift
   - rphillips # Node
   - s-urbaniak # Authentication
