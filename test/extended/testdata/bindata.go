@@ -34326,7 +34326,7 @@ var _testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson = []byte(`
     "containers": [
       {
         "name": "hello-openshift",
-        "image": "k8s.gcr.io/e2e-test-images/agnhost:2.39",
+        "image": "registry.k8s.io/e2e-test-images/agnhost:2.40",
         "args": ["netexec"],
         "ports": [
           {
@@ -38455,7 +38455,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+                image: registry.k8s.io/e2e-test-images/agnhost:2.40
       - kind: Route
         apiVersion: route.openshift.io/v1
         metadata:
@@ -42655,7 +42655,7 @@ items:
           replicationcontroller: idling-echo
       spec:
         containers:
-        - image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+        - image: registry.k8s.io/e2e-test-images/agnhost:2.40
           name: idling-echo-server
           args: [ "netexec", "--http-port", "8675" ]
           ports:
@@ -42721,7 +42721,7 @@ items:
           deploymentconfig: idling-echo
       spec:
         containers:
-        - image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+        - image: registry.k8s.io/e2e-test-images/agnhost:2.40
           name: idling-echo-server
           args: [ "netexec", "--http-port", "8675", "--udp-port", "3090" ]
           ports:
@@ -47675,7 +47675,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -47693,7 +47693,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -47728,7 +47728,7 @@ items:
       app: serving-cert
   spec:
     containers:
-    - image: k8s.gcr.io/e2e-test-images/nginx:1.15-2
+    - image: registry.k8s.io/e2e-test-images/nginx:1.15-2
       name: serve
       command:
         - /usr/sbin/nginx
@@ -47932,7 +47932,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -48094,7 +48094,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -48109,7 +48109,7 @@ objects:
       app: secure-endpoint
   spec:
     containers:
-    - image: k8s.gcr.io/e2e-test-images/nginx:1.15-2
+    - image: registry.k8s.io/e2e-test-images/nginx:1.15-2
       name: serve
       command:
         - /usr/sbin/nginx
@@ -49147,7 +49147,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -49165,7 +49165,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -49768,7 +49768,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -49786,7 +49786,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -49804,7 +49804,7 @@ objects:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -51207,7 +51207,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+                image: registry.k8s.io/e2e-test-images/agnhost:2.40
 `)
 
 func testExtendedTestdataTemplatesTemplateinstance_badobjectYamlBytes() ([]byte, error) {
@@ -51267,7 +51267,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: k8s.gcr.io/e2e-test-images/agnhost:2.39
+                image: registry.k8s.io/e2e-test-images/agnhost:2.40
       - kind: Route
         apiVersion: route.openshift.io/v1
         metadata:
@@ -53091,11 +53091,13 @@ var _bindata = map[string]func() (*asset, error){
 // directory embedded in the file by go-bindata.
 // For example if you run go-bindata on data/... and data contains the
 // following hierarchy:
-//     data/
-//       foo.txt
-//       img/
-//         a.png
-//         b.png
+//
+//	data/
+//	  foo.txt
+//	  img/
+//	    a.png
+//	    b.png
+//
 // then AssetDir("data") would return []string{"foo.txt", "img"}
 // AssetDir("data/img") would return []string{"a.png", "b.png"}
 // AssetDir("foo.txt") and AssetDir("notexist") would return an error

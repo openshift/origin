@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"

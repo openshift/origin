@@ -1,95 +1,40 @@
 package ginkgo
 
 import (
-	"fmt"
-	"io"
-	"strings"
+	"math/rand"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/types"
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
+
+	"k8s.io/apimachinery/pkg/util/errors"
+
+	"github.com/openshift/origin/test/extended/util/annotate/generated"
 )
 
-func testsForSuite(cfg config.GinkgoConfigType) ([]*testCase, error) {
-	iter := ginkgo.GlobalSuite().Iterator(cfg)
+func testsForSuite() ([]*testCase, error) {
 	var tests []*testCase
-	for {
-		spec, err := iter.Next()
-		if err != nil {
-			if err.Error() == "no more specs to run" {
-				break
-			}
-			return nil, err
+	var errs []error
+
+	// Don't build the tree multiple times, it results in multiple initing of tests
+	if !ginkgo.GetSuite().InPhaseBuildTree() {
+		ginkgo.GetSuite().BuildTree()
+	}
+
+	ginkgo.GetSuite().WalkTests(func(name string, spec types.TestSpec) {
+		if append, ok := generated.Annotations[name]; ok {
+			spec.AppendText(append)
 		}
-		tc, err := newTestCase(spec)
+		tc, err := newTestCaseFromGinkgoSpec(spec)
 		if err != nil {
-			return nil, err
+			errs = append(errs, err)
 		}
 		tests = append(tests, tc)
+	})
+	if len(errs) > 0 {
+		return nil, errors.NewAggregate(errs)
 	}
+	suiteConfig, _ := ginkgo.GinkgoConfiguration()
+	r := rand.New(rand.NewSource(suiteConfig.RandomSeed))
+	r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
 	return tests, nil
-}
-
-type ginkgoSpec interface {
-	Run(io.Writer)
-	ConcatenatedString() string
-	Skip()
-	Skipped() bool
-	Failed() bool
-	Passed() bool
-	Summary(suiteID string) *types.SpecSummary
-}
-
-type MinimalReporter struct {
-	name     string
-	location types.CodeLocation
-	spec     *types.SpecSummary
-	setup    *types.SetupSummary
-}
-
-func NewMinimalReporter(name string, location types.CodeLocation) *MinimalReporter {
-	return &MinimalReporter{
-		name:     name,
-		location: location,
-	}
-}
-
-func (r *MinimalReporter) Fail() {
-}
-
-func (r *MinimalReporter) Summary() (*types.SpecSummary, *types.SetupSummary) {
-	return r.spec, r.setup
-}
-
-func (r *MinimalReporter) SpecSuiteWillBegin(config config.GinkgoConfigType, summary *types.SuiteSummary) {
-}
-
-func (r *MinimalReporter) BeforeSuiteDidRun(setup *types.SetupSummary) {
-	r.setup = setup
-}
-
-func (r *MinimalReporter) SpecWillRun(spec *types.SpecSummary) {
-}
-
-func (r *MinimalReporter) SpecDidComplete(spec *types.SpecSummary) {
-	if spec.ComponentCodeLocations[len(spec.ComponentCodeLocations)-1] != r.location {
-		return
-	}
-	if specName(spec) != r.name {
-		return
-	}
-	if r.spec != nil {
-		panic(fmt.Sprintf("spec was set twice: %q and %q", specName(r.spec), specName(spec)))
-	}
-	r.spec = spec
-}
-
-func (r *MinimalReporter) AfterSuiteDidRun(setupSummary *types.SetupSummary) {
-}
-
-func (r *MinimalReporter) SpecSuiteDidEnd(summary *types.SuiteSummary) {
-}
-
-func specName(spec *types.SpecSummary) string {
-	return strings.Join(spec.ComponentTexts[1:], " ")
 }

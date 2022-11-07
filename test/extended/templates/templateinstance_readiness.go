@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
@@ -115,7 +115,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 		})
 
 		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
+			if g.CurrentSpecReport().Failed() {
 				exutil.DumpPodStates(cli)
 				exutil.DumpConfigMapStates(cli)
 				exutil.DumpPodLogsStartingWith("", cli)

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	authorizationv1 "k8s.io/api/authorization/v1"
@@ -111,7 +111,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("when run iteratively", func() {
 		dcName := "deployment-simple"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should only deploy the last deployment [apigroup:apps.openshift.io]", func() {
@@ -286,7 +286,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("should respect image stream tag reference policy", func() {
 		dcName := "deployment-image-resolution"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("resolve the image pull spec [apigroup:apps.openshift.io][apigroup:image.openshift.io]", func() {
@@ -334,7 +334,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("with test deployments", func() {
 		dcName := "deployment-test"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should run a deployment to completion and then scale to zero [apigroup:apps.openshift.io]", func() {
@@ -418,7 +418,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("when changing image change trigger", func() {
 		dcName := "example"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should successfully trigger from an updated image [apigroup:apps.openshift.io][apigroup:image.openshift.io]", func() {
@@ -470,7 +470,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("when tagging images", func() {
 		dcName := "tag-images"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should successfully tag the deployed image [apigroup:apps.openshift.io][apigroup:authorization.openshift.io][apigroup:image.openshift.io]", func() {
@@ -515,7 +515,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("with env in params referencing the configmap", func() {
 		dcName := "deployment-simple"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should expand the config map key to a value [apigroup:apps.openshift.io]", func() {
@@ -542,7 +542,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("with multiple image change triggers", func() {
 		dcName := "example"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should run a successful deployment with multiple triggers [apigroup:apps.openshift.io][apigroup:image.openshift.io]", func() {
@@ -579,7 +579,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		dcName := "deployment-simple"
 
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should include various info in status [apigroup:apps.openshift.io]", func() {
@@ -612,7 +612,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("with custom deployments", func() {
 		dcName := "custom-deployment"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should run the custom deployment steps [apigroup:apps.openshift.io]", func() {
@@ -649,7 +649,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("viewing rollout history", func() {
 		dcName := "deployment-simple"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should print the rollout history [apigroup:apps.openshift.io]", func() {
@@ -700,7 +700,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("generation", func() {
 		dcName := "generation-test"
 		g.AfterEach(func() {
-			failureTrap(oc, "generation-test", g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, "generation-test", g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should deploy based on a status version bump [apigroup:apps.openshift.io]", func() {
@@ -789,7 +789,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("paused", func() {
 		dcName := "paused"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should disable actions on deployments [apigroup:apps.openshift.io]", func() {
@@ -853,7 +853,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("with failing hook", func() {
 		dcName := "hook"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should get all logs from retried hooks [apigroup:apps.openshift.io]", func() {
@@ -876,7 +876,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("rolled back", func() {
 		dcName := "deployment-simple"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should rollback to an older deployment [apigroup:apps.openshift.io]", func() {
@@ -923,7 +923,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("reaper [Slow]", func() {
 		dcName := "brokendeployment"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should delete all failed deployer pods and hook pods [apigroup:apps.openshift.io]", func() {
@@ -964,7 +964,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("initially", func() {
 		dcName := "readiness"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should not deploy if pods never transition to ready [apigroup:apps.openshift.io]", func() {
@@ -981,7 +981,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("with revision history limits", func() {
 		dcName := "history-limit"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should never persist more old deployments than acceptable after being observed by the controller [apigroup:apps.openshift.io]", func() {
@@ -1042,7 +1042,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("with minimum ready seconds set", func() {
 		dcName := "minreadytest"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should not transition the deployment to Complete before satisfied [apigroup:apps.openshift.io]", func() {
@@ -1115,7 +1115,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("ignores deployer and lets the config with a NewReplicationControllerCreated reason", func() {
 		dcName := "database"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should let the deployment config with a NewReplicationControllerCreated reason [apigroup:apps.openshift.io]", func() {
@@ -1157,8 +1157,8 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("", func() {
 		dcName := "deployment-simple"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
-			failureTrapForDetachedRCs(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
+			failureTrapForDetachedRCs(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should adhere to Three Laws of Controllers [apigroup:apps.openshift.io]", func() {
@@ -1265,7 +1265,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		const deploymentCancelledAnnotation = "openshift.io/deployment.cancelled"
 
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("should deal with cancellation of running deployment [apigroup:apps.openshift.io]", func() {
@@ -1517,7 +1517,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		dcName := "example"
 		rcName := func(i int) string { return fmt.Sprintf("%s-%d", dcName, i) }
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("when patched with empty image [apigroup:apps.openshift.io]", func() {
@@ -1596,7 +1596,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 	g.Describe("adoption", func() {
 		dcName := "deployment-simple"
 		g.AfterEach(func() {
-			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentSpecReport().Failed())
 		})
 
 		g.It("will orphan all RCs and adopt them back when recreated [apigroup:apps.openshift.io]", func() {

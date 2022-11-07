@@ -11,13 +11,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/onsi/ginkgo/types"
+	"github.com/onsi/ginkgo/v2/types"
 )
 
 type testCase struct {
 	name      string
-	spec      ginkgoSpec
-	location  types.CodeLocation
+	spec      types.TestSpec
+	locations []types.CodeLocation
 	apigroups []string
 
 	// identifies which tests can be run in parallel (ginkgo runs suites linearly)
@@ -39,15 +39,14 @@ type testCase struct {
 	previous *testCase
 }
 
-func newTestCase(spec ginkgoSpec) (*testCase, error) {
-	name := spec.ConcatenatedString()
-	name = strings.TrimPrefix(name, "[Top Level] ")
+var re = regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
 
-	summary := spec.Summary("")
+func newTestCaseFromGinkgoSpec(spec types.TestSpec) (*testCase, error) {
+	name := spec.Text()
 	tc := &testCase{
-		name:     name,
-		spec:     spec,
-		location: summary.ComponentCodeLocations[len(summary.ComponentCodeLocations)-1],
+		name:      name,
+		locations: spec.CodeLocations(),
+		spec:      spec,
 	}
 
 	matches := regexp.MustCompile(`\[apigroup:([^]]*)\]`).FindAllStringSubmatch(name, -1)
@@ -59,7 +58,6 @@ func newTestCase(spec ginkgoSpec) (*testCase, error) {
 		tc.apigroups = append(tc.apigroups, apigroup)
 	}
 
-	re := regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
 	if match := re.FindStringSubmatch(name); match != nil {
 		testTimeOut, err := time.ParseDuration(match[1])
 		if err != nil {
@@ -75,7 +73,7 @@ func (t *testCase) Retry() *testCase {
 	copied := &testCase{
 		name:          t.name,
 		spec:          t.spec,
-		location:      t.location,
+		locations:     t.locations,
 		testExclusion: t.testExclusion,
 
 		previous: t,

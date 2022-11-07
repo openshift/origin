@@ -48,6 +48,7 @@ type VSphereMachineProviderSpec struct {
 	// DiskGiB is the size of a virtual machine's disk, in GiB.
 	// Defaults to the analogue property value in the template from which this
 	// machine is cloned.
+	// This parameter will be ignored if 'LinkedClone' CloneMode is set.
 	// +optional
 	DiskGiB int32 `json:"diskGiB,omitempty"`
 	// Snapshot is the name of the snapshot from which the VM was cloned
@@ -59,8 +60,8 @@ type VSphereMachineProviderSpec struct {
 	// to FullClone.
 	// When LinkedClone mode is enabled the DiskGiB field is ignored as it is
 	// not possible to expand disks of linked clones.
-	// Defaults to LinkedClone, but fails gracefully to FullClone if the source
-	// of the clone operation has no snapshots.
+	// Defaults to FullClone.
+	// When using LinkedClone, if no snapshots exist for the source template, falls back to FullClone.
 	// +optional
 	CloneMode CloneMode `json:"cloneMode,omitempty"`
 }
