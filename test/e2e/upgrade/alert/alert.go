@@ -50,7 +50,6 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 // An alert firing during an upgrade is a high severity bug - it either points to a real issue in
 // a dependency, or a failure of the component, and therefore must be fixed.
 func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
-	tolerateDuringSkew := exutil.TolerateVersionSkewInTests()
 	firingAlertsWithBugs := helper.MetricConditions{
 		{
 			Selector: map[string]string{"alertname": "KubePodNotReady", "namespace": "openshift-kube-apiserver-operator"},
@@ -275,9 +274,7 @@ sort_desc(
 		framework.Logf("Alerts were detected during upgrade which are allowed:\n\n%s", strings.Join(debug.List(), "\n"))
 	}
 	if len(unexpectedViolations) > 0 {
-		if !tolerateDuringSkew {
-			framework.Failf("Unexpected alerts fired or pending during the upgrade:\n\n%s", strings.Join(unexpectedViolations.List(), "\n"))
-		}
+		framework.Failf("Unexpected alerts fired or pending during the upgrade:\n\n%s", strings.Join(unexpectedViolations.List(), "\n"))
 	}
 	if flakes := sets.NewString().Union(knownViolations).Union(unexpectedViolations).Union(unexpectedViolationsAsFlakes); len(flakes) > 0 {
 		disruption.FrameworkFlakef(f, "Unexpected alert behavior during upgrade:\n\n%s", strings.Join(flakes.List(), "\n"))

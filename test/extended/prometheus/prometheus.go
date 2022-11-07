@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -204,10 +203,6 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 
 	g.It("shouldn't report any unexpected alerts in firing or pending state [apigroup:config.openshift.io]", func() {
 		// Watchdog and AlertmanagerReceiversNotConfigured are expected.
-		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
-			e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
-		}
-
 		firingAlertsWithBugs := helper.MetricConditions{
 			{
 				Selector: map[string]string{"alertname": "ClusterOperatorDown", "name": "authentication"},
@@ -669,10 +664,6 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 		})
 
 		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io]", func() {
-			if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
-				e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions, and skewed versions trigger multiple other alerts")
-			}
-
 			// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
 			allowedAlertNames := []string{
 				"Watchdog",
