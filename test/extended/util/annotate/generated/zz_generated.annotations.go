@@ -3295,7 +3295,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-scheduling][Early] The openshift-authentication pods [apigroup:oauth.openshift.io] should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
-	"[Top Level] [sig-scheduling][Early] The openshift-console console pods [apigroup:console.openshift.io should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
+	"[Top Level] [sig-scheduling][Early] The openshift-console console pods [apigroup:console.openshift.io] should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
 	"[Top Level] [sig-scheduling][Early] The openshift-console downloads pods [apigroup:console.openshift.io] should be scheduled on different nodes": "should be scheduled on different nodes [Suite:openshift/conformance/parallel]",
 
