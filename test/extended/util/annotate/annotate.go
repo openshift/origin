@@ -36,10 +36,6 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("Error updating annotate.TestMaps: %v", err))
 	}
-	err = mergeMaps(annotate.LabelExcludes, labelExcludes)
-	if err != nil {
-		panic(fmt.Sprintf("Error updating annotate.LabelExcludes: %v", err))
-	}
 }
 
 func main() {

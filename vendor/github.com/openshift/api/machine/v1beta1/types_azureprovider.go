@@ -117,6 +117,12 @@ type AzureMachineProviderSpec struct {
 	// Availability set should be precreated, before using this field.
 	// +optional
 	AvailabilitySet string `json:"availabilitySet,omitempty"`
+	// Diagnostics configures the diagnostics settings for the virtual machine.
+	// This allows you to configure boot diagnostics such as capturing serial output from
+	// the virtual machine on boot.
+	// This is useful for debugging software based launch issues.
+	// +optional
+	Diagnostics AzureDiagnostics `json:"diagnostics,omitempty"`
 }
 
 // SpotVMOptions defines the options relevant to running the Machine on Spot VMs
@@ -125,6 +131,62 @@ type SpotVMOptions struct {
 	// +optional
 	MaxPrice *resource.Quantity `json:"maxPrice,omitempty"`
 }
+
+// AzureDiagnostics is used to configure the diagnostic settings of the virtual machine.
+type AzureDiagnostics struct {
+	// AzureBootDiagnostics configures the boot diagnostics settings for the virtual machine.
+	// This allows you to configure capturing serial output from the virtual machine on boot.
+	// This is useful for debugging software based launch issues.
+	// + This is a pointer so that we can validate required fields only when the structure is
+	// + configured by the user.
+	// +optional
+	Boot *AzureBootDiagnostics `json:"boot,omitempty"`
+}
+
+// AzureBootDiagnostics configures the boot diagnostics settings for the virtual machine.
+// This allows you to configure capturing serial output from the virtual machine on boot.
+// This is useful for debugging software based launch issues.
+// +union
+type AzureBootDiagnostics struct {
+	// StorageAccountType determines if the storage account for storing the diagnostics data
+	// should be provisioned by Azure (AzureManaged) or by the customer (CustomerManaged).
+	// +kubebuilder:validation:Required
+	// +unionDiscriminator
+	StorageAccountType AzureBootDiagnosticsStorageAccountType `json:"storageAccountType"`
+
+	// CustomerManaged provides reference to the customer manager storage account.
+	// +optional
+	CustomerManaged *AzureCustomerManagedBootDiagnostics `json:"customerManaged,omitempty"`
+}
+
+// AzureCustomerManagedBootDiagnostics provides reference to a customer managed
+// storage account.
+type AzureCustomerManagedBootDiagnostics struct {
+	// StorageAccountURI is the URI of the customer managed storage account.
+	// The URI typically will be `https://<mystorageaccountname>.blob.core.windows.net/`
+	// but may differ if you are using Azure DNS zone endpoints.
+	// You can find the correct endpoint by looking for the Blob Primary Endpoint in the
+	// endpoints tab in the Azure console.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Pattern=`^https://`
+	// +kubebuilder:validation:MaxLength=1024
+	StorageAccountURI string `json:"storageAccountURI"`
+}
+
+// AzureBootDiagnosticsStorageAccountType defines the list of valid storage account types
+// for the boot diagnostics.
+// +kubebuilder:validation:Enum:="AzureManaged";"CustomerManaged"
+type AzureBootDiagnosticsStorageAccountType string
+
+const (
+	// AzureManagedAzureDiagnosticsStorage is used to determine that the diagnostics storage account
+	// should be provisioned by Azure.
+	AzureManagedAzureDiagnosticsStorage AzureBootDiagnosticsStorageAccountType = "AzureManaged"
+
+	// CustomerManagedAzureDiagnosticsStorage is used to determine that the diagnostics storage account
+	// should be provisioned by the Customer.
+	CustomerManagedAzureDiagnosticsStorage AzureBootDiagnosticsStorageAccountType = "CustomerManaged"
+)
 
 // AzureMachineProviderStatus is the type that will be embedded in a Machine.Status.ProviderStatus field.
 // It contains Azure-specific status information.

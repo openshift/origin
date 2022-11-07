@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	kapiv1 "k8s.io/api/core/v1"
@@ -94,7 +94,7 @@ func createBondNAD(config *rest.Config, namespace string, nadName string, ip str
 		"type": "bond",
 		"cniVersion": "0.3.1",
 		"name": "%s",
-		"mode": "active-backup", 
+		"mode": "active-backup",
 		"failOverMac": 1,
 		"linksInContainer": true,
 		"miimon": "100",

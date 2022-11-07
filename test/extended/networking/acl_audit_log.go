@@ -15,7 +15,7 @@ import (
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	psapi "k8s.io/pod-security-admission/api"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -30,7 +30,7 @@ var _ = Describe("[sig-network][Feature:Network Policy Audit logging]", func() {
 	// this hook must be registered before the framework namespace teardown
 	// hook
 	AfterEach(func() {
-		if CurrentGinkgoTestDescription().Failed {
+		if CurrentSpecReport().Failed() {
 			// If test fails dump test pods logs
 			exutil.DumpPodLogsStartingWithInNamespace("acl-logging", ns[0], oc.AsAdmin())
 			exutil.DumpPodLogsStartingWithInNamespace("acl-logging", ns[1], oc.AsAdmin())

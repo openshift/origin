@@ -11,9 +11,9 @@ import (
 	"path"
 	"strings"
 
-	g "github.com/onsi/ginkgo"
+	"github.com/go-ldap/ldap/v3"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	"gopkg.in/ldap.v2"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kdiff "k8s.io/apimachinery/pkg/util/diff"

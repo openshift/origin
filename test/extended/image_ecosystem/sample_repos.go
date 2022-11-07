@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"time"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -44,7 +44,7 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 			})
 
 			g.AfterEach(func() {
-				if g.CurrentGinkgoTestDescription().Failed {
+				if g.CurrentSpecReport().Failed() {
 					exutil.DumpPodStates(oc)
 					exutil.DumpPodLogsStartingWith("", oc)
 				}

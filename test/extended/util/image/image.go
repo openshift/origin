@@ -9,10 +9,11 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	k8simage "k8s.io/kubernetes/test/utils/image"
 )
 
 func init() {
-	allowedImages = map[string]int{
+	allowedImages = map[string]k8simage.ImageID{
 		// used by jenkins tests
 		"quay.io/redhat-developer/nfs-server:1.1": -1,
 
@@ -32,29 +33,10 @@ func init() {
 		// used by all the rest build s2s e2e tests
 		"quay.io/redhat-developer/test-build-simples2i:1.2": -1,
 
-		// storage-csi
-		"k8s.gcr.io/sig-storage/csi-attacher:v3.1.0":                           46,
-		"k8s.gcr.io/sig-storage/csi-attacher:v3.3.0":                           54,
-		"k8s.gcr.io/sig-storage/csi-external-health-monitor-controller:v0.4.0": 51,
-		"k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.1.0":              49,
-		"k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.3.0":              52,
-		"k8s.gcr.io/sig-storage/csi-provisioner:v2.1.0":                        45,
-		"k8s.gcr.io/sig-storage/csi-provisioner:v3.0.0":                        55,
-		"k8s.gcr.io/sig-storage/csi-resizer:v1.1.0":                            47,
-		"k8s.gcr.io/sig-storage/csi-resizer:v1.3.0":                            56,
-		"k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.3":                        44,
-		"k8s.gcr.io/sig-storage/csi-snapshotter:v4.2.1":                        57,
-		"k8s.gcr.io/sig-storage/hello-populator:v1.0.1":                        42,
-		"k8s.gcr.io/sig-storage/hostpathplugin:v1.7.3":                         50,
-		"k8s.gcr.io/sig-storage/livenessprobe:v2.4.0":                          53,
-		"k8s.gcr.io/sig-storage/volume-data-source-validator:v1.0.0":           43,
-
-		"k8s.gcr.io/e2e-test-images/busybox:1.29-1": 59,
-
 		// allowed upstream kube images - index and value must match upstream or
 		// tests will fail (vendor/k8s.io/kubernetes/test/utils/image/manifest.go)
-		"k8s.gcr.io/e2e-test-images/agnhost:2.39": 1,
-		"k8s.gcr.io/e2e-test-images/nginx:1.15-2": 23,
+		"registry.k8s.io/e2e-test-images/agnhost:2.40": 1,
+		"registry.k8s.io/e2e-test-images/nginx:1.15-2": 22,
 	}
 
 	images = GetMappedImages(allowedImages, os.Getenv("KUBE_TEST_REPO"))
@@ -62,7 +44,7 @@ func init() {
 
 var (
 	images        map[string]string
-	allowedImages map[string]int
+	allowedImages map[string]k8simage.ImageID
 )
 
 // ReplaceContents ensures that the provided yaml or json has the
@@ -141,8 +123,8 @@ func OpenLDAPTestImage() string {
 }
 
 // OriginalImages returns a map of the original image names.
-func OriginalImages() map[string]int {
-	images := make(map[string]int)
+func OriginalImages() map[string]k8simage.ImageID {
+	images := make(map[string]k8simage.ImageID)
 	for k, v := range allowedImages {
 		images[k] = v
 	}
@@ -153,6 +135,10 @@ func OriginalImages() map[string]int {
 // problems. This list should ideally be empty.
 var Exceptions = sets.NewString(
 	"mcr.microsoft.com/windows:1809", // https://issues.redhat.com/browse/PROJQUAY-1874
+	// this image has 3 windows/amd64 manifests, where layers are not compressed,
+	// ie. application/vnd.docker.image.rootfs.diff.tar which are not accepted
+	// by quay.io, this has to be manually mirrored with --filter-by-os=linux.*
+	"registry.k8s.io/pause:3.8",
 )
 
 // Images returns a map of all images known to the test package.
@@ -168,7 +154,7 @@ func Images() map[string]struct{} {
 // image repository. The keys of the returned map are the same as the keys
 // in originalImages and the values are the equivalent name in the target
 // repo.
-func GetMappedImages(originalImages map[string]int, repo string) map[string]string {
+func GetMappedImages(originalImages map[string]k8simage.ImageID, repo string) map[string]string {
 	if len(repo) == 0 {
 		images := make(map[string]string)
 		for k := range originalImages {
