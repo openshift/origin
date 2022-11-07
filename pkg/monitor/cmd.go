@@ -84,13 +84,19 @@ func (opt *Options) Run() error {
 		}
 	}
 
+	monitorArtifactPath := opt.ArtifactDir
+	if len(monitorArtifactPath) == 0 {
+		// Add MONITOR_ARTIFACT_PATH so that tests defined in release repo can be run with older
+		// releases. Those test configs in release repo are shared across all releases.
+		monitorArtifactPath = os.Getenv("MONITOR_ARTIFACT_PATH")
+	}
 	// Store events to artifact directory
-	if len(opt.ArtifactDir) != 0 {
+	if len(monitorArtifactPath) != 0 {
 		recordedEvents := m.Intervals(time.Time{}, time.Time{})
 		recordedResources := m.CurrentResourceState()
 		timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
 
-		eventDir := fmt.Sprintf("%s/monitor-events", opt.ArtifactDir)
+		eventDir := fmt.Sprintf("%s/monitor-events", monitorArtifactPath)
 		if err := os.MkdirAll(eventDir, os.ModePerm); err != nil {
 			fmt.Printf("Failed to create monitor-events directory, err: %v\n", err)
 			return err
