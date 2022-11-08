@@ -6,6 +6,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/origin/pkg/alerts"
 	exutil "github.com/openshift/origin/test/extended/util"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -51,7 +52,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	g.By("Waiting before checking for alerts")
 	time.Sleep(1 * time.Minute)
 
-	kajsdhlkajsdhlakjsdh
+	alerts.CheckAlerts(alerts.AllowedAlertsDuringUpgrade, t.prometheusClient, t.configClient, startTime)
 }
 
 // Teardown cleans up any remaining resources.

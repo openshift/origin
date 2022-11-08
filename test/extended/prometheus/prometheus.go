@@ -12,6 +12,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	"github.com/openshift/origin/pkg/alerts"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
@@ -200,7 +201,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 	)
 
 	g.It("shouldn't report any unexpected alerts in firing or pending state [apigroup:config.openshift.io]", func() {
-		kjasdhalkjssdh
+		alerts.CheckAlerts(alerts.AllowedAlertsDuringConformance, oc.NewPrometheusClient(context.TODO()), oc.AdminConfigClient(), exutil.BestStartTime())
 	})
 
 	g.It("shouldn't exceed the 650 series limit of total series sent via telemetry from each cluster", func() {
