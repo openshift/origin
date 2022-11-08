@@ -549,7 +549,7 @@ var Annotations = map[string]string{
 
 	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs rolled back should rollback to an older deployment [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs should adhere to Three Laws of Controllers [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs should adhere to Three Laws of Controllers [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs should respect image stream tag reference policy resolve the image pull spec [apigroup:apps.openshift.io][apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
@@ -1131,7 +1131,7 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:SecurityContextConstraints]  TestAllowedSCCViaRBAC [apigroup:project.openshift.io][apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:SecurityContextConstraints]  TestPodDefaultCapabilities": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:SecurityContextConstraints]  TestPodDefaultCapabilities": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:SecurityContextConstraints]  TestPodUpdateSCCEnforcement [apigroup:user.openshift.io][apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -1271,57 +1271,57 @@ var Annotations = map[string]string{
 
 	"[sig-builds][Feature:Builds] Multi-stage image builds should succeed [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] Optimized image builds should succeed [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] Optimized image builds should succeed [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] build can reference a cluster service with a build being created from new-build should be able to run a build that references a cluster service [apigroup:build.openshift.io]": " [Skipped:Proxy] [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] build can reference a cluster service with a build being created from new-build should be able to run a build that references a cluster service [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Skipped:Proxy] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] build have source revision metadata started build should contain source revision information [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] build have source revision metadata started build should contain source revision information [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] build with empty source started build should build even with an empty source in build config [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] build with empty source started build should build even with an empty source in build config [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] build without output image building from templates should create an image from a S2i template without an output image reference defined [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] build without output image building from templates should create an image from a S2i template without an output image reference defined [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] build without output image building from templates should create an image from a docker template without an output image reference defined [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] build without output image building from templates should create an image from a docker template without an output image reference defined [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds] buildconfig secret injector should inject secrets to the appropriate buildconfigs [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] custom build with buildah being created from new-build should complete build with custom builder image [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] custom build with buildah being created from new-build should complete build with custom builder image [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] imagechangetriggers imagechangetriggers should trigger builds of all types [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] imagechangetriggers imagechangetriggers should trigger builds of all types [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] oc new-app should fail with a --name longer than 58 characters [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] oc new-app should fail with a --name longer than 58 characters [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] oc new-app should succeed with a --name of 58 characters [apigroup:build.openshift.io]": " [Skipped:Proxy] [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] oc new-app should succeed with a --name of 58 characters [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Skipped:Proxy] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] oc new-app should succeed with an imagestream [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] oc new-app should succeed with an imagestream [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig buildconfigs should have a default history limit set when created via the group api [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig buildconfigs should have a default history limit set when created via the group api [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune builds after a buildConfig change [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune builds after a buildConfig change [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune canceled builds based on the failedBuildsHistoryLimit setting [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune canceled builds based on the failedBuildsHistoryLimit setting [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune completed builds based on the successfulBuildsHistoryLimit setting [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune completed builds based on the successfulBuildsHistoryLimit setting [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune errored builds based on the failedBuildsHistoryLimit setting [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune errored builds based on the failedBuildsHistoryLimit setting [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune failed builds based on the failedBuildsHistoryLimit setting [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] prune builds based on settings in the buildconfig should prune failed builds based on the failedBuildsHistoryLimit setting [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds] remove all builds when build configuration is removed oc delete buildconfig should start builds and delete the buildconfig [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] result image should have proper labels set Docker build from a template should create a image from \"test-docker-build.json\" template with proper Docker labels [apigroup:build.openshift.io][apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] result image should have proper labels set Docker build from a template should create a image from \"test-docker-build.json\" template with proper Docker labels [apigroup:build.openshift.io][apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] result image should have proper labels set S2I build from a template should create a image from \"test-s2i-build.json\" template with proper Docker labels [apigroup:build.openshift.io][apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] result image should have proper labels set S2I build from a template should create a image from \"test-s2i-build.json\" template with proper Docker labels [apigroup:build.openshift.io][apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] s2i build with a quota Building from a template should create an s2i build with a quota and run it [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] s2i build with a quota Building from a template should create an s2i build with a quota and run it [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds] s2i build with a root user image should create a root build and fail without a privileged SCC [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds] s2i build with a root user image should create a root build and pass with a privileged SCC [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] verify /run filesystem contents are writeable using a simple Docker Strategy Build [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] verify /run filesystem contents are writeable using a simple Docker Strategy Build [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds] verify /run filesystem contents do not have unexpected content using a simple Docker Strategy Build [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds] verify /run filesystem contents do not have unexpected content using a simple Docker Strategy Build [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration build config no ocm rollout [apigroup:config.openshift.io] Apply default proxy configuration to docker build pod through env vars [apigroup:build.openshift.io]": "",
 
@@ -1497,21 +1497,21 @@ var Annotations = map[string]string{
 
 	"[sig-builds][Feature:Builds][Slow] using pull secrets in a build start-build test context pulling from an external authenticated registry should be able to use a pull secret linked to the builder service account [apigroup:build.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][pullsearch] docker build where the registry is not specified Building from a Dockerfile whose FROM image ref does not specify the image registry should create a docker build that has buildah search from our predefined list of image registries and succeed [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][pullsearch] docker build where the registry is not specified Building from a Dockerfile whose FROM image ref does not specify the image registry should create a docker build that has buildah search from our predefined list of image registries and succeed [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][pullsecret] docker build using a pull secret Building from a template should create a docker build that pulls using a secret run it [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][pullsecret] docker build using a pull secret Building from a template should create a docker build that pulls using a secret run it [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][timing] capture build stages and durations should record build stages and durations for docker [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][timing] capture build stages and durations should record build stages and durations for docker [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][timing] capture build stages and durations should record build stages and durations for s2i [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][timing] capture build stages and durations should record build stages and durations for s2i [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should fail resolving unresolvable valueFrom in docker build environment variable references [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should fail resolving unresolvable valueFrom in docker build environment variable references [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should fail resolving unresolvable valueFrom in sti build environment variable references [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should fail resolving unresolvable valueFrom in sti build environment variable references [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should successfully resolve valueFrom in docker build environment variables [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should successfully resolve valueFrom in docker build environment variables [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should successfully resolve valueFrom in s2i build environment variables [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should successfully resolve valueFrom in s2i build environment variables [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -2033,9 +2033,9 @@ var Annotations = map[string]string{
 
 	"[sig-devex][Feature:Templates] templateinstance object kinds test should create and delete objects from varying API groups [apigroup:template.openshift.io][apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-devex][Feature:Templates] templateinstance readiness test should report failed soon after an annotated objects has failed [apigroup:template.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-devex][Feature:Templates] templateinstance readiness test should report failed soon after an annotated objects has failed [apigroup:template.openshift.io][apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-devex][Feature:Templates] templateinstance readiness test should report ready soon after all annotated objects are ready [apigroup:template.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-devex][Feature:Templates] templateinstance readiness test should report ready soon after all annotated objects are ready [apigroup:template.openshift.io][apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-devex][Feature:Templates] templateinstance security tests [apigroup:authorization.openshift.io][apigroup:template.openshift.io] should pass security tests [apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
