@@ -2,6 +2,7 @@ package alert
 
 import (
 	"context"
+	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
@@ -39,6 +40,17 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 // An alert firing during an upgrade is a high severity bug - it either points to a real issue in
 // a dependency, or a failure of the component, and therefore must be fixed.
 func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
+	g.By("Checking for alerts")
+	startTime := time.Now()
+
+	// Block until upgrade is done
+	g.By("Waiting for upgrade to finish before checking for alerts")
+	<-done
+
+	// Additonal delay after upgrade completion to allow pending alerts to settle
+	g.By("Waiting before checking for alerts")
+	time.Sleep(1 * time.Minute)
+
 	kajsdhlkajsdhlakjsdh
 }
 

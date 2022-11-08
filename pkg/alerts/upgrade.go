@@ -6,19 +6,20 @@ import (
 	"strings"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
+	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
-func main() {
+func checkAlerts(prometheusClient prometheusv1.API, configClient configclient.Interface, startTime time.Time) {
 	firingAlertsWithBugs := helper.MetricConditions{
 		{
 			Selector: map[string]string{"alertname": "AggregatedAPIDown", "namespace": "default", "name": "v1beta1.metrics.k8s.io"},
@@ -128,7 +129,7 @@ func main() {
 		},
 	}
 
-	if featureGates, err := t.configClient.ConfigV1().FeatureGates().Get(context.TODO(), "cluster", metav1.GetOptions{}); err == nil {
+	if featureGates, err := configClient.ConfigV1().FeatureGates().Get(context.TODO(), "cluster", metav1.GetOptions{}); err == nil {
 		switch featureGates.Spec.FeatureSet {
 		case configv1.TechPreviewNoUpgrade:
 			allowedFiringAlerts = append(allowedFiringAlerts,
@@ -173,19 +174,7 @@ func main() {
 	unexpectedViolationsAsFlakes := sets.NewString()
 	debug := sets.NewString()
 
-	g.By("Checking for alerts")
-
-	start := time.Now()
-
-	// Block until upgrade is done
-	g.By("Waiting for upgrade to finish before checking for alerts")
-	<-done
-
-	// Additonal delay after upgrade completion to allow pending alerts to settle
-	g.By("Waiting before checking for alerts")
-	time.Sleep(1 * time.Minute)
-
-	testDuration := time.Now().Sub(start).Round(time.Second)
+	testDuration := time.Now().Sub(startTime).Round(time.Second)
 
 	// Invariant: No non-info level alerts should have fired during the upgrade
 	firingAlertQuery := fmt.Sprintf(`
@@ -193,7 +182,7 @@ sort_desc(
 count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog|AlertmanagerReceiversNotConfigured"}[%[1]s:1s])
 ) > 0
 `, testDuration)
-	result, err := helper.RunQuery(context.TODO(), t.prometheusClient, firingAlertQuery)
+	result, err := helper.RunQuery(context.TODO(), prometheusClient, firingAlertQuery)
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to check firing alerts during upgrade")
 	for _, series := range result.Data.Result {
 		labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
@@ -221,7 +210,7 @@ sort_desc(
   )[%[1]s:1s])
 )
 `, testDuration)
-	result, err = helper.RunQuery(context.TODO(), t.prometheusClient, pendingAlertQuery)
+	result, err = helper.RunQuery(context.TODO(), prometheusClient, pendingAlertQuery)
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to retrieve pending alerts after upgrade")
 	for _, series := range result.Data.Result {
 		labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
@@ -247,6 +236,11 @@ sort_desc(
 	}
 	if flakes := sets.NewString().Union(knownViolations).Union(unexpectedViolations).Union(unexpectedViolationsAsFlakes); len(flakes) > 0 {
 		disruption.FrameworkFlakef(f, "Unexpected alert behavior during upgrade:\n\n%s", strings.Join(flakes.List(), "\n"))
+
+		/*
+			framework.Logf(format, options...)
+			f.TestSummaries = append(f.TestSummaries, flakeSummary(fmt.Sprintf(format, options...)))
+		*/
 	}
 	framework.Logf("No alerts fired during upgrade")
 
