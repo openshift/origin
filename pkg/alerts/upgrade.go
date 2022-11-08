@@ -19,7 +19,7 @@ import (
 
 type allowedAlertsFunc func(configclient.Interface) (allowedFiringWithBugs, allowedFiring, allowedPendingWithBugs, allowedPending helper.MetricConditions)
 
-func CheckAlerts(allowancesFunc allowedAlertsFunc, prometheusClient prometheusv1.API, configClient configclient.Interface, startTime time.Time, f *framework.Framework) {
+func CheckAlerts(allowancesFunc allowedAlertsFunc, prometheusClient prometheusv1.API, configClient configclient.Interface, testDuration time.Duration, f *framework.Framework) {
 	firingAlertsWithBugs, allowedFiringAlerts, pendingAlertsWithBugs, allowedPendingAlerts :=
 		allowancesFunc(configClient)
 
@@ -55,8 +55,6 @@ func CheckAlerts(allowancesFunc allowedAlertsFunc, prometheusClient prometheusv1
 	unexpectedViolations := sets.NewString()
 	unexpectedViolationsAsFlakes := sets.NewString()
 	debug := sets.NewString()
-
-	testDuration := time.Now().Sub(startTime).Round(time.Second)
 
 	// Invariant: No non-info level alerts should have fired
 	firingAlertQuery := fmt.Sprintf(`

@@ -201,7 +201,9 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 	)
 
 	g.It("shouldn't report any unexpected alerts in firing or pending state [apigroup:config.openshift.io]", func() {
-		alerts.CheckAlerts(alerts.AllowedAlertsDuringConformance, oc.NewPrometheusClient(context.TODO()), oc.AdminConfigClient(), exutil.BestStartTime())
+		// we only consider samples since the beginning of the test
+		testDuration := exutil.DurationSinceStartInSeconds()
+		alerts.CheckAlerts(alerts.AllowedAlertsDuringConformance, oc.NewPrometheusClient(context.TODO()), oc.AdminConfigClient(), testDuration, nil)
 	})
 
 	g.It("shouldn't exceed the 650 series limit of total series sent via telemetry from each cluster", func() {

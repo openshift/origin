@@ -52,7 +52,9 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 	g.By("Waiting before checking for alerts")
 	time.Sleep(1 * time.Minute)
 
-	alerts.CheckAlerts(alerts.AllowedAlertsDuringUpgrade, t.prometheusClient, t.configClient, startTime)
+	testDuration := time.Now().Sub(startTime).Round(time.Second)
+
+	alerts.CheckAlerts(alerts.AllowedAlertsDuringUpgrade, t.prometheusClient, t.configClient, testDuration, f)
 }
 
 // Teardown cleans up any remaining resources.
