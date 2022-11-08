@@ -58,14 +58,14 @@ func CheckAlerts(allowancesFunc allowedAlertsFunc, prometheusClient prometheusv1
 
 	testDuration := time.Now().Sub(startTime).Round(time.Second)
 
-	// Invariant: No non-info level alerts should have fired during the upgrade
+	// Invariant: No non-info level alerts should have fired
 	firingAlertQuery := fmt.Sprintf(`
 sort_desc(
 count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog|AlertmanagerReceiversNotConfigured"}[%[1]s:1s])
 ) > 0
 `, testDuration)
 	result, err := helper.RunQuery(context.TODO(), prometheusClient, firingAlertQuery)
-	o.Expect(err).NotTo(o.HaveOccurred(), "unable to check firing alerts during upgrade")
+	o.Expect(err).NotTo(o.HaveOccurred(), "unable to check firing alerts")
 	for _, series := range result.Data.Result {
 		labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
 		violation := fmt.Sprintf("alert %s fired for %s seconds with labels: %s", series.Metric["alertname"], series.Value, helper.LabelsAsSelector(labels))
@@ -80,7 +80,7 @@ count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog
 		}
 	}
 
-	// Invariant: There should be no pending alerts 1m after the upgrade completes
+	// Invariant: There should be no pending alerts
 	pendingAlertQuery := fmt.Sprintf(`
 sort_desc(
   time() * ALERTS + 1
@@ -93,7 +93,7 @@ sort_desc(
 )
 `, testDuration)
 	result, err = helper.RunQuery(context.TODO(), prometheusClient, pendingAlertQuery)
-	o.Expect(err).NotTo(o.HaveOccurred(), "unable to retrieve pending alerts after upgrade")
+	o.Expect(err).NotTo(o.HaveOccurred(), "unable to retrieve pending alerts")
 	for _, series := range result.Data.Result {
 		labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
 		violation := fmt.Sprintf("alert %s pending for %s seconds with labels: %s", series.Metric["alertname"], series.Value, helper.LabelsAsSelector(labels))
@@ -111,10 +111,10 @@ sort_desc(
 	}
 
 	if len(debug) > 0 {
-		framework.Logf("Alerts were detected during upgrade which are allowed:\n\n%s", strings.Join(debug.List(), "\n"))
+		framework.Logf("Alerts were detected which are allowed:\n\n%s", strings.Join(debug.List(), "\n"))
 	}
 	if len(unexpectedViolations) > 0 {
-		framework.Failf("Unexpected alerts fired or pending during the upgrade:\n\n%s", strings.Join(unexpectedViolations.List(), "\n"))
+		framework.Failf("Unexpected alerts fired or pending:\n\n%s", strings.Join(unexpectedViolations.List(), "\n"))
 	}
 	if flakes := sets.NewString().Union(knownViolations).Union(unexpectedViolations).Union(unexpectedViolationsAsFlakes); len(flakes) > 0 {
 		// TODO: The two tests that had this duplicated code had slightly different ways of reporting flakes
@@ -122,12 +122,12 @@ sort_desc(
 		if f != nil {
 			// when called from alert.go within an UpgradeTest with a framework available
 			// f.TestSummaries is the part I'm unsure about here.
-			disruption.FrameworkFlakef(f, "Unexpected alert behavior during upgrade:\n\n%s", strings.Join(flakes.List(), "\n"))
+			disruption.FrameworkFlakef(f, "Unexpected alert behavior:\n\n%s", strings.Join(flakes.List(), "\n"))
 		} else {
 			// when called from prometheus.go with no framework available
-			testresult.Flakef("Unexpected alert behavior during test:\n\n%s", strings.Join(flakes.List(), "\n"))
+			testresult.Flakef("Unexpected alert behavior:\n\n%s", strings.Join(flakes.List(), "\n"))
 		}
 	}
-	framework.Logf("No alerts fired during upgrade")
+	framework.Logf("No alerts fired")
 
 }
