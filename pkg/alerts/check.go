@@ -19,6 +19,8 @@ import (
 
 type allowedAlertsFunc func(configclient.Interface) (allowedFiringWithBugs, allowedFiring, allowedPendingWithBugs, allowedPending helper.MetricConditions)
 
+// CheckAlerts will query prometheus and ensure no-unexpected alerts were pending or firing.
+// Used both post-upgrade and post-conformance, with different allowances for each.
 func CheckAlerts(allowancesFunc allowedAlertsFunc, prometheusClient prometheusv1.API, configClient configclient.Interface, testDuration time.Duration, f *framework.Framework) {
 	firingAlertsWithBugs, allowedFiringAlerts, pendingAlertsWithBugs, allowedPendingAlerts :=
 		allowancesFunc(configClient)

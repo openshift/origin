@@ -11,6 +11,10 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
+// AllowedAlertsDuringConformance lists all alerts that are allowed to be pending or firing during
+// conformance testing.
+// WARNING: there is a parallel list for allowed alerts during upgrade in allowed_upgrade.go,
+// ensure that alerts we want to allow in both are added to both.
 func AllowedAlertsDuringConformance(configClient configclient.Interface) (allowedFiringWithBugs, allowedFiring, allowedPendingWithBugs, allowedPending helper.MetricConditions) {
 
 	firingAlertsWithBugs := helper.MetricConditions{
