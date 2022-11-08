@@ -9,6 +9,7 @@ import (
 	o "github.com/onsi/gomega"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
+	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -18,7 +19,7 @@ import (
 
 type allowedAlertsFunc func(configclient.Interface) (allowedFiringWithBugs, allowedFiring, allowedPendingWithBugs, allowedPending helper.MetricConditions)
 
-func CheckAlerts(allowancesFunc allowedAlertsFunc, prometheusClient prometheusv1.API, configClient configclient.Interface, startTime time.Time) {
+func CheckAlerts(allowancesFunc allowedAlertsFunc, prometheusClient prometheusv1.API, configClient configclient.Interface, startTime time.Time, f *framework.Framework) {
 	firingAlertsWithBugs, allowedFiringAlerts, pendingAlertsWithBugs, allowedPendingAlerts :=
 		allowancesFunc(configClient)
 
@@ -116,12 +117,16 @@ sort_desc(
 		framework.Failf("Unexpected alerts fired or pending during the upgrade:\n\n%s", strings.Join(unexpectedViolations.List(), "\n"))
 	}
 	if flakes := sets.NewString().Union(knownViolations).Union(unexpectedViolations).Union(unexpectedViolationsAsFlakes); len(flakes) > 0 {
-		disruption.FrameworkFlakef(f, "Unexpected alert behavior during upgrade:\n\n%s", strings.Join(flakes.List(), "\n"))
-
-		/*
-			framework.Logf(format, options...)
-			f.TestSummaries = append(f.TestSummaries, flakeSummary(fmt.Sprintf(format, options...)))
-		*/
+		// TODO: The two tests that had this duplicated code had slightly different ways of reporting flakes
+		// that I do not fully understand the implications of. Fork the logic here.
+		if f != nil {
+			// when called from alert.go within an UpgradeTest with a framework available
+			// f.TestSummaries is the part I'm unsure about here.
+			disruption.FrameworkFlakef(f, "Unexpected alert behavior during upgrade:\n\n%s", strings.Join(flakes.List(), "\n"))
+		} else {
+			// when called from prometheus.go with no framework available
+			testresult.Flakef("Unexpected alert behavior during test:\n\n%s", strings.Join(flakes.List(), "\n"))
+		}
 	}
 	framework.Logf("No alerts fired during upgrade")
 
