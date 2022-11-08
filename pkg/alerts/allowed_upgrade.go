@@ -126,12 +126,16 @@ func AllowedAlertsDuringUpgrade(configClient configclient.Interface) (allowedFir
 	if featureGates, err := configClient.ConfigV1().FeatureGates().Get(context.TODO(), "cluster", metav1.GetOptions{}); err == nil {
 		switch featureGates.Spec.FeatureSet {
 		case configv1.TechPreviewNoUpgrade:
-			allowedFiringAlerts = append(allowedFiringAlerts,
+			allowedFiringAlerts = append(
+				allowedFiringAlerts,
 				helper.MetricCondition{
-					Selector: map[string]string{"alertname": "TechPreviewNoUpgrade", "namespace": "openshift-kube-apiserver-operator"},
-					Text:     "When running as TechPreviewNoUpgrade, we allow TechPreviewNoUpgrade alert to be firing.",
+					Selector: map[string]string{"alertname": "TechPreviewNoUpgrade"},
+					Text:     "Allow testing of TechPreviewNoUpgrade clusters, this will only fire when a FeatureGate has been enabled",
 				},
-			)
+				helper.MetricCondition{
+					Selector: map[string]string{"alertname": "ClusterNotUpgradeable"},
+					Text:     "Allow testing of ClusterNotUpgradeable clusters, this will only fire when a FeatureGate has been enabled",
+				})
 		}
 	}
 

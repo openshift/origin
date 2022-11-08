@@ -1,9 +1,13 @@
 package alerts
 
 import (
+	"context"
+
+	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 	"github.com/prometheus/common/model"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -60,20 +64,6 @@ func AllowedAlertsDuringConformance(configClient configclient.Interface) (allowe
 			Text:     "high CPU utilization during e2e runs is normal",
 		},
 	}
-
-	if isTechPreviewCluster(oc) {
-		allowedFiringAlerts = append(
-			allowedFiringAlerts,
-			helper.MetricCondition{
-				Selector: map[string]string{"alertname": "TechPreviewNoUpgrade"},
-				Text:     "Allow testing of TechPreviewNoUpgrade clusters, this will only fire when a FeatureGate has been installed",
-			},
-			helper.MetricCondition{
-				Selector: map[string]string{"alertname": "ClusterNotUpgradeable"},
-				Text:     "Allow testing of ClusterNotUpgradeable clusters, this will only fire when a FeatureGate has been installed",
-			})
-	}
-
 	pendingAlertsWithBugs := helper.MetricConditions{}
 	allowedPendingAlerts := helper.MetricConditions{
 		{
@@ -84,6 +74,22 @@ func AllowedAlertsDuringConformance(configClient configclient.Interface) (allowe
 			Selector: map[string]string{"alertname": "ExtremelyHighIndividualControlPlaneCPU"},
 			Text:     "high CPU utilization during e2e runs is normal",
 		},
+	}
+
+	if featureGates, err := configClient.ConfigV1().FeatureGates().Get(context.TODO(), "cluster", metav1.GetOptions{}); err == nil {
+		switch featureGates.Spec.FeatureSet {
+		case configv1.TechPreviewNoUpgrade:
+			allowedFiringAlerts = append(
+				allowedFiringAlerts,
+				helper.MetricCondition{
+					Selector: map[string]string{"alertname": "TechPreviewNoUpgrade"},
+					Text:     "Allow testing of TechPreviewNoUpgrade clusters, this will only fire when a FeatureGate has been enabled",
+				},
+				helper.MetricCondition{
+					Selector: map[string]string{"alertname": "ClusterNotUpgradeable"},
+					Text:     "Allow testing of ClusterNotUpgradeable clusters, this will only fire when a FeatureGate has been enabled",
+				})
+		}
 	}
 
 	return firingAlertsWithBugs, allowedFiringAlerts, pendingAlertsWithBugs, allowedPendingAlerts
