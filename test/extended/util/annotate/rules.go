@@ -70,9 +70,6 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=2070929
 			`\[sig-network\]\[Feature:EgressIP\]\[apigroup:config.openshift.io\] \[internal-targets\]`,
 
-			// https://bugzilla.redhat.com/show_bug.cgi?id=2093339
-			`\[sig-storage\].* provisioning should provision storage with any volume data source`,
-
 			// https://issues.redhat.com/browse/OCPBUGS-967
 			`\[sig-network\] IngressClass \[Feature:Ingress\] should prevent Ingress creation if more than 1 IngressClass marked as default`,
 		},
