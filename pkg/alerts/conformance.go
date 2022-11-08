@@ -63,7 +63,7 @@ sort_desc(
 count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog|AlertmanagerReceiversNotConfigured"}[%[1]s:1s])
 ) > 0
 `, testDuration)
-	result, err := helper.RunQuery(context.TODO(), oc.NewPrometheusClient(context.TODO()), firingAlertQuery)
+	result, err := helper.RunQuery(context.TODO(), prometheusClient, firingAlertQuery)
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to check firing alerts during test")
 	for _, series := range result.Data.Result {
 		labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
@@ -91,7 +91,7 @@ sort_desc(
   )[%[1]s:1s])
 )
 `, testDuration)
-	result, err = helper.RunQuery(context.TODO(), oc.NewPrometheusClient(context.TODO()), pendingAlertQuery)
+	result, err = helper.RunQuery(context.TODO(), prometheusClient, pendingAlertQuery)
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to retrieve pending alerts after upgrade")
 	for _, series := range result.Data.Result {
 		labels := helper.StripLabels(series.Metric, "alertname", "alertstate", "prometheus")
