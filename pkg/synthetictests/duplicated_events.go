@@ -122,11 +122,25 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 	// If you see this error, it means enough was working to get this event which implies enough retries happened to allow initial openshift
 	// installation to succeed. Hence, we can ignore it.
 	regexp.MustCompile(`reason/FailedCreate .* error creating EC2 instance: InsufficientInstanceCapacity: We currently do not have sufficient .* capacity in the Availability Zone you requested`),
+
+	// Separated out in testNodeHasNoDiskPressure
+	regexp.MustCompile(nodeHasNoDiskPressureRegExpStr),
+
+	// Separated out in testNodeHasSufficientMemory
+	regexp.MustCompile(nodeHasSufficientMemoryRegExpStr),
+
+	// Separated out in testNodeHasSufficientPID
+	regexp.MustCompile(nodeHasSufficientPIDRegExpStr),
 }
 
 var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
 	isConsoleReadinessDuringInstallation,
 	isConfigOperatorReadinessFailed,
+	isConfigOperatorProbeErrorReadinessFailed,
+	isConfigOperatorProbeErrorLivenessFailed,
+	isOauthApiserverProbeErrorReadinessFailed,
+	isOauthApiserverProbeErrorLivenessFailed,
+	isOauthApiserverProbeErrorConnectionRefusedFailed,
 }
 
 // allowedUpgradeRepeatedEventPatterns are patterns of events that we should only allow during upgrades, not during normal execution.
@@ -543,21 +557,68 @@ func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.EventInterval,
 // isConfigOperatorReadinessFailed returns true if the event matches a readinessFailed error that timed out
 // in the openshift-config-operator.
 // like this:
-// ...ReadinessFailed Get \"https://10.130.0.16:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)"
+// ...ReadinessFailed Get \"https://10.130.0.16:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
 func isConfigOperatorReadinessFailed(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
-	regExp := regexp.MustCompile(probeTimeoutMessageRegExpStr)
-	return isConfigOperatorReadinessProbeFailedMessage(monitorEvent, regExp), nil
+	regExp := regexp.MustCompile(readinessFailedMessageRegExpStr)
+	return isOperatorMatchRegexMessage(monitorEvent, "openshift-config-operator", regExp), nil
 }
 
-func isConfigOperatorReadinessProbeFailedMessage(monitorEvent monitorapi.EventInterval, regExp *regexp.Regexp) bool {
+// isConfigOperatorProbeErrorReadinessFailed returns true if the event matches a ProbeError Readiness Probe message
+// in the openshift-config-operator.
+// like this:
+// reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
+func isConfigOperatorProbeErrorReadinessFailed(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
+	regExp := regexp.MustCompile(probeErrorReadinessMessageRegExpStr)
+	return isOperatorMatchRegexMessage(monitorEvent, "openshift-config-operator", regExp), nil
+}
+
+// isConfigOperatorProbeErrorLivenessFailed returns true if the event matches a ProbeError Liveness Probe message
+// in the openshift-config-operator.
+// like this:
+// ...reason/ProbeError Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
+func isConfigOperatorProbeErrorLivenessFailed(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
+	regExp := regexp.MustCompile(probeErrorLivenessMessageRegExpStr)
+	return isOperatorMatchRegexMessage(monitorEvent, "openshift-config-operator", regExp), nil
+}
+
+// isOauthApiserverProbeErrorReadinessFailed returns true if the event matches a ProbeError Readiness Probe message
+// in the openshift-oauth-operator.
+// like this:
+// ...ns/openshift-oauth-apiserver pod/apiserver-65fd7ffc59-bt5sf node/q72hs3bx-ac890-4pxpm-master-2 - reason/ProbeError Readiness probe error: Get "https://10.129.0.8:8443/readyz": net/http: request canceled (Client.Timeout exceeded while awaiting headers)
+func isOauthApiserverProbeErrorReadinessFailed(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
+	regExp := regexp.MustCompile(probeErrorReadinessMessageRegExpStr)
+	return isOperatorMatchRegexMessage(monitorEvent, "openshift-oauth-apiserver", regExp), nil
+}
+
+// isOauthApiserverProbeErrorLivenessFailed returns true if the event matches a ProbeError Liveness Probe message
+// in the openshift-oauth-operator.
+// like this:
+// ...reason/ProbeError Liveness probe error: Get "https://10.130.0.68:8443/healthz": net/http: request canceled (Client.Timeout exceeded while awaiting headers)
+func isOauthApiserverProbeErrorLivenessFailed(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
+	regExp := regexp.MustCompile(probeErrorLivenessMessageRegExpStr)
+	return isOperatorMatchRegexMessage(monitorEvent, "openshift-oauth-apiserver", regExp), nil
+}
+
+// isOauthApiserverProbeErrorConnectionRefusedFailed returns true if the event matches a ProbeError Readiness Probe connection refused message
+// in the openshift-oauth-operator.
+// like this:
+// ...ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused
+func isOauthApiserverProbeErrorConnectionRefusedFailed(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
+	regExp := regexp.MustCompile(probeErrorConnectionRefusedRegExpStr)
+	return isOperatorMatchRegexMessage(monitorEvent, "openshift-oauth-apiserver", regExp), nil
+}
+
+// isOperatorMatchRegexMessage returns true if this monitorEvent is for the operator identified by the operatorName
+// and its message matches the given regex.
+func isOperatorMatchRegexMessage(monitorEvent monitorapi.EventInterval, operatorName string, regExp *regexp.Regexp) bool {
 	locatorParts := monitorapi.LocatorParts(monitorEvent.Locator)
 	if ns, ok := locatorParts["ns"]; ok {
-		if ns != "openshift-config-operator" {
+		if ns != operatorName {
 			return false
 		}
 	}
 	if pod, ok := locatorParts["pod"]; ok {
-		if !strings.HasPrefix(pod, "openshift-config-operator") {
+		if !strings.HasPrefix(pod, operatorName) {
 			return false
 		}
 	}
