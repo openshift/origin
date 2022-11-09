@@ -16,7 +16,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/oauthserver"
 )
 
-var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io]", func() {
+var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io]", func() {
 	var oc = exutil.NewCLIWithPodSecurityLevel("oauth-server-headers", admissionapi.LevelBaseline)
 	var transport http.RoundTripper
 	var oauthServerAddr string

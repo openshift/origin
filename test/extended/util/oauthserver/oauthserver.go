@@ -28,7 +28,6 @@ import (
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
-	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/library-go/pkg/crypto"
 
@@ -323,7 +322,7 @@ func addSecretMount(volumes []corev1.Volume, volumeMounts []corev1.VolumeMount, 
 }
 
 func oauthServerConfig(oc *exutil.CLI, routeURL string, idps []osinv1.IdentityProvider) (*osinv1.OsinServerConfig, error) {
-	adminConfigClient := configclient.NewForConfigOrDie(oc.AdminConfig()).ConfigV1()
+	adminConfigClient := oc.AdminConfigClient().ConfigV1()
 
 	infrastructure, err := adminConfigClient.Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {

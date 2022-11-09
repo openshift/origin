@@ -271,7 +271,10 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 
 	g.It("TestPodDefaultCapabilities", func() {
 		g.By("Running a restricted pod and getting it's inherited capabilities")
-		pod, err := exutil.NewPodExecutor(oc, "restrictedcapsh", image.ShellImage())
+		// This test should use image.ShellImage but this requires having a local image
+		// registry, which not all deployment types have. Using the lightest publicly available
+		// image containing capsh.
+		pod, err := exutil.NewPodExecutor(oc, "restrictedcapsh", image.LocationFor("quay.io/redhat-developer/test-build-simples2i:1.2"))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// TODO: remove desiredCapabilities once restricted-v2 is the default

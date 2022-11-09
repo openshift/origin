@@ -711,27 +711,27 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:OAuthServer] OAuth Authenticator accepts sha256 access tokens [apigroup:user.openshift.io][apigroup:oauth.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-auth][Feature:OAuthServer] OAuth server [apigroup:auth.openshift.io] should use http1.1 only to prevent http2 connection reuse": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-auth][Feature:OAuthServer] OAuth server has the correct token and certificate fallback semantics [apigroup:config.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OAuthServer] OAuth server should use http1.1 only to prevent http2 connection reuse": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io] expected headers returned from the authorize URL": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io] expected headers returned from the authorize URL": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io] expected headers returned from the grant URL": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io] expected headers returned from the grant URL": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io] expected headers returned from the login URL for the allow all IDP": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io] expected headers returned from the login URL for the allow all IDP": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io] expected headers returned from the login URL for the bootstrap IDP": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io] expected headers returned from the login URL for the bootstrap IDP": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io] expected headers returned from the login URL for when there is only one IDP": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io] expected headers returned from the login URL for when there is only one IDP": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io] expected headers returned from the logout URL": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io] expected headers returned from the logout URL": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io] expected headers returned from the root URL": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io] expected headers returned from the root URL": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io] expected headers returned from the token URL": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io] expected headers returned from the token URL": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io] expected headers returned from the token request URL": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io] expected headers returned from the token request URL": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age [apigroup:oauth.openshift.io] to generate tokens that do not expire works as expected when using a code authorization flow [apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 

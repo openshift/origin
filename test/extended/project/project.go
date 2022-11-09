@@ -581,7 +581,7 @@ func GetScopedClientForUser(oc *exutil.CLI, username string, scopes []string) (*
 		UserName:    user.Name,
 		UserUID:     string(user.UID),
 	}
-	if _, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Create(context.Background(), token, metav1.CreateOptions{}); err != nil {
+	if _, err := oc.AdminOAuthClient().OauthV1().OAuthAccessTokens().Create(context.Background(), token, metav1.CreateOptions{}); err != nil {
 		return nil, err
 	}
 	oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), token)
