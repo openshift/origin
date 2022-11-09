@@ -75,6 +75,10 @@ var (
 
 			// https://issues.redhat.com/browse/OCPBUGS-967
 			`\[sig-network\] IngressClass \[Feature:Ingress\] should prevent Ingress creation if more than 1 IngressClass marked as default`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-3339
+			`\[sig-devex\]\[Feature:ImageEcosystem\]\[mysql\]\[Slow\] openshift mysql image Creating from a template should instantiate the template`,
+			`\[sig-devex\]\[Feature:ImageEcosystem\]\[mariadb\]\[Slow\] openshift mariadb image Creating from a template should instantiate the template`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
