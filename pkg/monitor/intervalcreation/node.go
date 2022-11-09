@@ -165,6 +165,10 @@ func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Interv
 		currLine := scanner.Text()
 		ret = append(ret, readinessFailure(currLine)...)
 		ret = append(ret, readinessError(currLine)...)
+		ret = append(ret, statusHttpClientConnectionLostError(currLine)...)
+		ret = append(ret, reflectorHttpClientConnectionLostError(currLine)...)
+		ret = append(ret, kubeletNodeHttpClientConnectionLostError(currLine)...)
+
 	}
 
 	return ret
@@ -245,14 +249,18 @@ var failureOutputRegex = regexp.MustCompile(`"Probe failed" probeType="Readiness
 var errorOutputRegex = regexp.MustCompile(`"Probe errored" err="(?P<OUTPUT>.+)" probeType="Readiness"`)
 
 func probeProblemToContainerReference(logLine string) monitorapi.ContainerReference {
+	return regexToContainerReference(logLine, containerRefRegex)
+}
+
+func regexToContainerReference(logLine string, containerReferenceMatch *regexp.Regexp) monitorapi.ContainerReference {
 	ret := monitorapi.ContainerReference{}
-	containerRefRegex.MatchString(logLine)
-	if !containerRefRegex.MatchString(logLine) {
+	containerReferenceMatch.MatchString(logLine)
+	if !containerReferenceMatch.MatchString(logLine) {
 		return ret
 	}
 
-	subMatches := containerRefRegex.FindStringSubmatch(logLine)
-	subNames := containerRefRegex.SubexpNames()
+	subMatches := containerReferenceMatch.FindStringSubmatch(logLine)
+	subNames := containerReferenceMatch.SubexpNames()
 	for i, name := range subNames {
 		switch name {
 		case "NS":
@@ -269,10 +277,95 @@ func probeProblemToContainerReference(logLine string) monitorapi.ContainerRefere
 	return ret
 }
 
+var reflectorRefRegex = regexp.MustCompile(`object-"(?P<NS>[a-z0-9.-]+)"\/"(?P<POD>[a-z0-9.-]+)"`)
+var reflectorOutputRegex = regexp.MustCompile(`error on the server \("(?P<OUTPUT>.+)"\)`)
+
+func reflectorHttpClientConnectionLostError(logLine string) monitorapi.Intervals {
+	if !strings.Contains(logLine, `http2: client connection lost`) {
+		return nil
+	}
+
+	if !strings.Contains(logLine, `watch of`) {
+		return nil
+	}
+
+	return commonErrorInterval(logLine, reflectorOutputRegex, "HttpClientConnectionLost", func() string {
+		containerRef := regexToContainerReference(logLine, reflectorRefRegex)
+		return containerRef.ToLocator()
+	})
+}
+
+var statusRefRegex = regexp.MustCompile(`podUID=(?P<PODUID>[a-z0-9.-]+) pod="(?P<NS>[a-z0-9.-]+)\/(?P<POD>[a-z0-9.-]+)"`)
+var statusOutputRegex = regexp.MustCompile(`err="(?P<OUTPUT>.+)"`)
+
+func statusHttpClientConnectionLostError(logLine string) monitorapi.Intervals {
+	if !strings.Contains(logLine, `http2: client connection lost`) {
+		return nil
+	}
+
+	if !strings.Contains(logLine, `Failed to get status for pod`) {
+		return nil
+	}
+
+	return commonErrorInterval(logLine, nodeOutputRegex, "HttpClientConnectionLost", func() string {
+		containerRef := regexToContainerReference(logLine, statusRefRegex)
+		return containerRef.ToLocator()
+	})
+}
+
+var nodeRefRegex = regexp.MustCompile(`error getting node \\"(?P<NODEID>[a-z0-9.-]+)\\"`)
+var nodeOutputRegex = regexp.MustCompile(`err="(?P<OUTPUT>.+)"`)
+
+func kubeletNodeHttpClientConnectionLostError(logLine string) monitorapi.Intervals {
+	if !strings.Contains(logLine, `http2: client connection lost`) {
+		return nil
+	}
+
+	if !strings.Contains(logLine, `Error updating node status`) {
+		return nil
+	}
+
+	return commonErrorInterval(logLine, statusOutputRegex, "HttpClientConnectionLost", func() string {
+		nodeRefRegex.MatchString(logLine)
+		if !nodeRefRegex.MatchString(logLine) {
+			return ""
+		}
+		return "node/" + nodeRefRegex.FindStringSubmatch(logLine)[1]
+	})
+
+}
+
+func commonErrorInterval(logLine string, messageExp *regexp.Regexp, reason string, locator func() string) monitorapi.Intervals {
+	messageExp.MatchString(logLine)
+	if !messageExp.MatchString(logLine) {
+		return nil
+	}
+	outputSubmatches := messageExp.FindStringSubmatch(logLine)
+	message := outputSubmatches[1]
+	// message contains many \", this removes the escaping to result in message containing "
+	// if we have an error, just use the original message, we don't really care that much.
+	if unquotedMessage, err := strconv.Unquote(`"` + message + `"`); err == nil {
+		message = unquotedMessage
+	}
+
+	failureTime := kubeletLogTime(logLine)
+	return monitorapi.Intervals{
+		{
+			Condition: monitorapi.Condition{
+				Level:   monitorapi.Info,
+				Locator: locator(),
+				Message: monitorapi.ReasonedMessage(reason, message),
+			},
+			From: failureTime,
+			To:   failureTime,
+		},
+	}
+}
+
 var kubeletTimeRegex = regexp.MustCompile(`^(?P<MONTH>\S+)\s(?P<DAY>\S+)\s(?P<TIME>\S+)`)
 
 // kubeletLogTime returns Now if there is trouble reading the time.  This will stack the event intervals without
-// parseable times at the end of the run, which will be more clearly visible as a problem than not reporting them.
+// parsable times at the end of the run, which will be more clearly visible as a problem than not reporting them.
 func kubeletLogTime(logLine string) time.Time {
 	kubeletTimeRegex.MatchString(logLine)
 	if !kubeletTimeRegex.MatchString(logLine) {
