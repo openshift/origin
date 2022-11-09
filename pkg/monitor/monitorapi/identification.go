@@ -99,6 +99,10 @@ func NamespaceFromLocator(locator string) string {
 	return ""
 }
 
+func AlertFromLocator(locator string) string {
+	return AlertFrom(LocatorParts(locator))
+}
+
 func AlertFrom(locatorParts map[string]string) string {
 	return locatorParts["alert"]
 }
