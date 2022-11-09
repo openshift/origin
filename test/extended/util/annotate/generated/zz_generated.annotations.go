@@ -2001,9 +2001,9 @@ var Annotations = map[string]string{
 
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][ruby] test ruby images with rails-ex db repo Building rails-postgresql app from new-app should build a rails-postgresql image and run it in a pod [apigroup:build.openshift.io]": "",
 
-	"[sig-devex][Feature:ImageEcosystem][mariadb][Slow] openshift mariadb image Creating from a template should instantiate the template [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:apps.openshift.io]": "",
+	"[sig-devex][Feature:ImageEcosystem][mariadb][Slow] openshift mariadb image Creating from a template should instantiate the template [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:apps.openshift.io]": " [Disabled:Broken]",
 
-	"[sig-devex][Feature:ImageEcosystem][mysql][Slow] openshift mysql image Creating from a template should instantiate the template [apigroup:apps.openshift.io]": "",
+	"[sig-devex][Feature:ImageEcosystem][mysql][Slow] openshift mysql image Creating from a template should instantiate the template [apigroup:apps.openshift.io]": " [Disabled:Broken]",
 
 	"[sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy for openshift perl image hot deploy test should work [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": "",
 
