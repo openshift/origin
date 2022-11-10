@@ -11,10 +11,12 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -133,6 +135,8 @@ func max(a, b int) int {
 }
 
 func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
+	ctx := context.Background()
+
 	if len(opt.Regex) > 0 {
 		if err := filterWithRegex(suite, opt.Regex); err != nil {
 			return err
@@ -197,9 +201,18 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		opt.StartTime = start
 	}
 
+	timeout := opt.Timeout
+	if timeout == 0 {
+		timeout = suite.TestTimeout
+	}
+	if timeout == 0 {
+		timeout = 15 * time.Minute
+	}
+
+	testRunnerContext := newCommandContext(opt.AsEnv(), timeout)
+
 	if opt.PrintCommands {
-		status := newTestStatus(opt.Out, true, len(tests), time.Minute, monitor.NewNoOpMonitor(), opt.AsEnv())
-		newParallelTestQueue().Execute(context.Background(), tests, 1, status.OutputCommand)
+		newParallelTestQueue(testRunnerContext).OutputCommands(ctx, tests, opt.Out)
 		return nil
 	}
 	if opt.DryRun {
@@ -226,13 +239,6 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	}
 	if parallelism == 0 {
 		parallelism = 10
-	}
-	timeout := opt.Timeout
-	if timeout == 0 {
-		timeout = suite.TestTimeout
-	}
-	if timeout == 0 {
-		timeout = 15 * time.Minute
 	}
 
 	ctx, cancelFn := context.WithCancel(context.Background())
@@ -275,6 +281,8 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	if len(tests) == 1 && count == 1 {
 		includeSuccess = true
 	}
+	testOutputLock := &sync.Mutex{}
+	testOutputConfig := newTestOutputConfig(testOutputLock, opt.Out, monitorEventRecorder, includeSuccess)
 
 	early, notEarly := splitTests(tests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Early]")
@@ -313,23 +321,17 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	}
 	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(mustGatherTests)
 
-	status := newTestStatus(opt.Out, includeSuccess, expectedTestCount, timeout, monitorEventRecorder, opt.AsEnv())
+	abortFn := neverAbort
 	testCtx := ctx
 	if opt.FailFast {
-		var cancelFn context.CancelFunc
-		testCtx, cancelFn = context.WithCancel(testCtx)
-		status.AfterTest(func(t *testCase) {
-			if t.failed {
-				cancelFn()
-			}
-		})
+		abortFn, testCtx = abortOnFailure(ctx)
 	}
 
 	tests = nil
 
 	// run our Early tests
-	q := newParallelTestQueue()
-	q.Execute(testCtx, early, parallelism, status.Run)
+	q := newParallelTestQueue(testRunnerContext)
+	q.Execute(testCtx, early, parallelism, testOutputConfig, abortFn)
 	tests = append(tests, early...)
 
 	// TODO: will move to the monitor
@@ -339,21 +341,21 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
 		kubeTestsCopy := copyTests(kubeTests)
-		q.Execute(testCtx, kubeTestsCopy, parallelism, status.Run)
+		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
 		tests = append(tests, kubeTestsCopy...)
 
 		// I thought about randomizing the order of the kube, storage, and openshift tests, but storage dominates our e2e runs, so it doesn't help much.
 		storageTestsCopy := copyTests(storageTests)
-		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), status.Run) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
+		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
 		tests = append(tests, storageTestsCopy...)
 
 		openshiftTestsCopy := copyTests(openshiftTests)
-		q.Execute(testCtx, openshiftTestsCopy, parallelism, status.Run)
+		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
 		tests = append(tests, openshiftTestsCopy...)
 
 		// run the must-gather tests after parallel tests to reduce resource contention
 		mustGatherTestsCopy := copyTests(mustGatherTests)
-		q.Execute(testCtx, mustGatherTestsCopy, parallelism, status.Run)
+		q.Execute(testCtx, mustGatherTestsCopy, parallelism, testOutputConfig, abortFn)
 		tests = append(tests, mustGatherTestsCopy...)
 	}
 
@@ -361,7 +363,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	pc.SetEvents([]string{postUpgradeEvent})
 
 	// run Late test suits after everything else
-	q.Execute(testCtx, late, parallelism, status.Run)
+	q.Execute(testCtx, late, parallelism, testOutputConfig, abortFn)
 	tests = append(tests, late...)
 
 	// TODO: will move to the monitor
@@ -404,9 +406,8 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 			}
 		}
 
-		q := newParallelTestQueue()
-		status := newTestStatus(ioutil.Discard, opt.IncludeSuccessOutput, len(retries), timeout, monitorEventRecorder, opt.AsEnv())
-		q.Execute(testCtx, retries, parallelism, status.Run)
+		q := newParallelTestQueue(testRunnerContext)
+		q.Execute(testCtx, retries, parallelism, testOutputConfig, abortFn)
 		var flaky []string
 		var repeatFailures []*testCase
 		for _, test := range retries {
@@ -427,11 +428,14 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	var syntheticTestResults []*junitapi.JUnitTestCase
 	var syntheticFailure bool
 
+	timeSuffix := fmt.Sprintf("_%s", opt.MonitorEventsOptions.GetStartTime().
+		UTC().Format("20060102-150405"))
+
 	if err := opt.MonitorEventsOptions.End(ctx, restConfig, opt.JUnitDir); err != nil {
 		return err
 	}
 	if len(opt.JUnitDir) > 0 {
-		if err := opt.MonitorEventsOptions.WriteRunDataToArtifactsDir(opt.JUnitDir); err != nil {
+		if err := opt.MonitorEventsOptions.WriteRunDataToArtifactsDir(opt.JUnitDir, timeSuffix); err != nil {
 			fmt.Fprintf(opt.ErrOut, "error: Failed to write run-data: %v\n", err)
 		}
 	}
@@ -445,32 +449,38 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 
 		if len(syntheticTestResults) > 0 {
 			// mark any failures by name
-			failing, flaky := sets.NewString(), sets.NewString()
+			failingSyntheticTestNames, flakySyntheticTestNames := sets.NewString(), sets.NewString()
 			for _, test := range syntheticTestResults {
 				if test.FailureOutput != nil {
-					failing.Insert(test.Name)
+					failingSyntheticTestNames.Insert(test.Name)
 				}
 			}
 			// if a test has both a pass and a failure, flag it
 			// as a flake
 			for _, test := range syntheticTestResults {
 				if test.FailureOutput == nil {
-					if failing.Has(test.Name) {
-						flaky.Insert(test.Name)
+					if failingSyntheticTestNames.Has(test.Name) {
+						flakySyntheticTestNames.Insert(test.Name)
 					}
 				}
 			}
-			failing = failing.Difference(flaky)
-			if failing.Len() > 0 {
-				fmt.Fprintf(buf, "Failing invariants:\n\n%s\n\n", strings.Join(failing.List(), "\n"))
+			failingSyntheticTestNames = failingSyntheticTestNames.Difference(flakySyntheticTestNames)
+			if failingSyntheticTestNames.Len() > 0 {
+				fmt.Fprintf(buf, "Failing invariants:\n\n%s\n\n", strings.Join(failingSyntheticTestNames.List(), "\n"))
 				syntheticFailure = true
 			}
-			if flaky.Len() > 0 {
-				fmt.Fprintf(buf, "Flaky invariants:\n\n%s\n\n", strings.Join(flaky.List(), "\n"))
+			if flakySyntheticTestNames.Len() > 0 {
+				fmt.Fprintf(buf, "Flaky invariants:\n\n%s\n\n", strings.Join(flakySyntheticTestNames.List(), "\n"))
 			}
 		}
 
-		opt.Out.Write(buf.Bytes())
+		// we only write the buffer if we have an artifact location
+		if len(opt.JUnitDir) > 0 {
+			filename := fmt.Sprintf("openshift-tests-monitor_%s.txt", opt.StartTime.UTC().Format("20060102-150405"))
+			if err := ioutil.WriteFile(filepath.Join(opt.JUnitDir, filename), buf.Bytes(), 0644); err != nil {
+				fmt.Fprintf(opt.ErrOut, "error: Failed to write monitor data: %v\n", err)
+			}
+		}
 	}
 
 	// report the outcome of the test
@@ -480,8 +490,13 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	}
 
 	if len(opt.JUnitDir) > 0 {
-		if err := writeJUnitReport("junit_e2e", junitSuiteName, tests, opt.JUnitDir, duration, opt.ErrOut, syntheticTestResults...); err != nil {
-			fmt.Fprintf(opt.Out, "error: Unable to write e2e JUnit results: %v", err)
+		finalSuiteResults := generateJUnitTestSuiteResults(junitSuiteName, duration, tests, syntheticTestResults...)
+		if err := writeJUnitReport(finalSuiteResults, "junit_e2e", timeSuffix, opt.JUnitDir, opt.ErrOut); err != nil {
+			fmt.Fprintf(opt.Out, "error: Unable to write e2e JUnit xml results: %v", err)
+		}
+
+		if err := riskanalysis.WriteJobRunTestFailureSummary(opt.JUnitDir, timeSuffix, finalSuiteResults); err != nil {
+			fmt.Fprintf(opt.Out, "error: Unable to write e2e job run failures summary: %v", err)
 		}
 	}
 

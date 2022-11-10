@@ -10,6 +10,7 @@ import (
 
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	testlibraryapi "github.com/openshift/library-go/test/library/apiserver"
+
 	scalingtestinglibrary "github.com/openshift/origin/test/extended/etcd/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
 
@@ -17,7 +18,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
-var _ = g.Describe("[sig-etcd][Serial] etcd [apigroup:config.openshift.io]", func() {
+var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd/scaling] etcd [apigroup:config.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("etcd-scaling").AsAdmin()
 

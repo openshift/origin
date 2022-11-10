@@ -42,7 +42,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth Authenticator", func()
 		token := base64.RawURLEncoding.EncodeToString([]byte(uuid.New()))
 		bs := sha256.Sum256([]byte(token))
 		hash := base64.RawURLEncoding.EncodeToString(bs[:])
-		classicTokenObject, err := oc.AdminOauthClient().OauthV1().OAuthAccessTokens().Create(ctx, &oauthv1.OAuthAccessToken{
+		classicTokenObject, err := oc.AdminOAuthClient().OauthV1().OAuthAccessTokens().Create(ctx, &oauthv1.OAuthAccessToken{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "sha256~" + hash[0:],
 			},

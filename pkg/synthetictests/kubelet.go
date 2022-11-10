@@ -53,6 +53,32 @@ func testKubeletToAPIServerGracefulTermination(events monitorapi.Intervals) []*j
 	return tests
 }
 
+func testHttpConnectionLost(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] kubelet logs do not contain http client connection lost errors"
+	success := &junitapi.JUnitTestCase{Name: testName}
+
+	var failures []string
+	for _, event := range events {
+		if strings.Contains(event.Message, "reason/HttpClientConnectionLost") {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
+		}
+	}
+
+	if len(failures) == 0 {
+		return []*junitapi.JUnitTestCase{success}
+	}
+
+	failure := &junitapi.JUnitTestCase{
+		Name:      testName,
+		SystemOut: strings.Join(failures, "\n"),
+		FailureOutput: &junitapi.FailureOutput{
+			Output: fmt.Sprintf("%d kubelet logs contain errors from http client connections lost unexpectedly.\n\n%v", len(failures), strings.Join(failures, "\n")),
+		},
+	}
+	// TODO: marked flaky until we have monitored it for consistency
+	return []*junitapi.JUnitTestCase{failure, success}
+}
+
 func testKubeAPIServerGracefulTermination(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-api-machinery] kube-apiserver terminates within graceful termination period"
 
@@ -248,7 +274,7 @@ func testPodTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 			Output: fmt.Sprintf("Marked as flake until https://bugzilla.redhat.com/show_bug.cgi?id=1933760 is fixed\n\n%d pods illegally transitioned to Pending\n\n%v", len(failures), strings.Join(failures, "\n")),
 		},
 	}
-	// TODO: temporarily marked flaky since it is continously failing
+	// TODO: temporarily marked flaky since it is continuously failing
 	return []*junitapi.JUnitTestCase{failure, success}
 }
 

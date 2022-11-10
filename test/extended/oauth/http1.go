@@ -12,7 +12,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
+var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server [apigroup:auth.openshift.io]", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("oauth")

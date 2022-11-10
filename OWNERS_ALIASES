@@ -27,6 +27,7 @@ aliases:
   - dtantsur # Metal Platform
   - dulek # Kuryr Networking
   - hexfusion # etcd
+  - ingvagabund # Workloads
   - jaypoulz # Multi Arch
   - jcantrill # Cluster Logging
   - jmrodri # Operator SDK
@@ -38,17 +39,16 @@ aliases:
   - mandre # Shift on Stack
   - miabbott # CoreOS
   - pedjak # App Services
-  - petr-muller # Test Platform
+  - jmguzik # Test Platform
   - romfreiman # Single Node OpenShift
   - rphillips # Node
-  - s-urbaniak # Authentication
   - sadasu # Metal Platform
   - selansen # Windows Containers
   - simonpasquier # Monitoring - In Cluster
   - sinnykumari # MCO
-  - soltysh # Workloads
   - sosiouxme # Automated Release Tooling
   - staebler # OpenShift Installer
+  - stlaz # Authentication
   - sttts # API Server
   - trozet # Networking
   - umohnani8 # Container Engine Tools

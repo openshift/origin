@@ -9,22 +9,14 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
-	exutil "github.com/openshift/origin/test/extended/util"
-	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 type AlertTest interface {
-	// TestNamePrefix is the prefix for this as a late test: [bz-component][late] something
-	TestNamePrefix() string
-	// LateTestNameSuffix is name for this as a late test: alert/foo should not be pending
-	LateTestNameSuffix() string
 	// InvariantTestName is name for this as an invariant test
 	InvariantTestName() string
 
@@ -33,7 +25,6 @@ type AlertTest interface {
 	// AlertState is the threshold this test applies to.
 	AlertState() AlertState
 
-	TestAlert(ctx context.Context, prometheusClient prometheusv1.API, restConfig *rest.Config) error
 	InvariantCheck(ctx context.Context, restConfig *rest.Config, intervals monitorapi.Intervals, r monitorapi.ResourcesMap) ([]*junitapi.JUnitTestCase, error)
 }
 
@@ -148,21 +139,6 @@ func (a *alertBuilder) toTests() []AlertTest {
 	return ret
 }
 
-func (a *basicAlertTest) TestNamePrefix() string {
-	return fmt.Sprintf("[bz-%s][Late] Alerts", a.bugzillaComponent)
-}
-
-func (a *basicAlertTest) LateTestNameSuffix() string {
-	switch {
-	case len(a.namespace) == 0:
-		return fmt.Sprintf("alert/%s should not be at or above %s", a.alertName, a.alertState)
-	case a.namespace == platformidentification.NamespaceOther:
-		return fmt.Sprintf("alert/%s should not be at or above %s in all the other namespaces", a.alertName, a.alertState)
-	default:
-		return fmt.Sprintf("alert/%s should not be at or above %s in ns/%s", a.alertName, a.alertState, a.namespace)
-	}
-}
-
 func (a *basicAlertTest) InvariantTestName() string {
 	switch {
 	case len(a.namespace) == 0:
@@ -180,35 +156,6 @@ func (a *basicAlertTest) AlertName() string {
 
 func (a *basicAlertTest) AlertState() AlertState {
 	return a.alertState
-}
-
-func (a *basicAlertTest) TestAlert(ctx context.Context, prometheusClient prometheusv1.API, restConfig *rest.Config) error {
-	// TODO, could only do these based on what we're checking
-	firingIntervals, err := monitor.WhenWasAlertFiring(ctx, prometheusClient, exutil.BestStartTime(), a.AlertName(), a.namespace)
-	if err != nil {
-		return err
-	}
-	pendingIntervals, err := monitor.WhenWasAlertPending(ctx, prometheusClient, exutil.BestStartTime(), a.AlertName(), a.namespace)
-	if err != nil {
-		return err
-	}
-
-	state, message := a.failOrFlake(ctx, restConfig, firingIntervals, pendingIntervals)
-	switch state {
-	case pass:
-		return nil
-
-	case flake:
-		testresult.Flakef("%s", message)
-		return nil
-
-	case fail:
-		framework.Failf("%s", message)
-		return nil
-
-	default:
-		return fmt.Errorf("unrecognized state: %v", state)
-	}
 }
 
 type testState int
@@ -272,21 +219,6 @@ func (a *basicAlertTest) failOrFlake(ctx context.Context, restConfig *rest.Confi
 	}
 
 	return pass, ""
-}
-
-func monitorEventMatchesNamespace(namespace string) func(event monitorapi.EventInterval) bool {
-	return func(event monitorapi.EventInterval) bool {
-		switch {
-		case len(namespace) == 0:
-			return true
-		case namespace == platformidentification.NamespaceOther:
-			eventNamespace := monitorapi.NamespaceFromLocator(event.Locator)
-			return !platformidentification.KnownNamespaces.Has(eventNamespace)
-		default:
-			eventNamespace := monitorapi.NamespaceFromLocator(event.Locator)
-			return eventNamespace == namespace
-		}
-	}
 }
 
 var imagePullBackoffRegEx = regexp.MustCompile("Back-off pulling image .*registry.redhat.io")
@@ -362,39 +294,9 @@ func redhatOperatorPodsNotPending(trackedPodResources monitorapi.InstanceMap, fi
 	return true
 }
 
-func (a *basicAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Config, alertIntervals monitorapi.Intervals, resourcesMap monitorapi.ResourcesMap) ([]*junitapi.JUnitTestCase, error) {
-	pendingIntervals := alertIntervals.Filter(
-		monitorapi.And(
-			func(eventInterval monitorapi.EventInterval) bool {
-				locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
-				alertName := monitorapi.AlertFrom(locatorParts)
-				if alertName != a.alertName {
-					return false
-				}
-				if strings.Contains(eventInterval.Message, `alertstate="pending"`) {
-					return true
-				}
-				return false
-			},
-			monitorEventMatchesNamespace(a.namespace),
-		),
-	)
-	firingIntervals := alertIntervals.Filter(
-		monitorapi.And(
-			func(eventInterval monitorapi.EventInterval) bool {
-				locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
-				alertName := monitorapi.AlertFrom(locatorParts)
-				if alertName != a.alertName {
-					return false
-				}
-				if strings.Contains(eventInterval.Message, `alertstate="firing"`) {
-					return true
-				}
-				return false
-			},
-			monitorEventMatchesNamespace(a.namespace),
-		),
-	)
+func (a *basicAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Config, allEventIntervals monitorapi.Intervals, resourcesMap monitorapi.ResourcesMap) ([]*junitapi.JUnitTestCase, error) {
+	pendingIntervals := allEventIntervals.Filter(monitorapi.AlertPendingInNamespace(a.alertName, a.namespace))
+	firingIntervals := allEventIntervals.Filter(monitorapi.AlertFiringInNamespace(a.alertName, a.namespace))
 
 	state, message := a.failOrFlake(ctx, restConfig, firingIntervals, pendingIntervals)
 
@@ -404,7 +306,27 @@ func (a *basicAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Co
 
 			// Since this is due to imagePullBackoff, change the state to flake instead of fail
 			state = flake
+
+			break
 		}
+
+		// we only care about firing intervals that started before the nodes started updating or ended well after they finished
+		nodeUpdates := allEventIntervals.Filter(monitorapi.NodeUpdate)
+		if len(nodeUpdates) == 0 {
+			break
+		}
+		earliestUpdateBegan := nodeUpdates[0].From
+		lastUpdateFinished := nodeUpdates[len(nodeUpdates)-1].From.Add(15 * time.Minute) /* add grace period to wait for the alert to stop firing */
+		firingIntervals = firingIntervals.Filter(
+			monitorapi.Or(
+				monitorapi.StartedBefore(earliestUpdateBegan),
+				monitorapi.EndedAfter(lastUpdateFinished),
+			),
+		)
+
+		// recheck the state and message.
+		state, message = a.failOrFlake(ctx, restConfig, firingIntervals, pendingIntervals)
+
 	case "RedhatOperatorsCatalogError":
 		if state == fail && redhatOperatorPodsNotPending(resourcesMap["pods"], firingIntervals) {
 			state = flake
