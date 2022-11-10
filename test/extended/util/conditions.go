@@ -65,24 +65,6 @@ func DurationSinceStartInSeconds() time.Duration {
 	}
 }
 
-// TolerateVersionSkewInTests returns true if the test invoker has indicated
-// that version skew is known present via the TEST_UNSUPPORTED_ALLOW_VERSION_SKEW
-// environment variable. Tests that may fail if the component is skewed may then
-// be skipped or alter their behavior. The version skew is assumed to be one minor
-// release - for instance, if a test would fail because the previous version of
-// the kubelet does not yet support a value, when this function returns true it
-// would be acceptable for the test to invoke Skipf().
-//
-// Used by the node version skew environment (Kube @ version N, nodes @ version N-1)
-// to ensure OpenShift works when control plane and worker nodes are not updated,
-// as can occur during test suites.
-func TolerateVersionSkewInTests() bool {
-	if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
-		return true
-	}
-	return false
-}
-
 // unixTimeFromEnv reads a unix timestamp in seconds since the epoch and
 // returns a Time object. If no env var is set or if it does not parse, a
 // zero time is returned.

@@ -3,7 +3,6 @@ package operators
 import (
 	"context"
 	"fmt"
-	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -121,9 +120,6 @@ var _ = g.Describe("[sig-arch] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
 	g.It("have operators on the cluster version [apigroup:config.openshift.io]", func() {
-		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
-			e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions")
-		}
 		cfg, err := e2e.LoadConfig()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		c := configclient.NewForConfigOrDie(cfg)

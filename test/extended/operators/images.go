@@ -15,15 +15,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 var _ = Describe("[sig-arch] Managed cluster", func() {
 	oc := exutil.NewCLIWithoutNamespace("operators")
 	It("should ensure pods use downstream images from our release image with proper ImagePullPolicy", func() {
-		if len(os.Getenv("TEST_UNSUPPORTED_ALLOW_VERSION_SKEW")) > 0 {
-			e2eskipper.Skipf("Test is disabled to allow cluster components to have different versions")
-		}
 		imagePullSecret, err := oc.KubeFramework().ClientSet.CoreV1().Secrets("openshift-config").Get(context.Background(), "pull-secret", metav1.GetOptions{})
 		if err != nil {
 			e2e.Failf("unable to get pull secret for cluster: %v", err)
