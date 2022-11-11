@@ -307,10 +307,6 @@ var (
 
 			// ovn-kubernetes does not support named ports
 			`NetworkPolicy.*named port`,
-
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1989169: unidling tests are flaky under ovn-kubernetes
-			`Unidling \[apigroup:apps.openshift.io\]\[apigroup:route.openshift.io\] should work with TCP`,
-			`Unidling \[apigroup:apps.openshift.io\]\[apigroup:route.openshift.io\] should handle many TCP connections`,
 		},
 		"[Skipped:ibmroks]": {
 			// skip Gluster tests (not supported on ROKS worker nodes)

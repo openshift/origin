@@ -75,7 +75,7 @@ func tryEchoHTTP(svc *kapiv1.Service, execPod *kapiv1.Pod) error {
 	}
 
 	expected := "It is time to TCP."
-	cmd := fmt.Sprintf("curl --max-time 120 -s -g http://%s/echo?msg=%s",
+	cmd := fmt.Sprintf("curl --retry-max-time 120 --retry-connrefused --retry 20 --max-time 5 -s -g http://%s/echo?msg=%s",
 		net.JoinHostPort(rawIP, tcpPort),
 		url.QueryEscape(expected),
 	)
@@ -117,7 +117,7 @@ func createFixture(oc *exutil.CLI, path string) ([]string, []string, error) {
 	return resources, names, nil
 }
 
-func checkSingleIdle(oc *exutil.CLI, idlingFile string, resources map[string][]string, resourceName string, kind string) {
+func checkSingleIdle(oc *exutil.CLI, idlingFile string, resources map[string][]string, resourceName, kind, group string) {
 	g.By("Idling the service")
 	_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 	o.Expect(err).ToNot(o.HaveOccurred())
@@ -152,8 +152,9 @@ func checkSingleIdle(oc *exutil.CLI, idlingFile string, resources map[string][]s
 		{
 			Replicas: 2,
 			CrossGroupObjectReference: unidlingapi.CrossGroupObjectReference{
-				Name: resources[resourceName][0],
-				Kind: kind,
+				Name:  resources[resourceName][0],
+				Kind:  kind,
+				Group: group,
 			},
 		},
 	}))
@@ -223,7 +224,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 			})
 
 			g.It("should idle the service and DeploymentConfig properly [apigroup:apps.openshift.io]", func() {
-				checkSingleIdle(oc, idlingFile, resources, "deploymentconfig.apps.openshift.io", "DeploymentConfig")
+				checkSingleIdle(oc, idlingFile, resources, "deploymentconfig.apps.openshift.io", "DeploymentConfig", "apps.openshift.io")
 			})
 		})
 
@@ -234,7 +235,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 			})
 
 			g.It("should idle the service and ReplicationController properly", func() {
-				checkSingleIdle(oc, idlingFile, resources, "replicationcontroller", "ReplicationController")
+				checkSingleIdle(oc, idlingFile, resources, "replicationcontroller", "ReplicationController", "")
 			})
 		})
 	})
