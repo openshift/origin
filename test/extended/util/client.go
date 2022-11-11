@@ -673,7 +673,7 @@ func (c *CLI) AdminImageClient() imagev1client.Interface {
 	return imagev1client.NewForConfigOrDie(c.AdminConfig())
 }
 
-func (c *CLI) AdminOauthClient() oauthv1client.Interface {
+func (c *CLI) AdminOAuthClient() oauthv1client.Interface {
 	return oauthv1client.NewForConfigOrDie(c.AdminConfig())
 }
 
@@ -687,10 +687,6 @@ func (c *CLI) AdminProjectClient() projectv1client.Interface {
 
 func (c *CLI) AdminQuotaClient() quotav1client.Interface {
 	return quotav1client.NewForConfigOrDie(c.AdminConfig())
-}
-
-func (c *CLI) AdminOAuthClient() oauthv1client.Interface {
-	return oauthv1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminRouteClient() routev1client.Interface {
@@ -971,7 +967,7 @@ func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 		c.AddResourceToDelete(userv1.GroupVersion.WithResource("users"), user)
 	}
 
-	oauthClient := c.AdminOauthClient()
+	oauthClient := c.AdminOAuthClient()
 	oauthClientName := "e2e-client-" + c.Namespace()
 	oauthClientObj, err := oauthClient.OauthV1().OAuthClients().Create(ctx, &oauthv1.OAuthClient{
 		ObjectMeta:  metav1.ObjectMeta{Name: oauthClientName},
@@ -1029,29 +1025,29 @@ func turnOffRateLimiting(config *rest.Config) *rest.Config {
 
 func (c *CLI) WaitForAccessAllowed(review *kubeauthorizationv1.SelfSubjectAccessReview, user string) error {
 	if user == "system:anonymous" {
-		return waitForAccess(kubernetes.NewForConfigOrDie(rest.AnonymousClientConfig(c.AdminConfig())), true, review)
+		return WaitForAccess(kubernetes.NewForConfigOrDie(rest.AnonymousClientConfig(c.AdminConfig())), true, review)
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(c.GetClientConfigForUser(user))
 	if err != nil {
 		FatalErr(err)
 	}
-	return waitForAccess(kubeClient, true, review)
+	return WaitForAccess(kubeClient, true, review)
 }
 
 func (c *CLI) WaitForAccessDenied(review *kubeauthorizationv1.SelfSubjectAccessReview, user string) error {
 	if user == "system:anonymous" {
-		return waitForAccess(kubernetes.NewForConfigOrDie(rest.AnonymousClientConfig(c.AdminConfig())), false, review)
+		return WaitForAccess(kubernetes.NewForConfigOrDie(rest.AnonymousClientConfig(c.AdminConfig())), false, review)
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(c.GetClientConfigForUser(user))
 	if err != nil {
 		FatalErr(err)
 	}
-	return waitForAccess(kubeClient, false, review)
+	return WaitForAccess(kubeClient, false, review)
 }
 
-func waitForAccess(c kubernetes.Interface, allowed bool, review *kubeauthorizationv1.SelfSubjectAccessReview) error {
+func WaitForAccess(c kubernetes.Interface, allowed bool, review *kubeauthorizationv1.SelfSubjectAccessReview) error {
 	return wait.Poll(time.Second, time.Minute, func() (bool, error) {
 		response, err := c.AuthorizationV1().SelfSubjectAccessReviews().Create(context.Background(), review, metav1.CreateOptions{})
 		if err != nil {

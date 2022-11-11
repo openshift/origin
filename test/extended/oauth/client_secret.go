@@ -40,7 +40,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer]", func() {
 			}
 
 			g.By("create oauth client")
-			oauthClient, err := oc.AdminOauthClient().OauthV1().OAuthClients().Create(ctx, &oauthv1.OAuthClient{
+			oauthClient, err := oc.AdminOAuthClient().OauthV1().OAuthClients().Create(ctx, &oauthv1.OAuthClient{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "oauth-client-with-plus",
 				},
@@ -72,7 +72,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer]", func() {
 				headerClientAuthRequest,
 			} {
 				g.By("create synthetic authz token")
-				oauthAuthorizeToken, err := oc.AdminOauthClient().OauthV1().OAuthAuthorizeTokens().Create(ctx, &oauthv1.OAuthAuthorizeToken{
+				oauthAuthorizeToken, err := oc.AdminOAuthClient().OauthV1().OAuthAuthorizeTokens().Create(ctx, &oauthv1.OAuthAuthorizeToken{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: sha256AuthzToken,
 					},

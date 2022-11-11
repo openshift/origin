@@ -1942,6 +1942,17 @@ func GetRouterPodTemplate(oc *CLI) (*corev1.PodTemplateSpec, string, error) {
 }
 
 func FindRouterImage(oc *CLI) (string, error) {
+	exists, err := DoesApiResourceExist(oc.AdminConfig(), "clusteroperators")
+	if err != nil {
+		return "", err
+	}
+	if !exists {
+		deployment, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-ingress").Get(context.Background(), "router-default", metav1.GetOptions{})
+		if err != nil {
+			return "", err
+		}
+		return deployment.Spec.Template.Spec.Containers[0].Image, nil
+	}
 	configclient := oc.AdminConfigClient().ConfigV1()
 	o, err := configclient.ClusterOperators().Get(context.Background(), "ingress", metav1.GetOptions{})
 	if err != nil {

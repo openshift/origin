@@ -21,7 +21,6 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	configv1 "github.com/openshift/api/config/v1"
-	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -33,25 +32,33 @@ type explainExceptions struct {
 }
 
 var (
-	builtinTypes = []schema.GroupVersionResource{
-		{Group: "apps.openshift.io", Version: "v1", Resource: "deploymentconfigs"},
-
-		{Group: "build.openshift.io", Version: "v1", Resource: "buildconfigs"},
-		{Group: "build.openshift.io", Version: "v1", Resource: "builds"},
-
-		{Group: "image.openshift.io", Version: "v1", Resource: "imagestreamimports"},
-		{Group: "image.openshift.io", Version: "v1", Resource: "imagestreams"},
-		{Group: "image.openshift.io", Version: "v1", Resource: "imagetags"},
-
-		{Group: "project.openshift.io", Version: "v1", Resource: "projects"},
-
-		{Group: "route.openshift.io", Version: "v1", Resource: "routes"},
-
-		{Group: "security.openshift.io", Version: "v1", Resource: "podsecuritypolicyreviews"},
-		{Group: "security.openshift.io", Version: "v1", Resource: "podsecuritypolicyselfsubjectreviews"},
-		{Group: "security.openshift.io", Version: "v1", Resource: "podsecuritypolicysubjectreviews"},
-
-		{Group: "template.openshift.io", Version: "v1", Resource: "templateinstances"},
+	builtinTypes = map[string][]schema.GroupVersionResource{
+		"apps.openshift.io": {
+			{Group: "apps.openshift.io", Version: "v1", Resource: "deploymentconfigs"},
+		},
+		"build.openshift.io": {
+			{Group: "build.openshift.io", Version: "v1", Resource: "buildconfigs"},
+			{Group: "build.openshift.io", Version: "v1", Resource: "builds"},
+		},
+		"image.openshift.io": {
+			{Group: "image.openshift.io", Version: "v1", Resource: "imagestreamimports"},
+			{Group: "image.openshift.io", Version: "v1", Resource: "imagestreams"},
+			{Group: "image.openshift.io", Version: "v1", Resource: "imagetags"},
+		},
+		"project.openshift.io": {
+			{Group: "project.openshift.io", Version: "v1", Resource: "projects"},
+		},
+		"route.openshift.io": {
+			{Group: "route.openshift.io", Version: "v1", Resource: "routes"},
+		},
+		"security.openshift.io": {
+			{Group: "security.openshift.io", Version: "v1", Resource: "podsecuritypolicyreviews"},
+			{Group: "security.openshift.io", Version: "v1", Resource: "podsecuritypolicyselfsubjectreviews"},
+			{Group: "security.openshift.io", Version: "v1", Resource: "podsecuritypolicysubjectreviews"},
+		},
+		"template.openshift.io": {
+			{Group: "template.openshift.io", Version: "v1", Resource: "templateinstances"},
+		},
 	}
 
 	baseCRDTypes = []schema.GroupVersionResource{
@@ -181,211 +188,235 @@ var (
 		{Group: "metal3.io", Version: "v1alpha1", Resource: "provisionings"},
 	}
 
-	specialTypes = []explainExceptions{
-		{
-			gv:      schema.GroupVersion{Group: "apps.openshift.io", Version: "v1"},
-			field:   "deploymentconfigs.status.replicas",
-			pattern: `FIELD\: +replicas`,
+	specialTypes = map[string][]explainExceptions{
+		"apps.openshift.io": {
+			{
+				gv:      schema.GroupVersion{Group: "apps.openshift.io", Version: "v1"},
+				field:   "deploymentconfigs.status.replicas",
+				pattern: `FIELD\: +replicas`,
+			},
 		},
-		{
-			gv:      schema.GroupVersion{Group: "route.openshift.io", Version: "v1"},
-			field:   "route.metadata.name",
-			pattern: `string`,
+		"route.openshift.io": {
+			{
+				gv:      schema.GroupVersion{Group: "route.openshift.io", Version: "v1"},
+				field:   "route.metadata.name",
+				pattern: `string`,
+			},
 		},
-		{
-			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
-			field:   "clusterrolebindings.userNames",
-			pattern: `FIELD\: +userNames`,
+		"authorization.openshift.io": {
+			{
+				gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
+				field:   "clusterrolebindings.userNames",
+				pattern: `FIELD\: +userNames`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
+				field:   "clusterroles.rules",
+				pattern: `FIELDS\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
+				field:   "localresourceaccessreviews",
+				pattern: `FIELDS\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
+				field:   "localsubjectaccessreviews",
+				pattern: `FIELDS\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
+				field:   "resourceaccessreviews",
+				pattern: `FIELDS\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
+				field:   "resourceaccessreviews",
+				pattern: `FIELDS\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
+				field:   "rolebindingrestrictions.spec",
+				pattern: `FIELDS\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
+				field:   "rolebindings.userNames",
+				pattern: `FIELD\: +userNames`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
+				field:   "roles.rules",
+				pattern: `FIELDS\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
+				field:   "subjectaccessreviews.scopes",
+				pattern: `FIELD\: +scopes`,
+			},
 		},
-		{
-			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
-			field:   "clusterroles.rules",
-			pattern: `FIELDS\:.*`,
+		"config.openshift.io": {
+			{
+				gv:      schema.GroupVersion{Group: "config.openshift.io", Version: "v1"},
+				field:   "imagecontentpolicies",
+				pattern: `FIELDS\:.*`,
+			},
 		},
-		{
-			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
-			field:   "localresourceaccessreviews",
-			pattern: `FIELDS\:.*`,
+		"image.openshift.io": {
+			{
+				gv:      schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
+				field:   "images.dockerImageReference",
+				pattern: `FIELD\: +dockerImageReference.*<string>`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
+				field:   "imagesignatures.imageIdentity",
+				pattern: `FIELD\: +imageIdentity`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
+				field:   "imagestreamimages.image",
+				pattern: `FIELDS\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
+				field:   "imagestreammappings.image",
+				pattern: `FIELDS\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
+				field:   "imagestreamtags.tag",
+				pattern: `FIELDS\:.*`,
+			},
 		},
-		{
-			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
-			field:   "localsubjectaccessreviews",
-			pattern: `FIELDS\:.*`,
+		"security.internal.openshift.io": {
+			{
+				gv:      schema.GroupVersion{Group: "security.internal.openshift.io", Version: "v1"},
+				field:   "rangeallocations.range",
+				pattern: `FIELD\: +range`,
+			},
 		},
-		{
-			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
-			field:   "resourceaccessreviews",
-			pattern: `FIELDS\:.*`,
+		"oauth.openshift.io": {
+			{
+				gv:      schema.GroupVersion{Group: "oauth.openshift.io", Version: "v1"},
+				field:   "oauthaccesstokens.refreshToken",
+				pattern: `FIELD\: +refreshToken`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "oauth.openshift.io", Version: "v1"},
+				field:   "oauthauthorizetokens.redirectURI",
+				pattern: `FIELD\: +redirectURI`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "oauth.openshift.io", Version: "v1"},
+				field:   "oauthclientauthorizations.scopes",
+				pattern: `FIELD\: +scopes`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "oauth.openshift.io", Version: "v1"},
+				field:   "oauthclients.redirectURIs",
+				pattern: `FIELD\: +redirectURIs`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "oauth.openshift.io", Version: "v1"},
+				field:   "useroauthaccesstokens.clientName",
+				pattern: `FIELD\: +clientName`,
+			},
 		},
-		{
-			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
-			field:   "resourceaccessreviews",
-			pattern: `FIELDS\:.*`,
+		"project.openshift.io": {
+			{
+				gv:      schema.GroupVersion{Group: "project.openshift.io", Version: "v1"},
+				field:   "projectrequests.displayName",
+				pattern: `FIELD\: +displayName`,
+			},
 		},
-		{
-			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
-			field:   "rolebindingrestrictions.spec",
-			pattern: `FIELDS\:.*`,
+		"security.openshift.io": {
+			{
+				gv:      schema.GroupVersion{Group: "security.openshift.io", Version: "v1"},
+				field:   "rangeallocations.range",
+				pattern: `FIELD\: +range`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "security.openshift.io", Version: "v1"},
+				field:   "securitycontextconstraints",
+				pattern: `FIELDS\:.*`,
+			},
 		},
-		{
-			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
-			field:   "rolebindings.userNames",
-			pattern: `FIELD\: +userNames`,
+		"template.openshift.io": {
+			{
+				gv:      schema.GroupVersion{Group: "template.openshift.io", Version: "v1"},
+				field:   "brokertemplateinstances.spec",
+				pattern: `DESCRIPTION\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "template.openshift.io", Version: "v1"},
+				field:   "processedtemplates.objects",
+				pattern: `DESCRIPTION\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "template.openshift.io", Version: "v1"},
+				field:   "templates.objects",
+				pattern: `DESCRIPTION\:.*`,
+			},
 		},
-		{
-			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
-			field:   "roles.rules",
-			pattern: `FIELDS\:.*`,
+		"user.openshift.io": {
+			{
+				gv:      schema.GroupVersion{Group: "user.openshift.io", Version: "v1"},
+				field:   "identities.user",
+				pattern: `FIELDS\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "user.openshift.io", Version: "v1"},
+				field:   "groups.users",
+				pattern: `FIELD\: +users`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "user.openshift.io", Version: "v1"},
+				field:   "useridentitymappings.user",
+				pattern: `FIELDS\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "user.openshift.io", Version: "v1"},
+				field:   "users.fullName",
+				pattern: `FIELD\: +fullName`,
+			},
 		},
-		{
-			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
-			field:   "subjectaccessreviews.scopes",
-			pattern: `FIELD\: +scopes`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "config.openshift.io", Version: "v1"},
-			field:   "imagecontentpolicies",
-			pattern: `FIELDS\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
-			field:   "images.dockerImageReference",
-			pattern: `FIELD\: +dockerImageReference.*<string>`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
-			field:   "imagesignatures.imageIdentity",
-			pattern: `FIELD\: +imageIdentity`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
-			field:   "imagestreamimages.image",
-			pattern: `FIELDS\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
-			field:   "imagestreammappings.image",
-			pattern: `FIELDS\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
-			field:   "imagestreamtags.tag",
-			pattern: `FIELDS\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "security.internal.openshift.io", Version: "v1"},
-			field:   "rangeallocations.range",
-			pattern: `FIELD\: +range`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "oauth.openshift.io", Version: "v1"},
-			field:   "oauthaccesstokens.refreshToken",
-			pattern: `FIELD\: +refreshToken`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "oauth.openshift.io", Version: "v1"},
-			field:   "oauthauthorizetokens.redirectURI",
-			pattern: `FIELD\: +redirectURI`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "oauth.openshift.io", Version: "v1"},
-			field:   "oauthclientauthorizations.scopes",
-			pattern: `FIELD\: +scopes`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "oauth.openshift.io", Version: "v1"},
-			field:   "oauthclients.redirectURIs",
-			pattern: `FIELD\: +redirectURIs`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "oauth.openshift.io", Version: "v1"},
-			field:   "useroauthaccesstokens.clientName",
-			pattern: `FIELD\: +clientName`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "project.openshift.io", Version: "v1"},
-			field:   "projectrequests.displayName",
-			pattern: `FIELD\: +displayName`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "security.openshift.io", Version: "v1"},
-			field:   "rangeallocations.range",
-			pattern: `FIELD\: +range`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "template.openshift.io", Version: "v1"},
-			field:   "brokertemplateinstances.spec",
-			pattern: `DESCRIPTION\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "template.openshift.io", Version: "v1"},
-			field:   "processedtemplates.objects",
-			pattern: `DESCRIPTION\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "template.openshift.io", Version: "v1"},
-			field:   "templates.objects",
-			pattern: `DESCRIPTION\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "user.openshift.io", Version: "v1"},
-			field:   "identities.user",
-			pattern: `FIELDS\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "user.openshift.io", Version: "v1"},
-			field:   "groups.users",
-			pattern: `FIELD\: +users`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "user.openshift.io", Version: "v1"},
-			field:   "useridentitymappings.user",
-			pattern: `FIELDS\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "user.openshift.io", Version: "v1"},
-			field:   "users.fullName",
-			pattern: `FIELD\: +fullName`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "security.openshift.io", Version: "v1"},
-			field:   "securitycontextconstraints",
-			pattern: `FIELDS\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
-			field:   "consoleclidownloads.spec",
-			pattern: `DESCRIPTION\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
-			field:   "consoleexternalloglinks.spec",
-			pattern: `DESCRIPTION\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
-			field:   "consolelinks.spec",
-			pattern: `DESCRIPTION\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
-			field:   "consolenotifications.spec",
-			pattern: `DESCRIPTION\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1alpha1"},
-			field:   "consoleplugins.spec",
-			pattern: `DESCRIPTION\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
-			field:   "consoleyamlsamples.spec",
-			pattern: `DESCRIPTION\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
-			field:   "consolequickstarts.spec",
-			pattern: `DESCRIPTION\:.*`,
+		"console.openshift.io": {
+			{
+				gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
+				field:   "consoleclidownloads.spec",
+				pattern: `DESCRIPTION\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
+				field:   "consoleexternalloglinks.spec",
+				pattern: `DESCRIPTION\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
+				field:   "consolelinks.spec",
+				pattern: `DESCRIPTION\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
+				field:   "consolenotifications.spec",
+				pattern: `DESCRIPTION\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1alpha1"},
+				field:   "consoleplugins.spec",
+				pattern: `DESCRIPTION\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
+				field:   "consoleyamlsamples.spec",
+				pattern: `DESCRIPTION\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
+				field:   "consolequickstarts.spec",
+				pattern: `DESCRIPTION\:.*`,
+			},
 		},
 	}
 
@@ -416,27 +447,47 @@ var (
 			pattern: `DESCRIPTION\:.*`,
 		},
 	}
+
+	microShiftTypes = []explainExceptions{
+		{
+			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
+			field:   "rolebindingrestrictions.spec",
+			pattern: `FIELDS\:.*`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "security.internal.openshift.io", Version: "v1"},
+			field:   "rangeallocations.range",
+			pattern: `FIELD\: +range`,
+		},
+		{
+			gv:      schema.GroupVersion{Group: "security.openshift.io", Version: "v1"},
+			field:   "securitycontextconstraints",
+			pattern: `FIELDS\:.*`,
+		},
+	}
 )
 
 func getCrdTypes(oc *exutil.CLI) []schema.GroupVersionResource {
-	configClient := configclient.NewForConfigOrDie(oc.AdminConfig())
-	clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
-	if err != nil {
-		e2e.Failf("Failed to get cluster version: %v", err)
-	}
-
 	crdTypes := append(baseCRDTypes, mcoTypes...)
 	crdTypes = append(crdTypes, autoscalingTypes...)
 	crdTypes = append(crdTypes, machineTypes...)
 	crdTypes = append(crdTypes, additionalOperatorTypes...)
 
-	// Conditional, capability-specific types
-	for _, capability := range clusterVersion.Status.Capabilities.EnabledCapabilities {
-		switch capability {
-		case configv1.ClusterVersionCapabilityMarketplace:
-			crdTypes = append(crdTypes, marketplaceTypes...)
-		case configv1.ClusterVersionCapabilityBaremetal:
-			crdTypes = append(crdTypes, metal3Types...)
+	exist, err := exutil.DoesApiResourceExist(oc.AdminConfig(), "clusterversions")
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if exist {
+		clusterVersion, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
+		if err != nil {
+			e2e.Failf("Failed to get cluster version: %v", err)
+		}
+		// Conditional, capability-specific types
+		for _, capability := range clusterVersion.Status.Capabilities.EnabledCapabilities {
+			switch capability {
+			case configv1.ClusterVersionCapabilityMarketplace:
+				crdTypes = append(crdTypes, marketplaceTypes...)
+			case configv1.ClusterVersionCapabilityBaremetal:
+				crdTypes = append(crdTypes, metal3Types...)
+			}
 		}
 	}
 
@@ -466,15 +517,19 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 			}
 		}
 
-		for _, bt := range builtinTypes {
-			delete(resourceMap, bt)
+		for _, bts := range builtinTypes {
+			for _, bt := range bts {
+				delete(resourceMap, bt)
+			}
 		}
 		for _, ct := range crdTypes {
 			delete(resourceMap, ct)
 		}
-		for _, st := range specialTypes {
-			resource := strings.Split(st.field, ".")
-			delete(resourceMap, st.gv.WithResource(resource[0]))
+		for _, sts := range specialTypes {
+			for _, st := range sts {
+				resource := strings.Split(st.field, ".")
+				delete(resourceMap, st.gv.WithResource(resource[0]))
+			}
 		}
 		for _, snt := range specialNetworkingTypes {
 			resource := strings.Split(snt.field, ".")
@@ -496,12 +551,14 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 		}
 	})
 
-	g.It("should contain spec+status for builtinTypes", func() {
-		for _, bt := range builtinTypes {
-			e2e.Logf("Checking %s...", bt)
-			o.Expect(verifySpecStatusExplain(oc, nil, bt)).NotTo(o.HaveOccurred())
-		}
-	})
+	for group, bts := range builtinTypes {
+		g.It(fmt.Sprintf("should contain spec+status for %s [apigroup:%s]", group, group), func() {
+			for _, bt := range bts {
+				e2e.Logf("Checking %s...", bt)
+				o.Expect(verifySpecStatusExplain(oc, nil, bt)).NotTo(o.HaveOccurred())
+			}
+		})
+	}
 
 	g.It("should contain proper spec+status for CRDs [apigroup:config.openshift.io]", func() {
 		crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
@@ -519,15 +576,17 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 		}
 	})
 
-	g.It("should contain proper fields description for special types", func() {
-		for _, st := range specialTypes {
-			e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
-			resource := strings.Split(st.field, ".")
-			gvr := st.gv.WithResource(resource[0])
-			o.Expect(verifyExplain(oc, nil, gvr,
-				st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())
-		}
-	})
+	for group, sts := range specialTypes {
+		g.It(fmt.Sprintf("should contain proper fields description for %s [apigroup:%s]", group, group), func() {
+			for _, st := range sts {
+				e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
+				resource := strings.Split(st.field, ".")
+				gvr := st.gv.WithResource(resource[0])
+				o.Expect(verifyExplain(oc, nil, gvr,
+					st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())
+			}
+		})
+	}
 })
 
 var _ = g.Describe("[sig-cli] oc explain networking types", func() {

@@ -14,6 +14,7 @@ import (
 // a command line interaction.
 type Options struct {
 	Out, ErrOut io.Writer
+	ArtifactDir string
 
 	AdditionalEventIntervalRecorders []StartEventIntervalRecorderFunc
 }
@@ -83,5 +84,22 @@ func (opt *Options) Run() error {
 		}
 	}
 
+	// Store events to artifact directory
+	if len(opt.ArtifactDir) != 0 {
+		recordedEvents := m.Intervals(time.Time{}, time.Time{})
+		recordedResources := m.CurrentResourceState()
+		timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
+
+		eventDir := fmt.Sprintf("%s/monitor-events", opt.ArtifactDir)
+		if err := os.MkdirAll(eventDir, os.ModePerm); err != nil {
+			fmt.Printf("Failed to create monitor-events directory, err: %v\n", err)
+			return err
+		}
+		err := WriteEventsForJobRun(eventDir, recordedResources, recordedEvents, timeSuffix)
+		if err != nil {
+			fmt.Printf("Failed to write event data, err: %v\n", err)
+			return err
+		}
+	}
 	return nil
 }

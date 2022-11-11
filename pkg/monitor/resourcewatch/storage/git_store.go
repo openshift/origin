@@ -139,7 +139,11 @@ func decodeUnstructuredObject(objUnstructured *unstructured.Unstructured) (strin
 
 // resourceFilename extracts the filename out from the group version kind
 func resourceFilename(name string, gvk schema.GroupVersionKind) string {
-	return strings.ToLower(fmt.Sprintf("%s.%s.%s-%s.yaml", gvk.Kind, gvk.Version, gvk.Group, name))
+	groupStr := ""
+	if gvk.Group != "" {
+		groupStr = fmt.Sprintf(".%s", gvk.Group)
+	}
+	return strings.ToLower(fmt.Sprintf("%s.%s%s-%s.yaml", gvk.Kind, gvk.Version, groupStr, name))
 }
 
 // commit handle different git operators on repository

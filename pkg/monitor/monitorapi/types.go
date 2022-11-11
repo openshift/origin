@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/sets"
-
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const (
@@ -263,6 +263,78 @@ func Or(filters ...EventIntervalMatchesFunc) EventIntervalMatchesFunc {
 func Not(filter EventIntervalMatchesFunc) EventIntervalMatchesFunc {
 	return func(eventInterval EventInterval) bool {
 		return !filter(eventInterval)
+	}
+}
+
+func StartedBefore(limit time.Time) EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		return eventInterval.From.Before(limit)
+	}
+}
+
+func EndedAfter(limit time.Time) EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		return eventInterval.To.After(limit)
+	}
+}
+
+func NodeUpdate(eventInterval EventInterval) bool {
+	reason := ReasonFrom(eventInterval.Message)
+	return "NodeUpdate" == reason
+}
+
+func AlertFiringInNamespace(alertName, namespace string) EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		return And(
+			func(eventInterval EventInterval) bool {
+				locatorParts := LocatorParts(eventInterval.Locator)
+				eventAlertName := AlertFrom(locatorParts)
+				if eventAlertName != alertName {
+					return false
+				}
+				if strings.Contains(eventInterval.Message, `alertstate="firing"`) {
+					return true
+				}
+				return false
+			},
+			InNamespace(namespace),
+		)(eventInterval)
+	}
+}
+
+func AlertPendingInNamespace(alertName, namespace string) EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		return And(
+			func(eventInterval EventInterval) bool {
+				locatorParts := LocatorParts(eventInterval.Locator)
+				eventAlertName := AlertFrom(locatorParts)
+				if eventAlertName != alertName {
+					return false
+				}
+				if strings.Contains(eventInterval.Message, `alertstate="pending"`) {
+					return true
+				}
+				return false
+			},
+			InNamespace(namespace),
+		)(eventInterval)
+	}
+}
+
+// InNamespace if namespace == "", then every event matches, same as kube-api
+func InNamespace(namespace string) func(event EventInterval) bool {
+	return func(event EventInterval) bool {
+		switch {
+		case len(namespace) == 0:
+			return true
+
+		case namespace == platformidentification.NamespaceOther:
+			eventNamespace := NamespaceFromLocator(event.Locator)
+			return !platformidentification.KnownNamespaces.Has(eventNamespace)
+		default:
+			eventNamespace := NamespaceFromLocator(event.Locator)
+			return eventNamespace == namespace
+		}
 	}
 }
 
