@@ -82,7 +82,7 @@ func testServerAvailability(
 		// don't round if we're using the default value so we can find this.
 		roundedAllowedDisruption = *allowedDisruption
 	}
-	framework.Logf("allowedDisruption for backend %s: %s, details: disruptionDetails",
+	framework.Logf("allowedDisruption for backend %s: %s, details: %q",
 		backendName, roundedAllowedDisruption, disruptionDetails)
 
 	observedDisruption, disruptionMsgs, _ := monitorapi.BackendDisruptionSeconds(locator, events)
