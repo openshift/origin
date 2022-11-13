@@ -17,8 +17,14 @@ import (
 )
 
 const (
-	probeTimeoutEventThreshold   = 5
-	probeTimeoutMessageRegExpStr = "reason/ReadinessFailed.*Get.*healthz.*net/http.*request canceled while waiting for connection.*Client.Timeout exceeded"
+	readinessFailedTimeoutEventThreshold      = 5
+	probeErrorReadinessEventThreshold         = 5
+	probeErrorLivenessEventThreshold          = 5
+	probeErrorConnectionRefusedEventThreshold = 5
+	readinessFailedMessageRegExpStr           = "reason/ReadinessFailed.*Get.*healthz.*net/http.*request canceled while waiting for connection.*Client.Timeout exceeded"
+	probeErrorReadinessMessageRegExpStr       = "reason/ProbeError.*Readiness probe error.*Client.Timeout exceeded while awaiting headers"
+	probeErrorLivenessMessageRegExpStr        = "reason/(ProbeError|Unhealthy).*Liveness probe error.*Client.Timeout exceeded while awaiting headers"
+	probeErrorConnectionRefusedRegExpStr      = "reason/ProbeError.*Readiness probe error.*connection refused"
 )
 
 func testKubeletToAPIServerGracefulTermination(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
@@ -169,13 +175,27 @@ func testContainerFailures(events monitorapi.Intervals) []*junitapi.JUnitTestCas
 	return testCases
 }
 
+func testConfigOperatorProbeErrorReadinessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] openshift-config-operator should not get probe error on readiness probe due to timeout"
+	return makeProbeTest(testName, events, "openshift-config-operator", probeErrorReadinessMessageRegExpStr, probeErrorReadinessEventThreshold)
+}
+
+func testConfigOperatorProbeErrorLivenessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] openshift-config-operator should not get probe error on liveness probe due to timeout"
+	return makeProbeTest(testName, events, "openshift-config-operator", probeErrorLivenessMessageRegExpStr, probeErrorLivenessEventThreshold)
+}
+
 func testConfigOperatorReadinessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] openshift-config-operator readiness probe should not fail due to timeout"
-	messageRegExp := regexp.MustCompile(probeTimeoutMessageRegExpStr)
+	return makeProbeTest(testName, events, "openshift-config-operator", readinessFailedMessageRegExpStr, readinessFailedTimeoutEventThreshold)
+}
+
+func makeProbeTest(testName string, events monitorapi.Intervals, operatorName string, regExStr string, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
+	messageRegExp := regexp.MustCompile(regExStr)
 	var failureOutput string
 	var count int
 	for _, event := range events {
-		if isConfigOperatorReadinessProbeFailedMessage(event, messageRegExp) {
+		if isOperatorMatchRegexMessage(event, operatorName, messageRegExp) {
 			// Place the failure time in the message to avoid having to extract the time from the events json file
 			// (in `artifacts) when viewing the test failure output.
 			failureOutput += fmt.Sprintf("%s %s\n", event.From.Format("15:04:05"), event.Message)
@@ -183,7 +203,7 @@ func testConfigOperatorReadinessProbe(events monitorapi.Intervals) []*junitapi.J
 		}
 	}
 	test := &junitapi.JUnitTestCase{Name: testName}
-	if count > probeTimeoutEventThreshold {
+	if count > eventFlakeThreshold {
 		// Flake for now.
 		test.FailureOutput = &junitapi.FailureOutput{
 			Output: failureOutput,

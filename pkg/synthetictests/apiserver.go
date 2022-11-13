@@ -29,3 +29,18 @@ func testPodNodeNameIsImmutable(events monitorapi.Intervals) []*junitapi.JUnitTe
 		},
 	}}
 }
+
+func testOauthApiserverProbeErrorLiveness(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[bz-apiserver-auth] openshift-oauth-apiserver should not get probe error on liveiness probe due to timeout"
+	return makeProbeTest(testName, events, probeErrorLivenessMessageRegExpStr, "openshift-oauth-apiserver", probeErrorLivenessEventThreshold)
+}
+
+func testOauthApiserverProbeErrorReadiness(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[bz-apiserver-auth] openshift-oauth-apiserver should not get probe error on readiiness probe due to timeout"
+	return makeProbeTest(testName, events, probeErrorReadinessMessageRegExpStr, "openshift-oauth-apiserver", probeErrorReadinessEventThreshold)
+}
+
+func testOauthApiserverProbeErrorConnectionRefused(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[bz-apiserver-auth] openshift-oauth-apiserver should not get probe error on readiiness probe due to connection refused"
+	return makeProbeTest(testName, events, probeErrorConnectionRefusedRegExpStr, "openshift-oauth-apiserver", probeErrorConnectionRefusedEventThreshold)
+}
