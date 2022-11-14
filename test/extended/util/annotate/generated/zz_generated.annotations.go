@@ -1961,13 +1961,13 @@ var Annotations = map[string]string{
 
 	"[sig-network-edge] DNS should answer endpoint and wildcard queries for the cluster": " [Disabled:Broken]",
 
-	"[sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should be able to connect to a service that is idled because a GET on the route will unidle it [apigroup:config.openshift.io][apigroup:template.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel/minimal]",
+	"[sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should be able to connect to a service that is idled because a GET on the route will unidle it [apigroup:config.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel/minimal]",
 
-	"[sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should pass the gRPC interoperability tests [apigroup:config.openshift.io][apigroup:route.openshift.io][apigroup:template.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
+	"[sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should pass the gRPC interoperability tests [apigroup:config.openshift.io][apigroup:route.openshift.io][apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
-	"[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io] The HAProxy router should pass the h2spec conformance tests [apigroup:config.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:security.openshift.io][apigroup:template.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
+	"[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io] The HAProxy router should pass the h2spec conformance tests [apigroup:config.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:security.openshift.io][apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
-	"[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router should pass the http2 tests [apigroup:image.openshift.io][apigroup:template.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
+	"[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router should pass the http2 tests [apigroup:image.openshift.io][apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
 	"[sig-network-edge][Feature:Idling] Idling with a single service and DeploymentConfig [apigroup:route.openshift.io] should idle the service and DeploymentConfig properly [apigroup:apps.openshift.io]": " [Disabled:Broken]",
 
@@ -2593,23 +2593,23 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router converges when multiple routers are writing status": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Router][apigroup:route.openshift.io] when FIPS is disabled the HAProxy router should serve routes when configured with a 1024-bit RSA key [apigroup:template.openshift.io]": " [Feature:Networking-IPv4] [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router should override the route host for overridden domains with a custom value [apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Router][apigroup:route.openshift.io] when FIPS is enabled the HAProxy router should not work when configured with a 1024-bit RSA key [apigroup:template.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router should override the route host with a custom value": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router should serve the correct routes when scoped to a single namespace and label set": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:Router][apigroup:route.openshift.io] when FIPS is disabled the HAProxy router should serve routes when configured with a 1024-bit RSA key": " [Feature:Networking-IPv4] [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:Router][apigroup:route.openshift.io] when FIPS is enabled the HAProxy router should not work when configured with a 1024-bit RSA key": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router reports the expected host names in admitted routes' statuses": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router should run even if it has no access to update status [apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
 	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router should serve the correct routes when running with the haproxy config manager": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:template.openshift.io] The HAProxy router should run even if it has no access to update status [apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
 	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:operator.openshift.io][apigroup:apps.openshift.io] The HAProxy router should support reencrypt to services backed by a serving certificate automatically": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:template.openshift.io] The HAProxy router should override the route host for overridden domains with a custom value [apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:template.openshift.io] The HAProxy router should override the route host with a custom value": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:template.openshift.io] The HAProxy router should serve the correct routes when scoped to a single namespace and label set": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Whereabouts] should assign unique IP addresses to each pod in the event of a race condition case [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 

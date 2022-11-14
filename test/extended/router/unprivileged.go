@@ -19,7 +19,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:template.openshift.io]", func() {
+var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc          *exutil.CLI
@@ -49,23 +49,19 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io][a
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		configPath := exutil.FixturePath("testdata", "router", "router-common.yaml")
-		err = oc.AsAdmin().Run("new-app").Args("-f", configPath).Execute()
+		err = oc.AsAdmin().Run("apply").Args("-f", configPath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should run even if it has no access to update status [apigroup:image.openshift.io]", func() {
 
-			configPath := exutil.FixturePath("testdata", "router", "router-scoped.yaml")
-			g.By(fmt.Sprintf("creating a router from a config file %q", configPath))
-			err := oc.AsAdmin().Run("new-app").Args("-f", configPath,
-				`-p=IMAGE=`+routerImage,
-				`-p=ROUTER_NAME=test-unprivileged`,
-				`-p=UPDATE_STATUS=false`,
-			).Execute()
+			routerPod := createScopedRouterPod(routerImage, "test-unprivileged", defaultPemData, "false")
+			g.By("creating a router")
+			ns := oc.KubeFramework().Namespace.Name
+			_, err := oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), routerPod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			ns := oc.KubeFramework().Namespace.Name
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
