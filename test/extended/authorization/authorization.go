@@ -15,6 +15,7 @@ import (
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilrand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
@@ -33,6 +34,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/oauth"
+	projectv1 "github.com/openshift/api/project/v1"
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -400,13 +402,13 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization][Serial] authoriza
 			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
 				clusterAdminAuthorizationClient := oc.AdminAuthorizationClient().AuthorizationV1()
 
-				hammerProjectName := oc.CreateProject()
+				hammerProjectName := createProject(oc, "hammer")
 				haroldName := oc.CreateUser("harold-").Name
 				haroldConfig := oc.GetClientConfigForUser(haroldName)
 				haroldAuthorizationClient := authorizationv1client.NewForConfigOrDie(haroldConfig).AuthorizationV1()
 				AddUserAdminToProject(oc, hammerProjectName, haroldName)
 
-				malletProjectName := oc.CreateProject()
+				malletProjectName := createProject(oc, "mallet")
 				markName := oc.CreateUser("mark-").Name
 				markConfig := oc.GetClientConfigForUser(markName)
 				markAuthorizationClient := authorizationv1client.NewForConfigOrDie(markConfig).AuthorizationV1()
@@ -507,8 +509,8 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 				clusterAdminAuthorizationClient := oc.AdminAuthorizationClient().AuthorizationV1()
 
 				g.By("creating projects")
-				hammerProjectName := oc.CreateProject()
-				malletProjectName := oc.CreateProject()
+				hammerProjectName := createProject(oc, "hammer")
+				malletProjectName := createProject(oc, "mallet")
 
 				haroldName := oc.CreateUser("harold-").Name
 				markName := oc.CreateUser("mark-").Name
@@ -960,6 +962,15 @@ func (test subjectAccessReviewTest) run(t g.GinkgoTInterface) {
 	}
 }
 
+func createProject(oc *exutil.CLI, nsPrefix string) string {
+	newNamespace := fmt.Sprintf("e2e-test-%s-%s", nsPrefix, utilrand.String(5))
+	_, err := oc.ProjectClient().ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
+		ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
+	}, metav1.CreateOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	return newNamespace
+}
+
 // TODO handle Subresource and NonResourceAttributes
 func toKubeSelfSAR(testNS string, sar *authorizationv1.LocalSubjectAccessReview) *kubeauthorizationv1.SelfSubjectAccessReview {
 	return &kubeauthorizationv1.SelfSubjectAccessReview{
@@ -1063,7 +1074,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 				clusterAdminAuthorizationClient := oc.AdminAuthorizationClient().AuthorizationV1()
 
 				g.By("creating projects")
-				hammerProjectName := oc.CreateProject()
+				hammerProjectName := createProject(oc, "hammer")
 				haroldName := "harold-" + oc.Namespace()
 
 				g.By("adding user permissions")

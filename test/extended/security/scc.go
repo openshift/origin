@@ -118,7 +118,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 		clusterAdminKubeClientset := oc.AdminKubeClient()
 
 		project1 := oc.Namespace()
-		project2 := oc.CreateProject()
+		project2 := oc.SetupProject()
 		user1 := oc.CreateUser("user1-").Name
 		user2 := oc.CreateUser("user2-").Name
 

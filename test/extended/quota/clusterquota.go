@@ -71,14 +71,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 			}
 			oc.AddResourceToDelete(quotav1.GroupVersion.WithResource("clusterresourcequotas"), cq)
 
-			firstProjectName := oc.CreateProject()
-			secondProjectName := oc.CreateProject()
+			firstProjectName := oc.SetupProject()
+			secondProjectName := oc.SetupProject()
 
 			// Wait for the creation of the mandatory configmaps before performing checks of quota
 			// enforcement to ensure reliable test execution.
 			for _, ns := range []string{firstProjectName, secondProjectName} {
 				for _, cm := range []string{kubeRootCAName, serviceCAName} {
-					_, err := exutil.WaitForCMState(context.Background(), oc.KubeClient().CoreV1(), ns, cm, func(cm *corev1.ConfigMap) (bool, error) {
+					_, err := exutil.WaitForCMState(context.Background(), clusterAdminKubeClient.CoreV1(), ns, cm, func(cm *corev1.ConfigMap) (bool, error) {
 						// Any event means the CM is present
 						framework.Logf("configmap %q is present in namespace %q", cm, ns)
 						return true, nil
