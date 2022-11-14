@@ -2,14 +2,17 @@ package serving
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/wait"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericapiserveroptions "k8s.io/apiserver/pkg/server/options"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -17,7 +20,7 @@ import (
 )
 
 func ToServerConfig(ctx context.Context, servingInfo configv1.HTTPServingInfo, authenticationConfig operatorv1alpha1.DelegatedAuthentication, authorizationConfig operatorv1alpha1.DelegatedAuthorization,
-	kubeConfigFile string) (*genericapiserver.Config, error) {
+	kubeConfigFile string, kubeClient *kubernetes.Clientset, le *configv1.LeaderElection) (*genericapiserver.Config, error) {
 	scheme := runtime.NewScheme()
 	metav1.AddToGroupVersion(scheme, metav1.SchemeGroupVersion)
 	config := genericapiserver.NewConfig(serializer.NewCodecFactory(scheme))
@@ -31,8 +34,6 @@ func ToServerConfig(ctx context.Context, servingInfo configv1.HTTPServingInfo, a
 		return nil, err
 	}
 
-	var lastApplyErr error
-
 	pollCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -44,16 +45,16 @@ func ToServerConfig(ctx context.Context, servingInfo configv1.HTTPServingInfo, a
 
 		// In some cases the API server can return connection refused when getting the "extension-apiserver-authentication"
 		// config map.
-		err := wait.PollImmediateUntil(1*time.Second, func() (done bool, err error) {
-			lastApplyErr = authenticationOptions.ApplyTo(&config.Authentication, config.SecureServing, config.OpenAPIConfig)
-			if lastApplyErr != nil {
-				klog.V(4).Infof("Error initializing delegating authentication (will retry): %v", err)
-				return false, nil
+		if le != nil && !le.Disable {
+			err := assertAPIConnection(pollCtx, kubeClient, le)
+			if err != nil {
+				return nil, fmt.Errorf("failed checking apiserver connectivity: %w", err)
 			}
-			return true, nil
-		}, pollCtx.Done())
+		}
+
+		err = authenticationOptions.ApplyTo(&config.Authentication, config.SecureServing, config.OpenAPIConfig)
 		if err != nil {
-			return nil, lastApplyErr
+			return nil, fmt.Errorf("error initializing delegating authentication: %w", err)
 		}
 	}
 
@@ -68,18 +69,35 @@ func ToServerConfig(ctx context.Context, servingInfo configv1.HTTPServingInfo, a
 
 		// In some cases the API server can return connection refused when getting the "extension-apiserver-authentication"
 		// config map.
-		err := wait.PollImmediateUntil(1*time.Second, func() (done bool, err error) {
-			lastApplyErr = authorizationOptions.ApplyTo(&config.Authorization)
-			if lastApplyErr != nil {
-				klog.V(4).Infof("Error initializing delegating authorization (will retry): %v", err)
-				return false, nil
+		if le != nil && !le.Disable {
+			err := assertAPIConnection(pollCtx, kubeClient, le)
+			if err != nil {
+				return nil, fmt.Errorf("failed checking connectivity: %w", err)
 			}
-			return true, nil
-		}, pollCtx.Done())
+		}
+
+		err := authorizationOptions.ApplyTo(&config.Authorization)
 		if err != nil {
-			return nil, lastApplyErr
+			return nil, fmt.Errorf("error initializing delegating authentication: %w", err)
 		}
 	}
 
 	return config, nil
+}
+
+func assertAPIConnection(ctx context.Context, kubeClient *kubernetes.Clientset, le *configv1.LeaderElection) error {
+	var lastErr error
+	err := wait.PollImmediateUntil(1*time.Second, func() (done bool, err error) {
+		_, lastErr = kubeClient.CoordinationV1().Leases(le.Namespace).Get(ctx, le.Name, metav1.GetOptions{})
+		if lastErr != nil && !apierrors.IsNotFound(lastErr) {
+			klog.V(4).Infof("Error checking for connectivity to apiserver (GET lease %s/%s): %v", le.Namespace, le.Name, lastErr)
+			return false, nil
+		}
+		return true, nil
+	}, ctx.Done())
+	if err != nil {
+		return lastErr
+	}
+
+	return nil
 }
