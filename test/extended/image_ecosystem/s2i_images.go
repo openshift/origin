@@ -191,20 +191,6 @@ var s2iImages = map[string][]tc{
 			Tag:      "1.20-ubi7",
 			Arches:   []string{"amd64", "ppc64le", "s390x"},
 		},
-		{
-			Version:  "118",
-			Cmd:      "nginx -V",
-			Expected: "nginx/1.18",
-			Tag:      "1.18-ubi8",
-			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
-		},
-		{
-			Version:  "118",
-			Cmd:      "nginx -V",
-			Expected: "nginx/1.18",
-			Tag:      "1.18-ubi7",
-			Arches:   []string{"amd64", "ppc64le", "s390x"},
-		},
 	},
 	"dotnet": {
 		{
