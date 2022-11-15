@@ -8,11 +8,14 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	admissionapi "k8s.io/pod-security-admission/api"
+	utilpointer "k8s.io/utils/pointer"
 
 	routev1 "github.com/openshift/api/route/v1"
 
@@ -25,13 +28,7 @@ import (
 var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 
-	var (
-		grpcServiceConfigPath     = exutil.FixturePath("testdata", "router", "router-grpc-interop.yaml")
-		grpcRoutesConfigPath      = exutil.FixturePath("testdata", "router", "router-grpc-interop-routes.yaml")
-		grpcRouterShardConfigPath = exutil.FixturePath("testdata", "router", "router-shard.yaml")
-		oc                        = exutil.NewCLIWithPodSecurityLevel("grpc-interop", admissionapi.LevelBaseline)
-		shardConfigPath           string // computed
-	)
+	var oc = exutil.NewCLIWithPodSecurityLevel("grpc-interop", admissionapi.LevelBaseline)
 
 	// this hook must be registered before the framework namespace teardown
 	// hook
@@ -40,13 +37,10 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			exutil.DumpPodLogsStartingWith("grpc", oc)
 			exutil.DumpPodLogsStartingWithInNamespace("router", "openshift-ingress", oc.AsAdmin())
 		}
-		if len(shardConfigPath) > 0 {
-			oc.AsAdmin().Run("delete").Args("-n", "openshift-ingress-operator", "-f", shardConfigPath).Execute()
-		}
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should pass the gRPC interoperability tests [apigroup:config.openshift.io][apigroup:route.openshift.io][apigroup:template.openshift.io]", func() {
+		g.It("should pass the gRPC interoperability tests [apigroup:config.openshift.io][apigroup:route.openshift.io][apigroup:operator.openshift.io]", func() {
 			isProxyJob, err := exutil.IsClusterProxyEnabled(oc)
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get proxy configuration")
 			if isProxyJob {
@@ -67,7 +61,110 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Creating grpc-interop test service")
-			err = oc.Run("new-app").Args("-f", grpcServiceConfigPath, "-p", "IMAGE="+image).Execute()
+			service := &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "grpc-interop",
+					Annotations: map[string]string{
+						"service.beta.openshift.io/serving-cert-secret-name": "service-cert-grpc-interop",
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Selector: map[string]string{
+						"app": "grpc-interop",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							AppProtocol: utilpointer.String("h2c"),
+							Name:        "h2c",
+							Port:        1110,
+							Protocol:    corev1.ProtocolTCP,
+							TargetPort:  intstr.FromInt(1110),
+						},
+						{
+							Name:       "https",
+							Port:       8443,
+							Protocol:   corev1.ProtocolTCP,
+							TargetPort: intstr.FromInt(8443),
+						},
+					},
+				},
+			}
+
+			ns := oc.KubeFramework().Namespace.Name
+			_, err = oc.AdminKubeClient().CoreV1().Services(ns).Create(context.Background(), service, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Creating grpc-interop test service pod")
+			servicePod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "grpc-interop",
+					Labels: map[string]string{
+						"app": "grpc-interop",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:            "server",
+							Image:           image,
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Command:         []string{"ingress-operator", "serve-grpc-test-server"},
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 1110,
+									Name:          "h2c",
+									Protocol:      corev1.ProtocolTCP,
+								},
+								{
+									ContainerPort: 8443,
+									Name:          "https",
+									Protocol:      corev1.ProtocolTCP,
+								},
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									MountPath: "/etc/serving-cert",
+									Name:      "cert",
+								},
+							},
+							ReadinessProbe: &corev1.Probe{
+								FailureThreshold: 3,
+								ProbeHandler: corev1.ProbeHandler{
+									TCPSocket: &corev1.TCPSocketAction{
+										Port: intstr.FromInt(8443),
+									},
+								},
+								InitialDelaySeconds: 10,
+								PeriodSeconds:       30,
+								SuccessThreshold:    1,
+							},
+							LivenessProbe: &corev1.Probe{
+								FailureThreshold: 3,
+								ProbeHandler: corev1.ProbeHandler{
+									TCPSocket: &corev1.TCPSocketAction{
+										Port: intstr.FromInt(8443),
+									},
+								},
+								InitialDelaySeconds: 10,
+								PeriodSeconds:       30,
+								SuccessThreshold:    1,
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "cert",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: "service-cert-grpc-interop",
+								},
+							},
+						},
+					},
+				},
+			}
+
+			_, err = oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), servicePod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Waiting for grpc-interop pod to be running")
@@ -93,19 +190,123 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			shardFQDN := oc.Namespace() + "." + defaultDomain
 
 			g.By("Creating routes to test for gRPC interoperability")
-			err = oc.Run("new-app").Args("-f", grpcRoutesConfigPath,
-				"-p", "DOMAIN="+shardFQDN,
-				"-p", "TLS_CRT="+pemCrt,
-				"-p", "TLS_KEY="+derKey,
-				"-p", "TYPE="+oc.Namespace()).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			routeType := oc.Namespace()
+			routes := []routev1.Route{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "grpc-interop-h2c",
+						Labels: map[string]string{
+							"type": routeType,
+						},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "grpc-interop-h2c." + shardFQDN,
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(1110),
+						},
+						To: routev1.RouteTargetReference{
+							Kind:   "Service",
+							Name:   "grpc-interop",
+							Weight: utilpointer.Int32(100),
+						},
+						WildcardPolicy: routev1.WildcardPolicyNone,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "grpc-interop-edge",
+						Labels: map[string]string{
+							"type": routeType,
+						},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "grpc-interop-edge." + shardFQDN,
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(1110),
+						},
+						TLS: &routev1.TLSConfig{
+							Termination:                   routev1.TLSTerminationEdge,
+							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+							Key:                           derKey,
+							Certificate:                   pemCrt,
+						},
+						To: routev1.RouteTargetReference{
+							Kind:   "Service",
+							Name:   "grpc-interop",
+							Weight: utilpointer.Int32(100),
+						},
+						WildcardPolicy: routev1.WildcardPolicyNone,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "grpc-interop-reencrypt",
+						Labels: map[string]string{
+							"type": routeType,
+						},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "grpc-interop-reencrypt." + shardFQDN,
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(8443),
+						},
+						TLS: &routev1.TLSConfig{
+							Termination:                   routev1.TLSTerminationReencrypt,
+							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+							Key:                           derKey,
+							Certificate:                   pemCrt,
+						},
+						To: routev1.RouteTargetReference{
+							Kind:   "Service",
+							Name:   "grpc-interop",
+							Weight: utilpointer.Int32(100),
+						},
+						WildcardPolicy: routev1.WildcardPolicyNone,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "grpc-interop-passthrough",
+						Labels: map[string]string{
+							"type": routeType,
+						},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "grpc-interop-passthrough." + shardFQDN,
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(8443),
+						},
+						TLS: &routev1.TLSConfig{
+							Termination:                   routev1.TLSTerminationPassthrough,
+							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+						},
+						To: routev1.RouteTargetReference{
+							Kind:   "Service",
+							Name:   "grpc-interop",
+							Weight: utilpointer.Int32(100),
+						},
+						WildcardPolicy: routev1.WildcardPolicyNone,
+					},
+				},
+			}
+
+			for _, route := range routes {
+				_, err := oc.RouteClient().RouteV1().Routes(ns).Create(context.Background(), &route, metav1.CreateOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
 
 			g.By("Creating a test-specific router shard")
-			shardConfigPath, err = shard.DeployNewRouterShard(oc, 10*time.Minute, shard.Config{
-				FixturePath: grpcRouterShardConfigPath,
-				Domain:      shardFQDN,
-				Type:        oc.Namespace(),
+			shardIngressCtrl, err := shard.DeployNewRouterShard(oc, 10*time.Minute, shard.Config{
+				Domain: shardFQDN,
+				Type:   oc.Namespace(),
 			})
+			defer func() {
+				if shardIngressCtrl != nil {
+					if err := oc.AdminOperatorClient().OperatorV1().IngressControllers(shardIngressCtrl.Namespace).Delete(context.Background(), shardIngressCtrl.Name, metav1.DeleteOptions{}); err != nil {
+						e2e.Logf("deleting ingress controller failed: %v\n", err)
+					}
+				}
+			}()
 			o.Expect(err).NotTo(o.HaveOccurred(), "new router shard did not rollout")
 
 			// Shard is using a namespace selector so

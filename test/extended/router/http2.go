@@ -14,14 +14,18 @@ import (
 	o "github.com/onsi/gomega"
 	"golang.org/x/net/http2"
 
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/pod-security-admission/api"
+	utilpointer "k8s.io/utils/pointer"
 
 	configv1 "github.com/openshift/api/config/v1"
+	routev1 "github.com/openshift/api/route/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 
 	"github.com/openshift/origin/test/extended/router/certgen"
@@ -59,15 +63,7 @@ func makeHTTPClient(useHTTP2Transport bool, timeout time.Duration) *http.Client 
 var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io]", func() {
 	defer g.GinkgoRecover()
 
-	var (
-		http2ServiceConfigPath     = exutil.FixturePath("testdata", "router", "router-http2.yaml")
-		http2RoutesConfigPath      = exutil.FixturePath("testdata", "router", "router-http2-routes.yaml")
-		http2RouterShardConfigPath = exutil.FixturePath("testdata", "router", "router-shard.yaml")
-
-		oc = exutil.NewCLIWithPodSecurityLevel("router-http2", api.LevelBaseline)
-
-		shardConfigPath string // computed
-	)
+	var oc = exutil.NewCLIWithPodSecurityLevel("router-http2", api.LevelBaseline)
 
 	// this hook must be registered before the framework namespace teardown
 	// hook
@@ -80,15 +76,10 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			exutil.DumpPodLogsStartingWith("http2", oc)
 			exutil.DumpPodLogsStartingWithInNamespace("router", "openshift-ingress", oc.AsAdmin())
 		}
-		if len(shardConfigPath) > 0 {
-			if err := oc.AsAdmin().Run("delete").Args("-n", "openshift-ingress-operator", "-f", shardConfigPath).Execute(); err != nil {
-				e2e.Logf("deleting ingress controller failed: %v\n", err)
-			}
-		}
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should pass the http2 tests [apigroup:image.openshift.io][apigroup:template.openshift.io]", func() {
+		g.It("should pass the http2 tests [apigroup:image.openshift.io][apigroup:operator.openshift.io]", func() {
 			isProxyJob, err := exutil.IsClusterProxyEnabled(oc)
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get proxy configuration")
 			if isProxyJob {
@@ -109,7 +100,112 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Creating http2 test service")
-			err = oc.Run("new-app").Args("-f", http2ServiceConfigPath, "-p", "IMAGE="+image).Execute()
+			http2service := &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "http2",
+					Annotations: map[string]string{
+						"service.beta.openshift.io/serving-cert-secret-name": "serving-cert-http2",
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Selector: map[string]string{
+						"name": "http2",
+					},
+					Ports: []corev1.ServicePort{
+						{
+							Name:       "https",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       8443,
+							TargetPort: intstr.FromInt(8443),
+						},
+						{
+							Name:       "http",
+							Protocol:   corev1.ProtocolTCP,
+							Port:       8080,
+							TargetPort: intstr.FromInt(8080),
+						},
+					},
+				},
+			}
+
+			ns := oc.KubeFramework().Namespace.Name
+			_, err = oc.AdminKubeClient().CoreV1().Services(ns).Create(context.Background(), http2service, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Creating http2 test service pod")
+			http2Pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "http2",
+					Labels: map[string]string{
+						"name": "http2",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Image:   image,
+							Name:    "server",
+							Command: []string{"ingress-operator", "serve-http2-test-server"},
+							ReadinessProbe: &corev1.Probe{
+								FailureThreshold: 3,
+								ProbeHandler: corev1.ProbeHandler{
+									TCPSocket: &corev1.TCPSocketAction{
+										Port: intstr.FromInt(8080),
+									},
+								},
+								InitialDelaySeconds: 10,
+								PeriodSeconds:       30,
+								SuccessThreshold:    1,
+							},
+							LivenessProbe: &corev1.Probe{
+								FailureThreshold: 3,
+								ProbeHandler: corev1.ProbeHandler{
+									TCPSocket: &corev1.TCPSocketAction{
+										Port: intstr.FromInt(8080),
+									},
+								},
+								InitialDelaySeconds: 10,
+								PeriodSeconds:       30,
+								SuccessThreshold:    1,
+							},
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 8443,
+									Protocol:      corev1.ProtocolTCP,
+								},
+								{
+									ContainerPort: 8080,
+									Protocol:      corev1.ProtocolTCP,
+								},
+							},
+							Env: []corev1.EnvVar{
+								{
+									Name:  "GODEBUG",
+									Value: "http2debug=1",
+								},
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									MountPath: "/etc/serving-cert",
+									Name:      "cert",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "cert",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: "serving-cert-http2",
+								},
+							},
+						},
+					},
+				},
+			}
+
+			_, err = oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), http2Pod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Waiting for http2 pod to be running")
@@ -142,19 +238,151 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Creating routes to test for http/2 compliance")
-			err = oc.Run("new-app").Args("-f", http2RoutesConfigPath,
-				"-p", "DOMAIN="+shardFQDN,
-				"-p", "TLS_CRT="+pemCrt,
-				"-p", "TLS_KEY="+derKey,
-				"-p", "TYPE="+oc.Namespace()).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			routeType := oc.Namespace()
+			routes := []routev1.Route{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "http2-default-cert-edge",
+						Labels: map[string]string{
+							"type": routeType,
+						},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "http2-default-cert-edge." + shardFQDN,
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(8080),
+						},
+						TLS: &routev1.TLSConfig{
+							Termination:                   routev1.TLSTerminationEdge,
+							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+						},
+						To: routev1.RouteTargetReference{
+							Kind:   "Service",
+							Name:   "http2",
+							Weight: utilpointer.Int32(100),
+						},
+						WildcardPolicy: routev1.WildcardPolicyNone,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "http2-default-cert-reencrypt",
+						Labels: map[string]string{
+							"type": routeType,
+						},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "http2-default-cert-reencrypt." + shardFQDN,
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(8443),
+						},
+						TLS: &routev1.TLSConfig{
+							Termination:                   routev1.TLSTerminationReencrypt,
+							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+						},
+						To: routev1.RouteTargetReference{
+							Kind:   "Service",
+							Name:   "http2",
+							Weight: utilpointer.Int32(100),
+						},
+						WildcardPolicy: routev1.WildcardPolicyNone,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "http2-custom-cert-edge",
+						Labels: map[string]string{
+							"type": routeType,
+						},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "http2-custom-cert-edge." + shardFQDN,
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(8080),
+						},
+						TLS: &routev1.TLSConfig{
+							Termination:                   routev1.TLSTerminationEdge,
+							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+							Key:                           derKey,
+							Certificate:                   pemCrt,
+						},
+						To: routev1.RouteTargetReference{
+							Kind:   "Service",
+							Name:   "http2",
+							Weight: utilpointer.Int32(100),
+						},
+						WildcardPolicy: routev1.WildcardPolicyNone,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "http2-custom-cert-reencrypt",
+						Labels: map[string]string{
+							"type": routeType,
+						},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "http2-custom-cert-reencrypt." + shardFQDN,
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(8443),
+						},
+						TLS: &routev1.TLSConfig{
+							Termination:                   routev1.TLSTerminationReencrypt,
+							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+							Key:                           derKey,
+							Certificate:                   pemCrt,
+						},
+						To: routev1.RouteTargetReference{
+							Kind:   "Service",
+							Name:   "http2",
+							Weight: utilpointer.Int32(100),
+						},
+						WildcardPolicy: routev1.WildcardPolicyNone,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "http2-passthrough",
+						Labels: map[string]string{
+							"type": routeType,
+						},
+					},
+					Spec: routev1.RouteSpec{
+						Host: "http2-passthrough." + shardFQDN,
+						Port: &routev1.RoutePort{
+							TargetPort: intstr.FromInt(8443),
+						},
+						TLS: &routev1.TLSConfig{
+							Termination:                   routev1.TLSTerminationPassthrough,
+							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+						},
+						To: routev1.RouteTargetReference{
+							Kind:   "Service",
+							Name:   "http2",
+							Weight: utilpointer.Int32(100),
+						},
+						WildcardPolicy: routev1.WildcardPolicyNone,
+					},
+				},
+			}
+
+			for _, route := range routes {
+				_, err := oc.RouteClient().RouteV1().Routes(ns).Create(context.Background(), &route, metav1.CreateOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
 
 			g.By("Creating a test-specific router shard")
-			shardConfigPath, err = shard.DeployNewRouterShard(oc, 10*time.Minute, shard.Config{
-				FixturePath: http2RouterShardConfigPath,
-				Domain:      shardFQDN,
-				Type:        oc.Namespace(),
+			shardIngressCtrl, err := shard.DeployNewRouterShard(oc, 10*time.Minute, shard.Config{
+				Domain: shardFQDN,
+				Type:   oc.Namespace(),
 			})
+			defer func() {
+				if shardIngressCtrl != nil {
+					if err := oc.AdminOperatorClient().OperatorV1().IngressControllers(shardIngressCtrl.Namespace).Delete(context.Background(), shardIngressCtrl.Name, metav1.DeleteOptions{}); err != nil {
+						e2e.Logf("deleting ingress controller failed: %v\n", err)
+					}
+				}
+			}()
 			o.Expect(err).NotTo(o.HaveOccurred(), "new router shard did not rollout")
 
 			testCases := []struct {

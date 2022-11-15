@@ -9,15 +9,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	utilpointer "k8s.io/utils/pointer"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 type Config struct {
-	// FixturePath is the path to the ingresscontroller fixture.
-	FixturePath string
-
 	// Domain is the domain for the ingresscontroller to host
 	Domain string
 
@@ -32,20 +30,41 @@ var ingressControllerNonDefaultAvailableConditions = []operatorv1.OperatorCondit
 	{Type: "Admitted", Status: operatorv1.ConditionTrue},
 }
 
-func DeployNewRouterShard(oc *exutil.CLI, timeout time.Duration, cfg Config) (string, error) {
-	jsonCfg, err := oc.AsAdmin().Run("process").Args("-f", cfg.FixturePath, "-p",
-		"NAMESPACE=openshift-ingress-operator",
-		"DOMAIN="+cfg.Domain,
-		"TYPE="+cfg.Type).OutputToFile("config.json")
+func DeployNewRouterShard(oc *exutil.CLI, timeout time.Duration, cfg Config) (*operatorv1.IngressController, error) {
+	ingressCtrl := &operatorv1.IngressController{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cfg.Type,
+			Namespace: "openshift-ingress-operator",
+			Annotations: map[string]string{
+				"ingress.operator.openshift.io/default-enable-http2": "true",
+			},
+		},
+		Spec: operatorv1.IngressControllerSpec{
+			Replicas: utilpointer.Int32(1),
+			Domain:   cfg.Domain,
+			EndpointPublishingStrategy: &operatorv1.EndpointPublishingStrategy{
+				Type: operatorv1.LoadBalancerServiceStrategyType,
+			},
+			NodePlacement: &operatorv1.NodePlacement{
+				NodeSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"node-role.kubernetes.io/worker": "",
+					},
+				},
+			},
+			NamespaceSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"type": cfg.Type,
+				},
+			},
+		},
+	}
+	_, err := oc.AdminOperatorClient().OperatorV1().IngressControllers(ingressCtrl.Namespace).Create(context.Background(), ingressCtrl, metav1.CreateOptions{})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	if err := oc.AsAdmin().Run("create").Args("-f", jsonCfg, "--namespace=openshift-ingress-operator").Execute(); err != nil {
-		return "", err
-	}
-
-	return jsonCfg, waitForIngressControllerCondition(oc, timeout, types.NamespacedName{Namespace: "openshift-ingress-operator", Name: oc.Namespace()}, ingressControllerNonDefaultAvailableConditions...)
+	return ingressCtrl, waitForIngressControllerCondition(oc, timeout, types.NamespacedName{Namespace: ingressCtrl.Namespace, Name: ingressCtrl.Name}, ingressControllerNonDefaultAvailableConditions...)
 }
 
 func operatorConditionMap(conditions ...operatorv1.OperatorCondition) map[string]string {
