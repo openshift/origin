@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	g "github.com/onsi/ginkgo"
+	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	v1 "github.com/openshift/api/config/v1"
