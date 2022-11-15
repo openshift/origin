@@ -37,10 +37,10 @@ func generateJUnitTestSuiteResults(
 			s.NumSkipped++
 			s.TestCases = append(s.TestCases, &junitapi.JUnitTestCase{
 				Name:      test.name,
-				SystemOut: string(test.testOutputBytes),
+				SystemOut: string(test.out),
 				Duration:  test.duration.Seconds(),
 				SkipMessage: &junitapi.SkipMessage{
-					Message: lastLinesUntil(string(test.testOutputBytes), 100, "skip ["),
+					Message: lastLinesUntil(string(test.out), 100, "skip ["),
 				},
 			})
 		case test.failed:
@@ -48,10 +48,10 @@ func generateJUnitTestSuiteResults(
 			s.NumFailed++
 			s.TestCases = append(s.TestCases, &junitapi.JUnitTestCase{
 				Name:      test.name,
-				SystemOut: string(test.testOutputBytes),
+				SystemOut: string(test.out),
 				Duration:  test.duration.Seconds(),
 				FailureOutput: &junitapi.FailureOutput{
-					Output: lastLinesUntil(string(test.testOutputBytes), 100, "fail ["),
+					Output: lastLinesUntil(string(test.out), 100, "fail ["),
 				},
 			})
 		case test.success:
@@ -60,10 +60,10 @@ func generateJUnitTestSuiteResults(
 				s.NumFailed++
 				s.TestCases = append(s.TestCases, &junitapi.JUnitTestCase{
 					Name:      test.name,
-					SystemOut: string(test.testOutputBytes),
+					SystemOut: string(test.out),
 					Duration:  test.duration.Seconds(),
 					FailureOutput: &junitapi.FailureOutput{
-						Output: lastLinesUntil(string(test.testOutputBytes), 100, "flake:"),
+						Output: lastLinesUntil(string(test.out), 100, "flake:"),
 					},
 				})
 			}

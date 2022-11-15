@@ -1,9 +1,8 @@
 package ginkgo
 
 import (
+	"container/ring"
 	"context"
-	"fmt"
-	"io"
 	"strings"
 	"sync"
 )
@@ -13,110 +12,115 @@ import (
 // testExclusion field is currently running. Serial tests are
 // defered until all other tests are completed.
 type parallelByFileTestQueue struct {
-	commandContext *commandContext
+	cond   *sync.Cond
+	lock   sync.Mutex
+	queue  *ring.Ring
+	active map[string]struct{}
 }
+
+type nopLock struct{}
+
+func (nopLock) Lock()   {}
+func (nopLock) Unlock() {}
 
 type TestFunc func(ctx context.Context, test *testCase)
 
-func newParallelTestQueue(commandContext *commandContext) *parallelByFileTestQueue {
+func newParallelTestQueue() *parallelByFileTestQueue {
 	return &parallelByFileTestQueue{
-		commandContext: commandContext,
+		cond:   sync.NewCond(nopLock{}),
+		active: make(map[string]struct{}),
 	}
 }
 
-// OutputCommand prints to stdout what would have been executed.
-func (q *parallelByFileTestQueue) OutputCommands(ctx context.Context, tests []*testCase, out io.Writer) {
-	// for some reason we split the serial and parallel when printing the command
-	serial, parallel := splitTests(tests, func(t *testCase) bool { return strings.Contains(t.name, "[Serial]") })
-
-	for _, curr := range parallel {
-		commandString := q.commandContext.commandString(curr)
-		fmt.Fprintln(out, commandString)
+func (q *parallelByFileTestQueue) pop() (*testCase, bool) {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	r := q.queue
+	l := r.Len()
+	if l == 0 {
+		q.cond.Broadcast()
+		return nil, true
 	}
-	for _, curr := range serial {
-		commandString := q.commandContext.commandString(curr)
-		fmt.Fprintln(out, commandString)
-	}
-}
-
-// testAbortFunc can be called to abort the running tests.
-type testAbortFunc func(testRunResult *testRunResultHandle)
-
-func neverAbort(_ *testRunResultHandle) {}
-
-// abortOnFailure returns an abort function and a context that will be cancelled on the abort.
-func abortOnFailure(parentContext context.Context) (testAbortFunc, context.Context) {
-	testCtx, cancelFn := context.WithCancel(parentContext)
-	return func(testRunResult *testRunResultHandle) {
-		if isTestFailed(testRunResult.testState) {
-			cancelFn()
+	for i := 0; i < l; i++ {
+		t := r.Value.(*testCase)
+		if _, ok := q.active[t.testExclusion]; ok {
+			r = r.Next()
+			continue
 		}
-	}, testCtx
-}
-
-// queueAllTests writes all the tests to the channel and closes it when all are finished
-// even with buffering, this can take a while since we don't infinitely buffer.
-func queueAllTests(remainingParallelTests chan *testCase, tests []*testCase) {
-	for i := range tests {
-		curr := tests[i]
-		remainingParallelTests <- curr
+		if len(t.testExclusion) > 0 {
+			q.active[t.testExclusion] = struct{}{}
+		}
+		if l == 1 {
+			q.queue = nil
+		} else {
+			q.queue = r.Prev()
+			q.queue.Unlink(1)
+		}
+		return t, true
 	}
-
-	close(remainingParallelTests)
+	return nil, false
 }
 
-// runTestsUntilChannelEmpty reads from the channel to consume tests, run them, and return when the channel is closed.
-func runTestsUntilChannelEmpty(ctx context.Context, remainingParallelTests chan *testCase, testSuiteRunner testSuiteRunner) {
+func (q *parallelByFileTestQueue) done(t *testCase) {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	delete(q.active, t.testExclusion)
+	q.cond.Broadcast()
+}
+
+func (q *parallelByFileTestQueue) Close() {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	q.queue = nil
+	q.active = make(map[string]struct{})
+	q.cond.Broadcast()
+}
+
+func (q *parallelByFileTestQueue) Take(ctx context.Context, fn TestFunc) bool {
 	for {
-		select {
-		// if the context is finished, simply return
-		case <-ctx.Done():
-			return
-
-		case test, ok := <-remainingParallelTests:
-			if !ok { // channel closed, then we're done
-				return
-			}
-			// if the context is finished, simply return
-			if ctx.Err() != nil {
-				return
-			}
-			testSuiteRunner.RunOneTest(ctx, test)
+		test, ok := q.pop()
+		if !ok {
+			q.cond.Wait()
+			continue
 		}
+		if test == nil {
+			return false
+		}
+		defer q.done(test)
+		fn(ctx, test)
+		return true
 	}
 }
 
-// tests are currently being mutated during the run process.
-func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase, parallelism int, testOutput testOutputConfig, maybeAbortOnFailureFn testAbortFunc) {
-	testSuiteProgress := newTestSuiteProgress(len(tests))
-	testSuiteRunner := &testSuiteRunnerImpl{
-		commandContext:        q.commandContext,
-		testOutput:            testOutput,
-		testSuiteProgress:     testSuiteProgress,
-		maybeAbortOnFailureFn: maybeAbortOnFailureFn,
-	}
+func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase, parallelism int, testFn TestFunc) {
+	defer q.Close()
 
-	execute(ctx, testSuiteRunner, tests, parallelism)
-}
-
-// execute is a convenience for unit testing
-func execute(ctx context.Context, testSuiteRunner testSuiteRunner, tests []*testCase, parallelism int) {
 	if ctx.Err() != nil {
 		return
 	}
 
-	serial, parallel := splitTests(tests, isSerialTest)
+	serial, parallel := splitTests(tests, func(t *testCase) bool { return strings.Contains(t.name, "[Serial]") })
 
-	remainingParallelTests := make(chan *testCase, 100)
-	go queueAllTests(remainingParallelTests, parallel)
+	r := ring.New(len(parallel))
+	for _, test := range parallel {
+		r.Value = test
+		r = r.Next()
+	}
+	q.queue = r
 
 	var wg sync.WaitGroup
+	wg.Add(parallelism)
 	for i := 0; i < parallelism; i++ {
-		wg.Add(1)
-		go func(ctx context.Context) {
+		go func(i int) {
 			defer wg.Done()
-			runTestsUntilChannelEmpty(ctx, remainingParallelTests, testSuiteRunner)
-		}(ctx)
+			for q.Take(ctx, func(ctx context.Context, test *testCase) {
+				testFn(ctx, test)
+			}) {
+				if ctx.Err() != nil {
+					return
+				}
+			}
+		}(i)
 	}
 	wg.Wait()
 
@@ -124,16 +128,25 @@ func execute(ctx context.Context, testSuiteRunner testSuiteRunner, tests []*test
 		if ctx.Err() != nil {
 			return
 		}
-		testSuiteRunner.RunOneTest(ctx, test)
+		testFn(ctx, test)
 	}
 }
 
-func isSerialTest(test *testCase) bool {
-	if strings.Contains(test.name, "[Serial]") {
-		return true
+func setTestExclusion(tests []*testCase, fn func(suitePath string, t *testCase) bool) {
+	for _, test := range tests {
+		summary := test.spec.Summary("")
+		var suitePath string
+		for _, loc := range summary.ComponentCodeLocations {
+			if len(loc.FileName) > 0 {
+				if !strings.HasSuffix(loc.FileName, "/k8s.io/kubernetes/test/e2e/framework/framework.go") {
+					suitePath = loc.FileName
+				}
+			}
+		}
+		if fn(suitePath, test) {
+			test.testExclusion = suitePath
+		}
 	}
-
-	return false
 }
 
 func copyTests(tests []*testCase) []*testCase {

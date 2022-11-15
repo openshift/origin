@@ -2,10 +2,13 @@ package ginkgo
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/onsi/ginkgo/v2/types"
@@ -23,16 +26,15 @@ type testCase struct {
 	// suite timeout
 	testTimeout time.Duration
 
-	start           time.Time
-	end             time.Time
-	duration        time.Duration
-	testOutputBytes []byte
-
-	flake    bool
-	failed   bool
-	skipped  bool
+	start    time.Time
+	end      time.Time
+	duration time.Duration
+	out      []byte
 	success  bool
+	failed   bool
 	timedOut bool
+	skipped  bool
+	flake    bool
 
 	previous *testCase
 }
@@ -165,4 +167,32 @@ func SuitesString(suites []*TestSuite, prefix string) string {
 		fmt.Fprintf(buf, "%s\n  %s\n\n", suite.Name, suite.Description)
 	}
 	return buf.String()
+}
+
+func runWithTimeout(ctx context.Context, c *exec.Cmd, timeout time.Duration) ([]byte, error) {
+	if timeout > 0 {
+		go func() {
+			select {
+			// interrupt tests after timeout, and abort if they don't complete quick enough
+			case <-time.After(timeout):
+				if c.Process != nil {
+					c.Process.Signal(syscall.SIGINT)
+				}
+				// if the process appears to be hung a significant amount of time after the timeout
+				// send an ABRT so we get a stack dump
+				select {
+				case <-time.After(time.Minute):
+					if c.Process != nil {
+						c.Process.Signal(syscall.SIGABRT)
+					}
+				}
+			case <-ctx.Done():
+				if c.Process != nil {
+					c.Process.Signal(syscall.SIGINT)
+				}
+			}
+
+		}()
+	}
+	return c.CombinedOutput()
 }
