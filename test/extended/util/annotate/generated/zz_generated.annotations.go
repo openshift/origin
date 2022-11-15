@@ -643,6 +643,10 @@ var Annotations = map[string]string{
 
 	"[sig-arch] ocp payload should be based on existing source OLM version should contain the source commit id [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-arch] workload partitioning should be annotated with: target.workload.openshift.io/management: {effect: PreferredDuringScheduling}": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-arch] workload partitioning should be annotated with: workload.openshift.io/allowed: management": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-arch][Early] CRDs for openshift.io should have a status in the CRD schema": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch][Early] CRDs for openshift.io should have subresource.status": " [Suite:openshift/conformance/parallel]",
