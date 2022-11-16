@@ -115,9 +115,6 @@ sort_desc(
 	if len(debug) > 0 {
 		framework.Logf("Alerts were detected which are allowed:\n\n%s", strings.Join(debug.List(), "\n"))
 	}
-	if len(unexpectedViolations) > 0 {
-		framework.Failf("Unexpected alerts fired or pending:\n\n%s", strings.Join(unexpectedViolations.List(), "\n"))
-	}
 	if flakes := sets.NewString().Union(knownViolations).Union(unexpectedViolations).Union(unexpectedViolationsAsFlakes); len(flakes) > 0 {
 		// TODO: The two tests that had this duplicated code had slightly different ways of reporting flakes
 		// that I do not fully understand the implications of. Fork the logic here.
