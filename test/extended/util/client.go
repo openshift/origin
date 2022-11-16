@@ -818,7 +818,8 @@ func (c *CLI) outputs(stdOutBuff, stdErrBuff *bytes.Buffer) (string, string, err
 		return stdOut, stdErr, nil
 	case *exec.ExitError:
 		framework.Logf("Error running %v:\nStdOut>\n%s\nStdErr>\n%s\n", cmd, stdOut, stdErr)
-		return stdOut, stdErr, err
+		wrappedErr := fmt.Errorf("Error running %v:\nStdOut>\n%s\nStdErr>\n%s\n%w\n", cmd, stdOut, stdErr, err)
+		return stdOut, stdErr, wrappedErr
 	default:
 		FatalErr(fmt.Errorf("unable to execute %q: %v", c.execPath, err))
 		// unreachable code
