@@ -1,4 +1,4 @@
-package main
+package annotate
 
 // Rules defined here are additive to the rules already defined for
 // kube e2e tests in openshift/kubernetes. The kube rules are

@@ -16399,7 +16399,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage][Late] Metrics should report short mount times": " [Skipped:Disconnected] [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 }
-
+/*
 func init() {
 	ginkgo.GetSuite().SetAnnotateFn(func(name string, node types.TestSpec) {
 		if newLabels, ok := Annotations[name]; ok {
@@ -16409,3 +16409,4 @@ func init() {
 		}
 	})
 }
+*/

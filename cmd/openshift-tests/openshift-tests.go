@@ -70,11 +70,12 @@ func main() {
 	}
 
 	root.AddCommand(
-		newRunCommand(),
+		newRunSuiteCommand(),
 		newRunUpgradeCommand(),
 		newImagesCommand(),
 		newRunTestCommand(),
 		newRunMonitorCommand(),
+		newRunListTestsCommand(),
 		newTestFailureRiskAnalysisCommand(),
 		cmd.NewRunResourceWatchCommand(),
 		monitor_cmd.NewTimelineCommand(genericclioptions.IOStreams{
@@ -315,7 +316,7 @@ func (opt *runOptions) SelectSuite(suites testSuites, args []string) (*testSuite
 	return &testSuite{TestSuite: *suite}, nil
 }
 
-func newRunCommand() *cobra.Command {
+func newRunSuiteCommand() *cobra.Command {
 	opt := NewRunOptions(defaultTestImageMirrorLocation)
 
 	cmd := &cobra.Command{
@@ -488,6 +489,22 @@ func newRunTestCommand() *cobra.Command {
 	return cmd
 }
 
+func newListTestsCommand() *cobra.Command {
+	opt := NewRunOptions(defaultTestImageMirrorLocation)
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List available tests",
+		Long: templates.LongDesc(`
+		List the available tests in this binary
+		`),
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return opt.ListTests()
+		},
+	}
+	return cmd
+}
 // mirrorToFile ensures a copy of all output goes to the provided OutFile, including
 // any error returned from fn. The function returns fn() or any error encountered while
 // attempting to open the file.

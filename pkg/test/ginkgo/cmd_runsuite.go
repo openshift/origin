@@ -134,6 +134,233 @@ func max(a, b int) int {
 	return b
 }
 
+func verifyAndAddBinary(path string, binaries sets.String) []error {
+	// extract the binary name
+	segs := strings.Split(path, "/")
+	binName := segs[len(segs)-1]
+
+	errors := []error{}
+	if isExec, err := isExecutable(path); err == nil && !isExec {
+		errors = append(errors, fmt.Errorf("warning: %s identified as a test binary, but it is not executable", path))
+	} else if err != nil {
+		errors = append(errors, fmt.Errorf("error: unable to identify %s as an executable file: %v", path, err))
+	}
+
+	if existingPath, ok := binaries[binName]; ok {
+		fmt.Printf("warning: %s is overshadowed by a similarly named test binary: %s\n", path, existingPath)
+	} else {
+		binaries.Insert(path)
+	}
+
+	return errors
+}
+
+func isExecutable(fullPath string) (bool, error) {
+	info, err := os.Stat(fullPath)
+	if err != nil {
+		return false, err
+	}
+
+	if m := info.Mode(); !m.IsDir() && m&0111 != 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// evalSymlink returns true if provided path is a symlink
+func evalSymlink(path string) (bool, error) {
+	link, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return false, err
+	}
+	if len(link) != 0 {
+		if link != path {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// uniquePathsList deduplicates a given slice of strings without
+// sorting or otherwise altering its order in any way.
+func uniquePathsList(paths []string) []string {
+	seen := map[string]bool{}
+	newPaths := []string{}
+	for _, p := range paths {
+		if seen[p] {
+			continue
+		}
+		seen[p] = true
+		newPaths = append(newPaths, p)
+	}
+	return newPaths
+}
+
+func nameMatchesTest(filepath string) bool {
+	for _, prefix := range []string{"openshift-tests"} {
+		if !strings.HasPrefix(filepath, prefix+"-") {
+			continue
+		}
+		return true
+	}
+
+	return false
+}
+
+
+// this is the only data we need to exchange between a binary that
+// contains tests it can run, and the wrapper binary that will
+// pick which tests to run and invoke the appropriate binary
+type test struct {
+	Name string `json:"name"`
+	//CodePath               string `json:"codePath"`
+	CodeLocations []ginkgotypes.CodeLocation `json:"codeLocations"`
+}
+
+var timeoutRegex = regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
+
+func getTestBinaries(opt *Options) ([]string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	executablePath, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+	executableDir := filepath.Dir(executablePath)
+	testBinaryDirectories := []string{}
+	testBinaryDirectories = append(testBinaryDirectories, cwd)
+	testBinaryDirectories = append(testBinaryDirectories, executableDir)
+	testBinaryDirectories = append(testBinaryDirectories, filepath.SplitList(os.Getenv("PATH"))...)
+
+	warnings := 0
+	testBinaries := sets.String{}
+	errors := []error{}
+	for _, dir := range uniquePathsList(testBinaryDirectories) {
+		files, err := ioutil.ReadDir(dir)
+		if err != nil {
+			if _, ok := err.(*os.PathError); ok {
+				fmt.Fprintf(opt.ErrOut, "Unable read directory %q from your PATH: %v. Skipping...\n", dir, err)
+				continue
+			}
+
+			errors = append(errors, fmt.Errorf("error: unable to read directory %q in your PATH: %v", dir, err))
+			continue
+		}
+
+		for _, f := range files {
+			if f.IsDir() {
+				continue
+			}
+			if !nameMatchesTest(f.Name()) {
+				continue
+			}
+
+			testBinaryPath := filepath.Join(dir, f.Name())
+			isSymlink, err := evalSymlink(testBinaryPath)
+			if err != nil {
+				return nil, err
+			}
+			if testBinaries.Has(testBinaryPath) || isSymlink {
+				continue
+			}
+			testBinaries.Insert(testBinaryPath)
+
+			//fmt.Fprintf(streams.ErrOut, "%s\n", testBinaryPath)
+			if errs := verifyAndAddBinary(testBinaryPath, testBinaries); len(errs) != 0 {
+				warnings += len(errs)
+			}
+		}
+	}
+	if warnings > 0 {
+		if warnings == 1 {
+			errors = append(errors, fmt.Errorf("error: one test binary warning was found"))
+		} else {
+			errors = append(errors, fmt.Errorf("error: %v test binary warnings were found", warnings))
+		}
+	}
+	if len(testBinaries) == 0 {
+		errors = append(errors, fmt.Errorf("error: unable to find any test binaries in your PATH"))
+	}
+	if len(errors) > 0 {
+		return nil, errorsutil.NewAggregate(errors)
+	}
+
+	return testBinaries.List(), nil
+}
+
+func testsFromBinaries(opt *Options) ([]*testCase, error) {
+	var testCases []*testCase
+	testBinaries, err := getTestBinaries(opt)
+	if err != nil {
+		return nil, err
+	}
+	if len(testBinaries) == 0 {
+		return nil, fmt.Errorf("No openshift-test-* binaries found in path")
+	}
+	fmt.Fprintf(opt.Out, "Including tests from binaries: %v\n", testBinaries)
+	for _, binary := range testBinaries {
+		testCommand := exec.Command(binary, "list")
+		var b bytes.Buffer
+		testCommand.Stdout = bufio.NewWriter(&b)
+		if err := testCommand.Run(); err != nil {
+			return nil, err
+		}
+		tests := []test{}
+		json.Unmarshal(b.Bytes(), &tests)
+
+		for _, t := range tests {
+			var testTimeout time.Duration
+			var err error
+			if match := timeoutRegex.FindStringSubmatch(t.Name); match != nil {
+				testTimeout, err = time.ParseDuration(match[1])
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			testCases = append(testCases, &testCase{nameFromBinary: t.Name, locations: t.CodeLocations, testTimeout: testTimeout, binary: binary})
+		}
+	}
+
+	annotate.InitTestLabels()
+	for _, test := range testCases {
+		newName := k8sannotate.GenerateName(test.nameFromBinary, test.locations[len(test.locations)-1].FileName)
+		test.name = newName
+		//fmt.Printf("old: %s\nnew: %s\n", test.nameFromBinary, test.name)
+	}
+
+	return testCases, nil
+}
+
+func (opt *Options) ListTests() error {
+	tests, err := testsForSuite(config.GinkgoConfig)
+	if err != nil {
+		return err
+	}
+
+	var serializableTests []test
+	for _, t := range tests {
+		newtest := test{t.name, t.spec.Summary("").ComponentCodeLocations}
+		serializableTests = append(serializableTests, newtest)
+		//fmt.Printf("%#v\n", newtest)
+		//serializableTests = append(serializableTests, test{t.name, t.location.FileName})
+	}
+	data, err := json.Marshal(serializableTests)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(opt.Out, "%s\n", data)
+
+	//fmt.Printf("%#v\n", tests[len(tests)-1])
+	//fmt.Printf("%v\n", tests[len(tests)-1].spec.Summary("").ComponentCodeLocations)
+	//fmt.Printf("%#v\n", tests[0].spec.Summary("").ComponentCodeLocations)
+	return nil
+}
+
+
 func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	ctx := context.Background()
 

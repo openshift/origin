@@ -288,7 +288,13 @@ func (c *commandContext) RunTestInNewProcess(ctx context.Context, test *testCase
 	}
 
 	ret.start = time.Now()
-	command := exec.Command(os.Args[0], "run-test", test.name)
+	if test.binary == "" {
+		test.binary = os.Args[0]
+	}
+	if test.nameFromBinary == "" {
+		test.nameFromBinary = test.name
+	}
+	command := exec.Command(test.binary, "run-test", test.nameFromBinary)
 	command.Env = append(os.Environ(), c.env...)
 
 	timeout := c.timeout

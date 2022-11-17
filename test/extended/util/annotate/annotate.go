@@ -1,4 +1,4 @@
-package main
+package annotate
 
 import (
 	"fmt"
@@ -29,7 +29,7 @@ func mergeMaps(existingMap, newMap map[string][]string) error {
 	return nil
 }
 
-func init() {
+func InitTestLabels() {
 	// Merge the local rules with the rules for the kube e2e tests
 	// inherited from openshift/kubernetes.
 	err := mergeMaps(annotate.TestMaps, testMaps)

@@ -23,6 +23,10 @@ type testCase struct {
 	// suite timeout
 	testTimeout time.Duration
 
+
+	// identifies which binary contains this test
+	binary string
+	
 	start           time.Time
 	end             time.Time
 	duration        time.Duration
