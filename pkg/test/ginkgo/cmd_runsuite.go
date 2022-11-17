@@ -384,7 +384,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	}
 
 	// calculate the effective test set we ran, excluding any incompletes
-	tests, _ = splitTests(tests, func(t *testCase) bool { return t.success || t.failed || t.skipped })
+	tests, _ = splitTests(tests, func(t *testCase) bool { return t.success || t.flake || t.failed || t.skipped })
 
 	end := time.Now()
 	duration := end.Sub(start).Round(time.Second / 10)
