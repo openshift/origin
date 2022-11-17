@@ -71,13 +71,13 @@ count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog
 		violation := fmt.Sprintf("alert %s fired for %s seconds with labels: %s", series.Metric["alertname"], series.Value, helper.LabelsAsSelector(labels))
 		if cause := allowedFiringAlerts.Matches(series); cause != nil {
 			// TODO: this seems to never be firing? no search.ci results show allowed
-			debug.Insert(fmt.Sprintf("%s result=allowed (%s)", violation, cause.Text))
+			debug.Insert(fmt.Sprintf("%s result=allow (%s)", violation, cause.Text))
 			continue
 		}
 		if cause := firingAlertsWithBugs.Matches(series); cause != nil {
-			knownViolations.Insert(fmt.Sprintf("%s result=allowed bug=%s", violation, cause.Text))
+			knownViolations.Insert(fmt.Sprintf("%s result=allow bug=%s", violation, cause.Text))
 		} else {
-			unexpectedViolations.Insert(fmt.Sprintf("%s result=failure", violation))
+			unexpectedViolations.Insert(fmt.Sprintf("%s result=reject", violation))
 		}
 	}
 
@@ -100,15 +100,15 @@ sort_desc(
 		violation := fmt.Sprintf("alert %s pending for %s seconds with labels: %s", series.Metric["alertname"], series.Value, helper.LabelsAsSelector(labels))
 		if cause := allowedPendingAlerts.Matches(series); cause != nil {
 			// TODO: this seems to never be firing? no search.ci results show allowed
-			debug.Insert(fmt.Sprintf("%s result=allowed (%s)", violation, cause.Text))
+			debug.Insert(fmt.Sprintf("%s result=allow (%s)", violation, cause.Text))
 			continue
 		}
 		if cause := pendingAlertsWithBugs.Matches(series); cause != nil {
-			knownViolations.Insert(fmt.Sprintf("%s result=allowed bug=%s", violation, cause.Text))
+			knownViolations.Insert(fmt.Sprintf("%s result=allow bug=%s", violation, cause.Text))
 		} else {
 			// treat pending errors as a flake right now because we are still trying to determine the scope
 			// TODO: move this to unexpectedViolations later
-			unexpectedViolationsAsFlakes.Insert(fmt.Sprintf("%s result=allowed", violation))
+			unexpectedViolationsAsFlakes.Insert(fmt.Sprintf("%s result=allow", violation))
 		}
 	}
 
