@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/openshift-hack/e2e/annotate"
+	k8sannotate "k8s.io/kubernetes/openshift-hack/e2e/annotate"
 
 	_ "github.com/openshift/origin/test/extended"
 )
@@ -32,12 +32,8 @@ func mergeMaps(existingMap, newMap map[string][]string) error {
 func InitTestLabels() {
 	// Merge the local rules with the rules for the kube e2e tests
 	// inherited from openshift/kubernetes.
-	err := mergeMaps(annotate.TestMaps, testMaps)
+	err := mergeMaps(k8sannotate.TestMaps, testMaps)
 	if err != nil {
 		panic(fmt.Sprintf("Error updating annotate.TestMaps: %v", err))
 	}
-}
-
-func main() {
-	annotate.Run()
 }

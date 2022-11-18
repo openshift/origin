@@ -7,8 +7,6 @@ import (
 	"github.com/onsi/ginkgo/v2/types"
 
 	"k8s.io/apimachinery/pkg/util/errors"
-
-	"github.com/openshift/origin/test/extended/util/annotate/generated"
 )
 
 func testsForSuite() ([]*testCase, error) {
@@ -21,9 +19,6 @@ func testsForSuite() ([]*testCase, error) {
 	}
 
 	ginkgo.GetSuite().WalkTests(func(name string, spec types.TestSpec) {
-		if append, ok := generated.Annotations[name]; ok {
-			spec.AppendText(append)
-		}
 		tc, err := newTestCaseFromGinkgoSpec(spec)
 		if err != nil {
 			errs = append(errs, err)
