@@ -1,11 +1,5 @@
 package generated
 
-import (
-	"fmt"
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/types"
-)
-
 var Annotations = map[string]string{
 	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-ext.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
@@ -16399,6 +16393,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage][Late] Metrics should report short mount times": " [Skipped:Disconnected] [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 }
+
 /*
 func init() {
 	ginkgo.GetSuite().SetAnnotateFn(func(name string, node types.TestSpec) {
