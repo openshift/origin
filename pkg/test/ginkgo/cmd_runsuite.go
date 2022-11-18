@@ -1,23 +1,33 @@
 package ginkgo
 
 import (
+	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	ginkgotypes "github.com/onsi/ginkgo/v2/types"
+
+	errorsutil "k8s.io/apimachinery/pkg/util/errors"
+	k8sannotate "k8s.io/kubernetes/openshift-hack/e2e/annotate"
+
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/openshift/origin/test/extended/util/annotate"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -198,8 +208,8 @@ func uniquePathsList(paths []string) []string {
 }
 
 func nameMatchesTest(filepath string) bool {
-	for _, prefix := range []string{"openshift-tests"} {
-		if !strings.HasPrefix(filepath, prefix+"-") {
+	for _, suffix := range []string{"-tests"} {
+		if !strings.HasSuffix(filepath, suffix) {
 			continue
 		}
 		return true
@@ -207,7 +217,6 @@ func nameMatchesTest(filepath string) bool {
 
 	return false
 }
-
 
 // this is the only data we need to exchange between a binary that
 // contains tests it can run, and the wrapper binary that will
@@ -309,7 +318,10 @@ func testsFromBinaries(opt *Options) ([]*testCase, error) {
 			return nil, err
 		}
 		tests := []test{}
-		json.Unmarshal(b.Bytes(), &tests)
+		err := json.Unmarshal(b.Bytes(), &tests)
+		if err != nil {
+			return nil, err
+		}
 
 		for _, t := range tests {
 			var testTimeout time.Duration
@@ -336,14 +348,14 @@ func testsFromBinaries(opt *Options) ([]*testCase, error) {
 }
 
 func (opt *Options) ListTests() error {
-	tests, err := testsForSuite(config.GinkgoConfig)
+	tests, err := testsForSuite()
 	if err != nil {
 		return err
 	}
 
 	var serializableTests []test
 	for _, t := range tests {
-		newtest := test{t.name, t.spec.Summary("").ComponentCodeLocations}
+		newtest := test{t.name, t.spec.CodeLocations()}
 		serializableTests = append(serializableTests, newtest)
 		//fmt.Printf("%#v\n", newtest)
 		//serializableTests = append(serializableTests, test{t.name, t.location.FileName})
@@ -359,7 +371,6 @@ func (opt *Options) ListTests() error {
 	//fmt.Printf("%#v\n", tests[0].spec.Summary("").ComponentCodeLocations)
 	return nil
 }
-
 
 func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	ctx := context.Background()
@@ -381,7 +392,8 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		suite.SyntheticEventTests,
 	}
 
-	tests, err := testsForSuite()
+	//tests, err := testsForSuite()
+	tests, err := testsFromBinaries(opt)
 	if err != nil {
 		return err
 	}

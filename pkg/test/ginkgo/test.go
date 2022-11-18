@@ -12,10 +12,14 @@ import (
 )
 
 type testCase struct {
-	name      string
-	spec      types.TestSpec
-	locations []types.CodeLocation
-	apigroups []string
+	// name is the name of this test after label annotation has been performed
+	name string
+	// nameFromBinary is the name of this test case as reported by the binary that owns it,
+	// that is the name w/o any annotating performed
+	nameFromBinary string
+	spec           types.TestSpec
+	locations      []types.CodeLocation
+	apigroups      []string
 
 	// identifies which tests can be run in parallel (ginkgo runs suites linearly)
 	testExclusion string
@@ -23,10 +27,9 @@ type testCase struct {
 	// suite timeout
 	testTimeout time.Duration
 
-
 	// identifies which binary contains this test
 	binary string
-	
+
 	start           time.Time
 	end             time.Time
 	duration        time.Duration

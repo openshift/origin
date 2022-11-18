@@ -75,7 +75,7 @@ func main() {
 		newImagesCommand(),
 		newRunTestCommand(),
 		newRunMonitorCommand(),
-		newRunListTestsCommand(),
+		newListTestsCommand(),
 		newTestFailureRiskAnalysisCommand(),
 		cmd.NewRunResourceWatchCommand(),
 		monitor_cmd.NewTimelineCommand(genericclioptions.IOStreams{
@@ -505,6 +505,7 @@ func newListTestsCommand() *cobra.Command {
 	}
 	return cmd
 }
+
 // mirrorToFile ensures a copy of all output goes to the provided OutFile, including
 // any error returned from fn. The function returns fn() or any error encountered while
 // attempting to open the file.
