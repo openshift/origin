@@ -799,6 +799,17 @@ func (c *CLI) start(stdOutBuff, stdErrBuff *bytes.Buffer) (*exec.Cmd, error) {
 	return cmd, err
 }
 
+// getStartingIndexForLastN calculates a byte offset in a byte slice such that when using
+// that offset, we get the last N (size) bytes.
+func getStartingIndexForLastN(byteString []byte, size int) int {
+	len := len(byteString)
+	if len < size {
+		// byte slice is less than size, so use all of it.
+		return 0
+	}
+	return len - size
+}
+
 func (c *CLI) outputs(stdOutBuff, stdErrBuff *bytes.Buffer) (string, string, error) {
 	cmd, err := c.start(stdOutBuff, stdErrBuff)
 	if err != nil {
@@ -818,7 +829,7 @@ func (c *CLI) outputs(stdOutBuff, stdErrBuff *bytes.Buffer) (string, string, err
 		return stdOut, stdErr, nil
 	case *exec.ExitError:
 		framework.Logf("Error running %v:\nStdOut>\n%s\nStdErr>\n%s\n", cmd, stdOut, stdErr)
-		wrappedErr := fmt.Errorf("Error running %v:\nStdOut>\n%s\nStdErr>\n%s\n%w\n", cmd, stdOut, stdErr, err)
+		wrappedErr := fmt.Errorf("Error running %v:\nStdOut>\n%s\nStdErr>\n%s\n%w\n", cmd, stdOut[getStartingIndexForLastN(stdOutBytes, 4096):], stdErr[getStartingIndexForLastN(stdErrBytes, 4096):], err)
 		return stdOut, stdErr, wrappedErr
 	default:
 		FatalErr(fmt.Errorf("unable to execute %q: %v", c.execPath, err))
