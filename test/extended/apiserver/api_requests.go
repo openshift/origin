@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -13,11 +14,20 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	apiserverclientv1 "github.com/openshift/client-go/apiserver/clientset/versioned/typed/apiserver/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
-	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
+)
+
+const unknownUser = "<unknown>"
+
+var (
+	// allowedUsers is a list of users who are allowed to make API calls to deprecated APIs
+	allowedUsers = sets.NewString("system:serviceaccount:openshift-kube-storage-version-migrator:kube-storage-version-migrator-sa")
+	// allowedUsersRE is a regular expression for a user being added in test/extended/etcd/etcd_test_runner.go
+	allowedUsersRE = regexp.MustCompile(`test-etcd-storage-path\w+`)
 )
 
 var _ = g.Describe("[sig-arch][Late]", func() {
@@ -41,9 +51,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 				apiRequestCount.Status.RemovedInRelease != "2.0" { // 2.0 is a current placeholder for not-slated for removal. It will be fixed before 4.8.
 				deprecatedAPIRequestCounts = append(deprecatedAPIRequestCounts, apiRequestCount)
 
-				details := fmt.Sprintf("api %v, removed in release %s, was accessed %d times", apiRequestCount.Name, apiRequestCount.Status.RemovedInRelease, apiRequestCount.Status.RequestCount)
-				failureOutput = append(failureOutput, details)
-				framework.Logf(details)
+				framework.Logf("api %v, removed in release %s, was accessed %d times", apiRequestCount.Name, apiRequestCount.Status.RemovedInRelease, apiRequestCount.Status.RequestCount)
 			}
 		}
 
@@ -73,9 +81,22 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 					}
 				}
 			}
+
+			// in case we didn't have the last 24h detailed data, at least log as a general API being accessed
+			if len(apiRequestCount.Status.Last24h) == 0 {
+				resourceToRequestCount := userToResourceToRequestCount[unknownUser]
+				if resourceToRequestCount == nil {
+					resourceToRequestCount = map[string]requestCount{}
+					userToResourceToRequestCount[unknownUser] = resourceToRequestCount
+				}
+				resourceToRequestCount[apiRequestCount.Name] = requestCount{count: apiRequestCount.Status.RequestCount}
+			}
 		}
 
 		for user, resourceToRequestCount := range userToResourceToRequestCount {
+			if allowedUsers.Has(user) || allowedUsersRE.MatchString(user) {
+				continue
+			}
 			for resource, requestCount := range resourceToRequestCount {
 				details := fmt.Sprintf("user/%v accessed %v %d times", user, resource, requestCount.count)
 				failureOutput = append(failureOutput, details)
@@ -86,8 +107,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		sort.Strings(failureOutput)
 
 		if len(failureOutput) > 0 {
-			// don't insta-fail all of CI
-			result.Flakef(strings.Join(failureOutput, "\n"))
+			framework.Failf(strings.Join(failureOutput, "\n"))
 		}
 	})
 
