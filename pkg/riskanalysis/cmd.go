@@ -2,6 +2,7 @@ package riskanalysis
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,9 +10,14 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/openshift/origin/test/extended/testdata"
 	"github.com/pkg/errors"
+)
+
+const (
+	maxRetries = 3
 )
 
 // Options is used to run a risk analysis to determine how severe or unusual
@@ -72,11 +78,35 @@ func (opt *Options) Run() error {
 	}
 
 	req, err := http.NewRequest("GET", opt.SippyURL, bytes.NewBuffer(inputBytes))
+	if err != nil {
+		return errors.Wrap(err, "error creating GET request during risk analysis")
+	}
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return errors.Wrap(err, "error requesting risk analysis from sippy")
+
+	var resp *http.Response
+	clientDoSuccess := false
+	for i := 1; i <= maxRetries; i++ {
+		ctx, cancelFn := context.WithTimeout(req.Context(), 20*time.Second)
+		defer cancelFn()
+		startTime := time.Now()
+		fmt.Printf("%s: Requesting risk analysis (attempt %d/%d) from: %s\n", startTime.Format(time.RFC3339), i, maxRetries, sippyURL)
+		resp, err = client.Do(req.WithContext(ctx))
+		endTime := time.Now()
+		duration := endTime.Sub(startTime)
+		fmt.Printf("%s: Call to sippy finished after: %s\n", endTime.Format(time.RFC3339), duration)
+		if err == nil {
+			clientDoSuccess = true
+			break
+		}
+		fmt.Println(errors.Wrap(err, "error requesting risk analysis from sippy, sleeping 30s"))
+
+		// cancel the context we just used.
+		cancelFn()
+		time.Sleep(time.Duration(i*30) * time.Second)
+	}
+	if !clientDoSuccess {
+		return errors.Wrap(err, "unable to obtain risk analysis from sippy after retries")
 	}
 	defer resp.Body.Close()
 
