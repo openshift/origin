@@ -173,7 +173,8 @@ func TestKnownBugEvents(t *testing.T) {
 			message:  `ns/e2e - reason/SomeEvent1 foo (21 times)`,
 			match:    true,
 			platform: v1.AWSPlatformType,
-			topology: v1.SingleReplicaTopologyMode},
+			topology: v1.SingleReplicaTopologyMode,
+		},
 		{
 			name:     "matches with topology",
 			message:  `ns/e2e - reason/SomeEvent2 foo (21 times)`,
@@ -237,6 +238,168 @@ func TestKnownBugEvents(t *testing.T) {
 			}
 
 			if !test.match && strings.Contains(junits[0].FailureOutput.Output, "1 events with known BZs") {
+				t.Fatalf("expected case to not match, but it did: %s", test.name)
+			}
+		})
+	}
+}
+
+func TestKnownBugEventsGroup(t *testing.T) {
+	evaluator := duplicateEventsEvaluator{
+		allowedRepeatedEventPatterns: allowedRepeatedEventPatterns,
+		knownRepeatedEventsBugs: []knownProblem{
+			{
+				Regexp: regexp.MustCompile(`ns/.* reason/SomeEvent1.*`),
+				BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
+			},
+		},
+	}
+
+	tests := []struct {
+		name            string
+		messages        []string
+		platform        v1.PlatformType
+		topology        v1.TopologyMode
+		expectedMessage string
+	}{
+		{
+			name:            "matches 22 before",
+			messages:        []string{`ns/e2e - reason/SomeEvent1 foo (22 times)`, `ns/e2e - reason/SomeEvent1 foo (21 times)`},
+			platform:        v1.AWSPlatformType,
+			topology:        v1.SingleReplicaTopologyMode,
+			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo - https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
+		},
+		{
+			name:            "matches 25 after",
+			messages:        []string{`ns/e2e - reason/SomeEvent1 foo (21 times)`, `ns/e2e - reason/SomeEvent1 foo (25 times)`},
+			platform:        v1.AWSPlatformType,
+			topology:        v1.SingleReplicaTopologyMode,
+			expectedMessage: "1 events with known BZs\n\nevent happened 25 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo - https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
+		},
+		{
+			name:            "matches 22 below with below threshold following",
+			messages:        []string{`ns/e2e - reason/SomeEvent1 foo (22 times)`, `ns/e2e - reason/SomeEvent1 foo (5 times)`},
+			platform:        v1.AWSPlatformType,
+			topology:        v1.SingleReplicaTopologyMode,
+			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo - https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			events := monitorapi.Intervals{}
+			for _, message := range test.messages {
+
+				events = append(events,
+					monitorapi.EventInterval{
+						Condition: monitorapi.Condition{Message: message},
+						From:      time.Unix(1, 0),
+						To:        time.Unix(1, 0)},
+				)
+			}
+
+			evaluator.platform = test.platform
+			evaluator.topology = test.topology
+
+			junits := evaluator.testDuplicatedEvents("events should not repeat", false, events, nil)
+			if len(junits) < 1 {
+				t.Fatal("didn't get junit for duplicated event")
+			}
+
+			if strings.Compare(junits[0].FailureOutput.Output, test.expectedMessage) != 0 {
+				t.Fatalf("expected case to match, but it didn't: %s.  Expected:\n%s\nReceived:\n%s\n", test.name, test.expectedMessage, junits[0].FailureOutput.Output)
+			}
+
+		})
+	}
+}
+
+func TestMakeProbeTestEventsGroup(t *testing.T) {
+
+	tests := []struct {
+		name            string
+		messages        []string
+		match           bool
+		regEx           string
+		operator        string
+		expectedMessage string
+	}{
+		{
+			name:            "matches 22 before",
+			messages:        []string{`ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (21 times)`},
+			match:           true,
+			operator:        "e2e",
+			regEx:           probeErrorLivenessMessageRegExpStr,
+			expectedMessage: "00:00:01 ns/e2e - reason/ProbeError foo Liveness probe error: Get \"https://10.128.0.21:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)\n",
+		},
+		{
+			name:            "no matches 22 before",
+			messages:        []string{`ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (21 times)`},
+			match:           false,
+			operator:        "e2e",
+			regEx:           probeErrorConnectionRefusedRegExpStr,
+			expectedMessage: "",
+		},
+		{
+			name:            "matches 25 after",
+			messages:        []string{`ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (22 times)`, `ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (25 times)`},
+			operator:        "openshift-oauth-apiserver",
+			match:           true,
+			regEx:           probeErrorConnectionRefusedRegExpStr,
+			expectedMessage: "00:00:01 ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get \"https://10.128.0.38:8443/readyz\": dial tcp 10.128.0.38:8443: connect: connection refused occurred (25 times)\n",
+		},
+		{
+			name:            "no matches 25 after",
+			messages:        []string{`ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (22 times)`, `ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (25 times)`},
+			operator:        "openshift-oauth-apiserver",
+			match:           false,
+			regEx:           probeErrorLivenessMessageRegExpStr,
+			expectedMessage: "",
+		},
+		{
+			name:            "matches 22 below with below threshold following",
+			messages:        []string{`reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (5 times)`},
+			operator:        "openshift-oauth-apiserver",
+			match:           true,
+			regEx:           probeErrorReadinessMessageRegExpStr,
+			expectedMessage: "00:00:01 reason/ProbeError Readiness probe error: Get \"https://10.130.0.15:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)\n",
+		},
+		{
+			name:            "no matches 22 below with below threshold following",
+			messages:        []string{`reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (5 times)`},
+			operator:        "openshift-oauth-apiserver",
+			match:           false,
+			regEx:           probeErrorConnectionRefusedRegExpStr,
+			expectedMessage: "",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			events := monitorapi.Intervals{}
+			for _, message := range test.messages {
+
+				events = append(events,
+					monitorapi.EventInterval{
+						Condition: monitorapi.Condition{Message: message},
+						From:      time.Unix(1, 0),
+						To:        time.Unix(1, 0)},
+				)
+			}
+
+			junits := makeProbeTest("test test", events, test.operator, test.regEx, duplicateEventThreshold)
+
+			if len(junits) < 1 {
+				t.Fatal("didn't get junit for duplicated event")
+			}
+
+			if test.match && strings.Compare(junits[0].FailureOutput.Output, test.expectedMessage) != 0 {
+				t.Fatalf("expected case to match, but it didn't: %s.  Expected:\n%s\nReceived:\n%s\n", test.name, test.expectedMessage, junits[0].FailureOutput.Output)
+			}
+
+			if !test.match && junits[0].FailureOutput != nil {
 				t.Fatalf("expected case to not match, but it did: %s", test.name)
 			}
 		})
