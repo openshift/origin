@@ -50840,7 +50840,7 @@ var _e2echartTestRiskAnalysisHtml = []byte(`<html lang="en">
             cell$ = $('<ul/>')
             for (var i = 0; i < openBugs.length; i++) {
                 li$ = $('<li>')
-                bug = "<a target=\"_blank\" href=" + openBugs[i].url + ">" + openBugs[i].id + "</a>: " + openBugs[i].summary
+                bug = "<a target=\"_blank\" href=" + openBugs[i].url + ">" + openBugs[i].key + "</a>: " + openBugs[i].summary
                 li$.append($('<li>').html(bug))
                 cell$.append(li$)
             }
@@ -50894,7 +50894,7 @@ var _e2echartTestRiskAnalysisHtml = []byte(`<html lang="en">
         // Build rows for all tests
         for (var i = 0; i < testResult.Tests.length; i++) {
             var row$ = $('<tr/>');
-            testUrl = encodeURI(testLinkPrefix + testResult.Release + testLinkSuffix + testResult.Tests[i].Name)
+            testUrl = encodeURI(testLinkPrefix + testResult.CompareRelease + testLinkSuffix + testResult.Tests[i].Name)
             row$.append($('<td/>').html("<a target=\"_blank\" href=" + testUrl + ">" + testResult.Tests[i].Name + "</a>"));
             row$.append(buildRiskLevel(testResult.Tests[i].Risk.Level))
             row$.append(buildRiskReasons(testResult.Tests[i].Risk.Reasons))
@@ -50916,7 +50916,8 @@ var _e2echartTestRiskAnalysisHtml = []byte(`<html lang="en">
 </script>
 
 </body>
-</html>`)
+</html>
+`)
 
 func e2echartTestRiskAnalysisHtmlBytes() ([]byte, error) {
 	return _e2echartTestRiskAnalysisHtml, nil
