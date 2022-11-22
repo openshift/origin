@@ -22,7 +22,6 @@ import (
 	ginkgotypes "github.com/onsi/ginkgo/v2/types"
 
 	errorsutil "k8s.io/apimachinery/pkg/util/errors"
-	k8sannotate "k8s.io/kubernetes/openshift-hack/e2e/annotate"
 
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/riskanalysis"
@@ -339,37 +338,12 @@ func testsFromBinaries(opt *Options) ([]*testCase, error) {
 
 	annotate.InitTestLabels()
 	for _, test := range testCases {
-		newName := k8sannotate.GenerateName(test.nameFromBinary, test.locations[len(test.locations)-1].FileName)
+		newName := annotate.GenerateName(test.nameFromBinary, test.locations[len(test.locations)-1].FileName)
 		test.name = newName
 		//fmt.Printf("old: %s\nnew: %s\n", test.nameFromBinary, test.name)
 	}
 
 	return testCases, nil
-}
-
-func (opt *Options) ListTests() error {
-	tests, err := testsForSuite()
-	if err != nil {
-		return err
-	}
-
-	var serializableTests []test
-	for _, t := range tests {
-		newtest := test{t.name, t.spec.CodeLocations()}
-		serializableTests = append(serializableTests, newtest)
-		//fmt.Printf("%#v\n", newtest)
-		//serializableTests = append(serializableTests, test{t.name, t.location.FileName})
-	}
-	data, err := json.Marshal(serializableTests)
-	if err != nil {
-		return err
-	}
-	fmt.Fprintf(opt.Out, "%s\n", data)
-
-	//fmt.Printf("%#v\n", tests[len(tests)-1])
-	//fmt.Printf("%v\n", tests[len(tests)-1].spec.Summary("").ComponentCodeLocations)
-	//fmt.Printf("%#v\n", tests[0].spec.Summary("").ComponentCodeLocations)
-	return nil
 }
 
 func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {

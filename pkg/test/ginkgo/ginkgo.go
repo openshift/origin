@@ -29,7 +29,7 @@ func testsForSuite() ([]*testCase, error) {
 		return nil, errors.NewAggregate(errs)
 	}
 	suiteConfig, _ := ginkgo.GinkgoConfiguration()
-	r := rand.New(rand.NewSource(suiteConfig.RandomSeed))
-	r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
+	random := rand.New(rand.NewSource(suiteConfig.RandomSeed))
+	random.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
 	return tests, nil
 }
