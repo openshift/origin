@@ -1,6 +1,7 @@
 package ginkgo
 
 import (
+	"fmt"
 	"regexp"
 	"sort"
 	"strings"
@@ -8,10 +9,9 @@ import (
 	k8sannotate "k8s.io/kubernetes/openshift-hack/e2e/annotate"
 )
 
-func GenerateName(name, filepath string) string {
+func (r *ginkgoTestRenamer) GenerateRename(name, filepath string) string {
 	//func (r *ginkgoTestRenamer) generateRename(name, parentName string, node types.TestNode) {
 	//originalName := name
-	r := newGenerator()
 	combinedName := name
 	for {
 		count := 0
@@ -72,7 +72,18 @@ func GenerateName(name, filepath string) string {
 	return name
 }
 
-func newGenerator() *ginkgoTestRenamer {
+// isGoModulePath returns true if the packagePath reported by reflection is within a
+// module and given module path. When go mod is in use, module and modulePath are not
+// contiguous as they were in older golang versions with vendoring, so naive contains
+// tests fail.
+//
+// historically: ".../vendor/k8s.io/kubernetes/test/e2e"
+// go.mod:       "k8s.io/kubernetes@0.18.4/test/e2e"
+func isGoModulePath(packagePath, module, modulePath string) bool {
+	return regexp.MustCompile(fmt.Sprintf(`\b%s(@[^/]*|)/%s\b`, regexp.QuoteMeta(module), regexp.QuoteMeta(modulePath))).MatchString(packagePath)
+}
+
+func NewRenameGenerator() *ginkgoTestRenamer {
 	var allLabels []string
 	matches := make(map[string]*regexp.Regexp)
 	stringMatches := make(map[string][]string)

@@ -503,6 +503,8 @@ func newListTestsCommand() *cobra.Command {
 			return opt.ListTests()
 		},
 	}
+	cmd.Flags().StringVar(&opt.TestListPath, "test-list-path", "", "Output path for temporary list of tests provided by this binary")
+
 	return cmd
 }
 
@@ -533,6 +535,7 @@ func mirrorToFile(opt *testginkgo.Options, fn func() error) error {
 func bindOptions(opt *runOptions, flags *pflag.FlagSet) {
 	flags.StringVar(&opt.FromRepository, "from-repository", opt.FromRepository, "A container image repository to retrieve test images from.")
 	flags.StringVar(&opt.Provider, "provider", opt.Provider, "The cluster infrastructure provider. Will automatically default to the correct value.")
+	flags.StringVar(&opt.TestBinaryPath, "test-binary-path", "", "A valid path containing e2e test binaries")
 	bindTestOptions(opt.Options, flags)
 }
 

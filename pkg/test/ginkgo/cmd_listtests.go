@@ -3,6 +3,7 @@ package ginkgo
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 )
 
 func (opt *Options) ListTests() error {
@@ -22,10 +23,11 @@ func (opt *Options) ListTests() error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(opt.Out, "%s\n", data)
+	if len(opt.TestListPath) == 0 {
+		fmt.Fprintf(opt.Out, "%s\n", data)
+		return nil
+	}
 
-	//fmt.Printf("%#v\n", tests[len(tests)-1])
-	//fmt.Printf("%v\n", tests[len(tests)-1].spec.Summary("").ComponentCodeLocations)
-	//fmt.Printf("%#v\n", tests[0].spec.Summary("").ComponentCodeLocations)
-	return nil
+	err = os.WriteFile(opt.TestListPath, data, 0644)
+	return err
 }

@@ -1,7 +1,6 @@
 package ginkgo
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -49,6 +48,11 @@ type Options struct {
 	JUnitDir    string
 	TestFile    string
 	OutFile     string
+
+	// TestBinaryPath is the path to search for e2e binaries to use when running tests
+	TestBinaryPath string
+	// TestListPath is the output path for the list of tests provided by a binary
+	TestListPath string
 
 	// Regex allows a selection of a subset of tests
 	Regex string
@@ -229,20 +233,31 @@ type test struct {
 var timeoutRegex = regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
 
 func getTestBinaries(opt *Options) ([]string, error) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	executablePath, err := os.Executable()
-	if err != nil {
-		return nil, err
-	}
-	executableDir := filepath.Dir(executablePath)
-	testBinaryDirectories := []string{}
-	testBinaryDirectories = append(testBinaryDirectories, cwd)
-	testBinaryDirectories = append(testBinaryDirectories, executableDir)
-	testBinaryDirectories = append(testBinaryDirectories, filepath.SplitList(os.Getenv("PATH"))...)
 
+	/*
+		cwd, err := os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+	*/
+
+	testBinaryDirectories := []string{}
+
+	// if no path provided, search the directory of the openshift-tests binary
+	if len(opt.TestBinaryPath) == 0 {
+		executablePath, err := os.Executable()
+		if err != nil {
+			return nil, err
+		}
+		executableDir := filepath.Dir(executablePath)
+		testBinaryDirectories = append(testBinaryDirectories, executableDir)
+	}
+
+	// testBinaryDirectories = append(testBinaryDirectories, cwd)
+	//testBinaryDirectories = append(testBinaryDirectories, filepath.SplitList(os.Getenv("PATH"))...)
+	testBinaryDirectories = append(testBinaryDirectories, filepath.SplitList(opt.TestBinaryPath)...)
+
+	//fmt.Printf("Searching for test binaries in %q\n", testBinaryDirectories)
 	warnings := 0
 	testBinaries := sets.String{}
 	errors := []error{}
@@ -266,7 +281,11 @@ func getTestBinaries(opt *Options) ([]string, error) {
 				continue
 			}
 
-			testBinaryPath := filepath.Join(dir, f.Name())
+			testBinaryPath, err := filepath.Abs(filepath.Join(dir, f.Name()))
+			if err != nil {
+				return nil, err
+			}
+
 			isSymlink, err := evalSymlink(testBinaryPath)
 			if err != nil {
 				return nil, err
@@ -310,18 +329,28 @@ func testsFromBinaries(opt *Options) ([]*testCase, error) {
 	}
 	fmt.Fprintf(opt.Out, "Including tests from binaries: %v\n", testBinaries)
 	for _, binary := range testBinaries {
-		testCommand := exec.Command(binary, "list")
-		var b bytes.Buffer
-		testCommand.Stdout = bufio.NewWriter(&b)
-		if err := testCommand.Run(); err != nil {
-			return nil, err
-		}
-		tests := []test{}
-		err := json.Unmarshal(b.Bytes(), &tests)
+		tmp, err := os.CreateTemp("", "testlist")
+		defer os.Remove(tmp.Name())
 		if err != nil {
 			return nil, err
 		}
-
+		fmt.Fprintf(opt.Out, "Writing test list to %s\n", tmp.Name())
+		testCommand := exec.Command(binary, "list", "--test-list-path", tmp.Name())
+		//var b bytes.Buffer
+		//testCommand.Stdout = bufio.NewWriter(&b)
+		if err := testCommand.Run(); err != nil {
+			return nil, err
+		}
+		b, err := os.ReadFile(tmp.Name())
+		if err != nil {
+			return nil, err
+		}
+		tests := []test{}
+		//err := json.Unmarshal(b.Bytes(), &tests)
+		err = json.Unmarshal(b, &tests)
+		if err != nil {
+			return nil, err
+		}
 		for _, t := range tests {
 			var testTimeout time.Duration
 			var err error
@@ -337,8 +366,9 @@ func testsFromBinaries(opt *Options) ([]*testCase, error) {
 	}
 
 	annotate.InitTestLabels()
+	renamer := NewRenameGenerator()
 	for _, test := range testCases {
-		newName := annotate.GenerateName(test.nameFromBinary, test.locations[len(test.locations)-1].FileName)
+		newName := renamer.GenerateRename(test.nameFromBinary, test.locations[len(test.locations)-1].FileName)
 		test.name = newName
 		//fmt.Printf("old: %s\nnew: %s\n", test.nameFromBinary, test.name)
 	}
