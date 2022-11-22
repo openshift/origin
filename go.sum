@@ -732,9 +732,6 @@ github.com/openshift/kubernetes/staging/src/k8s.io/pod-security-admission v0.0.0
 github.com/openshift/kubernetes/staging/src/k8s.io/pod-security-admission v0.0.0-20221020223141-4bd0702b5791/go.mod h1:r9wIIlvUixkvQE8qxVrCrJirgAKwT6520L+p2UAAwS8=
 github.com/openshift/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20221020223141-4bd0702b5791 h1:BJ9AZ4b7S7Tz4BCEVeSryR13bZl/4qdmBeCFpWfn4NQ=
 github.com/openshift/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20221020223141-4bd0702b5791/go.mod h1:uwrVisPpPeSGMZ5iQpWy4wDJPZEsnAL8gce90+qOgXc=
-github.com/openshift/library-go v0.0.0-20220831200629-330d9097d0f0/go.mod h1:KPBAXGaq7pPmA+1wUVtKr5Axg3R68IomWDkzaOxIhxM=
-github.com/openshift/library-go v0.0.0-20221101142545-76526edf66e8 h1:KJdLbBWfSFSpWpCkTwBB71NNmISB/d4jpBYtHu1Vrhs=
-github.com/openshift/library-go v0.0.0-20221101142545-76526edf66e8/go.mod h1:KPBAXGaq7pPmA+1wUVtKr5Axg3R68IomWDkzaOxIhxM=
 github.com/openshift/onsi-ginkgo/v2 v2.0.0-20221104153651-0e2187c0d222 h1:+15z+Kj4lKcHr7AswtSKb4FEvYgjrTOUINVhozvpBxw=
 github.com/openshift/onsi-ginkgo/v2 v2.0.0-20221104153651-0e2187c0d222/go.mod h1:MEH45j8TBi6u9BMogfbp0stKC5cdGjumZj5Y7AG4VIk=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
@@ -888,6 +885,8 @@ github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae h1:4hwBBUfQCFe3C
 github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae/go.mod h1:DD4vA1DwXk04H54A1oHXtwZmA0grkVMdPxx/VGLCah0=
 github.com/vmware/govmomi v0.20.3 h1:gpw/0Ku+6RgF3jsi7fnCLmlcikBHfKBCUcu1qgc16OU=
 github.com/vmware/govmomi v0.20.3/go.mod h1:URlwyTFZX72RmxtxuaFL2Uj3fD1JTvZdx59bHWk6aFU=
+github.com/vrutkovs/library-go v0.0.0-20221122150707-fc3c8bd6cc1e h1:X5pX9pVcChzi3AJSfv2H3hu6VN4zwouN3K//CbxqWX8=
+github.com/vrutkovs/library-go v0.0.0-20221122150707-fc3c8bd6cc1e/go.mod h1:KPBAXGaq7pPmA+1wUVtKr5Axg3R68IomWDkzaOxIhxM=
 github.com/xanzy/ssh-agent v0.2.1 h1:TCbipTQL2JiiCprBWx9frJ2eJlCYT00NmctrHxVAr70=
 github.com/xanzy/ssh-agent v0.2.1/go.mod h1:mLlQY/MoOhWBj+gOGMQkOeiEvkx+8pJSI+0Bx9h2kr4=
 github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f h1:J9EGpcZtP0E/raorCMxlFGSTBrsSlaDGf3jU/qvAE2c=
