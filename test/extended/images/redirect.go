@@ -12,8 +12,10 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"github.com/opencontainers/go-digest"
+	configv1 "github.com/openshift/api/config/v1"
 	imageregistryv1 "github.com/openshift/api/imageregistry/v1"
 	routev1 "github.com/openshift/api/route/v1"
+	config "github.com/openshift/client-go/config/clientset/versioned"
 	imageregistry "github.com/openshift/client-go/imageregistry/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/imageregistryutil"
@@ -22,8 +24,11 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
-func storageSupportsRedirects(storage imageregistryv1.ImageRegistryConfigStorage) bool {
-	return storage.S3 != nil || storage.GCS != nil || storage.Azure != nil || storage.Swift != nil || storage.OSS != nil
+func storageSupportsRedirects(storage imageregistryv1.ImageRegistryConfigStorage, authentication *configv1.Authentication) bool {
+	// GCP only supports redirects with permanent credentials. Short lived credentials (GCP workload identity) are being used
+	// when the cluster authentication config contains a ServiceAccountIssuer that points to an OIDC endpoint rather than
+	// empty string.
+	return storage.S3 != nil || (storage.GCS != nil && authentication.Spec.ServiceAccountIssuer == "") || storage.Azure != nil || storage.Swift != nil || storage.OSS != nil
 }
 
 var _ = g.Describe("[sig-imageregistry] Image registry [apigroup:route.openshift.io]", func() {
@@ -60,7 +65,12 @@ var _ = g.Describe("[sig-imageregistry] Image registry [apigroup:route.openshift
 		if imageRegistryConfig.Spec.DisableRedirect {
 			g.Skip("only run when using redirect")
 		}
-		if !storageSupportsRedirects(imageRegistryConfig.Spec.Storage) {
+
+		configClient, err := config.NewForConfig(oc.AdminConfig())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		authenticationConfig, err := configClient.ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if !storageSupportsRedirects(imageRegistryConfig.Spec.Storage, authenticationConfig) {
 			g.Skip("only run when configured image registry storage supports redirects")
 		}
 
