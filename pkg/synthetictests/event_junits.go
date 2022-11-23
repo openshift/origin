@@ -119,5 +119,6 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 func SystemEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config, testSuite string, _ *monitorapi.ResourcesMap) (tests []*junitapi.JUnitTestCase) {
 	tests = append(tests, testSystemDTimeout(events)...)
 	tests = append(tests, testPodIPReuse(events)...)
+	tests = append(tests, testNamespaceCleanup(events, kubeClientConfig)...)
 	return tests
 }
