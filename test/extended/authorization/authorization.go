@@ -964,10 +964,11 @@ func (test subjectAccessReviewTest) run(t g.GinkgoTInterface) {
 
 func createProject(oc *exutil.CLI, nsPrefix string) string {
 	newNamespace := fmt.Sprintf("e2e-test-%s-%s", nsPrefix, utilrand.String(5))
-	_, err := oc.ProjectClient().ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
+	newProject, err := oc.ProjectClient().ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
 	}, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
+	oc.AddProjectToDelete(newProject.Name)
 	return newNamespace
 }
 

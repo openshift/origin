@@ -187,11 +187,7 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 			ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
 		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		oc.KubeFramework().AddNamespacesToDelete(&corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: newProject.Name,
-			},
-		})
+		oc.AddProjectToDelete(newProject.Name)
 
 		ns = append(ns, newNamespace)
 

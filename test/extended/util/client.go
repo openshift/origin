@@ -874,6 +874,14 @@ func (c *CLI) AddResourceToDelete(resource schema.GroupVersionResource, metadata
 	c.resourcesToDelete = append(c.resourcesToDelete, resourceRef{Resource: resource, Namespace: metadata.GetNamespace(), Name: metadata.GetName()})
 }
 
+func (c *CLI) AddProjectToDelete(projectName string) {
+	c.KubeFramework().AddNamespacesToDelete(&corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: projectName,
+		},
+	})
+}
+
 func (c *CLI) CreateUser(prefix string) *userv1.User {
 	user, err := c.AdminUserClient().UserV1().Users().Create(context.Background(), &userv1.User{
 		ObjectMeta: metav1.ObjectMeta{GenerateName: prefix + c.Namespace()},
