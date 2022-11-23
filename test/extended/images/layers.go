@@ -183,10 +183,16 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		newNamespace := fmt.Sprintf("%s-another", oc.Namespace())
-		_, err = oc.ProjectClient().ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
+		newProject, err := oc.ProjectClient().ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
 			ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
 		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
+		oc.KubeFramework().AddNamespacesToDelete(&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: newProject.Name,
+			},
+		})
+
 		ns = append(ns, newNamespace)
 
 		g.By("waiting for the build to finish")
