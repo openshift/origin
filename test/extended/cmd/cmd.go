@@ -24,13 +24,7 @@ import (
 
 var allCanRunPerms int32 = 0777
 
-var blacklist = sets.NewString(
-	"login.sh",    // fails because so much depends on `oc login`
-	"migrate.sh",  // seems unnecessary since we never run it
-	"newapp.sh",   // our image is missing git, so a lot of it doesn't work
-	"policy.sh",   // fails because so much depends on `oc login`
-	"registry.sh", // this was dead before we made this switch
-)
+var blacklist = sets.NewString()
 
 var _ = g.Describe("[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd:", func() {
 	hacklibDir := exutil.FixturePath("testdata", "cmd", "hack")
