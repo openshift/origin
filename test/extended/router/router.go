@@ -18,7 +18,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/url"
 )
 
-var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io]", func() {
+var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
 		host, ns string
@@ -50,9 +50,17 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io
 	oc = exutil.NewCLIWithPodSecurityLevel("router-stress", admissionapi.LevelBaseline)
 
 	g.BeforeEach(func() {
-		var err error
-		host, err = exutil.WaitForRouterServiceIP(oc)
+		exists, err := exutil.DoesApiResourceExist(oc.AdminConfig(), "ingresscontrollers", "operator.openshift.io")
 		o.Expect(err).NotTo(o.HaveOccurred())
+		if exists {
+			host, err = exutil.WaitForRouterServiceIP(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		} else {
+			// microshift is the only use case here for now and we expect router-internal-default service to be present
+			// TODO: think of a generic way on how to detect the service in absence of a CRD
+			host, err = exutil.WaitForRouterInternalIP(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
 
 		ns = oc.KubeFramework().Namespace.Name
 	})
