@@ -16,13 +16,6 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-const (
-	readinessFailedMessageRegExpStr      = "reason/ReadinessFailed.*Get.*healthz.*net/http.*request canceled while waiting for connection.*Client.Timeout exceeded"
-	probeErrorReadinessMessageRegExpStr  = "reason/ProbeError.*Readiness probe error.*Client.Timeout exceeded while awaiting headers"
-	probeErrorLivenessMessageRegExpStr   = "reason/(ProbeError|Unhealthy).*Liveness probe error.*Client.Timeout exceeded while awaiting headers"
-	probeErrorConnectionRefusedRegExpStr = "reason/ProbeError.*Readiness probe error.*connection refused"
-)
-
 func testKubeletToAPIServerGracefulTermination(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] kubelet terminates kube-apiserver gracefully"
 
@@ -169,55 +162,6 @@ func testContainerFailures(events monitorapi.Intervals) []*junitapi.JUnitTestCas
 	testCases = append(testCases, &junitapi.JUnitTestCase{Name: excessiveRestartTestName})
 
 	return testCases
-}
-
-func testConfigOperatorProbeErrorReadinessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[sig-node] openshift-config-operator should not get probe error on readiness probe due to timeout"
-	return makeProbeTest(testName, events, "openshift-config-operator", probeErrorReadinessMessageRegExpStr, duplicateEventThreshold)
-}
-
-func testConfigOperatorProbeErrorLivenessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[sig-node] openshift-config-operator should not get probe error on liveness probe due to timeout"
-	return makeProbeTest(testName, events, "openshift-config-operator", probeErrorLivenessMessageRegExpStr, duplicateEventThreshold)
-}
-
-func testConfigOperatorReadinessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[sig-node] openshift-config-operator readiness probe should not fail due to timeout"
-	return makeProbeTest(testName, events, "openshift-config-operator", readinessFailedMessageRegExpStr, duplicateEventThreshold)
-}
-
-func makeProbeTest(testName string, events monitorapi.Intervals, operatorName string, regExStr string, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
-	test := &junitapi.JUnitTestCase{Name: testName}
-	messageRegExp := regexp.MustCompile(regExStr)
-	var maxFailureOutput string
-	maxTimes := 0
-	for _, event := range events {
-		if isOperatorMatchRegexMessage(event, operatorName, messageRegExp) {
-			// Place the failure time in the message to avoid having to extract the time from the events json file
-			// (in `artifacts) when viewing the test failure output.
-			failureOutput := fmt.Sprintf("%s %s\n", event.From.UTC().Format("15:04:05"), event.Message)
-
-			_, times := getTimesAnEventHappened(fmt.Sprintf("%s - %s", event.Locator, event.Message))
-
-			// find the largest grouping of these events
-			if times > maxTimes {
-				maxTimes = times
-				maxFailureOutput = failureOutput
-			}
-
-		}
-	}
-
-	if maxTimes < eventFlakeThreshold {
-		return []*junitapi.JUnitTestCase{test}
-	}
-
-	// Flake for now.
-	test.FailureOutput = &junitapi.FailureOutput{
-		Output: maxFailureOutput,
-	}
-	success := &junitapi.JUnitTestCase{Name: testName}
-	return []*junitapi.JUnitTestCase{test, success}
 }
 
 func testKubeApiserverProcessOverlap(events monitorapi.Intervals) []*junitapi.JUnitTestCase {

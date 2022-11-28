@@ -22,6 +22,13 @@ const (
 	errorUpdatingEndpointSlicesRegex           = `reason/FailedToUpdateEndpointSlices Error updating Endpoint Slices`
 	errorUpdatingEndpointSlicesFailedThreshold = -1 // flake only
 	errorUpdatingEndpointSlicesFlakeThreshold  = 10
+	readinessFailedMessageRegExpStr            = "reason/ReadinessFailed.*Get.*healthz.*net/http.*request canceled while waiting for connection.*Client.Timeout exceeded"
+	probeErrorReadinessMessageRegExpStr        = "reason/ProbeError.*Readiness probe error.*Client.Timeout exceeded while awaiting headers"
+	probeErrorLivenessMessageRegExpStr         = "reason/(ProbeError|Unhealthy).*Liveness probe error.*Client.Timeout exceeded while awaiting headers"
+	probeErrorConnectionRefusedRegExpStr       = "reason/ProbeError.*Readiness probe error.*connection refused"
+	nodeHasNoDiskPressureRegExpStr             = "reason/NodeHasNoDiskPressure.*status is now: NodeHasNoDiskPressure"
+	nodeHasSufficientMemoryRegExpStr           = "reason/NodeHasSufficientMemory.*status is now: NodeHasSufficientMemory"
+	nodeHasSufficientPIDRegExpStr              = "reason/NodeHasSufficientPID.*status is now: NodeHasSufficientPID"
 )
 
 type eventRecognizerFunc func(event monitorapi.EventInterval) bool
@@ -143,4 +150,79 @@ func testErrorUpdatingEndpointSlices(events monitorapi.Intervals) []*junitapi.JU
 
 	return newSingleEventCheckRegex(testName, errorUpdatingEndpointSlicesRegex, errorUpdatingEndpointSlicesFailedThreshold, errorUpdatingEndpointSlicesFlakeThreshold).
 		test(events.Filter(monitorapi.IsInNamespaces(sets.NewString("openshift-ovn-kubernetes"))))
+}
+
+func testConfigOperatorProbeErrorReadinessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] openshift-config-operator should not get probe error on readiness probe due to timeout"
+	return makeProbeTest(testName, events, "openshift-config-operator", probeErrorReadinessMessageRegExpStr, duplicateEventThreshold)
+}
+
+func testConfigOperatorProbeErrorLivenessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] openshift-config-operator should not get probe error on liveness probe due to timeout"
+	return makeProbeTest(testName, events, "openshift-config-operator", probeErrorLivenessMessageRegExpStr, duplicateEventThreshold)
+}
+
+func testConfigOperatorReadinessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] openshift-config-operator readiness probe should not fail due to timeout"
+	return makeProbeTest(testName, events, "openshift-config-operator", readinessFailedMessageRegExpStr, duplicateEventThreshold)
+}
+
+func testNodeHasNoDiskPressure(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] Test the NodeHasNoDiskPressure condition does not occur too often"
+	return makeNodeHasTest(testName, events, nodeHasNoDiskPressureRegExpStr, duplicateEventThreshold)
+}
+
+func testNodeHasSufficientMemory(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] Test the NodeHasSufficeintMemory condition does not occur too often"
+	return makeNodeHasTest(testName, events, nodeHasSufficientMemoryRegExpStr, duplicateEventThreshold)
+}
+
+func testNodeHasSufficientPID(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] Test the NodeHasSufficientPID condition does not occur too often"
+	return makeNodeHasTest(testName, events, nodeHasSufficientPIDRegExpStr, duplicateEventThreshold)
+}
+
+func makeProbeTest(testName string, events monitorapi.Intervals, operatorName string, regExStr string, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
+	messageRegExp := regexp.MustCompile(regExStr)
+	return eventMatchThresholdTest(testName, events, func(event monitorapi.EventInterval) bool {
+		return isOperatorMatchRegexMessage(event, operatorName, messageRegExp)
+	}, eventFlakeThreshold)
+}
+
+func makeNodeHasTest(testName string, events monitorapi.Intervals, regExStr string, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
+	messageRegExp := regexp.MustCompile(regExStr)
+	return eventMatchThresholdTest(testName, events, func(event monitorapi.EventInterval) bool { return messageRegExp.MatchString(event.Message) }, eventFlakeThreshold)
+}
+
+func eventMatchThresholdTest(testName string, events monitorapi.Intervals, eventMatch eventRecognizerFunc, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
+	var maxFailureOutput string
+	maxTimes := 0
+	for _, event := range events {
+		if eventMatch(event) {
+			// Place the failure time in the message to avoid having to extract the time from the events json file
+			// (in artifacts) when viewing the test failure output.
+			failureOutput := fmt.Sprintf("%s %s\n", event.From.UTC().Format("15:04:05"), event.Message)
+
+			_, times := getTimesAnEventHappened(fmt.Sprintf("%s - %s", event.Locator, event.Message))
+
+			// find the largest grouping of these events
+			if times > maxTimes {
+				maxTimes = times
+				maxFailureOutput = failureOutput
+			}
+		}
+	}
+
+	test := &junitapi.JUnitTestCase{Name: testName}
+
+	if maxTimes < eventFlakeThreshold {
+		return []*junitapi.JUnitTestCase{test}
+	}
+
+	// Flake for now.
+	test.FailureOutput = &junitapi.FailureOutput{
+		Output: maxFailureOutput,
+	}
+	success := &junitapi.JUnitTestCase{Name: testName}
+	return []*junitapi.JUnitTestCase{test, success}
 }
