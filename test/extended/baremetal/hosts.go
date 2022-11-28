@@ -14,7 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphere/None/AWS/GCP platforms [apigroup:config.openshift.io]", func() {
+var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphere/None/AWS/Azure/GCP platforms [apigroup:config.openshift.io]", func() {
 	defer g.GinkgoRecover()
 
 	var (
