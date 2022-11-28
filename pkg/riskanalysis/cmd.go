@@ -40,6 +40,9 @@ func (opt *Options) Run() error {
 	if err != nil {
 		return err
 	}
+	if len(resultFiles) == 0 {
+		return fmt.Errorf("no files of the form %s/%s*.json found; unable to perform risk analysis", opt.JUnitDir, testFailureSummaryFilePrefix)
+	}
 	fmt.Fprintf(opt.Out, "Found files: %v\n", resultFiles)
 
 	prowJobRuns := []*ProwJobRun{}
