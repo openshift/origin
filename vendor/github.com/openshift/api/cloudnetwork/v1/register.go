@@ -7,10 +7,15 @@ import (
 )
 
 var (
-	GroupName          = "cloud.network.openshift.io"
-	SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1"}
-	SchemeBuilder      = runtime.NewSchemeBuilder(addKnownTypes)
-	Install            = SchemeBuilder.AddToScheme
+	GroupName     = "cloud.network.openshift.io"
+	GroupVersion  = schema.GroupVersion{Group: GroupName, Version: "v1"}
+	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
+	// Install is a function which adds this version to a scheme
+	Install = SchemeBuilder.AddToScheme
+
+	// SchemeGroupVersion generated code relies on this name
+	// Deprecated
+	SchemeGroupVersion = GroupVersion
 	// AddToScheme exists solely to keep the old generators creating valid code
 	// DEPRECATED
 	AddToScheme = SchemeBuilder.AddToScheme

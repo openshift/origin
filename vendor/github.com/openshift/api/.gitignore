@@ -1,5 +1,4 @@
 # Binaries for programs and plugins
-genswaggertypedocs
 *.exe
 *.dll
 *.so
@@ -15,5 +14,6 @@ genswaggertypedocs
 .glide/
 .idea/
 _output/
+tests/bin/
 
 models-schema

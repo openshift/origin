@@ -2,9 +2,9 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    api-approved.openshift.io: https://github.com/openshift/api/pull/1112
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
-    api-approved.openshift.io: https://github.com/openshift/api/pull/1112
   creationTimestamp: null
   name: controlplanemachinesets.machine.openshift.io
 spec:
@@ -37,6 +37,10 @@ spec:
           jsonPath: .status.unavailableReplicas
           name: Unavailable
           type: integer
+        - description: ControlPlaneMachineSet state
+          jsonPath: .spec.state
+          name: State
+          type: string
         - description: ControlPlaneMachineSet age
           jsonPath: .metadata.creationTimestamp
           name: Age
@@ -71,6 +75,9 @@ spec:
                   enum:
                     - 3
                     - 5
+                  x-kubernetes-validations:
+                    - rule: self == oldSelf
+                      message: replicas is immutable
                 selector:
                   description: Label selector for Machines. Existing Machines selected by this selector will be the ones affected by this ControlPlaneMachineSet. It must match the template's labels. This field is considered immutable after creation of the resource.
                   type: object
@@ -101,6 +108,20 @@ spec:
                       type: object
                       additionalProperties:
                         type: string
+                  x-kubernetes-map-type: atomic
+                  x-kubernetes-validations:
+                    - rule: self == oldSelf
+                      message: selector is immutable
+                state:
+                  description: State defines whether the ControlPlaneMachineSet is Active or Inactive. When Inactive, the ControlPlaneMachineSet will not take any action on the state of the Machines within the cluster. When Active, the ControlPlaneMachineSet will reconcile the Machines and will update the Machines as necessary. Once Active, a ControlPlaneMachineSet cannot be made Inactive. To prevent further action please remove the ControlPlaneMachineSet.
+                  type: string
+                  default: Inactive
+                  enum:
+                    - Active
+                    - Inactive
+                  x-kubernetes-validations:
+                    - rule: oldSelf != 'Active' || self == oldSelf
+                      message: state cannot be changed once Active
                 strategy:
                   description: Strategy defines how the ControlPlaneMachineSet will update Machines when it detects a change to the ProviderSpec.
                   type: object
@@ -119,7 +140,6 @@ spec:
                   type: object
                   required:
                     - machineType
-                    - machines_v1beta1_machine_openshift_io
                   properties:
                     machineType:
                       description: MachineType determines the type of Machines that should be managed by the ControlPlaneMachineSet. Currently, the only valid value is machines_v1beta1_machine_openshift_io.
@@ -192,6 +212,13 @@ spec:
                                           - ID
                                           - ARN
                                           - Filters
+                                    x-kubernetes-validations:
+                                      - rule: 'has(self.type) && self.type == ''ID'' ?  has(self.id) : !has(self.id)'
+                                        message: id is required when type is ID, and forbidden otherwise
+                                      - rule: 'has(self.type) && self.type == ''ARN'' ?  has(self.arn) : !has(self.arn)'
+                                        message: arn is required when type is ARN, and forbidden otherwise
+                                      - rule: 'has(self.type) && self.type == ''Filters'' ?  has(self.filters) : !has(self.filters)'
+                                        message: filters is required when type is Filters, and forbidden otherwise
                             azure:
                               description: Azure configures failure domain information for the Azure platform.
                               type: array
@@ -216,20 +243,8 @@ spec:
                                   zone:
                                     description: Zone is the zone in which the GCP machine provider will create the VM.
                                     type: string
-                            openstack:
-                              description: OpenStack configures failure domain information for the OpenStack platform.
-                              type: array
-                              items:
-                                description: OpenStackFailureDomain configures failure domain information for the OpenStack platform
-                                type: object
-                                required:
-                                  - availabilityZone
-                                properties:
-                                  availabilityZone:
-                                    description: The availability zone from which to launch the server.
-                                    type: string
                             platform:
-                              description: Platform identifies the platform for which the FailureDomain represents. Currently supported values are AWS, Azure, GCP and OpenStack.
+                              description: Platform identifies the platform for which the FailureDomain represents. Currently supported values are AWS, Azure, and GCP.
                               type: string
                               enum:
                                 - ""
@@ -248,9 +263,18 @@ spec:
                                 - PowerVS
                                 - AlibabaCloud
                                 - Nutanix
+                          x-kubernetes-validations:
+                            - rule: 'has(self.platform) && self.platform == ''AWS'' ?  has(self.aws) : !has(self.aws)'
+                              message: aws configuration is required when platform is AWS, and forbidden otherwise
+                            - rule: 'has(self.platform) && self.platform == ''Azure'' ?  has(self.azure) : !has(self.azure)'
+                              message: azure configuration is required when platform is Azure, and forbidden otherwise
+                            - rule: 'has(self.platform) && self.platform == ''GCP'' ?  has(self.gcp) : !has(self.gcp)'
+                              message: gcp configuration is required when platform is GCP, and forbidden otherwise
                         metadata:
                           description: 'ObjectMeta is the standard object metadata More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata Labels are required to match the ControlPlaneMachineSet selector.'
                           type: object
+                          required:
+                            - labels
                           properties:
                             annotations:
                               description: 'Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. They are not queryable and should be preserved when modifying objects. More info: http://kubernetes.io/docs/user-guide/annotations'
@@ -258,10 +282,17 @@ spec:
                               additionalProperties:
                                 type: string
                             labels:
-                              description: 'Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels'
+                              description: 'Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels. This field must contain both the ''machine.openshift.io/cluster-api-machine-role'' and ''machine.openshift.io/cluster-api-machine-type'' labels, both with a value of ''master''. It must also contain a label with the key ''machine.openshift.io/cluster-api-cluster''.'
                               type: object
                               additionalProperties:
                                 type: string
+                              x-kubernetes-validations:
+                                - rule: '''machine.openshift.io/cluster-api-machine-role'' in self && self[''machine.openshift.io/cluster-api-machine-role''] == ''master'''
+                                  message: label 'machine.openshift.io/cluster-api-machine-role' is required, and must have value 'master'
+                                - rule: '''machine.openshift.io/cluster-api-machine-type'' in self && self[''machine.openshift.io/cluster-api-machine-type''] == ''master'''
+                                  message: label 'machine.openshift.io/cluster-api-machine-type' is required, and must have value 'master'
+                                - rule: '''machine.openshift.io/cluster-api-cluster'' in self'
+                                  message: label 'machine.openshift.io/cluster-api-cluster' is required
                         spec:
                           description: Spec contains the desired configuration of the Control Plane Machines. The ProviderSpec within contains platform specific details for creating the Control Plane Machines. The ProviderSe should be complete apart from the platform specific failure domain field. This will be overriden when the Machines are created based on the FailureDomains field.
                           type: object
@@ -405,6 +436,9 @@ spec:
                                   value:
                                     description: The taint value corresponding to the taint key.
                                     type: string
+                  x-kubernetes-validations:
+                    - rule: 'has(self.machineType) && self.machineType == ''machines_v1beta1_machine_openshift_io'' ?  has(self.machines_v1beta1_machine_openshift_io) : !has(self.machines_v1beta1_machine_openshift_io)'
+                      message: machines_v1beta1_machine_openshift_io configuration is required when machineType is machines_v1beta1_machine_openshift_io, and forbidden otherwise
             status:
               description: ControlPlaneMachineSetStatus represents the status of the ControlPlaneMachineSet CRD.
               type: object
@@ -413,7 +447,7 @@ spec:
                   description: 'Conditions represents the observations of the ControlPlaneMachineSet''s current state. Known .status.conditions.type are: Available, Degraded and Progressing.'
                   type: array
                   items:
-                    description: "Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, \n \ttype FooStatus struct{ \t    // Represents the observations of a foo's current state. \t    // Known .status.conditions.type are: \"Available\", \"Progressing\", and \"Degraded\" \t    // +patchMergeKey=type \t    // +patchStrategy=merge \t    // +listType=map \t    // +listMapKey=type \t    Conditions []metav1.Condition `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"` \n \t    // other fields \t}"
+                    description: "Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, \n type FooStatus struct{ // Represents the observations of a foo's current state. // Known .status.conditions.type are: \"Available\", \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge // +listType=map // +listMapKey=type Conditions []metav1.Condition `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
                     type: object
                     required:
                       - lastTransitionTime

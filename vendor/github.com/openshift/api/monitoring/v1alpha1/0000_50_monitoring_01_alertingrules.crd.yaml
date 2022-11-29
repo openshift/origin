@@ -3,8 +3,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     api-approved.openshift.io: https://github.com/openshift/api/pull/1179
-    release.openshift.io/feature-gate: TechPreviewNoUpgrade
     description: OpenShift Monitoring alerting rules
+    release.openshift.io/feature-set: TechPreviewNoUpgrade
   name: alertingrules.monitoring.openshift.io
 spec:
   group: monitoring.openshift.io
@@ -71,12 +71,12 @@ spec:
                               type: string
                               pattern: ^[a-zA-Z_][a-zA-Z0-9_]*$
                             annotations:
-                              description: "annotations to add to each alert.  These are values that can be used to store longer additional information that you won't query on, such as alert descriptions or runbook links, e.g.: \n   annotations:     summary: HAProxy reload failure     description: |       This alert fires when HAProxy fails to reload its       configuration, which will result in the router not picking up       recently created or modified routes."
+                              description: "annotations to add to each alert.  These are values that can be used to store longer additional information that you won't query on, such as alert descriptions or runbook links, e.g.: \n annotations: summary: HAProxy reload failure description: | This alert fires when HAProxy fails to reload its configuration, which will result in the router not picking up recently created or modified routes."
                               type: object
                               additionalProperties:
                                 type: string
                             expr:
-                              description: "expr is the PromQL expression to evaluate. Every evaluation cycle this is evaluated at the current time, and all resultant time series become pending or firing alerts.  This is most often a string representing a PromQL expression, e.g.: \n   mapi_current_pending_csr > mapi_max_pending_csr \n In rare cases this could be a simple integer, e.g. a simple \"1\" if the intent is to create an alert that is always firing.  This is sometimes used to create an always-firing \"Watchdog\" alert in order to ensure the alerting pipeline is functional."
+                              description: "expr is the PromQL expression to evaluate. Every evaluation cycle this is evaluated at the current time, and all resultant time series become pending or firing alerts.  This is most often a string representing a PromQL expression, e.g.: \n mapi_current_pending_csr > mapi_max_pending_csr \n In rare cases this could be a simple integer, e.g. a simple \"1\" if the intent is to create an alert that is always firing.  This is sometimes used to create an always-firing \"Watchdog\" alert in order to ensure the alerting pipeline is functional."
                               anyOf:
                                 - type: integer
                                 - type: string
@@ -86,7 +86,7 @@ spec:
                               type: string
                               pattern: ^(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?$
                             labels:
-                              description: "labels to add or overwrite for each alert.  The results of the PromQL expression for the alert will result in an existing set of labels for the alert, after evaluating the expression, for any label specified here with the same name as a label in that set, the label here wins and overwrites the previous value.  These should typically be short identifying values that may be useful to query against.  A common example is the alert severity: \n   labels:     severity: warning"
+                              description: "labels to add or overwrite for each alert.  The results of the PromQL expression for the alert will result in an existing set of labels for the alert, after evaluating the expression, for any label specified here with the same name as a label in that set, the label here wins and overwrites the previous value.  These should typically be short identifying values that may be useful to query against.  A common example is the alert severity: \n labels: severity: warning"
                               type: object
                               additionalProperties:
                                 type: string

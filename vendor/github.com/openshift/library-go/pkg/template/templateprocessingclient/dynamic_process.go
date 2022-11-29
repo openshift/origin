@@ -40,7 +40,7 @@ func (c *dynamicTemplateProcessor) ProcessToList(template *templatev1.Template) 
 
 func (c *dynamicTemplateProcessor) ProcessToListFromUnstructured(unstructuredTemplate *unstructured.Unstructured) (*unstructured.UnstructuredList, error) {
 	processedTemplate, err := c.client.Resource(templatev1.GroupVersion.WithResource("processedtemplates")).
-		Namespace("default").Create(context.TODO(), unstructuredTemplate, metav1.CreateOptions{})
+		Namespace(unstructuredTemplate.GetNamespace()).Create(context.TODO(), unstructuredTemplate, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
