@@ -552,8 +552,10 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 	})
 
 	for group, bts := range builtinTypes {
-		g.It(fmt.Sprintf("should contain spec+status for %s [apigroup:%s]", group, group), func() {
-			for _, bt := range bts {
+		groupName := group
+		types := bts
+		g.It(fmt.Sprintf("should contain spec+status for %s [apigroup:%s]", groupName, groupName), func() {
+			for _, bt := range types {
 				e2e.Logf("Checking %s...", bt)
 				o.Expect(verifySpecStatusExplain(oc, nil, bt)).NotTo(o.HaveOccurred())
 			}
@@ -577,8 +579,10 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 	})
 
 	for group, sts := range specialTypes {
-		g.It(fmt.Sprintf("should contain proper fields description for %s [apigroup:%s]", group, group), func() {
-			for _, st := range sts {
+		groupName := group
+		types := sts
+		g.It(fmt.Sprintf("should contain proper fields description for %s [apigroup:%s]", groupName, groupName), func() {
+			for _, st := range types {
 				e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
 				resource := strings.Split(st.field, ".")
 				gvr := st.gv.WithResource(resource[0])
