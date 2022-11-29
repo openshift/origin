@@ -134,6 +134,13 @@ func (t *backendDisruptionTest) Test(f *framework.Framework, done <-chan struct{
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 
+	allowedDisruption, disruptionDetails, err := t.getAllowedDisruption(f)
+	framework.ExpectNoError(err)
+	if allowedDisruption == nil {
+		framework.Logf(fmt.Sprintf("Skipping: %s: No historical data", t.testName))
+		return
+	}
+
 	newBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: f.ClientSet.EventsV1()})
 	eventRecorder := newBroadcaster.NewRecorder(scheme.Scheme, "openshift.io/"+t.backend.GetDisruptionBackendName())
 	newBroadcaster.StartRecordingToSink(stopCh)
@@ -174,9 +181,6 @@ func (t *backendDisruptionTest) Test(f *framework.Framework, done <-chan struct{
 	}
 
 	end := time.Now()
-
-	allowedDisruption, disruptionDetails, err := t.getAllowedDisruption(f)
-	framework.ExpectNoError(err)
 
 	fromTime, endTime := time.Time{}, time.Time{}
 	events := m.Intervals(fromTime, endTime)
