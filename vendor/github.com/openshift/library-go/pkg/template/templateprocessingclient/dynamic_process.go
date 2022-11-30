@@ -38,13 +38,19 @@ func (c *dynamicTemplateProcessor) ProcessToList(template *templatev1.Template) 
 	return c.ProcessToListFromUnstructured(&unstructured.Unstructured{Object: unstructuredTemplate})
 }
 
-func (c *dynamicTemplateProcessor) ProcessToListFromUnstructured(unstructuredTemplate *unstructured.Unstructured) (*unstructured.UnstructuredList, error) {
+func (c *dynamicTemplateProcessor) ProcessToListFromUnstructured(unstructuredTemplateFromCaller *unstructured.Unstructured) (*unstructured.UnstructuredList, error) {
+	// avoid mutating input
+	unstructuredTemplate := unstructuredTemplateFromCaller.DeepCopy()
+	unstructuredTemplate.SetNamespace("default")
+
 	processedTemplate, err := c.client.Resource(templatev1.GroupVersion.WithResource("processedtemplates")).
-		Namespace("default").Create(context.TODO(), unstructuredTemplate, metav1.CreateOptions{})
+		Namespace(unstructuredTemplate.GetNamespace()).Create(context.TODO(), unstructuredTemplate, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
 
+	// reset the namespace as before
+	processedTemplate.SetNamespace(unstructuredTemplateFromCaller.GetNamespace())
 	// convert the template into something we iterate over as a list
 	if err := unstructured.SetNestedField(processedTemplate.Object, processedTemplate.Object["objects"], "items"); err != nil {
 		return nil, err
