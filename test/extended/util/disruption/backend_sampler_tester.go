@@ -8,13 +8,14 @@ import (
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/openshift/origin/pkg/monitor"
-	"github.com/openshift/origin/pkg/monitor/backenddisruption"
-	"github.com/openshift/origin/pkg/synthetictests/allowedbackenddisruption"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/events"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
+
+	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/backenddisruption"
+	"github.com/openshift/origin/pkg/synthetictests/allowedbackenddisruption"
 )
 
 type BackendSampler interface {
@@ -75,12 +76,9 @@ func alwaysAllowOneSecond(delegateFn AllowedDisruptionFunc) AllowedDisruptionFun
 		if delegateError != nil {
 			return delegateDuration, delegateReason, delegateError
 		}
-		if delegateDuration == nil {
-			return delegateDuration, delegateReason, delegateError
-		}
 
 		oneSecond := 1 * time.Second
-		if *delegateDuration < oneSecond {
+		if delegateDuration == nil || *delegateDuration < oneSecond {
 			return &oneSecond, "always allow at least 1s", nil
 		}
 
