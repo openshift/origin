@@ -360,7 +360,10 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 			if allowed {
 				continue
 			}
-			displayToCount[eventDisplayMessage] = times
+
+			if times > displayToCount[eventDisplayMessage] {
+				displayToCount[eventDisplayMessage] = times
+			}
 		}
 	}
 
