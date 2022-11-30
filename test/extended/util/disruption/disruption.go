@@ -253,7 +253,7 @@ func finalizeTest(start time.Time, tc *junit.TestCase, ts *junit.TestSuite, f *f
 	default:
 		tc.Errors = []*junit.Error{
 			{
-				Message: fmt.Sprintf("%v", r),
+				Message: "Ginkgo panic encountered. See CDATA for details.",
 				Type:    "Panic",
 				Value:   fmt.Sprintf("%v\n\n%s", r, debug.Stack()),
 			},
