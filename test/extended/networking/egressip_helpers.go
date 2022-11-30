@@ -9,20 +9,17 @@ import (
 	"io"
 	"math/rand"
 	"net"
-	"os"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
+	cloudnetworkv1 "github.com/openshift/api/cloudnetwork/v1"
 	configv1 "github.com/openshift/api/config/v1"
 	networkv1 "github.com/openshift/api/network/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	cloudnetwork "github.com/openshift/client-go/cloudnetwork/clientset/versioned"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
-	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -59,12 +56,13 @@ type EgressIP struct {
 	Status EgressIPStatus `json:"status,omitempty"`
 }
 
+// EgressIPStatus reports the EgressIP status.
 type EgressIPStatus struct {
 	// The list of assigned egress IPs and their corresponding node assignment.
 	Items []EgressIPStatusItem `json:"items"`
 }
 
-// The per node status, for those egress IPs who have been assigned.
+// EgressIPStatusItem reports the per node status, for those egress IPs who have been assigned.
 type EgressIPStatusItem struct {
 	// Assigned node name
 	Node string `json:"node"`
@@ -91,8 +89,6 @@ type EgressIPSpec struct {
 	PodSelector metav1.LabelSelector `json:"podSelector,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=egressip
 // EgressIPList is the list of EgressIPList.
 type EgressIPList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -147,44 +143,6 @@ func (n byName) Len() int           { return len(n) }
 func (n byName) Swap(i, j int)      { n[i], n[j] = n[j], n[i] }
 func (n byName) Less(i, j int) bool { return n[i].Name < n[j].Name }
 
-// findPacketSnifferInterface finds the interface that shall be used for packet capturing on all nodes in the list.
-// Return an error if there is no consensus about the interface that shall be used among nodes.
-func findPacketSnifferInterface(oc *exutil.CLI, networkPlugin string, egressIPNodesOrderedNames []string) (string, error) {
-	var intf string
-	var packetSnifferNode, packetSnifferInterface string
-	var err error
-	for _, node := range egressIPNodesOrderedNames {
-		intf, err = findPacketSnifferInterfaceOnNode(oc, networkPlugin, node)
-		if err != nil {
-			return "", err
-		}
-		if packetSnifferInterface == "" {
-			packetSnifferInterface = intf
-			packetSnifferNode = node
-			continue
-		}
-		if packetSnifferInterface != intf {
-			return "", fmt.Errorf("Selected different interfaces for packet capture. Node %s reported '%s' but node %s reports '%s'",
-				packetSnifferNode,
-				packetSnifferInterface,
-				node,
-				intf)
-		}
-	}
-	return packetSnifferInterface, nil
-}
-
-// findPacketSnifferInterfaceOnNode finds the interface that shall be used for packet capturing on this node.
-func findPacketSnifferInterfaceOnNode(oc *exutil.CLI, networkPlugin, nodeName string) (string, error) {
-	if networkPlugin == openshiftSDNPluginName {
-		return findDefaultInterfaceForOpenShiftSDN(oc, nodeName)
-	}
-	if networkPlugin == OVNKubernetesPluginName {
-		return findBridgePhysicalInterface(oc, nodeName, "br-ex")
-	}
-	return "", fmt.Errorf("Invalid network plugin name: '%s'", networkPlugin)
-}
-
 // findDefaultInterfaceForOpenShiftSDN returns the default interface for a node with the OpenShiftSDN plugin.
 func findDefaultInterfaceForOpenShiftSDN(oc *exutil.CLI, nodeName string) (string, error) {
 	var podName string
@@ -234,69 +192,6 @@ func findDefaultInterfaceForOpenShiftSDN(oc *exutil.CLI, nodeName string) (strin
 	return defaultRoutes[0].Dev, nil
 }
 
-// findBridgePhysicalInterface returns the name of the physical interface that belogs to <bridgeName> on node <nodeName>.
-func findBridgePhysicalInterface(oc *exutil.CLI, nodeName, bridgeName string) (string, error) {
-	var podName string
-	var out string
-	var err error
-
-	out, err = runOcWithRetry(oc.AsAdmin(), "get",
-		"pods",
-		"-o", "name",
-		"-n", "openshift-ovn-kubernetes",
-		"--field-selector", fmt.Sprintf("spec.nodeName=%s", nodeName),
-		"-l", "app=ovnkube-node")
-	if err != nil {
-		return "", err
-	}
-	outReader := bufio.NewScanner(strings.NewReader(out))
-	re := regexp.MustCompile("^pod/(.*)")
-	for outReader.Scan() {
-		match := re.FindSubmatch([]byte(outReader.Text()))
-		if len(match) != 2 {
-			continue
-		}
-		podName = string(match[1])
-		break
-	}
-	if podName == "" {
-		return "", fmt.Errorf("Could not find a valid ovnkube-node pod on node '%s'", nodeName)
-	}
-	out, err = adminExecInPod(oc, "openshift-ovn-kubernetes", podName, "ovnkube-node", fmt.Sprintf("ovs-vsctl list-ports %s", bridgeName))
-	if err != nil {
-		return "", fmt.Errorf("failed to get list of ports on bridge %s:, error: %v",
-			bridgeName, err)
-	}
-	for _, port := range strings.Split(out, "\n") {
-		out, err = adminExecInPod(
-			oc, "openshift-ovn-kubernetes", podName, "ovnkube-node",
-			fmt.Sprintf("ovs-vsctl get Port %s Interfaces", port))
-		if err != nil {
-			return "", fmt.Errorf("failed to get port %s on bridge %s: error: %v",
-				bridgeName, port, err)
-
-		}
-		// remove brackets on list of interfaces
-		ifaces := strings.TrimPrefix(strings.TrimSuffix(out, "]"), "[")
-		for _, iface := range strings.Split(ifaces, ",") {
-			out, err = adminExecInPod(
-				oc, "openshift-ovn-kubernetes", podName, "ovnkube-node",
-				fmt.Sprintf("ovs-vsctl get Interface %s Type", strings.TrimSpace(iface)))
-			if err != nil {
-				return "", fmt.Errorf("failed to get Interface %q Type on bridge %q:, error: %v",
-					iface, bridgeName, err)
-
-			}
-			// If system Type we know this is the OVS port is the NIC
-			if out == "system" {
-				return port, nil
-			}
-		}
-	}
-	return "", fmt.Errorf("Could not find a physical interface connected to bridge %s on node %s (pod %s)",
-		bridgeName, nodeName, podName)
-}
-
 // adminExecInPod runs a command as admin in the provides pod inside the provided namespace.
 func adminExecInPod(oc *exutil.CLI, namespace, pod, container, script string) (string, error) {
 	var out string
@@ -306,309 +201,6 @@ func adminExecInPod(oc *exutil.CLI, namespace, pod, container, script string) (s
 		return true, err
 	})
 	return out, waitErr
-}
-
-// createPacketSnifferDaemonSet creates packet sniffer pods on the hosts specified in scheduleOnHosts.
-func createPacketSnifferDaemonSet(oc *exutil.CLI, namespace string, scheduleOnHosts []string, packetCaptureProtocol string, packetCapturePort int, packetCaptureInterface string) (*appsv1.DaemonSet, error) {
-	f := oc.KubeFramework()
-	clientset := f.ClientSet
-
-	tcpdumpImage, err := util.DetermineImageFromRelease(oc, "network-tools")
-	if err != nil {
-		return nil, err
-	}
-
-	daemonsetName := fmt.Sprintf("%s-packet-sniffer", namespace)
-	targetDaemonset, err := createHostNetworkedPacketSnifferDaemonSet(
-		clientset,
-		tcpdumpImage,
-		packetCaptureProtocol,
-		packetCapturePort,
-		namespace,
-		daemonsetName,
-		scheduleOnHosts,
-		packetCaptureInterface,
-	)
-	if err != nil {
-		return targetDaemonset, err
-	}
-
-	var ds *appsv1.DaemonSet
-	retries := 12
-	pollInterval := 5
-	for i := 0; i < retries; i++ {
-		// Get the DS
-		ds, err = clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), daemonsetName, metav1.GetOptions{})
-		if err != nil {
-			return nil, err
-		}
-
-		// Check if NumberReady == DesiredNumberScheduled.
-		// In that case, simply return as all went well.
-		if ds.Status.NumberReady == ds.Status.DesiredNumberScheduled {
-			return ds, nil
-		}
-		// If no port conflict error was found, simply sleep for pollInterval and then
-		// check again.
-		time.Sleep(time.Duration(pollInterval) * time.Second)
-	}
-
-	// The DaemonSet is not ready, but this is not because of a port conflict.
-	// This shouldn't happen and other parts of the code will likely report this error
-	// as a CI failure.
-	return ds, fmt.Errorf("Daemonset still not ready after %d tries", retries)
-}
-
-const (
-	// The tcpCaptureScript runs tcpdump and extracts all GET request strings from the packets.
-	// The resulting lines will be something like:
-	// 10.128.2.15.36749  /f8f721fa-53c9-444f-bc96-69c7388fcb5a
-	tcpCaptureScript = `#!/bin/bash
-tcpdump -nne -i %s -l -s 0  'port %d and tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420' | awk '{print $10 " " $(NF-1)}'
-`
-
-	// The udpCaptureScript runs tcpdump with option -xx and then decodes the hexadecimal information.
-	// We have to read the UDP payload and it is actually a bit difficult to get this with just tcpdump.
-	// It is also a bit tricky to know when a UDP payload actually ended (specifically for the last packet
-	// that's captured).
-	// tshark would definitely be the better tool here, but that would introduce another dependency. Hence,
-	// decode the hexadecimal information and look for payload that is marked with 'START(.*)EOF$' and extract
-	// the '(.*)' part. The resulting lines will be `sourceIP + "  " + z.group(1)`, hence something like:
-	// 10.128.2.15.36749 f8f721fa-53c9-444f-bc96-69c7388fcb5a
-	udpCaptureScript = `#!/bin/bash
-
-cat <<'EOF' > capture-python.py
-#!/usr/bin/python
-
-import sys
-import select
-import re
-
-# Source IP is at location 9 in the first line if a specific
-# interface is used or at location 8 if the any interface is
-# used
-sourceIPOffset = 9
-# UDP payload starts at around Byte 21
-# We don't care about the offset though, having everything
-# in one line is enough.
-udpPayloadOffset = 0
-
-# globals
-fullHex = []
-sourceIP = ""
-
-def decodePayload(hexArray):
-    payloadStr = ""
-    for x in hexArray[udpPayloadOffset:]:
-        try:
-            byte_array = bytearray.fromhex(x)
-            payloadStr += byte_array.decode()
-        except:
-            pass
-    return payloadStr
-
-def printLine():
-    global sourceIP
-    global fullHex
-    if sourceIP != "" and fullHex != []:
-        decodedPayload = decodePayload(fullHex)
-        z = re.search(r'START(.*)EOF$', decodedPayload)
-        if z:
-            print(sourceIP + "  " + z.group(1))
-            fullHex = []
-            sourceIP = ""
-
-for line in sys.stdin:
-    if not re.match(r'^$', line) and re.match(r'^\s', line):
-        hexLine = line.split()
-        if re.match(r'^0x', hexLine[0]):
-            for x in hexLine[1:]:
-                fullHex.append(x)
-        printLine()
-    elif not re.match(r'^$', line):
-        printLine()
-        sourceIP = line.split()[sourceIPOffset]
-
-printLine()
-EOF
-chmod +x capture-python.py
-
-tcpdump -nne -i %s -l -xx -s0 port %d and udp | ./capture-python.py
-`
-)
-
-// createHostNetworkedPacketSnifferDaemonSet creates a host networked pod in namespace <namespace> on
-// node <nodeName>. It will start a packet sniffer and it will log all GET request's source IP and the actual request string.
-func createHostNetworkedPacketSnifferDaemonSet(clientset kubernetes.Interface, networkPacketSnifferImage, packetCaptureProtocol string, packetCapturePort int,
-	namespace, daemonsetName string, scheduleOnHosts []string, packetCaptureInterface string) (*appsv1.DaemonSet, error) {
-	if packetCaptureProtocol != "http" && packetCaptureProtocol != "udp" {
-		return nil, fmt.Errorf("createHostNetworkedPacketSnifferDaemonSet supports only 'http' and 'udp' protocols, got: %s", packetCaptureProtocol)
-	}
-	// https://www.middlewareinventory.com/blog/tcpdump-capture-http-get-post-requests-apache-weblogic-websphere/#How_to_capture_All_incoming_HTTP_GET_traffic_or_requests
-	cmd := tcpCaptureScript
-	if packetCaptureProtocol == "udp" {
-		cmd = udpCaptureScript
-	}
-	podCommand := []string{
-		"/bin/bash",
-		"-c",
-		fmt.Sprintf(cmd, packetCaptureInterface, packetCapturePort),
-	}
-	podLabels := map[string]string{
-		"app": daemonsetName,
-	}
-	// create deployment
-	nodeAffinity := v1.Affinity{
-		NodeAffinity: &v1.NodeAffinity{
-			RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
-				NodeSelectorTerms: []v1.NodeSelectorTerm{
-					{
-						MatchExpressions: []v1.NodeSelectorRequirement{
-							{
-								Key:      "kubernetes.io/hostname",
-								Operator: v1.NodeSelectorOpIn,
-								Values:   scheduleOnHosts,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	readinessProbe := &v1.Probe{
-		ProbeHandler: v1.ProbeHandler{
-			Exec: &v1.ExecAction{
-				Command: []string{
-					"echo",
-					"ready",
-				},
-			},
-		},
-	}
-	runAsUser := int64(0)
-	securityContext := &v1.SecurityContext{
-		RunAsUser: &runAsUser,
-		Capabilities: &v1.Capabilities{
-			Add: []v1.Capability{
-				"SETFCAP",
-				"CAP_NET_RAW",
-				"CAP_NET_ADMIN",
-			},
-		},
-	}
-	dsDefinition := &appsv1.DaemonSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "DaemonSet",
-			APIVersion: "apps/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      daemonsetName,
-		},
-		Spec: appsv1.DaemonSetSpec{
-			Selector: &metav1.LabelSelector{MatchLabels: podLabels},
-			Template: v1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: podLabels,
-				},
-				Spec: corev1.PodSpec{
-					Affinity:    &nodeAffinity,
-					HostNetwork: true,
-					Containers: []v1.Container{
-						{
-							Name:            "tcpdump",
-							Image:           networkPacketSnifferImage,
-							Command:         podCommand,
-							ReadinessProbe:  readinessProbe,
-							SecurityContext: securityContext,
-							TTY:             true, // needed for immediate log propagation
-							Stdin:           true, // needed for immediate log propagation
-						},
-					},
-				},
-			},
-		},
-	}
-	ds, err := clientset.AppsV1().DaemonSets(namespace).Create(context.TODO(), dsDefinition, metav1.CreateOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	return ds, nil
-}
-
-// scanPacketSnifferDaemonSetPodLogs iterates over the pods logs and searches for searchString
-// and then counts the occurrences for each found IP address.
-func scanPacketSnifferDaemonSetPodLogs(oc *exutil.CLI, ds *appsv1.DaemonSet, targetProtocol, searchString string) (map[string]int, error) {
-	if oc == nil {
-		return nil, fmt.Errorf("Nil pointer to exutil.CLI oc was provided in ScanPacketSnifferDaemonSetPodLogs")
-	}
-	if ds == nil {
-		return nil, fmt.Errorf("Nil pointer to DaemonSet ds was provided in ScanPacketSnifferDaemonSetPodLogs")
-	}
-	if targetProtocol != "http" && targetProtocol != "udp" {
-		return nil, fmt.Errorf("ScanPacketSnifferDaemonSetPodLogs supports only 'http' and 'udp' protocols.")
-	}
-
-	f := oc.KubeFramework()
-	clientset := f.ClientSet
-
-	pods, err := clientset.CoreV1().Pods(ds.Namespace).List(
-		context.TODO(),
-		metav1.ListOptions{LabelSelector: labels.Set(ds.Spec.Selector.MatchLabels).String()})
-	if err != nil {
-		return nil, err
-	}
-
-	matchedIPs := make(map[string]int)
-	for _, pod := range pods.Items {
-		logOptions := corev1.PodLogOptions{}
-		req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &logOptions)
-		logs, err := req.Stream(context.TODO())
-		if err != nil {
-			return nil, fmt.Errorf("Error in opening log stream")
-		}
-		defer logs.Close()
-
-		buf := new(bytes.Buffer)
-		_, err = io.Copy(buf, logs)
-		if err != nil {
-			return nil, fmt.Errorf("Error in copying info from pod logs to buffer")
-		}
-		_ = buf.String()
-
-		var ip string
-		scanner := bufio.NewScanner(buf)
-		for scanner.Scan() {
-			logLine := scanner.Text()
-			if strings.Contains(logLine, searchString) {
-				// Currently, it is not necessary to discriminate by protocol.
-				// a log line should look like this for http:
-				// 10.0.144.5.33226 /bed729aa-4e83-482d-a433-db798e569147
-				// a log line should look like this for udp:
-				// 10.0.144.5.33226 bed729aa-4e83-482d-a433-db798e569147
-				// Should it ever be necessary, the targetProtocol to this method (which is currently
-				// not used) serves this purpose.
-				framework.Logf("Found hit in log line: %s", logLine)
-				logLineExploded := strings.Fields(logLine)
-				if len(logLineExploded) != 2 {
-					return nil, fmt.Errorf("Unexpected logline content: %s", logLine)
-				}
-				ipAddressPortExploded := strings.Split(logLineExploded[0], ".")
-				if len(ipAddressPortExploded) == 2 {
-					// ipv6
-					ip = ipAddressPortExploded[0]
-				} else if len(ipAddressPortExploded) == 5 {
-					// ipv4
-					ip = strings.Join(ipAddressPortExploded[:len(ipAddressPortExploded)-1], ".")
-				} else {
-					return nil, fmt.Errorf("Unexpected logline content, invalid IP/Port: %s", logLine)
-				}
-				matchedIPs[ip]++
-			}
-		}
-	}
-	return matchedIPs, nil
 }
 
 func getIngressDomain(oc *exutil.CLI) (string, error) {
@@ -854,6 +446,7 @@ func updateDeploymentAffinity(oc *exutil.CLI, namespace, deploymentName string, 
 	return nil
 }
 
+// NodeEgressIPConfiguration reports the node egress IP config.
 // from github.com/openshift/cloud-network-config-controller/pkg/cloudprovider/cloudprovider.go
 type NodeEgressIPConfiguration struct {
 	Interface string   `json:"interface"`
@@ -872,11 +465,13 @@ type capacity struct {
 	IP   int `json:"ip,omitempty"`
 }
 
-// findNodeEgressIPs will return a list of available EgressIPs in a map <nodeName>:<egressIP>.
+// findNodeEgressIPs will return a map available EgressIPs per node (map[<nodeName>]<egressIP>).
 // The returned EgressIPs are chosen from the nodes' cloud.network.openshift.io/egress-ipconfig annotation and they
-// depend on the current cloud type, on the currenctly used cloudprivateipconfigs, and on an internal reservation
-// manager. Find <egressIPsPerNode> number of IPs per node.
-// TODO: Create the internal reservation manager, if needed.
+// depend on the current cloud type, on the currently used CloudPrivateIPConfigs, and on an internal reservation
+// manager. A maximum of <egressIPsPerNode> number of IPs will be returned per node.
+// Note: On most clouds, there is no dedicated CIDR per node and instead all EgressIPs come from a common pool.
+// Thus, this is only an artificial assignment of EgressIP to node on these cloud platforms and the EgressIP feature
+// will pick the actual node.
 func findNodeEgressIPs(oc *exutil.CLI, clientset kubernetes.Interface, cloudNetworkClientset cloudnetwork.Interface,
 	cloudType configv1.PlatformType, egressIPsPerNode int, nodeNames ...string) (map[string][]string, error) {
 	// Get the node API objects corresponding to the node names.
@@ -1087,10 +682,10 @@ func createProberPod(oc *exutil.CLI, proberPodNamespace, proberPodName string) *
 // destroyProberPod destroys the given proberPod.
 func destroyProberPod(oc *exutil.CLI, proberPod *v1.Pod) error {
 	if oc == nil {
-		return fmt.Errorf("Nil pointer to exutil.CLI oc was provided in destroyProberPod.")
+		return fmt.Errorf("nil pointer to exutil.CLI oc was provided in destroyProberPod")
 	}
 	if proberPod == nil {
-		return fmt.Errorf("Nil pointer to proberPod was provided in destroyProberPod.")
+		return fmt.Errorf("nil pointer to proberPod was provided in destroyProberPod")
 	}
 	f := oc.KubeFramework()
 	clientset := f.ClientSet
@@ -1106,137 +701,100 @@ func destroyProberPod(oc *exutil.CLI, proberPod *v1.Pod) error {
 	)
 }
 
-// sendEgressIPProbesAndCheckPacketSnifferLogs sends requests with a unique search string from the prober pod. It then
-// makes sure that the expectedHits number of requests were seen in the packetSnifferDaemonSet's pod logs.
-// We are only interested in sending our searchString (a unique UUID per query).
-// We do not care about the response because:
-// a) We inspect the traffic that we are sending and we search for the unique searchString
-// b) We make sure that the request leaves from one of the EgressIPs
-// Therefore, we can send our request against any destination.
-// If we tests against any TCP/HTTP endpoint, we can additionally
-// c) Prove that we established a bidirectional stream.
+// sendEgressIPProbesAndCheckOutput sends requests from the prober pod to the target and queries /clientip. Each
+// query is sent in its own go function to speed up the total process.
+// As soon as all requests were sent, parse the output and for each clientIP address that the target reported, count
+// how often it occurred.
+// Sum up the hits of all EgressIPs and make sure that the expectedHits number of requests were seen.
 //
 // Parameters:
-//
-// oc: the CLI
-// proberPod: a pointer to the pod that sends the probes (this is not an EgressIP pod, instead, it dials into the route/service of the EgressIP pods)
-// routeName: Name of the routes that covers the EgressIP nodes
-// targetProtocol: one of http or udp, protocol that EgressIP outbound traffic will use
-// targetHost: a host that resides outside of the cluster, target for EgressIP traffic
-// targetPort: the target port of outbound EgressIP traffic
-// probeCount: the number of probes to send
-// expectedHits: the number of expected log hits (usually, either 0 or expectedHits == probeCount)
-// packetSnifferDaemonSet: the DaemonSet that runs the tcpdump processes (we must check the logs of each pod in this DaemonSet)
-// egressIPSet: Those are the EgressIPs that we are looking for. The sum of log hits for seach EgressIP must be == expectedHits
-// logScanMaxTries: Needed do deal with log propagation delay. Rescan logs every second for logScanMaxTries if expectedHits != probeCount
-func sendEgressIPProbesAndCheckPacketSnifferLogs(
-	oc *exutil.CLI, proberPod *corev1.Pod, routeName, targetProtocol, targetHost string, targetPort,
-	probeCount, expectedHits int, packetSnifferDaemonSet *appsv1.DaemonSet, egressIPSet map[string]string, logScanMaxTries int) (bool, error) {
+// oc:             The CLI client.
+// proberPod:      A pointer to the pod that sends the probes (this is not an EgressIP pod, instead, it dials
+//                 into the route/service of the EgressIP pods).
+// routeName:      Name of the routes to dial into the EgressIP pods' agnhost netexec.
+// targetHost:     A host that resides outside of the cluster, target for EgressIP traffic.
+// targetPort:     The target port of outbound EgressIP traffic.
+// probeCount:     The number of probes to send.
+// expectedHits:   The number of expected log hits (usually, either 0 or expectedHits == probeCount).
+// egressIPSet:    Those are the EgressIPs that we are looking for. Expect sum(EgressIP clientIPs) == expectedHits.
+func sendEgressIPProbesAndCheckOutput(oc *exutil.CLI, proberPod *corev1.Pod, routeName, targetHost string, targetPort,
+	probeCount, expectedHits int, egressIPSet map[string]string) (bool, error) {
 
-	// Send requests.
-	framework.Logf("Sending requests with a unique search string from prober pod %s/%s", proberPod.Namespace, proberPod.Name)
-	searchString, err := sendProbesToHostPort(oc, proberPod, routeName, targetProtocol, targetHost, targetPort, probeCount)
-	if err != nil {
-		return false, err
-	}
-
-	// Tcpdump runs with -l for line buffered and the container runs with a TTY.
-	// Even with all of this in place, it can still take a while for log entries to show up inside the container logs so add this retry mechanism.
-	for i := 0; i < logScanMaxTries; i++ {
-		// Collect log entries inside map "found".
-		framework.Logf("Making sure that %d requests with search string %s and EgressIPs %v were seen (try %d of %d)", expectedHits, searchString, egressIPSet, i+1, logScanMaxTries)
-		numberFound := 0
-		found, err := scanPacketSnifferDaemonSetPodLogs(oc, packetSnifferDaemonSet, targetProtocol, searchString)
-		if err != nil {
-			return false, err
-		}
-		framework.Logf("Found map is: %v", found)
-
-		// Count number of found entries for all EgressIPs.
-		for egressIP := range egressIPSet {
-			if n, ok := found[egressIP]; ok {
-				framework.Logf("Found EgressIP %s for string %s %d times", egressIP, searchString, n)
-				numberFound += n
-			}
-		}
-
-		// Return true if number found and expectHits count match.
-		if numberFound == expectedHits {
-			return true, nil
-		}
-
-		// If numberFound > expectedHits, then something is wrong that we can't fix by rescanning the logs.
-		if numberFound > expectedHits {
-			return false, nil
-		}
-
-		framework.Logf("Sleeping for 1 seconds to give container logs and tcpdump some more time to refresh")
-		time.Sleep(1 * time.Second)
-	}
-	return false, nil
-}
-
-// sendProbesToHostPort generates a random string and runs curl against
-// http://%s/dial?host=%s&port=%d&request=<random-string> for the specified number of iterations.
-// Returns the random string that was used as a request.
-func sendProbesToHostPort(oc *exutil.CLI, proberPod *v1.Pod, url, targetProtocol, targetHost string, targetPort, iterations int) (string, error) {
 	if oc == nil {
-		return "", fmt.Errorf("Nil pointer to exutil.CLI oc was provided in sendProbesToHostPort.")
+		return false, fmt.Errorf("nil pointer to exutil.CLI oc was provided in sendProbesToHostPort")
 	}
 	if proberPod == nil {
-		return "", fmt.Errorf("Nil pointer to proberPod was provided in sendProbesToHostPort.")
-	}
-	if targetProtocol != "http" && targetProtocol != "udp" {
-		return "", fmt.Errorf("sendProbesToHostPort supports only 'http' and 'udp' protocols.")
+		return false, fmt.Errorf("nil pointer to proberPod was provided in sendProbesToHostPort")
 	}
 
-	randomID := uuid.New()
-	randomIDStr := randomID.String()
-	if targetProtocol == "udp" {
-		randomIDStr = fmt.Sprintf("START%sEOF", randomIDStr)
-	}
-
-	// Connect to the url, instruct the netexec server running on the other side to dial targetProtocol/targetHost/targetPort and insert
-	// the randomIDStr in the request. Run these tests in their own go routines to speed this up (for UDP, agnhost unfortunately has a
-	// 7 second or so wait time before it returns and the delay here compounds a lot when running several iterations).
-	request := fmt.Sprintf("http://%s/dial?protocol=%s&host=%s&port=%d&request=%s", url, targetProtocol, targetHost, targetPort, randomIDStr)
+	// Connect to the url, instruct the netexec server running on the other side to dial HTTP targetHost:targetPort
+	// and to run the clientip request.
+	requestStr := "clientip"
+	targetProtocol := "http"
+	request := fmt.Sprintf("http://%s/dial?protocol=%s&host=%s&port=%d&request=%s", routeName, targetProtocol,
+		targetHost, targetPort, requestStr)
+	clientIPs := make(map[string]int)
 	var wg sync.WaitGroup
-	errChan := make(chan error, iterations)
-	for i := 0; i < iterations; i++ {
+	outputChan := make(chan string, probeCount)
+	for i := 0; i < probeCount; i++ {
 		// Make sure that we don´t reuse the i variable when passing it to the go func.
 		i := i
-		// Randomize the start time a little bit per go routine.
-		// Max of 250 ms * current iteration counter
-		n := rand.Intn(250) * i
-		framework.Logf("Sleeping for %d ms for iteration %d", n, i)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			// Randomize the start time a little bit per go routine.
+			// Max of 250 ms * current iteration counter
+			n := rand.Intn(250) * i
+			framework.Logf("Sleeping for %d ms for iteration %d", n, i)
 			time.Sleep(time.Duration(n) * time.Millisecond)
+
 			output, err := runOcWithRetry(oc.AsAdmin(), "exec", proberPod.Name, "--", "curl", "--max-time", "15", "-s", request)
-			// Report errors.
 			if err != nil {
-				errChan <- fmt.Errorf("Query failed. Request: %s, Output: %s, Error: %v", request, output, err)
+				framework.Logf("Query failed. Request: %s, Output: %s, Error: %v", request, output, err)
+				return
 			}
-			return
+			outputChan <- output
 		}()
 	}
 	wg.Wait()
+	close(outputChan)
 
-	// If the above yielded any errors, then append them to a list and report them.
-	if len(errChan) > 0 {
-		errList := "Encountered the following errors: "
-		for e := range errChan {
-			errList = fmt.Sprintf("%s {%s}", errList, e.Error())
+	for output := range outputChan {
+		framework.Logf("Output is: %s", output)
+		resp := struct {
+			Responses []string
+		}{}
+		err := json.Unmarshal([]byte(output), &resp)
+		if err != nil {
+			framework.Logf("Could not unmarshal output %s", output)
+			continue
 		}
-		return "", fmt.Errorf(errList)
+		if len(resp.Responses) != 1 {
+			framework.Logf("Could not parse output %s", output)
+			continue
+		}
+		ipPort := strings.Split(resp.Responses[0], ":")
+		if len(ipPort) != 2 {
+			framework.Logf("Could not parse output %s", output)
+			continue
+		}
+		ip := ipPort[0]
+		clientIPs[ip]++
 	}
 
-	return randomID.String(), nil
-}
+	numHits := 0
+	for eip := range egressIPSet {
+		numHits += clientIPs[eip]
+	}
+	framework.Logf("Reported clientIPs are: %v", clientIPs)
+	if numHits != expectedHits {
+		framework.Logf("Unexpected number of hits for EgressIPs %v, expected: %d, got: %d",
+			egressIPSet, expectedHits, numHits)
+		return false, nil
+	}
 
-// TODO: make port allocator a singleton, shared among all test processes for egressip
-// TODO: add an egressip allocator similar to the port allocator
+	return true, nil
+}
 
 // PortAllocator is a simple class to allocate ports serially.
 type PortAllocator struct {
@@ -1281,7 +839,7 @@ func (p *PortAllocator) AllocateNextPort() (int, error) {
 		p.nextPort++
 	}
 
-	return -1, fmt.Errorf("Cannot allocate new port after %d tries.", rangeSize)
+	return -1, fmt.Errorf("cannot allocate new port after %d tries", rangeSize)
 }
 
 // ReleasePort will release the allocatoin for port <port>.
@@ -1539,13 +1097,13 @@ func getDaemonSetPodIPs(clientset kubernetes.Interface, namespace, daemonsetName
 // At the end of the test, the prober pod is deleted again.
 func probeForClientIPs(oc *exutil.CLI, proberPodNamespace, proberPodName, url, targetIP string, targetPort, iterations int) (map[string]struct{}, error) {
 	if oc == nil {
-		return nil, fmt.Errorf("Nil pointer to exutil.CLI oc was provided in SendProbesToHostPort.")
+		return nil, fmt.Errorf("nil pointer to exutil.CLI oc was provided in SendProbesToHostPort")
 	}
 
 	f := oc.KubeFramework()
 	clientset := f.ClientSet
 
-	clientIpSet := make(map[string]struct{})
+	clientIPSet := make(map[string]struct{})
 
 	proberPod := frameworkpod.CreateExecPodOrFail(clientset, proberPodNamespace, probePodName, func(pod *corev1.Pod) {
 		// pod.ObjectMeta.Annotations = annotation
@@ -1574,12 +1132,12 @@ func probeForClientIPs(oc *exutil.CLI, proberPodNamespace, proberPodName, url, t
 		if len(dialResponse.Responses) != 1 {
 			continue
 		}
-		clientIpPort := strings.Split(dialResponse.Responses[0], ":")
-		if len(clientIpPort) != 2 {
+		clientIPPort := strings.Split(dialResponse.Responses[0], ":")
+		if len(clientIPPort) != 2 {
 			continue
 		}
-		clientIp := clientIpPort[0]
-		clientIpSet[clientIp] = struct{}{}
+		clientIP := clientIPPort[0]
+		clientIPSet[clientIP] = struct{}{}
 	}
 
 	// delete the exec pod again - in foreground, so that it blocks
@@ -1590,59 +1148,13 @@ func probeForClientIPs(oc *exutil.CLI, proberPodNamespace, proberPodName, url, t
 		return nil, err
 	}
 
-	return clientIpSet, nil
+	return clientIPSet, nil
 }
 
-// getTargetProtocolHostPort gets targetProtocol, targetHost, targetPort.
-// Special targetHost keyword "self" means that the tests should be against th cluster router.
-// networkPluginName is currently unused but passed in here in case it is needed in the future e.g. to modify the default settings
-// based on the pluginName, for example: if networkPluginName == OVNKubernetesPluginName {
-func getTargetProtocolHostPort(oc *exutil.CLI, hasIPv4, hasIPv6 bool, cloudType configv1.PlatformType, networkPluginName string) (string, string, int, error) {
-	var targetProtocol string
-	var targetPort int
-	var targetHost string
-	var err error
-
-	// default settings based on cloud type
-	if cloudType == configv1.AWSPlatformType {
-		// exploiting https://bugzilla.redhat.com/show_bug.cgi?id=2071960
-		targetProtocol = "http"
-		targetHost = "self"
-		targetPort = 80
-	} else {
-		targetProtocol = "udp"
-		targetPort = 80
-		// https://en.wikipedia.org/wiki/Reserved_IP_addresses
-		if hasIPv4 {
-			targetHost = "192.0.2.10"
-		} else {
-			targetHost = "2001:db8::10"
-		}
-	}
-
-	// manual overrides
-	if tp, found := os.LookupEnv("EGRESSIP_TARGET_PROTOCOL"); found {
-		if tp != "udp" && tp != "http" {
-			return "", "", 0, fmt.Errorf("EGRESSIP_TARGET_PROTOCOL must be set to either of 'udp' or 'http', invalid value: %s", tp)
-		}
-		targetProtocol = tp
-	}
-	if th, found := os.LookupEnv("EGRESSIP_TARGET_HOST"); found {
-		targetHost = th
-	}
-	if tp, found := os.LookupEnv("EGRESSIP_TARGET_PORT"); found {
-		targetPort, err = strconv.Atoi(tp)
-		if err != nil {
-			return "", "", 0, fmt.Errorf("EGRESSIP_TARGET_PORT is invalid: %v", err)
-		}
-	}
-	return targetProtocol, targetHost, targetPort, nil
-}
-
-// cloudPrivateIpConfigExists returns if a given ip was found as a cloudprivateipconfigs object
+// cloudPrivateIPConfigExists returns if a given ip was found as a cloudprivateipconfigs object
 // and if it was assigned to a node as a separate value.
 // Returns the following: exists bool, isAssigned bool, err error.
-func cloudPrivateIpConfigExists(oc *exutil.CLI, cloudNetworkClientset cloudnetwork.Interface, ip string) (bool, bool, error) {
+func cloudPrivateIPConfigExists(oc *exutil.CLI, cloudNetworkClientset cloudnetwork.Interface, ip string) (bool, bool, error) {
 	cpic, err := cloudNetworkClientset.CloudV1().CloudPrivateIPConfigs().Get(context.Background(), ip, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -1657,6 +1169,33 @@ func cloudPrivateIpConfigExists(oc *exutil.CLI, cloudNetworkClientset cloudnetwo
 	}
 
 	return true, false, nil
+}
+
+// createCloudPrivateIpConfigoc creates a CloudPrivateIPConfig.
+func createCloudPrivateIPConfig(cloudNetworkClientset cloudnetwork.Interface, ip, nodeName string) error {
+	cpic := cloudnetworkv1.CloudPrivateIPConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ip,
+		},
+		Spec: cloudnetworkv1.CloudPrivateIPConfigSpec{
+			Node: nodeName,
+		},
+	}
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		_, err := cloudNetworkClientset.CloudV1().CloudPrivateIPConfigs().Create(context.TODO(), &cpic, metav1.CreateOptions{})
+		return err
+	})
+}
+
+// deleteCloudPrivateIpConfigoc creates a CloudPrivateIPConfig.
+func deleteCloudPrivateIPConfig(cloudNetworkClientset cloudnetwork.Interface, ip string) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		err := cloudNetworkClientset.CloudV1().CloudPrivateIPConfigs().Delete(context.TODO(), ip, metav1.DeleteOptions{})
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	})
 }
 
 // egressIPStatusHasIP returns if a given ip was found in a given EgressIP object's status field.
@@ -1874,4 +1413,47 @@ func getEgressIP(oc *exutil.CLI, name string) (*EgressIP, error) {
 		return nil, err
 	}
 	return egressip, nil
+}
+
+// addIPAddressToHost adds an IP address to the host's interface.
+// The IP address will be added by means of a debug pod.
+// When a valid namespace name is provided, use that namespace to spwan the debug pod.
+// Otherwise, temporarily create a new namespace, add the IP address and tear down the new project right away.
+func addIPAddressToHost(oc *exutil.CLI, namespace, host, intf, ip string) error {
+	if namespace == "" {
+		namespace = oc.SetupProject()
+		defer func() {
+			_, err := oc.AsAdmin().Run("delete").Args("namespace", namespace).Output()
+			if err != nil {
+				framework.Logf("addIPAddressToHost: could not delete namespace %s, err: %q", namespace, err)
+			}
+		}()
+	}
+	cmd := fmt.Sprintf("ip address add %s/32 dev %s", ip, intf)
+	_, err := oc.AsAdmin().SetNamespace(namespace).Run("debug").Args("node/"+host, "--", "/bin/bash", "-c", cmd).Output()
+	return err
+}
+
+// removeIPAddressFromHost adds an IP address to the host's interface.
+// The IP address will be deleted by means of a debug pod.
+// When a valid namespace name is provided, use that namespace to spawn the debug pod. If namespace == "": We cannot
+// use the default namespace: due to pod security constraints, the debug pod cannot manipulate IP addresses. Therefore,
+// temporarily create a new namespace, remove the IP address and tear down the new project right away.
+// If the IP address cannot be found then ignore the error and return nil.
+func removeIPAddressFromHost(oc *exutil.CLI, namespace, host, intf, ip string) error {
+	if namespace == "" {
+		namespace = oc.SetupProject()
+		defer func() {
+			_, err := oc.AsAdmin().Run("delete").Args("namespace", namespace).Output()
+			if err != nil {
+				framework.Logf("removeIPAddressFromHost: could not delete namespace %s, err: %q", namespace, err)
+			}
+		}()
+	}
+	cmd := fmt.Sprintf("ip address delete %s/32 dev %s", ip, intf)
+	_, err := oc.AsAdmin().SetNamespace(namespace).Run("debug").Args("node/"+host, "--", "/bin/bash", "-c", cmd).Output()
+	if err != nil && strings.Contains(err.Error(), "Cannot assign requested address") {
+		return nil
+	}
+	return err
 }
