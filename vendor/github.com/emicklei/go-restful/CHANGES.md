@@ -1,7 +1,18 @@
 ## Change history of go-restful
 
+v2.10.0
+
+- support for Custom Verbs (thanks Vinci Xu <277040271@qq.com>)
+- fixed static example (thanks Arthur <yang_yapo@126.com>)
+- simplify code (thanks Christian Muehlhaeuser <muesli@gmail.com>)
+- added JWT HMAC with SHA-512 authentication code example (thanks Amim Knabben <amim.knabben@gmail.com>)
+
+v2.9.6
+
+- small optimization in filter code
 
 v2.9.5
+
 - fix panic in Response.WriteError if err == nil
 
 v2.9.4
