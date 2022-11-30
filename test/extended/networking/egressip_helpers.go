@@ -877,7 +877,8 @@ type capacity struct {
 // depend on the current cloud type, on the currenctly used cloudprivateipconfigs, and on an internal reservation
 // manager. Find <egressIPsPerNode> number of IPs per node.
 // TODO: Create the internal reservation manager, if needed.
-func findNodeEgressIPs(oc *exutil.CLI, clientset kubernetes.Interface, cloudNetworkClientset cloudnetwork.Interface, nodeNames []string, cloudType configv1.PlatformType, egressIPsPerNode int) (map[string][]string, error) {
+func findNodeEgressIPs(oc *exutil.CLI, clientset kubernetes.Interface, cloudNetworkClientset cloudnetwork.Interface,
+	cloudType configv1.PlatformType, egressIPsPerNode int, nodeNames ...string) (map[string][]string, error) {
 	// Get the node API objects corresponding to the node names.
 	var nodeList []*v1.Node
 	for _, nodeName := range nodeNames {
