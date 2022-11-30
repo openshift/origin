@@ -57,7 +57,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 
 		boundedReadySchedulableNodes     []corev1.Node
 		boundedReadySchedulableNodeNames []string
-		egressIPNodesNames        []string
+		egressIPNodesNames               []string
 		nonEgressIPNodeName              string
 
 		egressIPNamespace      string
@@ -219,7 +219,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 			// Requires a minimum of 3 worker nodes in total:
 			// 1 nonEgressIPNodeName + at least 2 as sources of EgressIP traffic.
 			o.Expect(len(egressIPNodesNames)).Should(o.BeNumerically(">", 1))
-			egressIPNodeStr := []string{egressIPNodesNames[0]}
+			egressIPNodeStr := egressIPNodesNames[0]
 			deploymentNodeStr := [][]string{
 				{egressIPNodesNames[0]},
 				{egressIPNodesNames[1]},
@@ -281,7 +281,8 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 			// will pick the actual node.
 			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
 			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodeStr, cloudType, egressIPsPerNode)
+			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, cloudType, egressIPsPerNode,
+				egressIPNodeStr)
 			framework.Logf("%v", nodeEgressIPMap)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -375,7 +376,8 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 			// will pick the actual node.
 			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
 			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesNames, cloudType, egressIPsPerNode)
+			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, cloudType, egressIPsPerNode,
+				egressIPNodesNames...)
 			framework.Logf("%v", nodeEgressIPMap)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -462,7 +464,8 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 			// EgressIP on different nodes. And we also test that pods can be moved between nodes.
 			g.By(fmt.Sprintf("Finding potential Egress IPs for node %s", leftNode[0]))
 			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, leftNode, cloudType, egressIPsPerNode)
+			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, cloudType, egressIPsPerNode,
+				leftNode...)
 			framework.Logf("%v", nodeEgressIPMap)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -521,7 +524,8 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 			// will pick the actual node.
 			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
 			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesNames, cloudType, egressIPsPerNode)
+			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, cloudType, egressIPsPerNode,
+				egressIPNodesNames...)
 			framework.Logf("%v", nodeEgressIPMap)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -569,7 +573,8 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 			// will pick the actual node.
 			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
 			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesNames, cloudType, egressIPsPerNode)
+			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, cloudType, egressIPsPerNode,
+				egressIPNodesNames...)
 			framework.Logf("%v", nodeEgressIPMap)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -640,7 +645,8 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 			// For this test, get a single EgressIP per node.
 			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
 			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesNames, cloudType, egressIPsPerNode)
+			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, cloudType, egressIPsPerNode,
+				egressIPNodesNames...)
 			framework.Logf("%v", nodeEgressIPMap)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
