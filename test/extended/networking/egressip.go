@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	"k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -54,10 +55,10 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 		cloudNetworkClientset cloudnetwork.Interface
 		tmpDirEgressIP        string
 
-		workerNodesOrdered        []corev1.Node
-		workerNodesOrderedNames   []string
-		egressIPNodesOrderedNames []string
-		nonEgressIPNodeName       string
+		boundedReadySchedulableNodes     []corev1.Node
+		boundedReadySchedulableNodeNames []string
+		egressIPNodesNames        []string
+		nonEgressIPNodeName              string
 
 		egressIPNamespace      string
 		externalNamespace      string
@@ -128,16 +129,16 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 			skipper.Skipf("This OCP version is not supported for this test (api-resource cloudprivateipconfigs not found)")
 		}
 
-		g.By("Getting all worker nodes in alphabetical order")
-		// Get all worker nodes, order them alphabetically with stable
-		// sort order.
-		workerNodesOrdered, err = getWorkerNodesOrdered(clientset)
+		g.By("Getting bounded ready schedulable (worker) nodes")
+		nodes, err := e2enode.GetBoundedReadySchedulableNodes(f.ClientSet, 3)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		for _, s := range workerNodesOrdered {
-			workerNodesOrderedNames = append(workerNodesOrderedNames, s.Name)
+		fmt.Println(nodes)
+		boundedReadySchedulableNodes = nodes.Items
+		for _, s := range boundedReadySchedulableNodes {
+			boundedReadySchedulableNodeNames = append(boundedReadySchedulableNodeNames, s.Name)
 		}
-		if len(workerNodesOrdered) < 3 {
-			skipper.Skipf("This test requires a minimum of 3 worker nodes. However, this environment has %d worker nodes.", len(workerNodesOrdered))
+		if len(boundedReadySchedulableNodes) < 3 {
+			skipper.Skipf("This test requires a minimum of 3 worker nodes. However, this environment has %d worker nodes.", len(boundedReadySchedulableNodes))
 		}
 
 		g.By("Determining the cloud address families")
@@ -161,8 +162,8 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 		externalNamespace = oc.SetupProject()
 
 		g.By("Selecting the EgressIP nodes and a non-EgressIP node")
-		nonEgressIPNodeName = workerNodesOrderedNames[0]
-		egressIPNodesOrderedNames = workerNodesOrderedNames[1:]
+		nonEgressIPNodeName = boundedReadySchedulableNodeNames[0]
+		egressIPNodesNames = boundedReadySchedulableNodeNames[1:]
 
 		g.By("Setting the ingressdomain")
 		ingressDomain, err = getIngressDomain(oc)
@@ -170,7 +171,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 
 		if networkPluginName() == OVNKubernetesPluginName {
 			g.By("Setting the EgressIP nodes as EgressIP assignable")
-			for _, node := range egressIPNodesOrderedNames {
+			for _, node := range egressIPNodesNames {
 				_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", node, "k8s.ovn.org/egress-assignable=")
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
@@ -187,12 +188,12 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 			}
 
 			g.By("Removing the EgressIP assignable annotation for OVN Kubernetes")
-			for _, nodeName := range egressIPNodesOrderedNames {
+			for _, nodeName := range egressIPNodesNames {
 				_, _ = runOcWithRetry(oc.AsAdmin(), "label", "node", nodeName, "k8s.ovn.org/egress-assignable-")
 			}
 		} else {
 			g.By("Removing any hostsubnet EgressIPs for OpenShiftSDN")
-			for _, nodeName := range egressIPNodesOrderedNames {
+			for _, nodeName := range egressIPNodesNames {
 				_ = sdnHostsubnetFlushEgressIPs(oc, nodeName)
 				_ = sdnHostsubnetFlushEgressCIDRs(oc, nodeName)
 			}
@@ -217,11 +218,11 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 			g.By("Selecting a single EgressIP node, and one node per source deployment")
 			// Requires a minimum of 3 worker nodes in total:
 			// 1 nonEgressIPNodeName + at least 2 as sources of EgressIP traffic.
-			o.Expect(len(egressIPNodesOrderedNames)).Should(o.BeNumerically(">", 1))
-			egressIPNodeStr := []string{egressIPNodesOrderedNames[0]}
+			o.Expect(len(egressIPNodesNames)).Should(o.BeNumerically(">", 1))
+			egressIPNodeStr := []string{egressIPNodesNames[0]}
 			deploymentNodeStr := [][]string{
-				{egressIPNodesOrderedNames[0]},
-				{egressIPNodesOrderedNames[1]},
+				{egressIPNodesNames[0]},
+				{egressIPNodesNames[1]},
 			}
 
 			g.By("Creating the target DaemonSet with a single hostnetworked pod on the target node")
@@ -351,12 +352,12 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Determining the interface that will be used for packet sniffing")
-			packetSnifferInterface, err = findPacketSnifferInterface(oc, networkPlugin, egressIPNodesOrderedNames)
+			packetSnifferInterface, err = findPacketSnifferInterface(oc, networkPlugin, egressIPNodesNames)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			framework.Logf("Using interface %s for packet captures", packetSnifferInterface)
 
 			g.By("Spawning the packet sniffer pods on the EgressIP assignable hosts")
-			packetSnifferDaemonSet, err = createPacketSnifferDaemonSet(oc, externalNamespace, egressIPNodesOrderedNames, targetProtocol, targetPort, packetSnifferInterface)
+			packetSnifferDaemonSet, err = createPacketSnifferDaemonSet(oc, externalNamespace, egressIPNodesNames, targetProtocol, targetPort, packetSnifferInterface)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -365,7 +366,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 		// Skipped on Azure due to https://bugzilla.redhat.com/show_bug.cgi?id=2073045
 		g.It("pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure][apigroup:route.openshift.io]", func() {
 			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
-			_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
+			_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesNames), egressIPNodesNames)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// For this test, get a single EgressIP per node.
@@ -374,7 +375,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 			// will pick the actual node.
 			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
 			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
+			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesNames, cloudType, egressIPsPerNode)
 			framework.Logf("%v", nodeEgressIPMap)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -443,9 +444,9 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 		g.It("pods should keep the assigned EgressIPs when being rescheduled to another node", func() {
 			g.By("Selecting a single EgressIP node, and a single start node for the pod")
 			// requires a total of 3 worker nodes
-			o.Expect(len(egressIPNodesOrderedNames)).Should(o.BeNumerically(">", 1))
-			leftNode := egressIPNodesOrderedNames[0:1]
-			rightNode := egressIPNodesOrderedNames[1:2]
+			o.Expect(len(egressIPNodesNames)).Should(o.BeNumerically(">", 1))
+			leftNode := egressIPNodesNames[0:1]
+			rightNode := egressIPNodesNames[1:2]
 
 			g.By(fmt.Sprintf("Creating the EgressIP test source deployment on node %s", rightNode[0]))
 			deploymentName, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(rightNode), rightNode)
@@ -507,11 +508,11 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 		// Skipped on OpenShiftSDN as the plugin does not support pod selectors.
 		g.It("only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN]", func() {
 			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
-			deployment0Name, route0Name, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "0", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
+			deployment0Name, route0Name, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "0", ingressDomain, len(egressIPNodesNames), egressIPNodesNames)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Creating the second EgressIP test source deployment with number of pods equals number of EgressIP nodes")
-			_, route1Name, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "1", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
+			_, route1Name, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "1", ingressDomain, len(egressIPNodesNames), egressIPNodesNames)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// For this test, get a single EgressIP per node.
@@ -520,7 +521,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 			// will pick the actual node.
 			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
 			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
+			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesNames, cloudType, egressIPsPerNode)
 			framework.Logf("%v", nodeEgressIPMap)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -559,7 +560,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 		// Skipped on OpenShiftSDN as this plugin has no EgressIPs object
 		g.It("pods should have the assigned EgressIPs and EgressIPs can be updated [Skipped:Network/OpenShiftSDN]", func() {
 			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
-			_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
+			_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesNames), egressIPNodesNames)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// For this test, get a single EgressIP per node.
@@ -568,7 +569,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 			// will pick the actual node.
 			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
 			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
+			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesNames, cloudType, egressIPsPerNode)
 			framework.Logf("%v", nodeEgressIPMap)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -614,8 +615,8 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 		// Skipped on OVNKubernetes
 		g.It("EgressIPs can be assigned automatically [Skipped:Network/OVNKubernetes]", func() {
 			g.By("Adding EgressCIDR configuration to hostSubnets for OpenShiftSDN")
-			for _, eipNodeName := range egressIPNodesOrderedNames {
-				for _, node := range workerNodesOrdered {
+			for _, eipNodeName := range egressIPNodesNames {
+				for _, node := range boundedReadySchedulableNodes {
 					if node.Name == eipNodeName {
 						nodeEgressIPConfigs, err := getNodeEgressIPConfiguration(&node)
 						if err != nil {
@@ -633,13 +634,13 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io
 				}
 			}
 			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
-			_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
+			_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesNames), egressIPNodesNames)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// For this test, get a single EgressIP per node.
 			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
 			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
+			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesNames, cloudType, egressIPsPerNode)
 			framework.Logf("%v", nodeEgressIPMap)
 			o.Expect(err).NotTo(o.HaveOccurred())
 

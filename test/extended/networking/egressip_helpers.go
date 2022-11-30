@@ -11,7 +11,6 @@ import (
 	"net"
 	"os"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -147,26 +146,6 @@ type byName []corev1.Node
 func (n byName) Len() int           { return len(n) }
 func (n byName) Swap(i, j int)      { n[i], n[j] = n[j], n[i] }
 func (n byName) Less(i, j int) bool { return n[i].Name < n[j].Name }
-
-// GetNodesOrdered returns a sorted slice (by node.Name) of nodes or error.
-func getWorkerNodesOrdered(clientset kubernetes.Interface) ([]corev1.Node, error) {
-	if clientset == nil {
-		return nil, fmt.Errorf("Nil pointer clientset provided")
-	}
-
-	nodes, err := clientset.CoreV1().Nodes().List(
-		context.TODO(),
-		metav1.ListOptions{
-			LabelSelector: "node-role.kubernetes.io/worker=",
-		})
-	if err != nil {
-		return nil, err
-	}
-	items := nodes.Items
-	sort.Sort(byName(items))
-
-	return items, nil
-}
 
 // findPacketSnifferInterface finds the interface that shall be used for packet capturing on all nodes in the list.
 // Return an error if there is no consensus about the interface that shall be used among nodes.
