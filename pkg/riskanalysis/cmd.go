@@ -70,6 +70,7 @@ func (opt *Options) Run() error {
 				testFailureSummaryFilePrefix, finalProwJobRun.ProwJob.Name, pjr.ProwJob.Name)
 		}
 		finalProwJobRun.Tests = append(finalProwJobRun.Tests, pjr.Tests...)
+		finalProwJobRun.TestCount += pjr.TestCount
 	}
 
 	inputBytes, err := json.Marshal(finalProwJobRun)

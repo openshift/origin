@@ -6,9 +6,10 @@ package riskanalysis
 // We're getting dangerously close to being able to live push results after a job run.
 
 type ProwJobRun struct {
-	ID      int
-	ProwJob ProwJob
-	Tests   []ProwJobRunTest
+	ID        int
+	ProwJob   ProwJob
+	Tests     []ProwJobRunTest
+	TestCount int
 }
 
 type ProwJob struct {
