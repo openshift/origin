@@ -18,7 +18,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/url"
 )
 
-var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io][apigroup:apps.openshift.io]", func() {
+var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
 		host, ns string

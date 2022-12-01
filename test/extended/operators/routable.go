@@ -19,7 +19,7 @@ import (
 	exurl "github.com/openshift/origin/test/extended/util/url"
 )
 
-var _ = g.Describe("[sig-arch] Managed cluster should [apigroup:apps.openshift.io]", func() {
+var _ = g.Describe("[sig-arch] Managed cluster", func() {
 	defer g.GinkgoRecover()
 
 	var (
