@@ -2571,6 +2571,10 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:Network Policy Audit logging] when using openshift ovn-kubernetes should ensure acl logs are created and correct [apigroup:project.openshift.io][apigroup:network.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][Feature:Router] The HAProxy router should respond with 503 to unrecognized hosts": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:Router] The HAProxy router should serve routes that were created from an ingress [apigroup:route.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
 	"[sig-network][Feature:Router][apigroup:config.openshift.io] The HAProxy router should enable openshift-monitoring to pull metrics": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:config.openshift.io] The HAProxy router should expose a health check on the metrics port": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
@@ -2582,10 +2586,6 @@ var Annotations = map[string]string{
 	"[sig-network][Feature:Router][apigroup:config.openshift.io][apigroup:operator.openshift.io] The HAProxy router should set Forwarded headers appropriately": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:image.openshift.io] The HAProxy router should serve a route that points to two services and respect weights": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-network][Feature:Router][apigroup:operator.openshift.io] The HAProxy router should respond with 503 to unrecognized hosts": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-network][Feature:Router][apigroup:operator.openshift.io] The HAProxy router should serve routes that were created from an ingress [apigroup:route.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router converges when multiple routers are writing conflicting status": " [Suite:openshift/conformance/parallel]",
 
