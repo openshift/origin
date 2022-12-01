@@ -38,9 +38,10 @@ func WriteJobRunTestFailureSummary(artifactDir, timeSuffix string, finalSuiteRes
 	jobRunID, _ := strconv.Atoi(os.Getenv("BUILD_ID"))
 
 	jr := ProwJobRun{
-		ID:      jobRunID,
-		ProwJob: ProwJob{Name: os.Getenv("JOB_NAME")},
-		Tests:   []ProwJobRunTest{},
+		ID:        jobRunID,
+		ProwJob:   ProwJob{Name: os.Getenv("JOB_NAME")},
+		Tests:     []ProwJobRunTest{},
+		TestCount: len(tests),
 	}
 
 	for k, v := range tests {
