@@ -22,9 +22,10 @@ import (
 )
 
 const (
-	duplicateEventThreshold   = 20
-	ovnReadinessRegExpStr     = `ns/(?P<NS>openshift-ovn-kubernetes) pod/(?P<POD>ovnkube-node-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>Unhealthy) (?P<MSG>Readiness probe failed:.*$)`
-	consoleReadinessRegExpStr = `ns/(?P<NS>openshift-console) pod/(?P<POD>console-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>ProbeError) (?P<MSG>Readiness probe error:.* connect: connection refused$)`
+	duplicateEventThreshold           = 20
+	duplicateSingleNodeEventThreshold = 30
+	ovnReadinessRegExpStr             = `ns/(?P<NS>openshift-ovn-kubernetes) pod/(?P<POD>ovnkube-node-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>Unhealthy) (?P<MSG>Readiness probe failed:.*$)`
+	consoleReadinessRegExpStr         = `ns/(?P<NS>openshift-console) pod/(?P<POD>console-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>ProbeError) (?P<MSG>Readiness probe error:.* connect: connection refused$)`
 )
 
 func combinedRegexp(arr ...*regexp.Regexp) *regexp.Regexp {
@@ -141,6 +142,10 @@ var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
 	isOauthApiserverProbeErrorReadinessFailed,
 	isOauthApiserverProbeErrorLivenessFailed,
 	isOauthApiserverProbeErrorConnectionRefusedFailed,
+}
+
+var allowedSingleNodeRepeatedEventFns = []isRepeatedEventOKFunc{
+	isConnectionRefusedOnSingleNode,
 }
 
 // allowedUpgradeRepeatedEventPatterns are patterns of events that we should only allow during upgrades, not during normal execution.
@@ -270,6 +275,10 @@ func testDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 		e2e.Logf("could not fetch cluster info: %w", err)
 	}
 
+	if evaluator.topology == v1.SingleReplicaTopologyMode {
+		evaluator.allowedRepeatedEventFns = append(evaluator.allowedRepeatedEventFns, allowedSingleNodeRepeatedEventFns...)
+	}
+
 	tests := []*junitapi.JUnitTestCase{}
 	tests = append(tests, evaluator.testDuplicatedCoreNamespaceEvents(events, kubeClientConfig)...)
 	tests = append(tests, evaluator.testDuplicatedE2ENamespaceEvents(events, kubeClientConfig)...)
@@ -296,6 +305,10 @@ func testDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfi
 
 	if err := evaluator.getClusterInfo(clientConfig); err != nil {
 		e2e.Logf("could not fetch cluster info: %w", err)
+	}
+
+	if evaluator.topology == v1.SingleReplicaTopologyMode {
+		evaluator.allowedRepeatedEventFns = append(evaluator.allowedRepeatedEventFns, allowedSingleNodeRepeatedEventFns...)
 	}
 
 	tests := []*junitapi.JUnitTestCase{}
@@ -344,6 +357,7 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 			if allowedRepeatedEventsRegex.MatchString(eventDisplayMessage) {
 				continue
 			}
+
 			allowed := false
 			for _, allowRepeatedEventFn := range d.allowedRepeatedEventFns {
 				var err error
@@ -609,6 +623,12 @@ func isOauthApiserverProbeErrorLivenessFailed(monitorEvent monitorapi.EventInter
 func isOauthApiserverProbeErrorConnectionRefusedFailed(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
 	regExp := regexp.MustCompile(probeErrorConnectionRefusedRegExpStr)
 	return isOperatorMatchRegexMessage(monitorEvent, "openshift-oauth-apiserver", regExp), nil
+}
+
+// isConnectionRefusedOnSingleNode returns true if the event matched has a connection refused message for single node events and is with in threshold.
+func isConnectionRefusedOnSingleNode(monitorEvent monitorapi.EventInterval, _ *rest.Config, count int) (bool, error) {
+	regExp := regexp.MustCompile(singleNodeErrorConnectionRefusedRegExpStr)
+	return regExp.MatchString(monitorEvent.String()) && count < duplicateSingleNodeEventThreshold, nil
 }
 
 // isOperatorMatchRegexMessage returns true if this monitorEvent is for the operator identified by the operatorName

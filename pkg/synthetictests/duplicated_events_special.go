@@ -29,6 +29,7 @@ const (
 	nodeHasNoDiskPressureRegExpStr             = "reason/NodeHasNoDiskPressure.*status is now: NodeHasNoDiskPressure"
 	nodeHasSufficientMemoryRegExpStr           = "reason/NodeHasSufficientMemory.*status is now: NodeHasSufficientMemory"
 	nodeHasSufficientPIDRegExpStr              = "reason/NodeHasSufficientPID.*status is now: NodeHasSufficientPID"
+	singleNodeErrorConnectionRefusedRegExpStr  = "reason/.*dial tcp.*connection refused"
 )
 
 type eventRecognizerFunc func(event monitorapi.EventInterval) bool
