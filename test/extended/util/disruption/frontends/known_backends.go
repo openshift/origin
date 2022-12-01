@@ -37,7 +37,7 @@ func StartAllIngressMonitoring(ctx context.Context, m monitor.Recorder, clusterC
 		}
 	}
 
-	configAvailable, err := exutil.DoesApiResourceExist(clusterConfig, "clusterversions")
+	configAvailable, err := exutil.DoesApiResourceExist(clusterConfig, "clusterversions", "config.openshift.io")
 	if err != nil {
 		return err
 	}

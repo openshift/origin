@@ -1942,7 +1942,7 @@ func GetRouterPodTemplate(oc *CLI) (*corev1.PodTemplateSpec, string, error) {
 }
 
 func FindRouterImage(oc *CLI) (string, error) {
-	exists, err := DoesApiResourceExist(oc.AdminConfig(), "clusteroperators")
+	exists, err := DoesApiResourceExist(oc.AdminConfig(), "clusteroperators", "config.openshift.io")
 	if err != nil {
 		return "", err
 	}
@@ -2056,7 +2056,7 @@ func SkipIfExternalControlplaneTopology(oc *CLI, reason string) {
 
 // DoesApiResourceExist searches the list of ApiResources and returns "true" if a given
 // apiResourceName Exists. Valid search strings are for example "cloudprivateipconfigs" or "machines".
-func DoesApiResourceExist(config *rest.Config, apiResourceName string) (bool, error) {
+func DoesApiResourceExist(config *rest.Config, apiResourceName, groupVersionName string) (bool, error) {
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {
 		return false, err
@@ -2066,6 +2066,9 @@ func DoesApiResourceExist(config *rest.Config, apiResourceName string) (bool, er
 		return false, err
 	}
 	for _, apiResourceList := range allResourceList {
+		if groupName(groupVersionName) != groupName(apiResourceList.GroupVersion) {
+			continue
+		}
 		for _, apiResource := range apiResourceList.APIResources {
 			if apiResource.Name == apiResourceName {
 				return true, nil
@@ -2074,4 +2077,8 @@ func DoesApiResourceExist(config *rest.Config, apiResourceName string) (bool, er
 	}
 
 	return false, nil
+}
+
+func groupName(groupVersionName string) string {
+	return strings.Split(groupVersionName, "/")[0]
 }

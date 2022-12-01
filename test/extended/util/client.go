@@ -258,7 +258,7 @@ func (c CLI) WithToken(token string) *CLI {
 // All resources will be then created within this project.
 // Returns the name of the new project.
 func (c *CLI) SetupProject() string {
-	exist, err := DoesApiResourceExist(c.AdminConfig(), "projects")
+	exist, err := DoesApiResourceExist(c.AdminConfig(), "projects", "project.openshift.io")
 	o.Expect(err).ToNot(o.HaveOccurred())
 	if exist {
 		return c.setupProject()
@@ -888,7 +888,7 @@ func (c *CLI) CreateUser(prefix string) *userv1.User {
 
 func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 
-	userAPIExists, err := DoesApiResourceExist(c.AdminConfig(), "users")
+	userAPIExists, err := DoesApiResourceExist(c.AdminConfig(), "users", "user.openshift.io")
 	if err != nil {
 		FatalErr(err)
 	}
