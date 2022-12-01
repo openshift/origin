@@ -44,6 +44,7 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 		machineClientSet, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).ToNot(o.HaveOccurred())
 		machineClient := machineClientSet.MachineV1beta1().Machines("openshift-machine-api")
+		cpmsClient := machineClientSet.MachineV1().ControlPlaneMachineSets("openshift-machine-api")
 		kubeClient := oc.KubeClient()
 
 		// make sure it can be run on the current platform
@@ -53,6 +54,66 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 		err = scalingtestinglibrary.EnsureInitialClusterState(ctx, g.GinkgoT(), etcdClientFactory, machineClient, kubeClient)
 		err = errors.Wrap(err, "pre-test: timed out waiting for initial cluster state to have 3 running machines and 3 voting members")
 		o.Expect(err).ToNot(o.HaveOccurred())
+
+		cpmsActive, err := scalingtestinglibrary.IsCPMSActive(ctx, g.GinkgoT(), cpmsClient)
+		err = errors.Wrap(err, "pre-test: failed to determine if ControlPlaneMachineSet is present and active")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		if cpmsActive {
+			// TODO: Add cleanup step to recover back to 3 running machines and members if the test fails
+
+			framework.Logf("CPMS is active. Relying on CPMSO to replace the machine during vertical scaling")
+
+			// step 1: delete a running machine to trigger the CPMSO to create a new one to replace it
+			machineName, err := scalingtestinglibrary.DeleteSingleMachine(ctx, g.GinkgoT(), machineClient)
+			o.Expect(err).ToNot(o.HaveOccurred())
+			framework.Logf("Waiting for machine %q pending deletion to be replaced", machineName)
+
+			memberName, err := scalingtestinglibrary.MachineNameToEtcdMemberName(ctx, oc.KubeClient(), machineClient, machineName)
+			err = errors.Wrapf(err, "failed to get etcd member name for deleted machine: %v", machineName)
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			// step 2: wait until the CPMSO scales-up by creating a new machine
+			// We need to check the cpms' status.readyReplicas because the phase of one machine will always be Deleting
+			// so we can't use EnsureMasterMachinesAndCount() since that counts for machines that aren't pending deletion
+			err = scalingtestinglibrary.EnsureReadyReplicasOnCPMS(ctx, g.GinkgoT(), 4, cpmsClient)
+			err = errors.Wrap(err, "scale-up: timed out waiting for CPMS to show 4 ready replicas")
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			// We can't check for 4 members here as the clustermemberremoval controller will race to
+			// remove the old member (from the machine pending deletion) as soon as the new machine's member
+			// is promoted to a voting member.
+			// Instead we just wait until the CPMS shows 3 replicas again which indicates that the new member was added
+			// successfully
+
+			// step 3: wait for automatic scale-down as the replica count goes back down to 3
+			err = scalingtestinglibrary.EnsureReadyReplicasOnCPMS(ctx, g.GinkgoT(), 3, cpmsClient)
+			err = errors.Wrap(err, "scale-down: timed out waiting for CPMS to show 3 ready replicas")
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			err = scalingtestinglibrary.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, 3)
+			err = errors.Wrap(err, "scale-down: timed out waiting for 3 voting members in the etcd cluster and etcd-endpoints configmap")
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			err = scalingtestinglibrary.EnsureMemberRemoved(g.GinkgoT(), etcdClientFactory, memberName)
+			err = errors.Wrapf(err, "scale-down: timed out waiting for member (%v) to be removed", memberName)
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			err = scalingtestinglibrary.EnsureMasterMachinesAndCount(ctx, g.GinkgoT(), machineClient)
+			err = errors.Wrap(err, "scale-down: timed out waiting for only 3 Running master machines")
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			// step 4: Wait for apiserver revision rollout to stabilize
+			g.GinkgoT().Log("waiting for api servers to stabilize on the same revision")
+			err = testlibraryapi.WaitForAPIServerToStabilizeOnTheSameRevision(g.GinkgoT(), oc.KubeClient().CoreV1().Pods("openshift-kube-apiserver"))
+			err = errors.Wrap(err, "scale-up: timed out waiting for APIServer pods to stabilize on the same revision")
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			return
+		}
+
+		// For a non-CPMS supported platform the test resorts to manually creating and deleting a machine
+		framework.Logf("CPMS is inactive. The test will manually add and remove a machine for vertical scaling")
 
 		// step 0: ensure clean state after the test
 		defer func() {
