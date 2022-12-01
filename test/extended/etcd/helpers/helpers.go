@@ -3,6 +3,7 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -10,8 +11,10 @@ import (
 	o "github.com/onsi/gomega"
 
 	configv1 "github.com/openshift/api/config/v1"
+	machinev1 "github.com/openshift/api/machine/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
+	machinev1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1"
 	machinev1beta1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1"
 
 	bmhelper "github.com/openshift/origin/test/extended/baremetal"
@@ -176,6 +179,91 @@ func recoverClusterToInitialStateIfNeeded(ctx context.Context, t TestingT, machi
 				t.Logf("successfully deleted an excessive machine %q from the API (perhaps, created by a previous test)", machine.Name)
 			}
 		}
+		return true, nil
+	})
+}
+
+func DeleteSingleMachine(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface) (string, error) {
+	waitPollInterval := 15 * time.Second
+	waitPollTimeout := 5 * time.Minute
+	t.Logf("Waiting up to %s to delete a machine", waitPollTimeout.String())
+
+	machineToDelete := ""
+	err := wait.Poll(waitPollInterval, waitPollTimeout, func() (bool, error) {
+		machineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
+		if err != nil {
+			return isTransientAPIError(t, err)
+		}
+
+		// Machine names are suffixed with an index number (e.g "ci-op-xlbdrkvl-6a467-qcbkh-master-0")
+		// so we sort to pick the lowest index, e.g master-0 in this example
+		machineNames := []string{}
+		for _, m := range machineList.Items {
+			machineNames = append(machineNames, m.Name)
+		}
+		sort.Strings(machineNames)
+		machineToDelete = machineNames[0]
+		t.Logf("attempting to delete machine %q", machineToDelete)
+
+		if err := machineClient.Delete(ctx, machineToDelete, metav1.DeleteOptions{}); err != nil {
+			// The machine we just listed should be present but if not, error out
+			if apierrors.IsNotFound(err) {
+				t.Logf("machine %q was listed but not found or already deleted", machineToDelete)
+				return false, fmt.Errorf("machine %q was listed but not found or already deleted", machineToDelete)
+			}
+			return isTransientAPIError(t, err)
+		}
+		t.Logf("successfully deleted machine %q", machineToDelete)
+
+		return true, nil
+	})
+
+	return machineToDelete, err
+}
+
+// IsCPMSActive returns true if the current platform's has an active CPMS
+// Not all platforms are supported (as of 4.12 only AWS and Azure)
+// See https://github.com/openshift/cluster-control-plane-machine-set-operator/tree/main/docs/user#supported-platforms
+func IsCPMSActive(ctx context.Context, t TestingT, cpmsClient machinev1client.ControlPlaneMachineSetInterface) (bool, error) {
+	// The CPMS singleton in the "openshift-machine-api" namespace is named "cluster"
+	// https://github.com/openshift/cluster-control-plane-machine-set-operator/blob/bba395abab62fc12de4a9b9b030700546f4b822e/pkg/controllers/controlplanemachineset/controller.go#L50-L53
+	cpms, err := cpmsClient.Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	// The CPMS state must be active in order for the platform to be supported
+	// See https://github.com/openshift/cluster-control-plane-machine-set-operator/blob/7961d1457c6aef26d3b1dafae962da2a2aba18ef/docs/user/installation.md#anatomy-of-a-controlplanemachineset
+	if cpms.Spec.State != machinev1.ControlPlaneMachineSetStateActive {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// EnsureReadyReplicasOnCPMS checks if status.readyReplicas on the cluster CPMS is n
+// this effectively counts the number of control-plane machines with the provider state as running
+func EnsureReadyReplicasOnCPMS(ctx context.Context, t TestingT, expectedReplicaCount int, cpmsClient machinev1client.ControlPlaneMachineSetInterface) error {
+	waitPollInterval := 5 * time.Second
+	waitPollTimeout := 10 * time.Minute
+	t.Logf("Waiting up to %s for the CPMS to have status.readyReplicas = %v", waitPollTimeout.String(), expectedReplicaCount)
+
+	return wait.Poll(waitPollInterval, waitPollTimeout, func() (bool, error) {
+		cpms, err := cpmsClient.Get(ctx, "cluster", metav1.GetOptions{})
+		if err != nil {
+			return isTransientAPIError(t, err)
+		}
+
+		if cpms.Status.ReadyReplicas != int32(expectedReplicaCount) {
+			t.Logf("expected %d ready replicas on CPMS, got: %v,", expectedReplicaCount, cpms.Status.ReadyReplicas)
+			return false, nil
+		}
+
+		t.Logf("CPMS has reached the desired number of ready replicas: %v,", cpms.Status.ReadyReplicas)
+
 		return true, nil
 	})
 }
