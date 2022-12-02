@@ -17,10 +17,6 @@ spec:
   scope: Namespaced
   versions:
     - name: v1beta1
-      served: true
-      storage: true
-      subresources:
-        status: {}
       schema:
         openAPIV3Schema:
           description: "ProjectHelmChartRepository holds namespace-wide configuration for proxied Helm chart repository \n Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer)."
@@ -97,7 +93,7 @@ spec:
                   description: conditions is a list of conditions and their statuses
                   type: array
                   items:
-                    description: "Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, \n \ttype FooStatus struct{ \t    // Represents the observations of a foo's current state. \t    // Known .status.conditions.type are: \"Available\", \"Progressing\", and \"Degraded\" \t    // +patchMergeKey=type \t    // +patchStrategy=merge \t    // +listType=map \t    // +listMapKey=type \t    Conditions []metav1.Condition `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"` \n \t    // other fields \t}"
+                    description: "Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, \n type FooStatus struct{ // Represents the observations of a foo's current state. // Known .status.conditions.type are: \"Available\", \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge // +listType=map // +listMapKey=type Conditions []metav1.Condition `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
                     type: object
                     required:
                       - lastTransitionTime
@@ -137,3 +133,7 @@ spec:
                         type: string
                         maxLength: 316
                         pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+      served: true
+      storage: true
+      subresources:
+        status: {}

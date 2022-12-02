@@ -182,6 +182,7 @@ func (ControlPlaneMachineSetList) SwaggerDoc() map[string]string {
 
 var map_ControlPlaneMachineSetSpec = map[string]string{
 	"":         "ControlPlaneMachineSet represents the configuration of the ControlPlaneMachineSet.",
+	"state":    "State defines whether the ControlPlaneMachineSet is Active or Inactive. When Inactive, the ControlPlaneMachineSet will not take any action on the state of the Machines within the cluster. When Active, the ControlPlaneMachineSet will reconcile the Machines and will update the Machines as necessary. Once Active, a ControlPlaneMachineSet cannot be made Inactive. To prevent further action please remove the ControlPlaneMachineSet.",
 	"replicas": "Replicas defines how many Control Plane Machines should be created by this ControlPlaneMachineSet. This field is immutable and cannot be changed after cluster installation. The ControlPlaneMachineSet only operates with 3 or 5 node control planes, 3 and 5 are the only valid values for this field.",
 	"strategy": "Strategy defines how the ControlPlaneMachineSet will update Machines when it detects a change to the ProviderSpec.",
 	"selector": "Label selector for Machines. Existing Machines selected by this selector will be the ones affected by this ControlPlaneMachineSet. It must match the template's labels. This field is considered immutable after creation of the resource.",
@@ -227,7 +228,7 @@ func (ControlPlaneMachineSetTemplate) SwaggerDoc() map[string]string {
 
 var map_ControlPlaneMachineSetTemplateObjectMeta = map[string]string{
 	"":            "ControlPlaneMachineSetTemplateObjectMeta is a subset of the metav1.ObjectMeta struct. It allows users to specify labels and annotations that will be copied onto Machines created from this template.",
-	"labels":      "Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels",
+	"labels":      "Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels. This field must contain both the 'machine.openshift.io/cluster-api-machine-role' and 'machine.openshift.io/cluster-api-machine-type' labels, both with a value of 'master'. It must also contain a label with the key 'machine.openshift.io/cluster-api-cluster'.",
 	"annotations": "Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. They are not queryable and should be preserved when modifying objects. More info: http://kubernetes.io/docs/user-guide/annotations",
 }
 
@@ -236,12 +237,11 @@ func (ControlPlaneMachineSetTemplateObjectMeta) SwaggerDoc() map[string]string {
 }
 
 var map_FailureDomains = map[string]string{
-	"":          "FailureDomain represents the different configurations required to spread Machines across failure domains on different platforms.",
-	"platform":  "Platform identifies the platform for which the FailureDomain represents. Currently supported values are AWS, Azure, GCP and OpenStack.",
-	"aws":       "AWS configures failure domain information for the AWS platform.",
-	"azure":     "Azure configures failure domain information for the Azure platform.",
-	"gcp":       "GCP configures failure domain information for the GCP platform.",
-	"openstack": "OpenStack configures failure domain information for the OpenStack platform.",
+	"":         "FailureDomain represents the different configurations required to spread Machines across failure domains on different platforms.",
+	"platform": "Platform identifies the platform for which the FailureDomain represents. Currently supported values are AWS, Azure, and GCP.",
+	"aws":      "AWS configures failure domain information for the AWS platform.",
+	"azure":    "Azure configures failure domain information for the Azure platform.",
+	"gcp":      "GCP configures failure domain information for the GCP platform.",
 }
 
 func (FailureDomains) SwaggerDoc() map[string]string {
@@ -266,15 +266,6 @@ var map_OpenShiftMachineV1Beta1MachineTemplate = map[string]string{
 
 func (OpenShiftMachineV1Beta1MachineTemplate) SwaggerDoc() map[string]string {
 	return map_OpenShiftMachineV1Beta1MachineTemplate
-}
-
-var map_OpenStackFailureDomain = map[string]string{
-	"":                 "OpenStackFailureDomain configures failure domain information for the OpenStack platform",
-	"availabilityZone": "The availability zone from which to launch the server.",
-}
-
-func (OpenStackFailureDomain) SwaggerDoc() map[string]string {
-	return map_OpenStackFailureDomain
 }
 
 var map_NutanixMachineProviderConfig = map[string]string{

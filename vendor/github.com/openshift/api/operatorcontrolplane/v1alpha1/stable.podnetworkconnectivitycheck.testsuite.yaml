@@ -1,0 +1,18 @@
+apiVersion: apiextensions.k8s.io/v1 # Hack because controller-gen complains if we don't have this
+name: "[Stable] PodNetworkConnectivityCheck"
+crd: 0000_10-pod-network-connectivity-check.crd.yaml
+tests:
+  onCreate:
+  - name: Should be able to create a minimal PodNetworkConnectivityCheck
+    initial: |
+      apiVersion: controlplane.operator.openshift.io/v1alpha1
+      kind: PodNetworkConnectivityCheck
+      spec:
+        sourcePod: foo
+        targetEndpoint: foo:0
+    expected: |
+      apiVersion: controlplane.operator.openshift.io/v1alpha1
+      kind: PodNetworkConnectivityCheck
+      spec:
+        sourcePod: foo
+        targetEndpoint: foo:0

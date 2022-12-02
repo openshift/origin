@@ -141,6 +141,7 @@ spec:
                                     type: object
                                   type: array
                               type: object
+                              x-kubernetes-map-type: atomic
                             weight:
                               description: Weight associated with matching the corresponding
                                 nodeSelectorTerm, in the range 1-100.
@@ -241,10 +242,12 @@ spec:
                                     type: object
                                   type: array
                               type: object
+                              x-kubernetes-map-type: atomic
                             type: array
                         required:
                         - nodeSelectorTerms
                         type: object
+                        x-kubernetes-map-type: atomic
                     type: object
                   podAffinity:
                     description: Describes pod affinity scheduling rules (e.g. co-locate
@@ -321,6 +324,7 @@ spec:
                                         The requirements are ANDed.
                                       type: object
                                   type: object
+                                  x-kubernetes-map-type: atomic
                                 namespaceSelector:
                                   description: A label query over the set of namespaces
                                     that the term applies to. The term is applied
@@ -377,6 +381,7 @@ spec:
                                         The requirements are ANDed.
                                       type: object
                                   type: object
+                                  x-kubernetes-map-type: atomic
                                 namespaces:
                                   description: namespaces specifies a static list
                                     of namespace names that the term applies to. The
@@ -475,6 +480,7 @@ spec:
                                     requirements are ANDed.
                                   type: object
                               type: object
+                              x-kubernetes-map-type: atomic
                             namespaceSelector:
                               description: A label query over the set of namespaces
                                 that the term applies to. The term is applied to the
@@ -526,6 +532,7 @@ spec:
                                     requirements are ANDed.
                                   type: object
                               type: object
+                              x-kubernetes-map-type: atomic
                             namespaces:
                               description: namespaces specifies a static list of namespace
                                 names that the term applies to. The term is applied
@@ -626,6 +633,7 @@ spec:
                                         The requirements are ANDed.
                                       type: object
                                   type: object
+                                  x-kubernetes-map-type: atomic
                                 namespaceSelector:
                                   description: A label query over the set of namespaces
                                     that the term applies to. The term is applied
@@ -682,6 +690,7 @@ spec:
                                         The requirements are ANDed.
                                       type: object
                                   type: object
+                                  x-kubernetes-map-type: atomic
                                 namespaces:
                                   description: namespaces specifies a static list
                                     of namespace names that the term applies to. The
@@ -780,6 +789,7 @@ spec:
                                     requirements are ANDed.
                                   type: object
                               type: object
+                              x-kubernetes-map-type: atomic
                             namespaceSelector:
                               description: A label query over the set of namespaces
                                 that the term applies to. The term is applied to the
@@ -831,6 +841,7 @@ spec:
                                     requirements are ANDed.
                                   type: object
                               type: object
+                              x-kubernetes-map-type: atomic
                             namespaces:
                               description: namespaces specifies a static list of namespace
                                 names that the term applies to. The term is applied
@@ -1264,6 +1275,7 @@ spec:
                             required:
                             - key
                             type: object
+                            x-kubernetes-map-type: atomic
                         required:
                         - baseURL
                         - keypairID
@@ -1445,6 +1457,7 @@ spec:
                             only "value". The requirements are ANDed.
                           type: object
                       type: object
+                      x-kubernetes-map-type: atomic
                     matchLabelKeys:
                       description: MatchLabelKeys is a set of pod label keys to select
                         the pods over which spreading will be calculated. The keys
@@ -1540,10 +1553,10 @@ spec:
                       description: 'WhenUnsatisfiable indicates how to deal with a
                         pod if it doesn''t satisfy the spread constraint. - DoNotSchedule
                         (default) tells the scheduler not to schedule it. - ScheduleAnyway
-                        tells the scheduler to schedule the pod in any location,   but
+                        tells the scheduler to schedule the pod in any location, but
                         giving higher precedence to topologies that would help reduce
-                        the   skew. A constraint is considered "Unsatisfiable" for
-                        an incoming pod if and only if every possible node assignment
+                        the skew. A constraint is considered "Unsatisfiable" for an
+                        incoming pod if and only if every possible node assignment
                         for that pod would violate "MaxSkew" on some topology. For
                         example, in a 3-zone cluster, MaxSkew is set to 1, and pods
                         with the same labelSelector spread as 3/1/1: | zone1 | zone2
@@ -1847,6 +1860,7 @@ spec:
                             required:
                             - key
                             type: object
+                            x-kubernetes-map-type: atomic
                         required:
                         - baseURL
                         - keypairID

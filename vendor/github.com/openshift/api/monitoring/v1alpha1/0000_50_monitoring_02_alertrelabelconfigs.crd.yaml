@@ -3,8 +3,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     api-approved.openshift.io: https://github.com/openshift/api/pull/1179
-    release.openshift.io/feature-gate: TechPreviewNoUpgrade
     description: OpenShift Monitoring alert relabel configurations
+    release.openshift.io/feature-set: TechPreviewNoUpgrade
   name: alertrelabelconfigs.monitoring.openshift.io
 spec:
   group: monitoring.openshift.io
@@ -88,7 +88,7 @@ spec:
                   description: conditions contains details on the state of the AlertRelabelConfig, may be empty.
                   type: array
                   items:
-                    description: "Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, \n \ttype FooStatus struct{ \t    // Represents the observations of a foo's current state. \t    // Known .status.conditions.type are: \"Available\", \"Progressing\", and \"Degraded\" \t    // +patchMergeKey=type \t    // +patchStrategy=merge \t    // +listType=map \t    // +listMapKey=type \t    Conditions []metav1.Condition `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"` \n \t    // other fields \t}"
+                    description: "Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, \n type FooStatus struct{ // Represents the observations of a foo's current state. // Known .status.conditions.type are: \"Available\", \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge // +listType=map // +listMapKey=type Conditions []metav1.Condition `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
                     type: object
                     required:
                       - lastTransitionTime

@@ -1,0 +1,18 @@
+apiVersion: apiextensions.k8s.io/v1 # Hack because controller-gen complains if we don't have this
+name: "[Stable] Cloud Network"
+crd: 001-cloudprivateipconfig.crd.yaml
+tests:
+  onCreate:
+  - name: Should be able to create a minimal CloudPrivateIPConfig
+    initial: |
+      apiVersion: cloud.network.openshift.io/v1
+      kind: CloudPrivateIPConfig
+      metadata:
+        name: 1.2.3.4
+      spec: {} # No spec is required for a CloudPrivateIPConfig
+    expected: |
+      apiVersion: cloud.network.openshift.io/v1
+      kind: CloudPrivateIPConfig
+      metadata:
+        name: 1.2.3.4
+      spec: {}
