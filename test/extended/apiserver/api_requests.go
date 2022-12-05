@@ -3,6 +3,7 @@ package apiserver
 import (
 	"context"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 
@@ -436,10 +437,12 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			// The upper bound are measured from CI runs where the tests might be running less than 2h in total.
 			// In the worst case half of the requests will be put into each bucket. Thus, multiply the bound by 2
 			allowedCount = allowedCount * 2
-			framework.Logf("operator=%v, watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.count, allowedCount, float64(item.count)/float64(allowedCount))
+			ratio := float64(item.count) / float64(allowedCount)
+			ratio = math.Round(ratio*100) / 100
+			framework.Logf("operator=%v, watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.count, allowedCount, ratio)
 			if item.count > allowedCount {
 				framework.Logf("Operator %q produces more watch requests than expected", operator)
-				operatorBoundExceeded = append(operatorBoundExceeded, fmt.Sprintf("Operator %q produces more watch requests than expected: watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.count, allowedCount, float64(item.count)/float64(allowedCount)))
+				operatorBoundExceeded = append(operatorBoundExceeded, fmt.Sprintf("Operator %q produces more watch requests than expected: watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.count, allowedCount, ratio))
 			}
 		}
 
