@@ -20,7 +20,7 @@ var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("ccm")
 
-	g.It("Deploy an external cloud provider", func() {
+	g.It("Deploy an external cloud provider [apigroup:config.openshift.io][apigroup:machineconfiguration.openshift.io]", func() {
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
