@@ -490,7 +490,10 @@ func newRunTestCommand() *cobra.Command {
 }
 
 func newListTestsCommand() *cobra.Command {
-	opt := NewRunOptions(defaultTestImageMirrorLocation)
+	opt := testginkgo.ListOptions{
+		Out:    os.Stdout,
+		ErrOut: os.Stderr,
+	}
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List available tests",

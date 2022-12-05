@@ -3,10 +3,19 @@ package ginkgo
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 )
 
-func (opt *Options) ListTests() error {
+// ListOptions is used to list the tests provided by this binary
+type ListOptions struct {
+	// TestListPath is the output path for the list of tests provided by a binary
+	TestListPath string
+
+	Out, ErrOut io.Writer
+}
+
+func (opt *ListOptions) ListTests() error {
 	tests, err := testsForSuite()
 	if err != nil {
 		return err
