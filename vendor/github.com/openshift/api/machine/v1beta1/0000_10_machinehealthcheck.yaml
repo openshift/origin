@@ -89,6 +89,7 @@ spec:
                     uid:
                       description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                       type: string
+                  x-kubernetes-map-type: atomic
                 selector:
                   description: 'Label selector to match machines whose health will be exercised. Note: An empty selector will match all machines.'
                   type: object
