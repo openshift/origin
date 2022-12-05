@@ -1881,7 +1881,7 @@ var Annotations = map[string]string{
 
 	"[sig-installer][Feature:baremetal] Baremetal platform should [apigroup:config.openshift.io] not allow updating BootMacAddress": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphere/None platforms [apigroup:config.openshift.io] have a metal3 deployment": " [Suite:openshift/conformance/parallel]",
+	"[sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphere/None/AWS platforms [apigroup:config.openshift.io] have a metal3 deployment": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-installer][Feature:baremetal][Serial] Baremetal platform should [apigroup:config.openshift.io] skip inspection when disabled by annotation": " [Suite:openshift/conformance/serial]",
 

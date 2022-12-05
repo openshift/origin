@@ -28,9 +28,10 @@ func skipIfNotBaremetal(oc *exutil.CLI) {
 }
 
 // Starting from 4.10, metal3 resources could be created in the vSphere, OpenStack and None
-// Platforms in addition to the Baremetal Platform. This method can be used to check for
-// the presence of supported Platforms and also the specific ProvisioningNetwork config
-// supported in non-Baremetal platforms.
+// Platforms in addition to the Baremetal Platform.
+// Starting from 4.12, metal3 resources could be created in the AWS Platform too.
+// This method can be used to check for the presence of supported Platforms and
+// also the specific ProvisioningNetwork config supported in non-Baremetal platforms.
 func skipIfUnsupportedPlatformOrConfig(oc *exutil.CLI, dc dynamic.Interface) {
 	g.By("checking supported platforms")
 
@@ -43,6 +44,8 @@ func skipIfUnsupportedPlatformOrConfig(oc *exutil.CLI, dc dynamic.Interface) {
 	case configv1.OpenStackPlatformType:
 		fallthrough
 	case configv1.VSpherePlatformType:
+		fallthrough
+	case configv1.AWSPlatformType:
 		fallthrough
 	case configv1.NonePlatformType:
 		provisioningNetwork := getProvisioningNetwork(dc)
