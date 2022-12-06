@@ -741,6 +741,9 @@ func telemetryIsEnabled(ctx context.Context, client clientset.Interface) (enable
 func hasPullSecret(ctx context.Context, client clientset.Interface, name string) (enabled error, err error) {
 	scrt, err := client.CoreV1().Secrets("openshift-config").Get(ctx, "pull-secret", metav1.GetOptions{})
 	if err != nil {
+		if kapierrs.IsNotFound(err) {
+			return fmt.Errorf("openshift-config/pull-secret not found"), nil
+		}
 		return nil, fmt.Errorf("could not retrieve pull-secret: %w", err)
 	}
 
