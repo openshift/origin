@@ -1,7 +1,6 @@
 package ginkgo
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"regexp"
@@ -11,7 +10,6 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 
-	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
 )
 
@@ -25,11 +23,6 @@ func (e ExitError) Error() string {
 
 // TestOptions handles running a single test.
 type TestOptions struct {
-	// EnableMonitor is an easy way to enable monitor gathering for a single e2e test.
-	// TODO if this is useful enough for general users, we can extend this into an arg, this just ensures the plumbing.
-	EnableMonitor        bool
-	MonitorEventsOptions *MonitorEventsOptions
-
 	DryRun bool
 	Out    io.Writer
 	ErrOut io.Writer
@@ -39,15 +32,12 @@ var _ ginkgo.GinkgoTestingT = &TestOptions{}
 
 func NewTestOptions(out io.Writer, errOut io.Writer) *TestOptions {
 	return &TestOptions{
-		MonitorEventsOptions: NewMonitorEventsOptions(out, errOut),
-		Out:                  out,
-		ErrOut:               errOut,
+		Out:    out,
+		ErrOut: errOut,
 	}
 }
 
 func (opt *TestOptions) Run(args []string) error {
-	ctx := context.TODO()
-
 	if len(args) != 1 {
 		return fmt.Errorf("only a single test name may be passed")
 	}
@@ -74,17 +64,6 @@ func (opt *TestOptions) Run(args []string) error {
 		return nil
 	}
 
-	restConfig, err := monitor.GetMonitorRESTConfig()
-	if err != nil {
-		return err
-	}
-	if opt.EnableMonitor {
-		_, err = opt.MonitorEventsOptions.Start(ctx, restConfig)
-		if err != nil {
-			return err
-		}
-	}
-
 	suiteConfig, reporterConfig := ginkgo.GinkgoConfiguration()
 	suiteConfig.FocusStrings = []string{fmt.Sprintf("^ %s$", regexp.QuoteMeta(test.name))}
 
@@ -102,17 +81,6 @@ func (opt *TestOptions) Run(args []string) error {
 
 	ginkgo.SetReporterConfig(reporterConfig)
 	ginkgo.GetSuite().RunSpec(test.spec, ginkgo.Labels{}, "", ginkgo.GetFailer(), ginkgo.GetWriter(), suiteConfig)
-
-	if opt.EnableMonitor {
-		if err := opt.MonitorEventsOptions.End(ctx, restConfig, ""); err != nil {
-			return err
-		}
-		timeSuffix := fmt.Sprintf("_%s", opt.MonitorEventsOptions.GetStartTime().
-			UTC().Format("20060102-150405"))
-		if err := opt.MonitorEventsOptions.WriteRunDataToArtifactsDir("", timeSuffix); err != nil {
-			fmt.Fprintf(opt.ErrOut, "error: Failed to write run-data: %v\n", err)
-		}
-	}
 
 	var summary types.SpecReport
 	for _, report := range ginkgo.GetSuite().GetReport().SpecReports {
