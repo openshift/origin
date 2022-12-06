@@ -183,9 +183,9 @@ func resourceFilename(gvr schema.GroupVersionResource, namespace, name string) s
 	// do not toLower because these are case-sensitive fields.
 	// these path prefixes match the structure of must-gather and oc adm inspect, so we can theoretically re-use tooling.
 	if len(namespace) == 0 {
-		return filepath.Join("cluster-scoped-resources", groupStr, gvr.Resource, name)
+		return filepath.Join("cluster-scoped-resources", groupStr, gvr.Resource, name+".yaml")
 	}
-	return filepath.Join("namespaces", namespace, groupStr, gvr.Resource, name)
+	return filepath.Join("namespaces", namespace, groupStr, gvr.Resource, name+".yaml")
 }
 
 // commit handle different git operators on repository
