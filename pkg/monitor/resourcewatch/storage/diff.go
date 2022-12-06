@@ -1,13 +1,14 @@
 package storage
 
 import (
+	"encoding/json"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/util/sets"
-
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/endpoints/handlers/fieldmanager"
 	"sigs.k8s.io/structured-merge-diff/v4/typed"
 )
@@ -43,7 +44,13 @@ func whichUsersOwnModifiedFields(obj *unstructured.Unstructured, comparison type
 	for manager, managerSet := range managers.Fields() {
 		setByThisManager := managerSet.Set().Intersection(comparison.Modified.Union(comparison.Added).Union(comparison.Removed))
 		if !setByThisManager.Empty() {
-			users.Insert(manager)
+			// sometimes I'm seeing the entire manager json listed.  My guess is for subresources its tracked as a key.
+			currManagerAsJSON := &metav1.ManagedFieldsEntry{}
+			if err := json.Unmarshal([]byte(manager), currManagerAsJSON); err != nil {
+				users.Insert(manager)
+			} else {
+				users.Insert(currManagerAsJSON.Manager)
+			}
 			continue
 		}
 	}
