@@ -35,14 +35,20 @@ type ConfigObserverController struct {
 	monitoredResourceGVs []schema.GroupVersion
 	// monitoredResourceGVKs are specific group+version+kinds we want to monitor for. (as opposed to everything in the group)
 	monitoredResourceGVKs []schema.GroupVersionKind
-	storageHandler        cache.ResourceEventHandler
+	storageHandler        resourceObserverEventHandler
+}
+
+type resourceObserverEventHandler interface {
+	OnAdd(gvr schema.GroupVersionResource, obj interface{})
+	OnUpdate(gvr schema.GroupVersionResource, _, obj interface{})
+	OnDelete(gvr schema.GroupVersionResource, obj interface{})
 }
 
 func NewConfigObserverController(
 	dynamicClient dynamic.Interface,
 	crdInformer cache.SharedIndexInformer,
 	discoveryClient *discovery.DiscoveryClient,
-	configStorage cache.ResourceEventHandler,
+	configStorage resourceObserverEventHandler,
 	monitoredResourceGVs []schema.GroupVersion,
 	monitoredResourceGVKs []schema.GroupVersionKind,
 	recorder events.Recorder,

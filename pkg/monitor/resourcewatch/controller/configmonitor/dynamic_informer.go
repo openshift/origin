@@ -17,7 +17,7 @@ type dynamicConfigInformer struct {
 	configKind           string
 }
 
-func newDynamicConfigInformer(kind string, configResource schema.GroupVersionResource, client dynamic.Interface, resourceHandlers ...cache.ResourceEventHandler) *dynamicConfigInformer {
+func newDynamicConfigInformer(kind string, configResource schema.GroupVersionResource, client dynamic.Interface, resourceHandlers ...resourceObserverEventHandler) *dynamicConfigInformer {
 	observer := &dynamicConfigInformer{
 		informer:             dynamicinformer.NewDynamicSharedInformerFactory(client, defaultResyncDuration).ForResource(configResource).Informer(),
 		configKind:           kind,
@@ -25,7 +25,19 @@ func newDynamicConfigInformer(kind string, configResource schema.GroupVersionRes
 	}
 	observer.hasSynced = observer.informer.HasSynced
 	for _, handler := range resourceHandlers {
-		observer.informer.AddEventHandler(handler)
+		observer.informer.AddEventHandler(
+			cache.ResourceEventHandlerFuncs{
+				AddFunc: func(obj interface{}) {
+					handler.OnAdd(configResource, obj)
+				},
+				UpdateFunc: func(oldObj, newObj interface{}) {
+					handler.OnUpdate(configResource, oldObj, newObj)
+				},
+				DeleteFunc: func(obj interface{}) {
+					handler.OnDelete(configResource, obj)
+				},
+			},
+		)
 	}
 	return observer
 }
