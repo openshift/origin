@@ -5,8 +5,11 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
+
+	"k8s.io/kube-openapi/pkg/util/sets"
 
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -59,14 +62,11 @@ func NewGitStorage(path string) (*GitStorage, error) {
 }
 
 // handle handles different operations on git
-func (s *GitStorage) handle(gvr schema.GroupVersionResource, obj interface{}, delete bool) {
+func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstructured.Unstructured, delete bool) {
 	s.Lock()
 	defer s.Unlock()
-	objUnstructured, ok := obj.(*unstructured.Unstructured)
-	if !ok {
-		klog.Warningf("Object is not unstructured: %v", obj)
-	}
-	filePath, content, err := decodeUnstructuredObject(gvr, objUnstructured)
+
+	filePath, content, err := decodeUnstructuredObject(gvr, obj)
 	if err != nil {
 		klog.Warningf("Decoding %q failed: %v", filePath, err)
 		return
@@ -77,7 +77,7 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, obj interface{}, de
 			klog.Warningf("Unable to delete file %q: %v", filePath, err)
 			return
 		}
-		if err := s.commit(filePath, "operator", gitOpDeleted); err != nil {
+		if err := s.commit(filePath, "unknown", gitOpDeleted); err != nil {
 			klog.Warningf("Committing %q failed: %v", filePath, err)
 		}
 		return
@@ -88,19 +88,25 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, obj interface{}, de
 		return
 	}
 
-	if err := s.commit(filePath, "operator", operation); err != nil {
+	modifyingUser, err := guessAtModifyingUsers(oldObj, obj)
+	if err != nil {
+		klog.Warningf("Writing file content failed %q: %v", filePath, err)
+		modifyingUser = err.Error()
+	}
+	if err := s.commit(filePath, modifyingUser, operation); err != nil {
 		klog.Warningf("Committing %q failed: %v", filePath, err)
 	}
 }
 
 func (s *GitStorage) OnAdd(gvr schema.GroupVersionResource, obj interface{}) {
 	objUnstructured := obj.(*unstructured.Unstructured)
-	s.handle(gvr, objUnstructured, false)
+	s.handle(gvr, nil, objUnstructured, false)
 }
 
-func (s *GitStorage) OnUpdate(gvr schema.GroupVersionResource, _, obj interface{}) {
+func (s *GitStorage) OnUpdate(gvr schema.GroupVersionResource, oldObj, obj interface{}) {
 	objUnstructured := obj.(*unstructured.Unstructured)
-	s.handle(gvr, objUnstructured, false)
+	oldObjUnstructured := oldObj.(*unstructured.Unstructured)
+	s.handle(gvr, oldObjUnstructured, objUnstructured, false)
 }
 
 func (s *GitStorage) OnDelete(gvr schema.GroupVersionResource, obj interface{}) {
@@ -119,7 +125,37 @@ func (s *GitStorage) OnDelete(gvr schema.GroupVersionResource, obj interface{}) 
 			return
 		}
 	}
-	s.handle(gvr, objUnstructured, true)
+	s.handle(gvr, nil, objUnstructured, true)
+}
+
+// guessAtModifyingUsers tries to figure out who modified the resource
+func guessAtModifyingUsers(oldObj, obj *unstructured.Unstructured) (string, error) {
+	if oldObj == nil {
+		allOwners := []string{}
+		for _, managedField := range obj.GetManagedFields() {
+			allOwners = append(allOwners, managedField.Manager)
+		}
+		if len(allOwners) == 0 {
+			return "unknown", nil
+		}
+		return strings.Join(allOwners, " AND "), nil
+	}
+
+	allOwners := sets.NewString()
+	modifiedFieldList, err := modifiedFields(oldObj, obj)
+	if err != nil {
+		return "unknown", err
+	}
+	modifiers, err := whichUsersOwnModifiedFields(obj, *modifiedFieldList)
+	if err != nil {
+		return "unknown", err
+	}
+	allOwners.Insert(modifiers...)
+
+	if len(allOwners) == 0 {
+		return "unknown", nil
+	}
+	return strings.Join(allOwners.List(), " AND "), nil
 }
 
 // decodeUnstructuredObject decodes the unstructured object we get from informer into a YAML bytes
@@ -180,13 +216,13 @@ func (s *GitStorage) commit(name, component string, operation gitOperation) erro
 	hash, err := t.Commit(message, &git.CommitOptions{
 		All: true,
 		Author: &object.Signature{
-			Name:  "ci-monitor",
+			Name:  component,
 			Email: "ci-monitor@openshift.io",
 			When:  time.Now(),
 		},
 		Committer: &object.Signature{
 			Name:  component,
-			Email: component + "@openshift.io",
+			Email: "ci-monitor@openshift.io",
 			When:  time.Now(),
 		},
 	})
