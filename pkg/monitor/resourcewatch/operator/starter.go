@@ -59,7 +59,7 @@ func RunOperator(ctx context.Context, controllerCtx *controllercmd.ControllerCon
 		appResource("daemonsets"),
 		appResource("statefulsets"),
 		appResource("replicasets"),
-		coreResource("events"),
+		resource("events.k8s.io", "v1", "events"),
 		coreResource("pods"),
 		coreResource("nodes"),
 		coreResource("replicationcontrollers"),
@@ -91,6 +91,14 @@ func coreResource(resource string) schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    "",
 		Version:  "v1",
+		Resource: resource,
+	}
+}
+
+func resource(group, version, resource string) schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    group,
+		Version:  version,
 		Resource: resource,
 	}
 }

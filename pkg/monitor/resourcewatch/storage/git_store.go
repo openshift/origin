@@ -2,18 +2,15 @@ package storage
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
 	"k8s.io/kube-openapi/pkg/util/sets"
 
 	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -63,22 +60,34 @@ func NewGitStorage(path string) (*GitStorage, error) {
 
 // handle handles different operations on git
 func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstructured.Unstructured, delete bool) {
-	s.Lock()
-	defer s.Unlock()
+	// notifications for resources come in a single threaded stream per-resource.
+	// this means there will never be contention on a single file.
+	// we will lock just before the commit itself.
 
 	filePath, content, err := decodeUnstructuredObject(gvr, obj)
 	if err != nil {
 		klog.Warningf("Decoding %q failed: %v", filePath, err)
 		return
 	}
-	defer s.updateRefsFile()
+	resourceName := ""
+	if len(gvr.Group) == 0 {
+		resourceName = gvr.Resource
+	} else {
+		resourceName = gvr.Resource + "." + gvr.Group
+	}
+	ocCommand := ""
+	if len(obj.GetNamespace()) == 0 {
+		ocCommand = fmt.Sprintf("%s/%s", resourceName, obj.GetName())
+	} else {
+		ocCommand = fmt.Sprintf("%s/%s -n %s", resourceName, obj.GetName(), obj.GetNamespace())
+	}
+
 	if delete {
-		if err := s.delete(filePath); err != nil {
-			klog.Warningf("Unable to delete file %q: %v", filePath, err)
-			return
-		}
-		if err := s.commit(filePath, "unknown", gitOpDeleted); err != nil {
-			klog.Warningf("Committing %q failed: %v", filePath, err)
+		s.Lock()
+		defer s.Unlock()
+
+		if err := s.commitRemove(filePath, "unknown", ocCommand); err != nil {
+			klog.Error(err)
 		}
 		return
 	}
@@ -90,11 +99,26 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 
 	modifyingUser, err := guessAtModifyingUsers(oldObj, obj)
 	if err != nil {
-		klog.Warningf("Writing file content failed %q: %v", filePath, err)
+		klog.Warningf("Guessing users failed %q: %v", filePath, err)
 		modifyingUser = err.Error()
 	}
-	if err := s.commit(filePath, modifyingUser, operation); err != nil {
-		klog.Warningf("Committing %q failed: %v", filePath, err)
+
+	// either the golang git library or git itself doesn't properly handle threading, so we have to lock here.
+	s.Lock()
+	defer s.Unlock()
+
+	switch {
+	case operation == gitOpAdded:
+		if err := s.commitAdd(filePath, modifyingUser, ocCommand); err != nil {
+			klog.Error(err)
+		}
+	case operation == gitOpModified:
+		if err := s.commitModify(filePath, modifyingUser, ocCommand); err != nil {
+			klog.Error(err)
+		}
+	default:
+		klog.Error("unhandled case")
+
 	}
 }
 
@@ -110,8 +134,6 @@ func (s *GitStorage) OnUpdate(gvr schema.GroupVersionResource, oldObj, obj inter
 }
 
 func (s *GitStorage) OnDelete(gvr schema.GroupVersionResource, obj interface{}) {
-	s.Lock()
-	defer s.Unlock()
 	objUnstructured, ok := obj.(*unstructured.Unstructured)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -136,7 +158,7 @@ func guessAtModifyingUsers(oldObj, obj *unstructured.Unstructured) (string, erro
 			allOwners = append(allOwners, managedField.Manager)
 		}
 		if len(allOwners) == 0 {
-			return "unknown", nil
+			return "added-unknown", nil
 		}
 		return strings.Join(allOwners, " AND "), nil
 	}
@@ -153,7 +175,7 @@ func guessAtModifyingUsers(oldObj, obj *unstructured.Unstructured) (string, erro
 	allOwners.Insert(modifiers...)
 
 	if len(allOwners) == 0 {
-		return "unknown", nil
+		return "modified-unknown", nil
 	}
 	return strings.Join(allOwners.List(), " AND "), nil
 }
@@ -188,115 +210,79 @@ func resourceFilename(gvr schema.GroupVersionResource, namespace, name string) s
 	return filepath.Join("namespaces", namespace, groupStr, gvr.Resource, name+".yaml")
 }
 
-// commit handle different git operators on repository
-func (s *GitStorage) commit(name, component string, operation gitOperation) error {
-	t, err := s.repo.Worktree()
+func (s *GitStorage) commitAdd(path, author, ocCommand string) error {
+	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
+	commitMessage := fmt.Sprintf("added %s", ocCommand)
+	command := fmt.Sprintf(`git add %q && git commit --author=%q -m %q`, path, authorString, commitMessage)
+
+	osCommand := exec.Command("bash", "-e", "-c", command)
+	osCommand.Dir = s.path
+	output, err := osCommand.CombinedOutput()
 	if err != nil {
+		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
 		return err
 	}
-	status, err := t.Status()
-	if err != nil {
-		return err
-	}
-	if status.IsClean() {
-		return nil
-	}
-	if _, err := t.Add(name); err != nil {
-		return err
-	}
-	message := ""
-	switch operation {
-	case gitOpAdded:
-		message = fmt.Sprintf("added %s", name)
-	case gitOpModified:
-		message = fmt.Sprintf("modified %s", name)
-	case gitOpDeleted:
-		message = fmt.Sprintf("deleted %s", name)
-	}
-	hash, err := t.Commit(message, &git.CommitOptions{
-		All: false,
-		Author: &object.Signature{
-			Name:  component,
-			Email: "ci-monitor@openshift.io",
-			When:  time.Now(),
-		},
-		Committer: &object.Signature{
-			Name:  component,
-			Email: "ci-monitor@openshift.io",
-			When:  time.Now(),
-		},
-	})
-	if err != nil {
-		return err
-	}
-	klog.Infof("Committed %q tracking %s", hash.String(), message)
-	return err
+
+	klog.Infof("Add: %v -- %v added %v", path, author, ocCommand)
+	return nil
 }
 
-// delete handle removing the file in git repository
-func (s *GitStorage) delete(name string) error {
-	t, err := s.repo.Worktree()
+func (s *GitStorage) commitModify(path, author, ocCommand string) error {
+	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
+	commitMessage := fmt.Sprintf("modifed %s", ocCommand)
+	command := fmt.Sprintf(`git add %q && git commit --author=%q -m %q`, path, authorString, commitMessage)
+
+	osCommand := exec.Command("bash", "-e", "-c", command)
+	osCommand.Dir = s.path
+	output, err := osCommand.CombinedOutput()
 	if err != nil {
+		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
 		return err
 	}
-	return t.Filesystem.Remove(name)
+
+	klog.Infof("Modified: %v -- %v updated %v", path, author, ocCommand)
+	return nil
+}
+
+func (s *GitStorage) commitRemove(path, author, ocCommand string) error {
+	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
+	commitMessage := fmt.Sprintf("removed %s", ocCommand)
+	command := fmt.Sprintf(`rm %q && git rm %q && git commit --author=%q -m %q`, path, path, authorString, commitMessage)
+
+	osCommand := exec.Command("bash", "-e", "-c", command)
+	osCommand.Dir = s.path
+	output, err := osCommand.CombinedOutput()
+	if err != nil {
+		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
+		return err
+	}
+
+	klog.Infof("Removed: %v -- %v deleted %v", path, author, ocCommand)
+	return nil
 }
 
 // write handle writing the content into git repository
 func (s *GitStorage) write(name string, content []byte) (gitOperation, error) {
-	t, err := s.repo.Worktree()
-	if err != nil {
-		return 0, err
-	}
+	fullPath := filepath.Join(s.path, name)
 
-	// If the file does not exists, create it and report it as new file
+	// If the file does not exist, create it and report it as new file
 	// This will get reflected in the commit message
-	if _, err := t.Filesystem.Lstat(name); err != nil {
+	if _, err := os.Lstat(fullPath); err != nil {
 		if !os.IsNotExist(err) {
 			return gitOpError, err
 		}
-		f, err := t.Filesystem.Create(name)
-		if err != nil {
+		if err := os.MkdirAll(filepath.Dir(fullPath), os.ModePerm); err != nil {
 			return gitOpError, err
 		}
-		defer f.Close()
-		_, err = f.Write(content)
-		if err != nil {
+		if err := os.WriteFile(fullPath, content, os.ModePerm); err != nil {
 			return gitOpError, err
 		}
 		return gitOpAdded, nil
 	}
 
 	// If the file exists, updated its content and report modified
-	f, err := t.Filesystem.OpenFile(name, os.O_RDWR, os.ModePerm)
-	if err != nil {
-		return gitOpError, err
-	}
-	defer f.Close()
-	if _, err := f.Write(content); err != nil {
+	if err := os.WriteFile(fullPath, content, os.ModePerm); err != nil {
 		return gitOpError, err
 	}
 	return gitOpModified, nil
-}
-
-// updateRefsFile populate .git/info/refs which is needed for git clone via HTTP server
-func (s *GitStorage) updateRefsFile() {
-	refs, _ := s.repo.References()
-	var data []byte
-	err := refs.ForEach(func(ref *plumbing.Reference) error {
-		if ref.Type() == plumbing.HashReference {
-			s := ref.Strings()
-			data = append(data, []byte(fmt.Sprintf("%s\t%s\n", s[1], s[0]))...)
-		}
-		return nil
-	})
-	if err != nil {
-		panic(err)
-	}
-	if err := os.MkdirAll(filepath.Join(s.path, ".git", "info"), os.ModePerm); err != nil {
-		panic(err)
-	}
-	if err := ioutil.WriteFile(filepath.Join(s.path, ".git", "info", "refs"), data, os.ModePerm); err != nil {
-		panic(err)
-	}
 }
