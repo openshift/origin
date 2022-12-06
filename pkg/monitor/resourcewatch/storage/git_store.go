@@ -214,7 +214,7 @@ func (s *GitStorage) commit(name, component string, operation gitOperation) erro
 		message = fmt.Sprintf("deleted %s", name)
 	}
 	hash, err := t.Commit(message, &git.CommitOptions{
-		All: true,
+		All: false,
 		Author: &object.Signature{
 			Name:  component,
 			Email: "ci-monitor@openshift.io",
