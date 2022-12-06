@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -42,7 +41,7 @@ const (
 // NewGitStorage returns the resource event handler capable of storing changes observed on resource
 // into a Git repository. Each change is stored as separate commit which means a full history of the
 // resource lifecycle is preserved.
-func NewGitStorage(path string) (cache.ResourceEventHandler, error) {
+func NewGitStorage(path string) (*GitStorage, error) {
 	// If the repo does not exists, do git init
 	if _, err := os.Stat(filepath.Join(path, ".git")); os.IsNotExist(err) {
 		_, err := git.PlainInit(path, false)
@@ -60,51 +59,51 @@ func NewGitStorage(path string) (cache.ResourceEventHandler, error) {
 }
 
 // handle handles different operations on git
-func (s *GitStorage) handle(obj interface{}, delete bool) {
+func (s *GitStorage) handle(gvr schema.GroupVersionResource, obj interface{}, delete bool) {
 	s.Lock()
 	defer s.Unlock()
 	objUnstructured, ok := obj.(*unstructured.Unstructured)
 	if !ok {
 		klog.Warningf("Object is not unstructured: %v", obj)
 	}
-	name, content, err := decodeUnstructuredObject(objUnstructured)
+	filePath, content, err := decodeUnstructuredObject(gvr, objUnstructured)
 	if err != nil {
-		klog.Warningf("Decoding %q failed: %v", name, err)
+		klog.Warningf("Decoding %q failed: %v", filePath, err)
 		return
 	}
 	defer s.updateRefsFile()
 	if delete {
-		if err := s.delete(name); err != nil {
-			klog.Warningf("Unable to delete file %q: %v", name, err)
+		if err := s.delete(filePath); err != nil {
+			klog.Warningf("Unable to delete file %q: %v", filePath, err)
 			return
 		}
-		if err := s.commit(name, "operator", gitOpDeleted); err != nil {
-			klog.Warningf("Committing %q failed: %v", name, err)
+		if err := s.commit(filePath, "operator", gitOpDeleted); err != nil {
+			klog.Warningf("Committing %q failed: %v", filePath, err)
 		}
 		return
 	}
-	operation, err := s.write(name, content)
+	operation, err := s.write(filePath, content)
 	if err != nil {
-		klog.Warningf("Writing file content failed %q: %v", name, err)
+		klog.Warningf("Writing file content failed %q: %v", filePath, err)
 		return
 	}
 
-	if err := s.commit(name, "operator", operation); err != nil {
-		klog.Warningf("Committing %q failed: %v", name, err)
+	if err := s.commit(filePath, "operator", operation); err != nil {
+		klog.Warningf("Committing %q failed: %v", filePath, err)
 	}
 }
 
-func (s *GitStorage) OnAdd(obj interface{}) {
+func (s *GitStorage) OnAdd(gvr schema.GroupVersionResource, obj interface{}) {
 	objUnstructured := obj.(*unstructured.Unstructured)
-	s.handle(objUnstructured, false)
+	s.handle(gvr, objUnstructured, false)
 }
 
-func (s *GitStorage) OnUpdate(_, obj interface{}) {
+func (s *GitStorage) OnUpdate(gvr schema.GroupVersionResource, _, obj interface{}) {
 	objUnstructured := obj.(*unstructured.Unstructured)
-	s.handle(objUnstructured, false)
+	s.handle(gvr, objUnstructured, false)
 }
 
-func (s *GitStorage) OnDelete(obj interface{}) {
+func (s *GitStorage) OnDelete(gvr schema.GroupVersionResource, obj interface{}) {
 	s.Lock()
 	defer s.Unlock()
 	objUnstructured, ok := obj.(*unstructured.Unstructured)
@@ -120,12 +119,12 @@ func (s *GitStorage) OnDelete(obj interface{}) {
 			return
 		}
 	}
-	s.handle(objUnstructured, true)
+	s.handle(gvr, objUnstructured, true)
 }
 
 // decodeUnstructuredObject decodes the unstructured object we get from informer into a YAML bytes
-func decodeUnstructuredObject(objUnstructured *unstructured.Unstructured) (string, []byte, error) {
-	filename := resourceFilename(objUnstructured.GetName(), objUnstructured.GroupVersionKind())
+func decodeUnstructuredObject(gvr schema.GroupVersionResource, objUnstructured *unstructured.Unstructured) (string, []byte, error) {
+	filename := resourceFilename(gvr, objUnstructured.GetNamespace(), objUnstructured.GetName())
 	objectBytes, err := runtime.Encode(unstructured.UnstructuredJSONScheme, objUnstructured)
 	if err != nil {
 		return filename, nil, err
@@ -138,12 +137,19 @@ func decodeUnstructuredObject(objUnstructured *unstructured.Unstructured) (strin
 }
 
 // resourceFilename extracts the filename out from the group version kind
-func resourceFilename(name string, gvk schema.GroupVersionKind) string {
+func resourceFilename(gvr schema.GroupVersionResource, namespace, name string) string {
 	groupStr := ""
-	if gvk.Group != "" {
-		groupStr = fmt.Sprintf(".%s", gvk.Group)
+	if len(gvr.Group) != 0 {
+		groupStr = gvr.Group
+	} else {
+		groupStr = "core"
 	}
-	return strings.ToLower(fmt.Sprintf("%s.%s%s-%s.yaml", gvk.Kind, gvk.Version, groupStr, name))
+	// do not toLower because these are case-sensitive fields.
+	// these path prefixes match the structure of must-gather and oc adm inspect, so we can theoretically re-use tooling.
+	if len(namespace) == 0 {
+		return filepath.Join("cluster-scoped-resources", groupStr, gvr.Resource, name)
+	}
+	return filepath.Join("namespaces", namespace, groupStr, gvr.Resource, name)
 }
 
 // commit handle different git operators on repository
