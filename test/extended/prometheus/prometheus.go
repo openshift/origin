@@ -339,14 +339,14 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying a service account token is able to authenticate")
-			err = expectBearerTokenURLStatusCodeExec(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", url), bearerToken, 200)
+			err = expectBearerTokenURLStatusCodeExec(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets?state=active", url), bearerToken, 200)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying a service account token is able to access the Prometheus API")
 			// expect all endpoints within 60 seconds
 			var lastErrs []error
 			o.Expect(wait.PollImmediate(10*time.Second, 2*time.Minute, func() (bool, error) {
-				contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", prometheusURL), bearerToken)
+				contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets?state=active", prometheusURL), bearerToken)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				targets := &prometheusTargets{}
@@ -396,7 +396,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 
 			g.By("verifying all targets are exposing metrics over secure channel")
 			var insecureTargets []error
-			contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", prometheusURL), bearerToken)
+			contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets?state=active", prometheusURL), bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			targets := &prometheusTargets{}
@@ -527,7 +527,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 
 			var lastErrs []error
 			o.Expect(wait.PollImmediate(10*time.Second, 4*time.Minute, func() (bool, error) {
-				contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", prometheusURL), bearerToken)
+				contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets?state=active", prometheusURL), bearerToken)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				targets := &prometheusTargets{}
