@@ -61,6 +61,7 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testNodeHasSufficientPID(events)...)
 
 	tests = append(tests, testHttpConnectionLost(events)...)
+	tests = append(tests, testMarketplaceStartupProbeFailure(events)...)
 	return tests
 }
 
@@ -118,6 +119,7 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testNodeHasSufficientPID(events)...)
 
 	tests = append(tests, testHttpConnectionLost(events)...)
+	tests = append(tests, testMarketplaceStartupProbeFailure(events)...)
 	return tests
 }
 

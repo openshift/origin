@@ -170,17 +170,17 @@ func testConfigOperatorReadinessProbe(events monitorapi.Intervals) []*junitapi.J
 
 func testNodeHasNoDiskPressure(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] Test the NodeHasNoDiskPressure condition does not occur too often"
-	return makeNodeHasTest(testName, events, nodeHasNoDiskPressureRegExpStr, duplicateEventThreshold)
+	return eventExprMatchThresholdTest(testName, events, nodeHasNoDiskPressureRegExpStr, duplicateEventThreshold)
 }
 
 func testNodeHasSufficientMemory(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] Test the NodeHasSufficeintMemory condition does not occur too often"
-	return makeNodeHasTest(testName, events, nodeHasSufficientMemoryRegExpStr, duplicateEventThreshold)
+	return eventExprMatchThresholdTest(testName, events, nodeHasSufficientMemoryRegExpStr, duplicateEventThreshold)
 }
 
 func testNodeHasSufficientPID(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] Test the NodeHasSufficientPID condition does not occur too often"
-	return makeNodeHasTest(testName, events, nodeHasSufficientPIDRegExpStr, duplicateEventThreshold)
+	return eventExprMatchThresholdTest(testName, events, nodeHasSufficientPIDRegExpStr, duplicateEventThreshold)
 }
 
 func makeProbeTest(testName string, events monitorapi.Intervals, operatorName string, regExStr string, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
@@ -190,7 +190,7 @@ func makeProbeTest(testName string, events monitorapi.Intervals, operatorName st
 	}, eventFlakeThreshold)
 }
 
-func makeNodeHasTest(testName string, events monitorapi.Intervals, regExStr string, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
+func eventExprMatchThresholdTest(testName string, events monitorapi.Intervals, regExStr string, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
 	messageRegExp := regexp.MustCompile(regExStr)
 	return eventMatchThresholdTest(testName, events, func(event monitorapi.EventInterval) bool { return messageRegExp.MatchString(event.Message) }, eventFlakeThreshold)
 }
