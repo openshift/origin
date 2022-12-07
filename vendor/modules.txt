@@ -992,7 +992,6 @@ github.com/openshift/library-go/pkg/config/leaderelection
 github.com/openshift/library-go/pkg/config/serving
 github.com/openshift/library-go/pkg/config/validation
 github.com/openshift/library-go/pkg/controller/controllercmd
-github.com/openshift/library-go/pkg/controller/factory
 github.com/openshift/library-go/pkg/controller/fileobserver
 github.com/openshift/library-go/pkg/crypto
 github.com/openshift/library-go/pkg/git
@@ -1005,7 +1004,6 @@ github.com/openshift/library-go/pkg/network
 github.com/openshift/library-go/pkg/network/networkutils
 github.com/openshift/library-go/pkg/oauth/oauthdiscovery
 github.com/openshift/library-go/pkg/operator/events
-github.com/openshift/library-go/pkg/operator/management
 github.com/openshift/library-go/pkg/operator/resource/resourceapply
 github.com/openshift/library-go/pkg/operator/resource/resourcehelper
 github.com/openshift/library-go/pkg/operator/resource/resourcemerge
@@ -1065,9 +1063,6 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/robfig/cron v1.2.0
-## explicit
-github.com/robfig/cron
 # github.com/robfig/cron/v3 v3.0.1
 ## explicit; go 1.12
 github.com/robfig/cron/v3
