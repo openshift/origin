@@ -287,21 +287,6 @@ var (
 		},
 		// tests that don't pass under OVN Kubernetes
 		"[Skipped:Network/OVNKubernetes]": {
-			// https://jira.coreos.com/browse/SDN-510: OVN-K doesn't support session affinity
-			`\[sig-network\] Networking Granular Checks: Services should function for client IP based session affinity: http`,
-			`\[sig-network\] Networking Granular Checks: Services should function for client IP based session affinity: udp`,
-			`\[sig-network\] Services should be able to switch session affinity for NodePort service`,
-			`\[sig-network\] Services should be able to switch session affinity for service with type clusterIP`,
-			`\[sig-network\] Services should have session affinity work for NodePort service`,
-			`\[sig-network\] Services should have session affinity work for service with type clusterIP`,
-			`\[sig-network\] Services should have session affinity timeout work for NodePort service`,
-			`\[sig-network\] Services should have session affinity timeout work for service with type clusterIP`,
-
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1996097 - [Feature:IPv6DualStack] tests are failing in dualstack
-			// https://jira.coreos.com/browse/SDN-510: OVN-K doesn't support session affinity
-			`\[sig-network\] \[Feature:IPv6DualStack\] Granular Checks: Services Secondary IP Family \[LinuxOnly\] should function for client IP based session affinity: http`,
-			`\[sig-network\] \[Feature:IPv6DualStack\] Granular Checks: Services Secondary IP Family \[LinuxOnly\] should function for client IP based session affinity: udp`,
-
 			// ovn-kubernetes does not support named ports
 			`NetworkPolicy.*named port`,
 		},
