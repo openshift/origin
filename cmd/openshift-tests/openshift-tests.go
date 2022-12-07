@@ -35,6 +35,8 @@ import (
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
+
+	_ "github.com/openshift/origin/test/extended"
 )
 
 func main() {
