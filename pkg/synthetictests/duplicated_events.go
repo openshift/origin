@@ -22,10 +22,11 @@ import (
 )
 
 const (
-	duplicateEventThreshold           = 20
-	duplicateSingleNodeEventThreshold = 30
-	ovnReadinessRegExpStr             = `ns/(?P<NS>openshift-ovn-kubernetes) pod/(?P<POD>ovnkube-node-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>Unhealthy) (?P<MSG>Readiness probe failed:.*$)`
-	consoleReadinessRegExpStr         = `ns/(?P<NS>openshift-console) pod/(?P<POD>console-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>ProbeError) (?P<MSG>Readiness probe error:.* connect: connection refused$)`
+	duplicateEventThreshold                 = 20
+	duplicateSingleNodeEventThreshold       = 30
+	ovnReadinessRegExpStr                   = `ns/(?P<NS>openshift-ovn-kubernetes) pod/(?P<POD>ovnkube-node-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>Unhealthy) (?P<MSG>Readiness probe failed:.*$)`
+	consoleReadinessRegExpStr               = `ns/(?P<NS>openshift-console) pod/(?P<POD>console-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>ProbeError) (?P<MSG>Readiness probe error:.* connect: connection refused$)`
+	marketplaceStartupProbeFailureRegExpStr = `ns/(?P<NS>openshift-marketplace) pod/(?P<POD>(community-operators|redhat-operators)-[a-z0-9-]+).*Startup probe failed`
 )
 
 func combinedRegexp(arr ...*regexp.Regexp) *regexp.Regexp {
@@ -132,6 +133,9 @@ var allowedRepeatedEventPatterns = []*regexp.Regexp{
 
 	// Separated out in testNodeHasSufficientPID
 	regexp.MustCompile(nodeHasSufficientPIDRegExpStr),
+
+	// Separated out in testMarketplaceStartupProbeFailure
+	regexp.MustCompile(marketplaceStartupProbeFailureRegExpStr),
 }
 
 var allowedRepeatedEventFns = []isRepeatedEventOKFunc{
@@ -165,6 +169,9 @@ var allowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/RequiredInstallerResourcesMissing configmaps: etcd-endpoints-[0-9]+`),
 	// There is a separate test to catch this specific case
 	regexp.MustCompile(requiredResourcesMissingRegEx),
+
+	// Separated out in testMarketplaceStartupProbeFailure
+	regexp.MustCompile(marketplaceStartupProbeFailureRegExpStr),
 }
 
 var knownEventsBugs = []knownProblem{
