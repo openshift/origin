@@ -25,19 +25,7 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 		}
 
 		//Component name as keys and BZ's as values
-		knownBugs := map[string]string{
-			"community-operators":  "https://bugzilla.redhat.com/show_bug.cgi?id=1954869",
-			"redhat-marketplace":   "https://bugzilla.redhat.com/show_bug.cgi?id=1954869",
-			"redhat-operators":     "https://bugzilla.redhat.com/show_bug.cgi?id=1954869",
-			"certified-operators":  "https://bugzilla.redhat.com/show_bug.cgi?id=1954869",
-			"image-pruner":         "https://bugzilla.redhat.com/show_bug.cgi?id=1954891",
-			"ingress-canary":       "https://bugzilla.redhat.com/show_bug.cgi?id=1954892",
-			"network-check-source": "https://bugzilla.redhat.com/show_bug.cgi?id=1954870",
-			"network-check-target": "https://bugzilla.redhat.com/show_bug.cgi?id=1954870",
-			"migrator":             "https://bugzilla.redhat.com/show_bug.cgi?id=1954868",
-			"downloads":            "https://bugzilla.redhat.com/show_bug.cgi?id=1954866",
-			"pod-identity-webhook": "https://bugzilla.redhat.com/show_bug.cgi?id=1954865",
-		}
+		knownBugs := map[string]string{}
 		// list of pods that use images not in the release payload
 		invalidPodPriority := sets.NewString()
 		knownBugList := sets.NewString()
