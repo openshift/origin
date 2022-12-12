@@ -149,14 +149,14 @@ func runChaosmonkey(
 			fname := filepath.Join(framework.TestContext.ReportDir, fmt.Sprintf("junit_%s_%s.xml", packageName, timeSuffix))
 			f, err := os.Create(fname)
 			if err != nil {
-				// TODO: no logging?
+				fmt.Fprintf(os.Stderr, "error: Failed to write file %v: %v\n", fname, err)
 				return
 			}
 			defer f.Close()
 			xml.NewEncoder(f).Encode(testSuite)
 
 			if err := riskanalysis.WriteJobRunTestFailureSummary(framework.TestContext.ReportDir, timeSuffix, testSuite); err != nil {
-				// TODO: no logging?
+				fmt.Fprintf(os.Stderr, "error: Failed to write file %v: %v\n", fname, err)
 				return
 			}
 		}
