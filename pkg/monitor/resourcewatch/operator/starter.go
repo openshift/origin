@@ -3,36 +3,22 @@ package operator
 import (
 	"context"
 	"os"
-	"time"
 
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	apiextensionsv1informer "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions/apiextensions/v1"
+	"k8s.io/client-go/dynamic/dynamicinformer"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/tools/cache"
 
-	configv1client "github.com/openshift/client-go/config/clientset/versioned"
-	configv1informer "github.com/openshift/client-go/config/informers/externalversions/config/v1"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 
-	"github.com/openshift/origin/pkg/monitor/resourcewatch/controller/clusteroperatormetric"
 	"github.com/openshift/origin/pkg/monitor/resourcewatch/controller/configmonitor"
 	"github.com/openshift/origin/pkg/monitor/resourcewatch/storage"
 )
 
+// this doesn't appear to handle restarts cleanly.  To do so it would need to compare the resource version that it is applying
+// to the resource version present and it would need to handle unobserved deletions properly.  both are possible, neither is easy.
 func RunOperator(ctx context.Context, controllerCtx *controllercmd.ControllerContext) error {
-	kubeClient, err := apiextensionsclient.NewForConfig(controllerCtx.ProtoKubeConfig)
-	if err != nil {
-		return err
-	}
-
 	dynamicClient, err := dynamic.NewForConfig(controllerCtx.KubeConfig)
-	if err != nil {
-		return err
-	}
-
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(controllerCtx.KubeConfig)
 	if err != nil {
 		return err
 	}
@@ -42,69 +28,85 @@ func RunOperator(ctx context.Context, controllerCtx *controllercmd.ControllerCon
 		repositoryPath = repositoryPathEnv
 	}
 
-	configStore, err := storage.NewGitStorage(repositoryPath)
+	gitStorage, err := storage.NewGitStorage(repositoryPath)
 	if err != nil {
 		return err
 	}
 
-	configClient, err := configv1client.NewForConfig(controllerCtx.KubeConfig)
-	if err != nil {
-		return err
+	dynamicInformer := dynamicinformer.NewDynamicSharedInformerFactory(dynamicClient, 0)
+
+	resourcesToWatch := []schema.GroupVersionResource{
+		configResource("apiservers"),
+		configResource("authentications"),
+		configResource("builds"),
+		configResource("clusteroperators"),
+		configResource("clusterversions"),
+		configResource("consoles"),
+		configResource("dnses"),
+		configResource("featuregates"),
+		configResource("imagecontentpolicies"),
+		configResource("images"),
+		configResource("infrastructures"),
+		configResource("ingresses"),
+		configResource("networks"),
+		configResource("nodes"),
+		configResource("oauths"),
+		configResource("operatorhubs"),
+		configResource("projects"),
+		configResource("proxies"),
+		configResource("schedulers"),
+		appResource("deployments"),
+		appResource("daemonsets"),
+		appResource("statefulsets"),
+		appResource("replicasets"),
+		resource("events.k8s.io", "v1", "events"),
+		coreResource("pods"),
+		coreResource("nodes"),
+		coreResource("replicationcontrollers"),
+		coreResource("services"),
 	}
 
-	configInformer := configv1informer.NewClusterOperatorInformer(configClient, time.Minute, cache.Indexers{})
-	crdInformer := apiextensionsv1informer.NewCustomResourceDefinitionInformer(kubeClient, time.Minute, cache.Indexers{})
-
-	openshiftConfigObserver := configmonitor.NewConfigObserverController(
-		dynamicClient,
-		crdInformer,
-		discoveryClient,
-		configStore,
-		[]schema.GroupVersion{
-			{
-				Group:   "config.openshift.io", // Track everything under *.config.openshift.io
-				Version: "v1",
-			},
-		},
-		[]schema.GroupVersionKind{
-			{
-				Group:   "apps",
-				Version: "v1",
-				Kind:    "Deployment",
-			},
-			{
-				Group:   "apps",
-				Version: "v1",
-				Kind:    "DaemonSet",
-			},
-			{
-				Group:   "",
-				Version: "v1",
-				Kind:    "Event",
-			},
-			{
-				Group:   "",
-				Version: "v1",
-				Kind:    "Pod",
-			},
-			{
-				Group:   "",
-				Version: "v1",
-				Kind:    "Node",
-			},
-		},
-		controllerCtx.EventRecorder,
+	configmonitor.WireResourceInformersToGitRepo(
+		dynamicInformer,
+		gitStorage,
+		resourcesToWatch,
 	)
 
-	clusterOperatorMetric := clusteroperatormetric.NewClusterOperatorMetricController(configInformer, configClient.ConfigV1(), controllerCtx.EventRecorder)
-
-	go crdInformer.Run(ctx.Done())
-	go configInformer.Run(ctx.Done())
-
-	go openshiftConfigObserver.Run(ctx, 1)
-	go clusterOperatorMetric.Run(ctx, 1)
+	dynamicInformer.Start(ctx.Done())
 
 	<-ctx.Done()
 
 	return nil
+}
+
+func configResource(resource string) schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    "config.openshift.io",
+		Version:  "v1",
+		Resource: resource,
+	}
+}
+
+func coreResource(resource string) schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    "",
+		Version:  "v1",
+		Resource: resource,
+	}
+}
+
+func resource(group, version, resource string) schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    group,
+		Version:  version,
+		Resource: resource,
+	}
+}
+
+func appResource(resource string) schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    "apps",
+		Version:  "v1",
+		Resource: resource,
+	}
 }
