@@ -65,6 +65,10 @@ func RunOperator(ctx context.Context, controllerCtx *controllercmd.ControllerCon
 				Group:   "config.openshift.io", // Track everything under *.config.openshift.io
 				Version: "v1",
 			},
+			{
+				Group:   "config.openshift.io",
+				Version: "v1alpha1",
+			},
 		},
 		[]schema.GroupVersionKind{
 			{
