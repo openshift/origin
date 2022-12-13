@@ -85,9 +85,11 @@ var _ = g.Describe("[sig-cli] oc status", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("verify jobs are showing in status")
-		err = oc.WithoutNamespace().Run("create").Args("job", "pi", "--image=image-registry.openshift-image-registry.svc:5000/openshift/tools:latest",
-			"--", "perl", "-Mbignum=bpi", "-wle", "'print bpi(2000)'").Execute()
+		err = oc.WithoutNamespace().Run("create").Args("job", "pi", "--image=image-registry.openshift-image-registry.svc:5000/openshift/tools:latest").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
+		defer func() {
+			oc.WithoutNamespace().Run("delete").Args("job", "pi").Execute()
+		}()
 
 		out, err = oc.WithoutNamespace().Run("status").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
