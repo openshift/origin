@@ -3,6 +3,7 @@ package synthetictests
 import (
 	"bytes"
 	"fmt"
+	"k8s.io/kubernetes/test/e2e/framework"
 	"regexp"
 	"sort"
 	"strings"
@@ -257,8 +258,11 @@ func formatTimes(times []time.Time) []string {
 }
 
 func testNodeUpgradeTransitions(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
-	const testName = "[sig-node] nodes should not go unready after being upgraded and go unready only once"
+	const testName = "[sig-node] nodes should not go unready after being upgraded and go unready only once allowing for some blips"
+	// see https://issues.redhat.com/browse/OCPBUGSM-45030 for details on allowing some blips
 
+	const numNodeNotReadyBlipsAllowed = 1
+	const nodeNotReadyBlipDurationSeconds = 5
 	var buf bytes.Buffer
 	var testCases []*junitapi.JUnitTestCase
 
@@ -322,8 +326,17 @@ func testNodeUpgradeTransitions(events monitorapi.Intervals, kubeClientConfig *r
 			ready := nodesWentReady[node]
 
 			if len(unready) > 1 {
-				failures = append(failures, fmt.Sprintf("Node %s went unready multiple times: %s", node, strings.Join(formatTimes(unready), ", ")))
-				abnormalNodes.Insert(node)
+				// because of the upgrade we expect one notready to ready transition so account for that and
+				// and check if the transition was an allowed blip. fail if not.
+				if len(unready) == (numNodeNotReadyBlipsAllowed+1) &&
+					len(ready) == (numNodeNotReadyBlipsAllowed+1) &&
+					(ready[0].Second()-unready[0].Second()) < nodeNotReadyBlipDurationSeconds {
+					framework.Logf("There was %s NodeNotReady->NodeReady blip of less than %s seconds, which"+
+						"is allowed", numNodeNotReadyBlipsAllowed, nodeNotReadyBlipDurationSeconds)
+				} else {
+					failures = append(failures, fmt.Sprintf("Node %s went unready multiple times: %s", node, strings.Join(formatTimes(unready), ", ")))
+					abnormalNodes.Insert(node)
+				}
 			}
 			if len(ready) > 1 {
 				failures = append(failures, fmt.Sprintf("Node %s went ready multiple times: %s", node, strings.Join(formatTimes(ready), ", ")))
