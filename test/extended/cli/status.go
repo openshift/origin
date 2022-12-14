@@ -83,15 +83,15 @@ var _ = g.Describe("[sig-cli] oc status", func() {
 
 		err = oc.WithoutNamespace().Run("new-project").Args(projectStatus, "--display-name=my project", "--description=test project").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("verify jobs are showing in status")
-		err = oc.WithoutNamespace().Run("create").Args("job", "pi", "--image=image-registry.openshift-image-registry.svc:5000/openshift/tools:latest").Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
 		defer func() {
-			oc.WithoutNamespace().Run("delete").Args("job", "pi").Execute()
+			oc.WithoutNamespace().Run("delete").Args("project", projectStatus).Execute()
 		}()
 
-		out, err = oc.WithoutNamespace().Run("status").Output()
+		g.By("verify jobs are showing in status")
+		err = oc.Run("create").Args("job", "pi", "--image=image-registry.openshift-image-registry.svc:5000/openshift/tools:latest", "--namespace", projectStatus).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		out, err = oc.Run("status", "--namespace", projectStatus).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("job/pi manages image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"))
 	})
