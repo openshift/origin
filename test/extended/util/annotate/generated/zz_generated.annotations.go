@@ -1533,6 +1533,8 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc status returns expected help messages [apigroup:project.openshift.io][apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:apps.openshift.io][apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-cli] policy scc-subject-review, scc-review [apigroup:authorization.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/authentication.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
 
 	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/builds.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
