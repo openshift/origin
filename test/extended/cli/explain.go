@@ -473,7 +473,7 @@ func getCrdTypes(oc *exutil.CLI) []schema.GroupVersionResource {
 	crdTypes = append(crdTypes, machineTypes...)
 	crdTypes = append(crdTypes, additionalOperatorTypes...)
 
-	exist, err := exutil.DoesApiResourceExist(oc.AdminConfig(), "clusterversions")
+	exist, err := exutil.DoesApiResourceExist(oc.AdminConfig(), "clusterversions", "config.openshift.io")
 	o.Expect(err).NotTo(o.HaveOccurred())
 	if exist {
 		clusterVersion, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
