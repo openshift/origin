@@ -397,17 +397,23 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	// attempt to retry failures to do flake detection
 	if fail > 0 && fail <= suite.MaximumAllowedFlakes {
 		var retries []*testCase
+
+		// Make a copy of the all failing tests (subject to the max allowed flakes) so we can have
+		// a list of tests to retry.
 		for _, test := range failing {
 			retry := test.Retry()
 			retries = append(retries, retry)
-			tests = append(tests, retry)
 			if len(retries) > suite.MaximumAllowedFlakes {
 				break
 			}
 		}
 
+		fmt.Fprintf(opt.Out, "Retry count: %d\n", len(retries))
+
+		// Run the tests in the retries list.
 		q := newParallelTestQueue(testRunnerContext)
 		q.Execute(testCtx, retries, parallelism, testOutputConfig, abortFn)
+
 		var flaky []string
 		var repeatFailures []*testCase
 		for _, test := range retries {
@@ -416,6 +422,16 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 			} else {
 				repeatFailures = append(repeatFailures, test)
 			}
+		}
+
+		// Add the list of retries into the list of all tests.
+		for _, retry := range retries {
+			if retry.flake {
+				// Retry tests that flaked are omitted so that the original test is counted as a failure.
+				fmt.Fprintf(opt.Out, "Ignoring retry that returned a flake, original failure is authoritative for test: %s\n", retry.name)
+				continue
+			}
+			tests = append(tests, retry)
 		}
 		if len(flaky) > 0 {
 			failing = repeatFailures
