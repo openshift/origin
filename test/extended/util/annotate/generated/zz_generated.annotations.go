@@ -2283,9 +2283,9 @@ var Annotations = map[string]string{
 
 	"[sig-network] Networking Granular Checks: Services should be able to handle large requests: udp": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-network] Networking Granular Checks: Services should function for client IP based session affinity: http [LinuxOnly]": " [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-network] Networking Granular Checks: Services should function for client IP based session affinity: http [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-network] Networking Granular Checks: Services should function for client IP based session affinity: udp [LinuxOnly]": " [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-network] Networking Granular Checks: Services should function for client IP based session affinity: udp [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-network] Networking Granular Checks: Services should function for endpoint-Service: http": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2369,9 +2369,9 @@ var Annotations = map[string]string{
 
 	"[sig-network] Services should be able to create a functioning NodePort service [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-network] Services should be able to switch session affinity for NodePort service [LinuxOnly] [Conformance]": " [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[sig-network] Services should be able to switch session affinity for NodePort service [LinuxOnly] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-network] Services should be able to switch session affinity for service with type clusterIP [LinuxOnly] [Conformance]": " [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[sig-network] Services should be able to switch session affinity for service with type clusterIP [LinuxOnly] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[sig-network] Services should be able to up and down services": " [Disabled:Broken] [Suite:k8s]",
 
@@ -2405,13 +2405,13 @@ var Annotations = map[string]string{
 
 	"[sig-network] Services should find a service from listing all namespaces [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-network] Services should have session affinity timeout work for NodePort service [LinuxOnly] [Conformance]": " [Skipped:Network/OVNKuberenetes] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[sig-network] Services should have session affinity timeout work for NodePort service [LinuxOnly] [Conformance]": " [Skipped:Network/OVNKuberenetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-network] Services should have session affinity timeout work for service with type clusterIP [LinuxOnly] [Conformance]": " [Skipped:Network/OVNKuberenetes] [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[sig-network] Services should have session affinity timeout work for service with type clusterIP [LinuxOnly] [Conformance]": " [Skipped:Network/OVNKuberenetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-network] Services should have session affinity work for NodePort service [LinuxOnly] [Conformance]": " [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[sig-network] Services should have session affinity work for NodePort service [LinuxOnly] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-network] Services should have session affinity work for service with type clusterIP [LinuxOnly] [Conformance]": " [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[sig-network] Services should have session affinity work for service with type clusterIP [LinuxOnly] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[sig-network] Services should implement service.kubernetes.io/headless": " [Disabled:Broken] [Suite:k8s]",
 
@@ -2447,9 +2447,9 @@ var Annotations = map[string]string{
 
 	"[sig-network] [Feature:IPv6DualStack] Granular Checks: Services Secondary IP Family [LinuxOnly] should be able to handle large requests: udp": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-network] [Feature:IPv6DualStack] Granular Checks: Services Secondary IP Family [LinuxOnly] should function for client IP based session affinity: http [LinuxOnly]": " [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-network] [Feature:IPv6DualStack] Granular Checks: Services Secondary IP Family [LinuxOnly] should function for client IP based session affinity: http [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-network] [Feature:IPv6DualStack] Granular Checks: Services Secondary IP Family [LinuxOnly] should function for client IP based session affinity: udp [LinuxOnly]": " [Skipped:Network/OVNKubernetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-network] [Feature:IPv6DualStack] Granular Checks: Services Secondary IP Family [LinuxOnly] should function for client IP based session affinity: udp [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-network] [Feature:IPv6DualStack] Granular Checks: Services Secondary IP Family [LinuxOnly] should function for endpoint-Service: http": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
