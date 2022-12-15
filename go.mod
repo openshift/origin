@@ -3,9 +3,14 @@ module github.com/openshift/origin
 go 1.18
 
 require (
+	github.com/Azure/azure-sdk-for-go v55.0.0+incompatible
+	github.com/Azure/go-autorest/autorest v0.11.27
+	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
+	github.com/Azure/go-autorest/autorest/to v0.4.0
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/RangelReale/osincli v0.0.0-20160924135400-fababb0555f2
 	github.com/apparentlymart/go-cidr v1.1.0
+	github.com/aws/aws-sdk-go v1.38.49
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/fsouza/go-dockerclient v1.7.1
@@ -42,6 +47,7 @@ require (
 	golang.org/x/crypto v0.0.0-20220331220935-ae2d96664a29
 	golang.org/x/net v0.0.0-20220722155237-a158d28d115b
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
+	google.golang.org/api v0.60.0
 	google.golang.org/grpc v1.47.0
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v2 v2.4.0
@@ -68,14 +74,12 @@ require (
 
 require (
 	cloud.google.com/go v0.97.0 // indirect
-	github.com/Azure/azure-sdk-for-go v55.0.0+incompatible // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
-	github.com/Azure/go-autorest/autorest v0.11.27 // indirect
 	github.com/Azure/go-autorest/autorest/adal v0.9.20 // indirect
+	github.com/Azure/go-autorest/autorest/azure/cli v0.4.5 // indirect
 	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/mocks v0.4.2 // indirect
-	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
 	github.com/Azure/go-autorest/autorest/validation v0.1.0 // indirect
 	github.com/Azure/go-autorest/logger v0.2.1 // indirect
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
@@ -90,7 +94,6 @@ require (
 	github.com/antlr/antlr4/runtime/Go/antlr v0.0.0-20220418222510-f25a4f6275ed // indirect
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e // indirect
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a // indirect
-	github.com/aws/aws-sdk-go v1.38.49 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
@@ -107,6 +110,7 @@ require (
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
+	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/docker/docker v20.10.17+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
@@ -251,7 +255,6 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
 	golang.org/x/tools v0.1.12 // indirect
-	google.golang.org/api v0.60.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220502173005-c8bf987b8c21 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect

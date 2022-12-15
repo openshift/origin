@@ -25,6 +25,12 @@ github.com/Azure/go-autorest/autorest/azure
 # github.com/Azure/go-autorest/autorest/adal v0.9.20
 ## explicit; go 1.15
 github.com/Azure/go-autorest/autorest/adal
+# github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
+## explicit; go 1.15
+github.com/Azure/go-autorest/autorest/azure/auth
+# github.com/Azure/go-autorest/autorest/azure/cli v0.4.5
+## explicit; go 1.15
+github.com/Azure/go-autorest/autorest/azure/cli
 # github.com/Azure/go-autorest/autorest/date v0.3.0
 ## explicit; go 1.12
 github.com/Azure/go-autorest/autorest/date
@@ -226,6 +232,9 @@ github.com/cyphar/filepath-securejoin
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
+# github.com/dimchansky/utfbom v1.1.1
+## explicit
+github.com/dimchansky/utfbom
 # github.com/docker/distribution v2.8.1+incompatible
 ## explicit
 github.com/docker/distribution
