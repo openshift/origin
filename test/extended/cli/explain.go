@@ -557,6 +557,12 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 		g.It(fmt.Sprintf("should contain spec+status for %s [apigroup:%s]", groupName, groupName), func() {
 			for _, bt := range types {
 				e2e.Logf("Checking %s...", bt)
+				exist, err := exutil.DoesApiResourceExist(oc.AdminConfig(), bt.Resource, groupName)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if !exist {
+					e2e.Logf("Resource %s does not exist, skipping", bt)
+					continue
+				}
 				o.Expect(verifySpecStatusExplain(oc, nil, bt)).NotTo(o.HaveOccurred())
 			}
 		})
@@ -586,6 +592,12 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 				e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
 				resource := strings.Split(st.field, ".")
 				gvr := st.gv.WithResource(resource[0])
+				exist, err := exutil.DoesApiResourceExist(oc.AdminConfig(), resource[0], groupName)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if !exist {
+					e2e.Logf("Resource %s does not exist, skipping", gvr)
+					continue
+				}
 				o.Expect(verifyExplain(oc, nil, gvr,
 					st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())
 			}
