@@ -22,6 +22,7 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	psapi "k8s.io/pod-security-admission/api"
 
 	exetcd "github.com/openshift/origin/test/extended/etcd"
@@ -68,6 +69,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:ServerSideApply] Server-Side App
 		g.It(fmt.Sprintf("should work for %s [apigroup:%s]", gvr, gvr.Group), func() {
 			// create the testing namespace
 			testNamespace := oc.SetupProject()
+
+			exist, err := exutil.DoesApiResourceExist(oc.AdminConfig(), gvr.Resource, gvr.GroupVersion().String())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if !exist {
+				e2eskipper.Skipf("Resource %s does not exist", gvr.Resource)
+			}
 
 			for _, prerequisite := range data.Prerequisites {
 				// The etcd storage test for oauthclientauthorizations needs to
