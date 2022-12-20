@@ -65,29 +65,39 @@ func waitForServiceAccountInNamespace(c clientset.Interface, ns, serviceAccountN
 }
 
 // LocatePrometheus uses an existing CLI to return information used to make http requests to Prometheus.
-func LocatePrometheus(oc *exutil.CLI) (queryURL, prometheusURL, querySvcURL, prometheusSvcURL, bearerToken string, ok bool) {
+func LocatePrometheus(oc *exutil.CLI) (queryURL, prometheusURL, bearerToken string, ok bool) {
 	_, err := oc.AdminKubeClient().CoreV1().Services("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
 	if kapierrs.IsNotFound(err) {
-		return "", "", "", "", "", false
+		return "", "", "", false
+	}
+
+	bearerToken = GetPrometheusSABearerToken(oc)
+
+	return "https://thanos-querier.openshift-monitoring.svc:9091", "https://prometheus-k8s.openshift-monitoring.svc:9091", bearerToken, true
+}
+
+// LocatePrometheusUsingRoutes uses an existing CLI to return routes used to make http requests to Prometheus.
+func LocatePrometheusUsingRoutes(oc *exutil.CLI) (queryURL, prometheusURL, bearerToken string, ok bool) {
+	_, err := oc.AdminKubeClient().CoreV1().Services("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
+	if kapierrs.IsNotFound(err) {
+		return "", "", "", false
 	}
 
 	bearerToken = GetPrometheusSABearerToken(oc)
 
 	thanosRoute, err := oc.AsAdmin().RouteClient().RouteV1().Routes("openshift-monitoring").Get(context.Background(), "thanos-querier", metav1.GetOptions{})
 	if err != nil {
-		return "", "", "", "", "", false
+		return "", "", "", false
 	}
 	queryURL = "https://" + thanosRoute.Status.Ingress[0].Host
-	querySvcURL = "https://thanos-querier.openshift-monitoring.svc:9091"
 
 	prometheusRoute, err := oc.AsAdmin().RouteClient().RouteV1().Routes("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
 	if err != nil {
-		return "", "", "", "", "", false
+		return "", "", "", false
 	}
 	prometheusURL = "https://" + prometheusRoute.Status.Ingress[0].Host
-	prometheusSvcURL = "https://prometheus-k8s.openshift-monitoring.svc:9091"
 
-	return queryURL, prometheusURL, querySvcURL, prometheusSvcURL, bearerToken, true
+	return queryURL, prometheusURL, bearerToken, true
 }
 
 func GetPrometheusSABearerToken(oc *exutil.CLI) string {

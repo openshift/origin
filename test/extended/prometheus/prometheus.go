@@ -88,7 +88,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 			exutil.CheckImageStreamLatestTagPopulated, exutil.CheckImageStreamTagNotFound)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		url, _, _, _, bearerToken, ok := helper.LocatePrometheus(oc)
+		url, _, bearerToken, ok := helper.LocatePrometheusUsingRoutes(oc)
 		if !ok {
 			e2e.Failf("Prometheus could not be located on this cluster, failing prometheus test")
 		}
@@ -261,9 +261,13 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		var ok bool
-		queryURL, prometheusURL, querySvcURL, prometheusSvcURL, bearerToken, ok = helper.LocatePrometheus(oc)
+		querySvcURL, prometheusSvcURL, bearerToken, ok = helper.LocatePrometheus(oc)
 		if !ok {
-			e2e.Failf("Prometheus could not be located on this cluster, failing prometheus test")
+			e2e.Failf("Prometheus URLs through services could not be located on this cluster, failing prometheus test")
+		}
+		queryURL, prometheusURL, _, ok = helper.LocatePrometheusUsingRoutes(oc)
+		if !ok {
+			e2e.Failf("Prometheus URLs through routes could not be located on this cluster, failing prometheus test")
 		}
 	})
 
