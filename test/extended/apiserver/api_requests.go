@@ -134,7 +134,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 				"openshift-controller-manager-operator":  286,
 				"openshift-kube-scheduler-operator":      252.0,
 				"operator":                               49.0,
-				"prometheus-operator":                    202.0,
+				"prometheus-operator":                    222.0,
 				"service-ca-operator":                    170.0,
 			},
 			configv1.AzurePlatformType: {
@@ -313,7 +313,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 				"openshift-config-operator":              50,
 				"openshift-controller-manager-operator":  180,
 				"openshift-kube-scheduler-operator":      179,
-				"prometheus-operator":                    100,
+				"prometheus-operator":                    110,
 				"service-ca-operator":                    131,
 			},
 		}
