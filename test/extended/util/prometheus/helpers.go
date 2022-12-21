@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -42,14 +43,14 @@ type prometheusResponseData struct {
 	Result model.Vector `json:"result"`
 }
 
-// GetBearerTokenURLViaPod makes http request through given pod
-func GetBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error) {
+// GetBearerTokenURL makes http request with bearer token
+func GetBearerTokenURL(url, bearer string) (string, error) {
 	cmd := fmt.Sprintf("curl --retry 15 --max-time 2 --retry-delay 1 -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
-	output, err := framework.RunHostCmd(ns, execPodName, cmd)
+	output, err := exec.Command("bash", "-e", "-c", cmd).Output()
 	if err != nil {
 		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
 	}
-	return output, nil
+	return string(output), nil
 }
 
 func waitForServiceAccountInNamespace(c clientset.Interface, ns, serviceAccountName string, timeout time.Duration) error {
@@ -63,7 +64,7 @@ func waitForServiceAccountInNamespace(c clientset.Interface, ns, serviceAccountN
 	return err
 }
 
-// LocatePrometheus uses an exisitng CLI to return information used to make http requests to Prometheus.
+// LocatePrometheus uses an existing CLI to return information used to make http requests to Prometheus.
 func LocatePrometheus(oc *exutil.CLI) (queryURL, prometheusURL, bearerToken string, ok bool) {
 	_, err := oc.AdminKubeClient().CoreV1().Services("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
 	if kapierrs.IsNotFound(err) {
@@ -73,6 +74,30 @@ func LocatePrometheus(oc *exutil.CLI) (queryURL, prometheusURL, bearerToken stri
 	bearerToken = GetPrometheusSABearerToken(oc)
 
 	return "https://thanos-querier.openshift-monitoring.svc:9091", "https://prometheus-k8s.openshift-monitoring.svc:9091", bearerToken, true
+}
+
+// LocatePrometheusUsingRoutes uses an existing CLI to return routes used to make http requests to Prometheus.
+func LocatePrometheusUsingRoutes(oc *exutil.CLI) (queryURL, prometheusURL, bearerToken string, ok bool) {
+	_, err := oc.AdminKubeClient().CoreV1().Services("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
+	if kapierrs.IsNotFound(err) {
+		return "", "", "", false
+	}
+
+	bearerToken = GetPrometheusSABearerToken(oc)
+
+	thanosRoute, err := oc.AsAdmin().RouteClient().RouteV1().Routes("openshift-monitoring").Get(context.Background(), "thanos-querier", metav1.GetOptions{})
+	if err != nil {
+		return "", "", "", false
+	}
+	queryURL = "https://" + thanosRoute.Status.Ingress[0].Host
+
+	prometheusRoute, err := oc.AsAdmin().RouteClient().RouteV1().Routes("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
+	if err != nil {
+		return "", "", "", false
+	}
+	prometheusURL = "https://" + prometheusRoute.Status.Ingress[0].Host
+
+	return queryURL, prometheusURL, bearerToken, true
 }
 
 func GetPrometheusSABearerToken(oc *exutil.CLI) string {
@@ -219,7 +244,24 @@ func RunQueries(ctx context.Context, prometheusClient prometheusv1.API, promQuer
 
 // ExpectURLStatusCodeExec attempts connection to url returning an error
 // upon failure or if status return code is not equal to any of the statusCodes.
-func ExpectURLStatusCodeExec(ns, execPodName, url string, statusCodes ...int) error {
+func ExpectURLStatusCodeExec(url string, statusCodes ...int) error {
+	cmd := fmt.Sprintf("curl -k -s -o /dev/null -w '%%{http_code}' %q", url)
+	output, err := exec.Command("bash", "-e", "-c", cmd).Output()
+	if err != nil {
+		return fmt.Errorf("host command failed: %v\n%s", err, output)
+	}
+	for _, statusCode := range statusCodes {
+		if string(output) == strconv.Itoa(statusCode) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("last response from server was not in %v: %s", statusCodes, output)
+}
+
+// ExpectURLStatusCodeExecViaPod attempts connection to url via exec pod and returns an error
+// upon failure or if status return code is not equal to any of the statusCodes.
+func ExpectURLStatusCodeExecViaPod(ns, execPodName, url string, statusCodes ...int) error {
 	cmd := fmt.Sprintf("curl -k -s -o /dev/null -w '%%{http_code}' %q", url)
 	output, err := framework.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
@@ -236,10 +278,10 @@ func ExpectURLStatusCodeExec(ns, execPodName, url string, statusCodes ...int) er
 
 // ExpectPrometheusEndpoint attempts to connect to the metrics endpoint with
 // delayed retries upon failure.
-func ExpectPrometheusEndpoint(namespace, podName, url string) {
+func ExpectPrometheusEndpoint(url string) {
 	var err error
 	for i := 0; i < maxPrometheusQueryAttempts; i++ {
-		err = ExpectURLStatusCodeExec(namespace, podName, url, 401, 403)
+		err = ExpectURLStatusCodeExec(url, 401, 403)
 		if err == nil {
 			break
 		}
@@ -251,15 +293,9 @@ func ExpectPrometheusEndpoint(namespace, podName, url string) {
 // FetchAlertingRules fetchs all alerting rules from the Prometheus at
 // the given URL using the given bearer token.  The results are returned
 // as a map of group names to lists of alerting rules.
-func FetchAlertingRules(oc *exutil.CLI, promURL, bearerToken string) (map[string][]promv1.AlertingRule, error) {
-	ns := oc.SetupProject()
-	execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
-	defer func() {
-		oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
-	}()
-
+func FetchAlertingRules(promURL, bearerToken string) (map[string][]promv1.AlertingRule, error) {
 	url := fmt.Sprintf("%s/api/v1/rules", promURL)
-	contents, err := GetBearerTokenURLViaPod(ns, execPod.Name, url, bearerToken)
+	contents, err := GetBearerTokenURL(url, bearerToken)
 	if err != nil {
 		return nil, fmt.Errorf("unable to query %s: %v", url, err)
 	}

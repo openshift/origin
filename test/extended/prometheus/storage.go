@@ -28,7 +28,7 @@ var _ = g.Describe("[sig-storage][Late] Metrics", func() {
 
 	g.BeforeEach(func() {
 		var ok bool
-		url, _, bearerToken, ok = helper.LocatePrometheus(oc)
+		url, _, bearerToken, ok = helper.LocatePrometheusUsingRoutes(oc)
 		if !ok {
 			g.Skip("Prometheus could not be located on this cluster, skipping prometheus test")
 		}

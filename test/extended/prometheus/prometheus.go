@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -87,7 +88,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 			exutil.CheckImageStreamLatestTagPopulated, exutil.CheckImageStreamTagNotFound)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		url, _, bearerToken, ok := helper.LocatePrometheus(oc)
+		url, _, bearerToken, ok := helper.LocatePrometheusUsingRoutes(oc)
 		if !ok {
 			e2e.Failf("Prometheus could not be located on this cluster, failing prometheus test")
 		}
@@ -95,7 +96,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		if alertingRules == nil {
 			var err error
 
-			alertingRules, err = helper.FetchAlertingRules(oc, url, bearerToken)
+			alertingRules, err = helper.FetchAlertingRules(url, bearerToken)
 			if err != nil {
 				e2e.Failf("Failed to fetch alerting rules: %v", err)
 			}
@@ -250,7 +251,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 	var (
 		oc = exutil.NewCLIWithPodSecurityLevel("prometheus", admissionapi.LevelBaseline)
 
-		url, prometheusURL, bearerToken string
+		queryURL, prometheusURL, querySvcURL, prometheusSvcURL, bearerToken string
 	)
 
 	g.BeforeEach(func() {
@@ -260,9 +261,13 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		var ok bool
-		url, prometheusURL, bearerToken, ok = helper.LocatePrometheus(oc)
+		querySvcURL, prometheusSvcURL, bearerToken, ok = helper.LocatePrometheus(oc)
 		if !ok {
-			e2e.Failf("Prometheus could not be located on this cluster, failing prometheus test")
+			e2e.Failf("Prometheus URLs through services could not be located on this cluster, failing prometheus test")
+		}
+		queryURL, prometheusURL, _, ok = helper.LocatePrometheusUsingRoutes(oc)
+		if !ok {
+			e2e.Failf("Prometheus URLs through routes could not be located on this cluster, failing prometheus test")
 		}
 	})
 
@@ -307,7 +312,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			g.By("checking the prometheus metrics path")
 			var metrics map[string]*dto.MetricFamily
 			o.Expect(wait.PollImmediate(10*time.Second, 2*time.Minute, func() (bool, error) {
-				results, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/metrics", prometheusURL), bearerToken)
+				results, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/metrics", prometheusSvcURL), bearerToken)
 				if err != nil {
 					e2e.Logf("unable to get metrics: %v", err)
 					return false, nil
@@ -335,18 +340,18 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			})).NotTo(o.HaveOccurred(), fmt.Sprintf("Did not find tsdb_samples_appended_total, tsdb_head_samples_appended_total, or prometheus_tsdb_head_samples_appended_total"))
 
 			g.By("verifying the Thanos querier service requires authentication")
-			err := helper.ExpectURLStatusCodeExec(ns, execPod.Name, url, 401, 403)
+			err := helper.ExpectURLStatusCodeExecViaPod(ns, execPod.Name, querySvcURL, 401, 403)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying a service account token is able to authenticate")
-			err = expectBearerTokenURLStatusCodeExec(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", url), bearerToken, 200)
+			err = expectBearerTokenURLStatusCodeExec(fmt.Sprintf("%s/api/v1/targets", queryURL), bearerToken, 200)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying a service account token is able to access the Prometheus API")
 			// expect all endpoints within 60 seconds
 			var lastErrs []error
 			o.Expect(wait.PollImmediate(10*time.Second, 2*time.Minute, func() (bool, error) {
-				contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", prometheusURL), bearerToken)
+				contents, err := getBearerTokenURL(fmt.Sprintf("%s/api/v1/targets", prometheusURL), bearerToken)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				targets := &prometheusTargets{}
@@ -396,7 +401,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 
 			g.By("verifying all targets are exposing metrics over secure channel")
 			var insecureTargets []error
-			contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", prometheusURL), bearerToken)
+			contents, err := getBearerTokenURL(fmt.Sprintf("%s/api/v1/targets", prometheusURL), bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			targets := &prometheusTargets{}
@@ -518,16 +523,9 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 		})
 
 		g.It("should provide ingress metrics", func() {
-			ns := oc.SetupProject()
-
-			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
-			defer func() {
-				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
-			}()
-
 			var lastErrs []error
 			o.Expect(wait.PollImmediate(10*time.Second, 4*time.Minute, func() (bool, error) {
-				contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets", prometheusURL), bearerToken)
+				contents, err := getBearerTokenURL(fmt.Sprintf("%s/api/v1/targets", prometheusURL), bearerToken)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				targets := &prometheusTargets{}
@@ -705,16 +703,25 @@ func findMetricLabels(f *dto.MetricFamily, labels map[string]string, match strin
 	return result
 }
 
-func expectBearerTokenURLStatusCodeExec(ns, execPodName, url, bearer string, statusCode int) error {
+func expectBearerTokenURLStatusCodeExec(url, bearer string, statusCode int) error {
 	cmd := fmt.Sprintf("curl -k -s -H 'Authorization: Bearer %s' -o /dev/null -w '%%{http_code}' %q", bearer, url)
-	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
+	output, err := exec.Command("bash", "-e", "-c", cmd).Output()
 	if err != nil {
 		return fmt.Errorf("host command failed: %v\n%s", err, output)
 	}
-	if output != strconv.Itoa(statusCode) {
+	if string(output) != strconv.Itoa(statusCode) {
 		return fmt.Errorf("last response from server was not %d: %s", statusCode, output)
 	}
 	return nil
+}
+
+func getBearerTokenURL(url, bearer string) (string, error) {
+	cmd := fmt.Sprintf("curl -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
+	output, err := exec.Command("bash", "-e", "-c", cmd).Output()
+	if err != nil {
+		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
+	}
+	return string(output), nil
 }
 
 func getBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error) {
