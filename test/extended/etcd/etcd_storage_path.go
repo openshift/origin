@@ -285,15 +285,35 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 		gvr("internal.apiserver.k8s.io", "v1alpha1", "storageversions"),
 		gvr("storage.k8s.io", "v1alpha1", "csistoragecapacities"),
 		gvr("networking.k8s.io", "v1alpha1", "clustercidrs"),
+		// disabled deprecated versions
+		gvr("autoscaling", "v2beta1", "horizontalpodautoscalers"),
+		gvr("batch", "v1beta1", "cronjobs"),
+		gvr("discovery.k8s.io", "v1beta1", "endpointslices"),
+		gvr("events.k8s.io", "v1beta1", "events"),
+		gvr("node.k8s.io", "v1beta1", "runtimeclasses"),
+		gvr("policy", "v1beta1", "poddisruptionbudgets"),
+		gvr("policy", "v1beta1", "podsecuritypolicies"),
 	)
 
 	// Apply output of git diff origin/release-1.XY origin/release-1.X(Y+1) test/integration/etcd/data.go. This is needed
 	// to apply the right data depending on the kube version of the running server. Replace this with the next current
 	// and rebase version next time. Don't pile them up.
-	if strings.HasPrefix(version.Minor, "25") {
-		// Added etcd data.
-		for k, a := range map[schema.GroupVersionResource]etcddata.StorageData{} {
-			// TODO: fill when rebase has started
+	if strings.HasPrefix(version.Minor, "26") {
+		for k, a := range map[schema.GroupVersionResource]etcddata.StorageData{
+			// Added etcd data.
+
+			// compare https://github.com/kubernetes/kubernetes/pull/112306
+			gvr("flowcontrol.apiserver.k8s.io", "v1beta3", "flowschemas"): {
+				Stub:             `{"metadata": {"name": "fs-2"}, "spec": {"priorityLevelConfiguration": {"name": "name1"}}}`,
+				ExpectedEtcdPath: "/registry/flowschemas/fs-2",
+				ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1beta2", "FlowSchema"),
+			},
+			gvr("flowcontrol.apiserver.k8s.io", "v1beta3", "prioritylevelconfigurations"): {
+				Stub:             `{"metadata": {"name": "conf4"}, "spec": {"type": "Limited", "limited": {"nominalConcurrencyShares":3, "limitResponse": {"type": "Reject"}}}}`,
+				ExpectedEtcdPath: "/registry/prioritylevelconfigurations/conf4",
+				ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1beta2", "PriorityLevelConfiguration"),
+			},
+		} {
 			if _, preexisting := etcdStorageData[k]; preexisting {
 				t.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)
 			}
@@ -301,28 +321,24 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 		}
 
 		// Modified etcd data.
-		// see: https://github.com/kubernetes/kubernetes/pull/109394
-		etcdStorageData[gvr("storage.k8s.io", "v1beta1", "csistoragecapacities")] = etcddata.StorageData{
-			Stub:             `{"metadata": {"name": "csc-12345-2"}, "storageClassName": "sc1"}`,
-			ExpectedEtcdPath: "/registry/csistoragecapacities/" + oc.Namespace() + "/csc-12345-2",
-			ExpectedGVK:      gvkP("storage.k8s.io", "v1", "CSIStorageCapacity"),
+
+		// compare https://github.com/kubernetes/kubernetes/pull/112306
+		etcdStorageData[gvr("flowcontrol.apiserver.k8s.io", "v1beta2", "flowschemas")] = etcddata.StorageData{
+			Stub:             `{"metadata": {"name": "fs-1"}, "spec": {"priorityLevelConfiguration": {"name": "name1"}}}`,
+			ExpectedEtcdPath: "/registry/flowschemas/fs-1",
 		}
-		etcdStorageData[gvr("storage.k8s.io", "v1", "csistoragecapacities")] = etcddata.StorageData{
-			Stub:             `{"metadata": {"name": "csc-12345-3"}, "storageClassName": "sc1"}`,
-			ExpectedEtcdPath: "/registry/csistoragecapacities/" + oc.Namespace() + "/csc-12345-3",
-			ExpectedGVK:      gvkP("storage.k8s.io", "v1", "CSIStorageCapacity"),
+		etcdStorageData[gvr("flowcontrol.apiserver.k8s.io", "v1beta2", "prioritylevelconfigurations")] = etcddata.StorageData{
+			Stub:             `{"metadata": {"name": "conf3"}, "spec": {"type": "Limited", "limited": {"assuredConcurrencyShares":3, "limitResponse": {"type": "Reject"}}}}`,
+			ExpectedEtcdPath: "/registry/prioritylevelconfigurations/conf3",
 		}
 
 		// Removed etcd data.
-		// see: https://github.com/kubernetes/kubernetes/pull/110010
+
+		// disabled deprecated versions in 1.26
 		removeStorageData(t, etcdStorageData,
-			gvr("autoscaling", "v2beta1", "horizontalpodautoscalers"),
-			gvr("batch", "v1beta1", "cronjobs"),
-			gvr("discovery.k8s.io", "v1beta1", "endpointslices"),
-			gvr("events.k8s.io", "v1beta1", "events"),
-			gvr("node.k8s.io", "v1beta1", "runtimeclasses"),
-			gvr("policy", "v1beta1", "poddisruptionbudgets"),
-			gvr("policy", "v1beta1", "podsecuritypolicies"),
+			gvr("autoscaling", "v2beta2", "horizontalpodautoscalers"),
+			gvr("flowcontrol.apiserver.k8s.io", "v1beta1", "flowschemas"),
+			gvr("flowcontrol.apiserver.k8s.io", "v1beta1", "prioritylevelconfigurations"),
 		)
 	}
 
