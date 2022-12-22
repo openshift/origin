@@ -12,9 +12,11 @@ import (
 )
 
 func NewRunResourceWatchCommand() *cobra.Command {
-	cmd := controllercmd.
-		NewControllerCommandConfig("run-resourcewatch", version.Get(), operator.RunOperator).
-		NewCommandWithContext(context.TODO())
+	controllerCommand := controllercmd.
+		NewControllerCommandConfig("run-resourcewatch", version.Get(), operator.RunOperator)
+	controllerCommand.DisableLeaderElection = true
+
+	cmd := controllerCommand.NewCommandWithContext(context.TODO())
 	cmd.Use = "run-resourcewatch"
 	cmd.Short = "Run watch for resource changes and commit each to a git repository"
 	cmd.Long = `
