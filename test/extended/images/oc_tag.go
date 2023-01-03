@@ -153,10 +153,8 @@ RUN touch /test-image
 
 		err = oc.Run("policy").Args("add-role-to-user", "testrole", "-z", "testsa", "--role-namespace="+oc.Namespace()).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// TODO (soltysh): after k8s 1.24 lands we should be able to replace this with:
-		// token, err := oc.Run("create").Args("token", "testsa").Output()
-		token, _, err := oc.Run("serviceaccounts").Args("new-token", "testsa").Outputs()
+		
+		token, err := oc.Run("create").Args("token", "testsa").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = oc.Run("login").Args("--token=" + token).Execute()
