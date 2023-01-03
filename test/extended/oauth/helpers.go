@@ -15,7 +15,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/oauthserver"
 )
 
-func deployOAuthServer(oc *util.CLI) (oauthserver.NewRequestTokenOptionsFunc, func(), error) {
+func DeployOAuthServer(oc *util.CLI) (oauthserver.NewRequestTokenOptionsFunc, func(), error) {
 	// secret containing htpasswd "file": `htpasswd -cbB htpasswd.tmp testuser password`
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: "htpasswd"},

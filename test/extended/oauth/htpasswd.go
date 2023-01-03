@@ -33,7 +33,7 @@ var _ = g.Describe("[sig-auth][Feature:HTPasswdAuth] HTPasswd IDP", func() {
 	var oc = exutil.NewCLIWithPodSecurityLevel("htpasswd-idp", admissionapi.LevelBaseline)
 
 	g.It("should successfully configure htpasswd and be responsive [apigroup:user.openshift.io][apigroup:route.openshift.io]", func() {
-		newTokenReqOpts, cleanup, err := deployOAuthServer(oc)
+		newTokenReqOpts, cleanup, err := DeployOAuthServer(oc)
 		defer cleanup()
 		o.Expect(err).ToNot(o.HaveOccurred())
 		tokenReqOpts := newTokenReqOpts("testuser", "password")

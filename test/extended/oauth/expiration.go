@@ -30,7 +30,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Token Expiration]", func() 
 
 	g.BeforeEach(func() {
 		var err error
-		newRequestTokenOptions, oauthServerCleanup, err = deployOAuthServer(oc)
+		newRequestTokenOptions, oauthServerCleanup, err = DeployOAuthServer(oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
