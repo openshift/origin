@@ -781,6 +781,8 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:PodSecurity] restricted-v2 SCC should mutate empty securityContext to match restricted PSa profile": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-auth][Feature:PodSecurity][Feature:SCC] creating pod controllers": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-auth][Feature:ProjectAPI]  TestInvalidRoleRefs should succeed [apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:project.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:ProjectAPI]  TestProjectIsNamespace should succeed [apigroup:project.openshift.io]": " [Suite:openshift/conformance/parallel]",
