@@ -113,13 +113,14 @@ const (
 	PodReasonDeleted               = "Deleted"
 	PodReasonScheduled             = "Scheduled"
 
-	ContainerReasonContainerExit    = "ContainerExit"
-	ContainerReasonContainerStart   = "ContainerStart"
-	ContainerReasonContainerWait    = "ContainerWait"
-	ContainerReasonReadinessFailed  = "ReadinessFailed"
-	ContainerReasonReadinessErrored = "ReadinessErrored"
-	ContainerReasonReady            = "Ready"
-	ContainerReasonNotReady         = "NotReady"
+	ContainerReasonContainerExit      = "ContainerExit"
+	ContainerReasonContainerStart     = "ContainerStart"
+	ContainerReasonContainerWait      = "ContainerWait"
+	ContainerReasonReadinessFailed    = "ReadinessFailed"
+	ContainerReasonReadinessErrored   = "ReadinessErrored"
+	ContainerReasonStartupProbeFailed = "StartupProbeFailed"
+	ContainerReasonReady              = "Ready"
+	ContainerReasonNotReady           = "NotReady"
 
 	PodReasonDeletedBeforeScheduling = "DeletedBeforeScheduling"
 	PodReasonDeletedAfterCompletion  = "DeletedAfterCompletion"
@@ -159,6 +160,7 @@ var (
 	KubeletReadinessCheckReasons = sets.NewString(
 		ContainerReasonReadinessFailed,
 		ContainerReasonReadinessErrored,
+		ContainerReasonStartupProbeFailed,
 	)
 )
 
