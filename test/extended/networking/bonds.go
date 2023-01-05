@@ -36,11 +36,15 @@ var _ = g.Describe("[sig-network][Feature:bond]", func() {
 		)
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to create macvlan network-attachment-definition")
 
+		networkConfig, err := oc.AdminConfigClient().ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "unable to get network config")
+
 		err = createBondNAD(
 			oc.AdminConfig(),
 			namespace,
 			bondnad1,
 			"192.0.2.10/24",
+			networkConfig.Status.ClusterNetworkMTU,
 			"net1",
 			"net2",
 		)
@@ -51,6 +55,7 @@ var _ = g.Describe("[sig-network][Feature:bond]", func() {
 			namespace,
 			bondnad2,
 			"192.0.2.11/24",
+			networkConfig.Status.ClusterNetworkMTU,
 			"net1",
 			"net2",
 		)
@@ -84,7 +89,7 @@ var _ = g.Describe("[sig-network][Feature:bond]", func() {
 	})
 })
 
-func createBondNAD(config *rest.Config, namespace string, nadName string, ip string, slaveNames ...string) error {
+func createBondNAD(config *rest.Config, namespace string, nadName string, ip string, mtu int, slaveNames ...string) error {
 	slaves := []string{}
 	for _, name := range slaveNames {
 		slaves = append(slaves, fmt.Sprintf("{\"name\": \"%s\"}", name))
@@ -98,9 +103,9 @@ func createBondNAD(config *rest.Config, namespace string, nadName string, ip str
 		"failOverMac": 1,
 		"linksInContainer": true,
 		"miimon": "100",
-		"mtu": 1300,
+		"mtu": %d,
 		"links": [%s],
 		"ipam": {"type":"static","addresses":[{"address":"%s"}]}
-	}`, nadName, links, ip))
+	}`, nadName, mtu, links, ip))
 	return createNetworkAttachmentDefinition(config, namespace, nadName, nadConfig)
 }
