@@ -1690,16 +1690,25 @@ type podExecutor struct {
 }
 
 // NewPodExecutor returns an executor capable of running commands in a Pod.
-func NewPodExecutor(oc *CLI, name, image string) (*podExecutor, error) {
-	out, err := oc.Run("run").Args(name, "--labels", "name="+name, "--image", image, "--restart", "Never", "--command", "--", "/bin/bash", "-c", "sleep infinity").Output()
-	if err != nil {
-		return nil, fmt.Errorf("error: %v\n(%s)", err, out)
-	}
-	_, err = WaitForPods(oc.KubeClient().CoreV1().Pods(oc.Namespace()), ParseLabelsOrDie("name="+name), CheckPodIsReady, 1, 3*time.Minute)
-	if err != nil {
-		return nil, err
-	}
-	return &podExecutor{client: oc, podName: name}, nil
+func NewPodExecutor(oc *CLI, name, image string, tweak ...func(*corev1.Pod)) (*podExecutor, error) {
+	execPod := e2epod.CreateExecPodOrFail(oc.AdminKubeClient(), oc.Namespace(), name, func(pod *corev1.Pod) {
+		pod.Name = name
+		pod.GenerateName = ""
+		pod.Spec.Containers[0].Image = image
+		pod.Spec.Containers[0].Command = []string{"sh", "-c", "trap exit TERM; while true; do sleep 5; done"}
+		pod.Spec.Containers[0].Args = nil
+		pod.Spec.Containers[0].SecurityContext = e2epod.GetRestrictedContainerSecurityContext()
+		pod.Spec.SecurityContext = e2epod.GetRestrictedPodSecurityContext()
+		pod.Spec.RestartPolicy = corev1.RestartPolicyNever
+		// TerminationMessageFallbackToLogsOnError provides the most recent logs messages for a failed pod in the pod's
+		// status, making debugging easier.
+		pod.Spec.Containers[0].TerminationMessagePolicy = corev1.TerminationMessageFallbackToLogsOnError
+
+		for _, fn := range tweak {
+			fn(pod)
+		}
+	})
+	return &podExecutor{client: oc, podName: execPod.Name}, nil
 }
 
 // Exec executes a single command or a bash script in the running pod. It returns the

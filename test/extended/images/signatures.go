@@ -7,6 +7,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -70,7 +71,11 @@ var _ = g.Describe("[sig-imageregistry][Serial] Image signature workflow", func(
 		_, err = oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "system:image-auditor", oc.Username()).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		pod, err := exutil.NewPodExecutor(oc, "sign-and-push", signerImage)
+		// Must explicitly turn off pod security since NewPodExecutor defaults to restricted, and we need root.
+		pod, err := exutil.NewPodExecutor(oc, "sign-and-push", signerImage, func(pod *corev1.Pod) {
+			pod.Spec.Containers[0].SecurityContext.Capabilities = &corev1.Capabilities{}
+			pod.Spec.SecurityContext = &corev1.PodSecurityContext{}
+		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Generate GPG key
