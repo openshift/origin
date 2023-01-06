@@ -21,10 +21,12 @@ var _ = g.Describe("[sig-cli] templates", func() {
 	)
 
 	g.It("different namespaces [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:template.openshift.io][apigroup:authorization.openshift.io][Skipped:Disconnected]", func() {
+		bob := oc.CreateUser("bob-")
+
 		err := oc.Run("create").Args("-f", appTemplatePath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		bob := oc.CreateUser("bob-")
+		err = oc.Run("policy").Args("add-role-to-user", "admin", bob.Name).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
 		oc.ChangeUser(bob.Name)
 
 		testProject2 := oc.Namespace() + "-project2"
