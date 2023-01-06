@@ -1,22 +1,18 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
-	"github.com/openshift/apiserver-library-go/pkg/authorization/scope"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	oauthv1 "github.com/openshift/api/oauth/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-cli] templates ", func() {
+var _ = g.Describe("[sig-cli] templates", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -24,32 +20,12 @@ var _ = g.Describe("[sig-cli] templates ", func() {
 		appTemplatePath = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata", "application-template-dockerbuild.json")
 	)
 
-	g.It("different namespaces [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:template.openshift.io][apigroup:authorization.openshift.io][Serial][Skipped:Disconnected]", func() {
-		bob := oc.CreateUser("bob-")
-
+	g.It("different namespaces [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:template.openshift.io][apigroup:authorization.openshift.io][Skipped:Disconnected]", func() {
 		err := oc.Run("create").Args("-f", appTemplatePath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = oc.Run("policy").Args("add-role-to-user", "admin", bob.Name).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
 
-		tokenStr, sha256TokenStr := exutil.GenerateOAuthTokenPair()
-		token := &oauthv1.OAuthAccessToken{
-			ObjectMeta: metav1.ObjectMeta{Name: sha256TokenStr},
-			ClientName: "openshift-challenging-client",
-			ExpiresIn:  86400,
-			Scopes: []string{
-				scope.UserFull,
-			},
-			RedirectURI: "https://127.0.0.1:12000/oauth/token/implicit",
-			UserName:    bob.Name,
-			UserUID:     string(bob.UID),
-		}
-		_, err = oc.AdminOAuthClient().OauthV1().OAuthAccessTokens().Create(context.Background(), token, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		oc.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), token)
-
-		err = oc.Run("login").Args("--token", tokenStr).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
+		bob := oc.CreateUser("bob-")
+		oc.ChangeUser(bob.Name)
 
 		testProject2 := oc.Namespace() + "-project2"
 		out, err := oc.Run("new-project").Args(testProject2).Output()
