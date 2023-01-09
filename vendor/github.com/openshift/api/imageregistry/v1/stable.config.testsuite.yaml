@@ -1,0 +1,18 @@
+apiVersion: apiextensions.k8s.io/v1 # Hack because controller-gen complains if we don't have this
+name: "[Stable] Config"
+crd: 00_imageregistry.crd.yaml
+tests:
+  onCreate:
+  - name: Should be able to create a minimal Config
+    initial: |
+      apiVersion: imageregistry.operator.openshift.io/v1
+      kind: Config
+      spec:
+        replicas: 1
+    expected: |
+      apiVersion: imageregistry.operator.openshift.io/v1
+      kind: Config
+      spec:
+        logLevel: Normal
+        operatorLogLevel: Normal
+        replicas: 1

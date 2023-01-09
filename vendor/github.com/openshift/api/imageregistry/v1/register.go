@@ -14,11 +14,16 @@ const (
 var (
 	scheme        = runtime.NewScheme()
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	AddToScheme   = SchemeBuilder.AddToScheme
-	// SchemeGroupVersion is the group version used to register these objects.
-	SchemeGroupVersion = schema.GroupVersion{Group: groupName, Version: version}
+	GroupVersion  = schema.GroupVersion{Group: groupName, Version: version}
 	// Install is a function which adds this version to a scheme
 	Install = SchemeBuilder.AddToScheme
+
+	// SchemeGroupVersion generated code relies on this name
+	// Deprecated
+	SchemeGroupVersion = GroupVersion
+	// AddToScheme exists solely to keep the old generators creating valid code
+	// DEPRECATED
+	AddToScheme = SchemeBuilder.AddToScheme
 )
 
 func init() {

@@ -18,12 +18,15 @@ import (
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/network/externalipranger"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/network/restrictedendpoints"
 	ingressadmission "k8s.io/kubernetes/openshift-kube-apiserver/admission/route"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/route/hostassignment"
 	projectnodeenv "k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/nodeenv"
 	schedulerpodnodeconstraints "k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/podnodeconstraints"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/storage/csiinlinevolumesecurity"
 )
 
 func RegisterOpenshiftKubeAdmissionPlugins(plugins *admission.Plugins) {
 	authorizationrestrictusers.Register(plugins)
+	hostassignment.Register(plugins)
 	imagepolicy.Register(plugins)
 	ingressadmission.Register(plugins)
 	managementcpusoverride.Register(plugins)
@@ -36,6 +39,7 @@ func RegisterOpenshiftKubeAdmissionPlugins(plugins *admission.Plugins) {
 	sccadmission.RegisterSCCExecRestrictions(plugins)
 	externalipranger.RegisterExternalIP(plugins)
 	restrictedendpoints.RegisterRestrictedEndpoints(plugins)
+	csiinlinevolumesecurity.Register(plugins)
 }
 
 var (
@@ -65,6 +69,8 @@ var (
 		"security.openshift.io/SecurityContextConstraint",
 		"security.openshift.io/SCCExecRestrictions",
 		"route.openshift.io/IngressAdmission",
+		hostassignment.PluginName,          // "route.openshift.io/RouteHostAssignment"
+		csiinlinevolumesecurity.PluginName, // "storage.openshift.io/CSIInlineVolumeSecurity"
 	}
 
 	// openshiftAdmissionPluginsForKubeAfterResourceQuota are the plugins to add after ResourceQuota plugin

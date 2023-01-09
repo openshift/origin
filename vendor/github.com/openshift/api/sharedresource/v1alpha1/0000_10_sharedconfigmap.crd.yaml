@@ -1,28 +1,24 @@
-# this is the boilerplate crd def that controller-gen reads and modifies with the
-# contents from shared_configmap_type.go
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: sharedconfigmaps.sharedresource.openshift.io
   annotations:
     api-approved.openshift.io: https://github.com/openshift/api/pull/979
-    displayName: SharedConfigMap
     description: Extension for sharing ConfigMaps across Namespaces
+    displayName: SharedConfigMap
+  name: sharedconfigmaps.sharedresource.openshift.io
 spec:
-  scope: Cluster
   group: sharedresource.openshift.io
   names:
-    plural: sharedconfigmaps
-    singular: sharedconfigmap
     kind: SharedConfigMap
     listKind: SharedConfigMapList
+    plural: sharedconfigmaps
+    singular: sharedconfigmap
+  scope: Cluster
   versions:
     - name: v1alpha1
-      served: true
-      storage: true
-      "schema":
-        "openAPIV3Schema":
-          description: "SharedConfigMap allows a ConfigMap to be shared across namespaces. Pods can mount the shared ConfigMap by adding a CSI volume to the pod specification using the \"csi.sharedresource.openshift.io\" CSI driver and a reference to the SharedConfigMap in the volume attributes: \n spec:  volumes:  - name: shared-configmap    csi:      driver: csi.sharedresource.openshift.io      volumeAttributes:        sharedConfigMap: my-share \n For the mount to be successful, the pod's service account must be granted permission to 'use' the named SharedConfigMap object within its namespace with an appropriate Role and RoleBinding. For compactness, here are example `oc` invocations for creating such Role and RoleBinding objects. \n  `oc create role shared-resource-my-share --verb=use --resource=sharedconfigmaps.sharedresource.openshift.io --resource-name=my-share`  `oc create rolebinding shared-resource-my-share --role=shared-resource-my-share --serviceaccount=my-namespace:default` \n Shared resource objects, in this case ConfigMaps, have default permissions of list, get, and watch for system authenticated users. \n Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support. These capabilities should not be used by applications needing long term support."
+      schema:
+        openAPIV3Schema:
+          description: "SharedConfigMap allows a ConfigMap to be shared across namespaces. Pods can mount the shared ConfigMap by adding a CSI volume to the pod specification using the \"csi.sharedresource.openshift.io\" CSI driver and a reference to the SharedConfigMap in the volume attributes: \n spec: volumes: - name: shared-configmap csi: driver: csi.sharedresource.openshift.io volumeAttributes: sharedConfigMap: my-share \n For the mount to be successful, the pod's service account must be granted permission to 'use' the named SharedConfigMap object within its namespace with an appropriate Role and RoleBinding. For compactness, here are example `oc` invocations for creating such Role and RoleBinding objects. \n `oc create role shared-resource-my-share --verb=use --resource=sharedconfigmaps.sharedresource.openshift.io --resource-name=my-share` `oc create rolebinding shared-resource-my-share --role=shared-resource-my-share --serviceaccount=my-namespace:default` \n Shared resource objects, in this case ConfigMaps, have default permissions of list, get, and watch for system authenticated users. \n Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support. These capabilities should not be used by applications needing long term support."
           type: object
           properties:
             apiVersion:
@@ -63,7 +59,7 @@ spec:
                   description: conditions represents any observations made on this particular shared resource by the underlying CSI driver or Share controller.
                   type: array
                   items:
-                    description: "Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, \n \ttype FooStatus struct{ \t    // Represents the observations of a foo's current state. \t    // Known .status.conditions.type are: \"Available\", \"Progressing\", and \"Degraded\" \t    // +patchMergeKey=type \t    // +patchStrategy=merge \t    // +listType=map \t    // +listMapKey=type \t    Conditions []metav1.Condition `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"` \n \t    // other fields \t}"
+                    description: "Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, \n type FooStatus struct{ // Represents the observations of a foo's current state. // Known .status.conditions.type are: \"Available\", \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge // +listType=map // +listMapKey=type Conditions []metav1.Condition `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
                     type: object
                     required:
                       - lastTransitionTime
@@ -103,5 +99,7 @@ spec:
                         type: string
                         maxLength: 316
                         pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+      served: true
+      storage: true
       subresources:
         status: {}
