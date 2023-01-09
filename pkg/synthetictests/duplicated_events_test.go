@@ -267,21 +267,21 @@ func TestKnownBugEventsGroup(t *testing.T) {
 			messages:        []string{`ns/e2e - reason/SomeEvent1 foo (22 times)`, `ns/e2e - reason/SomeEvent1 foo (21 times)`},
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo - https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
+			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo - https://bugzilla.redhat.com/show_bug.cgi?id=1234567 result=allow ",
 		},
 		{
 			name:            "matches 25 after",
 			messages:        []string{`ns/e2e - reason/SomeEvent1 foo (21 times)`, `ns/e2e - reason/SomeEvent1 foo (25 times)`},
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events with known BZs\n\nevent happened 25 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo - https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
+			expectedMessage: "1 events with known BZs\n\nevent happened 25 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo - https://bugzilla.redhat.com/show_bug.cgi?id=1234567 result=allow ",
 		},
 		{
 			name:            "matches 22 below with below threshold following",
 			messages:        []string{`ns/e2e - reason/SomeEvent1 foo (22 times)`, `ns/e2e - reason/SomeEvent1 foo (5 times)`},
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo - https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
+			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo - https://bugzilla.redhat.com/show_bug.cgi?id=1234567 result=allow ",
 		},
 	}
 
