@@ -16281,8 +16281,6 @@ var Annotations = map[string]string{
 
 	"[sig-storage] Volume Provisioning on Datastore [Feature:vsphere] verify dynamically provisioned pv using storageclass fails on an invalid datastore": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
-	"[sig-storage] Volume limits should verify that all nodes have volume limits": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
-
 	"[sig-storage] Volumes ConfigMap should be mountable": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] Volumes GlusterFS should be mountable": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Skipped:ibmroks] [Suite:k8s]",
