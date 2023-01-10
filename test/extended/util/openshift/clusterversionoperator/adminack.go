@@ -40,7 +40,9 @@ var adminAckGateRegexp = regexp.MustCompile(adminAckGateFmt)
 // and verifies that the Upgradeable condition no longer complains about the ack.
 func (t *AdminAckTest) Test(ctx context.Context) {
 	if t.Poll == 0 {
-		t.test(ctx, nil)
+		if err := t.test(ctx, nil); err != nil {
+			framework.Fail(err.Error())
+		}
 		return
 	}
 
@@ -97,6 +99,7 @@ func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struc
 			framework.Failf("Configmap openshift-config-managed/admin-gates gate %s does not contain description.", k)
 		}
 		if !gateApplicableToCurrentVersion(ackVersion, currentVersion) {
+			framework.Logf("Gate %s not applicable to current version %s", ackVersion, currentVersion)
 			continue
 		}
 		if ackCm.Data[k] == "true" {
