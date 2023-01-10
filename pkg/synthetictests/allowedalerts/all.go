@@ -62,6 +62,9 @@ func AllAlertTests(ctx context.Context, clientConfig *rest.Config, duration time
 	ret = append(ret, newAlert("machine config operator", "MCDDrainError").pending().neverFail().toTests()...)
 	ret = append(ret, newAlert("machine config operator", "MCDDrainError").firing().toTests()...)
 
+	ret = append(ret, newAlert("machine config operator", "MCDPivotError").pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("machine config operator", "MCDPivotError").firing().toTests()...)
+
 	ret = append(ret, newAlert("monitoring", "PrometheusOperatorWatchErrors").pending().neverFail().toTests()...)
 	ret = append(ret, newAlert("monitoring", "PrometheusOperatorWatchErrors").firing().toTests()...)
 
