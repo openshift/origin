@@ -2579,9 +2579,9 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:Router][apigroup:config.openshift.io] The HAProxy router should expose the profiling endpoints": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Router][apigroup:config.openshift.io][apigroup:image.openshift.io] The HAProxy router should serve a route that points to two services and respect weights": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
 	"[sig-network][Feature:Router][apigroup:config.openshift.io][apigroup:operator.openshift.io][apigroup:apps.openshift.io] The HAProxy router should set Forwarded headers appropriately": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:Router][apigroup:image.openshift.io] The HAProxy router should serve a route that points to two services and respect weights": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:operator.openshift.io][apigroup:apps.openshift.io] The HAProxy router should respond with 503 to unrecognized hosts": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
@@ -2591,21 +2591,21 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router converges when multiple routers are writing status": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router reports the expected host names in admitted routes' statuses": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router should override the route host for overridden domains with a custom value [apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router should override the route host with a custom value": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router should run even if it has no access to update status [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router should serve the correct routes when running with the haproxy config manager": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router should serve the correct routes when scoped to a single namespace and label set": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io] when FIPS is disabled the HAProxy router should serve routes when configured with a 1024-bit RSA key": " [Feature:Networking-IPv4] [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io] when FIPS is enabled the HAProxy router should not work when configured with a 1024-bit RSA key": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router reports the expected host names in admitted routes' statuses": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router should run even if it has no access to update status [apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router should serve the correct routes when running with the haproxy config manager": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:operator.openshift.io][apigroup:apps.openshift.io] The HAProxy router should support reencrypt to services backed by a serving certificate automatically": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
