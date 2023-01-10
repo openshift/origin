@@ -3,14 +3,12 @@
 aliases:
   cluster-version-operator-test-case-approvers:
   - LalatenduMohanty
-  - jottofar
-  - vrutkovs
   - wking
+  - petr-muller
   cluster-version-operator-test-case-reviewers:
   - LalatenduMohanty
-  - jottofar
-  - vrutkovs
   - wking
+  - petr-muller
   team-leads:
   - JAORMX # Infrastructure Security and Compliance
   - JoelSpeed # Cluster Infrastructure
