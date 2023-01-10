@@ -51,6 +51,13 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 
 	adminAckTest := &clusterversionoperator.AdminAckTest{Oc: t.oc, Config: t.config, Poll: 10 * time.Minute}
 	adminAckTest.Test(ctx)
+
+	// Perform one guaranteed check after the upgrade is complete. The polled check above can be
+	// cancelled on done signal (which means, so we never know whether the poll was lucky to run at least once
+	// since the version was bumped.
+	postUpdateCtx, postUpdateCtxCancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	defer postUpdateCtxCancel()
+	(&clusterversionoperator.AdminAckTest{Oc: t.oc, Config: t.config}).Test(postUpdateCtx)
 }
 
 // Teardown cleans up any remaining objects.
