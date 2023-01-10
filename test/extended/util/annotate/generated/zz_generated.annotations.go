@@ -607,8 +607,6 @@ var Annotations = map[string]string{
 
 	"[sig-arch] ClusterOperators [apigroup:config.openshift.io] should define valid related objects": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch] Managed cluster should [apigroup:apps.openshift.io] should expose cluster services outside the cluster [apigroup:route.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
 	"[sig-arch] Managed cluster should ensure control plane operators do not make themselves unevictable": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch] Managed cluster should ensure control plane pods do not run in best-effort QoS": " [Suite:openshift/conformance/parallel]",
@@ -616,6 +614,8 @@ var Annotations = map[string]string{
 	"[sig-arch] Managed cluster should ensure platform components have system-* priority class associated": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch] Managed cluster should ensure pods use downstream images from our release image with proper ImagePullPolicy [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-arch] Managed cluster should expose cluster services outside the cluster [apigroup:route.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch] Managed cluster should have operators on the cluster version [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -2579,13 +2579,13 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:Router][apigroup:config.openshift.io] The HAProxy router should expose the profiling endpoints": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Router][apigroup:config.openshift.io][apigroup:operator.openshift.io][apigroup:apps.openshift.io] The HAProxy router should set Forwarded headers appropriately": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Router][apigroup:config.openshift.io][apigroup:operator.openshift.io] The HAProxy router should set Forwarded headers appropriately": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:image.openshift.io] The HAProxy router should serve a route that points to two services and respect weights": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Router][apigroup:operator.openshift.io][apigroup:apps.openshift.io] The HAProxy router should respond with 503 to unrecognized hosts": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Router][apigroup:operator.openshift.io] The HAProxy router should respond with 503 to unrecognized hosts": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Router][apigroup:operator.openshift.io][apigroup:apps.openshift.io] The HAProxy router should serve routes that were created from an ingress [apigroup:route.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Router][apigroup:operator.openshift.io] The HAProxy router should serve routes that were created from an ingress [apigroup:route.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router converges when multiple routers are writing conflicting status": " [Suite:openshift/conformance/parallel]",
 
@@ -2607,7 +2607,7 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io] when FIPS is enabled the HAProxy router should not work when configured with a 1024-bit RSA key": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:operator.openshift.io][apigroup:apps.openshift.io] The HAProxy router should support reencrypt to services backed by a serving certificate automatically": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:operator.openshift.io] The HAProxy router should support reencrypt to services backed by a serving certificate automatically": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Whereabouts] should assign unique IP addresses to each pod in the event of a race condition case [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 

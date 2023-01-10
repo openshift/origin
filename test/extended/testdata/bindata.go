@@ -46656,22 +46656,21 @@ var _testExtendedTestdataRouterRouterHttpEchoServerYaml = []byte(`apiVersion: v1
 kind: List
 metadata: {}
 items:
-- apiVersion: apps.openshift.io/v1
-  kind: DeploymentConfig
+- apiVersion: apps/v1
+  kind: Deployment
   metadata:
     name: router-http-echo
   spec:
     replicas: 1
     selector:
-      app: router-http-echo
-      deploymentconfig: router-http-echo
+      matchLabels:
+        app: router-http-echo
     strategy:
-      type: Rolling
+      type: RollingUpdate
     template:
       metadata:
         labels:
           app: router-http-echo
-          deploymentconfig: router-http-echo
       spec:
         containers:
         - image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
