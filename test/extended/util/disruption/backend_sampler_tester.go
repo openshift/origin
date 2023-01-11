@@ -94,6 +94,7 @@ func (t *backendDisruptionTest) historicalAllowedDisruption(f *framework.Framewo
 	if err != nil {
 		return nil, "", err
 	}
+	framework.Logf("checking allowed disruption for job type: %+v", *jobType)
 
 	return allowedbackenddisruption.GetAllowedDisruption(backendName, *jobType)
 }
