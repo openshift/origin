@@ -51,7 +51,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io
 
 	g.BeforeEach(func() {
 		var err error
-		host, err = exutil.WaitForRouterServiceIP(oc)
+		host, err = exutil.WaitForRouterInternalIP(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		ns = oc.KubeFramework().Namespace.Name
