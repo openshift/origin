@@ -415,9 +415,9 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 		}
 
 		if flake || flakeOnly {
-			flakes = append(flakes, msg)
+			flakes = append(flakes, msg+" result=allow ")
 		} else {
-			failures = append(failures, msg)
+			failures = append(failures, msg+" result=reject ")
 		}
 	}
 
