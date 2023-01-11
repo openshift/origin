@@ -17,16 +17,17 @@ import (
 )
 
 func testAlerts(events monitorapi.Intervals, restConfig *rest.Config, duration time.Duration, recordedResource *monitorapi.ResourcesMap) []*junitapi.JUnitTestCase {
-	
 
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
-		return &junitapi.JUnitTestCase{
-			Name: "Alert setup, kube client",
-			FailureOutput: &junitapi.FailureOutput{
-				Output: err.Error(),
+		return []*junitapi.JUnitTestCase{
+			{
+				Name: "Alert setup, kube client",
+				FailureOutput: &junitapi.FailureOutput{
+					Output: err.Error(),
+				},
+				SystemOut: err.Error(),
 			},
-			SystemOut: err.Error(),
 		}
 	}
 

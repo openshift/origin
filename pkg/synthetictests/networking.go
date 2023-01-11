@@ -52,17 +52,6 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 	eventsForPods := getEventsByPodName(events)
 
 	var platform v1.PlatformType
-	configClient, err := configclient.NewForConfig(clientConfig)
-	if err != nil {
-		failures = append(failures, fmt.Sprintf("error creating configClient: %v", err))
-	} else {
-		infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-		if err != nil {
-			failures = append(failures, fmt.Sprintf("error getting cluster infrastructure: %v", err))
-		} else {
-			platform = infra.Status.PlatformStatus.Type
-		}
-	}
 
 	for _, event := range events {
 		if !strings.Contains(event.Message, "reason/FailedCreatePodSandBox Failed to create pod sandbox") {
@@ -104,6 +93,19 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 			continue
 		}
 		if strings.Contains(event.Message, "pinging container registry") && strings.Contains(event.Message, "i/o timeout") {
+			if platform == "" {
+				configClient, err := configclient.NewForConfig(clientConfig)
+				if err != nil {
+					failures = append(failures, fmt.Sprintf("error creating configClient: %v", err))
+				} else {
+					infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+					if err != nil {
+						failures = append(failures, fmt.Sprintf("error getting cluster infrastructure: %v", err))
+					} else {
+						platform = infra.Status.PlatformStatus.Type
+					}
+				}
+			}
 			if platform == v1.AzurePlatformType {
 				flakes = append(flakes, fmt.Sprintf("%v - i/o timeout common flake when pinging container registry on azure - %v", event.Locator, event.Message))
 				continue
