@@ -58,7 +58,10 @@ var _ = g.Describe("[sig-auth][Feature:PodSecurity][Feature:SCC]", func() {
 		ns, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), oc.Namespace(), metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		ns.Labels[psapi.EnforceLevelLabel] = "privileged" // we're interested only in warnings here
+		// we're interested only in warnings here
+		ns.Labels[psapi.EnforceLevelLabel] = "privileged"
+		ns.Labels[psapi.AuditLevelLabel] = "privileged"
+
 		_, err = oc.AdminKubeClient().CoreV1().Namespaces().Update(context.Background(), ns, metav1.UpdateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -103,22 +106,22 @@ var _ = g.Describe("[sig-auth][Feature:PodSecurity][Feature:SCC]", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		for _, tt := range []struct {
-			name           string
-			container      corev1.Container
-			saName         string
-			expectWarnings bool
+			name                   string
+			container              corev1.Container
+			saName                 string
+			expectWarningSubstring string
 		}{
 			{
-				name:           "SHOULD throw warnings if no SCC matches the pod template",
-				container:      privilegedContainer(sleeperContainer),
-				saName:         "default",
-				expectWarnings: false, // the PodSpecExtractor currently fails in this case and so nothing is thrown/logged in audits
+				name:                   "SHOULD throw warnings if no SCC matches the pod template",
+				container:              privilegedContainer(sleeperContainer),
+				saName:                 "default",
+				expectWarningSubstring: "", // the PodSpecExtractor currently fails in this case and so nothing is thrown/logged in audits
 			},
 			{
-				name:           "SHOULD throw warnings if SCC matches but will not mutate to the expected PSa profile",
-				container:      privilegedContainer(sleeperContainer),
-				saName:         privilegedSA.Name,
-				expectWarnings: true,
+				name:                   "SHOULD throw warnings if SCC matches but will not mutate to the expected PSa profile",
+				container:              privilegedContainer(sleeperContainer),
+				saName:                 privilegedSA.Name,
+				expectWarningSubstring: "would violate PodSecurity",
 			},
 			{
 				name:      "SHOULD NOT throw warnings if an SCC CAN mutate their pods to match the effective PSa profile",
@@ -165,19 +168,24 @@ var _ = g.Describe("[sig-auth][Feature:PodSecurity][Feature:SCC]", func() {
 				headers := recorder.RecordedHeaders()
 				var warningFound bool
 				var warningHeader string
+
+				expectedSubstring := "PodSecurity"
+				if len(tt.expectWarningSubstring) > 0 {
+					expectedSubstring = tt.expectWarningSubstring
+				}
 				for _, h := range headers {
 					if h == nil {
 						continue
 					}
 					warningHeader = h.Get("Warning")
-					if strings.Contains(warningHeader, "PodSecurity") {
+					if strings.Contains(warningHeader, expectedSubstring) {
 						warningFound = true
 						break
 					}
 				}
 
-				if warningFound != tt.expectWarnings {
-					g.Fail(fmt.Sprintf("expected warning - %v. Found? %v; possible warning header: %s", tt.expectWarnings, warningFound, warningHeader))
+				if warningFound != (len(tt.expectWarningSubstring) > 0) {
+					g.Fail(fmt.Sprintf("expected warning - %v. Found? %v; recorded headers:\n%v", len(tt.expectWarningSubstring) > 0, warningFound, headers))
 				}
 			})
 		}
