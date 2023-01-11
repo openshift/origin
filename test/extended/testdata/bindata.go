@@ -49189,6 +49189,15 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
+    function isPathological(eventInterval) {
+		const string = '\(.*\) \\((\\d+\) times\\).*'
+		const regexp = new RegExp(string)
+			if (regexp.test(eventInterval.message)) {
+            return true
+        }
+        return false
+    }
+
     function isPod(eventInterval) {
         if (eventInterval.locator.includes("pod/") && !eventInterval.locator.includes("alert/")) {
             return true
@@ -49283,6 +49292,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
+    function pathologicalEvents(item) {
+		return [item.locator, ` + "`" + ` (pathological event)` + "`" + `, "Pathological"];
+	}
     const reReason = new RegExp("(^| )reason/([^ ]+)")
     function podStateValue(item) {
         let m = item.message.match(reReason);
@@ -49503,6 +49515,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         timelineGroups.push({group: "e2e-test-passed", data: []})
         createTimelineData("Passed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EPassed, regex)
 
+        timelineGroups.push({group: "pathological-events", data: []})
+        createTimelineData(pathologicalEvents, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isPathological, regex)
+
         var segmentFunc = function (segment) {
             // for (var i in data) {
             //     if (data[i].group == segment.group) {
@@ -49529,6 +49544,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         const myChart = TimelinesChart();
         var ordinalScale = d3.scaleOrdinal()
             .domain([
+                'Pathological', // pathological events
                 'AlertInfo', 'AlertPending', 'AlertWarning', 'AlertCritical', // alerts
                 'OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', // operators
                 'Update', 'Drain', 'Reboot', 'OperatingSystemUpdate', 'NodeNotReady', // nodes
@@ -49536,6 +49552,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
                 'PodCreated', 'PodScheduled', 'PodTerminating','ContainerWait', 'ContainerStart', 'ContainerNotReady', 'ContainerReady', 'ContainerReadinessFailed', 'ContainerReadinessErrored',  'StartupProbeFailed', // pods
                 'Degraded', 'Upgradeable', 'False', 'Unknown'])
             .range([
+                '#d0312d', // pathological events
                 '#fada5e','#fada5e','#ffa500', '#d0312d',  // alerts
                 '#d0312d', '#ffa500', '#fada5e', // operators
                 '#1e7bd9', '#4294e6', '#6aaef2', '#96cbff', '#fada5e', // nodes

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -87,6 +88,9 @@ func BelongsInSpyglass(eventInterval monitorapi.EventInterval) bool {
 	if IsPodLifecycle(eventInterval) {
 		return false
 	}
+	if IsPathologicalEvent(eventInterval) {
+		return true
+	}
 
 	return true
 }
@@ -123,6 +127,15 @@ func BelongsInKubeAPIServer(eventInterval monitorapi.EventInterval) bool {
 	}
 
 	return true
+}
+
+var pathologicalMessagePattern = regexp.MustCompile(`(?s)(.*) \((\d+) times\).*`)
+
+// isPathologicalEvent returns true if the event message matches the pattern where the message
+// says "(n times)"" where n is a number.  Even if n is less than the failure threshold, it is still
+// counted as a pathological event (to be displayed in the spyglass chart).
+func IsPathologicalEvent(eventInterval monitorapi.EventInterval) bool {
+	return pathologicalMessagePattern.MatchString(eventInterval.Message)
 }
 
 func IsPodLifecycle(eventInterval monitorapi.EventInterval) bool {
