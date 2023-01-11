@@ -26,6 +26,22 @@ func testServerAvailability(
 
 	testName := fmt.Sprintf("[%s] %s should be available throughout the test", owner, locator)
 
+	canDetermineJobType, err := platformidentification.CanExtractJobType(restConfig)
+	if err != nil {
+		return []*junitapi.JUnitTestCase{
+			{
+				Name:     testName,
+				Duration: jobRunDuration.Seconds(),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("error in platform identification: %s", err),
+				},
+			},
+		}
+	}
+	if !canDetermineJobType {
+		return []*junitapi.JUnitTestCase{}
+	}
+
 	// Lookup allowed disruption based on historical data:
 	locatorParts := monitorapi.LocatorParts(locator)
 	disruptionName := monitorapi.DisruptionFrom(locatorParts)

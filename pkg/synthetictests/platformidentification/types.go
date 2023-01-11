@@ -29,6 +29,28 @@ const (
 	ArchitectureARM64   = "arm64"
 )
 
+func CanExtractJobType(clientConfig *rest.Config) (bool, error) {
+	client, err := kubernetes.NewForConfig(clientConfig)
+	if err != nil {
+		return false, err
+	}
+	_, resources, err := client.Discovery().ServerGroupsAndResources()
+	if err != nil {
+		return false, err
+	}
+	numApisFound := 0
+	for _, resource := range resources {
+		if resource != nil && resource.GroupVersion == "config.openshift.io/v1" {
+			for _, APIResource := range resource.APIResources {
+				if APIResource.Name == "clusterversions" || APIResource.Name == "infrastructures" || APIResource.Name == "networks" {
+					numApisFound++
+				}
+			}
+		}
+	}
+	return numApisFound == 3, nil
+}
+
 func CloneJobType(in JobType) JobType {
 	return JobType{
 		Release:      in.Release,
