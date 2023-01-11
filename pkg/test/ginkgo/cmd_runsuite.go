@@ -445,11 +445,13 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 			// If a retry test got skipped, it means we very likely failed a precondition in the first failure, so
 			// we need to remove the failure case.
 			var withoutPreconditionFailures []*testCase
-			for _, st := range skipped {
-				for _, t := range tests {
-					if t.name != st {
-						withoutPreconditionFailures = append(withoutPreconditionFailures, t)
+		testLoop:
+			for _, t := range tests {
+				for _, st := range skipped {
+					if t.name == st && t.failed {
+						continue testLoop
 					}
+					withoutPreconditionFailures = append(withoutPreconditionFailures, t)
 				}
 			}
 			tests = withoutPreconditionFailures
