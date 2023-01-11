@@ -54,6 +54,7 @@ import (
 	"github.com/openshift/api/build"
 	"github.com/openshift/api/cloudnetwork"
 	"github.com/openshift/api/config"
+	"github.com/openshift/api/console"
 	"github.com/openshift/api/helm"
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/imageregistry"
@@ -88,6 +89,7 @@ var (
 		authorization.Install,
 		build.Install,
 		config.Install,
+		console.Install,
 		helm.Install,
 		image.Install,
 		imageregistry.Install,

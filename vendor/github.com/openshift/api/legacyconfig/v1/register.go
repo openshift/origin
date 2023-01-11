@@ -8,7 +8,8 @@ import (
 var (
 	// Legacy is the 'v1' apiVersion of config
 	LegacyGroupName          = ""
-	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
+	GroupVersion             = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
+	LegacySchemeGroupVersion = GroupVersion
 	legacySchemeBuilder      = runtime.NewSchemeBuilder(
 		addKnownTypesToLegacy,
 	)
