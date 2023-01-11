@@ -335,16 +335,26 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 
 // ExpectNoDisruptionForDuration fails if the sum of the duration of all events exceeds allowedDisruption, reports a
 // disruption flake if any disruption occurs, and uses reason to prefix the message.
-func ExpectNoDisruptionForDuration(f *framework.Framework, allowedDisruption time.Duration, total time.Duration, events monitorapi.Intervals, reason string) {
+func ExpectNoDisruptionForDuration(f *framework.Framework, testName string, allowedDisruption *time.Duration, total time.Duration, events monitorapi.Intervals, reason string) {
+	// This step records the test summaries data we need to result in AdditionalEvents json files in
+	// the openshift-e2e-test artifacts.
 	FrameworkEventIntervals(f, events)
 	describe := events.Strings()
+
+	// Indicates there is no entry in the query_results.json data file, nor a valid fallback,
+	// we do not wish to run the test. (this likely implies we do not have the required number of
+	// runs in 3 weeks to do a reliable P99)
+	if allowedDisruption == nil {
+		framework.Logf(fmt.Sprintf("Skipping: %s: No historical data to calculate allowedDisruption", testName))
+		return
+	}
 
 	errorEvents := events.Filter(monitorapi.IsErrorEvent)
 	disruptionDuration := errorEvents.Duration(1 * time.Second)
 	roundedAllowedDisruption := allowedDisruption.Round(time.Second)
 	if allowedDisruption.Milliseconds() == DefaultAllowedDisruption {
 		// don't round if we're using the default value so we can find this.
-		roundedAllowedDisruption = allowedDisruption
+		roundedAllowedDisruption = *allowedDisruption
 	}
 	roundedDisruptionDuration := disruptionDuration.Round(time.Second)
 	if roundedDisruptionDuration > roundedAllowedDisruption {
