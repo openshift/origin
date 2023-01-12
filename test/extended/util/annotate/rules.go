@@ -360,6 +360,9 @@ var (
 
 			`\[sig-storage\] CSI mock volume CSI Volume Snapshots \[Feature:VolumeSnapshotDataSource\] volumesnapshotcontent and pvc in Bound state with deletion timestamp set should not get deleted while snapshot finalizer exists`,
 			`\[sig-storage\] CSI mock volume CSI Volume Snapshots secrets \[Feature:VolumeSnapshotDataSource\] volume snapshot create/delete with secrets`,
+
+			`\[sig-storage\] Dynamic Provisioning DynamicProvisioner \[Slow\] \[Feature:StorageProvider\] deletion should be idempotent`,
+			`\[sig-storage\] Dynamic Provisioning DynamicProvisioner \[Slow\] \[Feature:StorageProvider\] should provision storage with different parameters`,
 		},
 	}
 )
