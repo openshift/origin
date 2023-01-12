@@ -349,6 +349,17 @@ var (
 			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Ephemeral Snapshot \(retain policy\)\] snapshottable\[Feature:VolumeSnapshotDataSource\] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)`,
 			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Pre-provisioned Snapshot \(delete policy\)\] snapshottable\[Feature:VolumeSnapshotDataSource\] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)`,
 			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Pre-provisioned Snapshot \(retain policy\)\] snapshottable\[Feature:VolumeSnapshotDataSource\] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic Snapshot \(delete policy\)\] snapshottable-stress[Feature:VolumeSnapshotDataSource] should support snapshotting of many volumes repeatedly`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic Snapshot \(delete policy\)\] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic Snapshot \(retain policy\)\] snapshottable-stress[Feature:VolumeSnapshotDataSource] should support snapshotting of many volumes repeatedly`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic Snapshot \(retain policy\)\] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Ephemeral Snapshot \(delete policy\)\] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Ephemeral Snapshot \(retain policy\)\] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Pre-provisioned Snapshot \(delete policy\)\] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Pre-provisioned Snapshot \(retain policy\)\] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)`,
+
+			`\[sig-storage\] CSI mock volume CSI Volume Snapshots \[Feature:VolumeSnapshotDataSource\] volumesnapshotcontent and pvc in Bound state with deletion timestamp set should not get deleted while snapshot finalizer exists`,
+			`\[sig-storage\] CSI mock volume CSI Volume Snapshots secrets \[Feature:VolumeSnapshotDataSource\] volume snapshot create/delete with secrets`,
 		},
 	}
 )
