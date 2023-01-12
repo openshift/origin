@@ -363,6 +363,28 @@ var (
 
 			`\[sig-storage\] Dynamic Provisioning DynamicProvisioner \[Slow\] \[Feature:StorageProvider\] deletion should be idempotent`,
 			`\[sig-storage\] Dynamic Provisioning DynamicProvisioner \[Slow\] \[Feature:StorageProvider\] should provision storage with different parameters`,
+
+			`\[sig-storage\] HostPathType Block Device \[Slow\] Should be able to mount block device \'ablkdev\' successfully when HostPathType is HostPathBlockDev`,
+			`\[sig-storage\] HostPathType Block Device \[Slow\] Should be able to mount block device \'ablkdev\' successfully when HostPathType is HostPathUnset`,
+			`\[sig-storage\] HostPathType Block Device \[Slow\] Should fail on mounting block device \'ablkdev\' when HostPathType is HostPathCharDev`,
+			`\[sig-storage\] HostPathType Block Device \[Slow\] Should fail on mounting block device \'ablkdev\' when HostPathType is HostPathDirectory`,
+			`\[sig-storage\] HostPathType Block Device \[Slow\] Should fail on mounting block device \'ablkdev\' when HostPathType is HostPathFile`,
+			`\[sig-storage\] HostPathType Block Device \[Slow\] Should fail on mounting block device \'ablkdev\' when HostPathType is HostPathSocket`,
+			`\[sig-storage\] HostPathType Block Device \[Slow\] Should fail on mounting non-existent block device \'does-not-exist-blk-dev\' when HostPathType is HostPathBlockDev`,
+			`\[sig-storage\] HostPathType Character Device \[Slow\] Should be able to mount character device \'achardev\' successfully when HostPathType is HostPathCharDev`,
+			`\[sig-storage\] HostPathType Character Device \[Slow\] Should be able to mount character device \'achardev\' successfully when HostPathType is HostPathUnset`,
+			`\[sig-storage\] HostPathType Character Device \[Slow\] Should fail on mounting character device \'achardev\' when HostPathType is HostPathBlockDev`,
+			`\[sig-storage\] HostPathType Character Device \[Slow\] Should fail on mounting character device \'achardev\' when HostPathType is HostPathDirectory`,
+			`\[sig-storage\] HostPathType Character Device \[Slow\] Should fail on mounting character device \'achardev\' when HostPathType is HostPathFile`,
+			`\[sig-storage\] HostPathType Character Device \[Slow\] Should fail on mounting character device \'achardev\' when HostPathType is HostPathSocket`,
+			`\[sig-storage\] HostPathType Character Device \[Slow\] Should fail on mounting non-existent character device \'does-not-exist-char-dev\' when HostPathType is HostPathCharDev`,
+			`\[sig-storage\] HostPathType Socket \[Slow\] Should be able to mount socket \'asocket\' successfully when HostPathType is HostPathSocket`,
+			`\[sig-storage\] HostPathType Socket \[Slow\] Should be able to mount socket \'asocket\' successfully when HostPathType is HostPathUnset`,
+			`\[sig-storage\] HostPathType Socket \[Slow\] Should fail on mounting non-existent socket \'does-not-exist-socket\' when HostPathType is HostPathSocket`,
+			`\[sig-storage\] HostPathType Socket \[Slow\] Should fail on mounting socket \'asocket\' when HostPathType is HostPathBlockDev`,
+			`\[sig-storage\] HostPathType Socket \[Slow\] Should fail on mounting socket \'asocket\' when HostPathType is HostPathCharDev`,
+			`\[sig-storage\] HostPathType Socket \[Slow\] Should fail on mounting socket \'asocket\' when HostPathType is HostPathDirectory`,
+			`\[sig-storage\] HostPathType Socket \[Slow\] Should fail on mounting socket \'asocket\' when HostPathType is HostPathFile`,
 		},
 	}
 )
