@@ -283,6 +283,13 @@ func TestKnownBugEventsGroup(t *testing.T) {
 			topology:        v1.SingleReplicaTopologyMode,
 			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo - https://bugzilla.redhat.com/show_bug.cgi?id=1234567 result=allow ",
 		},
+		{
+			name:            "matches 22 with multiple line message",
+			messages:        []string{"ns/e2e - reason/SomeEvent1 foo \nbody:\n (22 times)"},
+			platform:        v1.AWSPlatformType,
+			topology:        v1.SingleReplicaTopologyMode,
+			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo  result=allow \nbody:\n - https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
+		},
 	}
 
 	for _, test := range tests {
