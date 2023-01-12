@@ -186,6 +186,7 @@ type ImageRegistryConfigStorageS3 struct {
 	// +optional
 	Region string `json:"region,omitempty"`
 	// regionEndpoint is the endpoint for S3 compatible storage services.
+	// It should be a valid URL with scheme, e.g. https://s3.example.com.
 	// Optional, defaults based on the Region that is provided.
 	// +optional
 	RegionEndpoint string `json:"regionEndpoint,omitempty"`

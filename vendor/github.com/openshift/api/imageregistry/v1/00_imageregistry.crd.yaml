@@ -824,7 +824,7 @@ spec:
                           description: region is the AWS region in which your bucket exists. Optional, will be set based on the installed AWS Region.
                           type: string
                         regionEndpoint:
-                          description: regionEndpoint is the endpoint for S3 compatible storage services. Optional, defaults based on the Region that is provided.
+                          description: regionEndpoint is the endpoint for S3 compatible storage services. It should be a valid URL with scheme, e.g. https://s3.example.com. Optional, defaults based on the Region that is provided.
                           type: string
                         trustedCA:
                           description: "trustedCA is a reference to a config map containing a CA bundle. The image registry and its operator use certificates from this bundle to verify S3 server certificates. \n The namespace for the config map referenced by trustedCA is \"openshift-config\". The key for the bundle in the config map is \"ca-bundle.crt\"."
@@ -1184,7 +1184,7 @@ spec:
                           description: region is the AWS region in which your bucket exists. Optional, will be set based on the installed AWS Region.
                           type: string
                         regionEndpoint:
-                          description: regionEndpoint is the endpoint for S3 compatible storage services. Optional, defaults based on the Region that is provided.
+                          description: regionEndpoint is the endpoint for S3 compatible storage services. It should be a valid URL with scheme, e.g. https://s3.example.com. Optional, defaults based on the Region that is provided.
                           type: string
                         trustedCA:
                           description: "trustedCA is a reference to a config map containing a CA bundle. The image registry and its operator use certificates from this bundle to verify S3 server certificates. \n The namespace for the config map referenced by trustedCA is \"openshift-config\". The key for the bundle in the config map is \"ca-bundle.crt\"."

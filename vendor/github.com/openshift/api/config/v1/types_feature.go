@@ -109,8 +109,6 @@ var FeatureSets = map[FeatureSet]*FeatureGateEnabledDisabled{
 		Disabled: []string{},
 	},
 	TechPreviewNoUpgrade: newDefaultFeatures().
-		with("CSIMigrationAzureFile").             // sig-storage, fbertina, Kubernetes feature gate
-		with("CSIMigrationvSphere").               // sig-storage, fbertina, Kubernetes feature gate
 		with("ExternalCloudProvider").             // sig-cloud-provider, jspeed, OCP specific
 		with("CSIDriverSharedResource").           // sig-build, adkaplan, OCP specific
 		with("BuildCSIVolumes").                   // sig-build, adkaplan, OCP specific
@@ -134,11 +132,9 @@ var defaultFeatures = &FeatureGateEnabledDisabled{
 		"APIPriorityAndFairness",         // sig-apimachinery, deads2k
 		"RotateKubeletServerCertificate", // sig-pod, sjenning
 		"DownwardAPIHugePages",           // sig-node, rphillips
+		"OpenShiftPodSecurityAdmission",     // bz-auth, stlaz, OCP specific
 	},
-	Disabled: []string{
-		"CSIMigrationAzureFile", // sig-storage, jsafrane
-		"CSIMigrationvSphere",   // sig-storage, jsafrane
-	},
+	Disabled: []string{},
 }
 
 type featureSetBuilder struct {
