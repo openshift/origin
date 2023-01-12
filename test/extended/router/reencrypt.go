@@ -16,7 +16,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:operator.openshift.io][apigroup:apps.openshift.io]", func() {
+var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io][apigroup:operator.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
 		configPath = exutil.FixturePath("testdata", "router", "reencrypt-serving-cert.yaml")
