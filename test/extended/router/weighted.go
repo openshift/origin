@@ -29,7 +29,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
-var _ = g.Describe("[sig-network][Feature:Router][apigroup:config.openshift.io][apigroup:image.openshift.io]", func() {
+var _ = g.Describe("[sig-network][Feature:Router][apigroup:image.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = exutil.NewCLIWithPodSecurityLevel("weighted-router", admissionapi.LevelBaseline)
