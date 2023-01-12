@@ -11,11 +11,29 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
 	configv1 "github.com/openshift/api/config/v1"
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 )
+
+func isClusterOperatorPresent(client kubernetes.Interface) (bool, error) {
+	_, resources, err := client.Discovery().ServerGroupsAndResources()
+	if err != nil {
+		return false, err
+	}
+	for _, resource := range resources {
+		if resource != nil && resource.GroupVersion == "config.openshift.io/v1" {
+			for _, APIResource := range resource.APIResources {
+				if APIResource.Name == "clusteroperators" {
+					return true, nil
+				}
+			}
+		}
+	}
+	return false, nil
+}
 
 func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client configclientset.Interface) {
 	coInformer := cache.NewSharedIndexInformer(
