@@ -148,9 +148,6 @@ var (
 		{Group: "quota.openshift.io", Version: "v1", Resource: "clusterresourcequotas"},
 
 		{Group: "samples.operator.openshift.io", Version: "v1", Resource: "configs"},
-
-		{Group: "tuned.openshift.io", Version: "v1", Resource: "profiles"},
-		{Group: "tuned.openshift.io", Version: "v1", Resource: "tuneds"},
 	}
 	mcoTypes = []schema.GroupVersionResource{
 		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "containerruntimeconfigs"},
@@ -186,6 +183,14 @@ var (
 		{Group: "metal3.io", Version: "v1alpha1", Resource: "hostfirmwaresettings"},
 		{Group: "metal3.io", Version: "v1alpha1", Resource: "preprovisioningimages"},
 		{Group: "metal3.io", Version: "v1alpha1", Resource: "provisionings"},
+	}
+
+	nodeTuningTypes = []schema.GroupVersionResource{
+		{Group: "tuned.openshift.io", Version: "v1", Resource: "profiles"},
+		{Group: "tuned.openshift.io", Version: "v1", Resource: "tuneds"},
+		{Group: "performance.openshift.io", Version: "v1alpha1", Resource: "performanceprofiles"},
+		{Group: "performance.openshift.io", Version: "v1", Resource: "performanceprofiles"},
+		{Group: "performance.openshift.io", Version: "v2", Resource: "performanceprofiles"},
 	}
 
 	specialTypes = map[string][]explainExceptions{
@@ -487,6 +492,8 @@ func getCrdTypes(oc *exutil.CLI) []schema.GroupVersionResource {
 				crdTypes = append(crdTypes, marketplaceTypes...)
 			case configv1.ClusterVersionCapabilityBaremetal:
 				crdTypes = append(crdTypes, metal3Types...)
+			case configv1.ClusterVersionCapabilityNodeTuning:
+				crdTypes = append(crdTypes, nodeTuningTypes...)
 			}
 		}
 	}
