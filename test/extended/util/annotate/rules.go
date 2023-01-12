@@ -331,7 +331,24 @@ var (
 			// Most storage tests don't pass when the storage capability is disabled.
 			// this list needs to be refined as there are some storage tests we should be able to run.
 			// Tracker for enabling more storage tests: https://issues.redhat.com/browse/OCPPLAN-9509
-			`\[sig-storage\]`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(block volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv used in a pod that is deleted while the kubelet is down cleans up when the kubelet returns.`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(block volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv used in a pod that is force deleted while the kubelet is down cleans up when the kubelet returns.`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(block volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv written before kubelet restart is readable after restart.`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(block volmode\)\] multiVolume \[Slow\] should concurrently access the volume and restored snapshot from pods on the same node`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(block volmode\)\] provisioning should provision storage with snapshot data source`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(default fs\)\] provisioning should provision storage with snapshot data source`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(filesystem volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv written before kubelet restart is readable after restart.`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(filesystem volmode\)\] volume-lifecycle-performance should provision volumes at scale within performance constraints`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic Snapshot \(delete policy\)\] snapshottable-stress\[Feature:VolumeSnapshotDataSource\] should support snapshotting of many volumes repeatedly`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic Snapshot \(delete policy\)\] snapshottable\[Feature:VolumeSnapshotDataSource\] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic Snapshot \(retain policy\)\] snapshottable-stress\[Feature:VolumeSnapshotDataSource\] should support snapshotting of many volumes repeatedly`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic Snapshot \(retain policy\)\] snapshottable\[Feature:VolumeSnapshotDataSource\] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Ephemeral Snapshot \(delete policy\)\] snapshottable\[Feature:VolumeSnapshotDataSource\] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Ephemeral Snapshot \(retain policy\)\] snapshottable\[Feature:VolumeSnapshotDataSource\] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Pre-provisioned Snapshot \(delete policy\)\] snapshottable\[Feature:VolumeSnapshotDataSource\] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)`,
+			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Pre-provisioned Snapshot \(retain policy\)\] snapshottable\[Feature:VolumeSnapshotDataSource\] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)`,
 		},
 	}
 )
