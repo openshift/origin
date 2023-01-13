@@ -507,6 +507,15 @@ var (
 			`\[sig-storage\] In-tree Volumes \[Driver: hostPathSymlink\] \[Testpattern: Inline-volume \(default fs\)\] volumeIO should write files of various sizes, verify size, validate content`,
 
 			`\[sig-storage\] In-tree Volumes \[Driver: hostPath\] \[Testpattern: Inline-volume \(default fs\)\] volumeIO should write files of various sizes, verify size, validate content`,
+
+			`\[sig-storage\] In-tree Volumes \[Driver: iscsi\]\[Feature:Volumes\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
+			`\[sig-storage\] In-tree Volumes \[Driver: iscsi\]\[Feature:Volumes\] \[Testpattern: Pre-provisioned PV \(filesystem volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv written before kubelet restart is readable after restart.`,
+			`\[sig-storage\] In-tree Volumes \[Driver: iscsi\]\[Feature:Volumes\] \[Testpattern: Pre-provisioned PV \(block volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv used in a pod that is force deleted while the kubelet is down cleans up when the kubelet returns.`,
+			`\[sig-storage\] In-tree Volumes \[Driver: iscsi\]\[Feature:Volumes\] \[Testpattern: Pre-provisioned PV \(block volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv used in a pod that is deleted while the kubelet is down cleans up when the kubelet returns.`,
+			`\[sig-storage\] In-tree Volumes \[Driver: iscsi\]\[Feature:Volumes\] \[Testpattern: Pre-provisioned PV \(block volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv written before kubelet restart is readable after restart.`,
+			`\[sig-storage\] In-tree Volumes \[Driver: iscsi\]\[Feature:Volumes\] \[Testpattern: Inline-volume \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
+			`\[sig-storage\] In-tree Volumes \[Driver: iscsi\]\[Feature:Volumes\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
+			`\[sig-storage\] In-tree Volumes \[Driver: iscsi\]\[Feature:Volumes\] \[Testpattern: Inline-volume \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
 		},
 	}
 )
