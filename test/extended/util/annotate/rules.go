@@ -494,6 +494,9 @@ var (
 			`\[sig-storage\] In-tree Volumes \[Driver: ceph\]\[Feature:Volumes\]\[Serial\] \[Testpattern: Inline-volume \)default fs)\] subPath should unmount if pod is gracefully deleted while kubelet is down \[Disruptive\]\[Slow\]\[LinuxOnly\] \[Disabled:Unsupported\] \[Skipped:NoOptionalCapabilities\] \[Suite:k8s\]`,
 			`\[sig-storage\] In-tree Volumes \[Driver: ceph\]\[Feature:Volumes\]\[Serial\] \[Testpattern: Pre-provisioned PV \)filesystem volmode)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv written before kubelet restart is readable after restart. \[Disabled:Unsupported\] \[Skipped:NoOptionalCapabilities\] \[Suite:k8s\]`,
 			`\[sig-storage\] In-tree Volumes \[Driver: ceph\]\[Feature:Volumes\]\[Serial\] \[Testpattern: Pre-provisioned PV \)default fs)\] subPath should support readOnly directory specified in the volumeMount \[Disabled:Unsupported\] \[Skipped:NoOptionalCapabilities\] \[Suite:k8s\]`,
+
+			`\[sig-storage\] In-tree Volumes \[Driver: emptydir\] \[Testpattern: Inline-volume \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
+			`\[sig-storage\] In-tree Volumes \[Driver: emptydir\] \[Testpattern: Inline-volume \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
 		},
 	}
 )
