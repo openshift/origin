@@ -14,6 +14,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -40,15 +41,18 @@ var adminAckGateRegexp = regexp.MustCompile(adminAckGateFmt)
 // and verifies that the Upgradeable condition no longer complains about the ack.
 func (t *AdminAckTest) Test(ctx context.Context) {
 	if t.Poll == 0 {
-		t.test(ctx, nil)
+		if err := t.test(ctx, nil, nil); err != nil {
+			framework.Fail(err.Error())
+		}
 		return
 	}
 
-	exercisedGates := map[string]struct{}{}
+	exercisedGates := sets.NewString()
+	exercisedVersions := sets.NewString()
 	success := false
 	var lastError error
 	if err := wait.PollImmediateUntilWithContext(ctx, t.Poll, func(ctx context.Context) (bool, error) {
-		if err := t.test(ctx, exercisedGates); err != nil {
+		if err := t.test(ctx, exercisedGates, exercisedVersions); err != nil {
 			framework.Logf("Retriable failure to evaluate admin acks: %v", err)
 			lastError = err
 		} else {
@@ -64,11 +68,21 @@ func (t *AdminAckTest) Test(ctx context.Context) {
 	if !success {
 		framework.Failf("Never able to evaluate admin acks.  Most recent failure: %v", lastError)
 	}
+
+	// Perform one guaranteed check after the upgrade is complete. The polled check above is cancelled
+	// on done signal (so we never know whether the poll was lucky to run at least once since
+	// the version was bumped).
+	postUpdateCtx, postUpdateCtxCancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	defer postUpdateCtxCancel()
+	if current := getCurrentVersion(postUpdateCtx, t.Config); current != "" && !exercisedVersions.Has(current) {
+		// We never saw the current version while polling, so lets check it now
+		if err := t.test(postUpdateCtx, exercisedGates, exercisedVersions); err != nil {
+			framework.Fail(err.Error())
+		}
+	}
 }
 
-func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struct{}) error {
-	exists := struct{}{}
-
+func (t *AdminAckTest) test(ctx context.Context, exercisedGates, exercisedVersions sets.String) error {
 	gateCm, err := getAdminGatesConfigMap(ctx, t.Oc)
 	if err != nil {
 		return err
@@ -83,11 +97,12 @@ func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struc
 		return err
 	}
 	currentVersion := getCurrentVersion(ctx, t.Config)
+	if exercisedVersions != nil {
+		exercisedVersions.Insert(currentVersion)
+	}
 	for k, v := range gateCm.Data {
-		if exercisedGates != nil {
-			if _, ok := exercisedGates[k]; ok {
-				continue
-			}
+		if exercisedGates != nil && exercisedGates.Has(k) {
+			continue
 		}
 		ackVersion := adminAckGateRegexp.FindString(k)
 		if ackVersion == "" {
@@ -97,6 +112,7 @@ func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struc
 			framework.Failf("Configmap openshift-config-managed/admin-gates gate %s does not contain description.", k)
 		}
 		if !gateApplicableToCurrentVersion(ackVersion, currentVersion) {
+			framework.Logf("Gate %s not applicable to current version %s", ackVersion, currentVersion)
 			continue
 		}
 		if ackCm.Data[k] == "true" {
@@ -124,7 +140,7 @@ func (t *AdminAckTest) test(ctx context.Context, exercisedGates map[string]struc
 			framework.Fail(err.Error())
 		}
 		if exercisedGates != nil {
-			exercisedGates[k] = exists
+			exercisedGates.Insert(k)
 		}
 	}
 	framework.Logf("Admin Ack verified")
