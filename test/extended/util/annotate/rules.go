@@ -497,6 +497,12 @@ var (
 
 			`\[sig-storage\] In-tree Volumes \[Driver: emptydir\] \[Testpattern: Inline-volume \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
 			`\[sig-storage\] In-tree Volumes \[Driver: emptydir\] \[Testpattern: Inline-volume \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
+
+			`\[sig-storage\] In-tree Volumes \[Driver: gluster\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
+			`\[sig-storage\] In-tree Volumes \[Driver: gluster\] \[Testpattern: Pre-provisioned PV \(filesystem volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv written before kubelet restart is readable after restart.`,
+			`\[sig-storage\] In-tree Volumes \[Driver: gluster\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
+			`\[sig-storage\] In-tree Volumes \[Driver: gluster\] \[Testpattern: Inline-volume \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
+			`\[sig-storage\] In-tree Volumes \[Driver: gluster\] \[Testpattern: Inline-volume \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
 		},
 	}
 )
