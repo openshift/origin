@@ -503,6 +503,8 @@ var (
 			`\[sig-storage\] In-tree Volumes \[Driver: gluster\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
 			`\[sig-storage\] In-tree Volumes \[Driver: gluster\] \[Testpattern: Inline-volume \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
 			`\[sig-storage\] In-tree Volumes \[Driver: gluster\] \[Testpattern: Inline-volume \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
+
+			`\[sig-storage\] In-tree Volumes \[Driver: hostPathSymlink\] \[Testpattern: Inline-volume \(default fs\)\] volumeIO should write files of various sizes, verify size, validate content`,
 		},
 	}
 )
