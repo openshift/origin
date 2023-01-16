@@ -43,7 +43,9 @@ func createDNSPod(namespace, probeCmd string) *kapiv1.Pod {
 			Namespace: namespace,
 		},
 		Spec: kapiv1.PodSpec{
-			NodeSelector: nodeSelector,
+			RestartPolicy:   kapiv1.RestartPolicyNever,
+			SecurityContext: e2epod.GetRestrictedPodSecurityContext(),
+			NodeSelector:    nodeSelector,
 			Tolerations: []kapiv1.Toleration{
 				{
 					Effect:   "NoSchedule",
