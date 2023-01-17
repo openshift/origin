@@ -115,7 +115,7 @@ var _ = g.Describe("[sig-auth][Feature:PodSecurity][Feature:SCC]", func() {
 				name:                   "SHOULD throw warnings if no SCC matches the pod template",
 				container:              privilegedContainer(sleeperContainer),
 				saName:                 "default",
-				expectWarningSubstring: "", // the PodSpecExtractor currently fails in this case and so nothing is thrown/logged in audits
+				expectWarningSubstring: "would violate PodSecurity",
 			},
 			{
 				name:                   "SHOULD throw warnings if SCC matches but will not mutate to the expected PSa profile",
