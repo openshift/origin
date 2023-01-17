@@ -3,6 +3,7 @@ package networking
 import (
 	"context"
 	"fmt"
+	"time"
 
 	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -67,7 +68,6 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 		if platformSupportICMP(infra.Status.PlatformStatus.Type) {
 			_, err := noegFwoc.Run("exec").Args(pod, "--", "ping", "-c", "1", "8.8.8.8").Output()
 			expectNoError(err)
-
 			_, err = noegFwoc.Run("exec").Args(pod, "--", "ping", "-c", "1", "1.1.1.1").Output()
 			expectNoError(err)
 		}
@@ -97,41 +97,49 @@ func doEgressFwTest(f *e2e.Framework, oc *exutil.CLI, manifest string) error {
 	err := oc.AsAdmin().Run("create").Args("-f", egFwYaml).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred(), "created egress-firewall object")
 
-	o.Expect(sendEgressFwTraffic(f, oc, egressFWTestPod)).To(o.Succeed())
+	o.Expect(sendEgressFwTraffic(oc, egressFWTestPod)).To(o.Succeed())
 
 	g.By("deleting test pod")
 	deleteTestEgressFw(f)
 	return err
 }
 
-func sendEgressFwTraffic(f *e2e.Framework, oc *exutil.CLI, pod string) error {
+func sendEgressFwTraffic(oc *exutil.CLI, pod string) error {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster-wide infrastructure")
-
+	// retry function is needed for EgressFirewall test because policy is not applied instantly when EgressFirewall
+	// is applied and EgressFirewall does not provide a mechanism to indicate when policy is applied throughout the cluster,
+	// therefore we must retry until expected result.
+	retryNo, retryDelay := 5, time.Millisecond*100
 	if platformSupportICMP(infra.Status.PlatformStatus.Type) {
 		// Test ICMP / Ping to Google’s DNS IP (8.8.8.8) should pass
 		// because we have allow cidr rule for 8.8.8.8
 		g.By("sending traffic that matches allow cidr rule")
-		_, err := oc.Run("exec").Args(pod, "--", "ping", "-c", "1", "8.8.8.8").Output()
-		expectNoError(err)
+		o.Expect(retryFnUntilNoError(func() error {
+			return ping(oc, pod, "8.8.8.8")
+		}, retryNo, retryDelay)).Should(o.BeTrue())
 
 		// Test ICMP / Ping to Cloudfare DNS IP (1.1.1.1) should fail
 		// because there is no allow cidr match for 1.1.1.1
 		g.By("sending traffic that does not match allow cidr rule")
-		_, err = oc.Run("exec").Args(pod, "--", "ping", "-c", "1", "1.1.1.1").Output()
-		expectError(err)
+		o.Expect(retryFnUntilError(func() error {
+			return ping(oc, pod, "1.1.1.1")
+		}, retryNo, retryDelay)).Should(o.BeTrue())
 	}
 	// Test curl to docs.openshift.com should pass
 	// because we have allow dns rule for docs.openshift.com
 	g.By("sending traffic that matches allow dns rule")
-	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m1", "https://docs.openshift.com").Output()
-	expectNoError(err)
+	o.Expect(retryFnUntilNoError(func() error {
+		return curl(oc, pod, "https://docs.openshift.com")
+	}, retryNo, retryDelay)).Should(o.BeTrue())
 
 	// Test curl to www.google.com:80 should fail
 	// because we don't have allow dns rule for www.google.com:80
 	g.By("sending traffic that does not match allow dns rule")
-	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m1", "http://www.google.com:80").Output()
-	expectError(err)
+	o.Expect(retryFnUntilError(func() error {
+		return curl(oc, pod, "http://www.google.com:80")
+	}, retryNo, retryDelay)).Should(o.BeTrue())
+
 	return nil
 }
 

@@ -693,3 +693,42 @@ func GetIPAddressFamily(oc *exutil.CLI) (bool, bool, error) {
 	}
 	return hasIPv4, hasIPv6, nil
 }
+
+// retryFnUntilError exec fn and retries until an error is seen. Return true if error seen.
+func retryFnUntilError(fn func() error, retries int, sleep time.Duration) bool {
+	return retryFnUntil(fn, retries, sleep, true)
+}
+
+// retryFnUntilNoError exec fn and retries if no error occurred. Return true if error not seen.
+func retryFnUntilNoError(fn func() error, retries int, sleep time.Duration) bool {
+	return retryFnUntil(fn, retries, sleep, false)
+}
+
+// retryFnUntil exec fn and retries if fn result returns an error and retryOnError is true.
+func retryFnUntil(fn func() error, retries int, sleep time.Duration, untilError bool) bool {
+	var err error
+	for retries > 0 {
+		err = fn()
+		// don't retry if no error, and we aren't retrying until an error occurs
+		if err == nil && !untilError {
+			return true
+			// don't retry if error, and we are waiting for an error to occur
+		} else if err != nil && untilError {
+			return true
+		} else {
+			retries--
+			time.Sleep(sleep)
+		}
+	}
+	return false
+}
+
+func ping(cli *exutil.CLI, pod, target string) error {
+	_, err := cli.Run("exec").Args(pod, "--", "ping", "-c", "1", target).Output()
+	return err
+}
+
+func curl(cli *exutil.CLI, pod, target string) error {
+	_, err := cli.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m1", target).Output()
+	return err
+}
