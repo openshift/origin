@@ -3,7 +3,7 @@ package allowedalerts
 import (
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	"github.com/openshift/origin/pkg/synthetictests/historicaldata"
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
