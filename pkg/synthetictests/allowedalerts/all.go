@@ -27,6 +27,12 @@ func AllAlertTests(ctx context.Context, clientConfig *rest.Config, duration time
 		}
 	}
 
+	// TODO: the alerts defined here are enforced based on their presence in query_results.json, which is updated
+	// weekly from bigquery. However the query by which it is updated also includes a hardcoded list of alerts
+	// we enforce. Thus these two disjoint lists should be kept in sync but are presently not. Data missing from the
+	// file implies we may not want to run the test?
+	// All due for revamp as we work towards understanding what the set of actual alerts is.
+
 	ret := []AlertTest{}
 	ret = append(ret, newWatchdogAlert())
 	ret = append(ret, newNamespacedAlert("KubePodNotReady").pending().neverFail().toTests()...)

@@ -16,7 +16,7 @@ type BestMatcher interface {
 	BestMatch(name string, jopType platformidentification.JobType) (StatisticalData, string, error)
 	// BestMatchDuration returns the best possible match for this historical data.  It attempts a full match first, then
 	// it attempts to match on the most important keys in order, before giving up and returning a default.
-	BestMatchDuration(name string, jopType platformidentification.JobType) (StatisticalDuration, string, error)
+	BestMatchDuration(name string, jopType platformidentification.JobType) (*StatisticalDuration, string, error)
 
 	BestMatchP99(name string, jobType platformidentification.JobType) (*time.Duration, string, error)
 }
@@ -128,25 +128,25 @@ func (b *bestMatcher) BestMatch(name string, jobType platformidentification.JobT
 		nil
 }
 
-func (b *bestMatcher) BestMatchDuration(name string, jobType platformidentification.JobType) (StatisticalDuration, string, error) {
+func (b *bestMatcher) BestMatchDuration(name string, jobType platformidentification.JobType) (*StatisticalDuration, string, error) {
 	rawData, details, err := b.BestMatch(name, jobType)
 	// Empty data implies we have none, and thus do not want to run the test.
 	if rawData == (StatisticalData{}) {
-		return StatisticalDuration{}, details, err
+		return nil, details, err
 	}
 	return toStatisticalDuration(rawData), details, err
 }
 
 func (b *bestMatcher) BestMatchP99(name string, jobType platformidentification.JobType) (*time.Duration, string, error) {
 	rawData, details, err := b.BestMatchDuration(name, jobType)
-	if rawData == (StatisticalDuration{}) {
+	if rawData == nil {
 		return nil, details, err
 	}
 	return &rawData.P99, details, err
 }
 
-func toStatisticalDuration(in StatisticalData) StatisticalDuration {
-	return StatisticalDuration{
+func toStatisticalDuration(in StatisticalData) *StatisticalDuration {
+	return &StatisticalDuration{
 		DataKey: in.DataKey,
 		P95:     DurationOrDie(in.P95),
 		P99:     DurationOrDie(in.P99),

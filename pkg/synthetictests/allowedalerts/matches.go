@@ -3,8 +3,9 @@ package allowedalerts
 import (
 	"time"
 
-	"github.com/openshift/origin/pkg/synthetictests/historicaldata"
+	"github.com/Sirupsen/logrus"
 
+	"github.com/openshift/origin/pkg/synthetictests/historicaldata"
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 )
 
@@ -43,16 +44,27 @@ var defaultAllowances = &percentileAllowances{}
 
 func (d *percentileAllowances) FailAfter(alertName string, jobType platformidentification.JobType) (time.Duration, error) {
 	allowed, _, _ := getClosestPercentilesValues(alertName, jobType)
+	// implies we have no data in the query file
+	if allowed == nil {
+		logrus.WithField("alert", alertName).Infof("no data found in query_results.json for %+v", jobType)
+		return 24 * time.Hour, nil
+
+	}
 	return allowed.P99, nil
 }
 
 func (d *percentileAllowances) FlakeAfter(alertName string, jobType platformidentification.JobType) time.Duration {
 	allowed, _, _ := getClosestPercentilesValues(alertName, jobType)
+	// implies we have no data in the query file
+	if allowed == nil {
+		logrus.WithField("alert", alertName).Infof("no data found in query_results.json for %+v", jobType)
+		return 24 * time.Hour
+	}
 	return allowed.P95
 }
 
 // getClosestPercentilesValues uses the backend and information about the cluster to choose the best historical p99 to operate against.
 // We enforce "don't get worse" for disruption by watching the aggregate data in CI over many runs.
-func getClosestPercentilesValues(alertName string, jobType platformidentification.JobType) (historicaldata.StatisticalDuration, string, error) {
+func getClosestPercentilesValues(alertName string, jobType platformidentification.JobType) (*historicaldata.StatisticalDuration, string, error) {
 	return getCurrentResults().BestMatchDuration(alertName, jobType)
 }
