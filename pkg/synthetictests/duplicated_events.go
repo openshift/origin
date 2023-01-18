@@ -212,6 +212,10 @@ var knownEventsBugs = []knownProblem{
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2006975",
 	},
 	{
+		Regexp: regexp.MustCompile("reason/TopologyAwareHintsDisabled Insufficient Node information"),
+		BZ:     "https://issues.redhat.com/browse/OCPBUGS-5943",
+	},
+	{
 		Regexp:   regexp.MustCompile("ns/.*reason/.*APICheckFailed.*503.*"),
 		BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=2017435",
 		Topology: topologyPointer(v1.SingleReplicaTopologyMode),
