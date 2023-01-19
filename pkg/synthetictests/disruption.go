@@ -18,6 +18,14 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
+// getRoundedAllowedDisruption is used to calculate allowed disruption based on historical data.
+// We found using 99 percentile of historical data can cause lots of noises. This experiment is to
+// allow a little over 10% when the number is big, while keep a minimum of 10s while the number is
+// small.
+func getRoundedAllowedDisruption(allowedDisruption time.Duration) time.Duration {
+	return (allowedDisruption*11/10 + 10).Round(time.Second)
+}
+
 func testServerAvailability(
 	owner, locator string,
 	events monitorapi.Intervals,
@@ -77,7 +85,7 @@ func testServerAvailability(
 		}
 	}
 
-	roundedAllowedDisruption := allowedDisruption.Round(time.Second)
+	roundedAllowedDisruption := getRoundedAllowedDisruption(*allowedDisruption)
 	if allowedDisruption.Milliseconds() == disruption.DefaultAllowedDisruption {
 		// don't round if we're using the default value so we can find this.
 		roundedAllowedDisruption = *allowedDisruption
