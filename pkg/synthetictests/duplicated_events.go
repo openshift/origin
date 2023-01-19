@@ -212,7 +212,7 @@ var knownEventsBugs = []knownProblem{
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2006975",
 	},
 	{
-		Regexp: regexp.MustCompile("reason/TopologyAwareHintsDisabled Insufficient Node information"),
+		Regexp: regexp.MustCompile("reason/TopologyAwareHintsDisabled"),
 		BZ:     "https://issues.redhat.com/browse/OCPBUGS-5943",
 	},
 	{
