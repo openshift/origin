@@ -1,6 +1,7 @@
 package intervalcreation
 
 import (
+	"fmt"
 	"reflect"
 	"regexp"
 	"testing"
@@ -289,35 +290,35 @@ func Test_messageTime(t *testing.T) {
 			args: args{
 				logLine: `Sep 27 08:59:59.853216 ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s kubenswrapper[2397]: E0927 08:59:59.849143    2397 kubelet_node_status.go:487] "Error updating node status, will retry" err="error getting node \"ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s\": Get \"https://api-int.ci-op-747jjqn3-b3af3.ci2.azure.devcluster.openshift.com:6443/api/v1/nodes/ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s?timeout=10s\": http2: client connection lost"`,
 			},
-			want: mustTime("27 Sep 2022 08:59:59.853216 UTC"),
+			want: mustTime(fmt.Sprintf("27 Sep %d 08:59:59.853216 UTC", time.Now().Year())),
 		},
 		{
 			name: "reflector failure",
 			args: args{
 				logLine: `Sep 27 08:59:59.853216 ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s kubenswrapper[2397]: W0927 08:59:59.849136    2397 reflector.go:347] object-"openshift-monitoring"/"prometheus-adapter-7m6srg4dfreoi": watch of *v1.Secret ended with: an error on the server ("unable to decode an event from the watch stream: http2: client connection lost") has prevented the request from succeeding`,
 			},
-			want: mustTime("27 Sep 2022 08:59:59.853216 UTC"),
+			want: mustTime(fmt.Sprintf("27 Sep %d 08:59:59.853216 UTC", time.Now().Year())),
 		},
 		{
 			name: "status failure",
 			args: args{
 				logLine: `Sep 27 08:59:59.857303 ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s kubenswrapper[2397]: I0927 08:59:59.850662    2397 status_manager.go:667] "Failed to get status for pod" podUID=a1947638-25c2-4fd8-b3c8-4dbaa666bc61 pod="openshift-monitoring/prometheus-k8s-0" err="Get \"https://api-int.ci-op-747jjqn3-b3af3.ci2.azure.devcluster.openshift.com:6443/api/v1/namespaces/openshift-monitoring/pods/prometheus-k8s-0\": http2: client connection lost"`,
 			},
-			want: mustTime("27 Sep 2022 08:59:59.857303 UTC"),
+			want: mustTime(fmt.Sprintf("27 Sep %d 08:59:59.857303 UTC", time.Now().Year())),
 		},
 		{
 			name: "simple failure",
 			args: args{
 				logLine: `Jul 05 17:47:52.807876 ci-op-lxqqvl5x-d3bee-gl4hp-master-0 hyperkube[1495]: I0606 17:47:52.807876    1599 prober.go:121] "Probe failed" probeType="Readiness" pod="openshift-authentication/oauth-openshift-77f7b95df5-r4xf7" podUID=1af660b3-ac3a-4182-86eb-2f74725d8415 containerName="oauth-openshift" probeResult=failure output="Get \"https://10.129.0.12:6443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)"`,
 			},
-			want: mustTime("05 Jul 2022 17:47:52.807876 UTC"),
+			want: mustTime(fmt.Sprintf("05 Jul %d 17:47:52.807876 UTC", time.Now().Year())),
 		},
 		{
 			name: "simple error",
 			args: args{
 				logLine: `Jul 05 17:43:12.908344 ci-op-lxqqvl5x-d3bee-gl4hp-master-0 hyperkube[1495]: E0606 17:43:12.908344    1500 prober.go:118] "Probe errored" err="rpc error: code = NotFound desc = container is not created or running: checking if PID of 645437acbb2ca429c04d5a2628924e2e10d44c681c824dddc7c82ffa30a936be is running failed: container process not found" probeType="Readiness" pod="openshift-marketplace/redhat-operators-4jpg4" podUID=0bac4741-a3bd-483c-b119-e97663d64024 containerName="registry-server"`,
 			},
-			want: mustTime("05 Jul 2022 17:43:12.908344 UTC"),
+			want: mustTime(fmt.Sprintf("05 Jul %d 17:43:12.908344 UTC", time.Now().Year())),
 		},
 	}
 	for _, tt := range tests {
@@ -350,8 +351,8 @@ func Test_readinessFailure(t *testing.T) {
 						Locator: `ns/openshift-authentication pod/oauth-openshift-77f7b95df5-r4xf7 uid/1af660b3-ac3a-4182-86eb-2f74725d8415 container/oauth-openshift`,
 						Message: `reason/ReadinessFailed Get "https://10.129.0.12:6443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)`,
 					},
-					From: mustTime("05 Jul 2022 17:47:52.807876 UTC"),
-					To:   mustTime("05 Jul 2022 17:47:52.807876 UTC"),
+					From: mustTime(fmt.Sprintf("05 Jul %d 17:47:52.807876 UTC", time.Now().Year())),
+					To:   mustTime(fmt.Sprintf("05 Jul %d 17:47:52.807876 UTC", time.Now().Year())),
 				},
 			},
 		},
