@@ -295,8 +295,8 @@ func TestKnownBugEventsGroup(t *testing.T) {
 				events = append(events,
 					monitorapi.EventInterval{
 						Condition: monitorapi.Condition{Message: message},
-						From:      time.Unix(1, 0),
-						To:        time.Unix(1, 0)},
+						From:      time.Unix(872827200, 0),
+						To:        time.Unix(872827200, 0)},
 				)
 			}
 
