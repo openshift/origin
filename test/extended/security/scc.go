@@ -3,25 +3,20 @@ package security
 import (
 	"context"
 	"fmt"
-	"strings"
-	"time"
-
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	"strings"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
-	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	securityv1 "github.com/openshift/api/security/v1"
@@ -476,20 +471,7 @@ func createServiceAccount(ctx context.Context, oc *exutil.CLI, namespace string)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	framework.Logf("Waiting for ServiceAccount %q to be provisioned...", sa.Name)
-	err = wait.Poll(100*time.Millisecond, 3*time.Minute, func() (bool, error) {
-		_, err := oc.AdminKubeClient().CoreV1().ServiceAccounts(namespace).Get(context.Background(), sa.Name, metav1.GetOptions{})
-		if err != nil {
-			// If we can't access the service accounts, let's wait till the controller
-			// create it.
-			if kapierrs.IsNotFound(err) || kapierrs.IsForbidden(err) {
-				e2e.Logf("Waiting for service account %q to be available: %v (will retry) ...", sa.Name, err)
-				return false, nil
-			}
-			return false, fmt.Errorf("Failed to get service account %q: %v", sa.Name, err)
-		}
-		return true, nil
-	})
-
+	err = exutil.WaitForServiceAccount(oc.AdminKubeClient().CoreV1().ServiceAccounts(namespace), sa.Name)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	return sa
