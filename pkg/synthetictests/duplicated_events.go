@@ -353,6 +353,13 @@ func (d duplicateEventsEvaluator) testDuplicatedE2ENamespaceEvents(events monito
 	return d.testDuplicatedEvents(testName, true, events.Filter(monitorapi.IsInE2ENamespace), kubeClientConfig)
 }
 
+// appendToFirstLine appends add to the end of the first line of s
+func appendToFirstLine(s string, add string) string {
+	splits := strings.Split(s, "\n")
+	splits[0] += add
+	return strings.Join(splits, "\n")
+}
+
 // we want to identify events based on the monitor because it is (currently) our only spot that tracks events over time
 // for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] test
 // is easier to author, but less complete in its view.
@@ -419,9 +426,9 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 		}
 
 		if flake || flakeOnly {
-			flakes = append(flakes, msg+" result=allow ")
+			flakes = append(flakes, appendToFirstLine(msg, " result=allow "))
 		} else {
-			failures = append(failures, msg+" result=reject ")
+			failures = append(failures, appendToFirstLine(msg, " result=reject "))
 		}
 	}
 
