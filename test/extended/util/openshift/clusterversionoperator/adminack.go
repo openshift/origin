@@ -51,19 +51,14 @@ func (t *AdminAckTest) Test(ctx context.Context) {
 	exercisedVersions := sets.NewString()
 	success := false
 	var lastError error
-	if err := wait.PollImmediateUntilWithContext(ctx, t.Poll, func(ctx context.Context) (bool, error) {
+	wait.UntilWithContext(ctx, func(ctx context.Context) {
 		if err := t.test(ctx, exercisedGates, exercisedVersions); err != nil {
 			framework.Logf("Retriable failure to evaluate admin acks: %v", err)
 			lastError = err
 		} else {
 			success = true
 		}
-		return false, nil
-	}); err == nil || err == wait.ErrWaitTimeout {
-		return
-	} else {
-		framework.Fail(err.Error())
-	}
+	}, t.Poll)
 
 	if !success {
 		framework.Failf("Never able to evaluate admin acks.  Most recent failure: %v", lastError)
