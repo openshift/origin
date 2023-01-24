@@ -445,6 +445,10 @@
 // test/extended/testdata/service-serving-cert/nginx-serving-cert.conf
 // test/extended/testdata/signer-buildconfig.yaml
 // test/extended/testdata/stable-busybox.yaml
+// test/extended/testdata/storage/inline/csi-sharedresourcerole.yaml
+// test/extended/testdata/storage/inline/csi-sharedresourcerolebinding.yaml
+// test/extended/testdata/storage/inline/csi-sharedsecret.yaml
+// test/extended/testdata/storage/inline/secret.yaml
 // test/extended/testdata/templates/crunchydata-pod.json
 // test/extended/testdata/templates/guestbook.json
 // test/extended/testdata/templates/guestbook_list.json
@@ -47457,6 +47461,127 @@ func testExtendedTestdataStableBusyboxYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataStorageInlineCsiSharedresourceroleYaml = []byte(`apiVersion: authorization.openshift.io/v1
+kind: Role
+metadata:
+  name: shared-resource-my-share
+rules:
+- apiGroups:
+    - sharedresource.openshift.io
+  resources:
+    - sharedsecrets
+  resourceNames:
+    - my-share
+  verbs:
+    - use
+`)
+
+func testExtendedTestdataStorageInlineCsiSharedresourceroleYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataStorageInlineCsiSharedresourceroleYaml, nil
+}
+
+func testExtendedTestdataStorageInlineCsiSharedresourceroleYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataStorageInlineCsiSharedresourceroleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/storage/inline/csi-sharedresourcerole.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYaml = []byte(`kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: "inline-volume-csi-roles-template"
+labels:
+  createdBy: "inline-volume-csi-roles-template"
+parameters:
+  - description: "The namespace to create roles in."
+    name: NAMESPACE
+    required: true
+objects:
+  - apiVersion: authorization.openshift.io/v1
+    kind: RoleBinding
+    metadata:
+      name: shared-resource-my-share
+      namespace: ${NAMESPACE}
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: shared-resource-my-share
+      namespace: ${NAMESPACE}
+    subjects:
+    - kind: ServiceAccount
+      name: default
+      namespace: ${NAMESPACE}
+`)
+
+func testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYaml, nil
+}
+
+func testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/storage/inline/csi-sharedresourcerolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataStorageInlineCsiSharedsecretYaml = []byte(`apiVersion: sharedresource.openshift.io/v1alpha1
+kind: SharedSecret
+metadata:
+  name: my-share
+spec:
+  secretRef:
+    name: my-secret
+    namespace: default
+`)
+
+func testExtendedTestdataStorageInlineCsiSharedsecretYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataStorageInlineCsiSharedsecretYaml, nil
+}
+
+func testExtendedTestdataStorageInlineCsiSharedsecretYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataStorageInlineCsiSharedsecretYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/storage/inline/csi-sharedsecret.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataStorageInlineSecretYaml = []byte(`apiVersion: v1
+data:
+  key: bXktc2VjcmV0LXZhbHVl # my-secret-value
+kind: Secret
+metadata:
+  name: my-secret
+type: Opaque
+`)
+
+func testExtendedTestdataStorageInlineSecretYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataStorageInlineSecretYaml, nil
+}
+
+func testExtendedTestdataStorageInlineSecretYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataStorageInlineSecretYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/storage/inline/secret.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataTemplatesCrunchydataPodJson = []byte(`{
   "kind": "Template",
   "apiVersion": "template.openshift.io/v1",
@@ -50200,6 +50325,10 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/service-serving-cert/nginx-serving-cert.conf":                                    testExtendedTestdataServiceServingCertNginxServingCertConf,
 	"test/extended/testdata/signer-buildconfig.yaml":                                                         testExtendedTestdataSignerBuildconfigYaml,
 	"test/extended/testdata/stable-busybox.yaml":                                                             testExtendedTestdataStableBusyboxYaml,
+	"test/extended/testdata/storage/inline/csi-sharedresourcerole.yaml":                                      testExtendedTestdataStorageInlineCsiSharedresourceroleYaml,
+	"test/extended/testdata/storage/inline/csi-sharedresourcerolebinding.yaml":                               testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYaml,
+	"test/extended/testdata/storage/inline/csi-sharedsecret.yaml":                                            testExtendedTestdataStorageInlineCsiSharedsecretYaml,
+	"test/extended/testdata/storage/inline/secret.yaml":                                                      testExtendedTestdataStorageInlineSecretYaml,
 	"test/extended/testdata/templates/crunchydata-pod.json":                                                  testExtendedTestdataTemplatesCrunchydataPodJson,
 	"test/extended/testdata/templates/guestbook.json":                                                        testExtendedTestdataTemplatesGuestbookJson,
 	"test/extended/testdata/templates/guestbook_list.json":                                                   testExtendedTestdataTemplatesGuestbook_listJson,
@@ -50936,6 +51065,14 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"signer-buildconfig.yaml": {testExtendedTestdataSignerBuildconfigYaml, map[string]*bintree{}},
 				"stable-busybox.yaml":     {testExtendedTestdataStableBusyboxYaml, map[string]*bintree{}},
+				"storage": {nil, map[string]*bintree{
+					"inline": {nil, map[string]*bintree{
+						"csi-sharedresourcerole.yaml":        {testExtendedTestdataStorageInlineCsiSharedresourceroleYaml, map[string]*bintree{}},
+						"csi-sharedresourcerolebinding.yaml": {testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYaml, map[string]*bintree{}},
+						"csi-sharedsecret.yaml":              {testExtendedTestdataStorageInlineCsiSharedsecretYaml, map[string]*bintree{}},
+						"secret.yaml":                        {testExtendedTestdataStorageInlineSecretYaml, map[string]*bintree{}},
+					}},
+				}},
 				"templates": {nil, map[string]*bintree{
 					"crunchydata-pod.json":              {testExtendedTestdataTemplatesCrunchydataPodJson, map[string]*bintree{}},
 					"guestbook.json":                    {testExtendedTestdataTemplatesGuestbookJson, map[string]*bintree{}},

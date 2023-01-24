@@ -16395,6 +16395,22 @@ var Annotations = map[string]string{
 
 	"[sig-storage] vsphere statefulset [Feature:vsphere] vsphere statefulset testing": " [Disabled:Unsupported] [Suite:k8s]",
 
+	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] baseline namespace should allow pods with inline volumes when the driver uses the baseline label": " [Suite:openshift/conformance/serial]",
+
+	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] baseline namespace should allow pods with inline volumes when the driver uses the restricted label": " [Suite:openshift/conformance/serial]",
+
+	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] baseline namespace should deny pods with inline volumes when the driver uses the privileged label": " [Suite:openshift/conformance/serial]",
+
+	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] privileged namespace should allow pods with inline volumes when the driver uses the privileged label": " [Suite:openshift/conformance/serial]",
+
+	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] privileged namespace should allow pods with inline volumes when the driver uses the restricted label": " [Suite:openshift/conformance/serial]",
+
+	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] restricted namespace should allow pods with inline volumes when the driver uses the restricted label": " [Suite:openshift/conformance/serial]",
+
+	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] restricted namespace should deny pods with inline volumes when the driver uses the baseline label": " [Suite:openshift/conformance/serial]",
+
+	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] restricted namespace should deny pods with inline volumes when the driver uses the privileged label": " [Suite:openshift/conformance/serial]",
+
 	"[sig-storage][Late] Metrics should report short attach times": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-storage][Late] Metrics should report short mount times": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
