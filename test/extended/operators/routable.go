@@ -63,7 +63,7 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 			path   string
 			expect []int
 		}{
-			{ns: "openshift-console", name: "console", scheme: "https", path: "", expect: []int{200}},
+			{ns: "openshift-ingress-canary", name: "canary", scheme: "https", path: "", expect: []int{200}},
 			{ns: "openshift-monitoring", name: "prometheus-k8s", scheme: "https", path: "api/v1/targets", expect: []int{403, 401}},
 		}
 		for _, r := range routes {
