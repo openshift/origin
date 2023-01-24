@@ -250,9 +250,14 @@ func setAdminGate(ctx context.Context, gateName string, gateValue string, oc *ex
 	return nil
 }
 
+// adminAckDeadline is the upper bound of time for CVO to notice a new adminack
+// gate. CVO sync loop duration is nondeterministic 2-4m interval so we set this
+// slightly above the worst case.
+const adminAckDeadline = 4*time.Minute + 5*time.Second
+
 func waitForAdminAckRequired(ctx context.Context, config *restclient.Config, message string) error {
 	framework.Logf("Waiting for Upgradeable to be AdminAckRequired for %q ...", message)
-	if err := wait.PollImmediate(10*time.Second, 3*time.Minute, func() (bool, error) {
+	if err := wait.PollImmediate(10*time.Second, adminAckDeadline, func() (bool, error) {
 		if adminAckRequiredWithMessage(ctx, config, message) {
 			return true, nil
 		}
