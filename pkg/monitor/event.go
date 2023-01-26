@@ -93,14 +93,21 @@ func recordAddOrUpdateEvent(
 			obj.Reason, obj.InvolvedObject.Name, obj.LastTimestamp.Format(time.RFC3339))
 
 	}
-	t := obj.LastTimestamp.Time
-	if t.IsZero() {
-		t = obj.EventTime.Time
+
+	from := obj.FirstTimestamp.Time
+	if from.IsZero() {
+		from = obj.EventTime.Time
 	}
-	if t.IsZero() {
-		t = obj.CreationTimestamp.Time
+	if from.IsZero() {
+		from = obj.CreationTimestamp.Time
 	}
-	if t.Before(significantlyBeforeNow) {
+
+	to := obj.LastTimestamp.Time
+	if to.IsZero() {
+		to = from
+	}
+
+	if to.Before(significantlyBeforeNow) {
 		if osEvent {
 			fmt.Printf("OS update event filtered for being too old: %s - %s - %s (now: %s)\n",
 				obj.Reason, obj.InvolvedObject.Name, obj.LastTimestamp.Format(time.RFC3339),
@@ -158,7 +165,10 @@ func recordAddOrUpdateEvent(
 	if obj.Type == corev1.EventTypeWarning {
 		condition.Level = monitorapi.Warning
 	}
-	m.RecordAt(t, condition)
+
+	// Re-using the interval code, we already know our start/end time here.
+	inter := m.StartInterval(from, condition)
+	m.EndInterval(inter, to)
 
 }
 
