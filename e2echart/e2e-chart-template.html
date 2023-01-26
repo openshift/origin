@@ -125,6 +125,13 @@
         return false
     }
 
+    function isOpenShiftAPICheckFailed(eventInterval) {
+        if (eventInterval.locator.startsWith("deployment/authentication-operator") && (eventInterval.message.includes("reason/OpenShiftAPICheckFailed") || eventInterval.message.startsWith("oauth.openshift.io.v1 failed with an attempt failed with statusCode = 503"))) {
+            return true
+        }
+        return false
+    }
+
     function isKubeletReadinessCheck(eventInterval) {
         if (eventInterval.locator.includes("container/") && (eventInterval.message.includes("reason/ReadinessFailed") || eventInterval.message.includes("reason/ReadinessErrored"))) {
             return true
@@ -168,6 +175,9 @@
             return true
         }
         if (eventInterval.locator.startsWith("ns/e2e-k8s-service-lb-available")) {
+            return true
+        }
+        if (eventInterval.locator.startsWith("ns/openshift-authentication-operator")) {
             return true
         }
         if (eventInterval.locator.includes(" route/")) {
