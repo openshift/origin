@@ -2542,7 +2542,7 @@ var (
 		"[sig-instrumentation][Late] OpenShift alerting rules should have description and summary annotations [Skipped:Disconnected] [Suite:openshift/conformance/parallel]":                                                                                       {},
 		"[sig-instrumentation][Late] OpenShift alerting rules should have a valid severity label [Skipped:Disconnected] [Suite:openshift/conformance/parallel]":                                                                                                    {},
 		"[sig-instrumentation][Late] OpenShift alerting rules should have a runbook_url annotation if the alert is critical [Skipped:Disconnected] [Suite:openshift/conformance/parallel]":                                                                         {},
-		"[sig-arch] Managed cluster should should expose cluster services outside the cluster [Skipped:Disconnected] [Suite:openshift/conformance/parallel]":                                                                                                       {},
+		"[sig-arch] Managed cluster should expose cluster services outside the cluster [Skipped:Disconnected] [Suite:openshift/conformance/parallel]":                                                                                                              {},
 		"[sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should be able to connect to a service that is idled because a GET on the route will unidle it [Skipped:Disconnected] [Suite:openshift/conformance/parallel/minimal]": {},
 		"Operator upgrade machine-config":                                           {},
 		"promote-release-openshift-machine-os-content-e2e-aws-4.10-ppc64le.Overall": {},
