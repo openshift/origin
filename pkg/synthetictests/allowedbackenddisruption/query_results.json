@@ -7,93 +7,81 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 598,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "cache-kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 235,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "cache-kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "azure",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 612,
-    "P95": "1.0",
-    "P99": "6.0"
-  },
-  {
-    "BackendName": "cache-kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "gcp",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 565,
-    "P95": "4.0",
-    "P99": "6.0"
-  },
-  {
-    "BackendName": "cache-kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.13",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 686,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "cache-kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.13",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 494,
+    "JobRuns": 670,
     "P95": "0.0",
     "P99": "2.0"
   },
   {
     "BackendName": "cache-kube-api-new-connections",
     "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 244,
+    "P95": "0.0",
+    "P99": "0.7399999999999971"
+  },
+  {
+    "BackendName": "cache-kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "azure",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 638,
+    "P95": "2.0",
+    "P99": "32.629999999999995"
+  },
+  {
+    "BackendName": "cache-kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "gcp",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 632,
+    "P95": "4.0",
+    "P99": "9.6899999999999942"
+  },
+  {
+    "BackendName": "cache-kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.13",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 756,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "cache-kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.13",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 454,
+    "P95": "0.0",
+    "P99": "2.939999999999992"
+  },
+  {
+    "BackendName": "cache-kube-api-new-connections",
+    "Release": "4.13",
     "FromRelease": "4.13",
     "Platform": "azure",
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 492,
-    "P95": "2.0",
-    "P99": "4.0899999999999954"
-  },
-  {
-    "BackendName": "cache-kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "external",
-    "JobRuns": 102,
-    "P95": "0.0",
-    "P99": "0.0"
+    "JobRuns": 419,
+    "P95": "3.0",
+    "P99": "35.1399999999999"
   },
   {
     "BackendName": "cache-kube-api-new-connections",
@@ -103,9 +91,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 642,
+    "JobRuns": 675,
     "P95": "0.0",
-    "P99": "1.0"
+    "P99": "1.2199999999999913"
   },
   {
     "BackendName": "cache-kube-api-new-connections",
@@ -115,7 +103,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 424,
+    "JobRuns": 448,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -127,9 +115,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 229,
+    "JobRuns": 215,
     "P95": "1.0",
-    "P99": "3.0"
+    "P99": "10.439999999999992"
   },
   {
     "BackendName": "cache-kube-api-new-connections",
@@ -139,7 +127,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 207,
+    "JobRuns": 188,
     "P95": "4.0",
     "P99": "5.0"
   },
@@ -151,7 +139,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 250,
+    "JobRuns": 247,
     "P95": "2.0",
     "P99": "3.0"
   },
@@ -163,7 +151,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 224,
+    "JobRuns": 208,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -175,21 +163,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 194,
+    "JobRuns": 212,
     "P95": "0.0",
     "P99": "0.0"
-  },
-  {
-    "BackendName": "cache-kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 120,
-    "P95": "125.29999999999997",
-    "P99": "1134.4799999999987"
   },
   {
     "BackendName": "cache-kube-api-new-connections",
@@ -199,9 +175,21 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 495,
+    "JobRuns": 526,
     "P95": "0.0",
     "P99": "2.0"
+  },
+  {
+    "BackendName": "cache-kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 109,
+    "P95": "0.0",
+    "P99": "2.919999999999999"
   },
   {
     "BackendName": "cache-kube-api-new-connections",
@@ -211,9 +199,9 @@
     "Architecture": "arm64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 301,
+    "JobRuns": 304,
     "P95": "0.0",
-    "P99": "1.0"
+    "P99": "1.2199999999999913"
   },
   {
     "BackendName": "cache-kube-api-new-connections",
@@ -223,7 +211,7 @@
     "Architecture": "arm64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 156,
+    "JobRuns": 162,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -235,7 +223,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 598,
+    "JobRuns": 670,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -247,7 +235,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 235,
+    "JobRuns": 244,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -259,7 +247,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 612,
+    "JobRuns": 638,
     "P95": "1.0",
     "P99": "2.0"
   },
@@ -271,7 +259,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 565,
+    "JobRuns": 632,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -283,7 +271,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 686,
+    "JobRuns": 756,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -295,7 +283,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 494,
+    "JobRuns": 454,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -307,7 +295,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 492,
+    "JobRuns": 419,
     "P95": "1.0",
     "P99": "2.0"
   },
@@ -318,20 +306,8 @@
     "Platform": "aws",
     "Architecture": "amd64",
     "Network": "ovn",
-    "Topology": "external",
-    "JobRuns": 102,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "cache-kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 642,
+    "JobRuns": 675,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -343,7 +319,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 424,
+    "JobRuns": 448,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -355,8 +331,8 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 229,
-    "P95": "0.59999999999998987",
+    "JobRuns": 215,
+    "P95": "0.2999999999999905",
     "P99": "1.0"
   },
   {
@@ -367,7 +343,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 207,
+    "JobRuns": 188,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -379,7 +355,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 250,
+    "JobRuns": 247,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -391,7 +367,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 224,
+    "JobRuns": 208,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -403,21 +379,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 194,
+    "JobRuns": 211,
     "P95": "0.0",
-    "P99": "0.069999999999998286"
-  },
-  {
-    "BackendName": "cache-kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 120,
-    "P95": "112.24999999999997",
-    "P99": "1130.4799999999987"
+    "P99": "0.0"
   },
   {
     "BackendName": "cache-kube-api-reused-connections",
@@ -427,9 +391,21 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 495,
+    "JobRuns": 526,
     "P95": "0.0",
     "P99": "1.0"
+  },
+  {
+    "BackendName": "cache-kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 109,
+    "P95": "0.0",
+    "P99": "0.0"
   },
   {
     "BackendName": "cache-kube-api-reused-connections",
@@ -439,7 +415,7 @@
     "Architecture": "arm64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 301,
+    "JobRuns": 304,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -451,7 +427,7 @@
     "Architecture": "arm64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 156,
+    "JobRuns": 162,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -463,9 +439,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 598,
+    "JobRuns": 670,
     "P95": "1.0",
-    "P99": "5.0299999999999949"
+    "P99": "5.0"
   },
   {
     "BackendName": "cache-oauth-api-new-connections",
@@ -475,9 +451,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 235,
+    "JobRuns": 244,
     "P95": "1.0",
-    "P99": "1.0"
+    "P99": "2.0"
   },
   {
     "BackendName": "cache-oauth-api-new-connections",
@@ -487,9 +463,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 612,
-    "P95": "3.0",
-    "P99": "8.8899999999999952"
+    "JobRuns": 638,
+    "P95": "4.0",
+    "P99": "35.259999999999991"
   },
   {
     "BackendName": "cache-oauth-api-new-connections",
@@ -499,9 +475,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 565,
+    "JobRuns": 632,
     "P95": "6.0",
-    "P99": "13.079999999999984"
+    "P99": "17.069999999999983"
   },
   {
     "BackendName": "cache-oauth-api-new-connections",
@@ -511,7 +487,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 686,
+    "JobRuns": 756,
     "P95": "1.0",
     "P99": "3.0"
   },
@@ -523,9 +499,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 494,
+    "JobRuns": 454,
     "P95": "1.0",
-    "P99": "7.0699999999999958"
+    "P99": "7.4699999999999962"
   },
   {
     "BackendName": "cache-oauth-api-new-connections",
@@ -535,69 +511,57 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 492,
-    "P95": "2.0",
+    "JobRuns": 419,
+    "P95": "3.0",
+    "P99": "30.01999999999996"
+  },
+  {
+    "BackendName": "cache-oauth-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 675,
+    "P95": "0.0",
+    "P99": "5.2199999999999918"
+  },
+  {
+    "BackendName": "cache-oauth-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 448,
+    "P95": "0.0",
+    "P99": "2.0"
+  },
+  {
+    "BackendName": "cache-oauth-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 215,
+    "P95": "1.0",
     "P99": "11.0"
   },
   {
     "BackendName": "cache-oauth-api-new-connections",
     "Release": "4.13",
     "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "external",
-    "JobRuns": 102,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "cache-oauth-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 642,
-    "P95": "0.0",
-    "P99": "2.5799999999999916"
-  },
-  {
-    "BackendName": "cache-oauth-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 424,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "cache-oauth-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 229,
-    "P95": "1.0",
-    "P99": "7.59999999999999"
-  },
-  {
-    "BackendName": "cache-oauth-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
     "Platform": "gcp",
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 207,
-    "P95": "4.0",
-    "P99": "6.0"
+    "JobRuns": 188,
+    "P95": "4.6499999999999915",
+    "P99": "6.1299999999999981"
   },
   {
     "BackendName": "cache-oauth-api-new-connections",
@@ -607,8 +571,8 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 250,
-    "P95": "2.5499999999999892",
+    "JobRuns": 247,
+    "P95": "3.0",
     "P99": "6.0"
   },
   {
@@ -619,7 +583,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 224,
+    "JobRuns": 208,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -631,21 +595,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 194,
+    "JobRuns": 210,
     "P95": "0.0",
     "P99": "0.0"
-  },
-  {
-    "BackendName": "cache-oauth-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 120,
-    "P95": "124.59999999999994",
-    "P99": "1140.0899999999988"
   },
   {
     "BackendName": "cache-oauth-api-new-connections",
@@ -655,7 +607,19 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 495,
+    "JobRuns": 526,
+    "P95": "0.0",
+    "P99": "2.0"
+  },
+  {
+    "BackendName": "cache-oauth-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 109,
     "P95": "0.0",
     "P99": "2.0"
   },
@@ -667,9 +631,9 @@
     "Architecture": "arm64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 301,
+    "JobRuns": 304,
     "P95": "0.0",
-    "P99": "2.5799999999999916"
+    "P99": "5.2199999999999918"
   },
   {
     "BackendName": "cache-oauth-api-new-connections",
@@ -679,9 +643,9 @@
     "Architecture": "arm64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 156,
+    "JobRuns": 162,
     "P95": "0.0",
-    "P99": "1.0"
+    "P99": "2.0"
   },
   {
     "BackendName": "cache-oauth-api-reused-connections",
@@ -691,9 +655,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 598,
+    "JobRuns": 670,
     "P95": "0.0",
-    "P99": "0.029999999999994698"
+    "P99": "0.0"
   },
   {
     "BackendName": "cache-oauth-api-reused-connections",
@@ -703,9 +667,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 235,
+    "JobRuns": 244,
     "P95": "0.0",
-    "P99": "1.0"
+    "P99": "0.0"
   },
   {
     "BackendName": "cache-oauth-api-reused-connections",
@@ -715,9 +679,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 612,
+    "JobRuns": 638,
     "P95": "2.0",
-    "P99": "4.8899999999999944"
+    "P99": "4.6299999999999946"
   },
   {
     "BackendName": "cache-oauth-api-reused-connections",
@@ -727,9 +691,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 565,
+    "JobRuns": 632,
     "P95": "1.0",
-    "P99": "3.359999999999995"
+    "P99": "2.6899999999999942"
   },
   {
     "BackendName": "cache-oauth-api-reused-connections",
@@ -739,9 +703,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 686,
+    "JobRuns": 756,
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "1.0"
   },
   {
     "BackendName": "cache-oauth-api-reused-connections",
@@ -751,7 +715,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 494,
+    "JobRuns": 454,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -763,21 +727,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 492,
-    "P95": "1.0",
-    "P99": "2.0"
-  },
-  {
-    "BackendName": "cache-oauth-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "external",
-    "JobRuns": 102,
-    "P95": "0.0",
-    "P99": "0.0"
+    "JobRuns": 419,
+    "P95": "2.0",
+    "P99": "3.0"
   },
   {
     "BackendName": "cache-oauth-api-reused-connections",
@@ -787,7 +739,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 642,
+    "JobRuns": 675,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -799,7 +751,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 424,
+    "JobRuns": 448,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -811,8 +763,8 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 229,
-    "P95": "0.0",
+    "JobRuns": 215,
+    "P95": "1.0",
     "P99": "1.0"
   },
   {
@@ -823,7 +775,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 207,
+    "JobRuns": 188,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -835,7 +787,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 250,
+    "JobRuns": 247,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -847,7 +799,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 224,
+    "JobRuns": 208,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -859,21 +811,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 196,
+    "JobRuns": 210,
     "P95": "0.0",
-    "P99": "0.049999999999998268"
-  },
-  {
-    "BackendName": "cache-oauth-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 120,
-    "P95": "122.54999999999994",
-    "P99": "1139.0899999999988"
+    "P99": "0.0"
   },
   {
     "BackendName": "cache-oauth-api-reused-connections",
@@ -883,9 +823,21 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 495,
+    "JobRuns": 526,
     "P95": "0.0",
     "P99": "1.0"
+  },
+  {
+    "BackendName": "cache-oauth-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 109,
+    "P95": "0.0",
+    "P99": "0.919999999999999"
   },
   {
     "BackendName": "cache-oauth-api-reused-connections",
@@ -895,7 +847,7 @@
     "Architecture": "arm64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 301,
+    "JobRuns": 304,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -907,7 +859,7 @@
     "Architecture": "arm64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 156,
+    "JobRuns": 162,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -919,9 +871,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 598,
-    "P95": "1.0",
-    "P99": "3.0599999999999894"
+    "JobRuns": 670,
+    "P95": "0.0",
+    "P99": "3.0"
   },
   {
     "BackendName": "cache-openshift-api-new-connections",
@@ -931,7 +883,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 235,
+    "JobRuns": 244,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -943,9 +895,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 612,
-    "P95": "1.4499999999999729",
-    "P99": "7.0"
+    "JobRuns": 638,
+    "P95": "3.0",
+    "P99": "34.889999999999986"
   },
   {
     "BackendName": "cache-openshift-api-new-connections",
@@ -955,9 +907,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 565,
-    "P95": "5.0",
-    "P99": "12.0"
+    "JobRuns": 632,
+    "P95": "6.0",
+    "P99": "13.689999999999994"
   },
   {
     "BackendName": "cache-openshift-api-new-connections",
@@ -967,9 +919,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 686,
+    "JobRuns": 756,
     "P95": "0.0",
-    "P99": "2.0"
+    "P99": "1.0"
   },
   {
     "BackendName": "cache-openshift-api-new-connections",
@@ -979,9 +931,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 494,
+    "JobRuns": 454,
     "P95": "0.0",
-    "P99": "2.0"
+    "P99": "2.4699999999999962"
   },
   {
     "BackendName": "cache-openshift-api-new-connections",
@@ -991,21 +943,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 492,
-    "P95": "1.0",
-    "P99": "5.0"
-  },
-  {
-    "BackendName": "cache-openshift-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "external",
-    "JobRuns": 102,
-    "P95": "0.0",
-    "P99": "0.9899999999999991"
+    "JobRuns": 419,
+    "P95": "2.0",
+    "P99": "30.119999999999941"
   },
   {
     "BackendName": "cache-openshift-api-new-connections",
@@ -1015,9 +955,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 642,
+    "JobRuns": 675,
     "P95": "0.0",
-    "P99": "1.5799999999999916"
+    "P99": "3.4399999999999826"
   },
   {
     "BackendName": "cache-openshift-api-new-connections",
@@ -1027,7 +967,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 424,
+    "JobRuns": 448,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -1039,9 +979,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 229,
+    "JobRuns": 215,
     "P95": "1.0",
-    "P99": "2.0"
+    "P99": "10.579999999999995"
   },
   {
     "BackendName": "cache-openshift-api-new-connections",
@@ -1051,7 +991,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 207,
+    "JobRuns": 188,
     "P95": "4.0",
     "P99": "7.0"
   },
@@ -1063,7 +1003,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 250,
+    "JobRuns": 247,
     "P95": "2.0",
     "P99": "4.0"
   },
@@ -1075,7 +1015,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 224,
+    "JobRuns": 208,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -1087,21 +1027,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 192,
+    "JobRuns": 210,
     "P95": "0.0",
     "P99": "0.0"
-  },
-  {
-    "BackendName": "cache-openshift-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 120,
-    "P95": "128.2",
-    "P99": "1136.9099999999987"
   },
   {
     "BackendName": "cache-openshift-api-new-connections",
@@ -1111,9 +1039,21 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 495,
+    "JobRuns": 526,
     "P95": "0.0",
-    "P99": "2.0599999999999956"
+    "P99": "2.7499999999999956"
+  },
+  {
+    "BackendName": "cache-openshift-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 109,
+    "P95": "0.0",
+    "P99": "2.919999999999999"
   },
   {
     "BackendName": "cache-openshift-api-new-connections",
@@ -1123,9 +1063,9 @@
     "Architecture": "arm64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 301,
+    "JobRuns": 304,
     "P95": "0.0",
-    "P99": "1.5799999999999916"
+    "P99": "3.4399999999999826"
   },
   {
     "BackendName": "cache-openshift-api-new-connections",
@@ -1135,7 +1075,7 @@
     "Architecture": "arm64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 156,
+    "JobRuns": 162,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -1147,7 +1087,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 598,
+    "JobRuns": 670,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -1159,7 +1099,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 235,
+    "JobRuns": 244,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -1171,9 +1111,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 612,
+    "JobRuns": 638,
     "P95": "1.0",
-    "P99": "2.8899999999999944"
+    "P99": "3.0"
   },
   {
     "BackendName": "cache-openshift-api-reused-connections",
@@ -1183,7 +1123,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 565,
+    "JobRuns": 632,
     "P95": "1.0",
     "P99": "1.0"
   },
@@ -1195,7 +1135,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 686,
+    "JobRuns": 756,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -1207,7 +1147,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 494,
+    "JobRuns": 454,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -1219,8 +1159,8 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 492,
-    "P95": "1.0",
+    "JobRuns": 419,
+    "P95": "1.0999999999999814",
     "P99": "2.0"
   },
   {
@@ -1230,20 +1170,8 @@
     "Platform": "aws",
     "Architecture": "amd64",
     "Network": "ovn",
-    "Topology": "external",
-    "JobRuns": 102,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "cache-openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 642,
+    "JobRuns": 675,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -1255,7 +1183,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 424,
+    "JobRuns": 448,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -1267,8 +1195,8 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 229,
-    "P95": "0.0",
+    "JobRuns": 215,
+    "P95": "1.0",
     "P99": "2.0"
   },
   {
@@ -1279,7 +1207,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 207,
+    "JobRuns": 188,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -1291,9 +1219,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 250,
+    "JobRuns": 247,
     "P95": "0.0",
-    "P99": "1.0"
+    "P99": "0.53999999999999782"
   },
   {
     "BackendName": "cache-openshift-api-reused-connections",
@@ -1303,7 +1231,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 224,
+    "JobRuns": 208,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -1315,21 +1243,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 195,
+    "JobRuns": 211,
     "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "cache-openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 120,
-    "P95": "113.29999999999997",
-    "P99": "1133.7199999999987"
+    "P99": "0.0"
   },
   {
     "BackendName": "cache-openshift-api-reused-connections",
@@ -1339,9 +1255,21 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 495,
+    "JobRuns": 526,
     "P95": "0.0",
     "P99": "1.0"
+  },
+  {
+    "BackendName": "cache-openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 109,
+    "P95": "0.0",
+    "P99": "0.919999999999999"
   },
   {
     "BackendName": "cache-openshift-api-reused-connections",
@@ -1351,7 +1279,7 @@
     "Architecture": "arm64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 301,
+    "JobRuns": 304,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -1363,7 +1291,7 @@
     "Architecture": "arm64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 156,
+    "JobRuns": 162,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -1375,9 +1303,21 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 276,
-    "P95": "8.2499999999999876",
-    "P99": "11.249999999999998"
+    "JobRuns": 472,
+    "P95": "9.0",
+    "P99": "11.0"
+  },
+  {
+    "BackendName": "image-registry-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 171,
+    "P95": "8.0",
+    "P99": "10.029999999999994"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -1387,9 +1327,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 261,
-    "P95": "0.0",
-    "P99": "6.9999999999999885"
+    "JobRuns": 428,
+    "P95": "1.0",
+    "P99": "36.919999999999987"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -1399,9 +1339,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 217,
+    "JobRuns": 465,
     "P95": "54.0",
-    "P99": "58.839999999999996"
+    "P99": "77.439999999999984"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -1411,9 +1351,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 309,
-    "P95": "8.5499999999999865",
-    "P99": "9.9099999999999966"
+    "JobRuns": 538,
+    "P95": "8.0",
+    "P99": "11.0"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -1423,9 +1363,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 183,
-    "P95": "2.8999999999999919",
-    "P99": "6.8999999999999915"
+    "JobRuns": 298,
+    "P95": "3.0",
+    "P99": "7.0299999999999976"
   },
   {
     "BackendName": "image-registry-new-connections",
@@ -1435,9 +1375,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 184,
-    "P95": "18.0",
-    "P99": "21.169999999999998"
+    "JobRuns": 273,
+    "P95": "19.399999999999988",
+    "P99": "36.639999999999972"
   },
   {
     "BackendName": "image-registry-reused-connections",
@@ -1447,7 +1387,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 276,
+    "JobRuns": 472,
     "P95": "3.0",
     "P99": "6.0"
   },
@@ -1455,11 +1395,23 @@
     "BackendName": "image-registry-reused-connections",
     "Release": "4.13",
     "FromRelease": "4.12",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 171,
+    "P95": "2.0",
+    "P99": "7.0"
+  },
+  {
+    "BackendName": "image-registry-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
     "Platform": "azure",
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 261,
+    "JobRuns": 428,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -1471,9 +1423,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 217,
+    "JobRuns": 465,
     "P95": "8.0",
-    "P99": "11.839999999999998"
+    "P99": "12.0"
   },
   {
     "BackendName": "image-registry-reused-connections",
@@ -1483,9 +1435,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 309,
-    "P95": "4.0",
-    "P99": "5.0"
+    "JobRuns": 538,
+    "P95": "3.9499999999999753",
+    "P99": "6.0"
   },
   {
     "BackendName": "image-registry-reused-connections",
@@ -1495,9 +1447,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 183,
+    "JobRuns": 298,
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "1.0"
   },
   {
     "BackendName": "image-registry-reused-connections",
@@ -1507,8 +1459,8 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 184,
-    "P95": "8.0",
+    "JobRuns": 273,
+    "P95": "7.3999999999999879",
     "P99": "10.0"
   },
   {
@@ -1519,9 +1471,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 598,
+    "JobRuns": 670,
     "P95": "10.0",
-    "P99": "12.029999999999994"
+    "P99": "13.0"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -1531,9 +1483,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 235,
+    "JobRuns": 244,
     "P95": "8.0",
-    "P99": "11.0"
+    "P99": "11.739999999999997"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -1543,9 +1495,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 612,
-    "P95": "1.0",
-    "P99": "6.0"
+    "JobRuns": 638,
+    "P95": "3.0",
+    "P99": "32.259999999999991"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -1555,9 +1507,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 565,
-    "P95": "56.0",
-    "P99": "74.0"
+    "JobRuns": 632,
+    "P95": "57.0",
+    "P99": "78.38"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -1567,9 +1519,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 686,
+    "JobRuns": 756,
     "P95": "8.0",
-    "P99": "10.0"
+    "P99": "12.0"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -1579,7 +1531,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 494,
+    "JobRuns": 454,
     "P95": "3.0",
     "P99": "7.0"
   },
@@ -1591,21 +1543,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 492,
-    "P95": "17.0",
-    "P99": "22.089999999999996"
-  },
-  {
-    "BackendName": "ingress-to-console-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "external",
-    "JobRuns": 102,
-    "P95": "12.949999999999996",
-    "P99": "21.939999999999994"
+    "JobRuns": 419,
+    "P95": "19.0",
+    "P99": "106.11999999999995"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -1615,7 +1555,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 642,
+    "JobRuns": 674,
     "P95": "1.0",
     "P99": "3.0"
   },
@@ -1627,7 +1567,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 423,
+    "JobRuns": 448,
     "P95": "1.0",
     "P99": "2.0"
   },
@@ -1639,9 +1579,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 229,
-    "P95": "3.59999999999999",
-    "P99": "11.0"
+    "JobRuns": 215,
+    "P95": "8.29999999999999",
+    "P99": "20.59999999999998"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -1651,8 +1591,8 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 207,
-    "P95": "4.3999999999999817",
+    "JobRuns": 188,
+    "P95": "4.2999999999999829",
     "P99": "7.0"
   },
   {
@@ -1663,9 +1603,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 250,
+    "JobRuns": 247,
     "P95": "1.0",
-    "P99": "5.019999999999996"
+    "P99": "4.0"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -1675,9 +1615,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 224,
+    "JobRuns": 208,
     "P95": "0.0",
-    "P99": "0.0"
+    "P99": "1.9299999999999982"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -1687,21 +1627,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 184,
+    "JobRuns": 202,
     "P95": "0.0",
     "P99": "1.0"
-  },
-  {
-    "BackendName": "ingress-to-console-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 120,
-    "P95": "57.349999999999966",
-    "P99": "1123.1299999999987"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -1711,9 +1639,21 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 495,
-    "P95": "5.0",
-    "P99": "12.359999999999975"
+    "JobRuns": 526,
+    "P95": "4.0",
+    "P99": "8.9999999999999822"
+  },
+  {
+    "BackendName": "ingress-to-console-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 109,
+    "P95": "0.0",
+    "P99": "2.0"
   },
   {
     "BackendName": "ingress-to-console-new-connections",
@@ -1723,7 +1663,7 @@
     "Architecture": "arm64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 301,
+    "JobRuns": 304,
     "P95": "1.0",
     "P99": "3.0"
   },
@@ -1735,7 +1675,7 @@
     "Architecture": "arm64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 156,
+    "JobRuns": 162,
     "P95": "1.0",
     "P99": "2.0"
   },
@@ -1747,7 +1687,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 598,
+    "JobRuns": 670,
     "P95": "7.0",
     "P99": "9.0"
   },
@@ -1759,9 +1699,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 235,
+    "JobRuns": 244,
     "P95": "4.0",
-    "P99": "6.0"
+    "P99": "7.0"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -1771,7 +1711,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 612,
+    "JobRuns": 638,
     "P95": "1.0",
     "P99": "3.0"
   },
@@ -1783,9 +1723,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 565,
-    "P95": "19.0",
-    "P99": "25.359999999999996"
+    "JobRuns": 632,
+    "P95": "20.0",
+    "P99": "25.689999999999994"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -1795,7 +1735,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 686,
+    "JobRuns": 756,
     "P95": "5.0",
     "P99": "8.0"
   },
@@ -1807,9 +1747,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 494,
-    "P95": "1.3499999999999781",
-    "P99": "4.0699999999999958"
+    "JobRuns": 454,
+    "P95": "2.0",
+    "P99": "5.0"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -1819,21 +1759,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 492,
-    "P95": "11.0",
-    "P99": "15.089999999999996"
-  },
-  {
-    "BackendName": "ingress-to-console-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "external",
-    "JobRuns": 102,
+    "JobRuns": 419,
     "P95": "12.0",
-    "P99": "21.939999999999994"
+    "P99": "18.0"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -1843,7 +1771,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 642,
+    "JobRuns": 674,
     "P95": "0.0",
     "P99": "3.0"
   },
@@ -1855,7 +1783,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 423,
+    "JobRuns": 448,
     "P95": "0.0",
     "P99": "2.0"
   },
@@ -1867,9 +1795,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 229,
+    "JobRuns": 215,
     "P95": "0.0",
-    "P99": "0.719999999999998"
+    "P99": "0.0"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -1879,8 +1807,8 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 207,
-    "P95": "0.69999999999999085",
+    "JobRuns": 188,
+    "P95": "0.0",
     "P99": "1.0"
   },
   {
@@ -1891,7 +1819,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 250,
+    "JobRuns": 247,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -1903,7 +1831,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 224,
+    "JobRuns": 208,
     "P95": "1.0",
     "P99": "1.0"
   },
@@ -1915,21 +1843,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 182,
+    "JobRuns": 200,
     "P95": "0.0",
     "P99": "1.0"
-  },
-  {
-    "BackendName": "ingress-to-console-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 120,
-    "P95": "56.299999999999969",
-    "P99": "1121.9399999999987"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -1939,9 +1855,21 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 495,
-    "P95": "3.0",
-    "P99": "9.11999999999999"
+    "JobRuns": 526,
+    "P95": "2.0",
+    "P99": "4.0"
+  },
+  {
+    "BackendName": "ingress-to-console-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 109,
+    "P95": "0.0",
+    "P99": "0.919999999999999"
   },
   {
     "BackendName": "ingress-to-console-reused-connections",
@@ -1951,7 +1879,7 @@
     "Architecture": "arm64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 301,
+    "JobRuns": 304,
     "P95": "0.0",
     "P99": "3.0"
   },
@@ -1963,7 +1891,7 @@
     "Architecture": "arm64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 156,
+    "JobRuns": 162,
     "P95": "0.0",
     "P99": "2.0"
   },
@@ -1975,7 +1903,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 598,
+    "JobRuns": 670,
     "P95": "10.0",
     "P99": "15.0"
   },
@@ -1987,7 +1915,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 235,
+    "JobRuns": 244,
     "P95": "7.0",
     "P99": "10.0"
   },
@@ -1999,9 +1927,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 612,
-    "P95": "1.0",
-    "P99": "5.8899999999999944"
+    "JobRuns": 638,
+    "P95": "3.0",
+    "P99": "41.819999999999922"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -2011,9 +1939,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 565,
-    "P95": "56.799999999999976",
-    "P99": "65.0"
+    "JobRuns": 632,
+    "P95": "56.449999999999974",
+    "P99": "76.38"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -2023,9 +1951,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 686,
+    "JobRuns": 756,
     "P95": "8.0",
-    "P99": "10.0"
+    "P99": "12.0"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -2035,9 +1963,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 494,
+    "JobRuns": 454,
     "P95": "3.0",
-    "P99": "8.1399999999999917"
+    "P99": "7.4699999999999962"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -2047,9 +1975,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 492,
-    "P95": "18.0",
-    "P99": "26.269999999999985"
+    "JobRuns": 419,
+    "P95": "18.09999999999998",
+    "P99": "117.46"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -2059,9 +1987,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 642,
+    "JobRuns": 675,
     "P95": "1.0",
-    "P99": "3.5799999999999916"
+    "P99": "4.0"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -2071,9 +1999,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 424,
+    "JobRuns": 448,
     "P95": "1.0",
-    "P99": "4.2099999999999946"
+    "P99": "7.7299999999999836"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -2083,9 +2011,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 229,
-    "P95": "2.0",
-    "P99": "9.7199999999999989"
+    "JobRuns": 215,
+    "P95": "8.0",
+    "P99": "14.719999999999995"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -2095,9 +2023,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 207,
+    "JobRuns": 188,
     "P95": "2.0",
-    "P99": "5.9399999999999977"
+    "P99": "5.1299999999999981"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -2107,9 +2035,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 250,
+    "JobRuns": 247,
     "P95": "1.0",
-    "P99": "3.509999999999998"
+    "P99": "3.5399999999999978"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -2119,19 +2047,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 224,
-    "P95": "0.0",
-    "P99": "0.769999999999998"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 194,
+    "JobRuns": 208,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -2139,13 +2055,13 @@
     "BackendName": "ingress-to-oauth-server-new-connections",
     "Release": "4.13",
     "FromRelease": "",
-    "Platform": "ovirt",
+    "Platform": "metal",
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 120,
-    "P95": "54.49999999999995",
-    "P99": "1125.7499999999986"
+    "JobRuns": 209,
+    "P95": "0.0",
+    "P99": "0.0"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -2155,9 +2071,21 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 495,
-    "P95": "5.0",
+    "JobRuns": 526,
+    "P95": "3.0",
     "P99": "6.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 109,
+    "P95": "1.0",
+    "P99": "3.8399999999999981"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -2167,9 +2095,9 @@
     "Architecture": "arm64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 301,
+    "JobRuns": 304,
     "P95": "1.0",
-    "P99": "3.5799999999999916"
+    "P99": "4.0"
   },
   {
     "BackendName": "ingress-to-oauth-server-new-connections",
@@ -2179,9 +2107,9 @@
     "Architecture": "arm64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 156,
+    "JobRuns": 162,
     "P95": "1.0",
-    "P99": "4.2099999999999946"
+    "P99": "7.7299999999999836"
   },
   {
     "BackendName": "ingress-to-oauth-server-reused-connections",
@@ -2191,7 +2119,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 598,
+    "JobRuns": 670,
     "P95": "4.0",
     "P99": "7.0"
   },
@@ -2203,9 +2131,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 235,
-    "P95": "1.0",
-    "P99": "4.0"
+    "JobRuns": 244,
+    "P95": "1.6999999999999855",
+    "P99": "4.7399999999999967"
   },
   {
     "BackendName": "ingress-to-oauth-server-reused-connections",
@@ -2215,9 +2143,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 612,
+    "JobRuns": 638,
     "P95": "0.0",
-    "P99": "0.88999999999999457"
+    "P99": "1.0"
   },
   {
     "BackendName": "ingress-to-oauth-server-reused-connections",
@@ -2227,7 +2155,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 565,
+    "JobRuns": 632,
     "P95": "7.0",
     "P99": "14.0"
   },
@@ -2239,7 +2167,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 686,
+    "JobRuns": 756,
     "P95": "3.0",
     "P99": "5.0"
   },
@@ -2251,9 +2179,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 494,
+    "JobRuns": 454,
     "P95": "0.0",
-    "P99": "3.0"
+    "P99": "2.4699999999999962"
   },
   {
     "BackendName": "ingress-to-oauth-server-reused-connections",
@@ -2263,635 +2191,611 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 492,
-    "P95": "6.0",
-    "P99": "9.0899999999999963"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 642,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 424,
-    "P95": "0.0",
-    "P99": "0.20999999999999486"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 229,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 207,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 250,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 224,
-    "P95": "1.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 196,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 120,
-    "P95": "49.649999999999935",
-    "P99": "1124.7999999999986"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "vsphere",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 495,
-    "P95": "0.0",
-    "P99": "0.059999999999995612"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "arm64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 301,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "ingress-to-oauth-server-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "arm64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 156,
-    "P95": "0.0",
-    "P99": "0.20999999999999486"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 598,
-    "P95": "1.0",
-    "P99": "2.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 235,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "azure",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 612,
-    "P95": "3.0",
-    "P99": "9.8899999999999952"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "gcp",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 565,
-    "P95": "3.0",
-    "P99": "6.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.13",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 686,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.13",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 494,
-    "P95": "0.0",
-    "P99": "2.0699999999999958"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.13",
-    "Platform": "azure",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 492,
-    "P95": "2.0",
-    "P99": "4.1799999999999908"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "external",
-    "JobRuns": 102,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 642,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 424,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 229,
-    "P95": "1.0",
-    "P99": "4.8799999999999919"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 207,
-    "P95": "4.0",
-    "P99": "6.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 250,
-    "P95": "2.5499999999999892",
-    "P99": "7.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 224,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 193,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 120,
-    "P95": "127.44999999999995",
-    "P99": "1138.0499999999988"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "vsphere",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 495,
-    "P95": "0.0",
-    "P99": "2.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "arm64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 301,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "kube-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "arm64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 156,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 598,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 235,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "azure",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 612,
-    "P95": "2.0",
-    "P99": "3.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "gcp",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 565,
-    "P95": "1.0",
-    "P99": "1.359999999999995"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "4.13",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 686,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "4.13",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 494,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "4.13",
-    "Platform": "azure",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 492,
-    "P95": "1.0",
-    "P99": "2.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "external",
-    "JobRuns": 102,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 642,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 424,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 229,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 207,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 250,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 224,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 195,
-    "P95": "0.0",
-    "P99": "0.059999999999998277"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 120,
-    "P95": "121.59999999999994",
-    "P99": "1137.2399999999986"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "vsphere",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 495,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "arm64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 301,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "kube-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "arm64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 156,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 598,
-    "P95": "1.0",
-    "P99": "5.0299999999999949"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 235,
-    "P95": "1.0",
-    "P99": "1.8499999999999972"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "azure",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 612,
-    "P95": "4.0",
+    "JobRuns": 419,
+    "P95": "7.0",
     "P99": "9.0"
   },
   {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 675,
+    "P95": "0.0",
+    "P99": "0.21999999999999131"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 448,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 215,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 188,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 247,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 208,
+    "P95": "1.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 212,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 526,
+    "P95": "0.0",
+    "P99": "0.74999999999999534"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 109,
+    "P95": "0.0",
+    "P99": "0.919999999999999"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "arm64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 304,
+    "P95": "0.0",
+    "P99": "0.21999999999999131"
+  },
+  {
+    "BackendName": "ingress-to-oauth-server-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "arm64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 162,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 670,
+    "P95": "1.0",
+    "P99": "2.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 244,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "azure",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 638,
+    "P95": "3.0",
+    "P99": "31.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "gcp",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 632,
+    "P95": "4.0",
+    "P99": "10.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.13",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 756,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.13",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 454,
+    "P95": "0.0",
+    "P99": "3.4099999999999877"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.13",
+    "Platform": "azure",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 419,
+    "P95": "3.0",
+    "P99": "33.859999999999914"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 675,
+    "P95": "0.0",
+    "P99": "2.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 448,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 215,
+    "P95": "1.0",
+    "P99": "10.439999999999992"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 188,
+    "P95": "5.0",
+    "P99": "6.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 247,
+    "P95": "3.0",
+    "P99": "7.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 208,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 209,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 526,
+    "P95": "0.0",
+    "P99": "2.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 109,
+    "P95": "0.5999999999999952",
+    "P99": "1.919999999999999"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "arm64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 304,
+    "P95": "0.0",
+    "P99": "2.0"
+  },
+  {
+    "BackendName": "kube-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "arm64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 162,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 670,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 244,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "azure",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 638,
+    "P95": "2.0",
+    "P99": "3.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "gcp",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 632,
+    "P95": "1.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "4.13",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 756,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "4.13",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 454,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "4.13",
+    "Platform": "azure",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 419,
+    "P95": "2.0",
+    "P99": "3.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 675,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 448,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 215,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 188,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 247,
+    "P95": "0.0",
+    "P99": "0.53999999999999782"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 208,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 210,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 526,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 109,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "arm64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 304,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "kube-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "arm64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 162,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 670,
+    "P95": "1.0",
+    "P99": "5.3099999999999943"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 244,
+    "P95": "1.0",
+    "P99": "2.0"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "azure",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 638,
+    "P95": "5.0",
+    "P99": "31.14999999999997"
+  },
+  {
     "BackendName": "oauth-api-new-connections",
     "Release": "4.13",
     "FromRelease": "4.12",
@@ -2899,9 +2803,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 565,
-    "P95": "6.0",
-    "P99": "10.71999999999999"
+    "JobRuns": 632,
+    "P95": "6.4499999999999718",
+    "P99": "15.379999999999988"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2911,7 +2815,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 686,
+    "JobRuns": 756,
     "P95": "1.0",
     "P99": "2.0"
   },
@@ -2923,7 +2827,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 494,
+    "JobRuns": 454,
     "P95": "1.0",
     "P99": "5.0"
   },
@@ -2935,21 +2839,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 492,
-    "P95": "3.0",
-    "P99": "7.0"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "external",
-    "JobRuns": 102,
-    "P95": "0.0",
-    "P99": "0.0"
+    "JobRuns": 419,
+    "P95": "4.0",
+    "P99": "27.55999999999997"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2959,9 +2851,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 642,
+    "JobRuns": 675,
     "P95": "0.0",
-    "P99": "2.0"
+    "P99": "4.0"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2971,9 +2863,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 424,
+    "JobRuns": 448,
     "P95": "0.0",
-    "P99": "1.0"
+    "P99": "2.9099999999999948"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2983,9 +2875,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 229,
+    "JobRuns": 215,
     "P95": "1.0",
-    "P99": "5.4399999999999959"
+    "P99": "10.579999999999995"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -2995,9 +2887,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 207,
-    "P95": "3.0",
-    "P99": "4.9399999999999977"
+    "JobRuns": 188,
+    "P95": "3.6499999999999915",
+    "P99": "5.3899999999999952"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -3007,8 +2899,8 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 250,
-    "P95": "2.5499999999999892",
+    "JobRuns": 247,
+    "P95": "3.0",
     "P99": "4.0"
   },
   {
@@ -3019,7 +2911,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 224,
+    "JobRuns": 208,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -3031,21 +2923,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 197,
+    "JobRuns": 213,
     "P95": "0.0",
     "P99": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 120,
-    "P95": "128.44999999999996",
-    "P99": "1141.0899999999988"
   },
   {
     "BackendName": "oauth-api-new-connections",
@@ -3055,19 +2935,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 495,
-    "P95": "0.0",
-    "P99": "2.0599999999999956"
-  },
-  {
-    "BackendName": "oauth-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "arm64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 301,
+    "JobRuns": 526,
     "P95": "0.0",
     "P99": "2.0"
   },
@@ -3075,13 +2943,37 @@
     "BackendName": "oauth-api-new-connections",
     "Release": "4.13",
     "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 109,
+    "P95": "0.0",
+    "P99": "3.7599999999999971"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "arm64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 304,
+    "P95": "0.0",
+    "P99": "4.0"
+  },
+  {
+    "BackendName": "oauth-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
     "Platform": "aws",
     "Architecture": "arm64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 156,
+    "JobRuns": 162,
     "P95": "0.0",
-    "P99": "1.0"
+    "P99": "2.9099999999999948"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -3091,7 +2983,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 598,
+    "JobRuns": 670,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -3103,7 +2995,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 235,
+    "JobRuns": 244,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -3115,9 +3007,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 612,
+    "JobRuns": 638,
     "P95": "3.0",
-    "P99": "6.0"
+    "P99": "6.6299999999999946"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -3127,9 +3019,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 565,
+    "JobRuns": 632,
     "P95": "1.0",
-    "P99": "3.079999999999985"
+    "P99": "2.0"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -3139,7 +3031,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 686,
+    "JobRuns": 756,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -3151,7 +3043,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 494,
+    "JobRuns": 454,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -3163,7 +3055,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 492,
+    "JobRuns": 419,
     "P95": "2.0",
     "P99": "3.0"
   },
@@ -3174,20 +3066,8 @@
     "Platform": "aws",
     "Architecture": "amd64",
     "Network": "ovn",
-    "Topology": "external",
-    "JobRuns": 102,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 642,
+    "JobRuns": 675,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -3199,7 +3079,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 424,
+    "JobRuns": 448,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -3211,8 +3091,8 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 229,
-    "P95": "0.0",
+    "JobRuns": 215,
+    "P95": "1.0",
     "P99": "1.0"
   },
   {
@@ -3223,7 +3103,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 207,
+    "JobRuns": 188,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -3235,7 +3115,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 250,
+    "JobRuns": 247,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -3247,7 +3127,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 224,
+    "JobRuns": 208,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -3259,21 +3139,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 196,
+    "JobRuns": 211,
     "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "oauth-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 120,
-    "P95": "120.74999999999991",
-    "P99": "1141.4699999999987"
+    "P99": "0.0"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -3283,9 +3151,21 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 495,
+    "JobRuns": 526,
     "P95": "0.0",
     "P99": "1.0"
+  },
+  {
+    "BackendName": "oauth-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 109,
+    "P95": "0.0",
+    "P99": "1.8399999999999981"
   },
   {
     "BackendName": "oauth-api-reused-connections",
@@ -3295,7 +3175,7 @@
     "Architecture": "arm64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 301,
+    "JobRuns": 304,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -3307,7 +3187,7 @@
     "Architecture": "arm64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 156,
+    "JobRuns": 162,
     "P95": "0.0",
     "P99": "0.0"
   },
@@ -3319,7 +3199,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 598,
+    "JobRuns": 670,
     "P95": "1.0",
     "P99": "2.0"
   },
@@ -3331,7 +3211,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 235,
+    "JobRuns": 244,
     "P95": "0.0",
     "P99": "1.0"
   },
@@ -3343,9 +3223,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 612,
-    "P95": "3.0",
-    "P99": "11.559999999999977"
+    "JobRuns": 638,
+    "P95": "4.0",
+    "P99": "34.629999999999995"
   },
   {
     "BackendName": "openshift-api-new-connections",
@@ -3355,489 +3235,477 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 565,
-    "P95": "6.0",
-    "P99": "11.799999999999976"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.13",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 686,
-    "P95": "0.0",
-    "P99": "1.4099999999999933"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.13",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 494,
-    "P95": "1.0",
-    "P99": "3.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.13",
-    "Platform": "azure",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 492,
-    "P95": "2.0",
-    "P99": "4.1799999999999908"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "external",
-    "JobRuns": 102,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 642,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 424,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 229,
-    "P95": "1.0",
-    "P99": "4.59999999999999"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 207,
-    "P95": "3.0",
-    "P99": "7.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 250,
-    "P95": "3.0",
-    "P99": "6.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 224,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 196,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 120,
-    "P95": "128.44999999999996",
-    "P99": "1137.4299999999987"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "vsphere",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 495,
-    "P95": "0.0",
-    "P99": "2.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "arm64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 301,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "openshift-api-new-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "arm64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 156,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 598,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 235,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "azure",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 612,
-    "P95": "2.0",
-    "P99": "3.8899999999999944"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "gcp",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 565,
-    "P95": "1.0",
-    "P99": "2.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "4.13",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 686,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "4.13",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 494,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "4.13",
-    "Platform": "azure",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 492,
-    "P95": "1.4499999999999782",
-    "P99": "2.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "external",
-    "JobRuns": 102,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 642,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 424,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "azure",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 229,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 207,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "gcp",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 250,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 224,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "metal",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 195,
-    "P95": "0.0",
-    "P99": "0.059999999999998277"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "ovirt",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 120,
-    "P95": "123.59999999999994",
-    "P99": "1137.6199999999988"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "vsphere",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 495,
-    "P95": "0.0",
-    "P99": "1.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "arm64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 301,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "openshift-api-reused-connections",
-    "Release": "4.13",
-    "FromRelease": "",
-    "Platform": "aws",
-    "Architecture": "arm64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 156,
-    "P95": "0.0",
-    "P99": "0.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 276,
-    "P95": "15.0",
-    "P99": "17.249999999999996"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "azure",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 261,
-    "P95": "6.0",
-    "P99": "9.3999999999999986"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.12",
-    "Platform": "gcp",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 217,
-    "P95": "54.199999999999989",
-    "P99": "62.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.13",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 308,
-    "P95": "13.0",
-    "P99": "15.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.13",
-    "Platform": "aws",
-    "Architecture": "amd64",
-    "Network": "sdn",
-    "Topology": "ha",
-    "JobRuns": 179,
-    "P95": "8.0",
-    "P99": "12.0"
-  },
-  {
-    "BackendName": "service-load-balancer-with-pdb-new-connections",
-    "Release": "4.13",
-    "FromRelease": "4.13",
-    "Platform": "azure",
-    "Architecture": "amd64",
-    "Network": "ovn",
-    "Topology": "ha",
-    "JobRuns": 184,
+    "JobRuns": 632,
     "P95": "7.0",
-    "P99": "10.169999999999998"
+    "P99": "15.689999999999994"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.13",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 756,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.13",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 454,
+    "P95": "1.0",
+    "P99": "5.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.13",
+    "Platform": "azure",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 419,
+    "P95": "2.0",
+    "P99": "27.379999999999967"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 675,
+    "P95": "0.0",
+    "P99": "3.2199999999999913"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 448,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 215,
+    "P95": "1.0",
+    "P99": "10.439999999999992"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 188,
+    "P95": "3.0",
+    "P99": "7.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 247,
+    "P95": "3.0",
+    "P99": "6.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 208,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 213,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 526,
+    "P95": "0.0",
+    "P99": "2.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 109,
+    "P95": "0.5999999999999952",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "arm64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 304,
+    "P95": "0.0",
+    "P99": "3.2199999999999913"
+  },
+  {
+    "BackendName": "openshift-api-new-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "arm64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 162,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 670,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 244,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "azure",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 638,
+    "P95": "2.0",
+    "P99": "4.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "gcp",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 632,
+    "P95": "1.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "4.13",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 756,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "4.13",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 454,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "4.13",
+    "Platform": "azure",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 419,
+    "P95": "2.0",
+    "P99": "3.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 675,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 448,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "azure",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 215,
+    "P95": "0.2999999999999905",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 188,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "gcp",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 247,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 208,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "metal",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 212,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 526,
+    "P95": "0.0",
+    "P99": "1.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "vsphere",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 109,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "arm64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 304,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "openshift-api-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "",
+    "Platform": "aws",
+    "Architecture": "arm64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 162,
+    "P95": "0.0",
+    "P99": "0.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 472,
+    "P95": "15.0",
+    "P99": "18.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 171,
+    "P95": "12.0",
+    "P99": "15.019999999999996"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "azure",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 428,
+    "P95": "7.6499999999999808",
+    "P99": "26.649999999999981"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "gcp",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 465,
+    "P95": "54.0",
+    "P99": "63.439999999999984"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.13",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 537,
+    "P95": "13.999999999999975",
+    "P99": "16.399999999999995"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.13",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 292,
+    "P95": "9.0",
+    "P99": "12.089999999999998"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-new-connections",
+    "Release": "4.13",
+    "FromRelease": "4.13",
+    "Platform": "azure",
+    "Architecture": "amd64",
+    "Network": "ovn",
+    "Topology": "ha",
+    "JobRuns": 273,
+    "P95": "8.0",
+    "P99": "29.719999999999942"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -3847,9 +3715,21 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 275,
+    "JobRuns": 471,
     "P95": "2.0",
     "P99": "3.0"
+  },
+  {
+    "BackendName": "service-load-balancer-with-pdb-reused-connections",
+    "Release": "4.13",
+    "FromRelease": "4.12",
+    "Platform": "aws",
+    "Architecture": "amd64",
+    "Network": "sdn",
+    "Topology": "ha",
+    "JobRuns": 170,
+    "P95": "2.0",
+    "P99": "7.0"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -3859,7 +3739,7 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 261,
+    "JobRuns": 428,
     "P95": "3.0",
     "P99": "4.0"
   },
@@ -3871,7 +3751,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 217,
+    "JobRuns": 465,
     "P95": "3.0",
     "P99": "4.0"
   },
@@ -3883,9 +3763,9 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 308,
+    "JobRuns": 537,
     "P95": "2.0",
-    "P99": "2.9199999999999973"
+    "P99": "3.0"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -3895,9 +3775,9 @@
     "Architecture": "amd64",
     "Network": "sdn",
     "Topology": "ha",
-    "JobRuns": 183,
+    "JobRuns": 298,
     "P95": "2.0",
-    "P99": "3.0"
+    "P99": "3.0599999999999947"
   },
   {
     "BackendName": "service-load-balancer-with-pdb-reused-connections",
@@ -3907,7 +3787,7 @@
     "Architecture": "amd64",
     "Network": "ovn",
     "Topology": "ha",
-    "JobRuns": 184,
+    "JobRuns": 273,
     "P95": "3.0",
     "P99": "4.0"
   }
