@@ -165,6 +165,7 @@ func recordAddOrUpdateEvent(
 	if obj.Type == corev1.EventTypeWarning {
 		condition.Level = monitorapi.Warning
 	}
+	fmt.Printf("processed event: %+v\nresulting interval: %s from: %s to %s\n", *obj, message, from, to)
 
 	// Re-using the interval code, we already know our start/end time here.
 	inter := m.StartInterval(from, condition)
