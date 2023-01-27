@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	duplicateEventThreshold                 = 20
+	duplicateEventThreshold                 = 2
 	duplicateSingleNodeEventThreshold       = 30
 	ovnReadinessRegExpStr                   = `ns/(?P<NS>openshift-ovn-kubernetes) pod/(?P<POD>ovnkube-node-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>Unhealthy) (?P<MSG>Readiness probe failed:.*$)`
 	consoleReadinessRegExpStr               = `ns/(?P<NS>openshift-console) pod/(?P<POD>console-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>ProbeError) (?P<MSG>Readiness probe error:.* connect: connection refused$)`
