@@ -332,6 +332,8 @@ var (
 			// this list needs to be refined as there are some storage tests we should be able to run.
 			// Tracker for enabling more storage tests: https://issues.redhat.com/browse/OCPPLAN-9509
 			`\[sig-storage\]`,
+			// This test requires a valid console url which doesn't exist when the optional console capability is disabled.
+			`\[sig-cli\] oc basics can show correct whoami result with console`,
 		},
 	}
 )

@@ -1417,6 +1417,8 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc basics can process templates [apigroup:template.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-cli] oc basics can show correct whoami result with console": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
+
 	"[sig-cli] oc basics can show correct whoami result": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc builds complex build start-build [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
