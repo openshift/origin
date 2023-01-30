@@ -6,14 +6,15 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	exutil "github.com/openshift/origin/test/extended/util"
-	helper "github.com/openshift/origin/test/extended/util/prometheus"
 	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
+
+	exutil "github.com/openshift/origin/test/extended/util"
+	helper "github.com/openshift/origin/test/extended/util/prometheus"
 )
 
 // MetricsAvailableAfterUpgradeTest tests that metrics from before an upgrade
@@ -38,6 +39,7 @@ func (t *MetricsAvailableAfterUpgradeTest) Setup(f *e2e.Framework) {
 	preUpgradeQuery := `prometheus_build_info{pod="prometheus-k8s-0"}`
 	preUpgradeResponse, err := helper.RunQuery(ctx, oc.NewPrometheusClient(ctx), preUpgradeQuery)
 	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(preUpgradeResponse).NotTo(o.BeEmpty())
 	o.Expect(preUpgradeResponse.Data.Result).NotTo(o.BeEmpty())
 
 	t.executionTimestamp = preUpgradeResponse.Data.Result[0].Timestamp.Time()
