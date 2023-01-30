@@ -20,6 +20,13 @@ const (
 	csiInlineVolProfileLabel = "security.openshift.io/csi-ephemeral-volume-profile"
 )
 
+var (
+	// Exempt labels are not overwritten if the value has changed
+	exemptCSIDriverLabels = []string{
+		csiInlineVolProfileLabel,
+	}
+)
+
 // ApplyStorageClass merges objectmeta, tries to write everything else
 func ApplyStorageClass(ctx context.Context, client storageclientv1.StorageClassesGetter, recorder events.Recorder, required *storagev1.StorageClass) (*storagev1.StorageClass, bool,
 	error) {
@@ -133,6 +140,15 @@ func ApplyCSIDriver(ctx context.Context, client storageclientv1.CSIDriversGetter
 	}
 	if err != nil {
 		return nil, false, err
+	}
+
+	// Exempt labels are not overwritten if the value has changed. They get set
+	// once during creation, but the admin may choose to set a different value.
+	// If the label is removed, it reverts back to the default value.
+	for _, exemptLabel := range exemptCSIDriverLabels {
+		if existingValue, ok := existing.Labels[exemptLabel]; ok {
+			required.Labels[exemptLabel] = existingValue
+		}
 	}
 
 	metadataModified := resourcemerge.BoolPtr(false)

@@ -119,6 +119,7 @@ var FeatureSets = map[FeatureSet]*FeatureGateEnabledDisabled{
 		with("InsightsConfigAPI").                 // insights, tremes (#ccx), OCP specific
 		with("CSIInlineVolumeAdmission").          // sig-storage, jdobson, OCP specific
 		with("MatchLabelKeysInPodTopologySpread"). // sig-scheduling, ingvagabund (#forum-workloads), Kubernetes feature gate
+		with("RetroactiveDefaultStorageClass").    // sig-storage, RomanBednar, Kubernetes feature gate
 		toFeatures(),
 	LatencySensitive: newDefaultFeatures().
 		with(
@@ -134,7 +135,9 @@ var defaultFeatures = &FeatureGateEnabledDisabled{
 		"DownwardAPIHugePages",           // sig-node, rphillips
 		"OpenShiftPodSecurityAdmission",     // bz-auth, stlaz, OCP specific
 	},
-	Disabled: []string{},
+	Disabled: []string{
+		"RetroactiveDefaultStorageClass", // sig-storage, RomanBednar, Kubernetes feature gate
+	},
 }
 
 type featureSetBuilder struct {

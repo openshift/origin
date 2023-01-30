@@ -11,7 +11,8 @@ import (
 // with apply.
 type ClusterCSIDriverSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
-	StorageClassState              *operatorv1.StorageClassStateName `json:"storageClassState,omitempty"`
+	StorageClassState              *operatorv1.StorageClassStateName      `json:"storageClassState,omitempty"`
+	DriverConfig                   *CSIDriverConfigSpecApplyConfiguration `json:"driverConfig,omitempty"`
 }
 
 // ClusterCSIDriverSpecApplyConfiguration constructs an declarative configuration of the ClusterCSIDriverSpec type for use with
@@ -65,5 +66,13 @@ func (b *ClusterCSIDriverSpecApplyConfiguration) WithObservedConfig(value runtim
 // If called multiple times, the StorageClassState field is set to the value of the last call.
 func (b *ClusterCSIDriverSpecApplyConfiguration) WithStorageClassState(value operatorv1.StorageClassStateName) *ClusterCSIDriverSpecApplyConfiguration {
 	b.StorageClassState = &value
+	return b
+}
+
+// WithDriverConfig sets the DriverConfig field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the DriverConfig field is set to the value of the last call.
+func (b *ClusterCSIDriverSpecApplyConfiguration) WithDriverConfig(value *CSIDriverConfigSpecApplyConfiguration) *ClusterCSIDriverSpecApplyConfiguration {
+	b.DriverConfig = value
 	return b
 }
