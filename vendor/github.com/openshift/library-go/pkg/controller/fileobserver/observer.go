@@ -59,7 +59,8 @@ type ReactorFn func(file string, action ActionType) error
 
 // ExitOnChangeReactor provides reactor function that causes the process to exit when the change is detected.
 // DEPRECATED: Using this function cause process to exit immediately without proper shutdown (context close/etc.)
-//             Use the TerminateOnChangeReactor() instead.
+//
+//	Use the TerminateOnChangeReactor() instead.
 var ExitOnChangeReactor = TerminateOnChangeReactor(func() { os.Exit(0) })
 
 func TerminateOnChangeReactor(terminateFn func()) ReactorFn {
