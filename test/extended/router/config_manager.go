@@ -391,7 +391,7 @@ http {
 					Containers: []corev1.Container{
 						{
 							Name:  "test",
-							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.40"),
+							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.43"),
 							Args:  []string{"netexec"},
 							Ports: []corev1.ContainerPort{
 								{
@@ -418,7 +418,7 @@ http {
 					Containers: []corev1.Container{
 						{
 							Name:    "serve",
-							Image:   image.LocationFor("registry.k8s.io/e2e-test-images/nginx:1.15-2"),
+							Image:   image.LocationFor("registry.k8s.io/e2e-test-images/nginx:1.15-4"),
 							Command: []string{"/usr/sbin/nginx"},
 							Args:    []string{"-c", "/etc/nginx/nginx.conf"},
 							Ports: []corev1.ContainerPort{
