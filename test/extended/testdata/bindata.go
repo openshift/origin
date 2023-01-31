@@ -27,6 +27,7 @@
 // examples/quickstarts/rails-postgresql-persistent.json
 // examples/quickstarts/rails-postgresql.json
 // examples/hello-openshift/Dockerfile
+// examples/hello-openshift/go.mod
 // examples/hello-openshift/hello-pod.json
 // examples/hello-openshift/hello-project.json
 // examples/jenkins/application-template.json
@@ -13308,6 +13309,26 @@ func examplesHelloOpenshiftDockerfile() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "examples/hello-openshift/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _examplesHelloOpenshiftGoMod = []byte(`module github.com/openshift/origin/examples/hello-openshift
+
+go 1.19
+`)
+
+func examplesHelloOpenshiftGoModBytes() ([]byte, error) {
+	return _examplesHelloOpenshiftGoMod, nil
+}
+
+func examplesHelloOpenshiftGoMod() (*asset, error) {
+	bytes, err := examplesHelloOpenshiftGoModBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/hello-openshift/go.mod", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -32822,7 +32843,7 @@ var _testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson = []byte(`
     "containers": [
       {
         "name": "hello-openshift",
-        "image": "registry.k8s.io/e2e-test-images/agnhost:2.40",
+        "image": "registry.k8s.io/e2e-test-images/agnhost:2.43",
         "args": ["netexec"],
         "ports": [
           {
@@ -36951,7 +36972,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: registry.k8s.io/e2e-test-images/agnhost:2.40
+                image: registry.k8s.io/e2e-test-images/agnhost:2.43
       - kind: Route
         apiVersion: route.openshift.io/v1
         metadata:
@@ -41151,7 +41172,7 @@ items:
           replicationcontroller: idling-echo
       spec:
         containers:
-        - image: registry.k8s.io/e2e-test-images/agnhost:2.40
+        - image: registry.k8s.io/e2e-test-images/agnhost:2.43
           name: idling-echo-server
           args: [ "netexec", "--http-port", "8675" ]
           ports:
@@ -41217,7 +41238,7 @@ items:
           deploymentconfig: idling-echo
       spec:
         containers:
-        - image: registry.k8s.io/e2e-test-images/agnhost:2.40
+        - image: registry.k8s.io/e2e-test-images/agnhost:2.43
           name: idling-echo-server
           args: [ "netexec", "--http-port", "8675", "--udp-port", "3090" ]
           ports:
@@ -46171,7 +46192,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.40
+      image: registry.k8s.io/e2e-test-images/agnhost:2.43
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -46189,7 +46210,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.40
+      image: registry.k8s.io/e2e-test-images/agnhost:2.43
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -46224,7 +46245,7 @@ items:
       app: serving-cert
   spec:
     containers:
-    - image: registry.k8s.io/e2e-test-images/nginx:1.15-2
+    - image: registry.k8s.io/e2e-test-images/nginx:1.15-4
       name: serve
       command:
         - /usr/sbin/nginx
@@ -46428,7 +46449,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.40
+      image: registry.k8s.io/e2e-test-images/agnhost:2.43
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -46604,7 +46625,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.40
+      image: registry.k8s.io/e2e-test-images/agnhost:2.43
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -46622,7 +46643,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.40
+      image: registry.k8s.io/e2e-test-images/agnhost:2.43
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -48146,7 +48167,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: registry.k8s.io/e2e-test-images/agnhost:2.40
+                image: registry.k8s.io/e2e-test-images/agnhost:2.43
 `)
 
 func testExtendedTestdataTemplatesTemplateinstance_badobjectYamlBytes() ([]byte, error) {
@@ -48206,7 +48227,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: registry.k8s.io/e2e-test-images/agnhost:2.40
+                image: registry.k8s.io/e2e-test-images/agnhost:2.43
       - kind: Route
         apiVersion: route.openshift.io/v1
         metadata:
@@ -49751,6 +49772,7 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/quickstarts/rails-postgresql-persistent.json":                                                  examplesQuickstartsRailsPostgresqlPersistentJson,
 	"examples/quickstarts/rails-postgresql.json":                                                             examplesQuickstartsRailsPostgresqlJson,
 	"examples/hello-openshift/Dockerfile":                                                                    examplesHelloOpenshiftDockerfile,
+	"examples/hello-openshift/go.mod":                                                                        examplesHelloOpenshiftGoMod,
 	"examples/hello-openshift/hello-pod.json":                                                                examplesHelloOpenshiftHelloPodJson,
 	"examples/hello-openshift/hello-project.json":                                                            examplesHelloOpenshiftHelloProjectJson,
 	"examples/jenkins/application-template.json":                                                             examplesJenkinsApplicationTemplateJson,
@@ -50250,6 +50272,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 		"hello-openshift": {nil, map[string]*bintree{
 			"Dockerfile":         {examplesHelloOpenshiftDockerfile, map[string]*bintree{}},
+			"go.mod":             {examplesHelloOpenshiftGoMod, map[string]*bintree{}},
 			"hello-pod.json":     {examplesHelloOpenshiftHelloPodJson, map[string]*bintree{}},
 			"hello-project.json": {examplesHelloOpenshiftHelloProjectJson, map[string]*bintree{}},
 		}},
