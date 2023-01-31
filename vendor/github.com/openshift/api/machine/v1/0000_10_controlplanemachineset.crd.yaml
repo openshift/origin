@@ -263,6 +263,7 @@ spec:
                                 - PowerVS
                                 - AlibabaCloud
                                 - Nutanix
+                                - External
                           x-kubernetes-validations:
                             - rule: 'has(self.platform) && self.platform == ''AWS'' ?  has(self.aws) : !has(self.aws)'
                               message: aws configuration is required when platform is AWS, and forbidden otherwise

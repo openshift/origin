@@ -1,7 +1,7 @@
 all: build
 .PHONY: all
 
-update: update-codegen-crds update-codegen-Default-crds update-codegen-TechPreviewNoUpgrade-crds
+update: update-codegen-crds
 
 RUNTIME ?= podman
 RUNTIME_IMAGE_NAME ?= registry.ci.openshift.org/openshift/release:rhel-8-release-golang-1.18-openshift-4.12
@@ -21,29 +21,15 @@ test-unit:
 #          E.g. make update-codegen-crds-machine
 #        - Set API_GROUP_VERSIONS to a space separated list of <group>/<version>.
 #          E.g. API_GROUP_VERSIONS="apps/v1 build/v1" make update-codegen-crds.
-#        To generate for a FeatureSet (filter as above):
-#        - update-codegen-Default-crds
-#        - update-codegen-TechPreviewNoUpgrade-crds
+#        FeatureSet generation is controlled at the group level by the
+#        .codegen.yaml file.
 #
 ##################################################################################
 
 # Ensure update-scripts are run before crd-gen so updates to Godoc are included in CRDs.
 .PHONY: update-codegen-crds
-update-codegen-crds: update-scripts update-codegen-TechPreviewNoUpgrade-crds update-codegen-Default-crds
+update-codegen-crds: update-scripts
 	hack/update-codegen-crds.sh
-
-.PHONY: update-codegen-Default-crds
-update-codegen-Default-crds: update-scripts
-	OPENSHIFT_REQUIRED_FEATURESETS=Default hack/update-codegen-crds.sh
-
-.PHONY: update-codegen-TechPreviewNoUpgrade-crds
-update-codegen-TechPreviewNoUpgrade-crds: update-scripts
-	OPENSHIFT_REQUIRED_FEATURESETS=TechPreviewNoUpgrade hack/update-codegen-crds.sh
-
-# Aliases to make it easier to generate the feature set based CRDs.
-update-codegen-default-crds: update-codegen-Default-crds
-update-codegen-techpreview-crds: update-codegen-TechPreviewNoUpgrade-crds
-update-codegen-techpreviewnoupgrade-crds: update-codegen-TechPreviewNoUpgrade-crds
 
 #####################
 #
@@ -64,14 +50,11 @@ verify-scripts:
 	bash -x hack/verify-group-versions.sh
 
 .PHONY: verify
-verify: verify-scripts verify-codegen-crds verify-codegen-TechPreviewNoUpgrade-crds verify-codegen-Default-crds
+verify: verify-scripts verify-codegen-crds
 
 .PHONY: verify-codegen-crds
-verify-codegen-crds: verify-update-codegen-crds
-
-.PHONY: verify-codegen-%
-verify-codegen-%:
-	make verify-update-codegen-$*
+verify-codegen-crds:
+	bash -x hack/verify-codegen-crds.sh
 
 .PHONY: verify-%
 verify-%:
