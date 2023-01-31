@@ -19,7 +19,7 @@ import (
 	exurl "github.com/openshift/origin/test/extended/util/url"
 )
 
-var _ = g.Describe("[sig-arch] Managed cluster should [apigroup:apps.openshift.io]", func() {
+var _ = g.Describe("[sig-arch] Managed cluster", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -63,7 +63,7 @@ var _ = g.Describe("[sig-arch] Managed cluster should [apigroup:apps.openshift.i
 			path   string
 			expect []int
 		}{
-			{ns: "openshift-console", name: "console", scheme: "https", path: "", expect: []int{200}},
+			{ns: "openshift-ingress-canary", name: "canary", scheme: "https", path: "", expect: []int{200}},
 			{ns: "openshift-monitoring", name: "prometheus-k8s", scheme: "https", path: "api/v1/targets", expect: []int{403, 401}},
 		}
 		for _, r := range routes {

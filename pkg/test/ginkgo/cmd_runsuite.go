@@ -15,10 +15,11 @@ import (
 	"syscall"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const (
@@ -414,11 +415,13 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		q := newParallelTestQueue(testRunnerContext)
 		q.Execute(testCtx, retries, parallelism, testOutputConfig, abortFn)
 
-		var flaky []string
+		var flaky, skipped []string
 		var repeatFailures []*testCase
 		for _, test := range retries {
 			if test.success {
 				flaky = append(flaky, test.name)
+			} else if test.skipped {
+				skipped = append(skipped, test.name)
 			} else {
 				repeatFailures = append(repeatFailures, test)
 			}
@@ -437,6 +440,25 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 			failing = repeatFailures
 			sort.Strings(flaky)
 			fmt.Fprintf(opt.Out, "Flaky tests:\n\n%s\n\n", strings.Join(flaky, "\n"))
+		}
+		if len(skipped) > 0 {
+			// If a retry test got skipped, it means we very likely failed a precondition in the first failure, so
+			// we need to remove the failure case.
+			var withoutPreconditionFailures []*testCase
+		testLoop:
+			for _, t := range tests {
+				for _, st := range skipped {
+					if t.name == st && t.failed {
+						continue testLoop
+					}
+					withoutPreconditionFailures = append(withoutPreconditionFailures, t)
+				}
+			}
+			tests = withoutPreconditionFailures
+			failing = repeatFailures
+			sort.Strings(skipped)
+			fmt.Fprintf(opt.Out, "Skipped tests that failed a precondition:\n\n%s\n\n", strings.Join(skipped, "\n"))
+
 		}
 	}
 

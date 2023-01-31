@@ -1913,16 +1913,8 @@ func WaitForUserBeAuthorized(oc *CLI, user string, attributes *authorizationapi.
 // helping to mitigate the transition from the default namespace to an operator
 // namespace.
 func GetRouterPodTemplate(oc *CLI) (*corev1.PodTemplateSpec, string, error) {
-	appsclient := oc.AdminAppsClient().AppsV1()
 	k8sappsclient := oc.AdminKubeClient().AppsV1()
 	for _, ns := range []string{"default", "openshift-ingress", "tectonic-ingress"} {
-		dc, err := appsclient.DeploymentConfigs(ns).Get(context.Background(), "router", metav1.GetOptions{})
-		if err == nil {
-			return dc.Spec.Template, ns, nil
-		}
-		if !kapierrs.IsNotFound(err) {
-			return nil, "", err
-		}
 		deploy, err := k8sappsclient.Deployments(ns).Get(context.Background(), "router", metav1.GetOptions{})
 		if err == nil {
 			return &deploy.Spec.Template, ns, nil
@@ -1938,7 +1930,7 @@ func GetRouterPodTemplate(oc *CLI) (*corev1.PodTemplateSpec, string, error) {
 			return nil, "", err
 		}
 	}
-	return nil, "", kapierrs.NewNotFound(schema.GroupResource{Group: "apps.openshift.io", Resource: "deploymentconfigs"}, "router")
+	return nil, "", kapierrs.NewNotFound(schema.GroupResource{Group: "apps", Resource: "deployments"}, "router")
 }
 
 func FindRouterImage(oc *CLI) (string, error) {

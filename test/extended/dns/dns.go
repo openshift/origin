@@ -32,6 +32,7 @@ import (
 )
 
 func createDNSPod(namespace, probeCmd string) *kapiv1.Pod {
+	nodeSelector := map[string]string{"node-role.kubernetes.io/master": ""}
 	pod := &kapiv1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -44,6 +45,14 @@ func createDNSPod(namespace, probeCmd string) *kapiv1.Pod {
 		Spec: kapiv1.PodSpec{
 			RestartPolicy:   kapiv1.RestartPolicyNever,
 			SecurityContext: e2epod.GetRestrictedPodSecurityContext(),
+			NodeSelector:    nodeSelector,
+			Tolerations: []kapiv1.Toleration{
+				{
+					Effect:   "NoSchedule",
+					Key:      "node-role.kubernetes.io/master",
+					Operator: kapiv1.TolerationOpExists,
+				},
+			},
 			Containers: []kapiv1.Container{
 				{
 					Name:            "querier",

@@ -247,10 +247,12 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		found := serverPattern.MatchString(out)
 		o.Expect(found).To(o.BeTrue())
+	})
 
-		out, err = oc.Run("whoami").Args("--show-console").Output()
+	g.It("can show correct whoami result with console", func() {
+		out, err := oc.Run("whoami").Args("--show-console").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		found = consolePattern.MatchString(out)
+		found := consolePattern.MatchString(out)
 		o.Expect(found).To(o.BeTrue())
 	})
 })

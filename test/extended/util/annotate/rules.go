@@ -203,7 +203,7 @@ var (
 			`\[sig-apps\]\[Feature:DeploymentConfig\] deploymentconfigs with test deployments should run a deployment to completion and then scale to zero`,
 			`\[sig-apps\]\[Feature:DeploymentConfig\] deploymentconfigs won't deploy RC with unresolved images when patched with empty image`,
 			`\[sig-apps\]\[Feature:Jobs\] Users should be able to create and run a job in a user project`,
-			`\[sig-arch\] Managed cluster should \[apigroup:apps.openshift.io\] should expose cluster services outside the cluster`,
+			`\[sig-arch\] Managed cluster should expose cluster services outside the cluster`,
 			`\[sig-arch\]\[Early\] Managed cluster should \[apigroup:config.openshift.io\] start all core operators`,
 			`\[sig-auth\]\[Feature:SecurityContextConstraints\] TestPodDefaultCapabilities`,
 			`\[sig-builds\]\[Feature:Builds\] Multi-stage image builds should succeed`,
@@ -269,13 +269,13 @@ var (
 			`\[sig-network\]\[Feature:Router\]\[apigroup:config.openshift.io\] The HAProxy router should expose the profiling endpoints`,
 			`\[sig-network\]\[Feature:Router\]\[apigroup:route.openshift.io\] The HAProxy router should override the route host for overridden domains with a custom value`,
 			`\[sig-network\]\[Feature:Router\]\[apigroup:route.openshift.io\] The HAProxy router should override the route host with a custom value`,
-			`\[sig-network\]\[Feature:Router\]\[apigroup:operator.openshift.io\]\[apigroup:apps.openshift.io\] The HAProxy router should respond with 503 to unrecognized hosts`,
-			`\[sig-network\]\[Feature:Router\]\[apigroup:route.openshift.io\]\[apigroup:config.openshift.io\] The HAProxy router should run even if it has no access to update status`,
-			`\[sig-network\]\[Feature:Router\]\[apigroup:config.openshift.io\]\[apigroup:image.openshift.io\] The HAProxy router should serve a route that points to two services and respect weights`,
-			`\[sig-network\]\[Feature:Router\]\[apigroup:operator.openshift.io\]\[apigroup:apps.openshift.io\] The HAProxy router should serve routes that were created from an ingress`,
+			`\[sig-network\]\[Feature:Router\]\[apigroup:operator.openshift.io\] The HAProxy router should respond with 503 to unrecognized hosts`,
+			`\[sig-network\]\[Feature:Router\]\[apigroup:route.openshift.io\] The HAProxy router should run even if it has no access to update status`,
+			`\[sig-network\]\[Feature:Router\]\[apigroup:image.openshift.io\] The HAProxy router should serve a route that points to two services and respect weights`,
+			`\[sig-network\]\[Feature:Router\]\[apigroup:operator.openshift.io\] The HAProxy router should serve routes that were created from an ingress`,
 			`\[sig-network\]\[Feature:Router\]\[apigroup:route.openshift.io\] The HAProxy router should serve the correct routes when scoped to a single namespace and label set`,
-			`\[sig-network\]\[Feature:Router\]\[apigroup:config.openshift.io\]\[apigroup:operator.openshift.io\]\[apigroup:apps.openshift.io\] The HAProxy router should set Forwarded headers appropriately`,
-			`\[sig-network\]\[Feature:Router\]\[apigroup:route.openshift.io\]\[apigroup:operator.openshift.io\]\[apigroup:apps.openshift.io\] The HAProxy router should support reencrypt to services backed by a serving certificate automatically`,
+			`\[sig-network\]\[Feature:Router\]\[apigroup:config.openshift.io\]\[apigroup:operator.openshift.io\] The HAProxy router should set Forwarded headers appropriately`,
+			`\[sig-network\]\[Feature:Router\]\[apigroup:route.openshift.io\]\[apigroup:operator.openshift.io\] The HAProxy router should support reencrypt to services backed by a serving certificate automatically`,
 			`\[sig-network\] Networking should provide Internet connection for containers \[Feature:Networking-IPv6\]`,
 			`\[sig-node\] Managed cluster should report ready nodes the entire duration of the test run`,
 			`\[sig-storage\]\[Late\] Metrics should report short attach times`,
@@ -545,6 +545,9 @@ var (
 			`\[sig-storage\] In-tree Volumes \[Driver: nfs\] \[Testpattern: Dynamic PV \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
 			`\[sig-storage\] In-tree Volumes \[Driver: nfs\] \[Testpattern: Dynamic PV \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
 			`\[sig-storage\] In-tree Volumes \[Driver: nfs\] \[Testpattern: Dynamic PV \(filesystem volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv written before kubelet restart is readable after restart.`,
+
+			// This test requires a valid console url which doesn't exist when the optional console capability is disabled.
+			`\[sig-cli\] oc basics can show correct whoami result with console`,
 		},
 	}
 )
