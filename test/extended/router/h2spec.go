@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	admissionapi "k8s.io/pod-security-admission/api"
 	utilpointer "k8s.io/utils/pointer"
 
@@ -546,13 +547,13 @@ func runConformanceTests(oc *exutil.CLI, host, podName string, timeout time.Dura
 		// error. But if we can fetch the results and if we can decode the
 		// results and we have > 0 test suites from the decoded
 		// results then assume the test ran.
-		output, err := e2e.RunHostCmd(oc.Namespace(), podName, h2specCommand(h2specDialTimeoutInSeconds, host, outputFile))
+		output, err := e2eoutput.RunHostCmd(oc.Namespace(), podName, h2specCommand(h2specDialTimeoutInSeconds, host, outputFile))
 		if err != nil {
 			e2e.Logf("error running h2spec: %v, but checking on result content", err)
 		}
 
 		g.By("Copying results")
-		data, err := e2e.RunHostCmd(oc.Namespace(), podName, fmt.Sprintf("cat %q", outputFile))
+		data, err := e2eoutput.RunHostCmd(oc.Namespace(), podName, fmt.Sprintf("cat %q", outputFile))
 		if err != nil {
 			e2e.Logf("error copying results: %v, retrying...", err)
 			return false, nil
