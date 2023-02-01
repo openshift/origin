@@ -44,6 +44,8 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 // Test checks for logs from DNS availability test a minute after upgrade finishes
 // to cover during and after upgrade phase, and verifies the results.
 func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, _ upgrades.UpgradeType) {
+	ginkgo.By("Sleeping for a minute to give dns test pods some time to start")
+	time.Sleep(1 * time.Minute)
 	ginkgo.By("Validating DNS results during upgrade")
 	t.validateDNSResults(f)
 
