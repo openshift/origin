@@ -200,20 +200,6 @@ var s2iImages = map[string][]tc{
 			Tag:      "6.0-ubi8",
 			Arches:   []string{"amd64", "arm64", "s390x"},
 		},
-		{
-			Version:  "31",
-			Cmd:      "dotnet --version",
-			Expected: "3.1",
-			Tag:      "3.1-ubi8",
-			Arches:   []string{"amd64"},
-		},
-		{
-			Version:  "31",
-			Cmd:      "dotnet --version",
-			Expected: "3.1",
-			Tag:      "3.1-el7",
-			Arches:   []string{"amd64"},
-		},
 	},
 }
 
