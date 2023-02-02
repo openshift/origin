@@ -11,13 +11,17 @@ import (
 )
 
 type BestMatcher interface {
-	// BestMatch returns the best possible match for this historical data.  It attempts a full match first, then
-	// it attempts to match on the most important keys in order, before giving up and returning a default.
+	// BestMatch returns the best possible match for this historical data.  It attempts an exact match first, then
+	// it attempts to match on the most important keys in order, before giving up and returning an empty default,
+	// which means to skip testing against this data.
 	BestMatch(name string, jopType platformidentification.JobType) (StatisticalData, string, error)
-	// BestMatchDuration returns the best possible match for this historical data.  It attempts a full match first, then
-	// it attempts to match on the most important keys in order, before giving up and returning a default.
+
+	// BestMatchDuration returns the best possible match for this historical data.  It attempts an exact match first, then
+	// it attempts to match on the most important keys in order, before giving up and returning an empty default,
+	// which means to skip testing against this data.
 	BestMatchDuration(name string, jopType platformidentification.JobType) (StatisticalDuration, string, error)
 
+	// TODO: Document
 	BestMatchP99(name string, jobType platformidentification.JobType) (*time.Duration, string, error)
 }
 
@@ -42,10 +46,9 @@ type DataKey struct {
 
 type bestMatcher struct {
 	historicalData map[DataKey]StatisticalData
-	defaultReturn  float64
 }
 
-func NewMatcher(historicalJSON []byte, defaultReturn float64) (BestMatcher, error) {
+func NewMatcher(historicalJSON []byte) (BestMatcher, error) {
 	historicalData := map[DataKey]StatisticalData{}
 
 	inFile := bytes.NewBuffer(historicalJSON)
@@ -81,14 +84,12 @@ func NewMatcher(historicalJSON []byte, defaultReturn float64) (BestMatcher, erro
 
 	return &bestMatcher{
 		historicalData: historicalData,
-		defaultReturn:  defaultReturn,
 	}, nil
 }
 
-func NewMatcherWithHistoricalData(data map[DataKey]StatisticalData, defaultReturn float64) BestMatcher {
+func NewMatcherWithHistoricalData(data map[DataKey]StatisticalData) BestMatcher {
 	return &bestMatcher{
 		historicalData: data,
-		defaultReturn:  defaultReturn,
 	}
 }
 
