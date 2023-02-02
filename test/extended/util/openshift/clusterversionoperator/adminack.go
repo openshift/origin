@@ -51,19 +51,14 @@ func (t *AdminAckTest) Test(ctx context.Context) {
 	exercisedVersions := sets.NewString()
 	success := false
 	var lastError error
-	if err := wait.PollImmediateUntilWithContext(ctx, t.Poll, func(ctx context.Context) (bool, error) {
+	wait.UntilWithContext(ctx, func(ctx context.Context) {
 		if err := t.test(ctx, exercisedGates, exercisedVersions); err != nil {
 			framework.Logf("Retriable failure to evaluate admin acks: %v", err)
 			lastError = err
 		} else {
 			success = true
 		}
-		return false, nil
-	}); err == nil || err == wait.ErrWaitTimeout {
-		return
-	} else {
-		framework.Fail(err.Error())
-	}
+	}, t.Poll)
 
 	if !success {
 		framework.Failf("Never able to evaluate admin acks.  Most recent failure: %v", lastError)
@@ -255,9 +250,14 @@ func setAdminGate(ctx context.Context, gateName string, gateValue string, oc *ex
 	return nil
 }
 
+// adminAckDeadline is the upper bound of time for CVO to notice a new adminack
+// gate. CVO sync loop duration is nondeterministic 2-4m interval so we set this
+// slightly above the worst case.
+const adminAckDeadline = 4*time.Minute + 5*time.Second
+
 func waitForAdminAckRequired(ctx context.Context, config *restclient.Config, message string) error {
 	framework.Logf("Waiting for Upgradeable to be AdminAckRequired for %q ...", message)
-	if err := wait.PollImmediate(10*time.Second, 3*time.Minute, func() (bool, error) {
+	if err := wait.PollImmediate(10*time.Second, adminAckDeadline, func() (bool, error) {
 		if adminAckRequiredWithMessage(ctx, config, message) {
 			return true, nil
 		}
