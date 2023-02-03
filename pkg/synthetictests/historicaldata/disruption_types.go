@@ -10,46 +10,30 @@ import (
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 )
 
-type BestMatcher interface {
-	// BestMatch returns the best possible match for this historical data.  It attempts an exact match first, then
-	// it attempts to match on the most important keys in order, before giving up and returning an empty default,
-	// which means to skip testing against this data.
-	BestMatch(name string, jopType platformidentification.JobType) (StatisticalData, string, error)
-
-	// BestMatchDuration returns the best possible match for this historical data.  It attempts an exact match first, then
-	// it attempts to match on the most important keys in order, before giving up and returning an empty default,
-	// which means to skip testing against this data.
-	BestMatchDuration(name string, jopType platformidentification.JobType) (StatisticalDuration, string, error)
-
-	// TODO: Document
-	BestMatchP99(name string, jobType platformidentification.JobType) (*time.Duration, string, error)
-}
-
 type StatisticalDuration struct {
-	DataKey `json:",inline"`
-	P95     time.Duration
-	P99     time.Duration
+	platformidentification.JobType `json:",inline"`
+	P95                            time.Duration
+	P99                            time.Duration
 }
 
-type StatisticalData struct {
+type DisruptionStatisticalData struct {
 	DataKey `json:",inline"`
 	P95     float64
 	P99     float64
 }
 
 type DataKey struct {
-	// Name is the identifier for the particular bit of data.  It's like BackendName or AlertName
-	Name string
+	BackendName string
 
 	platformidentification.JobType `json:",inline"`
 }
 
-type bestMatcher struct {
-	historicalData map[DataKey]StatisticalData
+type DisruptionBestMatcher struct {
+	historicalData map[DataKey]DisruptionStatisticalData
 }
 
-func NewMatcher(historicalJSON []byte) (BestMatcher, error) {
-	historicalData := map[DataKey]StatisticalData{}
+func NewDisruptionMatcher(historicalJSON []byte) (*DisruptionBestMatcher, error) {
+	historicalData := map[DataKey]DisruptionStatisticalData{}
 
 	inFile := bytes.NewBuffer(historicalJSON)
 	jsonDecoder := json.NewDecoder(inFile)
@@ -74,7 +58,7 @@ func NewMatcher(historicalJSON []byte) (BestMatcher, error) {
 		if err != nil {
 			return nil, err
 		}
-		curr := StatisticalData{
+		curr := DisruptionStatisticalData{
 			DataKey: currDecoded.DataKey,
 			P95:     p95,
 			P99:     p99,
@@ -82,21 +66,21 @@ func NewMatcher(historicalJSON []byte) (BestMatcher, error) {
 		historicalData[curr.DataKey] = curr
 	}
 
-	return &bestMatcher{
+	return &DisruptionBestMatcher{
 		historicalData: historicalData,
 	}, nil
 }
 
-func NewMatcherWithHistoricalData(data map[DataKey]StatisticalData) BestMatcher {
-	return &bestMatcher{
+func NewDisruptionMatcherWithHistoricalData(data map[DataKey]DisruptionStatisticalData) *DisruptionBestMatcher {
+	return &DisruptionBestMatcher{
 		historicalData: data,
 	}
 }
 
-func (b *bestMatcher) BestMatch(name string, jobType platformidentification.JobType) (StatisticalData, string, error) {
+func (b *DisruptionBestMatcher) bestMatch(name string, jobType platformidentification.JobType) (DisruptionStatisticalData, string, error) {
 	exactMatchKey := DataKey{
-		Name:    name,
-		JobType: jobType,
+		BackendName: name,
+		JobType:     jobType,
 	}
 
 	if percentiles, ok := b.historicalData[exactMatchKey]; ok {
@@ -110,8 +94,8 @@ func (b *bestMatcher) BestMatch(name string, jobType platformidentification.JobT
 			continue
 		}
 		nextBestMatchKey := DataKey{
-			Name:    name,
-			JobType: nextBestJobType,
+			BackendName: name,
+			JobType:     nextBestJobType,
 		}
 		if percentiles, ok := b.historicalData[nextBestMatchKey]; ok {
 			return percentiles, fmt.Sprintf("(no exact match for %#v, fell back to %#v)", exactMatchKey, nextBestMatchKey), nil
@@ -124,21 +108,24 @@ func (b *bestMatcher) BestMatch(name string, jobType platformidentification.JobT
 	// We now only track disruption data for frequently run jobs where we have enough runs to make a reliable P95 or P99
 	// determination. If we did not record historical data for this NURP combination, we do not wish to enforce
 	// disruption testing on a per job basis. Return an empty data result to signal we have no data, and skip the test.
-	return StatisticalData{},
+	return DisruptionStatisticalData{},
 		fmt.Sprintf("(no exact or fuzzy match for jobType=%#v)", jobType),
 		nil
 }
 
-func (b *bestMatcher) BestMatchDuration(name string, jobType platformidentification.JobType) (StatisticalDuration, string, error) {
-	rawData, details, err := b.BestMatch(name, jobType)
+// BestMatchDuration returns the best possible match for this historical data.  It attempts an exact match first, then
+// it attempts to match on the most important keys in order, before giving up and returning an empty default,
+// which means to skip testing against this data.
+func (b *DisruptionBestMatcher) BestMatchDuration(name string, jobType platformidentification.JobType) (StatisticalDuration, string, error) {
+	rawData, details, err := b.bestMatch(name, jobType)
 	// Empty data implies we have none, and thus do not want to run the test.
-	if rawData == (StatisticalData{}) {
+	if rawData == (DisruptionStatisticalData{}) {
 		return StatisticalDuration{}, details, err
 	}
 	return toStatisticalDuration(rawData), details, err
 }
 
-func (b *bestMatcher) BestMatchP99(name string, jobType platformidentification.JobType) (*time.Duration, string, error) {
+func (b *DisruptionBestMatcher) BestMatchP99(name string, jobType platformidentification.JobType) (*time.Duration, string, error) {
 	rawData, details, err := b.BestMatchDuration(name, jobType)
 	if rawData == (StatisticalDuration{}) {
 		return nil, details, err
@@ -146,9 +133,9 @@ func (b *bestMatcher) BestMatchP99(name string, jobType platformidentification.J
 	return &rawData.P99, details, err
 }
 
-func toStatisticalDuration(in StatisticalData) StatisticalDuration {
+func toStatisticalDuration(in DisruptionStatisticalData) StatisticalDuration {
 	return StatisticalDuration{
-		DataKey: in.DataKey,
+		JobType: in.DataKey.JobType,
 		P95:     DurationOrDie(in.P95),
 		P99:     DurationOrDie(in.P99),
 	}

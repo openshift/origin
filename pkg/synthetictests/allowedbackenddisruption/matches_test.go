@@ -23,10 +23,10 @@ func TestGetClosestP95Value(t *testing.T) {
 		jobType     platformidentification.JobType
 	}
 
-	historicalData := []historicaldata.StatisticalData{
+	historicalData := []historicaldata.DisruptionStatisticalData{
 		{
 			DataKey: historicaldata.DataKey{
-				Name: "kube-api-new-connections",
+				BackendName: "kube-api-new-connections",
 				JobType: platformidentification.JobType{
 					Release:      "4.12",
 					FromRelease:  "4.11",
@@ -41,7 +41,7 @@ func TestGetClosestP95Value(t *testing.T) {
 		},
 		{
 			DataKey: historicaldata.DataKey{
-				Name: "kube-api-new-connections",
+				BackendName: "kube-api-new-connections",
 				JobType: platformidentification.JobType{
 					Release:      "4.12",
 					FromRelease:  "4.12",
@@ -56,7 +56,7 @@ func TestGetClosestP95Value(t *testing.T) {
 		},
 		{
 			DataKey: historicaldata.DataKey{
-				Name: "openshift-api-new-connections",
+				BackendName: "openshift-api-new-connections",
 				JobType: platformidentification.JobType{
 					Release:      "4.11",
 					FromRelease:  "4.11",
@@ -71,7 +71,7 @@ func TestGetClosestP95Value(t *testing.T) {
 		},
 		{
 			DataKey: historicaldata.DataKey{
-				Name: "oauth-api-new-connections",
+				BackendName: "oauth-api-new-connections",
 				JobType: platformidentification.JobType{
 					Release:      "4.12",
 					FromRelease:  "4.11",
@@ -88,7 +88,7 @@ func TestGetClosestP95Value(t *testing.T) {
 
 	// Convert our slice of statistical data to a map on datakey to match what the matcher needs.
 	// This allows us to define our dest data without duplicating the DataKey struct.
-	historicalDataMap := map[historicaldata.DataKey]historicaldata.StatisticalData{}
+	historicalDataMap := map[historicaldata.DataKey]historicaldata.DisruptionStatisticalData{}
 	for _, hd := range historicalData {
 		historicalDataMap[hd.DataKey] = hd
 	}
@@ -195,7 +195,7 @@ func TestGetClosestP95Value(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			matcher := historicaldata.NewMatcherWithHistoricalData(historicalDataMap)
+			matcher := historicaldata.NewDisruptionMatcherWithHistoricalData(historicalDataMap)
 			actualDuration, _, actualErr := matcher.BestMatchP99(tt.args.backendName, tt.args.jobType)
 			assert.EqualValues(t, tt.expectedDuration, actualDuration, "unexpected duration")
 			assert.Equal(t, tt.expectedErr, actualErr, "unexpected error")

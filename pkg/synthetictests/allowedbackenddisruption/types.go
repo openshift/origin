@@ -1,7 +1,6 @@
 package allowedbackenddisruption
 
 import (
-	"bytes"
 	_ "embed"
 	"sync"
 
@@ -55,15 +54,14 @@ var queryResults []byte
 
 var (
 	readResults    sync.Once
-	historicalData historicaldata.BestMatcher
+	historicalData *historicaldata.DisruptionBestMatcher
 )
 
-func getCurrentResults() historicaldata.BestMatcher {
+func getCurrentResults() *historicaldata.DisruptionBestMatcher {
 	readResults.Do(
 		func() {
 			var err error
-			genericBytes := bytes.ReplaceAll(queryResults, []byte(`    "BackendName": "`), []byte(`    "Name": "`))
-			historicalData, err = historicaldata.NewMatcher(genericBytes)
+			historicalData, err = historicaldata.NewDisruptionMatcher(queryResults)
 			if err != nil {
 				panic(err)
 			}

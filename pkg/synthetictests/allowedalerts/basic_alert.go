@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/synthetictests/historicaldata"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -202,11 +203,18 @@ func (a *basicAlertTest) failOrFlake(ctx context.Context, restConfig *rest.Confi
 	// TODO for namespaced alerts, we need to query the data on a per-namespace basis.
 	//  For the ones we're starting with, they tend to fail one at a time, so this will hopefully not be an awful starting point until we get there.
 
-	failAfter, err := a.allowanceCalculator.FailAfter(a.alertName, *jobType)
+	dataKey := historicaldata.AlertDataKey{
+		AlertName:      a.alertName,
+		AlertLevel:     string(a.alertState),
+		AlertNamespace: a.namespace,
+		JobType:        platformidentification.JobType{},
+	}
+
+	failAfter, err := a.allowanceCalculator.FailAfter(dataKey)
 	if err != nil {
 		return fail, fmt.Sprintf("unable to calculate allowance for %s which was at %s, err %v\n\n%s", a.AlertName(), a.AlertState(), err, strings.Join(describe, "\n"))
 	}
-	flakeAfter := a.allowanceCalculator.FlakeAfter(a.alertName, *jobType)
+	flakeAfter := a.allowanceCalculator.FlakeAfter(dataKey)
 
 	switch {
 	case durationAtOrAboveLevel > failAfter:
