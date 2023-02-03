@@ -12,10 +12,10 @@ import (
 // TODO building a cross multiply would likely be beneficial
 var nextBestGuessers = []NextBestKey{
 	MicroReleaseUpgrade,
-	MinorReleaseUpgrade,
+	//	MinorReleaseUpgrade,
 	PreviousReleaseUpgrade,
 	combine(PreviousReleaseUpgrade, MicroReleaseUpgrade),
-	combine(PreviousReleaseUpgrade, MinorReleaseUpgrade),
+	//	combine(PreviousReleaseUpgrade, MinorReleaseUpgrade),
 
 	OnArchitecture("amd64"),
 	OnArchitecture("ppc64le"),
@@ -27,10 +27,10 @@ var nextBestGuessers = []NextBestKey{
 	combine(OnArchitecture("s390x"), MicroReleaseUpgrade),
 	combine(OnArchitecture("arm64"), MicroReleaseUpgrade),
 
-	combine(OnArchitecture("amd64"), MinorReleaseUpgrade),
-	combine(OnArchitecture("ppc64le"), MinorReleaseUpgrade),
-	combine(OnArchitecture("s390x"), MinorReleaseUpgrade),
-	combine(OnArchitecture("arm64"), MinorReleaseUpgrade),
+	//	combine(OnArchitecture("amd64"), MinorReleaseUpgrade),
+	//	combine(OnArchitecture("ppc64le"), MinorReleaseUpgrade),
+	//	combine(OnArchitecture("s390x"), MinorReleaseUpgrade),
+	//	combine(OnArchitecture("arm64"), MinorReleaseUpgrade),
 
 	combine(OnArchitecture("amd64"), PreviousReleaseUpgrade),
 	combine(OnArchitecture("ppc64le"), PreviousReleaseUpgrade),
@@ -42,10 +42,10 @@ var nextBestGuessers = []NextBestKey{
 	combine(OnArchitecture("s390x"), PreviousReleaseUpgrade, MicroReleaseUpgrade),
 	combine(OnArchitecture("arm64"), PreviousReleaseUpgrade, MicroReleaseUpgrade),
 
-	combine(OnArchitecture("amd64"), PreviousReleaseUpgrade, MinorReleaseUpgrade),
-	combine(OnArchitecture("ppc64le"), PreviousReleaseUpgrade, MinorReleaseUpgrade),
-	combine(OnArchitecture("s390x"), PreviousReleaseUpgrade, MinorReleaseUpgrade),
-	combine(OnArchitecture("arm64"), PreviousReleaseUpgrade, MinorReleaseUpgrade),
+	//	combine(OnArchitecture("amd64"), PreviousReleaseUpgrade, MinorReleaseUpgrade),
+	//	combine(OnArchitecture("ppc64le"), PreviousReleaseUpgrade, MinorReleaseUpgrade),
+	//	combine(OnArchitecture("s390x"), PreviousReleaseUpgrade, MinorReleaseUpgrade),
+	//	combine(OnArchitecture("arm64"), PreviousReleaseUpgrade, MinorReleaseUpgrade),
 
 	combine(ForTopology("single"), OnSDN),
 	combine(ForTopology("single"), OnSDN, PreviousReleaseUpgrade),
