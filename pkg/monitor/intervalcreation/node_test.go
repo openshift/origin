@@ -84,6 +84,19 @@ func TestMonitorApiIntervals(t *testing.T) {
 				To:   kubeletLogTime("Jul 05 17:43:12.908344"),
 			},
 		},
+		{
+			name:    "signature error",
+			logLine: `Feb 01 05:37:45.731611 ci-op-vyccmv3h-4ef92-xs5k5-master-0 kubenswrapper[2213]: E0201 05:37:45.730879 2213 pod_workers.go:965] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"oauth-proxy\" with ErrImagePull: \"rpc error: code = Unknown desc = copying system image from manifest list: reading signatures: parsing signature https://registry.redhat.io/containers/sigstore/openshift4/ose-oauth-proxy@sha256=f968922564c3eea1c69d6bbe529d8970784d6cae8935afaf674d9fa7c0f72ea3/signature-9: unrecognized signature format, starting with binary 0x3c\"" pod="openshift-e2e-loki/loki-promtail-plm74" podUID=59b26cbf-3421-407c-98ee-986b5a091ef4`,
+			want: monitorapi.EventInterval{
+				Condition: monitorapi.Condition{
+					Level:   monitorapi.Info,
+					Locator: "ns/openshift-e2e-loki pod/loki-promtail-plm74 uid/59b26cbf-3421-407c-98ee-986b5a091ef4 container/oauth-proxy",
+					Message: "reason/ErrImagePull UnrecognizedSignatureFormat",
+				},
+				From: kubeletLogTime("Feb 01 05:37:45.731611"),
+				To:   kubeletLogTime("Feb 01 05:37:45.731611"),
+			},
+		},
 	}
 
 	logString := ""
