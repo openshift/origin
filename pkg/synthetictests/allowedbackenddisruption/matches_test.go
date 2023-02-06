@@ -122,7 +122,7 @@ func TestGetClosestP95Value(t *testing.T) {
 				backendName: "kube-api-new-connections",
 				jobType: platformidentification.JobType{
 					Release:      "4.12",
-					FromRelease:  "4.11",
+					FromRelease:  "4.12",
 					Platform:     "aws",
 					Architecture: "amd64",
 					Network:      "ovn",
