@@ -192,7 +192,6 @@ func (cma *chaosMonkeyAdapter) Test(sem *chaosmonkey.Semaphore) {
 		cma.testSuiteReport.TestCases = append(cma.testSuiteReport.TestCases, testResult)
 		return
 	}
-	g.BeforeEach(cma.framework.BeforeEach)
 	cma.test.Setup(cma.framework)
 	defer cma.test.Teardown(cma.framework)
 	ready()
