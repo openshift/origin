@@ -3132,3 +3132,4 @@
 "[sig-storage] Volumes NFSv4 should be mountable for NFSv4 [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]"
 "[sig-storage][Late] Metrics should report short attach times [Skipped:Disconnected] [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]"
 "[sig-storage][Late] Metrics should report short mount times [Skipped:Disconnected] [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]"
+"[sig-installer][Feature:AzureUserTags] Managed cluster should have user defined tags present on all the created resources [Suite:openshift/conformance/parallel]"
