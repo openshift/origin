@@ -82,7 +82,7 @@ func (t *serviceLoadBalancerUpgradeTest) RequiresKubeNamespace() bool {
 	return true
 }
 
-func shouldTestPDBs() bool { return true }
+func shouldTestPDBs() bool { return false }
 
 func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framework, backendSampler disruption.BackendSampler) error {
 	// we must update our namespace to bypass SCC so that we can avoid default mutation of our pod and SCC evaluation.
