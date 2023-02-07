@@ -2981,7 +2981,7 @@ var Annotations = map[string]string{
 
 	"[sig-node] should override timeoutGracePeriodSeconds when annotation is set": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-node] supplemental groups Ensure supplemental groups propagate to docker should propagate requested groups to the container [Local][apigroup:user.openshift.io][apigroup:security.openshift.io]": "",
+	"[sig-node] supplemental groups Ensure supplemental groups propagate to docker should propagate requested groups to the container [apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node][Late] should not have pod creation failures due to systemd timeouts": " [Suite:openshift/conformance/parallel]",
 
