@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/stretchr/testify/assert"
 
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 )
@@ -106,18 +107,11 @@ func TestMonitorApiIntervals(t *testing.T) {
 
 	intervals := eventsFromKubeletLogs("testName", []byte(logString))
 
-	if intervals == nil {
-		t.Fatal("Invalid intervals")
-	}
-
-	if intervals.Len() != len(testcase) {
-		t.Fatal("Mismatched interval count")
-	}
+	assert.NotNil(t, intervals, "Invalid intervals")
+	assert.Equal(t, intervals.Len(), len(testcase), "Mismatched interval count")
 
 	for i := range intervals {
-		if !reflect.DeepEqual(intervals[i], testcase[i].want) {
-			t.Errorf("Interval compare for %s = %v, want %v", testcase[i].name, intervals[i], testcase[i])
-		}
+		assert.Equalf(t, intervals[i], testcase[i].want, "Interval compare for %s = %v, want %v", testcase[i].name, intervals[i], testcase[i])
 	}
 }
 
