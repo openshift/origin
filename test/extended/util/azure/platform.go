@@ -21,20 +21,20 @@ func SkipUnlessPlatformAzure(infra objx.Map) {
 // in the infrastructure/cluster resource. Will return empty
 // on encountering any errors or some issue in the resource itself.
 func GetInfrastructureName(infra objx.Map) string {
-	platform := infra.Get("status.InfrastructureName")
+	platform := infra.Get("status.infrastructureName")
 	return platform.Str()
 }
 
 // GetInfraResourceTags returns the list of tags present in
 // infrastructure/cluster resource.
 func GetInfraResourceTags(infra objx.Map) (tags map[string]string) {
-	platform := infra.Get("status.platformStatus.azure.ResourceTags")
+	platform := infra.Get("status.platformStatus.azure.resourceTags")
 	platformTags := platform.InterSlice()
 	if platformTags != nil {
 		tags = make(map[string]string, len(platformTags))
 		for _, item := range platformTags {
-			tag := item.(v1.AzureResourceTag)
-			tags[tag.Key] = tag.Value
+			tag := item.(map[string]interface{})
+			tags[tag["key"].(string)] = tag["value"].(string)
 		}
 	}
 	return
