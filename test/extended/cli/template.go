@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -28,6 +29,7 @@ var _ = g.Describe("[sig-cli] templates", func() {
 		templateRequiredParamEnvPath = filepath.Join(testDataPath, "templates", "template_required_params.env")
 		templateTypePrecisionPath    = filepath.Join(testDataPath, "templates", "template-type-precision.json")
 		basicUsersBindingPath        = filepath.Join(testDataPath, "templates", "basic-users-binding.json")
+		multilinePath                = filepath.Join(testDataPath, "templates", "multiline.txt")
 	)
 
 	g.It("process [apigroup:apps.openshift.io][apigroup:template.openshift.io][Skipped:Disconnected]", func() {
@@ -78,6 +80,7 @@ var _ = g.Describe("[sig-cli] templates", func() {
 		o.Expect(out).To(o.ContainSubstring("ruby-27-centos7"))
 		out, err = oc.Run("describe").Args("templates", "ruby-helloworld-sample").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("BuildConfig"))
 		o.Expect(out).To(o.ContainSubstring("ruby-sample-build"))
 		err = oc.Run("delete").Args("-f", appTemplatePath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -92,6 +95,13 @@ var _ = g.Describe("[sig-cli] templates", func() {
 		out, err = oc.Run("process").Args("-f", guestbookTemplatePath, "--local", "-l", "app=guestbook", "-o", "yaml").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("app: guestbook"))
+
+		localOut, err := oc.Run("process").Args("-f", guestbookTemplatePath, "--local", "-l", "app=guestbook", "-o", "yaml", "ADMIN_USERNAME=au", "ADMIN_PASSWORD=ap", "REDIS_PASSWORD=rp").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		remoteOut, err := oc.Run("process").Args("-f", guestbookTemplatePath, "-l", "app=guestbook", "-o", "yaml", "ADMIN_USERNAME=au", "ADMIN_PASSWORD=ap", "REDIS_PASSWORD=rp").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(localOut).To(o.Equal(remoteOut))
+
 		out, err = oc.Run("process").Args("-f", guestbookTemplatePath, "--local", "-l", "app=guestbook", "-o", "yaml", "--server", "0.0.0.0:1").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("app: guestbook"))
@@ -126,6 +136,13 @@ var _ = g.Describe("[sig-cli] templates", func() {
 		o.Expect(out).To(o.ContainSubstring("root"))
 		o.Expect(out).To(o.ContainSubstring("adminpass"))
 		o.Expect(out).To(o.ContainSubstring("redispass"))
+		templateEnvs, err := os.ReadFile(guestbookTemplateEnvPath)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		out, err = oc.Run("process").Args("-f", guestbookTemplatePath, "--param-file=-").InputString(string(templateEnvs)).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("root"))
+		o.Expect(out).To(o.ContainSubstring("adminpass"))
+		o.Expect(out).To(o.ContainSubstring("redispass"))
 		out, err = oc.Run("process").Args("-f", guestbookTemplatePath, fmt.Sprintf("--param-file=%s", guestbookTemplateEnvPath), "-p", "ADMIN_USERNAME=myuser").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("ignoring value from file"))
@@ -154,6 +171,12 @@ var _ = g.Describe("[sig-cli] templates", func() {
 		out, err = oc.Run("process").Args("-f", guestbookTemplatePath, "-p", "ABSENT_PARAMETER=absent").Output()
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("unknown parameter name"))
+		out, err = oc.Run("process").Args("-f", templateRequiredParamPath, "--param-file=-").InputString("fo%(o=bar").Output()
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("invalid parameter assignment"))
+		out, err = oc.Run("process").Args("-f", templateRequiredParamPath, "--param-file=-").InputString("S P A C E S=test").Output()
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("invalid parameter assignment"))
 		err = oc.Run("process").Args("-f", guestbookTemplatePath, "-p", "ABSENT_PARAMETER=absent", "--ignore-unknown-parameters").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.Run("delete").Args("-f", appTemplateStiPath).Execute()
@@ -309,6 +332,11 @@ var _ = g.Describe("[sig-cli] templates", func() {
 		out, err = oc.Run("process").Args("-f", templateRequiredParamPath, "required_param=a,b=c,d").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).NotTo(o.ContainSubstring("no longer accepts comma-separated list"))
+		multiLine, err := os.ReadFile(multilinePath)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		out, err = oc.Run("process").Args("-f", templateRequiredParamPath, fmt.Sprintf("--param=required_param=%s", string(multiLine))).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("also,with=commas"))
 	})
 
 	g.It("different namespaces [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:template.openshift.io][apigroup:authorization.openshift.io][Skipped:Disconnected]", func() {
