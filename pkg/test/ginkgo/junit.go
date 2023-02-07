@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/test"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
 	"github.com/openshift/origin/pkg/version"
@@ -100,7 +101,7 @@ func writeJUnitReport(s *junitapi.JUnitTestSuite, filePrefix, fileSuffix, dir st
 	}
 	path := filepath.Join(dir, fmt.Sprintf("%s_%s.xml", filePrefix, fileSuffix))
 	fmt.Fprintf(errOut, "Writing JUnit report to %s\n\n", path)
-	return ioutil.WriteFile(path, out, 0640)
+	return ioutil.WriteFile(path, test.StripANSI(out), 0640)
 }
 
 func lastLinesUntil(output string, max int, until ...string) string {
