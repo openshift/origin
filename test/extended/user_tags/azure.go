@@ -68,7 +68,7 @@ var _ = g.Describe("[sig-installer][Feature:AzureUserTags] Managed cluster shoul
 				}
 				o.Expect(resourceTagSet.Tags).Should(
 					o.HaveKeyWithValue(k, v),
-					fmt.Sprintf("%s/%s does not match required tagset", resourceTagSet.Type, resourceTagSet.Name))
+					fmt.Sprintf("%s/%s does not have required tagset", resourceTagSet.Type, resourceTagSet.Name))
 			}
 		}
 	})
