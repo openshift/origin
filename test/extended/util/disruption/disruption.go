@@ -17,19 +17,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openshift/origin/pkg/riskanalysis"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	admissionapi "k8s.io/pod-security-admission/api"
-
-	g "github.com/onsi/ginkgo/v2"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"github.com/openshift/origin/pkg/riskanalysis"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
+	g "github.com/onsi/ginkgo/v2"
 	"k8s.io/kubernetes/test/e2e/chaosmonkey"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/ginkgowrapper"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/kubernetes/test/e2e/upgrades"
+	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 const (
@@ -89,6 +88,12 @@ type TestData struct {
 // used to define the overall test that will be run.
 func Run(f *framework.Framework, description, testname string, adapter TestData, invariants []upgrades.Test, fn func()) {
 	testSuite := &junitapi.JUnitTestSuite{Name: description}
+
+	// Ensure colors aren't emitted by chaos monkey tests
+	_, reporterConfig := g.GinkgoConfiguration()
+	reporterConfig.NoColor = true
+	g.SetReporterConfig(reporterConfig)
+
 	cm := chaosmonkey.New(func() {
 		start := time.Now()
 		defer finalizeTest(start, testname, testname, testSuite, f)
@@ -389,7 +394,7 @@ func hasFrameworkFlake(f *framework.Framework) (string, bool) {
 // RecordJUnit will capture the result of invoking fn as either a passing or failing JUnit test
 // that will be recorded alongside the current test with name. These methods only work in the
 // context of a disruption test suite today and will not be reported as JUnit failures when
-// used within normal ginkgo suties.
+// used within normal ginkgo suites.
 func RecordJUnit(f *framework.Framework, name string, fn func() (err error, flake bool)) error {
 	start := time.Now()
 	err, flake := fn()
