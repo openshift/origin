@@ -36,8 +36,9 @@ func TestGetClosestP95Value(t *testing.T) {
 					Topology:     "ha",
 				},
 			},
-			P95: 1.578,
-			P99: 2.987,
+			P95:     1.578,
+			P99:     2.987,
+			JobRuns: 1000,
 		},
 		{
 			DataKey: historicaldata.DataKey{
@@ -51,8 +52,9 @@ func TestGetClosestP95Value(t *testing.T) {
 					Topology:     "single",
 				},
 			},
-			P95: 50.827,
-			P99: 120.458,
+			P95:     50.827,
+			P99:     120.458,
+			JobRuns: 1000,
 		},
 		{
 			DataKey: historicaldata.DataKey{
@@ -66,8 +68,9 @@ func TestGetClosestP95Value(t *testing.T) {
 					Topology:     "single",
 				},
 			},
-			P95: 49.419,
-			P99: 70.381,
+			P95:     49.419,
+			P99:     70.381,
+			JobRuns: 1000,
 		},
 		{
 			DataKey: historicaldata.DataKey{
@@ -81,8 +84,25 @@ func TestGetClosestP95Value(t *testing.T) {
 					Topology:     "single",
 				},
 			},
-			P95: 20.714,
-			P99: 35.917,
+			P95:     20.714,
+			P99:     35.917,
+			JobRuns: 1000,
+		},
+		{
+			DataKey: historicaldata.DataKey{
+				BackendName: "image-registry-new-connections",
+				JobType: platformidentification.JobType{
+					Release:      "4.13",
+					FromRelease:  "4.12",
+					Platform:     "aws",
+					Architecture: "amd64",
+					Network:      "sdn",
+					Topology:     "single",
+				},
+			},
+			P95:     20.714,
+			P99:     35.917,
+			JobRuns: 99, // not enough to count
 		},
 	}
 
@@ -188,6 +208,21 @@ func TestGetClosestP95Value(t *testing.T) {
 					Platform:     "azure",
 					Architecture: "amd64",
 					Topology:     "missing",
+				},
+			},
+			expectedDuration: nil,
+		},
+		{
+			name: "direct match but insufficient job runs",
+			args: args{
+				backendName: "image-registry-new-connections",
+				jobType: platformidentification.JobType{
+					Release:      "4.13",
+					FromRelease:  "4.12",
+					Platform:     "aws",
+					Architecture: "amd64",
+					Network:      "sdn",
+					Topology:     "single",
 				},
 			},
 			expectedDuration: nil,

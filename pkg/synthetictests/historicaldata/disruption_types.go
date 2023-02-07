@@ -10,6 +10,12 @@ import (
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 )
 
+// minJobRuns is the required threshold for historical data to be sufficient to run the test.
+// If we find matchig historical data but not enough job runs, we either fallback to the next
+// best matcher, or failing that, skip the test entirely. We require 100 runs because we're
+// attempting to match on a P99, and any less than this is logically not a P99.
+const minJobRuns = 100
+
 type StatisticalDuration struct {
 	platformidentification.JobType `json:",inline"`
 	P95                            time.Duration
@@ -20,6 +26,7 @@ type DisruptionStatisticalData struct {
 	DataKey `json:",inline"`
 	P95     float64
 	P99     float64
+	JobRuns int64
 }
 
 type DataKey struct {
@@ -83,11 +90,11 @@ func (b *DisruptionBestMatcher) bestMatch(name string, jobType platformidentific
 		JobType:     jobType,
 	}
 
-	if percentiles, ok := b.historicalData[exactMatchKey]; ok {
+	if percentiles, ok := b.historicalData[exactMatchKey]; ok && percentiles.JobRuns > minJobRuns {
 		return percentiles, "", nil
 	}
 
-	// tested in TestGetClosestP95Value in allowedbackendisruption.  Should get a local test at some point.
+	// tested in TestGetClosestP99Value in allowedbackendisruption.  Should get a local test at some point.
 	for _, nextBestGuesser := range nextBestGuessers {
 		nextBestJobType, ok := nextBestGuesser(jobType)
 		if !ok {
@@ -97,7 +104,7 @@ func (b *DisruptionBestMatcher) bestMatch(name string, jobType platformidentific
 			BackendName: name,
 			JobType:     nextBestJobType,
 		}
-		if percentiles, ok := b.historicalData[nextBestMatchKey]; ok {
+		if percentiles, ok := b.historicalData[nextBestMatchKey]; ok && percentiles.JobRuns > minJobRuns {
 			return percentiles, fmt.Sprintf("(no exact match for %#v, fell back to %#v)", exactMatchKey, nextBestMatchKey), nil
 		}
 	}

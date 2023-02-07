@@ -35,8 +35,9 @@ func TestGetClosestP99Value(t *testing.T) {
 					Topology:     "ha",
 				},
 			},
-			P95: 4.8,
-			P99: 7.9,
+			P95:     4.8,
+			P99:     7.9,
+			JobRuns: 1000,
 		},
 		{
 			AlertDataKey: historicaldata.AlertDataKey{
@@ -52,8 +53,27 @@ func TestGetClosestP99Value(t *testing.T) {
 					Topology:     "ha",
 				},
 			},
-			P95: 50.827,
-			P99: 120.458,
+			P95:     50.827,
+			P99:     120.458,
+			JobRuns: 1000,
+		},
+		{
+			AlertDataKey: historicaldata.AlertDataKey{
+				AlertName:      "etcdGRPCRequestsSlow",
+				AlertNamespace: "",
+				AlertLevel:     "warning",
+				JobType: platformidentification.JobType{
+					Release:      "4.13",
+					FromRelease:  "4.12",
+					Platform:     "azure",
+					Architecture: "amd64",
+					Network:      "sdn",
+					Topology:     "ha",
+				},
+			},
+			P95:     20.100,
+			P99:     24.938,
+			JobRuns: 10, // should get ignored, not min 100 results
 		},
 	}
 
@@ -115,6 +135,23 @@ func TestGetClosestP99Value(t *testing.T) {
 					Platform:     "azure",
 					Architecture: "amd64",
 					Topology:     "missing",
+				},
+			},
+			expectedDuration: nil,
+		},
+		{
+			name: "skip if insufficient data",
+			key: historicaldata.AlertDataKey{
+				AlertName:      "etcdGRPCRequestsSlow",
+				AlertNamespace: "",
+				AlertLevel:     "warning",
+				JobType: platformidentification.JobType{
+					Release:      "4.13",
+					FromRelease:  "4.12",
+					Platform:     "azure",
+					Network:      "sdn",
+					Architecture: "amd64",
+					Topology:     "ha",
 				},
 			},
 			expectedDuration: nil,

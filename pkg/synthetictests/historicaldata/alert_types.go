@@ -80,7 +80,7 @@ func NewAlertMatcherWithHistoricalData(data map[AlertDataKey]AlertStatisticalDat
 func (b *AlertBestMatcher) bestMatch(key AlertDataKey) (AlertStatisticalData, string, error) {
 	exactMatchKey := key
 
-	if percentiles, ok := b.HistoricalData[exactMatchKey]; ok {
+	if percentiles, ok := b.HistoricalData[exactMatchKey]; ok && percentiles.JobRuns >= minJobRuns {
 		return percentiles, "", nil
 	}
 
@@ -96,7 +96,7 @@ func (b *AlertBestMatcher) bestMatch(key AlertDataKey) (AlertStatisticalData, st
 			AlertLevel:     key.AlertLevel,
 			JobType:        nextBestJobType,
 		}
-		if percentiles, ok := b.HistoricalData[nextBestMatchKey]; ok {
+		if percentiles, ok := b.HistoricalData[nextBestMatchKey]; ok && percentiles.JobRuns >= minJobRuns {
 			return percentiles, fmt.Sprintf("(no exact match for %#v, fell back to %#v)", exactMatchKey, nextBestMatchKey), nil
 		}
 	}
