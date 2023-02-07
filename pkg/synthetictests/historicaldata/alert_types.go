@@ -15,6 +15,7 @@ type AlertStatisticalData struct {
 	Name         string
 	P95          float64
 	P99          float64
+	JobRuns      int64
 }
 
 type AlertDataKey struct {
@@ -26,7 +27,7 @@ type AlertDataKey struct {
 }
 
 type AlertBestMatcher struct {
-	historicalData map[AlertDataKey]AlertStatisticalData
+	HistoricalData map[AlertDataKey]AlertStatisticalData
 }
 
 func NewAlertMatcher(historicalJSON []byte) (*AlertBestMatcher, error) {
@@ -39,6 +40,7 @@ func NewAlertMatcher(historicalJSON []byte) (*AlertBestMatcher, error) {
 		AlertDataKey `json:",inline"`
 		P95          string
 		P99          string
+		JobRuns      int64
 	}
 	decodingPercentilesList := []DecodingPercentile{}
 
@@ -59,25 +61,26 @@ func NewAlertMatcher(historicalJSON []byte) (*AlertBestMatcher, error) {
 			AlertDataKey: currDecoded.AlertDataKey,
 			P95:          p95,
 			P99:          p99,
+			JobRuns:      currDecoded.JobRuns,
 		}
 		historicalData[curr.AlertDataKey] = curr
 	}
 
 	return &AlertBestMatcher{
-		historicalData: historicalData,
+		HistoricalData: historicalData,
 	}, nil
 }
 
 func NewAlertMatcherWithHistoricalData(data map[AlertDataKey]AlertStatisticalData) *AlertBestMatcher {
 	return &AlertBestMatcher{
-		historicalData: data,
+		HistoricalData: data,
 	}
 }
 
 func (b *AlertBestMatcher) bestMatch(key AlertDataKey) (AlertStatisticalData, string, error) {
 	exactMatchKey := key
 
-	if percentiles, ok := b.historicalData[exactMatchKey]; ok {
+	if percentiles, ok := b.HistoricalData[exactMatchKey]; ok {
 		return percentiles, "", nil
 	}
 
@@ -93,7 +96,7 @@ func (b *AlertBestMatcher) bestMatch(key AlertDataKey) (AlertStatisticalData, st
 			AlertLevel:     key.AlertLevel,
 			JobType:        nextBestJobType,
 		}
-		if percentiles, ok := b.historicalData[nextBestMatchKey]; ok {
+		if percentiles, ok := b.HistoricalData[nextBestMatchKey]; ok {
 			return percentiles, fmt.Sprintf("(no exact match for %#v, fell back to %#v)", exactMatchKey, nextBestMatchKey), nil
 		}
 	}

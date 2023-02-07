@@ -129,3 +129,50 @@ func TestGetClosestP99Value(t *testing.T) {
 		})
 	}
 }
+
+// TestAlertDataFileParsing uses the actual query_results.json data file we populate weekly
+// from bigquery and commit into origin. Test ensures we can parse it and the data looks sane.
+func TestAlertDataFileParsing(t *testing.T) {
+
+	alertMatcher := getCurrentResults()
+
+	// The list of known alerts that goes into this file is composed of everything we've ever
+	// seen fire in that release. As such it can change from one release to the next as alerts
+	// are added or removed, or just don't happen to fire.
+	//
+	// To test here we're really just looking for *something* to indicate we have valid data.
+
+	var dataOver100Runs int
+	var foundAWSOVN bool
+	var foundAzureOVN bool
+	var foundGCPOVN bool
+	var foundMetalOVN bool
+
+	for _, v := range alertMatcher.HistoricalData {
+		if v.JobRuns > 100 {
+			dataOver100Runs++
+		}
+
+		if v.Platform == "aws" && v.Network == "ovn" && v.Architecture == "amd64" {
+			foundAWSOVN = true
+		}
+		if v.Platform == "azure" && v.Network == "ovn" && v.Architecture == "amd64" {
+			foundAzureOVN = true
+		}
+		if v.Platform == "gcp" && v.Network == "ovn" && v.Architecture == "amd64" {
+			foundGCPOVN = true
+		}
+		if v.Platform == "metal" && v.Network == "ovn" && v.Architecture == "amd64" {
+			foundMetalOVN = true
+		}
+
+	}
+
+	assert.Greater(t, dataOver100Runs, 5,
+		"expected at least 5 entries in query_results.json to have over 100 runs")
+	assert.True(t, foundAWSOVN, "no aws ovn job data in query_results.json")
+	assert.True(t, foundGCPOVN, "no gcp ovn job data in query_results.json")
+	assert.True(t, foundAzureOVN, "no azure ovn job data in query_results.json")
+	assert.True(t, foundMetalOVN, "no metal ovn job data in query_results.json")
+
+}
