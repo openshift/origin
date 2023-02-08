@@ -142,9 +142,8 @@ func NewCLI(project string) *CLI {
 func NewCLIWithoutNamespace(project string) *CLI {
 	cli := &CLI{
 		kubeFramework: &framework.Framework{
-			SkipNamespaceCreation:    true,
-			BaseName:                 project,
-			AddonResourceConstraints: make(map[string]framework.ResourceConstraint),
+			SkipNamespaceCreation: true,
+			BaseName:              project,
 			Options: framework.Options{
 				ClientQPS:   20,
 				ClientBurst: 50,
@@ -172,9 +171,8 @@ func NewHypershiftManagementCLI(project string) *CLI {
 	o.Expect(err).NotTo(o.HaveOccurred())
 	return &CLI{
 		kubeFramework: &framework.Framework{
-			SkipNamespaceCreation:    true,
-			BaseName:                 project,
-			AddonResourceConstraints: make(map[string]framework.ResourceConstraint),
+			SkipNamespaceCreation: true,
+			BaseName:              project,
 			Options: framework.Options{
 				ClientQPS:   20,
 				ClientBurst: 50,

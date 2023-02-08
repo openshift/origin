@@ -323,8 +323,7 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 		}
 
 		testFrameworks[t.Name()] = &framework.Framework{
-			BaseName:                 ns,
-			AddonResourceConstraints: make(map[string]framework.ResourceConstraint),
+			BaseName: ns,
 			Options: framework.Options{
 				ClientQPS:   20,
 				ClientBurst: 50,
