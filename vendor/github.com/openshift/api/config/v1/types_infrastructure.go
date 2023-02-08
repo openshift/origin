@@ -460,6 +460,7 @@ type AWSResourceTag struct {
 type AzurePlatformSpec struct{}
 
 // AzurePlatformStatus holds the current status of the Azure infrastructure provider.
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.resourceTags) && !has(self.resourceTags) || has(oldSelf.resourceTags) && has(self.resourceTags)",message="resourceTags may only be configured during installation"
 type AzurePlatformStatus struct {
 	// resourceGroupName is the Resource Group for new Azure resources created for the cluster.
 	ResourceGroupName string `json:"resourceGroupName"`
@@ -478,6 +479,34 @@ type AzurePlatformStatus struct {
 	// armEndpoint specifies a URL to use for resource management in non-soverign clouds such as Azure Stack.
 	// +optional
 	ARMEndpoint string `json:"armEndpoint,omitempty"`
+
+	// resourceTags is a list of additional tags to apply to Azure resources created for the cluster.
+	// See https://docs.microsoft.com/en-us/rest/api/resources/tags for information on tagging Azure resources.
+	// Due to limitations on Automation, Content Delivery Network, DNS Azure resources, a maximum of 15 tags
+	// may be applied. OpenShift reserves 5 tags for internal use, allowing 10 tags for user configuration.
+	// +kubebuilder:validation:MaxItems=10
+	// +kubebuilder:validation:XValidation:rule="self.all(x, x in oldSelf) && oldSelf.all(x, x in self)",message="resourceTags are immutable and may only be configured during installation"
+	// +optional
+	ResourceTags []AzureResourceTag `json:"resourceTags,omitempty"`
+}
+
+// AzureResourceTag is a tag to apply to Azure resources created for the cluster.
+type AzureResourceTag struct {
+	// key is the key part of the tag. A tag key can have a maximum of 128 characters and cannot be empty. Key
+	// must begin with a letter, end with a letter, number or underscore, and must contain only alphanumeric
+	// characters and the following special characters `_ . -`.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=128
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([0-9A-Za-z_.-]*[0-9A-Za-z_])?$`
+	Key string `json:"key"`
+	// value is the value part of the tag. A tag value can have a maximum of 256 characters and cannot be empty. Value
+	// must contain only alphanumeric characters and the following special characters `_ + , - . / : ; < = > ? @`.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.=+-@]+$`
+	Value string `json:"value"`
 }
 
 // AzureCloudEnvironment is the name of the Azure cloud environment
@@ -834,7 +863,6 @@ type VSpherePlatformSpec struct {
 	// ---
 	// + If VCenters is not defined use the existing cloud-config configmap defined
 	// + in openshift-config.
-	// +openshift:enable:FeatureSets=TechPreviewNoUpgrade
 	// +kubebuilder:validation:MaxItems=1
 	// +kubebuilder:validation:MinItems=0
 	// +optional
@@ -842,7 +870,6 @@ type VSpherePlatformSpec struct {
 
 	// failureDomains contains the definition of region, zone and the vCenter topology.
 	// If this is omitted failure domains (regions and zones) will not be used.
-	// +openshift:enable:FeatureSets=TechPreviewNoUpgrade
 	// +optional
 	FailureDomains []VSpherePlatformFailureDomainSpec `json:"failureDomains,omitempty"`
 
@@ -851,7 +878,6 @@ type VSpherePlatformSpec struct {
 	// If this field is omitted, networking defaults to the legacy
 	// address selection behavior which is to only support a single address and
 	// return the first one found.
-	// +openshift:enable:FeatureSets=TechPreviewNoUpgrade
 	// +optional
 	NodeNetworking VSpherePlatformNodeNetworking `json:"nodeNetworking,omitempty"`
 }
