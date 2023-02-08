@@ -192,6 +192,8 @@ func (cma *chaosMonkeyAdapter) Test(sem *chaosmonkey.Semaphore) {
 		cma.testSuiteReport.TestCases = append(cma.testSuiteReport.TestCases, testResult)
 		return
 	}
+	// TODO: this requires furhter debugging
+	cma.framework.BeforeEach()
 	cma.test.Setup(cma.framework)
 	defer cma.test.Teardown(cma.framework)
 	ready()
@@ -258,7 +260,13 @@ func finalizeTest(start time.Time, testName, className string, ts *junitapi.JUni
 		Classname: className,
 		Duration:  testDuration,
 	}
+	// TODO: do we need a way to know about skipped tests?
+	// switch r := r.(type) {
+	// case e2eskipper.SkipPanic:
+	// 	testResult.SkipMessage = &junitapi.SkipMessage{Message: fmt.Sprintf("%s:%d %q", r.Filename, r.Line, r.Message)}
 	testResult.FailureOutput = &junitapi.FailureOutput{Message: fmt.Sprintf("%v\n\n%s", r, debug.Stack())}
+	// there's a way to check for SpecStatePanicked from ginkgo
+
 	ts.TestCases = append(ts.TestCases, testResult)
 
 	// if we have a panic, but it hasn't been recorded by ginkgo, panic now

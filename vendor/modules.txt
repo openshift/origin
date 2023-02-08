@@ -3227,6 +3227,7 @@ k8s.io/kubernetes/test/e2e/framework/autoscaling
 k8s.io/kubernetes/test/e2e/framework/config
 k8s.io/kubernetes/test/e2e/framework/daemonset
 k8s.io/kubernetes/test/e2e/framework/debug
+k8s.io/kubernetes/test/e2e/framework/debug/init
 k8s.io/kubernetes/test/e2e/framework/deployment
 k8s.io/kubernetes/test/e2e/framework/endpoints
 k8s.io/kubernetes/test/e2e/framework/endpointslice
@@ -3239,6 +3240,7 @@ k8s.io/kubernetes/test/e2e/framework/kubelet
 k8s.io/kubernetes/test/e2e/framework/kubesystem
 k8s.io/kubernetes/test/e2e/framework/manifest
 k8s.io/kubernetes/test/e2e/framework/metrics
+k8s.io/kubernetes/test/e2e/framework/metrics/init
 k8s.io/kubernetes/test/e2e/framework/network
 k8s.io/kubernetes/test/e2e/framework/node
 k8s.io/kubernetes/test/e2e/framework/perf

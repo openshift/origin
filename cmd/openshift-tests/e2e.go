@@ -10,6 +10,11 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/kubectl/pkg/util/templates"
 
+	// these register framework.NewFrameworkExtensions responsible for
+	// executing post-test actions, here debug and metrics gathering
+	_ "k8s.io/kubernetes/test/e2e/framework/debug/init"
+	_ "k8s.io/kubernetes/test/e2e/framework/metrics/init"
+
 	_ "github.com/openshift/origin/test/extended"
 	_ "github.com/openshift/origin/test/extended/util/annotate/generated"
 )
