@@ -218,7 +218,6 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 	g.Describe("Idling", func() {
 		g.Context("with a single service and DeploymentConfig [apigroup:route.openshift.io]", func() {
 			g.BeforeEach(func() {
-				framework.BeforeEach()
 				fixture = echoServerFixture
 			})
 
@@ -229,7 +228,6 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 
 		g.Context("with a single service and ReplicationController", func() {
 			g.BeforeEach(func() {
-				framework.BeforeEach()
 				fixture = echoServerRcFixture
 			})
 
@@ -241,7 +239,6 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 
 	g.Describe("Unidling [apigroup:apps.openshift.io][apigroup:route.openshift.io]", func() {
 		g.BeforeEach(func() {
-			framework.BeforeEach()
 			fixture = echoServerFixture
 		})
 

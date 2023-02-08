@@ -156,7 +156,6 @@ func NewCLIWithoutNamespace(project string) *CLI {
 		withoutNamespace: true,
 	}
 	g.AfterEach(cli.TeardownProject)
-	g.AfterEach(cli.kubeFramework.AfterEach)
 	g.BeforeEach(cli.kubeFramework.BeforeEach)
 	return cli
 }
