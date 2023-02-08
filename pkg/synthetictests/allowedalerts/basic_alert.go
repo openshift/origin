@@ -200,9 +200,6 @@ func (a *basicAlertTest) failOrFlake(ctx context.Context, restConfig *rest.Confi
 		return fail, err.Error()
 	}
 
-	// TODO for namespaced alerts, we need to query the data on a per-namespace basis.
-	//  For the ones we're starting with, they tend to fail one at a time, so this will hopefully not be an awful starting point until we get there.
-
 	dataKey := historicaldata.AlertDataKey{
 		AlertName:      a.alertName,
 		AlertLevel:     string(a.alertState),

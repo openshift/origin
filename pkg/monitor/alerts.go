@@ -77,7 +77,8 @@ func whenWasAlertInState(ctx context.Context, prometheusClient prometheusv1.API,
 	return ret, nil
 }
 
-func FetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Config, startTime time.Time) ([]monitorapi.EventInterval, error) {
+func FetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Config,
+	startTime time.Time) ([]monitorapi.EventInterval, error) {
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err

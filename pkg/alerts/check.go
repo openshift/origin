@@ -8,12 +8,14 @@ import (
 
 	o "github.com/onsi/gomega"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -21,9 +23,25 @@ type allowedAlertsFunc func(configclient.Interface) (allowedFiringWithBugs, allo
 
 // CheckAlerts will query prometheus and ensure no-unexpected alerts were pending or firing.
 // Used both post-upgrade and post-conformance, with different allowances for each.
-func CheckAlerts(allowancesFunc allowedAlertsFunc, prometheusClient prometheusv1.API, configClient configclient.Interface, testDuration time.Duration, f *framework.Framework) {
+func CheckAlerts(allowancesFunc allowedAlertsFunc,
+	restConfig *rest.Config,
+	prometheusClient prometheusv1.API, // TODO: remove
+	configClient configclient.Interface, // TODO: remove
+	testDuration time.Duration,
+	f *framework.Framework) {
+
 	firingAlertsWithBugs, allowedFiringAlerts, pendingAlertsWithBugs, allowedPendingAlerts :=
 		allowancesFunc(configClient)
+
+	// TODO: we know duration of how long the non-invariant tests took, but not the actual start time,
+	// now minus duration would be close, but could be off if it takes time for us to reach this invariant
+	// test vs when we stopped the normal ginko suite.
+	startTime := time.Now().Add(-3 * time.Hour)
+	_, err := monitor.FetchEventIntervalsForAllAlerts(context.TODO(), restConfig, startTime)
+	if err != nil {
+		framework.Failf("error getting intervals for alerts: %v", err)
+		return
+	}
 
 	// we exclude alerts that have their own separate tests.
 	for _, alertTest := range allowedalerts.AllAlertTests(context.TODO(), nil, 0) {
