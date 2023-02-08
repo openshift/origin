@@ -131,8 +131,14 @@ func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framewor
 	ginkgo.By("creating a TCP service " + serviceName + " with type=LoadBalancer in namespace " + ns.Name)
 	tcpService, err := jig.CreateTCPService(func(s *v1.Service) {
 		s.Spec.Type = v1.ServiceTypeLoadBalancer
+
 		// ServiceExternalTrafficPolicyTypeCluster performs during disruption, Local does not
 		s.Spec.ExternalTrafficPolicy = v1.ServiceExternalTrafficPolicyTypeCluster
+		// GCP clusters may need to set externalTrafficPolicy to Local
+		if infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type == configv1.GCPPlatformType {
+			s.Spec.ExternalTrafficPolicy = v1.ServiceExternalTrafficPolicyTypeLocal
+		}
+
 		if s.Annotations == nil {
 			s.Annotations = make(map[string]string)
 		}
