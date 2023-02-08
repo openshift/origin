@@ -207,7 +207,7 @@ func (a *basicAlertTest) failOrFlake(ctx context.Context, restConfig *rest.Confi
 		AlertName:      a.alertName,
 		AlertLevel:     string(a.alertState),
 		AlertNamespace: a.namespace,
-		JobType:        platformidentification.JobType{},
+		JobType:        *jobType,
 	}
 
 	failAfter, err := a.allowanceCalculator.FailAfter(dataKey)
