@@ -10,6 +10,7 @@ import (
 
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/openshift/api/image/docker10"
@@ -88,7 +89,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 		registry := strings.Split(is.Status.DockerImageRepository, "/")[0]
 
 		ns = oc.Namespace()
-		cli := oc.KubeFramework().PodClient()
+		cli := e2epod.PodClientNS(oc.KubeFramework(), oc.Namespace())
 		pod := cli.Create(cliPodWithPullSecret(oc, heredoc.Docf(`
 			set -x
 

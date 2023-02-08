@@ -36,6 +36,7 @@ import (
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
+	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	utilnet "k8s.io/utils/net"
 )
@@ -204,7 +205,7 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 	cmd := fmt.Sprintf("wget -T 30 -qO- %s", host)
 	var err error
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(2) {
-		stdout, err = e2e.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
+		stdout, err = e2eoutput.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
 		if err != nil {
 			e2e.Logf("got err: %v, retry until timeout", err)
 			continue

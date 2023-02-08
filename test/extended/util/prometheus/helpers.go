@@ -27,6 +27,7 @@ import (
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/kubernetes/pkg/client/conditions"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 )
 
 const (
@@ -263,7 +264,7 @@ func ExpectURLStatusCodeExec(url string, statusCodes ...int) error {
 // upon failure or if status return code is not equal to any of the statusCodes.
 func ExpectURLStatusCodeExecViaPod(ns, execPodName, url string, statusCodes ...int) error {
 	cmd := fmt.Sprintf("curl -k -s -o /dev/null -w '%%{http_code}' %q", url)
-	output, err := framework.RunHostCmd(ns, execPodName, cmd)
+	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
 		return fmt.Errorf("host command failed: %v\n%s", err, output)
 	}
