@@ -530,13 +530,8 @@ func createPodSecurityPolicySelfSubjectReviewsRoleBindingOrDie(ctx context.Conte
 
 func createClientFromServiceAccount(oc *exutil.CLI, sa *corev1.ServiceAccount) (*kubernetes.Clientset, *securityv1client.SecurityV1Client) {
 	// create a new token request for the service account and use it to build a client for it
-	tokenRequest := &authenticationv1.TokenRequest{
-		Spec: authenticationv1.TokenRequestSpec{
-			Audiences: []string{"https://kubernetes.default.svc"},
-		},
-	}
 	framework.Logf("Creating service account token")
-	bootstrapperToken, err := oc.AdminKubeClient().CoreV1().ServiceAccounts(sa.Namespace).CreateToken(context.TODO(), sa.Name, tokenRequest, metav1.CreateOptions{})
+	bootstrapperToken, err := oc.AdminKubeClient().CoreV1().ServiceAccounts(sa.Namespace).CreateToken(context.TODO(), sa.Name, &authenticationv1.TokenRequest{}, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	saClientConfig := restclient.AnonymousClientConfig(oc.AdminConfig())
