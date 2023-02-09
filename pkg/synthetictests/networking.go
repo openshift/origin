@@ -8,6 +8,7 @@ import (
 	"time"
 
 	v1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/pkg/duplicateevents"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -257,7 +258,7 @@ func getPodDeletionTime(events monitorapi.Intervals, podLocator string) *time.Ti
 // bug is tracked here: https://bugzilla.redhat.com/show_bug.cgi?id=2057181
 func testOvnNodeReadinessProbe(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[bz-networking] ovnkube-node readiness probe should not fail repeatedly"
-	regExp := regexp.MustCompile(ovnReadinessRegExpStr)
+	regExp := regexp.MustCompile(duplicateevents.OvnReadinessRegExpStr)
 	var tests []*junitapi.JUnitTestCase
 	var failureOutput string
 	msgMap := map[string]bool{}
@@ -267,10 +268,10 @@ func testOvnNodeReadinessProbe(events monitorapi.Intervals, kubeClientConfig *re
 			if _, ok := msgMap[msg]; !ok {
 				msgMap[msg] = true
 				eventDisplayMessage, times := getTimesAnEventHappened(msg)
-				if times > duplicateEventThreshold {
+				if times > duplicateevents.DuplicateEventThreshold {
 					// if the readiness probe failure for this pod happened AFTER the initial installation was complete,
 					// then this probe failure is unexpected and should fail.
-					isDuringInstall, err := isEventDuringInstallation(event, kubeClientConfig, regExp)
+					isDuringInstall, err := duplicateevents.IsEventDuringInstallation(event, kubeClientConfig, regExp)
 					if err != nil {
 						failureOutput += fmt.Sprintf("error [%v] happened when processing event [%s]\n", err, eventDisplayMessage)
 					} else if !isDuringInstall {

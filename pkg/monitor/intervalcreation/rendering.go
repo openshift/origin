@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/openshift/origin/pkg/duplicateevents"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/test/extended/testdata"
@@ -80,6 +81,13 @@ func BelongsInEverything(eventInterval monitorapi.EventInterval) bool {
 	return true
 }
 
+func isInterestingOrPathological(eventInterval monitorapi.EventInterval) bool {
+	if strings.Contains(eventInterval.Locator, duplicateevents.InterestingMark) || strings.Contains(eventInterval.Locator, duplicateevents.PathologicalMark) {
+		return true
+	}
+	return false
+}
+
 func BelongsInSpyglass(eventInterval monitorapi.EventInterval) bool {
 	if isLessInterestingAlert(eventInterval) {
 		return false
@@ -87,7 +95,12 @@ func BelongsInSpyglass(eventInterval monitorapi.EventInterval) bool {
 	if IsPodLifecycle(eventInterval) {
 		return false
 	}
-
+	if isInterestingOrPathological(eventInterval) {
+		ns := monitorapi.NamespaceFromLocator(eventInterval.Locator)
+		if strings.Contains(ns, "e2e") {
+			return false
+		}
+	}
 	return true
 }
 

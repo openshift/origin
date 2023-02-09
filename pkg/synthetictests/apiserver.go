@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/openshift/origin/pkg/duplicateevents"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
@@ -32,15 +33,15 @@ func testPodNodeNameIsImmutable(events monitorapi.Intervals) []*junitapi.JUnitTe
 
 func testOauthApiserverProbeErrorLiveness(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[bz-apiserver-auth] openshift-oauth-apiserver should not get probe error on liveiness probe due to timeout"
-	return makeProbeTest(testName, events, probeErrorLivenessMessageRegExpStr, "openshift-oauth-apiserver", duplicateEventThreshold)
+	return makeProbeTest(testName, events, duplicateevents.ProbeErrorLivenessMessageRegExpStr, "openshift-oauth-apiserver", duplicateevents.DuplicateEventThreshold)
 }
 
 func testOauthApiserverProbeErrorReadiness(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[bz-apiserver-auth] openshift-oauth-apiserver should not get probe error on readiiness probe due to timeout"
-	return makeProbeTest(testName, events, probeErrorReadinessMessageRegExpStr, "openshift-oauth-apiserver", duplicateEventThreshold)
+	return makeProbeTest(testName, events, duplicateevents.ProbeErrorReadinessMessageRegExpStr, "openshift-oauth-apiserver", duplicateevents.DuplicateEventThreshold)
 }
 
 func testOauthApiserverProbeErrorConnectionRefused(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[bz-apiserver-auth] openshift-oauth-apiserver should not get probe error on readiiness probe due to connection refused"
-	return makeProbeTest(testName, events, probeErrorConnectionRefusedRegExpStr, "openshift-oauth-apiserver", duplicateEventThreshold)
+	return makeProbeTest(testName, events, duplicateevents.ProbeErrorConnectionRefusedRegExpStr, "openshift-oauth-apiserver", duplicateevents.DuplicateEventThreshold)
 }

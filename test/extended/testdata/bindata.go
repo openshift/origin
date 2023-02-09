@@ -49189,7 +49189,24 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
+    function isInterestingOrPathological(eventInterval) {
+        if (eventInterval.message.includes("pathological/true") || (eventInterval.message.includes("interesting/true"))) {
+            return true
+        }
+        return false
+    }
+
     function isPod(eventInterval) {
+        // this check was added to keep the repeating events out fo the "pods" section
+        const nTimes = new RegExp("\\(\\d+ times\\)")
+        if (eventInterval.message.match(nTimes)) {
+            return false
+        }
+        // this check was added to avoid the events from the "interesting-events" section from being
+        // duplicated in the "pods" section.
+        if (isInterestingOrPathological(eventInterval)) {
+            return false
+        }
         if (eventInterval.locator.includes("pod/") && !eventInterval.locator.includes("alert/")) {
             return true
         }
@@ -49282,6 +49299,19 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         }
         return false
     }
+
+    function interestingEvents(item) {
+        if (item.message.includes("pathological/true")) {
+            if (item.message.includes("interesting/true")) {
+                return [item.locator, ` + "`" + ` (pathological known)` + "`" + `, "PathologicalKnown"];
+            } else {
+                return [item.locator, ` + "`" + ` (pathological new)` + "`" + `, "PathologicalNew"];
+            }
+        }
+        if (item.message.includes("interesting/true")) {
+		    return [item.locator, ` + "`" + ` (interesting event)` + "`" + `, "InterestingEvent"];
+        }
+	}
 
     const reReason = new RegExp("(^| )reason/([^ ]+)")
     function podStateValue(item) {
@@ -49503,6 +49533,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         timelineGroups.push({group: "e2e-test-passed", data: []})
         createTimelineData("Passed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EPassed, regex)
 
+        timelineGroups.push({group: "interesting-events", data: []})
+        createTimelineData(interestingEvents, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isInterestingOrPathological, regex)
+
         var segmentFunc = function (segment) {
             // for (var i in data) {
             //     if (data[i].group == segment.group) {
@@ -49529,6 +49562,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         const myChart = TimelinesChart();
         var ordinalScale = d3.scaleOrdinal()
             .domain([
+                'InterestingEvent', 'PathologicalKnown', "PathologicalNew", // interesting and pathological events
                 'AlertInfo', 'AlertPending', 'AlertWarning', 'AlertCritical', // alerts
                 'OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', // operators
                 'Update', 'Drain', 'Reboot', 'OperatingSystemUpdate', 'NodeNotReady', // nodes
@@ -49536,6 +49570,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
                 'PodCreated', 'PodScheduled', 'PodTerminating','ContainerWait', 'ContainerStart', 'ContainerNotReady', 'ContainerReady', 'ContainerReadinessFailed', 'ContainerReadinessErrored',  'StartupProbeFailed', // pods
                 'Degraded', 'Upgradeable', 'False', 'Unknown'])
             .range([
+                '#6E6E6E', '#0000ff', '#d0312d', // pathological and interesting events
                 '#fada5e','#fada5e','#ffa500', '#d0312d',  // alerts
                 '#d0312d', '#ffa500', '#fada5e', // operators
                 '#1e7bd9', '#4294e6', '#6aaef2', '#96cbff', '#fada5e', // nodes
