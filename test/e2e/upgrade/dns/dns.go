@@ -15,7 +15,9 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2edaemonset "k8s.io/kubernetes/test/e2e/framework/daemonset"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 )
@@ -38,7 +40,15 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 
 	ginkgo.By("Creating a DaemonSet to verify DNS availability")
 	appName = fmt.Sprintf("dns-test-%s", string(uuid.NewUUID()))
-	t.createDNSTestDaemonSet(f, dnsServiceIP)
+	ds := t.createDNSTestDaemonSet(f, dnsServiceIP)
+	framework.ExpectNotEqual(ds, nil, "DaemonSet should not be nil")
+
+	ginkgo.By("Waiting for DaemonSet pods to become ready")
+	err := wait.Poll(framework.Poll, framework.PodStartTimeout, func() (bool, error) {
+		return e2edaemonset.CheckRunningOnAllNodes(f, ds)
+	})
+	framework.ExpectNoError(err)
+
 }
 
 // Test checks for logs from DNS availability test a minute after upgrade finishes
@@ -65,9 +75,9 @@ func (t *UpgradeTest) getServiceIP(f *framework.Framework) string {
 }
 
 // createDNSTestDaemonSet creates a DaemonSet to test DNS availability
-func (t *UpgradeTest) createDNSTestDaemonSet(f *framework.Framework, dnsServiceIP string) {
+func (t *UpgradeTest) createDNSTestDaemonSet(f *framework.Framework, dnsServiceIP string) *kappsv1.DaemonSet {
 	cmd := fmt.Sprintf("while true; do dig +short @%s google.com || echo $(date) fail && sleep 1; done", dnsServiceIP)
-	_, err := f.ClientSet.AppsV1().DaemonSets(f.Namespace.Name).Create(context.Background(), &kappsv1.DaemonSet{
+	ds, err := f.ClientSet.AppsV1().DaemonSets(f.Namespace.Name).Create(context.Background(), &kappsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{Name: appName},
 		Spec: kappsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
@@ -90,6 +100,7 @@ func (t *UpgradeTest) createDNSTestDaemonSet(f *framework.Framework, dnsServiceI
 		},
 	}, metav1.CreateOptions{})
 	framework.ExpectNoError(err)
+	return ds
 }
 
 // validateDNSResults retrieves the Pod logs and validates the results
