@@ -8,7 +8,17 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"path/filepath"
+	"regexp"
+	"strings"
 	"sync"
+
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 
@@ -36,9 +46,51 @@ func GetNodeLog(ctx context.Context, client kubernetes.Interface, nodeName, syst
 	return ioutil.ReadAll(in)
 }
 
-// GetAuditLogBytes returns logs for a particular systemd service on a given node.
-// We're count on these logs to fit into some reasonable memory size.
-func GetKubeAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeName string) (*AuditLogSummary, error) {
+func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface) (*AuditLogSummary, error) {
+	masterOnly, err := labels.NewRequirement("node-role.kubernetes.io/master", selection.Exists, nil)
+	if err != nil {
+		panic(err)
+	}
+	allNodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{
+		LabelSelector: labels.NewSelector().Add(*masterOnly).String(),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	ret := NewAuditLogSummary()
+	lock := sync.Mutex{}
+	errCh := make(chan error, len(allNodes.Items))
+	wg := sync.WaitGroup{}
+	for _, node := range allNodes.Items {
+		wg.Add(1)
+		go func(ctx context.Context, nodeName string) {
+			defer wg.Done()
+
+			auditLogSummary, err := getNodeKubeAuditLogSummary(ctx, kubeClient, nodeName)
+			if err != nil {
+				errCh <- err
+				return
+			}
+
+			lock.Lock()
+			defer lock.Unlock()
+			ret.AddSummary(auditLogSummary)
+		}(ctx, node.Name)
+	}
+	wg.Wait()
+
+	errs := []error{}
+	for len(errCh) > 0 {
+		err := <-errCh
+		errs = append(errs, err)
+	}
+
+	return ret, utilerrors.NewAggregate(errs)
+}
+
+func getNodeKubeAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeName string) (*AuditLogSummary, error) {
 	return getAuditLogSummary(ctx, client, nodeName, "kube-apiserver")
 }
 func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeName, apiserver string) (*AuditLogSummary, error) {
@@ -56,11 +108,18 @@ func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeNa
 	errCh := make(chan error, len(auditLogFilenames))
 	auditLogSummaries := make(chan *AuditLogSummary, len(auditLogFilenames))
 	for _, auditLogFilename := range auditLogFilenames {
+		if !strings.HasPrefix(auditLogFilename, "audit") {
+			continue
+		}
+		if !strings.HasSuffix(auditLogFilename, ".log") {
+			continue
+		}
+
 		wg.Add(1)
-		go func(ctx context.Context) {
+		go func(ctx context.Context, auditLogFilename string) {
 			defer wg.Done()
 
-			auditStream, err := streamNodeLogFile(ctx, client, nodeName, auditLogFilename)
+			auditStream, err := streamNodeLogFile(ctx, client, nodeName, filepath.Join(apiserver, auditLogFilename))
 			if err != nil {
 				errCh <- err
 				return
@@ -86,8 +145,9 @@ func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeNa
 
 				auditLogSummary.Add(auditEvent, auditEventInfo{})
 			}
+			auditLogSummaries <- auditLogSummary
 
-		}(ctx)
+		}(ctx, auditLogFilename)
 	}
 	wg.Wait()
 	close(errCh)
@@ -103,7 +163,41 @@ func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeNa
 		fullSummary.AddSummary(auditLogSummary)
 	}
 
-	return fullSummary, nil
+	return fullSummary, utilerrors.NewAggregate(errs)
+}
+
+// this is copy/pasted from the oc node logs impl
+func getDirectoryListing(in io.Reader) ([]string, error) {
+	filenames := []string{}
+	bufferSize := 4096
+	buf := bufio.NewReaderSize(in, bufferSize)
+
+	// turn href links into lines of output
+	content, _ := buf.Peek(bufferSize)
+	if bytes.HasPrefix(content, []byte("<pre>")) {
+		reLink := regexp.MustCompile(`href="([^"]+)"`)
+		s := bufio.NewScanner(buf)
+		s.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+			matches := reLink.FindSubmatchIndex(data)
+			if matches == nil {
+				advance = bytes.LastIndex(data, []byte("\n"))
+				if advance == -1 {
+					advance = 0
+				}
+				return advance, nil, nil
+			}
+			advance = matches[1]
+			token = data[matches[2]:matches[3]]
+			return advance, token, nil
+		})
+		for s.Scan() {
+			filename := s.Text()
+			filenames = append(filenames, filename)
+		}
+		return filenames, s.Err()
+	}
+
+	return nil, fmt.Errorf("not a directory listing")
 }
 
 func streamNodeLogFile(ctx context.Context, client kubernetes.Interface, nodeName, filename string) (io.ReadCloser, error) {
@@ -133,14 +227,9 @@ func getAuditLogFilenames(ctx context.Context, client kubernetes.Interface, node
 		return nil, err
 	}
 
-	filenames := []string{}
-	scanner := bufio.NewScanner(bytes.NewBuffer(allBytes))
-	for scanner.Scan() {
-		filename := string(scanner.Bytes())
-		switch {
-		default:
-			filenames = append(filenames, filename)
-		}
+	filenames, err := getDirectoryListing(bytes.NewBuffer(allBytes))
+	if err != nil {
+		return nil, err
 	}
 
 	return filenames, nil

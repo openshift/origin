@@ -1,7 +1,10 @@
 package nodedetails
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -12,11 +15,11 @@ import (
 // every audit log summarizer is not threadsafe. The idea is that you use one per thread and
 // later combine the summarizers together into an overall summary
 type AuditLogSummary struct {
-	lineReadFailureCount    int
-	requestCounts           RequestCounts
-	perUserRequestCount     map[string]*PerUserRequestCount
-	perResourceRequestCount map[schema.GroupVersionResource]*PerResourceRequestCount
-	perStatusRequestCount   map[int32]*PerStatusRequestCount
+	lineReadFailureCount      int
+	requestCounts             RequestCounts
+	perUserRequestCount       map[string]*PerUserRequestCount
+	perResourceRequestCount   map[schema.GroupVersionResource]*PerResourceRequestCount
+	perHTTPStatusRequestCount map[int32]*PerHTTPStatusRequestCount
 }
 
 type RequestCounts struct {
@@ -27,7 +30,7 @@ type RequestCounts struct {
 	perHTTPStatusRequestCount map[int32]int
 }
 
-type PerStatusRequestCount struct {
+type PerHTTPStatusRequestCount struct {
 	httpStatus              int32
 	requestCounts           RequestCounts
 	perResourceRequestCount map[schema.GroupVersionResource]*RequestCounts
@@ -89,10 +92,10 @@ func (s *AuditLogSummary) Add(auditEvent *auditv1.Event, auditEventInfo auditEve
 
 	if auditEvent.ResponseStatus != nil {
 		httpStatus := auditEvent.ResponseStatus.Code
-		if _, ok := s.perStatusRequestCount[httpStatus]; !ok {
-			s.perStatusRequestCount[httpStatus] = NewPerStatusRequestCount(httpStatus)
+		if _, ok := s.perHTTPStatusRequestCount[httpStatus]; !ok {
+			s.perHTTPStatusRequestCount[httpStatus] = NewPerStatusRequestCount(httpStatus)
 		}
-		s.perStatusRequestCount[httpStatus].Add(auditEvent, auditEventInfo)
+		s.perHTTPStatusRequestCount[httpStatus].Add(auditEvent, auditEventInfo)
 	}
 }
 
@@ -118,7 +121,7 @@ func (s *RequestCounts) Add(auditEvent *auditv1.Event) {
 	}
 }
 
-func (s *PerStatusRequestCount) Add(auditEvent *auditv1.Event, auditEventInfo auditEventInfo) {
+func (s *PerHTTPStatusRequestCount) Add(auditEvent *auditv1.Event, auditEventInfo auditEventInfo) {
 	if auditEvent.ResponseStatus == nil {
 		return
 	}
@@ -191,11 +194,11 @@ func (s *AuditLogSummary) AddSummary(rhs *AuditLogSummary) {
 		}
 		s.perResourceRequestCount[k].AddSummary(v)
 	}
-	for k, v := range rhs.perStatusRequestCount {
-		if _, ok := s.perStatusRequestCount[k]; !ok {
-			s.perStatusRequestCount[k] = NewPerStatusRequestCount(k)
+	for k, v := range rhs.perHTTPStatusRequestCount {
+		if _, ok := s.perHTTPStatusRequestCount[k]; !ok {
+			s.perHTTPStatusRequestCount[k] = NewPerStatusRequestCount(k)
 		}
-		s.perStatusRequestCount[k].AddSummary(v)
+		s.perHTTPStatusRequestCount[k].AddSummary(v)
 	}
 }
 
@@ -209,7 +212,7 @@ func (s *RequestCounts) AddSummary(rhs *RequestCounts) {
 	}
 }
 
-func (s *PerStatusRequestCount) AddSummary(rhs *PerStatusRequestCount) {
+func (s *PerHTTPStatusRequestCount) AddSummary(rhs *PerHTTPStatusRequestCount) {
 	if s.httpStatus != rhs.httpStatus {
 		panic(fmt.Sprintf("mismatching key: have %v, need %v", s.httpStatus, rhs.httpStatus))
 	}
@@ -259,8 +262,8 @@ func (s *PerResourceRequestCount) AddSummary(rhs *PerResourceRequestCount) {
 		s.perUserRequestCount[k].AddSummary(v)
 	}
 	for k, v := range rhs.perVerbRequestCount {
-		if _, ok := s.perUserRequestCount[k]; !ok {
-			s.perUserRequestCount[k] = NewRequestCounts()
+		if _, ok := s.perVerbRequestCount[k]; !ok {
+			s.perVerbRequestCount[k] = NewRequestCounts()
 		}
 		s.perVerbRequestCount[k].AddSummary(v)
 	}
@@ -268,11 +271,11 @@ func (s *PerResourceRequestCount) AddSummary(rhs *PerResourceRequestCount) {
 
 func NewAuditLogSummary() *AuditLogSummary {
 	return &AuditLogSummary{
-		lineReadFailureCount:    0,
-		requestCounts:           *NewRequestCounts(),
-		perUserRequestCount:     map[string]*PerUserRequestCount{},
-		perResourceRequestCount: map[schema.GroupVersionResource]*PerResourceRequestCount{},
-		perStatusRequestCount:   map[int32]*PerStatusRequestCount{},
+		lineReadFailureCount:      0,
+		requestCounts:             *NewRequestCounts(),
+		perUserRequestCount:       map[string]*PerUserRequestCount{},
+		perResourceRequestCount:   map[schema.GroupVersionResource]*PerResourceRequestCount{},
+		perHTTPStatusRequestCount: map[int32]*PerHTTPStatusRequestCount{},
 	}
 }
 func NewRequestCounts() *RequestCounts {
@@ -280,8 +283,8 @@ func NewRequestCounts() *RequestCounts {
 		perHTTPStatusRequestCount: map[int32]int{},
 	}
 }
-func NewPerStatusRequestCount(httpStatus int32) *PerStatusRequestCount {
-	return &PerStatusRequestCount{
+func NewPerStatusRequestCount(httpStatus int32) *PerHTTPStatusRequestCount {
+	return &PerHTTPStatusRequestCount{
 		httpStatus:              httpStatus,
 		requestCounts:           *NewRequestCounts(),
 		perResourceRequestCount: map[schema.GroupVersionResource]*RequestCounts{},
@@ -414,4 +417,45 @@ func URIToParts(uri string) (string, schema.GroupVersionResource, string, string
 		return ns, gvr, name, strings.Join(parts[7:], "/")
 	}
 	return ns, gvr, name, ""
+}
+
+func WriteAuditLogSummary(artifactDir, timeSuffix string, auditLogSummary *AuditLogSummary) error {
+	serializable := NewSerializedAuditLogSummary(*auditLogSummary)
+	writeSummary(artifactDir, fmt.Sprintf("audit-log-summary_%s.json", timeSuffix), serializable)
+
+	justUsers := NewSerializedAuditLogSummary(*auditLogSummary)
+	justUsers.RequestCounts.PerHTTPStatusRequestCount = nil
+	justUsers.PerHTTPStatusRequestCount = nil
+	justUsers.PerResourceRequestCount = nil
+	for i := range justUsers.PerUserRequestCount {
+		justUsers.PerUserRequestCount[i].RequestCounts.PerHTTPStatusRequestCount = nil
+		justUsers.PerUserRequestCount[i].PerVerbRequestCount = nil
+		justUsers.PerUserRequestCount[i].PerResourceRequestCount = nil
+	}
+	writeSummary(artifactDir, fmt.Sprintf("just-users-audit-log-summary_%s.json", timeSuffix), justUsers)
+
+	justResources := NewSerializedAuditLogSummary(*auditLogSummary)
+	justResources.RequestCounts.PerHTTPStatusRequestCount = nil
+	justResources.PerHTTPStatusRequestCount = nil
+	justResources.PerUserRequestCount = nil
+	for i := range justResources.PerResourceRequestCount {
+		justResources.PerResourceRequestCount[i].RequestCounts.PerHTTPStatusRequestCount = nil
+		justResources.PerResourceRequestCount[i].PerVerbRequestCount = nil
+		justResources.PerResourceRequestCount[i].PerUserRequestCount = nil
+	}
+	writeSummary(artifactDir, fmt.Sprintf("just-resources-audit-log-summary_%s.json", timeSuffix), justResources)
+
+	return nil
+}
+
+func writeSummary(artifactDir, filename string, serializable SerializedAuditLogSummary) error {
+	summaryBytes, err := json.MarshalIndent(serializable, "", "    ")
+	if err != nil {
+		return err
+	}
+	summaryPath := filepath.Join(artifactDir, filename)
+	if err := os.WriteFile(summaryPath, summaryBytes, 0644); err != nil {
+		return fmt.Errorf("failed to write %v: %w", summaryPath, err)
+	}
+	return nil
 }

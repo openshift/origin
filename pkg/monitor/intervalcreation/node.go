@@ -155,6 +155,19 @@ func IntervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 	return ret, utilerrors.NewAggregate(errs)
 }
 
+func IntervalsFromAuditLogs(ctx context.Context, kubeClient kubernetes.Interface, beginning, end time.Time) (*nodedetails.AuditLogSummary, monitorapi.Intervals, error) {
+	ret := monitorapi.Intervals{}
+
+	// TODO honor begin and end times.  maybe
+	auditLogSummary, err := nodedetails.GetKubeAuditLogSummary(ctx, kubeClient)
+	if err != nil {
+		// TODO report the error AND the best possible summary we have
+		return auditLogSummary, nil, err
+	}
+
+	return auditLogSummary, ret, nil
+}
+
 // eventsFromKubeletLogs returns the produced intervals.  Any errors during this creation are logged, but
 // not returned because this is a best effort step
 func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Intervals {

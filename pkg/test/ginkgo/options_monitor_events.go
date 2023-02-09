@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/nodedetails"
+
 	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/monitor"
@@ -40,6 +42,8 @@ type MonitorEventsOptions struct {
 	recordedEvents monitorapi.Intervals
 	// recordedResource is written during End
 	recordedResources monitorapi.ResourcesMap
+	// auditLogSummary is written during End
+	auditLogSummary *nodedetails.AuditLogSummary
 
 	Recorders      []monitor.StartEventIntervalRecorderFunc
 	RunDataWriters []RunDataWriter
@@ -94,6 +98,7 @@ func (o *MonitorEventsOptions) Start(ctx context.Context, restConfig *rest.Confi
 	return m, nil
 }
 
+// End mutates the method receiver so you shouldn't call it multiple times.
 func (o *MonitorEventsOptions) End(ctx context.Context, restConfig *rest.Config, artifactDir string) error {
 	if o.monitor == nil {
 		return fmt.Errorf("not started")
@@ -110,7 +115,7 @@ func (o *MonitorEventsOptions) End(ctx context.Context, restConfig *rest.Config,
 	fromTime, endTime := time.Time{}, time.Time{}
 	events := o.monitor.Intervals(fromTime, endTime)
 	// this happens before calculation because events collected here could be used to drive later calculations
-	events, err = intervalcreation.InsertIntervalsFromCluster(ctx, restConfig, events, o.recordedResources, fromTime, endTime)
+	o.auditLogSummary, events, err = intervalcreation.InsertIntervalsFromCluster(ctx, restConfig, events, o.recordedResources, fromTime, endTime)
 	if err != nil {
 		return fmt.Errorf("InsertIntervalsFromClusterError: %w", err)
 	}
@@ -187,5 +192,11 @@ func (o *MonitorEventsOptions) WriteRunDataToArtifactsDir(artifactDir string, ti
 			errs = append(errs, currErr)
 		}
 	}
+	if o.auditLogSummary != nil {
+		if currErr := nodedetails.WriteAuditLogSummary(artifactDir, timeSuffix, o.auditLogSummary); currErr != nil {
+			errs = append(errs, currErr)
+		}
+	}
+
 	return utilerrors.NewAggregate(errs)
 }
