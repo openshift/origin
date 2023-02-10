@@ -9,6 +9,10 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+func AlertEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config, testSuite string, recordedResource *monitorapi.ResourcesMap) (tests []*junitapi.JUnitTestCase) {
+	return testAlerts(events, kubeClientConfig, duration, recordedResource)
+}
+
 // StableSystemEventInvariants are invariants that should hold true when a cluster is in
 // steady state (not being changed externally). Use these with suites that assume the
 // cluster is under no adversarial change (config changes, induced disruption to nodes,

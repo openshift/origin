@@ -48,6 +48,8 @@ func EventsFromJSON(data []byte) (monitorapi.Intervals, error) {
 	if err := json.Unmarshal(data, &list); err != nil {
 		return nil, err
 	}
+
+	// TODO: why did we define another EventInterval type for serialization?
 	events := make(monitorapi.Intervals, 0, len(list.Items))
 	for _, interval := range list.Items {
 		level, err := monitorapi.EventLevelFromString(interval.Level)
