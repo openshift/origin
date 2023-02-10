@@ -49500,6 +49500,17 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return [item.locator, "", "AlertCritical"]
     }
 
+    function disruptionValue(item) {
+        // We classify these disruption samples with this message if it thinks
+        // it looks like a problem in the CI cluster running the tests, not the cluster under test.
+        // (typically DNS lookup problems)
+        let ciClusterDisruption = item.message.indexOf("likely a problem in cluster running tests")
+        if (ciClusterDisruption != -1) {
+            return [item.locator, "", "CIClusterDisruption"]
+        }
+        return [item.locator, "", "Disruption"]
+    }
+
     function getDurationString(durationSeconds) {
         const seconds = durationSeconds % 60;
         const minutes = Math.floor(durationSeconds/60);
@@ -49617,7 +49628,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         })
 
         timelineGroups.push({group: "endpoint-availability", data: []})
-        createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
+        createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
 
         timelineGroups.push({group: "e2e-test-failed", data: []})
         createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFailed, regex)
@@ -49659,6 +49670,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
                 'Update', 'Drain', 'Reboot', 'OperatingSystemUpdate', 'NodeNotReady', // nodes
                 'Passed', 'Skipped', 'Flaked', 'Failed',  // tests
                 'PodCreated', 'PodScheduled', 'PodTerminating','ContainerWait', 'ContainerStart', 'ContainerNotReady', 'ContainerReady', 'ContainerReadinessFailed', 'ContainerReadinessErrored',  'StartupProbeFailed', // pods
+                'CIClusterDisruption', 'Disruption', // disruption
                 'Degraded', 'Upgradeable', 'False', 'Unknown'])
             .range([
                 '#fada5e','#fada5e','#ffa500', '#d0312d',  // alerts
@@ -49666,6 +49678,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
                 '#1e7bd9', '#4294e6', '#6aaef2', '#96cbff', '#fada5e', // nodes
                 '#3cb043', '#ceba76', '#ffa500', '#d0312d', // tests
                 '#96cbff', '#1e7bd9', '#ffa500', '#ca8dfd', '#9300ff', '#fada5e','#3cb043', '#d0312d', '#d0312d', '#c90076', // pods
+                '#96cbff', '#d0312d', // disruption
                 '#b65049', '#32b8b6', '#ffffff', '#bbbbbb']);
         myChart.
         data(timelineGroups).
