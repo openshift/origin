@@ -1,0 +1,25 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: "inline-volume-csi-roles-template"
+labels:
+  createdBy: "inline-volume-csi-roles-template"
+parameters:
+  - description: "The namespace to create roles in."
+    name: NAMESPACE
+    required: true
+objects:
+  - apiVersion: authorization.openshift.io/v1
+    kind: RoleBinding
+    metadata:
+      name: shared-resource-my-share
+      namespace: ${NAMESPACE}
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: shared-resource-my-share
+      namespace: ${NAMESPACE}
+    subjects:
+    - kind: ServiceAccount
+      name: default
+      namespace: ${NAMESPACE}

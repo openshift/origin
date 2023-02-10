@@ -1205,10 +1205,6 @@ var Annotations = map[string]string{
 
 	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview disabled clusters [apigroup:config.openshift.io] should fail mounting given csi shared resource secret into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview disabled clusters [apigroup:config.openshift.io] should fail mounting given csi shared resource secret into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
@@ -16396,6 +16392,22 @@ var Annotations = map[string]string{
 	"[sig-storage] vsphere cloud provider stress [Feature:vsphere] vsphere stress tests": " [Disabled:Unsupported] [Suite:k8s]",
 
 	"[sig-storage] vsphere statefulset [Feature:vsphere] vsphere statefulset testing": " [Disabled:Unsupported] [Suite:k8s]",
+
+	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] baseline namespace should allow pods with inline volumes when the driver uses the baseline label": " [Suite:openshift/conformance/serial]",
+
+	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] baseline namespace should allow pods with inline volumes when the driver uses the restricted label": " [Suite:openshift/conformance/serial]",
+
+	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] baseline namespace should deny pods with inline volumes when the driver uses the privileged label": " [Suite:openshift/conformance/serial]",
+
+	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] privileged namespace should allow pods with inline volumes when the driver uses the privileged label": " [Suite:openshift/conformance/serial]",
+
+	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] privileged namespace should allow pods with inline volumes when the driver uses the restricted label": " [Suite:openshift/conformance/serial]",
+
+	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] restricted namespace should allow pods with inline volumes when the driver uses the restricted label": " [Suite:openshift/conformance/serial]",
+
+	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] restricted namespace should deny pods with inline volumes when the driver uses the baseline label": " [Suite:openshift/conformance/serial]",
+
+	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] restricted namespace should deny pods with inline volumes when the driver uses the privileged label": " [Suite:openshift/conformance/serial]",
 
 	"[sig-storage][Late] Metrics should report short attach times": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
