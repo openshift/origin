@@ -18,6 +18,7 @@ import (
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
+	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
@@ -84,6 +85,7 @@ func (o *MonitorEventsOptions) Start(ctx context.Context, restConfig *rest.Confi
 		[]monitor.StartEventIntervalRecorderFunc{
 			controlplane.StartAllAPIMonitoring,
 			frontends.StartAllIngressMonitoring,
+			externalservice.StartExternalServiceMonitoring,
 		},
 	)
 	if err != nil {
