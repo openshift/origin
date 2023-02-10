@@ -16407,6 +16407,12 @@ var Annotations = map[string]string{
 
 	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] restricted namespace should deny pods with inline volumes when the driver uses the privileged label": " [Suite:openshift/conformance/serial]",
 
+	"[sig-storage][Feature:DisableStorageClass][Serial] should not reconcile the StorageClass when StorageClassState is Unmanaged": " [Suite:openshift/conformance/serial]",
+
+	"[sig-storage][Feature:DisableStorageClass][Serial] should reconcile the StorageClass when StorageClassState is Managed": " [Suite:openshift/conformance/serial]",
+
+	"[sig-storage][Feature:DisableStorageClass][Serial] should remove the StorageClass when StorageClassState is Removed": " [Suite:openshift/conformance/serial]",
+
 	"[sig-storage][Late] Metrics should report short attach times": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-storage][Late] Metrics should report short mount times": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
