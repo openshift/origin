@@ -143,7 +143,6 @@ func (c *Sender) Do(r *http.Request) (resp *http.Response, err error) {
 	} else {
 		resp = NewResponse()
 	}
-	fmt.Printf("resp in mocks/mocks.go: %+v\n", resp)
 	if resp != nil {
 		resp.Request = r
 	}
@@ -230,11 +229,6 @@ func (c *Sender) SetEmitErrorAfter(ea int) {
 // NumResponses returns the number of responses that have been added to the sender.
 func (c *Sender) NumResponses() int {
 	return c.numResponses
-}
-
-// Responses returns the number of responses that have been added to the sender.
-func (c *Sender) Responses() *http.Response {
-	return c.responses[0].r
 }
 
 // T is a simple testing struct.
