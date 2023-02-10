@@ -19,7 +19,7 @@ import (
 var _ = g.Describe("[sig-installer][Feature:AzureUserTags] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
-	g.It("have user defined tags present on all the created resources", func() {
+	g.It("have user defined tags present on all the created resources [apigroup:config.openshift.io]", func() {
 		ctx := context.Background()
 		cfg, err := e2e.LoadConfig()
 		o.Expect(err).NotTo(o.HaveOccurred())
