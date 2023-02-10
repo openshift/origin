@@ -14,7 +14,6 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
 
-	buildv1 "github.com/openshift/api/build/v1"
 	configv1 "github.com/openshift/api/config/v1"
 
 	deploymentutil "github.com/openshift/origin/test/extended/deployments"
@@ -137,79 +136,6 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] build volumes", func()
 	})
 })
 
-var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview disabled clusters", func() {
-	var (
-		oc                   = exutil.NewCLI("build-volumes")
-		baseDir              = exutil.FixturePath("testdata", "builds", "volumes")
-		s2iImageStream       = filepath.Join(baseDir, "s2i-imagestream.yaml")
-		dockerImageStream    = filepath.Join(baseDir, "docker-imagestream.yaml")
-		csiS2iBuildConfig    = filepath.Join(baseDir, "csi-s2i-buildconfig.yaml")
-		csiDockerBuildConfig = filepath.Join(baseDir, "csi-docker-buildconfig.yaml")
-	)
-
-	g.Context("[apigroup:config.openshift.io]", func() {
-		g.BeforeEach(func() {
-			exutil.PreTestDump()
-		})
-
-		g.JustBeforeEach(func() {
-			if isTechPreviewNoUpgrade(oc) {
-				g.Skip("the test is not expected to work within Tech Preview enabled clusters")
-			}
-		})
-
-		g.AfterEach(func() {
-			if g.CurrentSpecReport().Failed() {
-				exutil.DumpPodStates(oc)
-				exutil.DumpConfigMapStates(oc)
-				exutil.DumpPodLogsStartingWith("", oc)
-			}
-		})
-
-		g.It("should fail mounting given csi shared resource secret into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
-			g.By("creating an imagestream")
-			err := oc.Run("create").Args("-f", s2iImageStream).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("creating a build config")
-			err = oc.Run("create").Args("-f", csiS2iBuildConfig).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("starting a build and waiting for it to complete")
-			br, err := exutil.StartBuildAndWait(oc, "mys2itest")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			br.DumpLogs()
-
-			build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), br.Build.Name, metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(build.Status.Phase).To(o.Equal(buildv1.BuildPhaseNew))
-			o.Expect(build.Status.Reason).To(o.BeEquivalentTo("CannotCreateBuildPodSpec"))
-			o.Expect(build.Status.Message).To(o.ContainSubstring("Failed to create pod spec"))
-
-		})
-		g.It("should fail mounting given csi shared resource secret into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
-			g.By("creating an imagestream")
-			err := oc.Run("create").Args("-f", dockerImageStream).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("creating a build config")
-			err = oc.Run("create").Args("-f", csiDockerBuildConfig).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("starting a build and waiting for it to complete")
-			br, err := exutil.StartBuildAndWait(oc, "mydockertest")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			br.DumpLogs()
-
-			build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), br.Build.Name, metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(build.Status.Phase).To(o.Equal(buildv1.BuildPhaseNew))
-			o.Expect(build.Status.Reason).To(o.BeEquivalentTo("CannotCreateBuildPodSpec"))
-			o.Expect(build.Status.Message).To(o.ContainSubstring("Failed to create pod spec"))
-		})
-	})
-})
-
 var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster", func() {
 	defer g.GinkgoRecover()
 	var (
@@ -236,6 +162,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 		})
 
 		g.JustBeforeEach(func() {
+			//TODO remove this check once https://github.com/openshift/cluster-storage-operator/pull/335 and https://github.com/openshift/openshift-controller-manager/pull/250 have merged
 			if !isTechPreviewNoUpgrade(oc) {
 				g.Skip("the test is not expected to work within Tech Preview disabled clusters")
 			}
