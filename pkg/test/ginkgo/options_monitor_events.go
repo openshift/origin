@@ -19,17 +19,18 @@ import (
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
+	corev1 "k8s.io/api/core/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
 type RunDataWriter interface {
-	WriteRunData(artifactDir string, recordedResources monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error
+	WriteRunData(artifactDir string, recordedResources monitorapi.ResourcesMap, events monitorapi.Intervals, rawEvents []corev1.Event, timeSuffix string) error
 }
 
-type RunDataWriterFunc func(artifactDir string, recordedResources monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error
+type RunDataWriterFunc func(artifactDir string, recordedResources monitorapi.ResourcesMap, events monitorapi.Intervals, rawEvents []corev1.Event, timeSuffix string) error
 
-func (fn RunDataWriterFunc) WriteRunData(artifactDir string, recordedResources monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
-	return fn(artifactDir, recordedResources, events, timeSuffix)
+func (fn RunDataWriterFunc) WriteRunData(artifactDir string, recordedResources monitorapi.ResourcesMap, events monitorapi.Intervals, rawEvents []corev1.Event, timeSuffix string) error {
+	return fn(artifactDir, recordedResources, events, rawEvents, timeSuffix)
 }
 
 type MonitorEventsOptions struct {
@@ -181,8 +182,9 @@ func (o *MonitorEventsOptions) WriteRunDataToArtifactsDir(artifactDir string, ti
 	}
 	sort.Stable(monitorapi.ByTimeWithNamespacedPods(events))
 
+	fmt.Println("WriteRunDataToArtifactsDir: ", len(o.monitor.RawEvents))
 	for _, writer := range o.RunDataWriters {
-		currErr := writer.WriteRunData(artifactDir, o.recordedResources, events, timeSuffix)
+		currErr := writer.WriteRunData(artifactDir, o.recordedResources, events, o.monitor.RawEvents, timeSuffix)
 		if currErr != nil {
 			errs = append(errs, currErr)
 		}

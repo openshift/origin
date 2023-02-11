@@ -88,6 +88,9 @@ func (opt *Options) Run() error {
 	if len(opt.ArtifactDir) != 0 {
 		recordedEvents := m.Intervals(time.Time{}, time.Time{})
 		recordedResources := m.CurrentResourceState()
+		recordedRawEvents := m.RawEvents
+		fmt.Println("m.rawEvents (recordedRawEvents): ", len(recordedRawEvents))
+
 		timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
 
 		eventDir := fmt.Sprintf("%s/monitor-events", opt.ArtifactDir)
@@ -95,7 +98,7 @@ func (opt *Options) Run() error {
 			fmt.Printf("Failed to create monitor-events directory, err: %v\n", err)
 			return err
 		}
-		err := WriteEventsForJobRun(eventDir, recordedResources, recordedEvents, timeSuffix)
+		err := WriteEventsForJobRun(eventDir, recordedResources, recordedEvents, recordedRawEvents, timeSuffix)
 		if err != nil {
 			fmt.Printf("Failed to write event data, err: %v\n", err)
 			return err

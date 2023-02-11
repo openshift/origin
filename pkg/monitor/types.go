@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -25,7 +26,7 @@ type Recorder interface {
 	RecordResource(resourceType string, obj runtime.Object)
 
 	Record(conditions ...monitorapi.Condition)
-	RecordAt(t time.Time, conditions ...monitorapi.Condition)
+	RecordAt(t time.Time, obj *corev1.Event, conditions ...monitorapi.Condition)
 
 	StartInterval(t time.Time, condition monitorapi.Condition) int
 	EndInterval(startedInterval int, t time.Time)

@@ -158,7 +158,7 @@ func recordAddOrUpdateEvent(
 	if obj.Type == corev1.EventTypeWarning {
 		condition.Level = monitorapi.Warning
 	}
-	m.RecordAt(t, condition)
+	m.RecordAt(t, obj, condition)
 
 }
 

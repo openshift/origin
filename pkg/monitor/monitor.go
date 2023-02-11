@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -26,6 +27,8 @@ type Monitor struct {
 
 	recordedResourceLock sync.Mutex
 	recordedResources    monitorapi.ResourcesMap
+
+	RawEvents []corev1.Event
 }
 
 // NewMonitor creates a monitor with the default sampling interval.
@@ -213,7 +216,7 @@ func (m *Monitor) EndInterval(startedInterval int, t time.Time) {
 
 // RecordAt captures one or more conditions at the provided time. All conditions are recorded
 // as EventInterval objects.
-func (m *Monitor) RecordAt(t time.Time, conditions ...monitorapi.Condition) {
+func (m *Monitor) RecordAt(t time.Time, obj *corev1.Event, conditions ...monitorapi.Condition) {
 	if len(conditions) == 0 {
 		return
 	}
@@ -226,6 +229,22 @@ func (m *Monitor) RecordAt(t time.Time, conditions ...monitorapi.Condition) {
 			To:        t,
 		})
 	}
+	if obj == nil {
+		fmt.Println("m.rawEvents: got a null")
+		return
+	}
+	obj1 := corev1.Event{
+		LastTimestamp:  obj.LastTimestamp,
+		EventTime:      obj.EventTime,
+		Message:        obj.Message,
+		Count:          obj.Count,
+		InvolvedObject: obj.InvolvedObject,
+		Reason:         obj.Reason,
+		Source:         obj.Source,
+		Type:           obj.Type,
+	}
+	m.RawEvents = append(m.RawEvents, obj1)
+	fmt.Println("m.rawEvents: ", len(m.RawEvents))
 }
 
 func (m *Monitor) sample(hasPrevious bool) bool {

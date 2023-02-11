@@ -7,6 +7,7 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	corev1 "k8s.io/api/core/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
@@ -98,7 +99,7 @@ func NewPodEventIntervalRenderer() podRendering {
 	return podRendering{}
 }
 
-func (r podRendering) WriteRunData(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
+func (r podRendering) WriteRunData(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, _ []corev1.Event, timeSuffix string) error {
 	allNamespaces := sets.NewString()
 	for _, interval := range events {
 		allNamespaces.Insert(monitorapi.NamespaceFromLocator(interval.Locator))
@@ -142,7 +143,7 @@ func (r podRendering) WriteRunData(artifactDir string, _ monitorapi.ResourcesMap
 				}
 				return false
 			})
-		if err := writer.WriteRunData(artifactDir, nil, events, timeSuffix); err != nil {
+		if err := writer.WriteRunData(artifactDir, nil, events, nil, timeSuffix); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -164,7 +165,7 @@ func NewIngressServicePodIntervalRenderer() ingressServicePodRendering {
 // WriteEventData for ingressServicePodRendering writes out a custom spyglass chart to help debug TRT-364 and BZ2101622 where
 // image-registry, console, and oauth pods were experiencing disruption during upgrades.  We wanted one chart that
 // showed those pods, router-default pods, node changes, and disruption.
-func (r ingressServicePodRendering) WriteRunData(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
+func (r ingressServicePodRendering) WriteRunData(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, _ []corev1.Event, timeSuffix string) error {
 	errs := []error{}
 	disruptionReasons := sets.NewString(backenddisruption.DisruptionBeganEventReason,
 		backenddisruption.DisruptionEndedEventReason,
@@ -183,7 +184,7 @@ func (r ingressServicePodRendering) WriteRunData(artifactDir string, _ monitorap
 			return false
 		})
 
-	if err := writer.WriteRunData(artifactDir, nil, events, timeSuffix); err != nil {
+	if err := writer.WriteRunData(artifactDir, nil, events, nil, timeSuffix); err != nil {
 		errs = append(errs, err)
 	}
 	return utilerrors.NewAggregate(errs)

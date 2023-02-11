@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/test/extended/testdata"
+	corev1 "k8s.io/api/core/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -42,7 +43,7 @@ func NewNonSpyglassEventIntervalRenderer(name string, filter monitorapi.EventInt
 	}
 }
 
-func (r eventIntervalRenderer) WriteRunData(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
+func (r eventIntervalRenderer) WriteRunData(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, _ []corev1.Event, timeSuffix string) error {
 	filenameBase := r.filenameBaseFn(timeSuffix)
 	return r.writeEventData(artifactDir, filenameBase, events, timeSuffix)
 }

@@ -41,7 +41,7 @@ func (s *sampler) run(ctx context.Context) {
 		startTime := time.Now().UTC()
 		condition, currentSampleIsAvailable := s.sampleFn(previousSampleWasAvailable)
 		if condition != nil {
-			s.recorder.RecordAt(startTime, *condition)
+			s.recorder.RecordAt(startTime, nil, *condition)
 		}
 		if s.onFailing != nil {
 			switch {

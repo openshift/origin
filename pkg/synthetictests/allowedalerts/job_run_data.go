@@ -11,11 +11,12 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-func WriteAlertDataForJobRun(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
+func WriteAlertDataForJobRun(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, _ []corev1.Event, timeSuffix string) error {
 	alertData := computeAlertData(events)
 	addMissingAlertsForLevel(alertData, WarningAlertLevel)
 	addMissingAlertsForLevel(alertData, CriticalAlertLevel)

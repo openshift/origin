@@ -9,16 +9,18 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/kustomize/kyaml/sets"
 )
 
-func WriteEventsForJobRun(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
-	return monitorserialization.EventsToFile(filepath.Join(artifactDir, fmt.Sprintf("e2e-events%s.json", timeSuffix)), events)
+func WriteEventsForJobRun(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, rawEvents []corev1.Event, timeSuffix string) error {
+	return monitorserialization.EventsToFile(filepath.Join(artifactDir, fmt.Sprintf("e2e-events%s.json", timeSuffix)),
+		filepath.Join(artifactDir, fmt.Sprintf("e2e-raw-events%s.json", timeSuffix)), events, rawEvents)
 }
 
-func WriteTrackedResourcesForJobRun(artifactDir string, recordedResources monitorapi.ResourcesMap, _ monitorapi.Intervals, timeSuffix string) error {
+func WriteTrackedResourcesForJobRun(artifactDir string, recordedResources monitorapi.ResourcesMap, _ monitorapi.Intervals, _ []corev1.Event, timeSuffix string) error {
 	errors := []error{}
 
 	// write out the current state of resources that we explicitly tracked.
@@ -32,7 +34,7 @@ func WriteTrackedResourcesForJobRun(artifactDir string, recordedResources monito
 	return utilerrors.NewAggregate(errors)
 }
 
-func WriteBackendDisruptionForJobRun(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
+func WriteBackendDisruptionForJobRun(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, _ []corev1.Event, timeSuffix string) error {
 	backendDisruption := computeDisruptionData(events)
 	return writeDisruptionData(filepath.Join(artifactDir, fmt.Sprintf("backend-disruption%s.json", timeSuffix)), backendDisruption)
 }

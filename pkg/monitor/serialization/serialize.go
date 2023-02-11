@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	corev1 "k8s.io/api/core/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -27,12 +28,24 @@ type EventIntervalList struct {
 	Items []EventInterval `json:"items"`
 }
 
-func EventsToFile(filename string, events monitorapi.Intervals) error {
+func EventsToFile(filename string, rawEventsFilename string, events monitorapi.Intervals, rawEvents []corev1.Event) error {
 	json, err := EventsToJSON(events)
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(filename, json, 0644)
+	err = ioutil.WriteFile(filename, json, 0644)
+	if err != nil {
+		return err
+	}
+	json, err = RawEventsToJSON(rawEvents)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(rawEventsFilename, json, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func EventsFromFile(filename string) (monitorapi.Intervals, error) {
@@ -77,6 +90,15 @@ func EventsToJSON(events monitorapi.Intervals) ([]byte, error) {
 
 	sort.Sort(byTime(outputEvents))
 	list := EventIntervalList{Items: outputEvents}
+	return json.MarshalIndent(list, "", "    ")
+}
+
+func RawEventsToJSON(rawEvents []corev1.Event) ([]byte, error) {
+	type rawEventList struct {
+		items []corev1.Event
+	}
+	fmt.Println("In RawEventsToJSON: ", len(rawEvents))
+	list := rawEventList{items: rawEvents}
 	return json.MarshalIndent(list, "", "    ")
 }
 
