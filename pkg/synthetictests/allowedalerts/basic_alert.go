@@ -229,36 +229,45 @@ func (a *basicAlertTest) failOrFlake(ctx context.Context, restConfig *rest.Confi
 	return pass, ""
 }
 
+var unrecognizedSignatureRegEx = regexp.MustCompile("reason/ErrImagePull UnrecognizedSignatureFormat")
+
+func kubePodNotReadyDueToErrParsingSignature(trackedEventResources monitorapi.InstanceMap, firingIntervals monitorapi.Intervals) bool {
+	return kubePodNotReadyDueToRegExMatch(trackedEventResources, firingIntervals, unrecognizedSignatureRegEx)
+}
+
 var imagePullBackoffRegEx = regexp.MustCompile("Back-off pulling image .*registry.redhat.io")
 
 // kubePodNotReadyDueToImagePullBackoff returns true if we searched pod events and determined that the
 // KubePodNotReady alert for this pod fired due to an imagePullBackoff event on registry.redhat.io.
 func kubePodNotReadyDueToImagePullBackoff(trackedEventResources monitorapi.InstanceMap, firingIntervals monitorapi.Intervals) bool {
+	return kubePodNotReadyDueToRegExMatch(trackedEventResources, firingIntervals, imagePullBackoffRegEx)
+}
 
+func kubePodNotReadyDueToRegExMatch(trackedEventResources monitorapi.InstanceMap, firingIntervals monitorapi.Intervals, regexp *regexp.Regexp) bool {
 	// Run the check for all firing intervals.
 	for _, firingInterval := range firingIntervals {
 		relatedPodRef := monitorapi.PodFrom(firingInterval.Locator)
 
 		// Find an event
-		foundImagePullBackoffEvent := false
+		foundRegexMatchEvent := false
 		var tmpEvent *corev1.Event
 		for _, obj := range trackedEventResources {
 			tmpEvent = obj.(*corev1.Event)
 			if tmpEvent.InvolvedObject.Name == relatedPodRef.Name &&
 				tmpEvent.InvolvedObject.Namespace == relatedPodRef.Namespace &&
-				imagePullBackoffRegEx.MatchString(tmpEvent.Message) {
-				foundImagePullBackoffEvent = true
+				regexp.MatchString(tmpEvent.Message) {
+				foundRegexMatchEvent = true
 				break
 			}
 		}
-		if !foundImagePullBackoffEvent {
+		if !foundRegexMatchEvent {
 			// No event resources found so we can't do any checking.
 			return false
 		}
-		imagePullBackoffTime := tmpEvent.LastTimestamp.Time
+		regexMatchEventTime := tmpEvent.LastTimestamp.Time
 		alertTime := firingInterval.From
-		if alertTime.After(imagePullBackoffTime) && alertTime.Sub(imagePullBackoffTime) < time.Minute*10 {
-			framework.Logf("KubePodNotReady alert failure suppressed due to registry.redhat.io ImagePullBackoff on pod %s/%s",
+		if alertTime.After(regexMatchEventTime) && alertTime.Sub(regexMatchEventTime) < time.Minute*10 {
+			framework.Logf("KubePodNotReady alert failure suppressed due to %s on pod %s/%s", tmpEvent.Message,
 				tmpEvent.ObjectMeta.Namespace, tmpEvent.ObjectMeta.Name)
 		} else {
 			return false
@@ -310,11 +319,9 @@ func (a *basicAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Co
 
 	switch a.alertName {
 	case "KubePodNotReady":
-		if state == fail && kubePodNotReadyDueToImagePullBackoff(resourcesMap["events"], firingIntervals) {
-
+		if state == fail && (kubePodNotReadyDueToImagePullBackoff(resourcesMap["events"], firingIntervals) || kubePodNotReadyDueToErrParsingSignature(resourcesMap["events"], firingIntervals)) {
 			// Since this is due to imagePullBackoff, change the state to flake instead of fail
 			state = flake
-
 			break
 		}
 

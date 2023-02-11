@@ -169,6 +169,7 @@ func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Interv
 		ret = append(ret, reflectorHttpClientConnectionLostError(currLine)...)
 		ret = append(ret, kubeletNodeHttpClientConnectionLostError(currLine)...)
 		ret = append(ret, startupProbeError(currLine)...)
+		ret = append(ret, errParsingSignature(currLine)...)
 	}
 
 	return ret
@@ -244,6 +245,32 @@ func readinessError(logLine string) monitorapi.Intervals {
 	}
 }
 
+func errParsingSignature(logLine string) monitorapi.Intervals {
+	if !strings.Contains(logLine, "StartContainer") {
+		return nil
+	}
+	if !strings.Contains(logLine, "ErrImagePull") {
+		return nil
+	}
+	if !strings.Contains(logLine, "unrecognized signature format") {
+		return nil
+	}
+
+	containerRef := errImagePullToContainerReference(logLine)
+	failureTime := kubeletLogTime(logLine)
+	return monitorapi.Intervals{
+		{
+			Condition: monitorapi.Condition{
+				Level:   monitorapi.Info,
+				Locator: containerRef.ToLocator(),
+				Message: monitorapi.ReasonedMessage(monitorapi.ContainerErrImagePull, monitorapi.ContainerUnrecognizedSignatureFormat),
+			},
+			From: failureTime,
+			To:   failureTime,
+		},
+	}
+}
+
 // startupProbeError extracts locator information from kubelet logs of the form:
 // "Probe failed" probeType="Startup" pod="<some_ns>/<some_pod" podUID=<some_pod_uid> containerName="<some_container_name>" .* output="<some_output>"
 // and returns an Interval (which will show up in the junit/events...json file and the intervals chart).
@@ -289,6 +316,8 @@ func startupProbeError(logLine string) monitorapi.Intervals {
 	}
 }
 
+var imagePullContainerRefRegex = regexp.MustCompile(`err=.*for \\"(?P<CONTAINER>[a-z0-9.-]+)\\".*pod="(?P<NS>[a-z0-9.-]+)\/(?P<POD>[a-z0-9.-]+)" podUID=(?P<PODUID>[a-z0-9.-]+)`)
+
 var containerRefRegex = regexp.MustCompile(`pod="(?P<NS>[a-z0-9.-]+)\/(?P<POD>[a-z0-9.-]+)" podUID=(?P<PODUID>[a-z0-9.-]+) containerName="(?P<CONTAINER>[a-z0-9.-]+)"`)
 var readinessFailureOutputRegex = regexp.MustCompile(`"Probe failed" probeType="Readiness".*output="(?P<OUTPUT>.+)"`)
 var readinessErrorOutputRegex = regexp.MustCompile(`"Probe errored" err="(?P<OUTPUT>.+)" probeType="Readiness"`)
@@ -298,6 +327,11 @@ var startupFailureOutputRegex = regexp.MustCompile(`"Probe failed" probeType="St
 // Since we're parsing one line at a time, we won't get the output -- but we will match on the pattern
 // so we won't miss the event.
 var startupFailureMultiLineOutputRegex = regexp.MustCompile(`"Probe failed" probeType="Startup".*output=\<(?P<OUTPUT>.*)`)
+
+func errImagePullToContainerReference(logLine string) monitorapi.ContainerReference {
+	// err="failed to \"StartContainer\" for \"oauth-proxy\"
+	return regexToContainerReference(logLine, imagePullContainerRefRegex)
+}
 
 func probeProblemToContainerReference(logLine string) monitorapi.ContainerReference {
 	return regexToContainerReference(logLine, containerRefRegex)

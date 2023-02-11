@@ -124,6 +124,9 @@ const (
 
 	PodReasonDeletedBeforeScheduling = "DeletedBeforeScheduling"
 	PodReasonDeletedAfterCompletion  = "DeletedAfterCompletion"
+
+	ContainerErrImagePull                = "ErrImagePull"
+	ContainerUnrecognizedSignatureFormat = "UnrecognizedSignatureFormat"
 )
 
 var (
