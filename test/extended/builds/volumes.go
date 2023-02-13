@@ -136,7 +136,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] build volumes", func()
 	})
 })
 
-var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                     = exutil.NewCLIWithPodSecurityLevel("build-volumes-csi", admissionapi.LevelBaseline)
@@ -162,10 +162,6 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 		})
 
 		g.JustBeforeEach(func() {
-			//TODO remove this check once https://github.com/openshift/cluster-storage-operator/pull/335 and https://github.com/openshift/openshift-controller-manager/pull/250 have merged
-			if !isTechPreviewNoUpgrade(oc) {
-				g.Skip("the test is not expected to work within Tech Preview disabled clusters")
-			}
 			// create the secret to share in a new namespace
 			g.By("creating a secret")
 			err := oc.AsAdmin().Run("--namespace=default", "apply").Args("-f", secret).Execute()
