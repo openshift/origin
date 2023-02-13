@@ -15,10 +15,11 @@ import (
 	"syscall"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const (
@@ -188,7 +189,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 
 	tests = suite.Filter(tests)
 	if len(tests) == 0 {
-		fmt.Fprintf(opt.Out, "WARNING: suite %q does not contain any tests\n", suite.Name)
+		return fmt.Errorf("suite %q does not contain any tests", suite.Name)
 	}
 
 	count := opt.Count
@@ -484,10 +485,9 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		testCases := syntheticEventTests.JUnitsForEvents(events, duration, restConfig, suite.Name, &currResState)
 		syntheticTestResults = append(syntheticTestResults, testCases...)
 
-		fmt.Fprintf(opt.Out, "Received %d invariant test results\n", len(syntheticTestResults))
 		if len(syntheticTestResults) > 0 {
-			failingSyntheticTestNames, flakySyntheticTestNames := sets.NewString(), sets.NewString()
 			// mark any failures by name
+			failingSyntheticTestNames, flakySyntheticTestNames := sets.NewString(), sets.NewString()
 			for _, test := range syntheticTestResults {
 				if test.FailureOutput != nil {
 					failingSyntheticTestNames.Insert(test.Name)
@@ -505,19 +505,10 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 			failingSyntheticTestNames = failingSyntheticTestNames.Difference(flakySyntheticTestNames)
 			if failingSyntheticTestNames.Len() > 0 {
 				fmt.Fprintf(buf, "Failing invariants:\n\n%s\n\n", strings.Join(failingSyntheticTestNames.List(), "\n"))
-				//fmt.Fprintf(opt.Out, "%d invariant tests failed\n\n%s\n\n", failingSyntheticTestNames.Len(), strings.Join(failingSyntheticTestNames.List(), "\n"))
 				syntheticFailure = true
 			}
 			if flakySyntheticTestNames.Len() > 0 {
 				fmt.Fprintf(buf, "Flaky invariants:\n\n%s\n\n", strings.Join(flakySyntheticTestNames.List(), "\n"))
-				//fmt.Fprintf(opt.Out, "%d invariant tests flaked\n\n%s\n\n", flakySyntheticTestNames.Len(), strings.Join(flakySyntheticTestNames.List(), "\n"))
-			}
-			// If we don't have a junit dir, print some info about the test failures
-			for _, test := range syntheticTestResults {
-				if failingSyntheticTestNames.Has(test.Name) {
-					fmt.Fprintf(opt.Out, "Failed test: %s\n\n", test.Name)
-					fmt.Fprintf(opt.Out, "%s\n\n", test.FailureOutput.Output)
-				}
 			}
 		}
 
@@ -528,8 +519,6 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 				fmt.Fprintf(opt.ErrOut, "error: Failed to write monitor data: %v\n", err)
 			}
 		}
-	} else {
-		fmt.Fprintf(opt.Out, "NO EVENTS")
 	}
 
 	// report the outcome of the test

@@ -5,14 +5,11 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/monitor"
@@ -100,7 +97,6 @@ func (o *MonitorEventsOptions) Start(ctx context.Context, restConfig *rest.Confi
 }
 
 func (o *MonitorEventsOptions) End(ctx context.Context, restConfig *rest.Config, artifactDir string) error {
-	fmt.Fprintf(o.Out, "MonitorEventsOptions.End called")
 	if o.monitor == nil {
 		return fmt.Errorf("not started")
 	}
@@ -113,58 +109,17 @@ func (o *MonitorEventsOptions) End(ctx context.Context, restConfig *rest.Config,
 	o.recordedResources = o.monitor.CurrentResourceState()
 
 	var err error
-	var events monitorapi.Intervals
-
-	// This env var is a hack for developers working on origin who would need rapid feedback
-	// when working on invariant tests, loading the e2e intervals from a file rather than waiting
-	// hours for a CI run.
-	if intervalsFile, specified := os.LookupEnv("INJECT_INTERVALS"); specified {
-		fmt.Fprintf(o.Out, "WARNING: Injecting e2e intervals due to INJECT_INTERVALS env var: %s\n", intervalsFile)
-		events, err = readIntervalsFromFile(intervalsFile)
-		fmt.Fprintf(o.Out, "Loaded %d intervals\n", len(events))
-		if err != nil {
-			return errors.Wrapf(err, "error reading intervals from file: %s", intervalsFile)
-		}
-	} else {
-		events, err = o.gatherEvents(ctx, restConfig, artifactDir, err)
-		if err != nil {
-			return err
-		}
-
-	}
-
-	o.recordedEvents = events
-
-	return nil
-}
-
-func readIntervalsFromFile(intervalsFile string) (monitorapi.Intervals, error) {
-	jsonFile, err := os.Open(intervalsFile)
-	if err != nil {
-		return nil, err
-	}
-	defer jsonFile.Close()
-
-	jsonBytes, err := ioutil.ReadAll(jsonFile)
-	if err != nil {
-		return nil, err
-	}
-
-	return monitorserialization.EventsFromJSON(jsonBytes)
-}
-
-func (o *MonitorEventsOptions) gatherEvents(ctx context.Context, restConfig *rest.Config, artifactDir string, err error) (monitorapi.Intervals, error) {
 	fromTime, endTime := time.Time{}, time.Time{}
 	events := o.monitor.Intervals(fromTime, endTime)
 	// this happens before calculation because events collected here could be used to drive later calculations
 	events, err = intervalcreation.InsertIntervalsFromCluster(ctx, restConfig, events, o.recordedResources, fromTime, endTime)
 	if err != nil {
-		return nil, fmt.Errorf("InsertIntervalsFromClusterError: %w", err)
+		return fmt.Errorf("InsertIntervalsFromClusterError: %w", err)
 	}
 	// add events from alerts so we can create the intervals
 	alertEventIntervals, err := monitor.FetchEventIntervalsForAllAlerts(ctx, restConfig, *o.startTime)
 	if err != nil {
-		return nil, fmt.Errorf("AlertErr: %w", err)
+		return fmt.Errorf("AlertErr: %w", err)
 	}
 	events = append(events, alertEventIntervals...)
 	events = intervalcreation.InsertCalculatedIntervals(events, o.recordedResources, fromTime, endTime)
@@ -194,7 +149,10 @@ func (o *MonitorEventsOptions) gatherEvents(ctx context.Context, restConfig *res
 
 	sort.Sort(events)
 	events.Clamp(*o.startTime, *o.endTime)
-	return events, nil
+
+	o.recordedEvents = events
+
+	return nil
 }
 
 func (o *MonitorEventsOptions) GetEvents() monitorapi.Intervals {

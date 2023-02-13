@@ -112,18 +112,6 @@ var staticSuites = testSuites{
 	},
 	{
 		TestSuite: ginkgo.TestSuite{
-			Name: "openshift-dev/conformance/invariants/alerts",
-			Description: templates.LongDesc(`
-		OpenShift developer hack to run alert invariant tests against predefined event intervals.
-		`),
-			Matches: func(name string) bool {
-				return false
-			},
-			SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.AlertEventInvariants),
-		},
-	},
-	{
-		TestSuite: ginkgo.TestSuite{
 			Name: "openshift/conformance/serial",
 			Description: templates.LongDesc(`
 		Only the portion of the openshift/conformance test suite that run serially.
