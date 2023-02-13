@@ -1537,6 +1537,8 @@ var Annotations = map[string]string{
 
 	"[sig-cli] templates different namespaces [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:template.openshift.io][apigroup:authorization.openshift.io][Skipped:Disconnected]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-cli] templates process [apigroup:apps.openshift.io][apigroup:template.openshift.io][Skipped:Disconnected]": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/authentication.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
 
 	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/builds.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
@@ -1574,8 +1576,6 @@ var Annotations = map[string]string{
 	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/setbuildhook.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
 
 	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/setbuildsecret.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
-
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/templates.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
 
 	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/triggers.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
 
