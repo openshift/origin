@@ -8,8 +8,6 @@ import (
 
 	o "github.com/onsi/gomega"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
-	"github.com/openshift/origin/pkg/monitor"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
@@ -21,11 +19,11 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
-type allowedAlertsFunc func(configclient.Interface) (allowedFiringWithBugs, allowedFiring, allowedPendingWithBugs, allowedPending helper.MetricConditions)
+type AllowedAlertsFunc func(configclient.Interface) (allowedFiringWithBugs, allowedFiring, allowedPendingWithBugs, allowedPending helper.MetricConditions)
 
 // CheckAlerts will query prometheus and ensure no-unexpected alerts were pending or firing.
 // Used by both upgrade and conformance suites, with different allowances for each.
-func CheckAlerts(allowancesFunc allowedAlertsFunc,
+func CheckAlerts(allowancesFunc AllowedAlertsFunc,
 	restConfig *rest.Config,
 	prometheusClient prometheusv1.API, // TODO: remove
 	configClient configclient.Interface, // TODO: remove
@@ -34,22 +32,6 @@ func CheckAlerts(allowancesFunc allowedAlertsFunc,
 
 	firingAlertsWithBugs, allowedFiringAlerts, pendingAlertsWithBugs, allowedPendingAlerts :=
 		allowancesFunc(configClient)
-
-	// TODO: we know duration of how long the non-invariant tests took, but not the actual start time,
-	// now minus duration would be close, but could be off if it takes time for us to reach this invariant
-	// test vs when we stopped the normal ginko suite.
-	startTime := time.Now().Add(-3 * time.Hour)
-	alertIntervalSlice, err := monitor.FetchEventIntervalsForAllAlerts(context.TODO(), restConfig, startTime)
-	if err != nil {
-		framework.Failf("error getting intervals for alerts: %v", err)
-		return
-	}
-	alertIntervals := monitorapi.Intervals(alertIntervalSlice)
-
-	pendingIntervals := alertIntervals.Filter(monitorapi.AlertPending())
-	firingIntervals := alertIntervals.Filter(monitorapi.AlertFiring())
-	framework.Logf("filtered down to %d pending intervals", len(pendingIntervals))
-	framework.Logf("filtered down to %d firing intervals", len(firingIntervals))
 
 	// In addition to the alert allowances passed in (which can differ for upgrades vs conformance),
 	// we also exclude alerts that have their own separate tests codified. This is a backstop test for
@@ -108,41 +90,6 @@ count_over_time(ALERTS{alertstate="firing",severity!="info",alertname!~"Watchdog
 			knownViolations.Insert(fmt.Sprintf("%s result=allow bug=%s", violation, cause.Text))
 		} else {
 			unexpectedViolations.Insert(fmt.Sprintf("%s result=reject", violation))
-		}
-	}
-
-	// New version for alert testing against intervals instead of directly from prometheus:
-	for _, firing := range firingIntervals {
-		fan := monitorapi.AlertFromLocator(firing.Locator)
-		seconds := firing.To.Sub(firing.From)
-		violation := fmt.Sprintf("V2 alert %s fired for %s seconds with labels: %s", fan, seconds, firing.Message)
-		if cause := allowedFiringAlerts.MatchesInterval(firing); cause != nil {
-			// TODO: this seems to never be happening? no search.ci results show allowed
-			debug.Insert(fmt.Sprintf("%s result=allow (%s)", violation, cause.Text))
-			continue
-		}
-		if cause := firingAlertsWithBugs.MatchesInterval(firing); cause != nil {
-			knownViolations.Insert(fmt.Sprintf("%s result=allow bug=%s", violation, cause.Text))
-		} else {
-			unexpectedViolations.Insert(fmt.Sprintf("%s result=reject", violation))
-		}
-	}
-	// New version for alert testing against intervals instead of directly from prometheus:
-	for _, pending := range pendingIntervals {
-		fan := monitorapi.AlertFromLocator(pending.Locator)
-		seconds := pending.To.Sub(pending.From)
-		violation := fmt.Sprintf("V2 alert %s pending for %s seconds with labels: %s", fan, seconds, pending.Message)
-		if cause := allowedPendingAlerts.MatchesInterval(pending); cause != nil {
-			// TODO: this seems to never be happening? no search.ci results show allowed
-			debug.Insert(fmt.Sprintf("%s result=allow (%s)", violation, cause.Text))
-			continue
-		}
-		if cause := pendingAlertsWithBugs.MatchesInterval(pending); cause != nil {
-			knownViolations.Insert(fmt.Sprintf("%s result=allow bug=%s", violation, cause.Text))
-		} else {
-			// treat pending errors as a flake right now because we are still trying to determine the scope
-			// TODO: move this to unexpectedViolations later
-			unexpectedViolationsAsFlakes.Insert(fmt.Sprintf("%s result=allow", violation))
 		}
 	}
 
