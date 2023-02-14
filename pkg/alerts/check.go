@@ -10,6 +10,7 @@ import (
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
@@ -44,7 +45,7 @@ func CheckAlerts(allowancesFunc allowedAlertsFunc,
 	}
 
 	// we exclude alerts that have their own separate tests.
-	for _, alertTest := range allowedalerts.AllAlertTests(context.TODO(), nil, 0) {
+	for _, alertTest := range allowedalerts.AllAlertTests(&platformidentification.JobType{}, allowedalerts.DefaultAllowances) {
 		switch alertTest.AlertState() {
 		case allowedalerts.AlertPending:
 			// a pending test covers pending and everything above (firing)

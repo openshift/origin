@@ -14,6 +14,7 @@ import (
 // cluster is under no adversarial change (config changes, induced disruption to nodes,
 // etcd, or apis).
 func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config, testSuite string, recordedResource *monitorapi.ResourcesMap) (tests []*junitapi.JUnitTestCase) {
+
 	tests = SystemEventInvariants(events, duration, kubeClientConfig, testSuite, recordedResource)
 	tests = append(tests, testContainerFailures(events)...)
 	tests = append(tests, testDeleteGracePeriodZero(events)...)

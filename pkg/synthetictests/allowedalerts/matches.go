@@ -37,7 +37,7 @@ type AlertTestAllowanceCalculator interface {
 type percentileAllowances struct {
 }
 
-var defaultAllowances = &percentileAllowances{}
+var DefaultAllowances = &percentileAllowances{}
 
 func (d *percentileAllowances) FailAfter(key historicaldata.AlertDataKey) (time.Duration, error) {
 	allowed, _, _ := getClosestPercentilesValues(key)

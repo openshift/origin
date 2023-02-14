@@ -7,14 +7,12 @@ import (
 	"strings"
 	"time"
 
-	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
 	"github.com/openshift/origin/pkg/synthetictests/historicaldata"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
 type etcdRevisionChangeAllowance struct {
-	operatorClient             operatorv1client.OperatorV1Interface
 	numberOfRevisionDuringTest int
 }
 
