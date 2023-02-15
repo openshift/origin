@@ -43,11 +43,11 @@ func testAlerts(events monitorapi.Intervals, restConfig *rest.Config,
 		}
 	}
 
-	ret := runAlertTests(jobType, etcdAllowance, events, recordedResource)
+	ret := RunAlertTests(jobType, etcdAllowance, events, recordedResource)
 	return ret
 }
 
-func runAlertTests(jobType *platformidentification.JobType,
+func RunAlertTests(jobType *platformidentification.JobType,
 	etcdAllowance allowedalerts.AlertTestAllowanceCalculator,
 	events monitorapi.Intervals,
 	recordedResource *monitorapi.ResourcesMap) []*junitapi.JUnitTestCase {
