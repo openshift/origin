@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
@@ -38,10 +39,11 @@ func WriteJobRunTestFailureSummary(artifactDir, timeSuffix string, finalSuiteRes
 	jobRunID, _ := strconv.Atoi(os.Getenv("BUILD_ID"))
 
 	jr := ProwJobRun{
-		ID:        jobRunID,
-		ProwJob:   ProwJob{Name: os.Getenv("JOB_NAME")},
-		Tests:     []ProwJobRunTest{},
-		TestCount: len(tests),
+		ID:          jobRunID,
+		ProwJob:     ProwJob{Name: os.Getenv("JOB_NAME")},
+		ClusterData: monitor.CollectClusterData(),
+		Tests:       []ProwJobRunTest{},
+		TestCount:   len(tests),
 	}
 
 	for k, v := range tests {

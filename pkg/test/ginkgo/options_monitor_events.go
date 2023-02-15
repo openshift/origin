@@ -10,19 +10,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/nodedetails"
-
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitor/nodedetails"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
 type RunDataWriter interface {
@@ -72,6 +71,7 @@ func NewMonitorEventsOptions(out io.Writer, errOut io.Writer) *MonitorEventsOpti
 			RunDataWriterFunc(monitor.WriteTrackedResourcesForJobRun),
 			RunDataWriterFunc(monitor.WriteBackendDisruptionForJobRun),
 			RunDataWriterFunc(allowedalerts.WriteAlertDataForJobRun),
+			RunDataWriterFunc(monitor.WriteClusterData),
 		},
 		Out:    out,
 		ErrOut: errOut,
