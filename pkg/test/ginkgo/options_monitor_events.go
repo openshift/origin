@@ -119,12 +119,12 @@ func (o *MonitorEventsOptions) End(ctx context.Context, restConfig *rest.Config,
 	// this happens before calculation because events collected here could be used to drive later calculations
 	o.auditLogSummary, events, err = intervalcreation.InsertIntervalsFromCluster(ctx, restConfig, events, o.recordedResources, fromTime, endTime)
 	if err != nil {
-		return fmt.Errorf("InsertIntervalsFromClusterError: %w", err)
+		fmt.Fprintf(o.ErrOut, "InsertIntervalsFromCluster error but continuing processing: %v", err)
 	}
 	// add events from alerts so we can create the intervals
 	alertEventIntervals, err := monitor.FetchEventIntervalsForAllAlerts(ctx, restConfig, *o.startTime)
 	if err != nil {
-		return fmt.Errorf("AlertErr: %w", err)
+		fmt.Fprintf(o.ErrOut, "FetchEventIntervalsForAllAlerts error but continuing processing: %v", err)
 	}
 	events = append(events, alertEventIntervals...)
 	events = intervalcreation.InsertCalculatedIntervals(events, o.recordedResources, fromTime, endTime)
