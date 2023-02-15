@@ -140,6 +140,15 @@ func (o *MonitorEventsOptions) End(ctx context.Context, restConfig *rest.Config,
 			if d.IsDir() {
 				return nil
 			}
+			// upstream framework starting in 1.26 fixed how the AfterEach is
+			// invoked, now it's always invoked and that results in more files
+			// than we anticipated before, see here:
+			// https://github.com/kubernetes/kubernetes/blob/v1.26.0/test/e2e/framework/framework.go#L382
+			// our files have double underscore whereas upstream has only single
+			// so for now we'll skip everything else for summaries
+			//
+			// TODO: TRT will need to double check this longterm what they want
+			// to do with these extra files
 			if !strings.HasPrefix(d.Name(), "AdditionalEvents__") {
 				return nil
 			}

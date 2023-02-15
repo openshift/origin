@@ -155,8 +155,13 @@ func NewCLIWithoutNamespace(project string) *CLI {
 		adminConfigPath:  KubeConfigPath(),
 		withoutNamespace: true,
 	}
-	g.AfterEach(cli.TeardownProject)
 	g.BeforeEach(cli.kubeFramework.BeforeEach)
+
+	// we can't use k8s initialization method to inject these into framework.NewFrameworkExtensions
+	// because we need to have an instance of CLI, so we're rely on the less optimal ginkgo.AfterEach
+	// in case where this method fails, framework cleans up the entire namespace so we should be
+	// safe on that front, still.
+	g.AfterEach(cli.TeardownProject)
 	return cli
 }
 
