@@ -117,7 +117,7 @@ func IntervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 
 	allNodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return nil, err
+		return ret, err
 	}
 
 	collectionStart := time.Now()
@@ -132,6 +132,7 @@ func IntervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 			// TODO limit by begin/end here instead of post-processing
 			nodeLogs, err := nodedetails.GetNodeLog(ctx, kubeClient, nodeName, "kubelet")
 			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error getting node logs from %s: %s", nodeName, err.Error())
 				errCh <- err
 				return
 			}
@@ -144,7 +145,7 @@ func IntervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 	}
 	wg.Wait()
 	collectionEnd := time.Now()
-	fmt.Fprintf(os.Stderr, "Collection of node logs and analysis took: %v\n", collectionEnd.Sub(collectionStart))
+	fmt.Fprintf(os.Stdout, "Collection of node logs and analysis took: %v\n", collectionEnd.Sub(collectionStart))
 
 	errs := []error{}
 	for len(errCh) > 0 {
