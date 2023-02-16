@@ -3,6 +3,7 @@ package synthetictests
 import (
 	"time"
 
+	"github.com/openshift/origin/pkg/alerts"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -41,7 +42,8 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testErrImagePullManifestUnknown(events)...)
 	tests = append(tests, testErrImagePullGenericOpenShiftNamespaces(events)...)
 	tests = append(tests, testErrImagePullGeneric(events)...)
-	tests = append(tests, testAlerts(events, kubeClientConfig, duration, recordedResource)...)
+	tests = append(tests, testAlerts(events, alerts.AllowedAlertsDuringConformance,
+		kubeClientConfig, duration, recordedResource)...)
 	tests = append(tests, testOperatorOSUpdateStaged(events, kubeClientConfig)...)
 	tests = append(tests, testOperatorOSUpdateStartedEventRecorded(events, kubeClientConfig)...)
 	tests = append(tests, testPodNodeNameIsImmutable(events)...)
@@ -90,7 +92,8 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testErrImagePullManifestUnknown(events)...)
 	tests = append(tests, testErrImagePullGenericOpenShiftNamespaces(events)...)
 	tests = append(tests, testErrImagePullGeneric(events)...)
-	tests = append(tests, testAlerts(events, kubeClientConfig, duration, recordedResource)...)
+	tests = append(tests, testAlerts(events, alerts.AllowedAlertsDuringUpgrade,
+		kubeClientConfig, duration, recordedResource)...)
 	tests = append(tests, testOperatorOSUpdateStaged(events, kubeClientConfig)...)
 	tests = append(tests, testOperatorOSUpdateStartedEventRecorded(events, kubeClientConfig)...)
 	tests = append(tests, testPodNodeNameIsImmutable(events)...)

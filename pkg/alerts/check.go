@@ -7,6 +7,7 @@ import (
 	"time"
 
 	o "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
@@ -14,12 +15,13 @@ import (
 	"github.com/openshift/origin/test/extended/util/disruption"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
-type AllowedAlertsFunc func(configclient.Interface) (allowedFiringWithBugs, allowedFiring, allowedPendingWithBugs, allowedPending helper.MetricConditions)
+type AllowedAlertsFunc func(featureSet configv1.FeatureSet) (allowedFiringWithBugs, allowedFiring, allowedPendingWithBugs, allowedPending helper.MetricConditions)
 
 // CheckAlerts will query prometheus and ensure no-unexpected alerts were pending or firing.
 // Used by both upgrade and conformance suites, with different allowances for each.
@@ -30,8 +32,15 @@ func CheckAlerts(allowancesFunc AllowedAlertsFunc,
 	testDuration time.Duration,
 	f *framework.Framework) {
 
+	featureSet := configv1.Default
+	featureGate, err := configClient.ConfigV1().FeatureGates().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		framework.Logf("ERROR: error checking feature gates in cluster, ignoring: %v", err)
+	} else {
+		featureSet = featureGate.Spec.FeatureSet
+	}
 	firingAlertsWithBugs, allowedFiringAlerts, pendingAlertsWithBugs, allowedPendingAlerts :=
-		allowancesFunc(configClient)
+		allowancesFunc(featureSet)
 
 	// In addition to the alert allowances passed in (which can differ for upgrades vs conformance),
 	// we also exclude alerts that have their own separate tests codified. This is a backstop test for

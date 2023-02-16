@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/pkg/alerts"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/synthetictests"
@@ -69,8 +71,13 @@ a running cluster.
 			}
 
 			logrus.Info("running tests")
-			testCases := synthetictests.RunAlertTests(jobType,
-				allowedalerts.DefaultAllowances, intervals, &monitorapi.ResourcesMap{})
+			testCases := synthetictests.RunAlertTests(
+				jobType,
+				alerts.AllowedAlertsDuringUpgrade, // NOTE: may someway want a cli flag for conformance variant
+				configv1.Default,
+				allowedalerts.DefaultAllowances,
+				intervals,
+				&monitorapi.ResourcesMap{})
 			for _, tc := range testCases {
 				if tc.FailureOutput != nil {
 					logrus.Infof("%s - %s", tc.Name, tc.FailureOutput)

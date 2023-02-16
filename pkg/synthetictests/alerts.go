@@ -6,31 +6,51 @@ import (
 	"strings"
 	"time"
 
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/sirupsen/logrus"
+
+	"github.com/openshift/origin/pkg/alerts"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 
-	"github.com/sirupsen/logrus"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
-func testAlerts(events monitorapi.Intervals, restConfig *rest.Config,
-	duration time.Duration, recordedResource *monitorapi.ResourcesMap) []*junitapi.JUnitTestCase {
+func testAlerts(events monitorapi.Intervals,
+	allowancesFunc alerts.AllowedAlertsFunc,
+	restConfig *rest.Config,
+	duration time.Duration,
+	recordedResource *monitorapi.ResourcesMap) []*junitapi.JUnitTestCase {
 
+	// Work with the cluster under test before we run the alert tests. For testing the tests purposes,
+	// please keep any use of the rest.Config isolated to this function and do not have the actual
+	// invariant tests themselves hitting a live cluster.
 	jobType, err := platformidentification.GetJobType(context.TODO(), restConfig)
 	if err != nil {
 		// TODO: technically this should fail all tests...
 		framework.Logf("ERROR: unable to determine job type for alert testing, abandoning all alert tests: %v", err)
 	}
 
+	configClient := configv1client.NewForConfigOrDie(restConfig)
+	featureSet := configv1.Default
+	featureGate, err := configClient.ConfigV1().FeatureGates().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		framework.Logf("ERROR: error checking feature gates in cluster, ignoring: %v", err)
+	} else {
+		featureSet = featureGate.Spec.FeatureSet
+	}
+
 	var etcdAllowance allowedalerts.AlertTestAllowanceCalculator
 	etcdAllowance = allowedalerts.DefaultAllowances
-	// if we have a clientConfig,  use it.
+	// if we have a restConfig,  use it.
 	if restConfig != nil {
 		kubeClient, err := kubernetes.NewForConfig(restConfig)
 		if err != nil {
@@ -43,11 +63,13 @@ func testAlerts(events monitorapi.Intervals, restConfig *rest.Config,
 		}
 	}
 
-	ret := RunAlertTests(jobType, etcdAllowance, events, recordedResource)
+	ret := RunAlertTests(jobType, allowancesFunc, featureSet, etcdAllowance, events, recordedResource)
 	return ret
 }
 
 func RunAlertTests(jobType *platformidentification.JobType,
+	allowancesFunc alerts.AllowedAlertsFunc,
+	featureSet configv1.FeatureSet,
 	etcdAllowance allowedalerts.AlertTestAllowanceCalculator,
 	events monitorapi.Intervals,
 	recordedResource *monitorapi.ResourcesMap) []*junitapi.JUnitTestCase {
@@ -73,7 +95,7 @@ func RunAlertTests(jobType *platformidentification.JobType,
 	}
 
 	// Run the backstop catch all for all other alerts:
-	ret = append(ret, CheckAlerts(events, alertTests)...)
+	ret = append(ret, CheckAlerts(allowancesFunc, featureSet, events, alertTests)...)
 
 	return ret
 }
@@ -81,15 +103,14 @@ func RunAlertTests(jobType *platformidentification.JobType,
 // CheckAlerts will query prometheus and ensure no-unexpected alerts were pending or firing.
 // Used by both upgrade and conformance suites, with different allowances for each.
 func CheckAlerts(
-	/*allowancesFunc alerts.AllowedAlertsFunc,*/
+	allowancesFunc alerts.AllowedAlertsFunc,
+	featureSet configv1.FeatureSet,
 	alertIntervals monitorapi.Intervals,
 	alertTests []allowedalerts.AlertTest) []*junitapi.JUnitTestCase {
 
-	/* TODO:
 	firingAlertsWithBugs, allowedFiringAlerts, pendingAlertsWithBugs, allowedPendingAlerts :=
-		allowancesFunc(configClient)
-	*/
-	var firingAlertsWithBugs, allowedFiringAlerts, pendingAlertsWithBugs, allowedPendingAlerts helper.MetricConditions
+		allowancesFunc(featureSet)
+	//var firingAlertsWithBugs, allowedFiringAlerts, pendingAlertsWithBugs, allowedPendingAlerts helper.MetricConditions
 
 	pendingIntervals := alertIntervals.Filter(monitorapi.AlertPending())
 	firingIntervals := alertIntervals.Filter(monitorapi.AlertFiring())
