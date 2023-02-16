@@ -119,6 +119,10 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
       default: {}
+    - name: state
+      type:
+        scalar: string
+      default: Inactive
     - name: strategy
       type:
         namedType: com.github.openshift.api.machine.v1.ControlPlaneMachineSetStrategy
@@ -159,13 +163,13 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: type
       type:
         scalar: string
+      default: RollingUpdate
 - name: com.github.openshift.api.machine.v1.ControlPlaneMachineSetTemplate
   map:
     fields:
     - name: machineType
       type:
         scalar: string
-      default: ""
     - name: machines_v1beta1_machine_openshift_io
       type:
         namedType: com.github.openshift.api.machine.v1.OpenShiftMachineV1Beta1MachineTemplate
@@ -208,12 +212,6 @@ var schemaYAML = typed.YAMLObject(`types:
           elementType:
             namedType: com.github.openshift.api.machine.v1.GCPFailureDomain
           elementRelationship: atomic
-    - name: openstack
-      type:
-        list:
-          elementType:
-            namedType: com.github.openshift.api.machine.v1.OpenStackFailureDomain
-          elementRelationship: atomic
     - name: platform
       type:
         scalar: string
@@ -227,8 +225,6 @@ var schemaYAML = typed.YAMLObject(`types:
         discriminatorValue: Azure
       - fieldName: gcp
         discriminatorValue: GCP
-      - fieldName: openstack
-        discriminatorValue: OpenStack
 - name: com.github.openshift.api.machine.v1.GCPFailureDomain
   map:
     fields:
@@ -251,13 +247,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: com.github.openshift.api.machine.v1beta1.MachineSpec
       default: {}
-- name: com.github.openshift.api.machine.v1.OpenStackFailureDomain
-  map:
-    fields:
-    - name: availabilityZone
-      type:
-        scalar: string
-      default: ""
 - name: com.github.openshift.api.machine.v1beta1.Condition
   map:
     fields:

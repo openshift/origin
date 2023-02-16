@@ -54,6 +54,7 @@ import (
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2edebug "k8s.io/kubernetes/test/e2e/framework/debug"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	oauthv1 "github.com/openshift/api/oauth/v1"
@@ -141,9 +142,8 @@ func NewCLI(project string) *CLI {
 func NewCLIWithoutNamespace(project string) *CLI {
 	cli := &CLI{
 		kubeFramework: &framework.Framework{
-			SkipNamespaceCreation:    true,
-			BaseName:                 project,
-			AddonResourceConstraints: make(map[string]framework.ResourceConstraint),
+			SkipNamespaceCreation: true,
+			BaseName:              project,
 			Options: framework.Options{
 				ClientQPS:   20,
 				ClientBurst: 50,
@@ -156,24 +156,22 @@ func NewCLIWithoutNamespace(project string) *CLI {
 		withoutNamespace: true,
 	}
 	g.AfterEach(cli.TeardownProject)
-	g.AfterEach(cli.kubeFramework.AfterEach)
 	g.BeforeEach(cli.kubeFramework.BeforeEach)
 	return cli
 }
 
 // NewHypershiftManagementCLI returns a CLI that interacts with the Hypershift management cluster.
-// Contrary to a normal CLI it does not perform any cleanup and it must not be used for any mutating
-// operations. Also contrary to a normal CLI it must be constructed inside an `It` block. This is
+// Contrary to a normal CLI it does not perform any cleanup, and it must not be used for any mutating
+// operations. Also, contrary to a normal CLI it must be constructed inside an `It` block. This is
 // because retrieval of hypershift management cluster config can fail, but assertions are only
-// allowed inside an It block. AfterEach and BeforeEach are not allowed there though.
+// allowed inside an `It` block. `AfterEach` and `BeforeEach` are not allowed there though.
 func NewHypershiftManagementCLI(project string) *CLI {
 	kubeconfig, _, err := GetHypershiftManagementClusterConfigAndNamespace()
 	o.Expect(err).NotTo(o.HaveOccurred())
 	return &CLI{
 		kubeFramework: &framework.Framework{
-			SkipNamespaceCreation:    true,
-			BaseName:                 project,
-			AddonResourceConstraints: make(map[string]framework.ResourceConstraint),
+			SkipNamespaceCreation: true,
+			BaseName:              project,
 			Options: framework.Options{
 				ClientQPS:   20,
 				ClientBurst: 50,
@@ -534,7 +532,7 @@ func (c *CLI) setupNamespacePodSecurity(ns string) error {
 // TeardownProject removes projects created by this test.
 func (c *CLI) TeardownProject() {
 	if len(c.Namespace()) > 0 && g.CurrentSpecReport().Failed() && framework.TestContext.DumpLogsOnFailure {
-		framework.DumpAllNamespaceInfo(c.kubeFramework.ClientSet, c.Namespace())
+		e2edebug.DumpAllNamespaceInfo(c.kubeFramework.ClientSet, c.Namespace())
 	}
 
 	if len(c.configPath) > 0 {

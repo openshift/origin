@@ -6,6 +6,7 @@ package v1
 // with apply.
 type KubeAPIServerStatusApplyConfiguration struct {
 	StaticPodOperatorStatusApplyConfiguration `json:",inline"`
+	ServiceAccountIssuers                     []ServiceAccountIssuerStatusApplyConfiguration `json:"serviceAccountIssuers,omitempty"`
 }
 
 // KubeAPIServerStatusApplyConfiguration constructs an declarative configuration of the KubeAPIServerStatus type for use with
@@ -89,6 +90,19 @@ func (b *KubeAPIServerStatusApplyConfiguration) WithNodeStatuses(values ...*Node
 			panic("nil value passed to WithNodeStatuses")
 		}
 		b.NodeStatuses = append(b.NodeStatuses, *values[i])
+	}
+	return b
+}
+
+// WithServiceAccountIssuers adds the given value to the ServiceAccountIssuers field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the ServiceAccountIssuers field.
+func (b *KubeAPIServerStatusApplyConfiguration) WithServiceAccountIssuers(values ...*ServiceAccountIssuerStatusApplyConfiguration) *KubeAPIServerStatusApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithServiceAccountIssuers")
+		}
+		b.ServiceAccountIssuers = append(b.ServiceAccountIssuers, *values[i])
 	}
 	return b
 }
