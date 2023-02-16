@@ -80,7 +80,9 @@ a running cluster.
 				&monitorapi.ResourcesMap{})
 			for _, tc := range testCases {
 				if tc.FailureOutput != nil {
-					logrus.Infof("%s - %s", tc.Name, tc.FailureOutput)
+					logrus.Warnf("FAIL: %s\n\n%s\n\n", tc.Name, tc.FailureOutput.Output)
+				} else {
+					logrus.Infof("PASS: %s", tc.Name)
 				}
 			}
 			return nil

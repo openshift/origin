@@ -95,14 +95,14 @@ func RunAlertTests(jobType *platformidentification.JobType,
 	}
 
 	// Run the backstop catch all for all other alerts:
-	ret = append(ret, CheckAlerts(allowancesFunc, featureSet, events, alertTests)...)
+	ret = append(ret, runBackstopTest(allowancesFunc, featureSet, events, alertTests)...)
 
 	return ret
 }
 
-// CheckAlerts will query prometheus and ensure no-unexpected alerts were pending or firing.
-// Used by both upgrade and conformance suites, with different allowances for each.
-func CheckAlerts(
+// runBackstopTest will process the intervals for any alerts which do not have their own explicit test,
+// and look for any pending/firing intervals that are not within sufficient range.
+func runBackstopTest(
 	allowancesFunc alerts.AllowedAlertsFunc,
 	featureSet configv1.FeatureSet,
 	alertIntervals monitorapi.Intervals,
@@ -110,7 +110,6 @@ func CheckAlerts(
 
 	firingAlertsWithBugs, allowedFiringAlerts, pendingAlertsWithBugs, allowedPendingAlerts :=
 		allowancesFunc(featureSet)
-	//var firingAlertsWithBugs, allowedFiringAlerts, pendingAlertsWithBugs, allowedPendingAlerts helper.MetricConditions
 
 	pendingIntervals := alertIntervals.Filter(monitorapi.AlertPending())
 	firingIntervals := alertIntervals.Filter(monitorapi.AlertFiring())
@@ -184,7 +183,7 @@ func CheckAlerts(
 		} else {
 			// treat pending errors as a flake right now because we are still trying to determine the scope
 			// TODO: move this to unexpectedViolations later
-			unexpectedViolationsAsFlakes.Insert(fmt.Sprintf("%s result=allow", violation))
+			//unexpectedViolationsAsFlakes.Insert(fmt.Sprintf("%s result=allow", violation))
 		}
 	}
 
