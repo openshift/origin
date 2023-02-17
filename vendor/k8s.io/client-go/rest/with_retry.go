@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
@@ -344,7 +345,7 @@ func readAndCloseResponseBody(resp *http.Response) {
 	defer resp.Body.Close()
 
 	if resp.ContentLength <= maxBodySlurpSize {
-		io.Copy(io.Discard, &io.LimitedReader{R: resp.Body, N: maxBodySlurpSize})
+		io.Copy(ioutil.Discard, &io.LimitedReader{R: resp.Body, N: maxBodySlurpSize})
 	}
 }
 

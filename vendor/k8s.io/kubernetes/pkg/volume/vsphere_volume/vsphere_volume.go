@@ -153,17 +153,17 @@ func (plugin *vsphereVolumePlugin) newUnmounterInternal(volName string, podUID t
 		}}, nil
 }
 
-func (plugin *vsphereVolumePlugin) ConstructVolumeSpec(volumeName, mountPath string) (volume.ReconstructedVolume, error) {
+func (plugin *vsphereVolumePlugin) ConstructVolumeSpec(volumeName, mountPath string) (*volume.Spec, error) {
 	mounter := plugin.host.GetMounter(plugin.GetPluginName())
 	kvh, ok := plugin.host.(volume.KubeletVolumeHost)
 	if !ok {
-		return volume.ReconstructedVolume{}, fmt.Errorf("plugin volume host does not implement KubeletVolumeHost interface")
+		return nil, fmt.Errorf("plugin volume host does not implement KubeletVolumeHost interface")
 	}
 	hu := kvh.GetHostUtil()
 	pluginMntDir := util.GetPluginMountDir(plugin.host, plugin.GetPluginName())
 	volumePath, err := hu.GetDeviceNameFromMount(mounter, mountPath, pluginMntDir)
 	if err != nil {
-		return volume.ReconstructedVolume{}, err
+		return nil, err
 	}
 	volumePath = strings.Replace(volumePath, "\\040", " ", -1)
 	klog.V(5).Infof("vSphere volume path is %q", volumePath)
@@ -175,9 +175,7 @@ func (plugin *vsphereVolumePlugin) ConstructVolumeSpec(volumeName, mountPath str
 			},
 		},
 	}
-	return volume.ReconstructedVolume{
-		Spec: volume.NewSpecFromVolume(vsphereVolume),
-	}, nil
+	return volume.NewSpecFromVolume(vsphereVolume), nil
 }
 
 // Abstract interface to disk operations.

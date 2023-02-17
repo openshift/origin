@@ -19,7 +19,6 @@ package csistoragecapacity
 import (
 	"context"
 
-	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/storage/names"
@@ -49,11 +48,9 @@ func (csiStorageCapacityStrategy) PrepareForCreate(ctx context.Context, obj runt
 
 func (csiStorageCapacityStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	csiStorageCapacity := obj.(*storage.CSIStorageCapacity)
-	opts := validation.CSIStorageCapacityValidateOptions{
-		AllowInvalidLabelValueInSelector: false,
-	}
-	errs := validation.ValidateCSIStorageCapacity(csiStorageCapacity, opts)
-	errs = append(errs, validation.ValidateCSIStorageCapacity(csiStorageCapacity, opts)...)
+
+	errs := validation.ValidateCSIStorageCapacity(csiStorageCapacity)
+	errs = append(errs, validation.ValidateCSIStorageCapacity(csiStorageCapacity)...)
 
 	return errs
 }
@@ -78,10 +75,7 @@ func (csiStorageCapacityStrategy) PrepareForUpdate(ctx context.Context, obj, old
 func (csiStorageCapacityStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	newCSIStorageCapacityObj := obj.(*storage.CSIStorageCapacity)
 	oldCSIStorageCapacityObj := old.(*storage.CSIStorageCapacity)
-	opts := validation.CSIStorageCapacityValidateOptions{
-		AllowInvalidLabelValueInSelector: hasInvalidLabelValueInLabelSelector(oldCSIStorageCapacityObj),
-	}
-	errorList := validation.ValidateCSIStorageCapacity(newCSIStorageCapacityObj, opts)
+	errorList := validation.ValidateCSIStorageCapacity(newCSIStorageCapacityObj)
 	return append(errorList, validation.ValidateCSIStorageCapacityUpdate(newCSIStorageCapacityObj, oldCSIStorageCapacityObj)...)
 }
 
@@ -92,9 +86,4 @@ func (csiStorageCapacityStrategy) WarningsOnUpdate(ctx context.Context, obj, old
 
 func (csiStorageCapacityStrategy) AllowUnconditionalUpdate() bool {
 	return false
-}
-
-func hasInvalidLabelValueInLabelSelector(capacity *storage.CSIStorageCapacity) bool {
-	labelSelectorValidationOptions := metav1validation.LabelSelectorValidationOptions{AllowInvalidLabelValueInSelector: false}
-	return len(metav1validation.ValidateLabelSelector(capacity.NodeTopology, labelSelectorValidationOptions, nil)) > 0
 }

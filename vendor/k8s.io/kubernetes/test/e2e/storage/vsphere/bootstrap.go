@@ -18,10 +18,9 @@ package vsphere
 
 import (
 	"context"
-	"sync"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
+	"sync"
 )
 
 var once sync.Once

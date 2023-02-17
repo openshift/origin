@@ -9,8 +9,6 @@ import (
 	"github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/kubectl/pkg/util/templates"
-	_ "k8s.io/kubernetes/test/e2e/framework/debug/init"
-	_ "k8s.io/kubernetes/test/e2e/framework/metrics/init"
 
 	_ "github.com/openshift/origin/test/extended"
 	_ "github.com/openshift/origin/test/extended/util/annotate/generated"

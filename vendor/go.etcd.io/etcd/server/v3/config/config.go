@@ -120,10 +120,6 @@ type ServerConfig struct {
 	// MaxRequestBytes is the maximum request size to send over raft.
 	MaxRequestBytes uint
 
-	// MaxConcurrentStreams specifies the maximum number of concurrent
-	// streams that each client can open at a time.
-	MaxConcurrentStreams uint32
-
 	WarningApplyDuration time.Duration
 
 	StrictReconfigCheck bool
@@ -137,10 +133,8 @@ type ServerConfig struct {
 
 	// InitialCorruptCheck is true to check data corruption on boot
 	// before serving any peer/client traffic.
-	InitialCorruptCheck     bool
-	CorruptCheckTime        time.Duration
-	CompactHashCheckEnabled bool
-	CompactHashCheckTime    time.Duration
+	InitialCorruptCheck bool
+	CorruptCheckTime    time.Duration
 
 	// PreVote is true to enable Raft Pre-Vote.
 	PreVote bool

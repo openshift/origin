@@ -15,13 +15,12 @@
 package wal
 
 import (
+	"bufio"
 	"encoding/binary"
-	"fmt"
 	"hash"
 	"io"
 	"sync"
 
-	"go.etcd.io/etcd/client/pkg/v3/fileutil"
 	"go.etcd.io/etcd/pkg/v3/crc"
 	"go.etcd.io/etcd/pkg/v3/pbutil"
 	"go.etcd.io/etcd/raft/v3/raftpb"
@@ -35,17 +34,17 @@ const frameSizeBytes = 8
 
 type decoder struct {
 	mu  sync.Mutex
-	brs []*fileutil.FileBufReader
+	brs []*bufio.Reader
 
 	// lastValidOff file offset following the last valid decoded record
 	lastValidOff int64
 	crc          hash.Hash32
 }
 
-func newDecoder(r ...fileutil.FileReader) *decoder {
-	readers := make([]*fileutil.FileBufReader, len(r))
+func newDecoder(r ...io.Reader) *decoder {
+	readers := make([]*bufio.Reader, len(r))
 	for i := range r {
-		readers[i] = fileutil.NewFileBufReader(r[i])
+		readers[i] = bufio.NewReader(r[i])
 	}
 	return &decoder{
 		brs: readers,
@@ -60,13 +59,17 @@ func (d *decoder) decode(rec *walpb.Record) error {
 	return d.decodeRecord(rec)
 }
 
+// raft max message size is set to 1 MB in etcd server
+// assume projects set reasonable message size limit,
+// thus entry size should never exceed 10 MB
+const maxWALEntrySizeLimit = int64(10 * 1024 * 1024)
+
 func (d *decoder) decodeRecord(rec *walpb.Record) error {
 	if len(d.brs) == 0 {
 		return io.EOF
 	}
 
-	fileBufReader := d.brs[0]
-	l, err := readInt64(fileBufReader)
+	l, err := readInt64(d.brs[0])
 	if err == io.EOF || (err == nil && l == 0) {
 		// hit end of file or preallocated space
 		d.brs = d.brs[1:]
@@ -81,15 +84,12 @@ func (d *decoder) decodeRecord(rec *walpb.Record) error {
 	}
 
 	recBytes, padBytes := decodeFrameSize(l)
-	// The length of current WAL entry must be less than the remaining file size.
-	maxEntryLimit := fileBufReader.FileInfo().Size() - d.lastValidOff - padBytes
-	if recBytes > maxEntryLimit {
-		return fmt.Errorf("wal: max entry size limit exceeded, recBytes: %d, fileSize(%d) - offset(%d) - padBytes(%d) = entryLimit(%d)",
-			recBytes, fileBufReader.FileInfo().Size(), d.lastValidOff, padBytes, maxEntryLimit)
+	if recBytes >= maxWALEntrySizeLimit-padBytes {
+		return ErrMaxWALEntrySizeLimitExceeded
 	}
 
 	data := make([]byte, recBytes+padBytes)
-	if _, err = io.ReadFull(fileBufReader, data); err != nil {
+	if _, err = io.ReadFull(d.brs[0], data); err != nil {
 		// ReadFull returns io.EOF only if no bytes were read
 		// the decoder should treat this as an ErrUnexpectedEOF instead.
 		if err == io.EOF {

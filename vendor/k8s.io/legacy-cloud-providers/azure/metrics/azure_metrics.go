@@ -39,8 +39,8 @@ var (
 		"source",          // Operation source(optional)
 	}
 
-	apiMetrics       = registerAPIMetrics()
-	operationMetrics = registerOperationMetrics()
+	apiMetrics       = registerAPIMetrics(metricLabels...)
+	operationMetrics = registerOperationMetrics(metricLabels...)
 )
 
 // apiCallMetrics is the metrics measuring the performance of a single API call
@@ -109,7 +109,7 @@ func (mc *MetricContext) CountFailedOperation() {
 }
 
 // registerAPIMetrics registers the API metrics.
-func registerAPIMetrics() *apiCallMetrics {
+func registerAPIMetrics(attributes ...string) *apiCallMetrics {
 	metrics := &apiCallMetrics{
 		latency: metrics.NewHistogramVec(
 			&metrics.HistogramOpts{
@@ -119,7 +119,7 @@ func registerAPIMetrics() *apiCallMetrics {
 				Buckets:        []float64{.1, .25, .5, 1, 2.5, 5, 10, 15, 25, 50, 120, 300, 600, 1200},
 				StabilityLevel: metrics.ALPHA,
 			},
-			metricLabels,
+			attributes,
 		),
 		errors: metrics.NewCounterVec(
 			&metrics.CounterOpts{
@@ -128,7 +128,7 @@ func registerAPIMetrics() *apiCallMetrics {
 				Help:           "Number of errors for an Azure API call",
 				StabilityLevel: metrics.ALPHA,
 			},
-			metricLabels,
+			attributes,
 		),
 		rateLimitedCount: metrics.NewCounterVec(
 			&metrics.CounterOpts{
@@ -137,7 +137,7 @@ func registerAPIMetrics() *apiCallMetrics {
 				Help:           "Number of rate limited Azure API calls",
 				StabilityLevel: metrics.ALPHA,
 			},
-			metricLabels,
+			attributes,
 		),
 		throttledCount: metrics.NewCounterVec(
 			&metrics.CounterOpts{
@@ -146,7 +146,7 @@ func registerAPIMetrics() *apiCallMetrics {
 				Help:           "Number of throttled Azure API calls",
 				StabilityLevel: metrics.ALPHA,
 			},
-			metricLabels,
+			attributes,
 		),
 	}
 
@@ -159,7 +159,7 @@ func registerAPIMetrics() *apiCallMetrics {
 }
 
 // registerOperationMetrics registers the operation metrics.
-func registerOperationMetrics() *operationCallMetrics {
+func registerOperationMetrics(attributes ...string) *operationCallMetrics {
 	metrics := &operationCallMetrics{
 		operationLatency: metrics.NewHistogramVec(
 			&metrics.HistogramOpts{
@@ -169,7 +169,7 @@ func registerOperationMetrics() *operationCallMetrics {
 				StabilityLevel: metrics.ALPHA,
 				Buckets:        []float64{0.1, 0.2, 0.5, 1, 10, 20, 30, 40, 50, 60, 100, 200, 300},
 			},
-			metricLabels,
+			attributes,
 		),
 		operationFailureCount: metrics.NewCounterVec(
 			&metrics.CounterOpts{
@@ -178,7 +178,7 @@ func registerOperationMetrics() *operationCallMetrics {
 				Help:           "Number of failed Azure service operations",
 				StabilityLevel: metrics.ALPHA,
 			},
-			metricLabels,
+			attributes,
 		),
 	}
 

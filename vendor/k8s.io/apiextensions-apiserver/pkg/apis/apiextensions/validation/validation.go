@@ -34,7 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apiservercel "k8s.io/apiserver/pkg/cel"
 	"k8s.io/apiserver/pkg/util/webhook"
 
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
@@ -1039,7 +1038,7 @@ func ValidateCustomResourceDefinitionOpenAPISchema(schema *apiextensions.JSONSch
 							celContext.TotalCost.ObserveExpressionCost(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), expressionCost)
 						}
 						if cr.Error != nil {
-							if cr.Error.Type == apiservercel.ErrorTypeRequired {
+							if cr.Error.Type == cel.ErrorTypeRequired {
 								allErrs.CELErrors = append(allErrs.CELErrors, field.Required(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), cr.Error.Detail))
 							} else {
 								allErrs.CELErrors = append(allErrs.CELErrors, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), schema.XValidations[i], cr.Error.Detail))
@@ -1377,24 +1376,24 @@ func SchemaHas(s *apiextensions.JSONSchemaProps, pred func(s *apiextensions.JSON
 		if s.Items != nil && SchemaHas(s.Items.Schema, pred) {
 			return true
 		}
-		for i := range s.Items.JSONSchemas {
-			if SchemaHas(&s.Items.JSONSchemas[i], pred) {
+		for _, s := range s.Items.JSONSchemas {
+			if SchemaHas(&s, pred) {
 				return true
 			}
 		}
 	}
-	for i := range s.AllOf {
-		if SchemaHas(&s.AllOf[i], pred) {
+	for _, s := range s.AllOf {
+		if SchemaHas(&s, pred) {
 			return true
 		}
 	}
-	for i := range s.AnyOf {
-		if SchemaHas(&s.AnyOf[i], pred) {
+	for _, s := range s.AnyOf {
+		if SchemaHas(&s, pred) {
 			return true
 		}
 	}
-	for i := range s.OneOf {
-		if SchemaHas(&s.OneOf[i], pred) {
+	for _, s := range s.OneOf {
+		if SchemaHas(&s, pred) {
 			return true
 		}
 	}

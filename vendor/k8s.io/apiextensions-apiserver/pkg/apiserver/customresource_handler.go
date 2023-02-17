@@ -69,8 +69,13 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/apiserver/pkg/endpoints/metrics"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/features"
 	"k8s.io/apiserver/pkg/registry/generic"
+	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	genericfilters "k8s.io/apiserver/pkg/server/filters"
+	"k8s.io/apiserver/pkg/storage/storagebackend"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	flowcontrolrequest "k8s.io/apiserver/pkg/util/flowcontrol/request"
 	utilopenapi "k8s.io/apiserver/pkg/util/openapi"
 	"k8s.io/apiserver/pkg/util/webhook"
 	"k8s.io/apiserver/pkg/warning"
@@ -325,7 +330,9 @@ func (r *crdHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	supportedTypes := []string{
 		string(types.JSONPatchType),
 		string(types.MergePatchType),
-		string(types.ApplyPatchType),
+	}
+	if utilfeature.DefaultFeatureGate.Enabled(features.ServerSideApply) {
+		supportedTypes = append(supportedTypes, string(types.ApplyPatchType))
 	}
 
 	var handlerFunc http.HandlerFunc
@@ -842,7 +849,7 @@ func (r *crdHandler) getOrCreateServingInfoFor(uid types.UID, name string) (*crd
 			standardSerializers = append(standardSerializers, s)
 		}
 
-		reqScope := handlers.RequestScope{
+		requestScopes[v.Name] = &handlers.RequestScope{
 			Namer: handlers.ContextBasedNaming{
 				Namer:         meta.NewAccessor(),
 				ClusterScoped: clusterScoped,
@@ -873,18 +880,20 @@ func (r *crdHandler) getOrCreateServingInfoFor(uid types.UID, name string) (*crd
 
 			MaxRequestBodyBytes: r.maxRequestBodyBytes,
 		}
-
-		resetFields := storages[v.Name].CustomResource.GetResetFields()
-		reqScope, err = scopeWithFieldManager(
-			typeConverter,
-			reqScope,
-			resetFields,
-			"",
-		)
-		if err != nil {
-			return nil, err
+		if utilfeature.DefaultFeatureGate.Enabled(features.ServerSideApply) {
+			resetFields := storages[v.Name].CustomResource.GetResetFields()
+			reqScope := *requestScopes[v.Name]
+			reqScope, err = scopeWithFieldManager(
+				typeConverter,
+				reqScope,
+				resetFields,
+				"",
+			)
+			if err != nil {
+				return nil, err
+			}
+			requestScopes[v.Name] = &reqScope
 		}
-		requestScopes[v.Name] = &reqScope
 
 		scaleColumns, err := getScaleColumnsForVersion(crd, v.Name)
 		if err != nil {
@@ -905,7 +914,7 @@ func (r *crdHandler) getOrCreateServingInfoFor(uid types.UID, name string) (*crd
 		}
 		scaleScope.TableConvertor = scaleTable
 
-		if subresources != nil && subresources.Scale != nil {
+		if utilfeature.DefaultFeatureGate.Enabled(features.ServerSideApply) && subresources != nil && subresources.Scale != nil {
 			scaleScope, err = scopeWithFieldManager(
 				typeConverter,
 				scaleScope,
@@ -928,7 +937,7 @@ func (r *crdHandler) getOrCreateServingInfoFor(uid types.UID, name string) (*crd
 			ClusterScoped: clusterScoped,
 		}
 
-		if subresources != nil && subresources.Status != nil {
+		if utilfeature.DefaultFeatureGate.Enabled(features.ServerSideApply) && subresources != nil && subresources.Status != nil {
 			resetFields := storages[v.Name].Status.GetResetFields()
 			statusScope, err = scopeWithFieldManager(
 				typeConverter,
@@ -1129,6 +1138,33 @@ func (d unstructuredDefaulter) Default(in runtime.Object) {
 	}
 
 	structuraldefaulting.Default(u.UnstructuredContent(), d.structuralSchemas[u.GetObjectKind().GroupVersionKind().Version])
+}
+
+type CRDRESTOptionsGetter struct {
+	StorageConfig             storagebackend.Config
+	StoragePrefix             string
+	EnableWatchCache          bool
+	DefaultWatchCacheSize     int
+	EnableGarbageCollection   bool
+	DeleteCollectionWorkers   int
+	CountMetricPollPeriod     time.Duration
+	StorageObjectCountTracker flowcontrolrequest.StorageObjectCountTracker
+}
+
+func (t CRDRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource) (generic.RESTOptions, error) {
+	ret := generic.RESTOptions{
+		StorageConfig:             t.StorageConfig.ForResource(resource),
+		Decorator:                 generic.UndecoratedStorage,
+		EnableGarbageCollection:   t.EnableGarbageCollection,
+		DeleteCollectionWorkers:   t.DeleteCollectionWorkers,
+		ResourcePrefix:            resource.Group + "/" + resource.Resource,
+		CountMetricPollPeriod:     t.CountMetricPollPeriod,
+		StorageObjectCountTracker: t.StorageObjectCountTracker,
+	}
+	if t.EnableWatchCache {
+		ret.Decorator = genericregistry.StorageWithCacher()
+	}
+	return ret, nil
 }
 
 // clone returns a clone of the provided crdStorageMap.
@@ -1364,8 +1400,11 @@ func hasServedCRDVersion(spec *apiextensionsv1.CustomResourceDefinitionSpec, ver
 
 // buildOpenAPIModelsForApply constructs openapi models from any validation schemas specified in the custom resource,
 // and merges it with the models defined in the static OpenAPI spec.
-// Returns nil models ifthe static spec is nil, or an error is encountered.
+// Returns nil models if the ServerSideApply feature is disabled, or the static spec is nil, or an error is encountered.
 func buildOpenAPIModelsForApply(staticOpenAPISpec *spec.Swagger, crd *apiextensionsv1.CustomResourceDefinition) (proto.Models, error) {
+	if !utilfeature.DefaultFeatureGate.Enabled(features.ServerSideApply) {
+		return nil, nil
+	}
 	if staticOpenAPISpec == nil {
 		return nil, nil
 	}

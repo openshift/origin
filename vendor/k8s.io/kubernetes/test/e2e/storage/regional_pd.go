@@ -76,22 +76,22 @@ var _ = utils.SIGDescribe("Regional PD", func() {
 	})
 
 	ginkgo.Describe("RegionalPD", func() {
-		ginkgo.It("should provision storage [Slow]", func(ctx context.Context) {
-			testVolumeProvisioning(ctx, c, f.Timeouts, ns)
+		ginkgo.It("should provision storage [Slow]", func() {
+			testVolumeProvisioning(c, f.Timeouts, ns)
 		})
 
-		ginkgo.It("should provision storage with delayed binding [Slow]", func(ctx context.Context) {
-			testRegionalDelayedBinding(ctx, c, ns, 1 /* pvcCount */)
-			testRegionalDelayedBinding(ctx, c, ns, 3 /* pvcCount */)
+		ginkgo.It("should provision storage with delayed binding [Slow]", func() {
+			testRegionalDelayedBinding(c, ns, 1 /* pvcCount */)
+			testRegionalDelayedBinding(c, ns, 3 /* pvcCount */)
 		})
 
-		ginkgo.It("should provision storage in the allowedTopologies [Slow]", func(ctx context.Context) {
-			testRegionalAllowedTopologies(ctx, c, ns)
+		ginkgo.It("should provision storage in the allowedTopologies [Slow]", func() {
+			testRegionalAllowedTopologies(c, ns)
 		})
 
-		ginkgo.It("should provision storage in the allowedTopologies with delayed binding [Slow]", func(ctx context.Context) {
-			testRegionalAllowedTopologiesWithDelayedBinding(ctx, c, ns, 1 /* pvcCount */)
-			testRegionalAllowedTopologiesWithDelayedBinding(ctx, c, ns, 3 /* pvcCount */)
+		ginkgo.It("should provision storage in the allowedTopologies with delayed binding [Slow]", func() {
+			testRegionalAllowedTopologiesWithDelayedBinding(c, ns, 1 /* pvcCount */)
+			testRegionalAllowedTopologiesWithDelayedBinding(c, ns, 3 /* pvcCount */)
 		})
 
 		ginkgo.It("should failover to a different zone when all nodes in one zone become unreachable [Slow] [Disruptive]", func() {
@@ -100,7 +100,7 @@ var _ = utils.SIGDescribe("Regional PD", func() {
 	})
 })
 
-func testVolumeProvisioning(ctx context.Context, c clientset.Interface, t *framework.TimeoutContext, ns string) {
+func testVolumeProvisioning(c clientset.Interface, t *framework.TimeoutContext, ns string) {
 	cloudZones := getTwoRandomZones(c)
 
 	// This test checks that dynamic provisioning can provision a volume
@@ -119,7 +119,7 @@ func testVolumeProvisioning(ctx context.Context, c clientset.Interface, t *frame
 			ClaimSize:    repdMinSize,
 			ExpectedSize: repdMinSize,
 			PvCheck: func(claim *v1.PersistentVolumeClaim) {
-				volume := testsuites.PVWriteReadSingleNodeCheck(ctx, c, t, claim, e2epod.NodeSelection{})
+				volume := testsuites.PVWriteReadSingleNodeCheck(c, t, claim, e2epod.NodeSelection{})
 				gomega.Expect(volume).NotTo(gomega.BeNil())
 
 				err := checkGCEPD(volume, "pd-standard")
@@ -141,7 +141,7 @@ func testVolumeProvisioning(ctx context.Context, c clientset.Interface, t *frame
 			ClaimSize:    repdMinSize,
 			ExpectedSize: repdMinSize,
 			PvCheck: func(claim *v1.PersistentVolumeClaim) {
-				volume := testsuites.PVWriteReadSingleNodeCheck(ctx, c, t, claim, e2epod.NodeSelection{})
+				volume := testsuites.PVWriteReadSingleNodeCheck(c, t, claim, e2epod.NodeSelection{})
 				gomega.Expect(volume).NotTo(gomega.BeNil())
 
 				err := checkGCEPD(volume, "pd-standard")
@@ -156,7 +156,8 @@ func testVolumeProvisioning(ctx context.Context, c clientset.Interface, t *frame
 
 	for _, test := range tests {
 		test.Client = c
-		computedStorageClass := testsuites.SetupStorageClass(ctx, test.Client, newStorageClass(test, ns, "" /* suffix */))
+		computedStorageClass, clearStorageClass := testsuites.SetupStorageClass(test.Client, newStorageClass(test, ns, "" /* suffix */))
+		defer clearStorageClass()
 		test.Class = computedStorageClass
 		test.Claim = e2epv.MakePersistentVolumeClaim(e2epv.PersistentVolumeClaimConfig{
 			ClaimSize:        test.ClaimSize,
@@ -164,7 +165,7 @@ func testVolumeProvisioning(ctx context.Context, c clientset.Interface, t *frame
 			VolumeMode:       &test.VolumeMode,
 		}, ns)
 
-		test.TestDynamicProvisioning(ctx)
+		test.TestDynamicProvisioning()
 	}
 }
 
@@ -228,9 +229,7 @@ func testZonalFailover(c clientset.Interface, ns string) {
 	err = waitForStatefulSetReplicasReady(statefulSet.Name, ns, c, framework.Poll, statefulSetReadyTimeout)
 	if err != nil {
 		pod := getPod(c, ns, regionalPDLabels)
-		if !podutil.IsPodReadyConditionTrue(pod.Status) {
-			framework.Failf("The statefulset pod %s was expected to be ready, instead has the following conditions: %v", pod.Name, pod.Status.Conditions)
-		}
+		framework.ExpectEqual(podutil.IsPodReadyConditionTrue(pod.Status), true, "The statefulset pod has the following conditions: %s", pod.Status.Conditions)
 		framework.ExpectNoError(err)
 	}
 
@@ -280,9 +279,7 @@ func testZonalFailover(c clientset.Interface, ns string) {
 	err = waitForStatefulSetReplicasReady(statefulSet.Name, ns, c, 3*time.Second, framework.RestartPodReadyAgainTimeout)
 	if err != nil {
 		pod := getPod(c, ns, regionalPDLabels)
-		if !podutil.IsPodReadyConditionTrue(pod.Status) {
-			framework.Failf("The statefulset pod %s was expected to be ready, instead has the following conditions: %v", pod.Name, pod.Status.Conditions)
-		}
+		framework.ExpectEqual(podutil.IsPodReadyConditionTrue(pod.Status), true, "The statefulset pod has the following conditions: %s", pod.Status.Conditions)
 		framework.ExpectNoError(err)
 	}
 
@@ -333,7 +330,7 @@ func addTaint(c clientset.Interface, ns string, nodes []v1.Node, podZone string)
 	}
 }
 
-func testRegionalDelayedBinding(ctx context.Context, c clientset.Interface, ns string, pvcCount int) {
+func testRegionalDelayedBinding(c clientset.Interface, ns string, pvcCount int) {
 	test := testsuites.StorageClassTest{
 		Client:      c,
 		Name:        "Regional PD storage class with waitForFirstConsumer test on GCE",
@@ -349,7 +346,9 @@ func testRegionalDelayedBinding(ctx context.Context, c clientset.Interface, ns s
 
 	suffix := "delayed-regional"
 
-	test.Class = testsuites.SetupStorageClass(ctx, test.Client, newStorageClass(test, ns, suffix))
+	computedStorageClass, clearStorageClass := testsuites.SetupStorageClass(test.Client, newStorageClass(test, ns, suffix))
+	defer clearStorageClass()
+	test.Class = computedStorageClass
 	var claims []*v1.PersistentVolumeClaim
 	for i := 0; i < pvcCount; i++ {
 		claim := e2epv.MakePersistentVolumeClaim(e2epv.PersistentVolumeClaimConfig{
@@ -359,7 +358,7 @@ func testRegionalDelayedBinding(ctx context.Context, c clientset.Interface, ns s
 		}, ns)
 		claims = append(claims, claim)
 	}
-	pvs, node := test.TestBindingWaitForFirstConsumerMultiPVC(ctx, claims, nil /* node selector */, false /* expect unschedulable */)
+	pvs, node := test.TestBindingWaitForFirstConsumerMultiPVC(claims, nil /* node selector */, false /* expect unschedulable */)
 	if node == nil {
 		framework.Failf("unexpected nil node found")
 	}
@@ -372,7 +371,7 @@ func testRegionalDelayedBinding(ctx context.Context, c clientset.Interface, ns s
 	}
 }
 
-func testRegionalAllowedTopologies(ctx context.Context, c clientset.Interface, ns string) {
+func testRegionalAllowedTopologies(c clientset.Interface, ns string) {
 	test := testsuites.StorageClassTest{
 		Name:        "Regional PD storage class with allowedTopologies test on GCE",
 		Provisioner: "kubernetes.io/gce-pd",
@@ -387,7 +386,9 @@ func testRegionalAllowedTopologies(ctx context.Context, c clientset.Interface, n
 
 	suffix := "topo-regional"
 	test.Client = c
-	test.Class = testsuites.SetupStorageClass(ctx, test.Client, newStorageClass(test, ns, suffix))
+	computedStorageClass, clearStorageClass := testsuites.SetupStorageClass(test.Client, newStorageClass(test, ns, suffix))
+	defer clearStorageClass()
+	test.Class = computedStorageClass
 	zones := getTwoRandomZones(c)
 	addAllowedTopologiesToStorageClass(c, test.Class, zones)
 	test.Claim = e2epv.MakePersistentVolumeClaim(e2epv.PersistentVolumeClaimConfig{
@@ -397,11 +398,11 @@ func testRegionalAllowedTopologies(ctx context.Context, c clientset.Interface, n
 		VolumeMode:       &test.VolumeMode,
 	}, ns)
 
-	pv := test.TestDynamicProvisioning(ctx)
+	pv := test.TestDynamicProvisioning()
 	checkZonesFromLabelAndAffinity(pv, sets.NewString(zones...), true)
 }
 
-func testRegionalAllowedTopologiesWithDelayedBinding(ctx context.Context, c clientset.Interface, ns string, pvcCount int) {
+func testRegionalAllowedTopologiesWithDelayedBinding(c clientset.Interface, ns string, pvcCount int) {
 	test := testsuites.StorageClassTest{
 		Client:      c,
 		Timeouts:    framework.NewTimeoutContextWithDefaults(),
@@ -416,7 +417,9 @@ func testRegionalAllowedTopologiesWithDelayedBinding(ctx context.Context, c clie
 	}
 
 	suffix := "topo-delayed-regional"
-	test.Class = testsuites.SetupStorageClass(ctx, test.Client, newStorageClass(test, ns, suffix))
+	computedStorageClass, clearStorageClass := testsuites.SetupStorageClass(test.Client, newStorageClass(test, ns, suffix))
+	defer clearStorageClass()
+	test.Class = computedStorageClass
 	topoZones := getTwoRandomZones(c)
 	addAllowedTopologiesToStorageClass(c, test.Class, topoZones)
 	var claims []*v1.PersistentVolumeClaim
@@ -428,7 +431,7 @@ func testRegionalAllowedTopologiesWithDelayedBinding(ctx context.Context, c clie
 		}, ns)
 		claims = append(claims, claim)
 	}
-	pvs, node := test.TestBindingWaitForFirstConsumerMultiPVC(ctx, claims, nil /* node selector */, false /* expect unschedulable */)
+	pvs, node := test.TestBindingWaitForFirstConsumerMultiPVC(claims, nil /* node selector */, false /* expect unschedulable */)
 	if node == nil {
 		framework.Failf("unexpected nil node found")
 	}

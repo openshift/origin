@@ -140,7 +140,7 @@ func (o *MonitorEventsOptions) End(ctx context.Context, restConfig *rest.Config,
 			if d.IsDir() {
 				return nil
 			}
-			if !strings.HasPrefix(d.Name(), "AdditionalEvents__") {
+			if !strings.HasPrefix(d.Name(), "AdditionalEvents_") {
 				return nil
 			}
 			saved, _ := monitorserialization.EventsFromFile(path)

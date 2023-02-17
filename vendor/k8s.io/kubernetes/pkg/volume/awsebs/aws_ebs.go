@@ -249,27 +249,25 @@ func getVolumeSource(
 	return nil, false, fmt.Errorf("Spec does not reference an AWS EBS volume type")
 }
 
-func (plugin *awsElasticBlockStorePlugin) ConstructVolumeSpec(volName, mountPath string) (volume.ReconstructedVolume, error) {
+func (plugin *awsElasticBlockStorePlugin) ConstructVolumeSpec(volName, mountPath string) (*volume.Spec, error) {
 	mounter := plugin.host.GetMounter(plugin.GetPluginName())
 	kvh, ok := plugin.host.(volume.KubeletVolumeHost)
 	if !ok {
-		return volume.ReconstructedVolume{}, fmt.Errorf("plugin volume host does not implement KubeletVolumeHost interface")
+		return nil, fmt.Errorf("plugin volume host does not implement KubeletVolumeHost interface")
 	}
 	hu := kvh.GetHostUtil()
 	pluginMntDir := util.GetPluginMountDir(plugin.host, plugin.GetPluginName())
 	volumeID, err := hu.GetDeviceNameFromMount(mounter, mountPath, pluginMntDir)
 	if err != nil {
-		return volume.ReconstructedVolume{}, err
+		return nil, err
 	}
 	volumeID, err = formatVolumeID(volumeID)
 	if err != nil {
-		return volume.ReconstructedVolume{}, fmt.Errorf("failed to get AWS volume id from mount path %q: %v", mountPath, err)
+		return nil, fmt.Errorf("failed to get AWS volume id from mount path %q: %v", mountPath, err)
 	}
 
 	file := v1.PersistentVolumeFilesystem
-	return volume.ReconstructedVolume{
-		Spec: newAWSVolumeSpec(volName, volumeID, file),
-	}, nil
+	return newAWSVolumeSpec(volName, volumeID, file), nil
 }
 
 func (plugin *awsElasticBlockStorePlugin) RequiresFSResize() bool {
@@ -536,10 +534,10 @@ func (c *awsElasticBlockStoreProvisioner) Provision(selectedNode *v1.Node, allow
 		pv.Spec.AccessModes = c.plugin.GetAccessModes()
 	}
 
-	requirements := make([]v1.NodeSelectorRequirement, 0, len(labels))
+	requirements := make([]v1.NodeSelectorRequirement, 0)
 	if len(labels) != 0 {
 		if pv.Labels == nil {
-			pv.Labels = make(map[string]string, len(labels))
+			pv.Labels = make(map[string]string)
 		}
 		for k, v := range labels {
 			pv.Labels[k] = v

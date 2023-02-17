@@ -316,18 +316,18 @@ func (plugin *azureDataDiskPlugin) NodeExpand(resizeOptions volume.NodeResizeOpt
 
 var _ volume.NodeExpandableVolumePlugin = &azureDataDiskPlugin{}
 
-func (plugin *azureDataDiskPlugin) ConstructVolumeSpec(volumeName, mountPath string) (volume.ReconstructedVolume, error) {
+func (plugin *azureDataDiskPlugin) ConstructVolumeSpec(volumeName, mountPath string) (*volume.Spec, error) {
 	mounter := plugin.host.GetMounter(plugin.GetPluginName())
 	kvh, ok := plugin.host.(volume.KubeletVolumeHost)
 	if !ok {
-		return volume.ReconstructedVolume{}, fmt.Errorf("plugin volume host does not implement KubeletVolumeHost interface")
+		return nil, fmt.Errorf("plugin volume host does not implement KubeletVolumeHost interface")
 	}
 	hu := kvh.GetHostUtil()
 	pluginMntDir := util.GetPluginMountDir(plugin.host, plugin.GetPluginName())
 	sourceName, err := hu.GetDeviceNameFromMount(mounter, mountPath, pluginMntDir)
 
 	if err != nil {
-		return volume.ReconstructedVolume{}, err
+		return nil, err
 	}
 
 	azureVolume := &v1.Volume{
@@ -338,9 +338,7 @@ func (plugin *azureDataDiskPlugin) ConstructVolumeSpec(volumeName, mountPath str
 			},
 		},
 	}
-	return volume.ReconstructedVolume{
-		Spec: volume.NewSpecFromVolume(azureVolume),
-	}, nil
+	return volume.NewSpecFromVolume(azureVolume), nil
 }
 
 func (plugin *azureDataDiskPlugin) GetDeviceMountRefs(deviceMountPath string) ([]string, error) {

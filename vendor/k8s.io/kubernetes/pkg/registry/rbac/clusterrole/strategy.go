@@ -19,7 +19,6 @@ package clusterrole
 import (
 	"context"
 
-	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -72,10 +71,7 @@ func (strategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
 // Validate validates a new ClusterRole. Validation must check for a correct signature.
 func (strategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	clusterRole := obj.(*rbac.ClusterRole)
-	opts := validation.ClusterRoleValidationOptions{
-		AllowInvalidLabelValueInSelector: false,
-	}
-	return validation.ValidateClusterRole(clusterRole, opts)
+	return validation.ValidateClusterRole(clusterRole)
 }
 
 // WarningsOnCreate returns warnings for the creation of the given object.
@@ -89,12 +85,8 @@ func (strategy) Canonicalize(obj runtime.Object) {
 // ValidateUpdate is the default update validation for an end user.
 func (strategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	newObj := obj.(*rbac.ClusterRole)
-	oldObj := old.(*rbac.ClusterRole)
-	opts := validation.ClusterRoleValidationOptions{
-		AllowInvalidLabelValueInSelector: hasInvalidLabelValueInLabelSelector(oldObj),
-	}
-	errorList := validation.ValidateClusterRole(newObj, opts)
-	return append(errorList, validation.ValidateClusterRoleUpdate(newObj, old.(*rbac.ClusterRole), opts)...)
+	errorList := validation.ValidateClusterRole(newObj)
+	return append(errorList, validation.ValidateClusterRoleUpdate(newObj, old.(*rbac.ClusterRole))...)
 }
 
 // WarningsOnUpdate returns warnings for the given update.
@@ -109,16 +101,4 @@ func (strategy) WarningsOnUpdate(ctx context.Context, obj, old runtime.Object) [
 // object.
 func (strategy) AllowUnconditionalUpdate() bool {
 	return true
-}
-
-func hasInvalidLabelValueInLabelSelector(role *rbac.ClusterRole) bool {
-	if role.AggregationRule != nil {
-		labelSelectorValidationOptions := metav1validation.LabelSelectorValidationOptions{AllowInvalidLabelValueInSelector: false}
-		for _, selector := range role.AggregationRule.ClusterRoleSelectors {
-			if len(metav1validation.ValidateLabelSelector(&selector, labelSelectorValidationOptions, nil)) > 0 {
-				return true
-			}
-		}
-	}
-	return false
 }

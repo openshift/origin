@@ -457,6 +457,7 @@ func CheckRequest(quotas []corev1.ResourceQuota, a admission.Attributes, evaluat
 
 		match, err := evaluator.Matches(&resourceQuota, inputObject)
 		if err != nil {
+			klog.Errorf("Error occurred while matching resource quota, %v, against input object. Err: %v", resourceQuota, err)
 			klog.ErrorS(err, "Error occurred while matching resource quota against input object",
 				"resourceQuota", resourceQuota)
 			return quotas, err

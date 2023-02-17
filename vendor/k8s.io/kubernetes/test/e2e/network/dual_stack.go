@@ -35,7 +35,6 @@ import (
 	e2edeployment "k8s.io/kubernetes/test/e2e/framework/deployment"
 	e2enetwork "k8s.io/kubernetes/test/e2e/framework/network"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
-	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eservice "k8s.io/kubernetes/test/e2e/framework/service"
 	"k8s.io/kubernetes/test/e2e/network/common"
 	imageutils "k8s.io/kubernetes/test/utils/image"
@@ -49,11 +48,11 @@ var _ = common.SIGDescribe("[Feature:IPv6DualStack]", func() {
 	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 	var cs clientset.Interface
-	var podClient *e2epod.PodClient
+	var podClient *framework.PodClient
 
 	ginkgo.BeforeEach(func() {
 		cs = f.ClientSet
-		podClient = e2epod.NewPodClient(f)
+		podClient = f.PodClient()
 	})
 
 	ginkgo.It("should have ipv4 and ipv6 internal node ip", func() {
@@ -764,7 +763,7 @@ func assertNetworkConnectivity(f *framework.Framework, serverPods v1.PodList, cl
 			gomega.Consistently(func() error {
 				ginkgo.By(fmt.Sprintf("checking connectivity from pod %s to serverIP: %s, port: %s", clientPod.Name, ip, port))
 				cmd := checkNetworkConnectivity(ip, port, timeout)
-				_, _, err := e2epod.ExecCommandInContainerWithFullOutput(f, clientPod.Name, containerName, cmd...)
+				_, _, err := f.ExecCommandInContainerWithFullOutput(clientPod.Name, containerName, cmd...)
 				return err
 			}, duration, pollInterval).ShouldNot(gomega.HaveOccurred())
 		}

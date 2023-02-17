@@ -47,7 +47,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
-	"k8s.io/apiserver/pkg/endpoints/discovery/aggregated"
 	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
 	"k8s.io/apiserver/pkg/endpoints/request"
@@ -168,8 +167,7 @@ cluster's shared state through which all other components interact.`,
 			if errs := completedOptions.Validate(); len(errs) != 0 {
 				return utilerrors.NewAggregate(errs)
 			}
-			// add feature enablement metrics
-			utilfeature.DefaultMutableFeatureGate.AddMetrics()
+
 			return Run(completedOptions, genericapiserver.SetupSignalHandlerIgnoringFurtherSignals())
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
@@ -292,7 +290,16 @@ func CreateKubeAPIServerConfig(s completedServerRunOptions) (
 		return nil, nil, nil, err
 	}
 
-	capabilities.Setup(s.AllowPrivileged, s.MaxConnectionBytesPerSec)
+	capabilities.Initialize(capabilities.Capabilities{
+		AllowPrivileged: s.AllowPrivileged,
+		// TODO(vmarmol): Implement support for HostNetworkSources.
+		PrivilegedSources: capabilities.PrivilegedSources{
+			HostNetworkSources: []string{},
+			HostPIDSources:     []string{},
+			HostIPCSources:     []string{},
+		},
+		PerConnectionBandwidthLimitBytesPerSec: s.MaxConnectionBytesPerSec,
+	})
 
 	s.Metrics.Apply()
 	serviceaccount.RegisterMetrics()
@@ -331,6 +338,9 @@ func CreateKubeAPIServerConfig(s completedServerRunOptions) (
 			ExtendExpiration:            s.Authentication.ServiceAccounts.ExtendExpiration,
 
 			VersionedInformers: versionedInformers,
+
+			IdentityLeaseDurationSeconds:      s.IdentityLeaseDurationSeconds,
+			IdentityLeaseRenewIntervalSeconds: s.IdentityLeaseRenewIntervalSeconds,
 		},
 	}
 
@@ -442,23 +452,24 @@ func buildGenericConfig(
 	kubeVersion := version.Get()
 	genericConfig.Version = &kubeVersion
 
-	if genericConfig.EgressSelector != nil {
-		s.Etcd.StorageConfig.Transport.EgressLookup = genericConfig.EgressSelector.Lookup
-	}
-	if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.APIServerTracing) {
-		s.Etcd.StorageConfig.Transport.TracerProvider = genericConfig.TracerProvider
-	} else {
-		s.Etcd.StorageConfig.Transport.TracerProvider = oteltrace.NewNoopTracerProvider()
-	}
-	if lastErr = s.Etcd.Complete(genericConfig.StorageObjectCountTracker, genericConfig.DrainedNotify(), genericConfig.AddPostStartHook); lastErr != nil {
-		return
-	}
-
 	storageFactoryConfig := kubeapiserver.NewStorageFactoryConfig()
 	storageFactoryConfig.APIResourceConfig = genericConfig.MergedResourceConfig
-	storageFactory, lastErr = storageFactoryConfig.Complete(s.Etcd).New()
+	completedStorageFactoryConfig, err := storageFactoryConfig.Complete(s.Etcd)
+	if err != nil {
+		lastErr = err
+		return
+	}
+	storageFactory, lastErr = completedStorageFactoryConfig.New()
 	if lastErr != nil {
 		return
+	}
+	if genericConfig.EgressSelector != nil {
+		storageFactory.StorageConfig.Transport.EgressLookup = genericConfig.EgressSelector.Lookup
+	}
+	if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.APIServerTracing) {
+		storageFactory.StorageConfig.Transport.TracerProvider = genericConfig.TracerProvider
+	} else {
+		storageFactory.StorageConfig.Transport.TracerProvider = oteltrace.NewNoopTracerProvider()
 	}
 	if lastErr = s.Etcd.ApplyWithStorageFactoryTo(storageFactory, genericConfig); lastErr != nil {
 		return
@@ -536,9 +547,6 @@ func buildGenericConfig(
 	if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.APIPriorityAndFairness) && s.GenericServerRunOptions.EnablePriorityAndFairness {
 		genericConfig.FlowControl, lastErr = BuildPriorityAndFairness(s, clientgoExternalClient, versionedInformers)
 	}
-	if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.AggregatedDiscoveryEndpoint) {
-		genericConfig.AggregatedDiscoveryGroupManager = aggregated.NewResourceManager()
-	}
 
 	return
 }
@@ -565,7 +573,7 @@ func BuildPriorityAndFairness(s *options.ServerRunOptions, extclient clientgocli
 	}
 	return utilflowcontrol.New(
 		versionedInformer,
-		extclient.FlowcontrolV1beta3(),
+		extclient.FlowcontrolV1beta2(),
 		s.GenericServerRunOptions.MaxRequestsInFlight+s.GenericServerRunOptions.MaxMutatingRequestsInFlight,
 		s.GenericServerRunOptions.RequestTimeout/4,
 	), nil
@@ -690,27 +698,7 @@ func Complete(s *options.ServerRunOptions) (completedServerRunOptions, error) {
 	return options, nil
 }
 
-var testServiceResolver webhook.ServiceResolver
-
-// SetServiceResolverForTests allows the service resolver to be overridden during tests.
-// Tests using this function must run serially as this function is not safe to call concurrently with server start.
-func SetServiceResolverForTests(resolver webhook.ServiceResolver) func() {
-	if testServiceResolver != nil {
-		panic("test service resolver is set: tests are either running concurrently or clean up was skipped")
-	}
-
-	testServiceResolver = resolver
-
-	return func() {
-		testServiceResolver = nil
-	}
-}
-
 func buildServiceResolver(enabledAggregatorRouting bool, hostname string, informer clientgoinformers.SharedInformerFactory) webhook.ServiceResolver {
-	if testServiceResolver != nil {
-		return testServiceResolver
-	}
-
 	var serviceResolver webhook.ServiceResolver
 	if enabledAggregatorRouting {
 		serviceResolver = aggregatorapiserver.NewEndpointServiceResolver(

@@ -18,7 +18,7 @@ package disk
 
 import (
 	"errors"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/openapi"
 	cachedopenapi "k8s.io/client-go/openapi/cached"
@@ -158,7 +157,7 @@ func (d *CachedDiscoveryClient) getCachedFile(filename string) ([]byte, error) {
 	}
 
 	// the cache is present and its valid.  Try to read and use it.
-	cachedBytes, err := io.ReadAll(file)
+	cachedBytes, err := ioutil.ReadAll(file)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +179,7 @@ func (d *CachedDiscoveryClient) writeCachedFile(filename string, obj runtime.Obj
 		return err
 	}
 
-	f, err := os.CreateTemp(filepath.Dir(filename), filepath.Base(filename)+".")
+	f, err := ioutil.TempFile(filepath.Dir(filename), filepath.Base(filename)+".")
 	if err != nil {
 		return err
 	}
@@ -272,15 +271,6 @@ func (d *CachedDiscoveryClient) Invalidate() {
 	d.fresh = true
 	d.invalidated = true
 	d.openapiClient = nil
-	if ad, ok := d.delegate.(discovery.CachedDiscoveryInterface); ok {
-		ad.Invalidate()
-	}
-}
-
-// WithLegacy returns current cached discovery client;
-// current client does not support legacy-only discovery.
-func (d *CachedDiscoveryClient) WithLegacy() discovery.DiscoveryInterface {
-	return d
 }
 
 // NewCachedDiscoveryClientForConfig creates a new DiscoveryClient for the given config, and wraps
@@ -307,10 +297,7 @@ func NewCachedDiscoveryClientForConfig(config *restclient.Config, discoveryCache
 		return nil, err
 	}
 
-	// The delegate caches the discovery groups and resources (memcache). "ServerGroups",
-	// which usually only returns (and caches) the groups, can now store the resources as
-	// well if the server supports the newer aggregated discovery format.
-	return newCachedDiscoveryClient(memory.NewMemCacheClient(discoveryClient), discoveryCacheDir, ttl), nil
+	return newCachedDiscoveryClient(discoveryClient, discoveryCacheDir, ttl), nil
 }
 
 // NewCachedDiscoveryClient creates a new DiscoveryClient.  cacheDirectory is the directory where discovery docs are held.  It must be unique per host:port combination to work well.

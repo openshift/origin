@@ -56,7 +56,7 @@ func (s *legacyRootAPIHandler) WebService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.Path(s.apiPrefix)
 	ws.Doc("get available API versions")
-	ws.Route(ws.GET("/").To(s.restfulHandle).
+	ws.Route(ws.GET("/").To(s.handle).
 		Doc("get available API versions").
 		Operation("getAPIVersions").
 		Produces(mediaTypes...).
@@ -65,16 +65,12 @@ func (s *legacyRootAPIHandler) WebService() *restful.WebService {
 	return ws
 }
 
-func (s *legacyRootAPIHandler) restfulHandle(req *restful.Request, resp *restful.Response) {
-	s.ServeHTTP(resp.ResponseWriter, req.Request)
-}
-
-func (s *legacyRootAPIHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	clientIP := utilnet.GetClientIP(req)
+func (s *legacyRootAPIHandler) handle(req *restful.Request, resp *restful.Response) {
+	clientIP := utilnet.GetClientIP(req.Request)
 	apiVersions := &metav1.APIVersions{
 		ServerAddressByClientCIDRs: s.addresses.ServerAddressByClientCIDRs(clientIP),
 		Versions:                   []string{"v1"},
 	}
 
-	responsewriters.WriteObjectNegotiated(s.serializer, negotiation.DefaultEndpointRestrictions, schema.GroupVersion{}, resp, req, http.StatusOK, apiVersions, false)
+	responsewriters.WriteObjectNegotiated(s.serializer, negotiation.DefaultEndpointRestrictions, schema.GroupVersion{}, resp.ResponseWriter, req.Request, http.StatusOK, apiVersions)
 }

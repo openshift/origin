@@ -18,6 +18,7 @@ package testsuites
 
 import (
 	"github.com/onsi/ginkgo/v2"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
 	clientset "k8s.io/client-go/kubernetes"
@@ -73,7 +74,8 @@ func (s *disruptiveTestSuite) SkipUnsupportedTests(driver storageframework.TestD
 
 func (s *disruptiveTestSuite) DefineTests(driver storageframework.TestDriver, pattern storageframework.TestPattern) {
 	type local struct {
-		config *storageframework.PerTestConfig
+		config        *storageframework.PerTestConfig
+		driverCleanup func()
 
 		cs clientset.Interface
 		ns *v1.Namespace
@@ -89,29 +91,16 @@ func (s *disruptiveTestSuite) DefineTests(driver storageframework.TestDriver, pa
 	f := framework.NewFrameworkWithCustomTimeouts("disruptive", storageframework.GetDriverTimeouts(driver))
 	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
-	init := func(accessModes []v1.PersistentVolumeAccessMode) {
+	init := func() {
 		l = local{}
 		l.ns = f.Namespace
 		l.cs = f.ClientSet
 
 		// Now do the more expensive test initialization.
-		l.config = driver.PrepareTest(f)
+		l.config, l.driverCleanup = driver.PrepareTest(f)
 
 		testVolumeSizeRange := s.GetTestSuiteInfo().SupportedSizeRange
-		if accessModes == nil {
-			l.resource = storageframework.CreateVolumeResource(
-				driver,
-				l.config,
-				pattern,
-				testVolumeSizeRange)
-		} else {
-			l.resource = storageframework.CreateVolumeResourceWithAccessModes(
-				driver,
-				l.config,
-				pattern,
-				testVolumeSizeRange,
-				accessModes)
-		}
+		l.resource = storageframework.CreateVolumeResource(driver, l.config, pattern, testVolumeSizeRange)
 	}
 
 	cleanup := func() {
@@ -129,16 +118,18 @@ func (s *disruptiveTestSuite) DefineTests(driver storageframework.TestDriver, pa
 			l.resource = nil
 		}
 
+		errs = append(errs, storageutils.TryFunc(l.driverCleanup))
+		l.driverCleanup = nil
 		framework.ExpectNoError(errors.NewAggregate(errs), "while cleaning up resource")
 	}
 
-	type singlePodTestBody func(c clientset.Interface, f *framework.Framework, clientPod *v1.Pod, mountPath string)
-	type singlePodTest struct {
+	type testBody func(c clientset.Interface, f *framework.Framework, clientPod *v1.Pod)
+	type disruptiveTest struct {
 		testItStmt   string
-		runTestFile  singlePodTestBody
-		runTestBlock singlePodTestBody
+		runTestFile  testBody
+		runTestBlock testBody
 	}
-	singlePodTests := []singlePodTest{
+	disruptiveTestTable := []disruptiveTest{
 		{
 			testItStmt:   "Should test that pv written before kubelet restart is readable after restart.",
 			runTestFile:  storageutils.TestKubeletRestartsAndRestoresMount,
@@ -156,12 +147,12 @@ func (s *disruptiveTestSuite) DefineTests(driver storageframework.TestDriver, pa
 		},
 	}
 
-	for _, test := range singlePodTests {
-		func(t singlePodTest) {
+	for _, test := range disruptiveTestTable {
+		func(t disruptiveTest) {
 			if (pattern.VolMode == v1.PersistentVolumeBlock && t.runTestBlock != nil) ||
 				(pattern.VolMode == v1.PersistentVolumeFilesystem && t.runTestFile != nil) {
 				ginkgo.It(t.testItStmt, func() {
-					init(nil)
+					init()
 					defer cleanup()
 
 					var err error
@@ -185,86 +176,10 @@ func (s *disruptiveTestSuite) DefineTests(driver storageframework.TestDriver, pa
 					framework.ExpectNoError(err, "While creating pods for kubelet restart test")
 
 					if pattern.VolMode == v1.PersistentVolumeBlock && t.runTestBlock != nil {
-						t.runTestBlock(l.cs, l.config.Framework, l.pod, e2epod.VolumeMountPath1)
+						t.runTestBlock(l.cs, l.config.Framework, l.pod)
 					}
 					if pattern.VolMode == v1.PersistentVolumeFilesystem && t.runTestFile != nil {
-						t.runTestFile(l.cs, l.config.Framework, l.pod, e2epod.VolumeMountPath1)
-					}
-				})
-			}
-		}(test)
-	}
-	type multiplePodTestBody func(c clientset.Interface, f *framework.Framework, pod1, pod2 *v1.Pod)
-	type multiplePodTest struct {
-		testItStmt            string
-		changeSELinuxContexts bool
-		runTestFile           multiplePodTestBody
-	}
-	multiplePodTests := []multiplePodTest{
-		{
-			testItStmt: "Should test that pv used in a pod that is deleted while the kubelet is down is usable by a new pod when kubelet returns [Feature:SELinux][Feature:SELinuxMountReadWriteOncePod].",
-			runTestFile: func(c clientset.Interface, f *framework.Framework, pod1, pod2 *v1.Pod) {
-				storageutils.TestVolumeUnmountsFromDeletedPodWithForceOption(c, f, pod1, false, false, pod2, e2epod.VolumeMountPath1)
-			},
-		},
-		{
-			testItStmt: "Should test that pv used in a pod that is force deleted while the kubelet is down is usable by a new pod when kubelet returns [Feature:SELinux][Feature:SELinuxMountReadWriteOncePod].",
-			runTestFile: func(c clientset.Interface, f *framework.Framework, pod1, pod2 *v1.Pod) {
-				storageutils.TestVolumeUnmountsFromDeletedPodWithForceOption(c, f, pod1, true, false, pod2, e2epod.VolumeMountPath1)
-			},
-		},
-		{
-			testItStmt:            "Should test that pv used in a pod that is deleted while the kubelet is down is usable by a new pod with a different SELinux context when kubelet returns [Feature:SELinux][Feature:SELinuxMountReadWriteOncePod].",
-			changeSELinuxContexts: true,
-			runTestFile: func(c clientset.Interface, f *framework.Framework, pod1, pod2 *v1.Pod) {
-				storageutils.TestVolumeUnmountsFromDeletedPodWithForceOption(c, f, pod1, false, false, pod2, e2epod.VolumeMountPath1)
-			},
-		},
-		{
-			testItStmt:            "Should test that pv used in a pod that is force deleted while the kubelet is down is usable by a new pod with a different SELinux context when kubelet returns [Feature:SELinux][Feature:SELinuxMountReadWriteOncePod].",
-			changeSELinuxContexts: true,
-			runTestFile: func(c clientset.Interface, f *framework.Framework, pod1, pod2 *v1.Pod) {
-				storageutils.TestVolumeUnmountsFromDeletedPodWithForceOption(c, f, pod1, true, false, pod2, e2epod.VolumeMountPath1)
-			},
-		},
-	}
-
-	for _, test := range multiplePodTests {
-		func(t multiplePodTest) {
-			if pattern.VolMode == v1.PersistentVolumeFilesystem && t.runTestFile != nil {
-				ginkgo.It(t.testItStmt, func() {
-					init([]v1.PersistentVolumeAccessMode{v1.ReadWriteOncePod})
-					defer cleanup()
-
-					var err error
-					var pvcs []*v1.PersistentVolumeClaim
-					var inlineSources []*v1.VolumeSource
-					if pattern.VolType == storageframework.InlineVolume {
-						inlineSources = append(inlineSources, l.resource.VolSource)
-					} else {
-						pvcs = append(pvcs, l.resource.Pvc)
-					}
-					ginkgo.By("Creating a pod with pvc")
-					podConfig := e2epod.Config{
-						NS:                  l.ns.Name,
-						PVCs:                pvcs,
-						InlineVolumeSources: inlineSources,
-						SeLinuxLabel:        e2epv.SELinuxLabel,
-						NodeSelection:       l.config.ClientNodeSelection,
-						ImageID:             e2epod.GetDefaultTestImageID(),
-					}
-					l.pod, err = e2epod.CreateSecPodWithNodeSelection(l.cs, &podConfig, f.Timeouts.PodStart)
-					framework.ExpectNoError(err, "While creating pods for kubelet restart test")
-					if t.changeSELinuxContexts {
-						// Different than e2epv.SELinuxLabel
-						podConfig.SeLinuxLabel = &v1.SELinuxOptions{Level: "s0:c98,c99"}
-					}
-					pod2, err := e2epod.MakeSecPod(&podConfig)
-					// Instantly schedule the second pod on the same node as the first one.
-					pod2.Spec.NodeName = l.pod.Spec.NodeName
-					framework.ExpectNoError(err, "While creating second pod for kubelet restart test")
-					if pattern.VolMode == v1.PersistentVolumeFilesystem && t.runTestFile != nil {
-						t.runTestFile(l.cs, l.config.Framework, l.pod, pod2)
+						t.runTestFile(l.cs, l.config.Framework, l.pod)
 					}
 				})
 			}

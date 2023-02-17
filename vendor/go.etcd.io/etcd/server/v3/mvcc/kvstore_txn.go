@@ -16,7 +16,6 @@ package mvcc
 
 import (
 	"context"
-	"fmt"
 
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	"go.etcd.io/etcd/pkg/v3/traceutil"
@@ -157,7 +156,7 @@ func (tr *storeTxnRead) rangeKeys(ctx context.Context, key, end []byte, curRev i
 	for i, revpair := range revpairs[:len(kvs)] {
 		select {
 		case <-ctx.Done():
-			return nil, fmt.Errorf("rangeKeys: context cancelled: %w", ctx.Err())
+			return nil, ctx.Err()
 		default:
 		}
 		revToBytes(revpair, revBytes)

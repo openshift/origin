@@ -32,9 +32,7 @@ import (
 	commonutils "k8s.io/kubernetes/test/e2e/common"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eauth "k8s.io/kubernetes/test/e2e/framework/auth"
-	e2ekubectl "k8s.io/kubernetes/test/e2e/framework/kubectl"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
-	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	e2etestfiles "k8s.io/kubernetes/test/e2e/framework/testfiles"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -73,8 +71,8 @@ var _ = SIGDescribe("[Feature:Example]", func() {
 			execYaml := readFile(test, "exec-liveness.yaml.in")
 			httpYaml := readFile(test, "http-liveness.yaml.in")
 
-			e2ekubectl.RunKubectlOrDieInput(ns, execYaml, "create", "-f", "-")
-			e2ekubectl.RunKubectlOrDieInput(ns, httpYaml, "create", "-f", "-")
+			framework.RunKubectlOrDieInput(ns, execYaml, "create", "-f", "-")
+			framework.RunKubectlOrDieInput(ns, httpYaml, "create", "-f", "-")
 
 			// Since both containers start rapidly, we can easily run this test in parallel.
 			var wg sync.WaitGroup
@@ -123,13 +121,13 @@ var _ = SIGDescribe("[Feature:Example]", func() {
 			podName := "secret-test-pod"
 
 			ginkgo.By("creating secret and pod")
-			e2ekubectl.RunKubectlOrDieInput(ns, secretYaml, "create", "-f", "-")
-			e2ekubectl.RunKubectlOrDieInput(ns, podYaml, "create", "-f", "-")
+			framework.RunKubectlOrDieInput(ns, secretYaml, "create", "-f", "-")
+			framework.RunKubectlOrDieInput(ns, podYaml, "create", "-f", "-")
 			err := e2epod.WaitForPodNoLongerRunningInNamespace(c, podName, ns)
 			framework.ExpectNoError(err)
 
 			ginkgo.By("checking if secret was read correctly")
-			_, err = e2eoutput.LookForStringInLog(ns, "secret-test-pod", "test-container", "value-1", serverStartTimeout)
+			_, err = framework.LookForStringInLog(ns, "secret-test-pod", "test-container", "value-1", serverStartTimeout)
 			framework.ExpectNoError(err)
 		})
 	})
@@ -141,14 +139,14 @@ var _ = SIGDescribe("[Feature:Example]", func() {
 			podName := "dapi-test-pod"
 
 			ginkgo.By("creating the pod")
-			e2ekubectl.RunKubectlOrDieInput(ns, podYaml, "create", "-f", "-")
+			framework.RunKubectlOrDieInput(ns, podYaml, "create", "-f", "-")
 			err := e2epod.WaitForPodNoLongerRunningInNamespace(c, podName, ns)
 			framework.ExpectNoError(err)
 
 			ginkgo.By("checking if name and namespace were passed correctly")
-			_, err = e2eoutput.LookForStringInLog(ns, podName, "test-container", fmt.Sprintf("MY_POD_NAMESPACE=%v", ns), serverStartTimeout)
+			_, err = framework.LookForStringInLog(ns, podName, "test-container", fmt.Sprintf("MY_POD_NAMESPACE=%v", ns), serverStartTimeout)
 			framework.ExpectNoError(err)
-			_, err = e2eoutput.LookForStringInLog(ns, podName, "test-container", fmt.Sprintf("MY_POD_NAME=%v", podName), serverStartTimeout)
+			_, err = framework.LookForStringInLog(ns, podName, "test-container", fmt.Sprintf("MY_POD_NAME=%v", podName), serverStartTimeout)
 			framework.ExpectNoError(err)
 		})
 	})

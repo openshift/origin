@@ -2,7 +2,6 @@
 
 approvers:
   - jsafrane
-  - humblec
 reviewers:
   - sjenning
   - saad-ali
@@ -10,6 +9,5 @@ reviewers:
   - jingxu97
   - msau42
   - cofyc
-  - humblec
 emeritus_approvers:
   - rootfs

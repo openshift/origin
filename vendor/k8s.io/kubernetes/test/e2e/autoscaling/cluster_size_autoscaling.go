@@ -44,7 +44,6 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2ekubectl "k8s.io/kubernetes/test/e2e/framework/kubectl"
 	e2emanifest "k8s.io/kubernetes/test/e2e/framework/manifest"
 	e2enetwork "k8s.io/kubernetes/test/e2e/framework/network"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
@@ -382,7 +381,7 @@ var _ = SIGDescribe("Cluster size autoscaling [Slow]", func() {
 		framework.ExpectNoError(e2enode.WaitForReadyNodes(c, nodeCount+extraNodes, resizeTimeout))
 		// We wait for nodes to become schedulable to make sure the new nodes
 		// will be returned by getPoolNodes below.
-		framework.ExpectNoError(e2enode.WaitForAllNodesSchedulable(c, resizeTimeout))
+		framework.ExpectNoError(framework.WaitForAllNodesSchedulable(c, resizeTimeout))
 		klog.Infof("Not enabling cluster autoscaler for the node pool (on purpose).")
 
 		ginkgo.By("Getting memory available on new nodes, so we can account for it when creating RC")
@@ -565,7 +564,7 @@ var _ = SIGDescribe("Cluster size autoscaling [Slow]", func() {
 		removeLabels := func(nodesToClean sets.String) {
 			ginkgo.By("Removing labels from nodes")
 			for node := range nodesToClean {
-				e2enode.RemoveLabelOffNode(c, node, labelKey)
+				framework.RemoveLabelOffNode(c, node, labelKey)
 			}
 		}
 
@@ -576,7 +575,7 @@ var _ = SIGDescribe("Cluster size autoscaling [Slow]", func() {
 		ginkgo.By(fmt.Sprintf("Annotating nodes of the smallest MIG(%s): %v", minMig, nodes))
 
 		for node := range nodesSet {
-			e2enode.AddOrUpdateLabelOnNode(c, node, labelKey, labelValue)
+			framework.AddOrUpdateLabelOnNode(c, node, labelKey, labelValue)
 		}
 
 		err = scheduling.CreateNodeSelectorPods(f, "node-selector", minSize+1, map[string]string{labelKey: labelValue}, false)
@@ -594,7 +593,7 @@ var _ = SIGDescribe("Cluster size autoscaling [Slow]", func() {
 		if len(newNodesSet) > 1 {
 			ginkgo.By(fmt.Sprintf("Spotted following new nodes in %s: %v", minMig, newNodesSet))
 			klog.Infof("Usually only 1 new node is expected, investigating")
-			klog.Infof("Kubectl:%s\n", e2ekubectl.RunKubectlOrDie(f.Namespace.Name, "get", "nodes", "-o", "json"))
+			klog.Infof("Kubectl:%s\n", framework.RunKubectlOrDie(f.Namespace.Name, "get", "nodes", "-o", "json"))
 			if output, err := exec.Command("gcloud", "compute", "instances", "list",
 				"--project="+framework.TestContext.CloudConfig.ProjectID,
 				"--zone="+framework.TestContext.CloudConfig.Zone).Output(); err == nil {
@@ -630,7 +629,7 @@ var _ = SIGDescribe("Cluster size autoscaling [Slow]", func() {
 		}
 		ginkgo.By(fmt.Sprintf("Setting labels for registered new nodes: %v", registeredNodes.List()))
 		for node := range registeredNodes {
-			e2enode.AddOrUpdateLabelOnNode(c, node, labelKey, labelValue)
+			framework.AddOrUpdateLabelOnNode(c, node, labelKey, labelValue)
 		}
 
 		defer removeLabels(registeredNodes)
@@ -1417,8 +1416,8 @@ func waitForCaPodsReadyInNamespace(f *framework.Framework, c clientset.Interface
 		klog.Infof("Too many pods are not ready yet: %v", notready)
 	}
 	klog.Info("Timeout on waiting for pods being ready")
-	klog.Info(e2ekubectl.RunKubectlOrDie(f.Namespace.Name, "get", "pods", "-o", "json", "--all-namespaces"))
-	klog.Info(e2ekubectl.RunKubectlOrDie(f.Namespace.Name, "get", "nodes", "-o", "json"))
+	klog.Info(framework.RunKubectlOrDie(f.Namespace.Name, "get", "pods", "-o", "json", "--all-namespaces"))
+	klog.Info(framework.RunKubectlOrDie(f.Namespace.Name, "get", "nodes", "-o", "json"))
 
 	// Some pods are still not running.
 	return fmt.Errorf("Too many pods are still not running: %v", notready)

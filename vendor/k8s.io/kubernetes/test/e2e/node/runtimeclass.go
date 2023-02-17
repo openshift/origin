@@ -19,7 +19,6 @@ package node
 import (
 	"context"
 	"fmt"
-
 	"k8s.io/pod-security-admission/api"
 
 	v1 "k8s.io/api/core/v1"
@@ -90,9 +89,9 @@ var _ = SIGDescribe("RuntimeClass", func() {
 
 		ginkgo.By("Trying to apply a label on the found node.")
 		for key, value := range nodeSelector {
-			e2enode.AddOrUpdateLabelOnNode(f.ClientSet, nodeName, key, value)
-			e2enode.ExpectNodeHasLabel(f.ClientSet, nodeName, key, value)
-			defer e2enode.RemoveLabelOffNode(f.ClientSet, nodeName, key)
+			framework.AddOrUpdateLabelOnNode(f.ClientSet, nodeName, key, value)
+			framework.ExpectNodeHasLabel(f.ClientSet, nodeName, key, value)
+			defer framework.RemoveLabelOffNode(f.ClientSet, nodeName, key)
 		}
 
 		ginkgo.By("Trying to apply taint on the found node.")
@@ -102,7 +101,7 @@ var _ = SIGDescribe("RuntimeClass", func() {
 			Effect: v1.TaintEffectNoSchedule,
 		}
 		e2enode.AddOrUpdateTaintOnNode(f.ClientSet, nodeName, taint)
-		e2enode.ExpectNodeHasTaint(f.ClientSet, nodeName, &taint)
+		framework.ExpectNodeHasTaint(f.ClientSet, nodeName, &taint)
 		defer e2enode.RemoveTaintOffNode(f.ClientSet, nodeName, taint)
 
 		ginkgo.By("Trying to create runtimeclass and pod")
@@ -115,7 +114,7 @@ var _ = SIGDescribe("RuntimeClass", func() {
 		pod.Spec.NodeSelector = map[string]string{
 			labelFooName: "bar",
 		}
-		pod = e2epod.NewPodClient(f).Create(pod)
+		pod = f.PodClient().Create(pod)
 
 		framework.ExpectNoError(e2epod.WaitForPodNotPending(f.ClientSet, f.Namespace.Name, pod.Name))
 
@@ -146,9 +145,9 @@ var _ = SIGDescribe("RuntimeClass", func() {
 
 		ginkgo.By("Trying to apply a label on the found node.")
 		for key, value := range nodeSelector {
-			e2enode.AddOrUpdateLabelOnNode(f.ClientSet, nodeName, key, value)
-			e2enode.ExpectNodeHasLabel(f.ClientSet, nodeName, key, value)
-			defer e2enode.RemoveLabelOffNode(f.ClientSet, nodeName, key)
+			framework.AddOrUpdateLabelOnNode(f.ClientSet, nodeName, key, value)
+			framework.ExpectNodeHasLabel(f.ClientSet, nodeName, key, value)
+			defer framework.RemoveLabelOffNode(f.ClientSet, nodeName, key)
 		}
 
 		ginkgo.By("Trying to create runtimeclass and pod")
@@ -161,7 +160,7 @@ var _ = SIGDescribe("RuntimeClass", func() {
 		pod.Spec.NodeSelector = map[string]string{
 			labelFooName: "bar",
 		}
-		pod = e2epod.NewPodClient(f).Create(pod)
+		pod = f.PodClient().Create(pod)
 
 		framework.ExpectNoError(e2epod.WaitForPodNotPending(f.ClientSet, f.Namespace.Name, pod.Name))
 

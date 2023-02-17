@@ -32,10 +32,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
-	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
 	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
+	storageutils "k8s.io/kubernetes/test/e2e/storage/utils"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 	admissionapi "k8s.io/pod-security-admission/api"
 )
@@ -117,7 +117,8 @@ func skipTestIfBlockNotSupported(driver storageframework.TestDriver) {
 
 func (t *volumesTestSuite) DefineTests(driver storageframework.TestDriver, pattern storageframework.TestPattern) {
 	type local struct {
-		config *storageframework.PerTestConfig
+		config        *storageframework.PerTestConfig
+		driverCleanup func()
 
 		resource *storageframework.VolumeResource
 
@@ -135,7 +136,7 @@ func (t *volumesTestSuite) DefineTests(driver storageframework.TestDriver, patte
 		l = local{}
 
 		// Now do the more expensive test initialization.
-		l.config = driver.PrepareTest(f)
+		l.config, l.driverCleanup = driver.PrepareTest(f)
 		l.migrationCheck = newMigrationOpCheck(f.ClientSet, f.ClientConfig(), dInfo.InTreePluginName)
 		testVolumeSizeRange := t.GetTestSuiteInfo().SupportedSizeRange
 		l.resource = storageframework.CreateVolumeResource(driver, l.config, pattern, testVolumeSizeRange)
@@ -151,6 +152,8 @@ func (t *volumesTestSuite) DefineTests(driver storageframework.TestDriver, patte
 			l.resource = nil
 		}
 
+		errs = append(errs, storageutils.TryFunc(l.driverCleanup))
+		l.driverCleanup = nil
 		framework.ExpectNoError(errors.NewAggregate(errs), "while cleaning up resource")
 		l.migrationCheck.validateMigrationVolumeOpCounts()
 	}
@@ -251,7 +254,7 @@ func testScriptInPod(
 	}
 	e2epod.SetNodeSelection(&pod.Spec, config.ClientNodeSelection)
 	ginkgo.By(fmt.Sprintf("Creating pod %s", pod.Name))
-	e2eoutput.TestContainerOutput(f, "exec-volume-test", pod, 0, []string{fileName})
+	f.TestContainerOutput("exec-volume-test", pod, 0, []string{fileName})
 
 	ginkgo.By(fmt.Sprintf("Deleting pod %s", pod.Name))
 	err := e2epod.DeletePodWithWait(f.ClientSet, pod)

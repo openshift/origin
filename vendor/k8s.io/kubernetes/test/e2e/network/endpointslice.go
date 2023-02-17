@@ -34,7 +34,6 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/kubernetes/test/e2e/network/common"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 	admissionapi "k8s.io/pod-security-admission/api"
@@ -47,11 +46,11 @@ var _ = common.SIGDescribe("EndpointSlice", func() {
 	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelBaseline
 
 	var cs clientset.Interface
-	var podClient *e2epod.PodClient
+	var podClient *framework.PodClient
 
 	ginkgo.BeforeEach(func() {
 		cs = f.ClientSet
-		podClient = e2epod.NewPodClient(f)
+		podClient = f.PodClient()
 	})
 
 	/*

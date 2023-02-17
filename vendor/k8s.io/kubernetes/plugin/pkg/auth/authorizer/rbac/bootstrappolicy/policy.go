@@ -24,9 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/apiserver/pkg/authentication/user"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
-	"k8s.io/kubernetes/pkg/features"
 )
 
 // Write and other vars are slices of the allowed verbs.
@@ -54,7 +52,6 @@ const (
 	extensionsGroup        = "extensions"
 	policyGroup            = "policy"
 	rbacGroup              = "rbac.authorization.k8s.io"
-	resourceGroup          = "resource.k8s.io"
 	storageGroup           = "storage.k8s.io"
 	resMetricsGroup        = "metrics.k8s.io"
 	customMetricsGroup     = "custom.metrics.k8s.io"
@@ -175,12 +172,6 @@ func NodeRules() []rbacv1.PolicyRule {
 
 	// RuntimeClass
 	nodePolicyRules = append(nodePolicyRules, rbacv1helpers.NewRule("get", "list", "watch").Groups("node.k8s.io").Resources("runtimeclasses").RuleOrDie())
-
-	// DRA Resource Claims
-	if utilfeature.DefaultFeatureGate.Enabled(features.DynamicResourceAllocation) {
-		nodePolicyRules = append(nodePolicyRules, rbacv1helpers.NewRule("get").Groups(resourceGroup).Resources("resourceclaims").RuleOrDie())
-	}
-
 	return nodePolicyRules
 }
 
@@ -217,23 +208,12 @@ func clusterRoles() []rbacv1.ClusterRole {
 			ObjectMeta: metav1.ObjectMeta{Name: "system:monitoring"},
 			Rules: []rbacv1.PolicyRule{
 				rbacv1helpers.NewRule("get").URLs(
-					"/metrics", "/metrics/slis",
+					"/metrics",
 					"/livez", "/readyz", "/healthz",
 					"/livez/*", "/readyz/*", "/healthz/*",
 				).RuleOrDie(),
 			},
 		},
-	}
-
-	basicUserRules := []rbacv1.PolicyRule{
-		rbacv1helpers.NewRule("create").Groups(authorizationGroup).Resources("selfsubjectaccessreviews", "selfsubjectrulesreviews").RuleOrDie(),
-	}
-
-	if utilfeature.DefaultFeatureGate.Enabled(features.APISelfSubjectReview) {
-		basicUserRules = append(basicUserRules, rbacv1helpers.NewRule("create").Groups(authenticationGroup).Resources("selfsubjectreviews").RuleOrDie())
-	}
-
-	roles = append(roles, []rbacv1.ClusterRole{
 		{
 			// a role which provides unauthenticated access.
 			ObjectMeta: metav1.ObjectMeta{Name: "system:openshift:public-info-viewer"},
@@ -246,7 +226,10 @@ func clusterRoles() []rbacv1.ClusterRole {
 		{
 			// a role which provides minimal resource access to allow a "normal" user to learn information about themselves
 			ObjectMeta: metav1.ObjectMeta{Name: "system:basic-user"},
-			Rules:      basicUserRules,
+			Rules: []rbacv1.PolicyRule{
+				// TODO add future selfsubjectrulesreview, project request APIs, project listing APIs
+				rbacv1helpers.NewRule("create").Groups(authorizationGroup).Resources("selfsubjectaccessreviews", "selfsubjectrulesreviews").RuleOrDie(),
+			},
 		},
 		{
 			// a role which provides just enough power read insensitive cluster information
@@ -521,7 +504,7 @@ func clusterRoles() []rbacv1.ClusterRole {
 				rbacv1helpers.NewRule("approve").Groups(certificatesGroup).Resources("signers").Names(capi.KubeAPIServerClientKubeletSignerName).RuleOrDie(),
 			},
 		},
-	}...)
+	}
 
 	// Add the cluster role for reading the ServiceAccountIssuerDiscovery endpoints
 	roles = append(roles, rbacv1.ClusterRole{
@@ -578,15 +561,6 @@ func clusterRoles() []rbacv1.ClusterRole {
 		rbacv1helpers.NewRule(Read...).Groups(legacyGroup).Resources("namespaces").RuleOrDie(),
 		rbacv1helpers.NewRule(Read...).Groups(storageGroup).Resources("csidrivers").RuleOrDie(),
 		rbacv1helpers.NewRule(Read...).Groups(storageGroup).Resources("csistoragecapacities").RuleOrDie(),
-	}
-	// Needed for dynamic resource allocation.
-	if utilfeature.DefaultFeatureGate.Enabled(features.DynamicResourceAllocation) {
-		kubeSchedulerRules = append(kubeSchedulerRules,
-			rbacv1helpers.NewRule(Read...).Groups(resourceGroup).Resources("resourceclaims", "resourceclasses").RuleOrDie(),
-			rbacv1helpers.NewRule(ReadUpdate...).Groups(resourceGroup).Resources("resourceclaims/status").RuleOrDie(),
-			rbacv1helpers.NewRule(ReadWrite...).Groups(resourceGroup).Resources("podschedulings").RuleOrDie(),
-			rbacv1helpers.NewRule(Read...).Groups(resourceGroup).Resources("podschedulings/status").RuleOrDie(),
-		)
 	}
 	roles = append(roles, rbacv1.ClusterRole{
 		// a role to use for the kube-scheduler

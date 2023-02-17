@@ -41,7 +41,6 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/endpoints/handlers/fieldmanager"
-	requestmetrics "k8s.io/apiserver/pkg/endpoints/handlers/metrics"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/apiserver/pkg/endpoints/metrics"
 	"k8s.io/apiserver/pkg/endpoints/request"
@@ -237,7 +236,7 @@ type responder struct {
 }
 
 func (r *responder) Object(statusCode int, obj runtime.Object) {
-	responsewriters.WriteObjectNegotiated(r.scope.Serializer, r.scope, r.scope.Kind.GroupVersion(), r.w, r.req, statusCode, obj, false)
+	responsewriters.WriteObjectNegotiated(r.scope.Serializer, r.scope, r.scope.Kind.GroupVersion(), r.w, r.req, statusCode, obj)
 }
 
 func (r *responder) Error(err error) {
@@ -389,15 +388,6 @@ func limitedReadBody(req *http.Request, limit int64) ([]byte, error) {
 		return nil, errors.NewRequestEntityTooLargeError(fmt.Sprintf("limit is %d", limit))
 	}
 	return data, nil
-}
-
-func limitedReadBodyWithRecordMetric(ctx context.Context, req *http.Request, limit int64, resourceGroup string, verb requestmetrics.RequestBodyVerb) ([]byte, error) {
-	readBody, err := limitedReadBody(req, limit)
-	if err == nil {
-		// only record if we've read successfully
-		requestmetrics.RecordRequestBodySize(ctx, resourceGroup, verb, len(readBody))
-	}
-	return readBody, err
 }
 
 func isDryRun(url *url.URL) bool {

@@ -48,7 +48,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&TokenReview{},
 		&TokenRequest{},
-		&SelfSubjectReview{},
 	)
 	return nil
 }

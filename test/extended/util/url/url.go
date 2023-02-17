@@ -21,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	kclientset "k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
@@ -69,7 +68,7 @@ func (ut *Tester) Responses(tests ...*Test) []*Response {
 	// testToScript needs to run after creating the pod
 	// in case we need to rsync files for a post body
 	script := testsToScript(tests)
-	output, err := e2eoutput.RunHostCmd(ut.namespace, ut.podName, script)
+	output, err := e2e.RunHostCmd(ut.namespace, ut.podName, script)
 	if !ut.errorPassThrough {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}

@@ -14,7 +14,6 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 )
 
@@ -36,8 +35,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:Audit] Basic audit", func() {
 				}},
 			},
 		}
-		e2epod.NewPodClient(f).CreateSync(pod)
-		e2epod.NewPodClient(f).DeleteSync(pod.Name, metav1.DeleteOptions{}, e2epod.DefaultPodDeletionTimeout)
+		f.PodClient().CreateSync(pod)
+		f.PodClient().DeleteSync(pod.Name, metav1.DeleteOptions{}, framework.DefaultPodDeletionTimeout)
 
 		// Create, Read, Delete secret
 		secret := &apiv1.Secret{

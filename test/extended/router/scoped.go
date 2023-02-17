@@ -17,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	admissionapi "k8s.io/pod-security-admission/api"
 	utilpointer "k8s.io/utils/pointer"
 
@@ -268,7 +267,7 @@ func waitForRouterOKResponseExec(ns, execPodName, url, host string, timeoutSecon
 			sleep 1
 		done
 		`, timeoutSeconds, host, url, 5)
-	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
+	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
 		return fmt.Errorf("host command failed: %v\n%s", err, output)
 	}
@@ -302,7 +301,7 @@ func expectRouteStatusCodeRepeatedExec(ns, execPodName, url, host string, status
 			fi
 		done
 		`, times, args, host, url, statusCode)
-	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
+	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
 		return fmt.Errorf("host command failed: %v\n%s", err, output)
 	}
@@ -311,7 +310,7 @@ func expectRouteStatusCodeRepeatedExec(ns, execPodName, url, host string, status
 
 func expectRouteStatusCodeExec(ns, execPodName, url, host string, statusCode int) error {
 	cmd := fmt.Sprintf("curl -s -o /dev/null -w '%%{http_code}' --header 'Host: %s' %q", host, url)
-	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
+	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
 		return fmt.Errorf("host command failed: %v\n%s", err, output)
 	}
@@ -323,7 +322,7 @@ func expectRouteStatusCodeExec(ns, execPodName, url, host string, statusCode int
 
 func getAuthenticatedRouteURLViaPod(ns, execPodName, url, host, user, pass string) (string, error) {
 	cmd := fmt.Sprintf("curl -s -u %s:%s --header 'Host: %s' %q", user, pass, host, url)
-	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
+	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
 		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
 	}

@@ -35,8 +35,8 @@ func init() {
 
 		// allowed upstream kube images - index and value must match upstream or
 		// tests will fail (vendor/k8s.io/kubernetes/test/utils/image/manifest.go)
-		"registry.k8s.io/e2e-test-images/agnhost:2.43": 1,
-		"registry.k8s.io/e2e-test-images/nginx:1.15-4": 22,
+		"registry.k8s.io/e2e-test-images/agnhost:2.40": 1,
+		"registry.k8s.io/e2e-test-images/nginx:1.15-2": 22,
 	}
 
 	images = GetMappedImages(allowedImages, os.Getenv("KUBE_TEST_REPO"))

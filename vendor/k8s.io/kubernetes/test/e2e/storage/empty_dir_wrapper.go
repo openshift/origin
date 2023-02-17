@@ -146,7 +146,7 @@ var _ = utils.SIGDescribe("EmptyDir wrapper volumes", func() {
 				},
 			},
 		}
-		pod = e2epod.NewPodClient(f).CreateSync(pod)
+		pod = f.PodClient().CreateSync(pod)
 
 		defer func() {
 			ginkgo.By("Cleaning up the secret")
@@ -218,7 +218,7 @@ func createGitServer(f *framework.Framework) (gitURL string, gitRepo string, cle
 
 	gitServerPod := e2epod.NewAgnhostPod(f.Namespace.Name, gitServerPodName, nil, nil, []v1.ContainerPort{{ContainerPort: int32(containerPort)}}, "fake-gitserver")
 	gitServerPod.ObjectMeta.Labels = labels
-	e2epod.NewPodClient(f).CreateSync(gitServerPod)
+	f.PodClient().CreateSync(gitServerPod)
 
 	// Portal IP and port
 	httpPort := 2345

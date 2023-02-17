@@ -211,7 +211,7 @@ func searchDisk(b fcDiskMounter) (string, error) {
 		diskIDs = wwids
 	}
 
-	rescanned := false
+	rescaned := false
 	// two-phase search:
 	// first phase, search existing device path, if a multipath dm is found, exit loop
 	// otherwise, in second phase, rescan scsi bus and search again, return with any findings
@@ -228,13 +228,13 @@ func searchDisk(b fcDiskMounter) (string, error) {
 			}
 		}
 		// if a dm is found, exit loop
-		if rescanned || dm != "" {
+		if rescaned || dm != "" {
 			break
 		}
 		// rescan and search again
 		// rescan scsi bus
 		scsiHostRescan(io)
-		rescanned = true
+		rescaned = true
 	}
 	// if no disk matches input wwn and lun, exit
 	if disk == "" && dm == "" {

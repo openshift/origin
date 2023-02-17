@@ -16,19 +16,14 @@ package mvcc
 
 import (
 	"encoding/binary"
-	"fmt"
 	"time"
 
 	"go.etcd.io/etcd/server/v3/mvcc/buckets"
 	"go.uber.org/zap"
 )
 
-func (s *store) scheduleCompaction(compactMainRev, prevCompactRev int64) (KeyValueHash, error) {
+func (s *store) scheduleCompaction(compactMainRev int64, keep map[revision]struct{}) bool {
 	totalStart := time.Now()
-	keep := s.kvindex.Compact(compactMainRev)
-	indexCompactionPauseMs.Observe(float64(time.Since(totalStart) / time.Millisecond))
-
-	totalStart = time.Now()
 	defer func() { dbCompactionTotalMs.Observe(float64(time.Since(totalStart) / time.Millisecond)) }()
 	keyCompactions := 0
 	defer func() { dbCompactionKeysCounter.Add(float64(keyCompactions)) }()
@@ -37,8 +32,6 @@ func (s *store) scheduleCompaction(compactMainRev, prevCompactRev int64) (KeyVal
 	end := make([]byte, 8)
 	binary.BigEndian.PutUint64(end, uint64(compactMainRev+1))
 
-	batchNum := s.cfg.CompactionBatchLimit
-	h := newKVHasher(prevCompactRev, compactMainRev, keep)
 	last := make([]byte, 8+1+8)
 	for {
 		var rev revision
@@ -47,14 +40,13 @@ func (s *store) scheduleCompaction(compactMainRev, prevCompactRev int64) (KeyVal
 
 		tx := s.b.BatchTx()
 		tx.LockOutsideApply()
-		keys, values := tx.UnsafeRange(buckets.Key, last, end, int64(batchNum))
-		for i := range keys {
-			rev = bytesToRev(keys[i])
+		keys, _ := tx.UnsafeRange(buckets.Key, last, end, int64(s.cfg.CompactionBatchLimit))
+		for _, key := range keys {
+			rev = bytesToRev(key)
 			if _, ok := keep[rev]; !ok {
-				tx.UnsafeDelete(buckets.Key, keys[i])
+				tx.UnsafeDelete(buckets.Key, key)
 				keyCompactions++
 			}
-			h.WriteKeyValue(keys[i], values[i])
 		}
 
 		if len(keys) < s.cfg.CompactionBatchLimit {
@@ -62,14 +54,12 @@ func (s *store) scheduleCompaction(compactMainRev, prevCompactRev int64) (KeyVal
 			revToBytes(revision{main: compactMainRev}, rbytes)
 			tx.UnsafePut(buckets.Meta, finishedCompactKeyName, rbytes)
 			tx.Unlock()
-			hash := h.Hash()
 			s.lg.Info(
 				"finished scheduled compaction",
 				zap.Int64("compact-revision", compactMainRev),
 				zap.Duration("took", time.Since(totalStart)),
-				zap.Uint32("hash", hash.Hash),
 			)
-			return hash, nil
+			return true
 		}
 
 		// update last
@@ -82,7 +72,7 @@ func (s *store) scheduleCompaction(compactMainRev, prevCompactRev int64) (KeyVal
 		select {
 		case <-time.After(10 * time.Millisecond):
 		case <-s.stopc:
-			return KeyValueHash{}, fmt.Errorf("interrupted due to stop signal")
+			return false
 		}
 	}
 }

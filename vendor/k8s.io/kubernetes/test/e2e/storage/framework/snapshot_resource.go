@@ -89,7 +89,7 @@ func CreateSnapshotResource(sDriver SnapshottableTestDriver, config *PerTestConf
 
 	dc := r.Config.Framework.DynamicClient
 
-	r.Vscontent = utils.GetSnapshotContentFromSnapshot(dc, r.Vs, timeouts.SnapshotCreate)
+	r.Vscontent = utils.GetSnapshotContentFromSnapshot(dc, r.Vs)
 
 	if pattern.SnapshotType == PreprovisionedCreatedSnapshot {
 		// prepare a pre-provisioned VolumeSnapshotContent with certain data

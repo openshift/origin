@@ -19,7 +19,6 @@ package node
 import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2ekubectl "k8s.io/kubernetes/test/e2e/framework/kubectl"
-	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2esecurity "k8s.io/kubernetes/test/e2e/framework/security"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
@@ -44,11 +43,11 @@ var _ = SIGDescribe("AppArmor", func() {
 		})
 
 		ginkgo.It("should enforce an AppArmor profile", func() {
-			e2esecurity.CreateAppArmorTestPod(f.Namespace.Name, f.ClientSet, e2epod.NewPodClient(f), false, true)
+			e2esecurity.CreateAppArmorTestPod(f.Namespace.Name, f.ClientSet, f.PodClient(), false, true)
 		})
 
 		ginkgo.It("can disable an AppArmor profile, using unconfined", func() {
-			e2esecurity.CreateAppArmorTestPod(f.Namespace.Name, f.ClientSet, e2epod.NewPodClient(f), true, true)
+			e2esecurity.CreateAppArmorTestPod(f.Namespace.Name, f.ClientSet, f.PodClient(), true, true)
 		})
 	})
 })

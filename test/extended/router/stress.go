@@ -10,7 +10,6 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	"k8s.io/kubernetes/test/e2e/framework/statefulset"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -365,7 +364,7 @@ func verifyCommandEquivalent(c clientset.Interface, rs *appsv1.ReplicaSet, cmd s
 		values = make(map[string]string)
 		uniques := make(map[string]struct{})
 		for _, pod := range podList.Items {
-			stdout, err := e2eoutput.RunHostCmdWithRetries(pod.Namespace, pod.Name, cmd, statefulset.StatefulSetPoll, statefulset.StatefulPodTimeout)
+			stdout, err := e2e.RunHostCmdWithRetries(pod.Namespace, pod.Name, cmd, statefulset.StatefulSetPoll, statefulset.StatefulPodTimeout)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			values[pod.Name] = stdout
 			uniques[stdout] = struct{}{}

@@ -23,13 +23,12 @@ import (
 	"net"
 	"time"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apiserver/pkg/storage/value/encrypt/envelope/util"
 	"k8s.io/klog/v2"
-	kmsapi "k8s.io/kms/apis/v2alpha1"
+
+	"google.golang.org/grpc"
+
+	"k8s.io/apiserver/pkg/storage/value/encrypt/envelope/util"
+	kmsapi "k8s.io/apiserver/pkg/storage/value/encrypt/envelope/v2alpha1"
 )
 
 const (
@@ -45,7 +44,7 @@ type gRPCService struct {
 }
 
 // NewGRPCService returns an envelope.Service which use gRPC to communicate the remote KMS provider.
-func NewGRPCService(ctx context.Context, endpoint string, callTimeout time.Duration) (Service, error) {
+func NewGRPCService(endpoint string, callTimeout time.Duration) (Service, error) {
 	klog.V(4).Infof("Configure KMS provider with endpoint: %s", endpoint)
 
 	addr, err := util.ParseEndpoint(endpoint)
@@ -56,7 +55,7 @@ func NewGRPCService(ctx context.Context, endpoint string, callTimeout time.Durat
 	s := &gRPCService{callTimeout: callTimeout}
 	s.connection, err = grpc.Dial(
 		addr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)),
 		grpc.WithContextDialer(
 			func(context.Context, string) (net.Conn, error) {
@@ -76,14 +75,6 @@ func NewGRPCService(ctx context.Context, endpoint string, callTimeout time.Durat
 	}
 
 	s.kmsClient = kmsapi.NewKeyManagementServiceClient(s.connection)
-
-	go func() {
-		defer utilruntime.HandleCrash()
-
-		<-ctx.Done()
-		_ = s.connection.Close()
-	}()
-
 	return s, nil
 }
 
