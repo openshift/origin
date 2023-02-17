@@ -1,6 +1,7 @@
 package allowedbackenddisruption
 
 import (
+	"bytes"
 	_ "embed"
 	"sync"
 
@@ -54,14 +55,19 @@ var queryResults []byte
 
 var (
 	readResults    sync.Once
-	historicalData *historicaldata.DisruptionBestMatcher
+	historicalData historicaldata.BestMatcher
 )
 
-func getCurrentResults() *historicaldata.DisruptionBestMatcher {
+// if data is missing for a particular jobtype combination, this is the value returned.  Choose a unique value that will
+// be easily searchable across large numbers of job runs.  I like e.
+const defaultReturn = 2.718
+
+func getCurrentResults() historicaldata.BestMatcher {
 	readResults.Do(
 		func() {
 			var err error
-			historicalData, err = historicaldata.NewDisruptionMatcher(queryResults)
+			genericBytes := bytes.ReplaceAll(queryResults, []byte(`    "BackendName": "`), []byte(`    "Name": "`))
+			historicalData, err = historicaldata.NewMatcher(genericBytes, defaultReturn)
 			if err != nil {
 				panic(err)
 			}

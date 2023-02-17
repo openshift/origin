@@ -23,10 +23,10 @@ func TestGetClosestP95Value(t *testing.T) {
 		jobType     platformidentification.JobType
 	}
 
-	historicalData := []historicaldata.DisruptionStatisticalData{
+	historicalData := []historicaldata.StatisticalData{
 		{
 			DataKey: historicaldata.DataKey{
-				BackendName: "kube-api-new-connections",
+				Name: "kube-api-new-connections",
 				JobType: platformidentification.JobType{
 					Release:      "4.12",
 					FromRelease:  "4.11",
@@ -36,13 +36,12 @@ func TestGetClosestP95Value(t *testing.T) {
 					Topology:     "ha",
 				},
 			},
-			P95:     1.578,
-			P99:     2.987,
-			JobRuns: 1000,
+			P95: 1.578,
+			P99: 2.987,
 		},
 		{
 			DataKey: historicaldata.DataKey{
-				BackendName: "kube-api-new-connections",
+				Name: "kube-api-new-connections",
 				JobType: platformidentification.JobType{
 					Release:      "4.12",
 					FromRelease:  "4.12",
@@ -52,13 +51,12 @@ func TestGetClosestP95Value(t *testing.T) {
 					Topology:     "single",
 				},
 			},
-			P95:     50.827,
-			P99:     120.458,
-			JobRuns: 1000,
+			P95: 50.827,
+			P99: 120.458,
 		},
 		{
 			DataKey: historicaldata.DataKey{
-				BackendName: "openshift-api-new-connections",
+				Name: "openshift-api-new-connections",
 				JobType: platformidentification.JobType{
 					Release:      "4.11",
 					FromRelease:  "4.11",
@@ -68,13 +66,12 @@ func TestGetClosestP95Value(t *testing.T) {
 					Topology:     "single",
 				},
 			},
-			P95:     49.419,
-			P99:     70.381,
-			JobRuns: 1000,
+			P95: 49.419,
+			P99: 70.381,
 		},
 		{
 			DataKey: historicaldata.DataKey{
-				BackendName: "oauth-api-new-connections",
+				Name: "oauth-api-new-connections",
 				JobType: platformidentification.JobType{
 					Release:      "4.12",
 					FromRelease:  "4.11",
@@ -84,31 +81,14 @@ func TestGetClosestP95Value(t *testing.T) {
 					Topology:     "single",
 				},
 			},
-			P95:     20.714,
-			P99:     35.917,
-			JobRuns: 1000,
-		},
-		{
-			DataKey: historicaldata.DataKey{
-				BackendName: "image-registry-new-connections",
-				JobType: platformidentification.JobType{
-					Release:      "4.13",
-					FromRelease:  "4.12",
-					Platform:     "aws",
-					Architecture: "amd64",
-					Network:      "sdn",
-					Topology:     "single",
-				},
-			},
-			P95:     20.714,
-			P99:     35.917,
-			JobRuns: 99, // not enough to count
+			P95: 20.714,
+			P99: 35.917,
 		},
 	}
 
 	// Convert our slice of statistical data to a map on datakey to match what the matcher needs.
 	// This allows us to define our dest data without duplicating the DataKey struct.
-	historicalDataMap := map[historicaldata.DataKey]historicaldata.DisruptionStatisticalData{}
+	historicalDataMap := map[historicaldata.DataKey]historicaldata.StatisticalData{}
 	for _, hd := range historicalData {
 		historicalDataMap[hd.DataKey] = hd
 	}
@@ -212,25 +192,10 @@ func TestGetClosestP95Value(t *testing.T) {
 			},
 			expectedDuration: nil,
 		},
-		{
-			name: "direct match but insufficient job runs",
-			args: args{
-				backendName: "image-registry-new-connections",
-				jobType: platformidentification.JobType{
-					Release:      "4.13",
-					FromRelease:  "4.12",
-					Platform:     "aws",
-					Architecture: "amd64",
-					Network:      "sdn",
-					Topology:     "single",
-				},
-			},
-			expectedDuration: nil,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			matcher := historicaldata.NewDisruptionMatcherWithHistoricalData(historicalDataMap)
+			matcher := historicaldata.NewMatcherWithHistoricalData(historicalDataMap, 3.141)
 			actualDuration, _, actualErr := matcher.BestMatchP99(tt.args.backendName, tt.args.jobType)
 			assert.EqualValues(t, tt.expectedDuration, actualDuration, "unexpected duration")
 			assert.Equal(t, tt.expectedErr, actualErr, "unexpected error")
