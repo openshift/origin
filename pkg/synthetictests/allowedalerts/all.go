@@ -32,6 +32,9 @@ func AllAlertTests(jobType *platformidentification.JobType, etcdAllowance AlertT
 	ret = append(ret, newAlert("etcd", "etcdInsufficientMembers", jobType).pending().neverFail().toTests()...)
 	ret = append(ret, newAlert("etcd", "etcdInsufficientMembers", jobType).firing().toTests()...)
 	ret = append(ret, newAlert("etcd", "etcdHighNumberOfLeaderChanges", jobType).pending().neverFail().toTests()...)
+
+	// This test gets a little special treatment, if we're moving through etcd updates, we expect leader changes, so if this scenario is detected
+	// this test is given fixed leeway for the alert to fire, otherwise it too falls back to historical data.
 	ret = append(ret, newAlert("etcd", "etcdHighNumberOfLeaderChanges", jobType).withAllowance(etcdAllowance).firing().toTests()...)
 
 	ret = append(ret, newAlert("kube-apiserver", "KubeAPIErrorBudgetBurn", jobType).pending().neverFail().toTests()...)
