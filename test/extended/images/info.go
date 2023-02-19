@@ -4,6 +4,7 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	g "github.com/onsi/ginkgo/v2"
 
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -25,7 +26,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageInfo] Image info", func() {
 
 	g.It("should display information about images [apigroup:image.openshift.io]", func() {
 		ns = oc.Namespace()
-		cli := oc.KubeFramework().PodClient()
+		cli := e2epod.PodClientNS(oc.KubeFramework(), ns)
 		pod := cli.Create(cliPodWithPullSecret(oc, heredoc.Docf(`
 			set -x
 

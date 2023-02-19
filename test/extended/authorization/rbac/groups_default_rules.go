@@ -26,6 +26,7 @@ import (
 
 	"github.com/openshift/api/authorization"
 	"github.com/openshift/api/build"
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/api/console"
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/oauth"
@@ -118,18 +119,9 @@ var (
 			rbacv1helpers.NewRule("get", "list").Groups(authzGroup, legacyAuthzGroup).Resources("clusterroles").RuleOrDie(),
 			rbacv1helpers.NewRule(read...).Groups(rbacGroup).Resources("clusterroles").RuleOrDie(),
 			rbacv1helpers.NewRule("get", "list").Groups(storageGroup).Resources("storageclasses").RuleOrDie(),
-			rbacv1helpers.NewRule("get", "list", "watch").Groups(snapshotGroup).Resources("volumesnapshotclasses").RuleOrDie(),
 			rbacv1helpers.NewRule("list", "watch").Groups(projectGroup, legacyProjectGroup).Resources("projects").RuleOrDie(),
 
 			rbacv1helpers.NewRule("use").Groups(security.GroupName).Resources("securitycontextconstraints").Names("restricted-v2").RuleOrDie(),
-
-			// These custom resources are used to extend console functionality
-			// The console team is working on eliminating this exception in the near future
-			rbacv1helpers.NewRule(read...).Groups(consoleGroup).Resources("consoleclidownloads", "consolelinks", "consoleexternalloglinks", "consolenotifications", "consoleyamlsamples", "consolequickstarts", "consoleplugins").RuleOrDie(),
-
-			// HelmChartRepository instances keep Helm chart repository configuration
-			// By default users are able to browse charts from all configured repositories through console UI
-			rbacv1helpers.NewRule("get", "list").Groups("helm.openshift.io").Resources("helmchartrepositories").RuleOrDie(),
 
 			// TODO: remove when openshift-apiserver has removed these
 			rbacv1helpers.NewRule("get").URLs(
@@ -183,15 +175,52 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] The default clust
 	oc := exutil.NewCLI("default-rbac-policy")
 
 	g.It("should have correct RBAC rules", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+
+		enabledCapabilities := []configv1.ClusterVersionCapability{}
+
+		exist, err := exutil.DoesApiResourceExist(oc.AdminConfig(), "clusterversions", "config.openshift.io")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if exist {
+			clusterVersion, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+			if err != nil {
+				e2e.Failf("Failed to get cluster version: %v", err)
+			}
+			enabledCapabilities = append(enabledCapabilities, clusterVersion.Status.Capabilities.EnabledCapabilities...)
+		} else {
+			e2e.Fail("Cluster version API resource does not exist")
+		}
+
+		// Conditional, capability-specific rules
+		for _, capability := range enabledCapabilities {
+			switch capability {
+			case configv1.ClusterVersionCapabilityConsole:
+				allAuthenticatedRules = append(
+					allAuthenticatedRules,
+					[]rbacv1.PolicyRule{
+						// These custom resources are used to extend console functionality
+						// The console team may eventually eliminate this exception
+						rbacv1helpers.NewRule(read...).Groups(consoleGroup).Resources("consoleclidownloads", "consolelinks", "consoleexternalloglinks", "consolenotifications", "consoleyamlsamples", "consolequickstarts", "consoleplugins").RuleOrDie(),
+
+						// HelmChartRepository instances keep Helm chart repository configuration
+						// By default users are able to browse charts from all configured repositories through console UI
+						rbacv1helpers.NewRule("get", "list").Groups("helm.openshift.io").Resources("helmchartrepositories").RuleOrDie(),
+					}...,
+				)
+
+			case configv1.ClusterVersionCapabilityCSISnapshot:
+				allAuthenticatedRules = append(
+					allAuthenticatedRules,
+					rbacv1helpers.NewRule("get", "list", "watch").Groups(snapshotGroup).Resources("volumesnapshotclasses").RuleOrDie(),
+				)
+			}
+		}
+
 		kubeInformers := informers.NewSharedInformerFactory(oc.AdminKubeClient(), 20*time.Minute)
 		ruleResolver := exutil.NewRuleResolver(kubeInformers.Rbac().V1()) // signal what informers we want to use early
 
-		stopCh := make(chan struct{})
-		defer func() { close(stopCh) }()
-		kubeInformers.Start(stopCh)
-
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
+		kubeInformers.Start(ctx.Done())
 
 		if ok := cache.WaitForCacheSync(ctx.Done(),
 			kubeInformers.Rbac().V1().ClusterRoles().Informer().HasSynced,
@@ -202,7 +231,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] The default clust
 			exutil.FatalErr("failed to sync RBAC cache")
 		}
 
-		namespaces, err := oc.AdminKubeClient().CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
+		namespaces, err := oc.AdminKubeClient().CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 		if err != nil {
 			exutil.FatalErr(err)
 		}

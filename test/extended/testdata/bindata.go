@@ -27,6 +27,7 @@
 // examples/quickstarts/rails-postgresql-persistent.json
 // examples/quickstarts/rails-postgresql.json
 // examples/hello-openshift/Dockerfile
+// examples/hello-openshift/go.mod
 // examples/hello-openshift/hello-pod.json
 // examples/hello-openshift/hello-project.json
 // examples/jenkins/application-template.json
@@ -212,7 +213,6 @@
 // test/extended/testdata/cmd/test/cmd/set-liveness-probe.sh
 // test/extended/testdata/cmd/test/cmd/setbuildhook.sh
 // test/extended/testdata/cmd/test/cmd/setbuildsecret.sh
-// test/extended/testdata/cmd/test/cmd/templates.sh
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-custombuild.json
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild.json
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-stibuild.json
@@ -13313,6 +13313,26 @@ func examplesHelloOpenshiftDockerfile() (*asset, error) {
 	return a, nil
 }
 
+var _examplesHelloOpenshiftGoMod = []byte(`module github.com/openshift/origin/examples/hello-openshift
+
+go 1.19
+`)
+
+func examplesHelloOpenshiftGoModBytes() ([]byte, error) {
+	return _examplesHelloOpenshiftGoMod, nil
+}
+
+func examplesHelloOpenshiftGoMod() (*asset, error) {
+	bytes, err := examplesHelloOpenshiftGoModBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/hello-openshift/go.mod", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _examplesHelloOpenshiftHelloPodJson = []byte(`{
   "kind": "Pod",
   "apiVersion": "v1",
@@ -18739,7 +18759,7 @@ func testExtendedTestdataBuildsDockerAddDockerfile() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile = []byte(`FROM centos
+var _testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile = []byte(`FROM registry.redhat.io/ubi8/ubi-minimal
 ENV foo=foo
 ADD ./${foo} /tmp/foo
 `)
@@ -31299,209 +31319,6 @@ func testExtendedTestdataCmdTestCmdSetbuildsecretSh() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTemplatesSh = []byte(`#!/bin/bash
-source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
-trap os::test::junit::reconcile_output EXIT
-
-# Cleanup cluster resources created by this test
-(
-  set +e
-  oc delete all,templates --all
-  oc delete template/ruby-helloworld-sample -n openshift
-  oc delete project test-template-project
-  oc delete user someval someval=moreval someval=moreval2 someval=moreval3
-  exit 0
-) &>/dev/null
-
-
-os::test::junit::declare_suite_start "cmd/templates"
-# This test validates template commands
-
-os::test::junit::declare_suite_start "cmd/templates/basic"
-os::cmd::expect_success 'oc get templates'
-os::cmd::expect_success 'oc create -f ${TEST_DATA}/application-template-dockerbuild.json'
-os::cmd::expect_success 'oc get templates'
-os::cmd::expect_success 'oc get templates ruby-helloworld-sample'
-os::cmd::expect_success 'oc get template ruby-helloworld-sample -o json | oc process -f -'
-os::cmd::expect_success 'oc process ruby-helloworld-sample'
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o template --template "{{.kind}}"'    "List"
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o go-template --template "{{.kind}}"' "List"
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o go-template={{.kind}}'              "List"
-os::cmd::expect_success 'oc process ruby-helloworld-sample -o go-template-file=/dev/null'
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o jsonpath --template "{.kind}"' "List"
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o jsonpath={.kind}'              "List"
-os::cmd::expect_success 'oc process ruby-helloworld-sample -o jsonpath-file=/dev/null'
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o describe' "ruby-27-centos7"
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o json'     "ruby-27-centos7"
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o yaml'     "ruby-27-centos7"
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -o name'     "ruby-27-centos7"
-os::cmd::expect_success_and_text 'oc describe templates ruby-helloworld-sample' "BuildConfig.*ruby-sample-build"
-os::cmd::expect_success 'oc delete templates ruby-helloworld-sample'
-os::cmd::expect_success 'oc get templates'
-# TODO: create directly from template
-echo "templates: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/templates/config"
-guestbook_template="${TEST_DATA}/templates/guestbook.json"
-os::cmd::expect_success "oc process -f '${guestbook_template}' -l app=guestbook | oc create -f -"
-os::cmd::expect_success_and_text 'oc status' 'frontend-service'
-echo "template+config: ok"
-
-os::test::junit::declare_suite_start "cmd/templates/local-config"
-# Processes the template locally
-os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --local -l app=guestbook -o yaml" "app: guestbook"
-# Processes the template locally and get the same output in YAML
-new="$(mktemp -d)"
-os::cmd::expect_success 'oc process -f "${guestbook_template}" --local -l app=guestbook -o yaml ADMIN_USERNAME=au ADMIN_PASSWORD=ap REDIS_PASSWORD=rp > "${new}/localtemplate"'
-os::cmd::expect_success 'oc process -f "${guestbook_template}" -l app=guestbook -o yaml ADMIN_USERNAME=au ADMIN_PASSWORD=ap REDIS_PASSWORD=rp > "${new}/remotetemplate"'
-os::cmd::expect_success 'diff "${new}/localtemplate" "${new}/remotetemplate"'
-# Does not even try to hit the server
-os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --local -l app=guestbook -o yaml --server 0.0.0.0:1" "app: guestbook"
-echo "template+config+local: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/templates/parameters"
-guestbook_params="${TEST_DATA}/templates/guestbook.env"
-# Individually specified parameter values are honored
-os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' -p ADMIN_USERNAME=myuser -p ADMIN_PASSWORD=mypassword" '"myuser"'
-os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' -p ADMIN_USERNAME=myuser -p ADMIN_PASSWORD=mypassword" '"mypassword"'
-# Argument values are honored
-os::cmd::expect_success_and_text "oc process ADMIN_USERNAME=myuser ADMIN_PASSWORD=mypassword -f '${guestbook_template}'"       '"myuser"'
-os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' ADMIN_USERNAME=myuser ADMIN_PASSWORD=mypassword"       '"mypassword"'
-# Argument values with commas are honored
-os::cmd::expect_success 'oc create -f ${TEST_DATA}/application-template-stibuild.json'
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample MYSQL_USER=myself MYSQL_PASSWORD=my,1%pa=s'        '"myself"'
-os::cmd::expect_success_and_text 'oc process MYSQL_USER=myself MYSQL_PASSWORD=my,1%pa=s ruby-helloworld-sample'        '"my,1%pa=s"'
-os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample -p MYSQL_USER=myself -p MYSQL_PASSWORD=my,1%pa=s'  '"myself"'
-os::cmd::expect_success_and_text 'oc process -p MYSQL_USER=myself -p MYSQL_PASSWORD=my,1%pa=s ruby-helloworld-sample'  '"my,1%pa=s"'
-# Argument values can be read from file
-os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --param-file='${guestbook_params}'" '"root"'
-os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --param-file='${guestbook_params}'" '"adminpass"'
-os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --param-file='${guestbook_params}'" '"redispass"'
-# Argument values can be read from stdin
-os::cmd::expect_success_and_text "cat '${guestbook_params}' | oc process -f '${guestbook_template}' --param-file=-" '"root"'
-os::cmd::expect_success_and_text "cat '${guestbook_params}' | oc process -f '${guestbook_template}' --param-file=-" '"adminpass"'
-os::cmd::expect_success_and_text "cat '${guestbook_params}' | oc process -f '${guestbook_template}' --param-file=-" '"redispass"'
-# Argument values from command line have precedence over those from file
-os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --param-file='${guestbook_params}' -p ADMIN_USERNAME=myuser"     'ignoring value from file'
-os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --param-file='${guestbook_params}' -p ADMIN_USERNAME=myuser"     '"myuser"'
-os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --param-file='${guestbook_params}' -p ADMIN_PASSWORD=mypassword" '"mypassword"'
-os::cmd::expect_success_and_text "oc process -f '${guestbook_template}' --param-file='${guestbook_params}' -p REDIS_PASSWORD=rrr"        '"rrr"'
-# Set template parameters from parameter file with multiline values
-os::cmd::expect_success_and_text "oc process -f ${TEST_DATA}/templates/template_required_params.yaml --param-file=${TEST_DATA}/templates/template_required_params.env -o yaml" 'first$'
-os::cmd::expect_success 'oc delete template ruby-helloworld-sample'
-# Parameter file failure cases
-os::cmd::expect_failure_and_text "oc process -f ${TEST_DATA}/templates/template_required_params.yaml --param-file=does/not/exist"  'no such file or directory'
-os::cmd::expect_failure_and_text "oc process -f ${TEST_DATA}/templates/template_required_params.yaml --param-file=${TEST_DATA}"   'is a directory'
-os::cmd::expect_failure_and_text "oc process -f ${TEST_DATA}/templates/template_required_params.yaml --param-file=/dev/null"       'parameter required_param is required and must be specified'
-os::cmd::expect_success "oc process -f '${guestbook_template}' --param-file=/dev/null --param-file='${guestbook_params}'"
-os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc process -f ${TEST_DATA}/templates/template_required_params.yaml --param-file=-"        'invalid parameter assignment'
-os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc process -f ${TEST_DATA}/templates/template_required_params.yaml --param-file=-" 'invalid parameter assignment'
-# Handle absent parameter
-os::cmd::expect_failure_and_text "oc process -f '${guestbook_template}' -p ABSENT_PARAMETER=absent" 'unknown parameter name'
-os::cmd::expect_success "oc process -f '${guestbook_template}' -p ABSENT_PARAMETER=absent --ignore-unknown-parameters"
-echo "template+parameters: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/templates/data-precision"
-# Run as cluster-admin to allow choosing any supplemental groups we want
-# Ensure large integers survive unstructured JSON creation
-os::cmd::expect_success 'oc create -f ${TEST_DATA}/templates/template-type-precision.json'
-# ... and processing
-os::cmd::expect_success_and_text 'oc process template-type-precision' '1000030003'
-os::cmd::expect_success_and_text 'oc process template-type-precision' '2147483647'
-os::cmd::expect_success_and_text 'oc process template-type-precision' '9223372036854775807'
-# ... and re-encoding as structured resources
-os::cmd::expect_success 'oc process template-type-precision | oc create -f -'
-# ... and persisting
-os::cmd::expect_success_and_text 'oc get pod/template-type-precision -o json' '1000030003'
-os::cmd::expect_success_and_text 'oc get pod/template-type-precision -o json' '2147483647'
-os::cmd::expect_success_and_text 'oc get pod/template-type-precision -o json' '9223372036854775807'
-# Ensure patch computation preserves data
-patch='{"metadata":{"annotations":{"comment":"patch comment"}}}'
-os::cmd::expect_success "oc patch pod template-type-precision -p '${patch}'"
-os::cmd::expect_success_and_text 'oc get pod/template-type-precision -o json' '9223372036854775807'
-os::cmd::expect_success_and_text 'oc get pod/template-type-precision -o json' 'patch comment'
-os::cmd::expect_success 'oc delete template/template-type-precision'
-os::cmd::expect_success 'oc delete pod/template-type-precision'
-echo "template data precision: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/templates/process"
-# This test validates oc process
-# fail to process two templates by name
-os::cmd::expect_failure_and_text 'oc process name1 name2' 'template name must be specified only once'
-# fail to pass a filename or template by name
-os::cmd::expect_failure_and_text 'oc process' 'Must pass a filename or name of stored template'
-# can't ask for parameters and try process the template
-os::cmd::expect_failure_and_text 'oc process template-name --parameters --param=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-param'
-os::cmd::expect_failure_and_text 'oc process template-name --parameters -p someval' '\-\-parameters flag does not process the template, can.t be used with \-\-param'
-os::cmd::expect_failure_and_text 'oc process template-name --parameters --labels=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-labels'
-os::cmd::expect_failure_and_text 'oc process template-name --parameters -l someval' '\-\-parameters flag does not process the template, can.t be used with \-\-labels'
-os::cmd::expect_failure_and_text 'oc process template-name --parameters --output=yaml' '\-\-parameters flag does not process the template, can.t be used with \-\-output'
-os::cmd::expect_failure_and_text 'oc process template-name --parameters -o yaml' '\-\-parameters flag does not process the template, can.t be used with \-\-output'
-os::cmd::expect_failure_and_text 'oc process template-name --parameters --raw' '\-\-parameters flag does not process the template, can.t be used with \-\-raw'
-os::cmd::expect_failure_and_text 'oc process template-name --parameters --template=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-template'
-# providing a value more than once should fail
-os::cmd::expect_failure_and_text 'oc process template-name key=value key=value' 'provided more than once: key'
-os::cmd::expect_failure_and_text 'oc process template-name --param=key=value --param=key=value' 'provided more than once: key'
-os::cmd::expect_failure_and_text 'oc process template-name key=value --param=key=value' 'provided more than once: key'
-os::cmd::expect_failure_and_text 'oc process template-name key=value other=foo --param=key=value --param=other=baz' 'provided more than once: key, other'
-required_params="${TEST_DATA}/templates/template_required_params.yaml"
-# providing something other than a template is not OK
-os::cmd::expect_failure_and_text "oc process -f '${TEST_DATA}/templates/basic-users-binding.json'" 'not a valid Template but'
-# not providing required parameter should fail
-os::cmd::expect_failure_and_text "oc process -f '${required_params}'" 'parameter required_param is required and must be specified'
-# not providing an optional param is OK
-os::cmd::expect_success "oc process -f '${required_params}' --param=required_param=someval"
-os::cmd::expect_success "oc process -f '${required_params}' -p required_param=someval | oc create -f -"
-# parameters with multiple equal signs are OK
-os::cmd::expect_success "oc process -f '${required_params}' required_param=someval=moreval | oc create -f -"
-os::cmd::expect_success "oc process -f '${required_params}' -p required_param=someval=moreval2 | oc create -f -"
-os::cmd::expect_success "oc process -f '${required_params}' -p required_param=someval=moreval3 | oc create -f -"
-# we should have overwritten the template param
-os::cmd::expect_success_and_text 'oc get user someval -o jsonpath={.metadata.name}' 'someval'
-os::cmd::expect_success_and_text 'oc get user someval=moreval -o jsonpath={.metadata.name}' 'someval=moreval'
-os::cmd::expect_success_and_text 'oc get user someval=moreval2 -o jsonpath={.metadata.name}' 'someval=moreval2'
-os::cmd::expect_success_and_text 'oc get user someval=moreval3 -o jsonpath={.metadata.name}' 'someval=moreval3'
-# providing a value not in the template should fail
-os::cmd::expect_failure_and_text "oc process -f '${required_params}' --param=required_param=someval --param=other_param=otherval" 'unknown parameter name "other_param"'
-# failure on values fails the entire call
-os::cmd::expect_failure_and_text "oc process -f '${required_params}' --param=required_param=someval --param=optional_param" 'invalid parameter assignment in'
-# failure on labels fails the entire call
-os::cmd::expect_failure_and_text "oc process -f '${required_params}' --param=required_param=someval --labels======" 'error parsing labels'
-# values are not split on commas, required parameter is not recognized
-os::cmd::expect_failure_and_text "oc process -f '${required_params}' --param=optional_param=a,required_param=b" 'parameter required_param is required and must be specified'
-# warning is printed iff --value/--param looks like two k-v pairs separated by comma
-os::cmd::expect_success_and_text "oc process -f '${required_params}' --param=required_param=a,b=c,d" 'no longer accepts comma-separated list'
-os::cmd::expect_success_and_not_text "oc process -f '${required_params}' --param=required_param=a_b_c_d" 'no longer accepts comma-separated list'
-os::cmd::expect_success_and_not_text "oc process -f '${required_params}' --param=required_param=a,b,c,d" 'no longer accepts comma-separated list'
-# warning is not printed for template values passed as positional arguments
-os::cmd::expect_success_and_not_text "oc process -f '${required_params}' required_param=a,b=c,d" 'no longer accepts comma-separated list'
-# set template parameter to contents of file
-os::cmd::expect_success_and_text "oc process -f '${required_params}' --param=required_param='` + "`" + `cat ${TEST_DATA}/templates/multiline.txt` + "`" + `'" 'also,with=commas'
-echo "process: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_end
-`)
-
-func testExtendedTestdataCmdTestCmdTemplatesShBytes() ([]byte, error) {
-	return _testExtendedTestdataCmdTestCmdTemplatesSh, nil
-}
-
-func testExtendedTestdataCmdTestCmdTemplatesSh() (*asset, error) {
-	bytes, err := testExtendedTestdataCmdTestCmdTemplatesShBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/templates.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson = []byte(`{
   "kind": "Template",
   "apiVersion": "template.openshift.io/v1",
@@ -33026,7 +32843,7 @@ var _testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson = []byte(`
     "containers": [
       {
         "name": "hello-openshift",
-        "image": "registry.k8s.io/e2e-test-images/agnhost:2.40",
+        "image": "registry.k8s.io/e2e-test-images/agnhost:2.43",
         "args": ["netexec"],
         "ports": [
           {
@@ -37155,7 +36972,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: registry.k8s.io/e2e-test-images/agnhost:2.40
+                image: registry.k8s.io/e2e-test-images/agnhost:2.43
       - kind: Route
         apiVersion: route.openshift.io/v1
         metadata:
@@ -41355,7 +41172,7 @@ items:
           replicationcontroller: idling-echo
       spec:
         containers:
-        - image: registry.k8s.io/e2e-test-images/agnhost:2.40
+        - image: registry.k8s.io/e2e-test-images/agnhost:2.43
           name: idling-echo-server
           args: [ "netexec", "--http-port", "8675" ]
           ports:
@@ -41421,7 +41238,7 @@ items:
           deploymentconfig: idling-echo
       spec:
         containers:
-        - image: registry.k8s.io/e2e-test-images/agnhost:2.40
+        - image: registry.k8s.io/e2e-test-images/agnhost:2.43
           name: idling-echo-server
           args: [ "netexec", "--http-port", "8675", "--udp-port", "3090" ]
           ports:
@@ -46375,7 +46192,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.40
+      image: registry.k8s.io/e2e-test-images/agnhost:2.43
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -46393,7 +46210,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.40
+      image: registry.k8s.io/e2e-test-images/agnhost:2.43
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -46428,7 +46245,7 @@ items:
       app: serving-cert
   spec:
     containers:
-    - image: registry.k8s.io/e2e-test-images/nginx:1.15-2
+    - image: registry.k8s.io/e2e-test-images/nginx:1.15-4
       name: serve
       command:
         - /usr/sbin/nginx
@@ -46632,7 +46449,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.40
+      image: registry.k8s.io/e2e-test-images/agnhost:2.43
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -46808,7 +46625,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.40
+      image: registry.k8s.io/e2e-test-images/agnhost:2.43
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -46826,7 +46643,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.40
+      image: registry.k8s.io/e2e-test-images/agnhost:2.43
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -48350,7 +48167,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: registry.k8s.io/e2e-test-images/agnhost:2.40
+                image: registry.k8s.io/e2e-test-images/agnhost:2.43
 `)
 
 func testExtendedTestdataTemplatesTemplateinstance_badobjectYamlBytes() ([]byte, error) {
@@ -48410,7 +48227,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: registry.k8s.io/e2e-test-images/agnhost:2.40
+                image: registry.k8s.io/e2e-test-images/agnhost:2.43
       - kind: Route
         apiVersion: route.openshift.io/v1
         metadata:
@@ -49314,7 +49131,24 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
+    function isInterestingOrPathological(eventInterval) {
+        if (eventInterval.message.includes("pathological/true") || (eventInterval.message.includes("interesting/true"))) {
+            return true
+        }
+        return false
+    }
+
     function isPod(eventInterval) {
+        // this check was added to keep the repeating events out fo the "pods" section
+        const nTimes = new RegExp("\\(\\d+ times\\)")
+        if (eventInterval.message.match(nTimes)) {
+            return false
+        }
+        // this check was added to avoid the events from the "interesting-events" section from being
+        // duplicated in the "pods" section.
+        if (isInterestingOrPathological(eventInterval)) {
+            return false
+        }
         if (eventInterval.locator.includes("pod/") && !eventInterval.locator.includes("alert/")) {
             return true
         }
@@ -49408,6 +49242,19 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
+    function interestingEvents(item) {
+        if (item.message.includes("pathological/true")) {
+            if (item.message.includes("interesting/true")) {
+                return [item.locator, ` + "`" + ` (pathological known)` + "`" + `, "PathologicalKnown"];
+            } else {
+                return [item.locator, ` + "`" + ` (pathological new)` + "`" + `, "PathologicalNew"];
+            }
+        }
+        if (item.message.includes("interesting/true")) {
+		    return [item.locator, ` + "`" + ` (interesting event)` + "`" + `, "InterestingEvent"];
+        }
+	}
+
     const reReason = new RegExp("(^| )reason/([^ ]+)")
     function podStateValue(item) {
         let m = item.message.match(reReason);
@@ -49498,6 +49345,17 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
         // color as critical if nothing matches so that we notice that something has gone wrong
         return [item.locator, "", "AlertCritical"]
+    }
+
+    function disruptionValue(item) {
+        // We classify these disruption samples with this message if it thinks
+        // it looks like a problem in the CI cluster running the tests, not the cluster under test.
+        // (typically DNS lookup problems)
+        let ciClusterDisruption = item.message.indexOf("likely a problem in cluster running tests")
+        if (ciClusterDisruption != -1) {
+            return [item.locator, "", "CIClusterDisruption"]
+        }
+        return [item.locator, "", "Disruption"]
     }
 
     function getDurationString(durationSeconds) {
@@ -49617,7 +49475,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         })
 
         timelineGroups.push({group: "endpoint-availability", data: []})
-        createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
+        createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
 
         timelineGroups.push({group: "e2e-test-failed", data: []})
         createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFailed, regex)
@@ -49627,6 +49485,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
         timelineGroups.push({group: "e2e-test-passed", data: []})
         createTimelineData("Passed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EPassed, regex)
+
+        timelineGroups.push({group: "interesting-events", data: []})
+        createTimelineData(interestingEvents, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isInterestingOrPathological, regex)
 
         var segmentFunc = function (segment) {
             // for (var i in data) {
@@ -49654,18 +49515,22 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         const myChart = TimelinesChart();
         var ordinalScale = d3.scaleOrdinal()
             .domain([
+                'InterestingEvent', 'PathologicalKnown', "PathologicalNew", // interesting and pathological events
                 'AlertInfo', 'AlertPending', 'AlertWarning', 'AlertCritical', // alerts
                 'OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', // operators
                 'Update', 'Drain', 'Reboot', 'OperatingSystemUpdate', 'NodeNotReady', // nodes
                 'Passed', 'Skipped', 'Flaked', 'Failed',  // tests
                 'PodCreated', 'PodScheduled', 'PodTerminating','ContainerWait', 'ContainerStart', 'ContainerNotReady', 'ContainerReady', 'ContainerReadinessFailed', 'ContainerReadinessErrored',  'StartupProbeFailed', // pods
+                'CIClusterDisruption', 'Disruption', // disruption
                 'Degraded', 'Upgradeable', 'False', 'Unknown'])
             .range([
+                '#6E6E6E', '#0000ff', '#d0312d', // pathological and interesting events
                 '#fada5e','#fada5e','#ffa500', '#d0312d',  // alerts
                 '#d0312d', '#ffa500', '#fada5e', // operators
                 '#1e7bd9', '#4294e6', '#6aaef2', '#96cbff', '#fada5e', // nodes
                 '#3cb043', '#ceba76', '#ffa500', '#d0312d', // tests
                 '#96cbff', '#1e7bd9', '#ffa500', '#ca8dfd', '#9300ff', '#fada5e','#3cb043', '#d0312d', '#d0312d', '#c90076', // pods
+                '#96cbff', '#d0312d', // disruption
                 '#b65049', '#32b8b6', '#ffffff', '#bbbbbb']);
         myChart.
         data(timelineGroups).
@@ -49907,6 +49772,7 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/quickstarts/rails-postgresql-persistent.json":                                                  examplesQuickstartsRailsPostgresqlPersistentJson,
 	"examples/quickstarts/rails-postgresql.json":                                                             examplesQuickstartsRailsPostgresqlJson,
 	"examples/hello-openshift/Dockerfile":                                                                    examplesHelloOpenshiftDockerfile,
+	"examples/hello-openshift/go.mod":                                                                        examplesHelloOpenshiftGoMod,
 	"examples/hello-openshift/hello-pod.json":                                                                examplesHelloOpenshiftHelloPodJson,
 	"examples/hello-openshift/hello-project.json":                                                            examplesHelloOpenshiftHelloProjectJson,
 	"examples/jenkins/application-template.json":                                                             examplesJenkinsApplicationTemplateJson,
@@ -50092,7 +49958,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/set-liveness-probe.sh":                                              testExtendedTestdataCmdTestCmdSetLivenessProbeSh,
 	"test/extended/testdata/cmd/test/cmd/setbuildhook.sh":                                                    testExtendedTestdataCmdTestCmdSetbuildhookSh,
 	"test/extended/testdata/cmd/test/cmd/setbuildsecret.sh":                                                  testExtendedTestdataCmdTestCmdSetbuildsecretSh,
-	"test/extended/testdata/cmd/test/cmd/templates.sh":                                                       testExtendedTestdataCmdTestCmdTemplatesSh,
 	"test/extended/testdata/cmd/test/cmd/testdata/application-template-custombuild.json":                     testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild.json":                     testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/application-template-stibuild.json":                        testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson,
@@ -50407,6 +50272,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 		"hello-openshift": {nil, map[string]*bintree{
 			"Dockerfile":         {examplesHelloOpenshiftDockerfile, map[string]*bintree{}},
+			"go.mod":             {examplesHelloOpenshiftGoMod, map[string]*bintree{}},
 			"hello-pod.json":     {examplesHelloOpenshiftHelloPodJson, map[string]*bintree{}},
 			"hello-project.json": {examplesHelloOpenshiftHelloProjectJson, map[string]*bintree{}},
 		}},
@@ -50719,7 +50585,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							"set-liveness-probe.sh": {testExtendedTestdataCmdTestCmdSetLivenessProbeSh, map[string]*bintree{}},
 							"setbuildhook.sh":       {testExtendedTestdataCmdTestCmdSetbuildhookSh, map[string]*bintree{}},
 							"setbuildsecret.sh":     {testExtendedTestdataCmdTestCmdSetbuildsecretSh, map[string]*bintree{}},
-							"templates.sh":          {testExtendedTestdataCmdTestCmdTemplatesSh, map[string]*bintree{}},
 							"testdata": {nil, map[string]*bintree{
 								"application-template-custombuild.json": {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson, map[string]*bintree{}},
 								"application-template-dockerbuild.json": {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson, map[string]*bintree{}},

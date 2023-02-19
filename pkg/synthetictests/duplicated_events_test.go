@@ -8,6 +8,7 @@ import (
 	"time"
 
 	v1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/pkg/duplicateevents"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/stretchr/testify/assert"
 )
@@ -54,7 +55,7 @@ func TestEventCountExtractor(t *testing.T) {
 }
 
 func TestEventRegexExcluder(t *testing.T) {
-	allowedRepeatedEventsRegex := combinedRegexp(allowedRepeatedEventPatterns...)
+	allowedRepeatedEventsRegex := combinedRegexp(duplicateevents.AllowedRepeatedEventPatterns...)
 
 	tests := []struct {
 		name    string
@@ -102,7 +103,7 @@ func TestEventRegexExcluder(t *testing.T) {
 }
 
 func TestUpgradeEventRegexExcluder(t *testing.T) {
-	allowedRepeatedEventsRegex := combinedRegexp(allowedUpgradeRepeatedEventPatterns...)
+	allowedRepeatedEventsRegex := combinedRegexp(duplicateevents.AllowedUpgradeRepeatedEventPatterns...)
 
 	tests := []struct {
 		name    string
@@ -127,8 +128,8 @@ func TestUpgradeEventRegexExcluder(t *testing.T) {
 
 func TestKnownBugEvents(t *testing.T) {
 	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventPatterns: allowedRepeatedEventPatterns,
-		knownRepeatedEventsBugs: []knownProblem{
+		allowedRepeatedEventPatterns: duplicateevents.AllowedRepeatedEventPatterns,
+		knownRepeatedEventsBugs: []duplicateevents.KnownProblem{
 			{
 				Regexp: regexp.MustCompile(`ns/.* reason/SomeEvent1.*`),
 				BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
@@ -136,27 +137,27 @@ func TestKnownBugEvents(t *testing.T) {
 			{
 				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent2.*"),
 				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Topology: topologyPointer(v1.SingleReplicaTopologyMode),
+				Topology: duplicateevents.TopologyPointer(v1.SingleReplicaTopologyMode),
 			},
 			{
 				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent3.*"),
 				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Platform: platformPointer(v1.AWSPlatformType),
+				Platform: duplicateevents.PlatformPointer(v1.AWSPlatformType),
 			},
 			{
 				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent4.*"),
 				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Topology: topologyPointer(v1.HighlyAvailableTopologyMode),
+				Topology: duplicateevents.TopologyPointer(v1.HighlyAvailableTopologyMode),
 			},
 			{
 				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent5.*"),
 				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Platform: platformPointer(v1.GCPPlatformType),
+				Platform: duplicateevents.PlatformPointer(v1.GCPPlatformType),
 			},
 			{
 				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent6.*"),
 				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Platform: platformPointer(""),
+				Platform: duplicateevents.PlatformPointer(""),
 			},
 		},
 	}
@@ -246,8 +247,8 @@ func TestKnownBugEvents(t *testing.T) {
 
 func TestKnownBugEventsGroup(t *testing.T) {
 	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventPatterns: allowedRepeatedEventPatterns,
-		knownRepeatedEventsBugs: []knownProblem{
+		allowedRepeatedEventPatterns: duplicateevents.AllowedRepeatedEventPatterns,
+		knownRepeatedEventsBugs: []duplicateevents.KnownProblem{
 			{
 				Regexp: regexp.MustCompile(`ns/.* reason/SomeEvent1.*`),
 				BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
@@ -267,28 +268,28 @@ func TestKnownBugEventsGroup(t *testing.T) {
 			messages:        []string{`ns/e2e - reason/SomeEvent1 foo (22 times)`, `ns/e2e - reason/SomeEvent1 foo (21 times)`},
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo - https://bugzilla.redhat.com/show_bug.cgi?id=1234567 result=allow ",
+			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z - https://bugzilla.redhat.com/show_bug.cgi?id=1234567 result=allow ",
 		},
 		{
 			name:            "matches 25 after",
 			messages:        []string{`ns/e2e - reason/SomeEvent1 foo (21 times)`, `ns/e2e - reason/SomeEvent1 foo (25 times)`},
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events with known BZs\n\nevent happened 25 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo - https://bugzilla.redhat.com/show_bug.cgi?id=1234567 result=allow ",
+			expectedMessage: "1 events with known BZs\n\nevent happened 25 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z - https://bugzilla.redhat.com/show_bug.cgi?id=1234567 result=allow ",
 		},
 		{
 			name:            "matches 22 below with below threshold following",
 			messages:        []string{`ns/e2e - reason/SomeEvent1 foo (22 times)`, `ns/e2e - reason/SomeEvent1 foo (5 times)`},
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo - https://bugzilla.redhat.com/show_bug.cgi?id=1234567 result=allow ",
+			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z - https://bugzilla.redhat.com/show_bug.cgi?id=1234567 result=allow ",
 		},
 		{
 			name:            "matches 22 with multiple line message",
 			messages:        []string{"ns/e2e - reason/SomeEvent1 foo \nbody:\n (22 times)"},
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo  result=allow \nbody:\n - https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
+			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo  result=allow \nbody:\n From: 04:00:00Z To: 04:00:00Z - https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
 		},
 	}
 
@@ -301,8 +302,8 @@ func TestKnownBugEventsGroup(t *testing.T) {
 				events = append(events,
 					monitorapi.EventInterval{
 						Condition: monitorapi.Condition{Message: message},
-						From:      time.Unix(1, 0),
-						To:        time.Unix(1, 0)},
+						From:      time.Unix(872827200, 0),
+						To:        time.Unix(872827200, 0)},
 				)
 			}
 
@@ -337,7 +338,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			messages:        []string{`ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (21 times)`},
 			match:           true,
 			operator:        "e2e",
-			regEx:           probeErrorLivenessMessageRegExpStr,
+			regEx:           duplicateevents.ProbeErrorLivenessMessageRegExpStr,
 			expectedMessage: "00:00:01 ns/e2e - reason/ProbeError foo Liveness probe error: Get \"https://10.128.0.21:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)\n",
 		},
 		{
@@ -345,7 +346,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			messages:        []string{`ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (21 times)`},
 			match:           false,
 			operator:        "e2e",
-			regEx:           probeErrorConnectionRefusedRegExpStr,
+			regEx:           duplicateevents.ProbeErrorConnectionRefusedRegExpStr,
 			expectedMessage: "",
 		},
 		{
@@ -353,7 +354,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			messages:        []string{`ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (22 times)`, `ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (25 times)`},
 			operator:        "openshift-oauth-apiserver",
 			match:           true,
-			regEx:           probeErrorConnectionRefusedRegExpStr,
+			regEx:           duplicateevents.ProbeErrorConnectionRefusedRegExpStr,
 			expectedMessage: "00:00:01 ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get \"https://10.128.0.38:8443/readyz\": dial tcp 10.128.0.38:8443: connect: connection refused occurred (25 times)\n",
 		},
 		{
@@ -361,7 +362,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			messages:        []string{`ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (22 times)`, `ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (25 times)`},
 			operator:        "openshift-oauth-apiserver",
 			match:           false,
-			regEx:           probeErrorLivenessMessageRegExpStr,
+			regEx:           duplicateevents.ProbeErrorLivenessMessageRegExpStr,
 			expectedMessage: "",
 		},
 		{
@@ -369,7 +370,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			messages:        []string{`reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (5 times)`},
 			operator:        "openshift-oauth-apiserver",
 			match:           true,
-			regEx:           probeErrorReadinessMessageRegExpStr,
+			regEx:           duplicateevents.ProbeErrorReadinessMessageRegExpStr,
 			expectedMessage: "00:00:01 reason/ProbeError Readiness probe error: Get \"https://10.130.0.15:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)\n",
 		},
 		{
@@ -377,7 +378,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			messages:        []string{`reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (5 times)`},
 			operator:        "openshift-oauth-apiserver",
 			match:           false,
-			regEx:           probeErrorConnectionRefusedRegExpStr,
+			regEx:           duplicateevents.ProbeErrorConnectionRefusedRegExpStr,
 			expectedMessage: "",
 		},
 	}
@@ -396,7 +397,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 				)
 			}
 
-			junits := makeProbeTest("test test", events, test.operator, test.regEx, duplicateEventThreshold)
+			junits := makeProbeTest("test test", events, test.operator, test.regEx, duplicateevents.DuplicateEventThreshold)
 
 			if len(junits) < 1 {
 				t.Fatal("didn't get junit for duplicated event")

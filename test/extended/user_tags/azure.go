@@ -45,7 +45,9 @@ var _ = g.Describe("[sig-installer][Feature:AzureUserTags] Managed cluster shoul
 		// get list of tags present infrastructure/cluster resource as defined
 		// by the user during cluster creation.
 		infraTagList := azutil.GetInfraResourceTags(infraobj.UnstructuredContent())
-		o.Expect(infraTagList).NotTo(o.BeEmpty())
+		if infraTagList == nil {
+			infraTagList = make(map[string]string)
+		}
 		infraTagList[fmt.Sprintf("kubernetes.io_cluster.%s", infraName)] = "owned"
 
 		// get list of resources with the tags present on it in a resourcegroup

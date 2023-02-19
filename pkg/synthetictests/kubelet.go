@@ -48,6 +48,32 @@ func testKubeletToAPIServerGracefulTermination(events monitorapi.Intervals) []*j
 	return tests
 }
 
+func testErrImagePullUnrecognizedSignatureFormat(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] kubelet logs do not contain ErrImagePull unrecognized signature format"
+	success := &junitapi.JUnitTestCase{Name: testName}
+
+	var failures []string
+	for _, event := range events {
+		if strings.Contains(event.Message, "reason/ErrImagePull UnrecognizedSignatureFormat") {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
+		}
+	}
+
+	if len(failures) == 0 {
+		return []*junitapi.JUnitTestCase{success}
+	}
+
+	failure := &junitapi.JUnitTestCase{
+		Name:      testName,
+		SystemOut: strings.Join(failures, "\n"),
+		FailureOutput: &junitapi.FailureOutput{
+			Output: fmt.Sprintf("%d kubelet logs contain errors from ErrImagePull unrecognized signature format.\n\n%v", len(failures), strings.Join(failures, "\n")),
+		},
+	}
+	// TODO: marked flaky until we have monitored it for consistency
+	return []*junitapi.JUnitTestCase{failure, success}
+}
+
 func testHttpConnectionLost(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] kubelet logs do not contain http client connection lost errors"
 	success := &junitapi.JUnitTestCase{Name: testName}

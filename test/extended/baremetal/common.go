@@ -47,6 +47,10 @@ func skipIfUnsupportedPlatformOrConfig(oc *exutil.CLI, dc dynamic.Interface) {
 		fallthrough
 	case configv1.AWSPlatformType:
 		fallthrough
+	case configv1.AzurePlatformType:
+		fallthrough
+	case configv1.GCPPlatformType:
+		fallthrough
 	case configv1.NonePlatformType:
 		provisioningNetwork := getProvisioningNetwork(dc)
 		if provisioningNetwork != "Disabled" {

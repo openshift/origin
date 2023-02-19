@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/synthetictests/historicaldata"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -203,18 +202,11 @@ func (a *basicAlertTest) failOrFlake(ctx context.Context, restConfig *rest.Confi
 	// TODO for namespaced alerts, we need to query the data on a per-namespace basis.
 	//  For the ones we're starting with, they tend to fail one at a time, so this will hopefully not be an awful starting point until we get there.
 
-	dataKey := historicaldata.AlertDataKey{
-		AlertName:      a.alertName,
-		AlertLevel:     string(a.alertState),
-		AlertNamespace: a.namespace,
-		JobType:        *jobType,
-	}
-
-	failAfter, err := a.allowanceCalculator.FailAfter(dataKey)
+	failAfter, err := a.allowanceCalculator.FailAfter(a.alertName, *jobType)
 	if err != nil {
 		return fail, fmt.Sprintf("unable to calculate allowance for %s which was at %s, err %v\n\n%s", a.AlertName(), a.AlertState(), err, strings.Join(describe, "\n"))
 	}
-	flakeAfter := a.allowanceCalculator.FlakeAfter(dataKey)
+	flakeAfter := a.allowanceCalculator.FlakeAfter(a.alertName, *jobType)
 
 	switch {
 	case durationAtOrAboveLevel > failAfter:
@@ -229,36 +221,45 @@ func (a *basicAlertTest) failOrFlake(ctx context.Context, restConfig *rest.Confi
 	return pass, ""
 }
 
+var unrecognizedSignatureRegEx = regexp.MustCompile("reason/ErrImagePull UnrecognizedSignatureFormat")
+
+func kubePodNotReadyDueToErrParsingSignature(trackedEventResources monitorapi.InstanceMap, firingIntervals monitorapi.Intervals) bool {
+	return kubePodNotReadyDueToRegExMatch(trackedEventResources, firingIntervals, unrecognizedSignatureRegEx)
+}
+
 var imagePullBackoffRegEx = regexp.MustCompile("Back-off pulling image .*registry.redhat.io")
 
 // kubePodNotReadyDueToImagePullBackoff returns true if we searched pod events and determined that the
 // KubePodNotReady alert for this pod fired due to an imagePullBackoff event on registry.redhat.io.
 func kubePodNotReadyDueToImagePullBackoff(trackedEventResources monitorapi.InstanceMap, firingIntervals monitorapi.Intervals) bool {
+	return kubePodNotReadyDueToRegExMatch(trackedEventResources, firingIntervals, imagePullBackoffRegEx)
+}
 
+func kubePodNotReadyDueToRegExMatch(trackedEventResources monitorapi.InstanceMap, firingIntervals monitorapi.Intervals, regexp *regexp.Regexp) bool {
 	// Run the check for all firing intervals.
 	for _, firingInterval := range firingIntervals {
 		relatedPodRef := monitorapi.PodFrom(firingInterval.Locator)
 
 		// Find an event
-		foundImagePullBackoffEvent := false
+		foundRegexMatchEvent := false
 		var tmpEvent *corev1.Event
 		for _, obj := range trackedEventResources {
 			tmpEvent = obj.(*corev1.Event)
 			if tmpEvent.InvolvedObject.Name == relatedPodRef.Name &&
 				tmpEvent.InvolvedObject.Namespace == relatedPodRef.Namespace &&
-				imagePullBackoffRegEx.MatchString(tmpEvent.Message) {
-				foundImagePullBackoffEvent = true
+				regexp.MatchString(tmpEvent.Message) {
+				foundRegexMatchEvent = true
 				break
 			}
 		}
-		if !foundImagePullBackoffEvent {
+		if !foundRegexMatchEvent {
 			// No event resources found so we can't do any checking.
 			return false
 		}
-		imagePullBackoffTime := tmpEvent.LastTimestamp.Time
+		regexMatchEventTime := tmpEvent.LastTimestamp.Time
 		alertTime := firingInterval.From
-		if alertTime.After(imagePullBackoffTime) && alertTime.Sub(imagePullBackoffTime) < time.Minute*10 {
-			framework.Logf("KubePodNotReady alert failure suppressed due to registry.redhat.io ImagePullBackoff on pod %s/%s",
+		if alertTime.After(regexMatchEventTime) && alertTime.Sub(regexMatchEventTime) < time.Minute*10 {
+			framework.Logf("KubePodNotReady alert failure suppressed due to %s on pod %s/%s", tmpEvent.Message,
 				tmpEvent.ObjectMeta.Namespace, tmpEvent.ObjectMeta.Name)
 		} else {
 			return false
@@ -310,11 +311,9 @@ func (a *basicAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Co
 
 	switch a.alertName {
 	case "KubePodNotReady":
-		if state == fail && kubePodNotReadyDueToImagePullBackoff(resourcesMap["events"], firingIntervals) {
-
+		if state == fail && (kubePodNotReadyDueToImagePullBackoff(resourcesMap["events"], firingIntervals) || kubePodNotReadyDueToErrParsingSignature(resourcesMap["events"], firingIntervals)) {
 			// Since this is due to imagePullBackoff, change the state to flake instead of fail
 			state = flake
-
 			break
 		}
 

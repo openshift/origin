@@ -7,6 +7,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 )
 
 // DetermineImageFromRelease will get the image and tag for imageTagName from the release image.
@@ -21,7 +22,8 @@ func DetermineImageFromRelease(oc *CLI, imageTagName string) (string, error) {
 	if len(releaseImage) == 0 {
 		return "", fmt.Errorf("cannot determine release image from ClusterVersion resource")
 	}
-	oc.KubeFramework().PodClient().CreateSync(&corev1.Pod{
+	podClient := e2epod.PodClientNS(oc.KubeFramework(), oc.Namespace())
+	podClient.CreateSync(&corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: "extract-release-imagerefs"},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
@@ -33,8 +35,8 @@ func DetermineImageFromRelease(oc *CLI, imageTagName string) (string, error) {
 			},
 		},
 	})
-	defer oc.KubeFramework().PodClient().Delete(context.Background(), "extract-release-imagerefs", metav1.DeleteOptions{})
-	imageRefsString := oc.KubeFramework().ExecShellInContainer("extract-release-imagerefs", "imagerefs", "cat /release-manifests/image-references")
+	defer podClient.Delete(context.Background(), "extract-release-imagerefs", metav1.DeleteOptions{})
+	imageRefsString := e2epod.ExecShellInContainer(oc.KubeFramework(), "extract-release-imagerefs", "imagerefs", "cat /release-manifests/image-references")
 	imageRefs := struct {
 		Spec struct {
 			Tags []struct {

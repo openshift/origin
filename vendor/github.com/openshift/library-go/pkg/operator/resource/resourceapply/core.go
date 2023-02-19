@@ -21,8 +21,9 @@ import (
 )
 
 // TODO find  way to create a registry of these based on struct mapping or some such that forces users to get this right
-//  for creating an ApplyGeneric
-//  Perhaps a struct containing the apply function and the getKind
+//
+//	for creating an ApplyGeneric
+//	Perhaps a struct containing the apply function and the getKind
 func getCoreGroupKind(obj runtime.Object) *schema.GroupKind {
 	switch obj.(type) {
 	case *corev1.Namespace:
