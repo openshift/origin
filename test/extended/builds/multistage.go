@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	buildv1 "github.com/openshift/api/build/v1"
@@ -96,7 +97,7 @@ COPY --from=%[2]s /bin/ping /test/
 		o.Expect(s).To(o.ContainSubstring("\"OPENSHIFT_BUILD_NAMESPACE\"=\"%s\"", oc.Namespace()))
 		e2e.Logf("Build logs:\n%s", result)
 
-		c := oc.KubeFramework().PodClient()
+		c := e2epod.PodClientNS(oc.KubeFramework(), oc.Namespace())
 		pod = c.Create(&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test",

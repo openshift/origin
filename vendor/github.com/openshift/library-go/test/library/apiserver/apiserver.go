@@ -24,13 +24,15 @@ var (
 // Mainly because of the difference between the propagation time of triggering a new release and the actual roll-out.
 //
 // Observations:
-//  rolling out a new version is not instant you need to account for a propagation time (~1/2 minutes)
-//  for some API servers (KAS) rolling out a new version can take ~10 minutes
+//
+//	rolling out a new version is not instant you need to account for a propagation time (~1/2 minutes)
+//	for some API servers (KAS) rolling out a new version can take ~10 minutes
 //
 // Note:
-//  the number of instances is calculated based on the number of running pods in a namespace.
-//  only pods with apiserver=true label are considered
-//  only pods in the given namespace are considered (podClient)
+//
+//	the number of instances is calculated based on the number of running pods in a namespace.
+//	only pods with apiserver=true label are considered
+//	only pods in the given namespace are considered (podClient)
 func WaitForAPIServerToStabilizeOnTheSameRevision(t library.LoggingT, podClient corev1client.PodInterface) error {
 	return library.WaitForPodsToStabilizeOnTheSameRevision(t, podClient, "apiserver=true", waitForAPIRevisionSuccessThreshold, waitForAPIRevisionSuccessInterval, waitForAPIRevisionPollInterval, waitForAPIRevisionTimeout)
 }

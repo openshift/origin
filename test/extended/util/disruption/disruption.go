@@ -25,8 +25,6 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	"k8s.io/kubernetes/test/e2e/chaosmonkey"
 	"k8s.io/kubernetes/test/e2e/framework"
-	"k8s.io/kubernetes/test/e2e/framework/ginkgowrapper"
-	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	admissionapi "k8s.io/pod-security-admission/api"
 )
@@ -266,17 +264,10 @@ func finalizeTest(start time.Time, testName, className string, ts *junitapi.JUni
 		Classname: className,
 		Duration:  testDuration,
 	}
-	switch r := r.(type) {
-	case ginkgowrapper.FailurePanic:
-		testResult.FailureOutput = &junitapi.FailureOutput{Message: fmt.Sprintf("%s\n\n%s", r.Message, r.FullStackTrace)}
-	case e2eskipper.SkipPanic:
-		testResult.SkipMessage = &junitapi.SkipMessage{Message: fmt.Sprintf("%s:%d %q", r.Filename, r.Line, r.Message)}
-	default:
-		testResult.FailureOutput = &junitapi.FailureOutput{Message: fmt.Sprintf("%v\n\n%s", r, debug.Stack())}
-	}
+	testResult.FailureOutput = &junitapi.FailureOutput{Message: fmt.Sprintf("%v\n\n%s", r, debug.Stack())}
 	ts.TestCases = append(ts.TestCases, testResult)
 
-	// if we have a panic but it hasn't been recorded by ginkgo, panic now
+	// if we have a panic, but it hasn't been recorded by ginkgo, panic now
 	if !g.CurrentSpecReport().Failed() {
 		framework.Logf("%q: panic: %v", testName, r)
 		func() {
@@ -323,8 +314,7 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 		}
 
 		testFrameworks[t.Name()] = &framework.Framework{
-			BaseName:                 ns,
-			AddonResourceConstraints: make(map[string]framework.ResourceConstraint),
+			BaseName: ns,
 			Options: framework.Options{
 				ClientQPS:   20,
 				ClientBurst: 50,

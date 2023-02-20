@@ -25,10 +25,20 @@ func NewFakeSharedIndexInformer() cache.SharedIndexInformer {
 
 type fakeSharedIndexInformer struct{}
 
-func (fakeSharedIndexInformer) AddEventHandler(handler cache.ResourceEventHandler) {
+func (i fakeSharedIndexInformer) AddEventHandler(handler cache.ResourceEventHandler) (cache.ResourceEventHandlerRegistration, error) {
+	return nil, nil
 }
 
-func (fakeSharedIndexInformer) AddEventHandlerWithResyncPeriod(handler cache.ResourceEventHandler, resyncPeriod time.Duration) {
+func (i fakeSharedIndexInformer) AddEventHandlerWithResyncPeriod(handler cache.ResourceEventHandler, resyncPeriod time.Duration) (cache.ResourceEventHandlerRegistration, error) {
+	return nil, nil
+}
+
+func (i fakeSharedIndexInformer) RemoveEventHandler(handle cache.ResourceEventHandlerRegistration) error {
+	panic("implement me")
+}
+
+func (i fakeSharedIndexInformer) IsStopped() bool {
+	panic("implement me")
 }
 
 func (fakeSharedIndexInformer) GetStore() cache.Store {

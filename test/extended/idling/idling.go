@@ -17,10 +17,9 @@ import (
 
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	admissionapi "k8s.io/pod-security-admission/api"
-
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
 
@@ -50,7 +49,7 @@ func tryEchoUDP(svc *kapiv1.Service, execPod *kapiv1.Pod) error {
 	cmd := fmt.Sprintf("echo -n \"echo %s\" | nc -w 5 -u %s %d", expected, rawIP, udpPort)
 
 	o.Eventually(func() (string, error) {
-		return e2e.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
+		return e2eoutput.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
 	}, 2*time.Minute, readTimeout).Should(o.Equal(expected))
 
 	return nil
@@ -79,7 +78,7 @@ func tryEchoHTTP(svc *kapiv1.Service, execPod *kapiv1.Pod) error {
 		net.JoinHostPort(rawIP, tcpPort),
 		url.QueryEscape(expected),
 	)
-	out, err := e2e.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
+	out, err := e2eoutput.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
 	if err != nil {
 		return fmt.Errorf("exec failed: %v\noutput: %s", err, out)
 	}
@@ -219,7 +218,6 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 	g.Describe("Idling", func() {
 		g.Context("with a single service and DeploymentConfig [apigroup:route.openshift.io]", func() {
 			g.BeforeEach(func() {
-				framework.BeforeEach()
 				fixture = echoServerFixture
 			})
 
@@ -230,7 +228,6 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 
 		g.Context("with a single service and ReplicationController", func() {
 			g.BeforeEach(func() {
-				framework.BeforeEach()
 				fixture = echoServerRcFixture
 			})
 
@@ -242,7 +239,6 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 
 	g.Describe("Unidling [apigroup:apps.openshift.io][apigroup:route.openshift.io]", func() {
 		g.BeforeEach(func() {
-			framework.BeforeEach()
 			fixture = echoServerFixture
 		})
 

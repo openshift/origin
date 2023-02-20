@@ -10,6 +10,7 @@ import (
 // with apply.
 type LoadBalancerStrategyApplyConfiguration struct {
 	Scope               *v1.LoadBalancerScope                             `json:"scope,omitempty"`
+	AllowedSourceRanges []v1.CIDR                                         `json:"allowedSourceRanges,omitempty"`
 	ProviderParameters  *ProviderLoadBalancerParametersApplyConfiguration `json:"providerParameters,omitempty"`
 	DNSManagementPolicy *v1.LoadBalancerDNSManagementPolicy               `json:"dnsManagementPolicy,omitempty"`
 }
@@ -25,6 +26,16 @@ func LoadBalancerStrategy() *LoadBalancerStrategyApplyConfiguration {
 // If called multiple times, the Scope field is set to the value of the last call.
 func (b *LoadBalancerStrategyApplyConfiguration) WithScope(value v1.LoadBalancerScope) *LoadBalancerStrategyApplyConfiguration {
 	b.Scope = &value
+	return b
+}
+
+// WithAllowedSourceRanges adds the given value to the AllowedSourceRanges field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the AllowedSourceRanges field.
+func (b *LoadBalancerStrategyApplyConfiguration) WithAllowedSourceRanges(values ...v1.CIDR) *LoadBalancerStrategyApplyConfiguration {
+	for i := range values {
+		b.AllowedSourceRanges = append(b.AllowedSourceRanges, values[i])
+	}
 	return b
 }
 

@@ -6,6 +6,7 @@ package v1
 // with apply.
 type DeveloperConsoleCatalogCustomizationApplyConfiguration struct {
 	Categories []DeveloperConsoleCatalogCategoryApplyConfiguration `json:"categories,omitempty"`
+	Types      *DeveloperConsoleCatalogTypesApplyConfiguration     `json:"types,omitempty"`
 }
 
 // DeveloperConsoleCatalogCustomizationApplyConfiguration constructs an declarative configuration of the DeveloperConsoleCatalogCustomization type for use with
@@ -24,5 +25,13 @@ func (b *DeveloperConsoleCatalogCustomizationApplyConfiguration) WithCategories(
 		}
 		b.Categories = append(b.Categories, *values[i])
 	}
+	return b
+}
+
+// WithTypes sets the Types field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Types field is set to the value of the last call.
+func (b *DeveloperConsoleCatalogCustomizationApplyConfiguration) WithTypes(value *DeveloperConsoleCatalogTypesApplyConfiguration) *DeveloperConsoleCatalogCustomizationApplyConfiguration {
+	b.Types = value
 	return b
 }
