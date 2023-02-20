@@ -7,7 +7,7 @@ RUN make; \
 
 FROM registry.ci.openshift.org/ocp/4.13:tools
 COPY --from=builder /tmp/build/openshift-tests /usr/bin/
-RUN PACKAGES="git gzip util-linux" && \
+RUN PACKAGES="git gzip util-linux rt-tests" && \
     if [ $HOSTTYPE = x86_64 ] || [ $HOSTTYPE = ppc64le ]; then PACKAGES="$PACKAGES python3-cinderclient"; fi && \
     yum install --setopt=tsflags=nodocs -y $PACKAGES && \
     yum update -y python3-six && \
