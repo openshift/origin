@@ -388,6 +388,7 @@ var map_GCPMachineProviderSpec = map[string]string{
 	"onHostMaintenance":      "OnHostMaintenance determines the behavior when a maintenance event occurs that might cause the instance to reboot. This is required to be set to \"Terminate\" if you want to provision machine with attached GPUs. Otherwise, allowed values are \"Migrate\" and \"Terminate\". If omitted, the platform chooses a default, which is subject to change over time, currently that default is \"Migrate\".",
 	"restartPolicy":          "RestartPolicy determines the behavior when an instance crashes or the underlying infrastructure provider stops the instance as part of a maintenance event (default \"Always\"). Cannot be \"Always\" with preemptible instances. Otherwise, allowed values are \"Always\" and \"Never\". If omitted, the platform chooses a default, which is subject to change over time, currently that default is \"Always\". RestartPolicy represents AutomaticRestart in GCP compute api",
 	"shieldedInstanceConfig": "ShieldedInstanceConfig is the Shielded VM configuration for the VM",
+	"confidentialCompute":    "confidentialCompute Defines whether the instance should have confidential compute enabled. If enabled OnHostMaintenance is required to be set to \"Terminate\". If omitted, the platform chooses a default, which is subject to change over time, currently that default is false.",
 }
 
 func (GCPMachineProviderSpec) SwaggerDoc() map[string]string {

@@ -55,6 +55,16 @@ const (
 	IntegrityMonitoringPolicyDisabled IntegrityMonitoringPolicy = "Disabled"
 )
 
+// ConfidentialComputePolicy represents the confidential compute configuration for the GCP machine.
+type ConfidentialComputePolicy string
+
+const (
+	// ConfidentialComputePolicyEnabled enables confidential compute for the GCP machine.
+	ConfidentialComputePolicyEnabled ConfidentialComputePolicy = "Enabled"
+	// ConfidentialComputePolicyDisabled disables confidential compute for the GCP machine.
+	ConfidentialComputePolicyDisabled ConfidentialComputePolicy = "Disabled"
+)
+
 // GCPMachineProviderSpec is the type that will be embedded in a Machine.Spec.ProviderSpec field
 // for an GCP virtual machine. It is used by the GCP machine actuator to create a single Machine.
 // Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
@@ -129,6 +139,13 @@ type GCPMachineProviderSpec struct {
 	// ShieldedInstanceConfig is the Shielded VM configuration for the VM
 	// +optional
 	ShieldedInstanceConfig GCPShieldedInstanceConfig `json:"shieldedInstanceConfig,omitempty"`
+
+	// confidentialCompute Defines whether the instance should have confidential compute enabled.
+	// If enabled OnHostMaintenance is required to be set to "Terminate".
+	// If omitted, the platform chooses a default, which is subject to change over time, currently that default is false.
+	// +kubebuilder:validation:Enum=Enabled;Disabled
+	// +optional
+	ConfidentialCompute ConfidentialComputePolicy `json:"confidentialCompute,omitempty"`
 }
 
 // GCPDisk describes disks for GCP.
