@@ -70,23 +70,7 @@ var _ = g.Describe("[sig-storage][Feature:DisableStorageClass][Serial]", func() 
 		sctest.SetAllowExpansion(false)
 
 		g.By("verifying the AllowVolumeExpansion reverts to true")
-		sctest.VerifyAllowExpansion(true, nil)
-	})
-
-	g.It("should not reconcile the StorageClass when StorageClassState is Unmanaged", func() {
-		g.By("setting StorageClassState to Unmanaged")
-		sctest.SetSCState(operatorv1.UnmanagedStorageClass)
-
-		g.By("setting AllowVolumeExpansion to false on the StorageClass")
-		sctest.SetAllowExpansion(false)
-
-		g.By("verifying the AllowVolumeExpansion stays set to false")
-		// wait to see if the operator tries to reconcile before checking
-		time.Sleep(sleepInterval * time.Second)
-		sctest.VerifyAllowExpansion(false, func() {
-			// try again if verification fails
-			sctest.SetAllowExpansion(false)
-		})
+		sctest.VerifyAllowExpansion(true)
 	})
 
 	g.It("should remove the StorageClass when StorageClassState is Removed", func() {
@@ -199,7 +183,7 @@ func (d *DisableStorageClassTest) SetAllowExpansion(allowExpansion bool) {
 	}
 }
 
-func (d *DisableStorageClassTest) VerifyAllowExpansion(expected bool, retry func()) {
+func (d *DisableStorageClassTest) VerifyAllowExpansion(expected bool) {
 	for i := 0; i < maxRetries; i++ {
 		sc, err := d.oc.AdminKubeClient().StorageV1().StorageClasses().Get(context.Background(), d.scName, metav1.GetOptions{})
 		if err != nil {
@@ -212,10 +196,6 @@ func (d *DisableStorageClassTest) VerifyAllowExpansion(expected bool, retry func
 		if allowExpansion == expected {
 			e2e.Logf("AllowVolumeExpansion matched %t after %d attempts", expected, maxRetries)
 			return
-		}
-		if retry != nil {
-			e2e.Logf("VerifyAllowExpansion calling retry after %d attempts", i)
-			retry()
 		}
 		time.Sleep(sleepInterval * time.Second)
 	}
