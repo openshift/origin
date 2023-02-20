@@ -53,11 +53,6 @@ type VolumeResource struct {
 // CreateVolumeResource constructs a VolumeResource for the current test. It knows how to deal with
 // different test pattern volume types.
 func CreateVolumeResource(driver TestDriver, config *PerTestConfig, pattern TestPattern, testVolumeSizeRange e2evolume.SizeRange) *VolumeResource {
-	return CreateVolumeResourceWithAccessModes(driver, config, pattern, testVolumeSizeRange, driver.GetDriverInfo().RequiredAccessModes)
-}
-
-// CreateVolumeResourceWithAccessModes constructs a VolumeResource for the current test with the provided access modes.
-func CreateVolumeResourceWithAccessModes(driver TestDriver, config *PerTestConfig, pattern TestPattern, testVolumeSizeRange e2evolume.SizeRange, accessModes []v1.PersistentVolumeAccessMode) *VolumeResource {
 	r := VolumeResource{
 		Config:  config,
 		Pattern: pattern,
@@ -80,7 +75,7 @@ func CreateVolumeResourceWithAccessModes(driver TestDriver, config *PerTestConfi
 		if pDriver, ok := driver.(PreprovisionedPVTestDriver); ok {
 			pvSource, volumeNodeAffinity := pDriver.GetPersistentVolumeSource(false, pattern.FsType, r.Volume)
 			if pvSource != nil {
-				r.Pv, r.Pvc = createPVCPV(f, dInfo.Name, pvSource, volumeNodeAffinity, pattern.VolMode, accessModes)
+				r.Pv, r.Pvc = createPVCPV(f, dInfo.Name, pvSource, volumeNodeAffinity, pattern.VolMode, dInfo.RequiredAccessModes)
 				r.VolSource = storageutils.CreateVolumeSource(r.Pvc.Name, false /* readOnly */)
 			}
 		}
@@ -107,13 +102,13 @@ func CreateVolumeResourceWithAccessModes(driver TestDriver, config *PerTestConfi
 			switch pattern.VolType {
 			case DynamicPV:
 				r.Pv, r.Pvc = createPVCPVFromDynamicProvisionSC(
-					f, dInfo.Name, claimSize, r.Sc, pattern.VolMode, accessModes)
+					f, dInfo.Name, claimSize, r.Sc, pattern.VolMode, dInfo.RequiredAccessModes)
 				r.VolSource = storageutils.CreateVolumeSource(r.Pvc.Name, false /* readOnly */)
 			case GenericEphemeralVolume:
 				driverVolumeSizeRange := dDriver.GetDriverInfo().SupportedSizeRange
 				claimSize, err := storageutils.GetSizeRangesIntersection(testVolumeSizeRange, driverVolumeSizeRange)
 				framework.ExpectNoError(err, "determine intersection of test size range %+v and driver size range %+v", testVolumeSizeRange, driverVolumeSizeRange)
-				r.VolSource = createEphemeralVolumeSource(r.Sc.Name, pattern.VolMode, accessModes, claimSize)
+				r.VolSource = createEphemeralVolumeSource(r.Sc.Name, pattern.VolMode, dInfo.RequiredAccessModes, claimSize)
 			}
 		}
 	case CSIInlineVolume:

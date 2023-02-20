@@ -123,16 +123,14 @@ func (plugin *gitRepoPlugin) NewUnmounter(volName string, podUID types.UID) (vol
 	}, nil
 }
 
-func (plugin *gitRepoPlugin) ConstructVolumeSpec(volumeName, mountPath string) (volume.ReconstructedVolume, error) {
+func (plugin *gitRepoPlugin) ConstructVolumeSpec(volumeName, mountPath string) (*volume.Spec, error) {
 	gitVolume := &v1.Volume{
 		Name: volumeName,
 		VolumeSource: v1.VolumeSource{
 			GitRepo: &v1.GitRepoVolumeSource{},
 		},
 	}
-	return volume.ReconstructedVolume{
-		Spec: volume.NewSpecFromVolume(gitVolume),
-	}, nil
+	return volume.NewSpecFromVolume(gitVolume), nil
 }
 
 // gitRepo volumes are directories which are pre-filled from a git repository.

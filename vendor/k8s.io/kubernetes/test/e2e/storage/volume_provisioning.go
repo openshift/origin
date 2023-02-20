@@ -19,6 +19,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -50,6 +51,7 @@ import (
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
+	imageutils "k8s.io/kubernetes/test/utils/image"
 	admissionapi "k8s.io/pod-security-admission/api"
 )
 
@@ -148,7 +150,7 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 	})
 
 	ginkgo.Describe("DynamicProvisioner [Slow] [Feature:StorageProvider]", func() {
-		ginkgo.It("should provision storage with different parameters", func(ctx context.Context) {
+		ginkgo.It("should provision storage with different parameters", func() {
 
 			// This test checks that dynamic provisioning can provision a volume
 			// that can be used to persist data among pods.
@@ -166,7 +168,7 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 					ClaimSize:    "1.5Gi",
 					ExpectedSize: "2Gi",
 					PvCheck: func(claim *v1.PersistentVolumeClaim) {
-						volume := testsuites.PVWriteReadSingleNodeCheck(ctx, c, f.Timeouts, claim, e2epod.NodeSelection{})
+						volume := testsuites.PVWriteReadSingleNodeCheck(c, f.Timeouts, claim, e2epod.NodeSelection{})
 						gomega.Expect(volume).NotTo(gomega.BeNil(), "get bound PV")
 
 						err := checkGCEPD(volume, "pd-ssd")
@@ -184,7 +186,7 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 					ClaimSize:    "1.5Gi",
 					ExpectedSize: "2Gi",
 					PvCheck: func(claim *v1.PersistentVolumeClaim) {
-						volume := testsuites.PVWriteReadSingleNodeCheck(ctx, c, f.Timeouts, claim, e2epod.NodeSelection{})
+						volume := testsuites.PVWriteReadSingleNodeCheck(c, f.Timeouts, claim, e2epod.NodeSelection{})
 						gomega.Expect(volume).NotTo(gomega.BeNil(), "get bound PV")
 
 						err := checkGCEPD(volume, "pd-standard")
@@ -204,7 +206,7 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 					ClaimSize:    "1.5Gi",
 					ExpectedSize: "2Gi",
 					PvCheck: func(claim *v1.PersistentVolumeClaim) {
-						volume := testsuites.PVWriteReadSingleNodeCheck(ctx, c, f.Timeouts, claim, e2epod.NodeSelection{})
+						volume := testsuites.PVWriteReadSingleNodeCheck(c, f.Timeouts, claim, e2epod.NodeSelection{})
 						gomega.Expect(volume).NotTo(gomega.BeNil(), "get bound PV")
 
 						err := checkAWSEBS(volume, "gp2", false)
@@ -223,7 +225,7 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 					ClaimSize:    "3.5Gi",
 					ExpectedSize: "4Gi", // 4 GiB is minimum for io1
 					PvCheck: func(claim *v1.PersistentVolumeClaim) {
-						volume := testsuites.PVWriteReadSingleNodeCheck(ctx, c, f.Timeouts, claim, e2epod.NodeSelection{})
+						volume := testsuites.PVWriteReadSingleNodeCheck(c, f.Timeouts, claim, e2epod.NodeSelection{})
 						gomega.Expect(volume).NotTo(gomega.BeNil(), "get bound PV")
 
 						err := checkAWSEBS(volume, "io1", false)
@@ -241,7 +243,7 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 					ClaimSize:    "500Gi", // minimum for sc1
 					ExpectedSize: "500Gi",
 					PvCheck: func(claim *v1.PersistentVolumeClaim) {
-						volume := testsuites.PVWriteReadSingleNodeCheck(ctx, c, f.Timeouts, claim, e2epod.NodeSelection{})
+						volume := testsuites.PVWriteReadSingleNodeCheck(c, f.Timeouts, claim, e2epod.NodeSelection{})
 						gomega.Expect(volume).NotTo(gomega.BeNil(), "get bound PV")
 
 						err := checkAWSEBS(volume, "sc1", false)
@@ -259,7 +261,7 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 					ClaimSize:    "500Gi", // minimum for st1
 					ExpectedSize: "500Gi",
 					PvCheck: func(claim *v1.PersistentVolumeClaim) {
-						volume := testsuites.PVWriteReadSingleNodeCheck(ctx, c, f.Timeouts, claim, e2epod.NodeSelection{})
+						volume := testsuites.PVWriteReadSingleNodeCheck(c, f.Timeouts, claim, e2epod.NodeSelection{})
 						gomega.Expect(volume).NotTo(gomega.BeNil(), "get bound PV")
 
 						err := checkAWSEBS(volume, "st1", false)
@@ -277,7 +279,7 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 					ClaimSize:    "1Gi",
 					ExpectedSize: "1Gi",
 					PvCheck: func(claim *v1.PersistentVolumeClaim) {
-						volume := testsuites.PVWriteReadSingleNodeCheck(ctx, c, f.Timeouts, claim, e2epod.NodeSelection{})
+						volume := testsuites.PVWriteReadSingleNodeCheck(c, f.Timeouts, claim, e2epod.NodeSelection{})
 						gomega.Expect(volume).NotTo(gomega.BeNil(), "get bound PV")
 
 						err := checkAWSEBS(volume, "gp2", true)
@@ -294,7 +296,7 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 					ClaimSize:      "1.5Gi",
 					ExpectedSize:   "2Gi",
 					PvCheck: func(claim *v1.PersistentVolumeClaim) {
-						testsuites.PVWriteReadSingleNodeCheck(ctx, c, f.Timeouts, claim, e2epod.NodeSelection{})
+						testsuites.PVWriteReadSingleNodeCheck(c, f.Timeouts, claim, e2epod.NodeSelection{})
 					},
 				},
 				{
@@ -309,7 +311,7 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 					ClaimSize:    "1.5Gi",
 					ExpectedSize: "2Gi",
 					PvCheck: func(claim *v1.PersistentVolumeClaim) {
-						testsuites.PVWriteReadSingleNodeCheck(ctx, c, f.Timeouts, claim, e2epod.NodeSelection{})
+						testsuites.PVWriteReadSingleNodeCheck(c, f.Timeouts, claim, e2epod.NodeSelection{})
 					},
 				},
 				// vSphere generic test
@@ -322,7 +324,7 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 					ClaimSize:      "1.5Gi",
 					ExpectedSize:   "1.5Gi",
 					PvCheck: func(claim *v1.PersistentVolumeClaim) {
-						testsuites.PVWriteReadSingleNodeCheck(ctx, c, f.Timeouts, claim, e2epod.NodeSelection{})
+						testsuites.PVWriteReadSingleNodeCheck(c, f.Timeouts, claim, e2epod.NodeSelection{})
 					},
 				},
 				// Azure
@@ -335,7 +337,7 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 					ClaimSize:      "1Gi",
 					ExpectedSize:   "1Gi",
 					PvCheck: func(claim *v1.PersistentVolumeClaim) {
-						testsuites.PVWriteReadSingleNodeCheck(ctx, c, f.Timeouts, claim, e2epod.NodeSelection{})
+						testsuites.PVWriteReadSingleNodeCheck(c, f.Timeouts, claim, e2epod.NodeSelection{})
 					},
 				},
 			}
@@ -359,7 +361,8 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 				test.Client = c
 
 				// overwrite StorageClass spec with provisioned StorageClass
-				storageClass := testsuites.SetupStorageClass(ctx, test.Client, newStorageClass(test, ns, suffix))
+				storageClass, clearStorageClass := testsuites.SetupStorageClass(test.Client, newStorageClass(test, ns, suffix))
+				defer clearStorageClass()
 
 				test.Class = storageClass
 				test.Claim = e2epv.MakePersistentVolumeClaim(e2epv.PersistentVolumeClaimConfig{
@@ -368,11 +371,11 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 					VolumeMode:       &test.VolumeMode,
 				}, ns)
 
-				test.TestDynamicProvisioning(ctx)
+				test.TestDynamicProvisioning()
 			}
 		})
 
-		ginkgo.It("should provision storage with non-default reclaim policy Retain", func(ctx context.Context) {
+		ginkgo.It("should provision storage with non-default reclaim policy Retain", func() {
 			e2eskipper.SkipUnlessProviderIs("gce", "gke")
 
 			test := testsuites.StorageClassTest{
@@ -387,7 +390,7 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 				ClaimSize:    "1Gi",
 				ExpectedSize: "1Gi",
 				PvCheck: func(claim *v1.PersistentVolumeClaim) {
-					volume := testsuites.PVWriteReadSingleNodeCheck(ctx, c, f.Timeouts, claim, e2epod.NodeSelection{})
+					volume := testsuites.PVWriteReadSingleNodeCheck(c, f.Timeouts, claim, e2epod.NodeSelection{})
 					gomega.Expect(volume).NotTo(gomega.BeNil(), "get bound PV")
 
 					err := checkGCEPD(volume, "pd-standard")
@@ -397,7 +400,8 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 			test.Class = newStorageClass(test, ns, "reclaimpolicy")
 			retain := v1.PersistentVolumeReclaimRetain
 			test.Class.ReclaimPolicy = &retain
-			storageClass := testsuites.SetupStorageClass(ctx, test.Client, test.Class)
+			storageClass, clearStorageClass := testsuites.SetupStorageClass(test.Client, test.Class)
+			defer clearStorageClass()
 			test.Class = storageClass
 
 			test.Claim = e2epv.MakePersistentVolumeClaim(e2epv.PersistentVolumeClaimConfig{
@@ -406,7 +410,7 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 				VolumeMode:       &test.VolumeMode,
 			}, ns)
 
-			pv := test.TestDynamicProvisioning(ctx)
+			pv := test.TestDynamicProvisioning()
 
 			ginkgo.By(fmt.Sprintf("waiting for the provisioned PV %q to enter phase %s", pv.Name, v1.VolumeReleased))
 			framework.ExpectNoError(e2epv.WaitForPersistentVolumePhase(v1.VolumeReleased, c, pv.Name, 1*time.Second, 30*time.Second))
@@ -535,7 +539,7 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 	})
 
 	ginkgo.Describe("DynamicProvisioner External", func() {
-		ginkgo.It("should let an external dynamic provisioner create and delete persistent volumes [Slow]", func(ctx context.Context) {
+		ginkgo.It("should let an external dynamic provisioner create and delete persistent volumes [Slow]", func() {
 			// external dynamic provisioner pods need additional permissions provided by the
 			// persistent-volume-provisioner clusterrole and a leader-locking role
 			serviceAccountName := "default"
@@ -583,7 +587,8 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 				ExpectedSize: "1500Mi",
 			}
 
-			storageClass := testsuites.SetupStorageClass(ctx, test.Client, newStorageClass(test, ns, "external"))
+			storageClass, clearStorageClass := testsuites.SetupStorageClass(test.Client, newStorageClass(test, ns, "external"))
+			defer clearStorageClass()
 			test.Class = storageClass
 
 			test.Claim = e2epv.MakePersistentVolumeClaim(e2epv.PersistentVolumeClaimConfig{
@@ -594,12 +599,12 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 
 			ginkgo.By("creating a claim with a external provisioning annotation")
 
-			test.TestDynamicProvisioning(ctx)
+			test.TestDynamicProvisioning()
 		})
 	})
 
 	ginkgo.Describe("DynamicProvisioner Default", func() {
-		ginkgo.It("should create and delete default persistent volumes [Slow]", func(ctx context.Context) {
+		ginkgo.It("should create and delete default persistent volumes [Slow]", func() {
 			e2eskipper.SkipUnlessProviderIs("openstack", "gce", "aws", "gke", "vsphere", "azure")
 			e2epv.SkipIfNoDefaultStorageClass(c)
 
@@ -617,9 +622,11 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 				VolumeMode: &test.VolumeMode,
 			}, ns)
 			// NOTE: this test assumes that there's a default storageclass
-			test.Class = testsuites.SetupStorageClass(ctx, test.Client, nil)
+			storageClass, clearStorageClass := testsuites.SetupStorageClass(test.Client, nil)
+			test.Class = storageClass
+			defer clearStorageClass()
 
-			test.TestDynamicProvisioning(ctx)
+			test.TestDynamicProvisioning()
 		})
 
 		// Modifying the default storage class can be disruptive to other tests that depend on it
@@ -701,8 +708,39 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 		})
 	})
 
+	ginkgo.Describe("GlusterDynamicProvisioner", func() {
+		ginkgo.It("should create and delete persistent volumes [fast]", func() {
+			e2eskipper.SkipIfProviderIs("gke")
+			ginkgo.By("creating a Gluster DP server Pod")
+			pod := startGlusterDpServerPod(c, ns)
+			serverURL := "http://" + net.JoinHostPort(pod.Status.PodIP, "8081")
+			ginkgo.By("creating a StorageClass")
+			test := testsuites.StorageClassTest{
+				Client:       c,
+				Name:         "Gluster Dynamic provisioner test",
+				Provisioner:  "kubernetes.io/glusterfs",
+				Timeouts:     f.Timeouts,
+				ClaimSize:    "2Gi",
+				ExpectedSize: "2Gi",
+				Parameters:   map[string]string{"resturl": serverURL},
+			}
+			storageClass, clearStorageClass := testsuites.SetupStorageClass(test.Client, newStorageClass(test, ns, "glusterdptest"))
+			defer clearStorageClass()
+			test.Class = storageClass
+
+			ginkgo.By("creating a claim object with a suffix for gluster dynamic provisioner")
+			test.Claim = e2epv.MakePersistentVolumeClaim(e2epv.PersistentVolumeClaimConfig{
+				ClaimSize:        test.ClaimSize,
+				StorageClassName: &test.Class.Name,
+				VolumeMode:       &test.VolumeMode,
+			}, ns)
+
+			test.TestDynamicProvisioning()
+		})
+	})
+
 	ginkgo.Describe("Invalid AWS KMS key", func() {
-		ginkgo.It("should report an error and create no PV", func(ctx context.Context) {
+		ginkgo.It("should report an error and create no PV", func() {
 			e2eskipper.SkipUnlessProviderIs("aws")
 			test := testsuites.StorageClassTest{
 				Client:      c,
@@ -714,7 +752,9 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 			}
 
 			ginkgo.By("creating a StorageClass")
-			test.Class = testsuites.SetupStorageClass(ctx, test.Client, newStorageClass(test, ns, "invalid-aws"))
+			storageClass, clearStorageClass := testsuites.SetupStorageClass(test.Client, newStorageClass(test, ns, "invalid-aws"))
+			defer clearStorageClass()
+			test.Class = storageClass
 
 			ginkgo.By("creating a claim object with a suffix for gluster dynamic provisioner")
 			claim := e2epv.MakePersistentVolumeClaim(e2epv.PersistentVolumeClaimConfig{
@@ -838,7 +878,7 @@ func newStorageClass(t testsuites.StorageClassTest, ns string, prefix string) *s
 		}
 	}
 
-	sc := getStorageClass(pluginName, t.Parameters, &bindingMode, t.MountOptions, ns, prefix)
+	sc := getStorageClass(pluginName, t.Parameters, &bindingMode, ns, prefix)
 	if t.AllowVolumeExpansion {
 		sc.AllowVolumeExpansion = &t.AllowVolumeExpansion
 	}
@@ -849,7 +889,6 @@ func getStorageClass(
 	provisioner string,
 	parameters map[string]string,
 	bindingMode *storagev1.VolumeBindingMode,
-	mountOptions []string,
 	ns string,
 	prefix string,
 ) *storagev1.StorageClass {
@@ -868,8 +907,56 @@ func getStorageClass(
 		Provisioner:       provisioner,
 		Parameters:        parameters,
 		VolumeBindingMode: bindingMode,
-		MountOptions:      mountOptions,
 	}
+}
+
+func startGlusterDpServerPod(c clientset.Interface, ns string) *v1.Pod {
+	podClient := c.CoreV1().Pods(ns)
+
+	provisionerPod := &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "glusterdynamic-provisioner-",
+		},
+
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				{
+					Name:  "glusterdynamic-provisioner",
+					Image: imageutils.GetE2EImage(imageutils.GlusterDynamicProvisioner),
+					Args: []string{
+						"-config=" + "/etc/heketi/heketi.json",
+					},
+					Ports: []v1.ContainerPort{
+						{Name: "heketi", ContainerPort: 8081},
+					},
+					Env: []v1.EnvVar{
+						{
+							Name: "POD_IP",
+							ValueFrom: &v1.EnvVarSource{
+								FieldRef: &v1.ObjectFieldSelector{
+									FieldPath: "status.podIP",
+								},
+							},
+						},
+					},
+					ImagePullPolicy: v1.PullIfNotPresent,
+				},
+			},
+		},
+	}
+	provisionerPod, err := podClient.Create(context.TODO(), provisionerPod, metav1.CreateOptions{})
+	framework.ExpectNoError(err, "Failed to create %s pod: %v", provisionerPod.Name, err)
+
+	framework.ExpectNoError(e2epod.WaitForPodRunningInNamespace(c, provisionerPod))
+
+	ginkgo.By("locating the provisioner pod")
+	pod, err := podClient.Get(context.TODO(), provisionerPod.Name, metav1.GetOptions{})
+	framework.ExpectNoError(err, "Cannot locate the provisioner pod %v: %v", provisionerPod.Name, err)
+	return pod
 }
 
 // waitForProvisionedVolumesDelete is a polling wrapper to scan all PersistentVolumes for any associated to the test's

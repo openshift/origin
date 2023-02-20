@@ -83,6 +83,7 @@ func (in *KubeProxyConfiguration) DeepCopyInto(out *KubeProxyConfiguration) {
 		*out = new(int32)
 		**out = **in
 	}
+	out.UDPIdleTimeout = in.UDPIdleTimeout
 	in.Conntrack.DeepCopyInto(&out.Conntrack)
 	out.ConfigSyncPeriod = in.ConfigSyncPeriod
 	if in.NodePortAddresses != nil {
@@ -155,11 +156,6 @@ func (in *KubeProxyIPTablesConfiguration) DeepCopyInto(out *KubeProxyIPTablesCon
 	if in.MasqueradeBit != nil {
 		in, out := &in.MasqueradeBit, &out.MasqueradeBit
 		*out = new(int32)
-		**out = **in
-	}
-	if in.LocalhostNodePorts != nil {
-		in, out := &in.LocalhostNodePorts, &out.LocalhostNodePorts
-		*out = new(bool)
 		**out = **in
 	}
 	out.SyncPeriod = in.SyncPeriod

@@ -76,16 +76,6 @@ var (
 			// https://issues.redhat.com/browse/OCPBUGS-3339
 			`\[sig-devex\]\[Feature:ImageEcosystem\]\[mysql\]\[Slow\] openshift mysql image Creating from a template should instantiate the template`,
 			`\[sig-devex\]\[Feature:ImageEcosystem\]\[mariadb\]\[Slow\] openshift mariadb image Creating from a template should instantiate the template`,
-
-			// https://github.com/openshift/kubernetes/pull/1465
-			`\[sig-node\] Security Context when if the container's primary UID belongs to some groups in the image \[LinuxOnly\] should add pod.Spec.SecurityContext.SupplementalGroups to them \[LinuxOnly\] in resultant supplementary groups for the container processes`,
-
-			// https://issues.redhat.com/browse/OCPBUGS-7125
-			`\[sig-network\] LoadBalancers should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on different nodes`,
-			`\[sig-network\] LoadBalancers should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on the same nodes`,
-
-			// https://issues.redhat.com/browse/WRKLDS-665
-			`\[sig-scheduling\] SchedulerPreemption \[Serial\] validates pod disruption condition is added to the preempted pod`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
@@ -156,8 +146,6 @@ var (
 			`\[sig-node\] NoExecuteTaintManager Multiple Pods \[Serial\] evicts pods with minTolerationSeconds \[Disruptive\] \[Conformance\]`,
 			`\[sig-node\] NoExecuteTaintManager Multiple Pods \[Serial\] only evicts pods without tolerations from tainted nodes`,
 			`\[sig-cli\] Kubectl client Kubectl taint \[Serial\] should remove all the taints with the same key off a node`,
-			`\[sig-network\] LoadBalancers should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on different nodes`,
-			`\[sig-network\] LoadBalancers should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on the same nodes`,
 		},
 
 		"[Feature:Networking-IPv4]": {

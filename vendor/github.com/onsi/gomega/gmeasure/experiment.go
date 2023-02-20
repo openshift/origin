@@ -463,7 +463,6 @@ func (e *Experiment) Sample(callback func(idx int), samplingConfig SamplingConfi
 	minSamplingInterval := samplingConfig.MinSamplingInterval
 
 	work := make(chan int)
-	defer close(work)
 	if numParallel > 1 {
 		for worker := 0; worker < numParallel; worker++ {
 			go func() {

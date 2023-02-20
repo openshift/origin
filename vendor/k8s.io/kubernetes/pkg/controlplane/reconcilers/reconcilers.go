@@ -53,9 +53,9 @@ const (
 	// MasterCountReconcilerType will select the original reconciler
 	MasterCountReconcilerType Type = "master-count"
 	// LeaseEndpointReconcilerType will select a storage based reconciler
-	LeaseEndpointReconcilerType Type = "lease"
+	LeaseEndpointReconcilerType = "lease"
 	// NoneEndpointReconcilerType will turn off the endpoint reconciler
-	NoneEndpointReconcilerType Type = "none"
+	NoneEndpointReconcilerType = "none"
 )
 
 // Types an array of reconciler types

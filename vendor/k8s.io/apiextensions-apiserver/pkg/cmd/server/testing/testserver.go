@@ -28,13 +28,13 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"k8s.io/apiextensions-apiserver/pkg/apiserver"
 	"k8s.io/apiextensions-apiserver/pkg/cmd/server/options"
 	"k8s.io/apimachinery/pkg/util/wait"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
+
 	"k8s.io/klog/v2"
 )
 
@@ -47,11 +47,10 @@ type TestServerInstanceOptions struct {
 
 // TestServer return values supplied by kube-test-ApiServer
 type TestServer struct {
-	ClientConfig    *restclient.Config                              // Rest client config
-	ServerOpts      *options.CustomResourceDefinitionsServerOptions // ServerOpts
-	TearDownFn      TearDownFunc                                    // TearDown function
-	TmpDir          string                                          // Temp Dir used, by the apiserver
-	CompletedConfig apiserver.CompletedConfig
+	ClientConfig *restclient.Config                              // Rest client config
+	ServerOpts   *options.CustomResourceDefinitionsServerOptions // ServerOpts
+	TearDownFn   TearDownFunc                                    // TearDown function
+	TmpDir       string                                          // Temp Dir used, by the apiserver
 }
 
 // Logger allows t.Testing and b.Testing to be passed to StartTestServer and StartTestServerOrDie
@@ -145,8 +144,7 @@ func StartTestServer(t Logger, _ *TestServerInstanceOptions, customFlags []strin
 	if err != nil {
 		return result, fmt.Errorf("failed to create config from options: %v", err)
 	}
-	completedConfig := config.Complete()
-	server, err := completedConfig.New(genericapiserver.NewEmptyDelegate())
+	server, err := config.Complete().New(genericapiserver.NewEmptyDelegate())
 	if err != nil {
 		return result, fmt.Errorf("failed to create server: %v", err)
 	}
@@ -189,7 +187,6 @@ func StartTestServer(t Logger, _ *TestServerInstanceOptions, customFlags []strin
 	result.ClientConfig = server.GenericAPIServer.LoopbackClientConfig
 	result.ServerOpts = s
 	result.TearDownFn = tearDown
-	result.CompletedConfig = completedConfig
 
 	return result, nil
 }

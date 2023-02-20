@@ -39,37 +39,31 @@ const (
 // aws.Config parameter to add your extra config.
 //
 // Example:
+//     mySession := session.Must(session.NewSession())
 //
-//	mySession := session.Must(session.NewSession())
+//     // Create a AutoScaling client from just a session.
+//     svc := autoscaling.New(mySession)
 //
-//	// Create a AutoScaling client from just a session.
-//	svc := autoscaling.New(mySession)
-//
-//	// Create a AutoScaling client with additional configuration
-//	svc := autoscaling.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
+//     // Create a AutoScaling client with additional configuration
+//     svc := autoscaling.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *AutoScaling {
 	c := p.ClientConfig(EndpointsID, cfgs...)
-	if c.SigningNameDerived || len(c.SigningName) == 0 {
-		c.SigningName = EndpointsID
-		// No Fallback
-	}
-	return newClient(*c.Config, c.Handlers, c.PartitionID, c.Endpoint, c.SigningRegion, c.SigningName, c.ResolvedRegion)
+	return newClient(*c.Config, c.Handlers, c.PartitionID, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, partitionID, endpoint, signingRegion, signingName, resolvedRegion string) *AutoScaling {
+func newClient(cfg aws.Config, handlers request.Handlers, partitionID, endpoint, signingRegion, signingName string) *AutoScaling {
 	svc := &AutoScaling{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
-				ServiceName:    ServiceName,
-				ServiceID:      ServiceID,
-				SigningName:    signingName,
-				SigningRegion:  signingRegion,
-				PartitionID:    partitionID,
-				Endpoint:       endpoint,
-				APIVersion:     "2011-01-01",
-				ResolvedRegion: resolvedRegion,
+				ServiceName:   ServiceName,
+				ServiceID:     ServiceID,
+				SigningName:   signingName,
+				SigningRegion: signingRegion,
+				PartitionID:   partitionID,
+				Endpoint:      endpoint,
+				APIVersion:    "2011-01-01",
 			},
 			handlers,
 		),

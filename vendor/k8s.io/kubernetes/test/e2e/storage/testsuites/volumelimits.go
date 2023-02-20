@@ -90,7 +90,8 @@ func (t *volumeLimitsTestSuite) SkipUnsupportedTests(driver storageframework.Tes
 
 func (t *volumeLimitsTestSuite) DefineTests(driver storageframework.TestDriver, pattern storageframework.TestPattern) {
 	type local struct {
-		config *storageframework.PerTestConfig
+		config      *storageframework.PerTestConfig
+		testCleanup func()
 
 		cs clientset.Interface
 		ns *v1.Namespace
@@ -123,7 +124,7 @@ func (t *volumeLimitsTestSuite) DefineTests(driver storageframework.TestDriver, 
 	// And one extra pod with a CSI volume should get Pending with a condition
 	// that says it's unschedulable because of volume limit.
 	// BEWARE: the test may create lot of volumes and it's really slow.
-	ginkgo.It("should support volume limits [Serial]", func(ctx context.Context) {
+	ginkgo.It("should support volume limits [Serial]", func() {
 		driverInfo := driver.GetDriverInfo()
 		if !driverInfo.Capabilities[storageframework.CapVolumeLimits] {
 			ginkgo.Skip(fmt.Sprintf("driver %s does not support volume limits", driverInfo.Name))
@@ -136,7 +137,8 @@ func (t *volumeLimitsTestSuite) DefineTests(driver storageframework.TestDriver, 
 		l.ns = f.Namespace
 		l.cs = f.ClientSet
 
-		l.config = driver.PrepareTest(f)
+		l.config, l.testCleanup = driver.PrepareTest(f)
+		defer l.testCleanup()
 
 		ginkgo.By("Picking a node")
 		// Some CSI drivers are deployed to a single node (e.g csi-hostpath),
@@ -175,7 +177,7 @@ func (t *volumeLimitsTestSuite) DefineTests(driver storageframework.TestDriver, 
 			// Create <limit> Pods.
 			ginkgo.By(fmt.Sprintf("Creating %d Pod(s) with one volume each", limit))
 			for i := 0; i < limit; i++ {
-				pod := StartInPodWithVolumeSource(ctx, l.cs, *l.resource.VolSource, l.ns.Name, "volume-limits", "sleep 1000000", selection)
+				pod := StartInPodWithVolumeSource(l.cs, *l.resource.VolSource, l.ns.Name, "volume-limits", "sleep 1000000", selection)
 				l.podNames = append(l.podNames, pod.Name)
 				l.pvcNames = append(l.pvcNames, ephemeral.VolumeClaimName(pod, &pod.Spec.Volumes[0]))
 			}
@@ -219,7 +221,7 @@ func (t *volumeLimitsTestSuite) DefineTests(driver storageframework.TestDriver, 
 		}
 
 		ginkgo.By("Creating an extra pod with one volume to exceed the limit")
-		pod := StartInPodWithVolumeSource(ctx, l.cs, *l.resource.VolSource, l.ns.Name, "volume-limits-exceeded", "sleep 10000", selection)
+		pod := StartInPodWithVolumeSource(l.cs, *l.resource.VolSource, l.ns.Name, "volume-limits-exceeded", "sleep 10000", selection)
 		l.podNames = append(l.podNames, pod.Name)
 
 		ginkgo.By("Waiting for the pod to get unschedulable with the right message")
@@ -253,7 +255,8 @@ func (t *volumeLimitsTestSuite) DefineTests(driver storageframework.TestDriver, 
 		l.ns = f.Namespace
 		l.cs = f.ClientSet
 
-		l.config = driver.PrepareTest(f)
+		l.config, l.testCleanup = driver.PrepareTest(f)
+		defer l.testCleanup()
 
 		nodeNames := []string{}
 		if l.config.ClientNodeSelection.Name != "" {

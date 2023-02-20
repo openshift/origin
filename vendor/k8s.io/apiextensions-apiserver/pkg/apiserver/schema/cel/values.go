@@ -25,11 +25,10 @@ import (
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
 	"github.com/google/cel-go/common/types/traits"
+	"k8s.io/apimachinery/pkg/api/equality"
 
 	structuralschema "k8s.io/apiextensions-apiserver/pkg/apiserver/schema"
-	"k8s.io/apiextensions-apiserver/pkg/apiserver/schema/cel/model"
-	"k8s.io/apimachinery/pkg/api/equality"
-	"k8s.io/apiserver/pkg/cel"
+	"k8s.io/apiextensions-apiserver/third_party/forked/celopenapi/model"
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
 )
 
@@ -344,7 +343,7 @@ func (t *unstructuredMapList) Add(other ref.Val) ref.Val {
 func escapeKeyProps(idents []string) []string {
 	result := make([]string, len(idents))
 	for i, prop := range idents {
-		if escaped, ok := cel.Escape(prop); ok {
+		if escaped, ok := model.Escape(prop); ok {
 			result[i] = escaped
 		} else {
 			result[i] = prop
@@ -645,7 +644,7 @@ func (t *unstructuredMap) Iterator() traits.Iterator {
 		if _, ok := t.propSchema(k); ok {
 			mapKey := k
 			if isObject {
-				if escaped, ok := cel.Escape(k); ok {
+				if escaped, ok := model.Escape(k); ok {
 					mapKey = escaped
 				}
 			}
@@ -684,7 +683,7 @@ func (t *unstructuredMap) Find(key ref.Val) (ref.Val, bool) {
 	}
 	k := keyStr.Value().(string)
 	if isObject {
-		k, ok = cel.Unescape(k)
+		k, ok = model.Unescape(k)
 		if !ok {
 			return nil, false
 		}

@@ -55,9 +55,9 @@ var _ = SIGDescribe("Pods Extended", func() {
 	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelBaseline
 
 	ginkgo.Describe("Delete Grace Period", func() {
-		var podClient *e2epod.PodClient
+		var podClient *framework.PodClient
 		ginkgo.BeforeEach(func() {
-			podClient = e2epod.NewPodClient(f)
+			podClient = f.PodClient()
 		})
 
 		/*
@@ -148,9 +148,9 @@ var _ = SIGDescribe("Pods Extended", func() {
 	})
 
 	ginkgo.Describe("Pods Set QOS Class", func() {
-		var podClient *e2epod.PodClient
+		var podClient *framework.PodClient
 		ginkgo.BeforeEach(func() {
-			podClient = e2epod.NewPodClient(f)
+			podClient = f.PodClient()
 		})
 
 		/*
@@ -200,9 +200,9 @@ var _ = SIGDescribe("Pods Extended", func() {
 	})
 
 	ginkgo.Describe("Pod Container Status", func() {
-		var podClient *e2epod.PodClient
+		var podClient *framework.PodClient
 		ginkgo.BeforeEach(func() {
-			podClient = e2epod.NewPodClient(f)
+			podClient = f.PodClient()
 		})
 
 		ginkgo.It("should never report success for a pending container", func() {
@@ -224,9 +224,9 @@ var _ = SIGDescribe("Pods Extended", func() {
 	})
 
 	ginkgo.Describe("Pod Container lifecycle", func() {
-		var podClient *e2epod.PodClient
+		var podClient *framework.PodClient
 		ginkgo.BeforeEach(func() {
-			podClient = e2epod.NewPodClient(f)
+			podClient = f.PodClient()
 		})
 
 		ginkgo.It("should not create extra sandbox if all containers are done", func() {

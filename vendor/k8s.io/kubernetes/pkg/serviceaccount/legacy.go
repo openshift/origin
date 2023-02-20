@@ -19,22 +19,14 @@ package serviceaccount
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	"gopkg.in/square/go-jose.v2/jwt"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	"k8s.io/apiserver/pkg/warning"
-	applyv1 "k8s.io/client-go/applyconfigurations/core/v1"
-	typedv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/v2"
-	kubefeatures "k8s.io/kubernetes/pkg/features"
+
+	"k8s.io/api/core/v1"
+	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
 )
 
 func LegacyClaims(serviceAccount v1.ServiceAccount, secret v1.Secret) (*jwt.Claims, interface{}) {
@@ -48,10 +40,7 @@ func LegacyClaims(serviceAccount v1.ServiceAccount, secret v1.Secret) (*jwt.Clai
 		}
 }
 
-const (
-	LegacyIssuer     = "kubernetes/serviceaccount"
-	LastUsedLabelKey = "kubernetes.io/legacy-token-last-used"
-)
+const LegacyIssuer = "kubernetes/serviceaccount"
 
 type legacyPrivateClaims struct {
 	ServiceAccountName string `json:"kubernetes.io/serviceaccount/service-account.name"`
@@ -60,18 +49,16 @@ type legacyPrivateClaims struct {
 	Namespace          string `json:"kubernetes.io/serviceaccount/namespace"`
 }
 
-func NewLegacyValidator(lookup bool, getter ServiceAccountTokenGetter, secretsWriter typedv1core.SecretsGetter) Validator {
+func NewLegacyValidator(lookup bool, getter ServiceAccountTokenGetter) Validator {
 	return &legacyValidator{
-		lookup:        lookup,
-		getter:        getter,
-		secretsWriter: secretsWriter,
+		lookup: lookup,
+		getter: getter,
 	}
 }
 
 type legacyValidator struct {
-	lookup        bool
-	getter        ServiceAccountTokenGetter
-	secretsWriter typedv1core.SecretsGetter
+	lookup bool
+	getter ServiceAccountTokenGetter
 }
 
 var _ = Validator(&legacyValidator{})
@@ -138,29 +125,6 @@ func (v *legacyValidator) Validate(ctx context.Context, tokenData string, public
 		if string(serviceAccount.UID) != serviceAccountUID {
 			klog.V(4).Infof("Service account UID no longer matches %s/%s: %q != %q", namespace, serviceAccountName, string(serviceAccount.UID), serviceAccountUID)
 			return nil, fmt.Errorf("ServiceAccount UID (%s) does not match claim (%s)", serviceAccount.UID, serviceAccountUID)
-		}
-
-		if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.LegacyServiceAccountTokenTracking) {
-			for _, ref := range serviceAccount.Secrets {
-				if ref.Name == secret.Name {
-					warning.AddWarning(ctx, "", "Use tokens from the TokenRequest API or manually created secret-based tokens instead of auto-generated secret-based tokens.")
-					break
-				}
-			}
-			now := time.Now().UTC()
-			today := now.Format("2006-01-02")
-			tomorrow := now.AddDate(0, 0, 1).Format("2006-01-02")
-			lastUsed := secret.Labels[LastUsedLabelKey]
-			if lastUsed != today && lastUsed != tomorrow {
-				patchContent, err := json.Marshal(applyv1.Secret(secret.Name, secret.Namespace).WithLabels(map[string]string{LastUsedLabelKey: today}))
-				if err != nil {
-					klog.Errorf("Failed to marshal legacy service account token tracking labels, err: %v", err)
-				} else {
-					if _, err := v.secretsWriter.Secrets(namespace).Patch(ctx, secret.Name, types.MergePatchType, patchContent, metav1.PatchOptions{}); err != nil {
-						klog.Errorf("Failed to label legacy service account token secret with last-used, err: %v", err)
-					}
-				}
-			}
 		}
 	}
 

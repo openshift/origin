@@ -34,6 +34,7 @@ import (
 	klog "k8s.io/klog/v2"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2econfig "k8s.io/kubernetes/test/e2e/framework/config"
+	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
@@ -161,7 +162,7 @@ func (t testDriverParameter) Set(filename string) error {
 // to define the tests.
 func AddDriverDefinition(filename string) error {
 	driver, err := loadDriverDefinition(filename)
-	framework.Logf("Driver loaded from path [%s]: %+v", filename, driver)
+	e2elog.Logf("Driver loaded from path [%s]: %+v", filename, driver)
 	if err != nil {
 		return err
 	}
@@ -292,9 +293,7 @@ func (d *driverDefinition) GetDynamicProvisionStorageClass(e2econfig *storagefra
 		framework.ExpectNoError(err, "patch items")
 
 		sc, ok = items[0].(*storagev1.StorageClass)
-		if !ok {
-			framework.Failf("storage class from %s", d.StorageClass.FromFile)
-		}
+		framework.ExpectEqual(ok, true, "storage class from %s", d.StorageClass.FromFile)
 	}
 
 	framework.ExpectNotEqual(sc, nil, "storage class is unexpectantly nil")
@@ -415,12 +414,12 @@ func (d *driverDefinition) GetCSIDriverName(e2econfig *storageframework.PerTestC
 	return d.DriverInfo.Name
 }
 
-func (d *driverDefinition) PrepareTest(f *framework.Framework) *storageframework.PerTestConfig {
+func (d *driverDefinition) PrepareTest(f *framework.Framework) (*storageframework.PerTestConfig, func()) {
 	e2econfig := &storageframework.PerTestConfig{
 		Driver:              d,
 		Prefix:              "external",
 		Framework:           f,
 		ClientNodeSelection: e2epod.NodeSelection{Name: d.ClientNodeName},
 	}
-	return e2econfig
+	return e2econfig, func() {}
 }

@@ -58,12 +58,10 @@ var _ = utils.SIGDescribe("Node Poweroff [Feature:vsphere] [Slow] [Disruptive]",
 		Bootstrap(f)
 		client = f.ClientSet
 		namespace = f.Namespace.Name
-		framework.ExpectNoError(e2enode.WaitForAllNodesSchedulable(client, framework.TestContext.NodeSchedulableTimeout))
+		framework.ExpectNoError(framework.WaitForAllNodesSchedulable(client, framework.TestContext.NodeSchedulableTimeout))
 		nodeList, err := e2enode.GetReadySchedulableNodes(f.ClientSet)
 		framework.ExpectNoError(err)
-		if len(nodeList.Items) < 2 {
-			framework.Failf("At least 2 nodes are required for this test, got instead: %v", len(nodeList.Items))
-		}
+		framework.ExpectEqual(len(nodeList.Items) > 1, true, "At least 2 nodes are required for this test")
 	})
 
 	/*
@@ -115,9 +113,7 @@ var _ = utils.SIGDescribe("Node Poweroff [Feature:vsphere] [Slow] [Disruptive]",
 		ginkgo.By(fmt.Sprintf("Verify disk is attached to the node: %v", node1))
 		isAttached, err := diskIsAttached(volumePath, node1)
 		framework.ExpectNoError(err)
-		if !isAttached {
-			framework.Failf("Volume: %s is not attached to the node: %v", volumePath, node1)
-		}
+		framework.ExpectEqual(isAttached, true, "Disk is not attached to the node")
 
 		ginkgo.By(fmt.Sprintf("Power off the node: %v", node1))
 

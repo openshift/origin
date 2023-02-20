@@ -11,7 +11,6 @@ import (
 
 	kapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -41,7 +40,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 		registry := strings.Split(is.Status.DockerImageRepository, "/")[0]
 
 		ns = oc.Namespace()
-		cli := e2epod.PodClientNS(oc.KubeFramework(), ns)
+		cli := oc.KubeFramework().PodClient()
 		client := imageclientset.NewForConfigOrDie(oc.UserConfig()).ImageV1()
 
 		// import tools:latest into this namespace - working around a pull through bug with referenced docker images

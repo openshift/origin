@@ -1,8 +1,6 @@
 package internal
 
 import (
-	"time"
-
 	"github.com/onsi/ginkgo/v2/internal/interrupt_handler"
 	"github.com/onsi/ginkgo/v2/reporters"
 	"github.com/onsi/ginkgo/v2/types"
@@ -59,10 +57,7 @@ func (suite *Suite) RunSpec(spec types.TestSpec, suiteLabels Labels, suitePath s
 	suite.reporter = reporters.NoopReporter{}
 	suite.writer = writer
 	suite.outputInterceptor = NoopOutputInterceptor{}
-	if suite.config.Timeout > 0 {
-		suite.deadline = time.Now().Add(suiteConfig.Timeout)
-	}
-	suite.interruptHandler = interrupt_handler.NewInterruptHandler(nil)
+	suite.interruptHandler = interrupt_handler.NewInterruptHandler(suiteConfig.Timeout, nil)
 	suite.config = suiteConfig
 
 	success := suite.runSpecs("", suiteLabels, suitePath, false, []Spec{spec.(Spec)})

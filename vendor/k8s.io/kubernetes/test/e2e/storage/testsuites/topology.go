@@ -44,7 +44,8 @@ type topologyTestSuite struct {
 }
 
 type topologyTest struct {
-	config *storageframework.PerTestConfig
+	config        *storageframework.PerTestConfig
+	driverCleanup func()
 
 	migrationCheck *migrationOpCheck
 
@@ -111,7 +112,7 @@ func (t *topologyTestSuite) DefineTests(driver storageframework.TestDriver, patt
 		l := topologyTest{}
 
 		// Now do the more expensive test initialization.
-		l.config = driver.PrepareTest(f)
+		l.config, l.driverCleanup = driver.PrepareTest(f)
 
 		l.resource = storageframework.VolumeResource{
 			Config:  l.config,
@@ -155,6 +156,8 @@ func (t *topologyTestSuite) DefineTests(driver storageframework.TestDriver, patt
 
 	cleanup := func(l topologyTest) {
 		t.CleanupResources(cs, &l)
+		err := storageutils.TryFunc(l.driverCleanup)
+		l.driverCleanup = nil
 		framework.ExpectNoError(err, "while cleaning up driver")
 
 		l.migrationCheck.validateMigrationVolumeOpCounts()

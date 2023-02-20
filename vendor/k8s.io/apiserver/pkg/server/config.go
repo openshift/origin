@@ -17,9 +17,6 @@ limitations under the License.
 package server
 
 import (
-	"context"
-	"crypto/sha256"
-	"encoding/base32"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -35,13 +32,12 @@ import (
 
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/google/uuid"
+	oteltrace "go.opentelemetry.io/otel/trace"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwaitgroup "k8s.io/apimachinery/pkg/util/waitgroup"
 	"k8s.io/apimachinery/pkg/version"
@@ -52,8 +48,9 @@ import (
 	authenticatorunion "k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
+	authorizerunion "k8s.io/apiserver/pkg/authorization/union"
 	"k8s.io/apiserver/pkg/endpoints/discovery"
-	discoveryendpoint "k8s.io/apiserver/pkg/endpoints/discovery/aggregated"
 	"k8s.io/apiserver/pkg/endpoints/filterlatency"
 	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	apiopenapi "k8s.io/apiserver/pkg/endpoints/openapi"
@@ -75,9 +72,6 @@ import (
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/component-base/logs"
-	"k8s.io/component-base/metrics/features"
-	"k8s.io/component-base/metrics/prometheus/slis"
-	"k8s.io/component-base/tracing"
 	"k8s.io/klog/v2"
 	openapicommon "k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -131,7 +125,6 @@ type Config struct {
 	EnableIndex     bool
 	EnableProfiling bool
 	EnableDiscovery bool
-
 	// Requires generic profiling enabled
 	EnableContentionProfiling bool
 	EnableMetrics             bool
@@ -151,7 +144,7 @@ type Config struct {
 	ExternalAddress string
 
 	// TracerProvider can provide a tracer, which records spans for distributed tracing.
-	TracerProvider tracing.TracerProvider
+	TracerProvider oteltrace.TracerProvider
 
 	//===========================================================================
 	// Fields you probably don't care about changing
@@ -273,9 +266,6 @@ type Config struct {
 	// StorageVersionManager holds the storage versions of the API resources installed by this server.
 	StorageVersionManager storageversion.Manager
 
-	// AggregatedDiscoveryGroupManager serves /apis in an aggregated form.
-	AggregatedDiscoveryGroupManager discoveryendpoint.ResourceManager
-
 	// SendRetryAfterWhileNotReadyOnce, if enabled, the apiserver will
 	// reject all incoming requests with a 503 status code and a
 	// 'Retry-After' response header until the apiserver has fully
@@ -352,22 +342,12 @@ type AuthorizationInfo struct {
 	Authorizer authorizer.Authorizer
 }
 
-func init() {
-	utilruntime.Must(features.AddFeatureGates(utilfeature.DefaultMutableFeatureGate))
-}
-
 // NewConfig returns a Config struct with the default values
 func NewConfig(codecs serializer.CodecFactory) *Config {
 	defaultHealthChecks := []healthz.HealthChecker{healthz.PingHealthz, healthz.LogHealthz}
 	var id string
 	if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.APIServerIdentity) {
-		hostname, err := os.Hostname()
-		if err != nil {
-			klog.Fatalf("error getting hostname for apiserver identity: %v", err)
-		}
-
-		hash := sha256.Sum256([]byte(hostname))
-		id = "kube-apiserver-" + strings.ToLower(base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(hash[:16]))
+		id = "kube-apiserver-" + uuid.New().String()
 	}
 	lifecycleSignals := newLifecycleSignals()
 
@@ -404,7 +384,7 @@ func NewConfig(codecs serializer.CodecFactory) *Config {
 		// A request body might be encoded in json, and is converted to
 		// proto when persisted in etcd, so we allow 2x as the largest request
 		// body size to be accepted and decoded in a write request.
-		// If this constant is changed, DefaultMaxRequestSizeBytes in k8s.io/apiserver/pkg/cel/limits.go
+		// If this constant is changed, maxRequestSizeBytes in apiextensions-apiserver/third_party/forked/celopenapi/model/schemas.go
 		// should be changed to reflect the new value, if the two haven't
 		// been wired together already somehow.
 		MaxRequestBodyBytes: int64(3 * 1024 * 1024),
@@ -417,7 +397,7 @@ func NewConfig(codecs serializer.CodecFactory) *Config {
 
 		APIServerID:           id,
 		StorageVersionManager: storageversion.NewDefaultManager(),
-		TracerProvider:        tracing.NewNoopTracerProvider(),
+		TracerProvider:        oteltrace.NewNoopTracerProvider(),
 	}
 }
 
@@ -774,14 +754,6 @@ func (c completedConfig) New(name string, delegationTarget DelegationTarget) (*G
 	}
 	s.eventRef = ref
 
-	if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.AggregatedDiscoveryEndpoint) {
-		manager := c.AggregatedDiscoveryGroupManager
-		if manager == nil {
-			manager = discoveryendpoint.NewResourceManager()
-		}
-		s.AggregatedDiscoveryGroupManager = manager
-		s.AggregatedLegacyDiscoveryGroupManager = discoveryendpoint.NewResourceManager()
-	}
 	for {
 		if c.JSONPatchMaxCopyBytes <= 0 {
 			break
@@ -902,11 +874,6 @@ func (c completedConfig) New(name string, delegationTarget DelegationTarget) (*G
 		}
 		s.AddHealthChecks(delegateCheck)
 	}
-	s.RegisterDestroyFunc(func() {
-		if err := c.Config.TracerProvider.Shutdown(context.Background()); err != nil {
-			klog.Errorf("failed to shut down tracer provider: %v", err)
-		}
-	})
 
 	s.listedPathProvider = routes.ListedPathProviders{s.listedPathProvider, delegationTarget}
 
@@ -933,7 +900,7 @@ func BuildHandlerChainWithStorageVersionPrecondition(apiHandler http.Handler, c 
 func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 	handler := filterlatency.TrackCompleted(apiHandler)
 	handler = genericapifilters.WithAuthorization(handler, c.Authorization.Authorizer, c.Serializer)
-	handler = filterlatency.TrackStarted(handler, c.TracerProvider, "authorization")
+	handler = filterlatency.TrackStarted(handler, "authorization")
 
 	if c.FlowControl != nil {
 		workEstimatorCfg := flowcontrolrequest.DefaultWorkEstimatorConfig()
@@ -941,7 +908,7 @@ func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 			c.StorageObjectCountTracker.Get, c.FlowControl.GetInterestedWatchCount, workEstimatorCfg)
 		handler = filterlatency.TrackCompleted(handler)
 		handler = genericfilters.WithPriorityAndFairness(handler, c.LongRunningFunc, c.FlowControl, requestWorkEstimator)
-		handler = filterlatency.TrackStarted(handler, c.TracerProvider, "priorityandfairness")
+		handler = filterlatency.TrackStarted(handler, "priorityandfairness")
 	} else {
 		handler = genericfilters.WithMaxInFlightLimit(handler, c.MaxRequestsInFlight, c.MaxMutatingRequestsInFlight, c.LongRunningFunc)
 	}
@@ -952,11 +919,11 @@ func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 
 	handler = filterlatency.TrackCompleted(handler)
 	handler = genericapifilters.WithImpersonation(handler, c.Authorization.Authorizer, c.Serializer)
-	handler = filterlatency.TrackStarted(handler, c.TracerProvider, "impersonation")
+	handler = filterlatency.TrackStarted(handler, "impersonation")
 
 	handler = filterlatency.TrackCompleted(handler)
 	handler = genericapifilters.WithAudit(handler, c.AuditBackend, c.AuditPolicyRuleEvaluator, c.LongRunningFunc)
-	handler = filterlatency.TrackStarted(handler, c.TracerProvider, "audit")
+	handler = filterlatency.TrackStarted(handler, "audit")
 
 	failedHandler := genericapifilters.Unauthorized(c.Serializer)
 	failedHandler = genericapifilters.WithFailedAuthenticationAudit(failedHandler, c.AuditBackend, c.AuditPolicyRuleEvaluator)
@@ -964,7 +931,7 @@ func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 	failedHandler = filterlatency.TrackCompleted(failedHandler)
 	handler = filterlatency.TrackCompleted(handler)
 	handler = genericapifilters.WithAuthentication(handler, c.Authentication.Authenticator, failedHandler, c.Authentication.APIAudiences)
-	handler = filterlatency.TrackStarted(handler, c.TracerProvider, "authentication")
+	handler = filterlatency.TrackStarted(handler, "authentication")
 
 	handler = genericfilters.WithCORS(handler, c.CorsAllowedOriginList, nil, nil, nil, "true")
 
@@ -980,6 +947,7 @@ func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 	if c.SecureServing != nil && !c.SecureServing.DisableHTTP2 && c.GoawayChance > 0 {
 		handler = genericfilters.WithProbabilisticGoaway(handler, c.GoawayChance)
 	}
+	handler = genericapifilters.WithAuditAnnotations(handler, c.AuditBackend, c.AuditPolicyRuleEvaluator)
 	handler = genericapifilters.WithWarningRecorder(handler)
 	handler = genericapifilters.WithCacheControl(handler)
 	handler = genericfilters.WithHSTS(handler, c.HSTSDirectives)
@@ -996,7 +964,7 @@ func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 	handler = genericapifilters.WithRequestReceivedTimestamp(handler)
 	handler = genericapifilters.WithMuxAndDiscoveryComplete(handler, c.lifecycleSignals.MuxAndDiscoveryComplete.Signaled())
 	handler = genericfilters.WithPanicRecovery(handler, c.RequestInfoResolver)
-	handler = genericapifilters.WithAuditInit(handler)
+	handler = genericapifilters.WithAuditID(handler)
 	return handler
 }
 
@@ -1012,30 +980,18 @@ func installAPI(s *GenericAPIServer, c *Config) {
 		// so far, only logging related endpoints are considered valid to add for these debug flags.
 		routes.DebugFlags{}.Install(s.Handler.NonGoRestfulMux, "v", routes.StringFlagPutHandler(logs.GlogSetter))
 	}
-
 	if c.EnableMetrics {
 		if c.EnableProfiling {
 			routes.MetricsWithReset{}.Install(s.Handler.NonGoRestfulMux)
-			if utilfeature.DefaultFeatureGate.Enabled(features.ComponentSLIs) {
-				slis.SLIMetricsWithReset{}.Install(s.Handler.NonGoRestfulMux)
-			}
 		} else {
 			routes.DefaultMetrics{}.Install(s.Handler.NonGoRestfulMux)
-			if utilfeature.DefaultFeatureGate.Enabled(features.ComponentSLIs) {
-				slis.SLIMetrics{}.Install(s.Handler.NonGoRestfulMux)
-			}
 		}
 	}
 
 	routes.Version{Version: c.Version}.Install(s.Handler.GoRestfulContainer)
 
 	if c.EnableDiscovery {
-		if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.AggregatedDiscoveryEndpoint) {
-			wrapped := discoveryendpoint.WrapAggregatedDiscoveryToHandler(s.DiscoveryGroupManager, s.AggregatedDiscoveryGroupManager)
-			s.Handler.GoRestfulContainer.Add(wrapped.GenerateWebService("/apis", metav1.APIGroupList{}))
-		} else {
-			s.Handler.GoRestfulContainer.Add(s.DiscoveryGroupManager.WebService())
-		}
+		s.Handler.GoRestfulContainer.Add(s.DiscoveryGroupManager.WebService())
 	}
 	if c.FlowControl != nil && utilfeature.DefaultFeatureGate.Enabled(genericfeatures.APIPriorityAndFairness) {
 		c.FlowControl.Install(s.Handler.NonGoRestfulMux)
@@ -1100,6 +1056,11 @@ func AuthorizeClientBearerToken(loopback *restclient.Config, authn *Authenticati
 
 	tokenAuthenticator := authenticatorfactory.NewFromTokens(tokens, authn.APIAudiences)
 	authn.Authenticator = authenticatorunion.New(tokenAuthenticator, authn.Authenticator)
+
+	if !skipSystemMastersAuthorizer {
+		tokenAuthorizer := authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup)
+		authz.Authorizer = authorizerunion.New(tokenAuthorizer, authz.Authorizer)
+	}
 }
 
 type nullEventSink struct{}

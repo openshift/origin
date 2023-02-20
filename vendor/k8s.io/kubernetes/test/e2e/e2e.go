@@ -41,7 +41,6 @@ import (
 	commontest "k8s.io/kubernetes/test/e2e/common"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/daemonset"
-	e2edebug "k8s.io/kubernetes/test/e2e/framework/debug"
 	e2ekubectl "k8s.io/kubernetes/test/e2e/framework/kubectl"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
@@ -87,6 +86,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 
 var _ = ginkgo.SynchronizedAfterSuite(func() {
 	progressReporter.SetEndMsg()
+	CleanupSuite()
 }, func() {
 	AfterSuiteActions()
 })
@@ -97,18 +97,8 @@ var _ = ginkgo.SynchronizedAfterSuite(func() {
 // generated in this directory, and cluster logs will also be saved.
 // This function is called on each Ginkgo node in parallel mode.
 func RunE2ETests(t *testing.T) {
-	// InitLogs disables contextual logging, without a way to enable it again
-	// in the E2E test suite because it has no feature gates. It used to have a
-	// misleading --feature-gates parameter but that didn't do what users
-	// and developers expected (define which features the cluster supports)
-	// and therefore got removed.
-	//
-	// Because contextual logging is useful and should get tested, it gets
-	// re-enabled here unconditionally.
 	logs.InitLogs()
 	defer logs.FlushLogs()
-	klog.EnableContextualLogging(true)
-
 	progressReporter = e2ereporters.NewProgressReporter(framework.TestContext.ProgressReportURL)
 	gomega.RegisterFailHandler(framework.Fail)
 
@@ -225,7 +215,7 @@ func setupSuite() {
 	// In large clusters we may get to this point but still have a bunch
 	// of nodes without Routes created. Since this would make a node
 	// unschedulable, we need to wait until all of them are schedulable.
-	framework.ExpectNoError(e2enode.WaitForAllNodesSchedulable(c, framework.TestContext.NodeSchedulableTimeout))
+	framework.ExpectNoError(framework.WaitForAllNodesSchedulable(c, framework.TestContext.NodeSchedulableTimeout))
 
 	// If NumNodes is not specified then auto-detect how many are scheduleable and not tainted
 	if framework.TestContext.CloudConfig.NumNodes == framework.DefaultNumNodes {
@@ -244,7 +234,7 @@ func setupSuite() {
 	// wasting the whole run), we allow for some not-ready pods (with the
 	// number equal to the number of allowed not-ready nodes).
 	if err := e2epod.WaitForPodsRunningReady(c, metav1.NamespaceSystem, int32(framework.TestContext.MinStartupPods), int32(framework.TestContext.AllowedNotReadyNodes), podStartupTimeout, map[string]string{}); err != nil {
-		e2edebug.DumpAllNamespaceInfo(c, metav1.NamespaceSystem)
+		framework.DumpAllNamespaceInfo(c, metav1.NamespaceSystem)
 		e2ekubectl.LogFailedContainers(c, metav1.NamespaceSystem, framework.Logf)
 		framework.Failf("Error waiting for all pods to be running and ready: %v", err)
 	}
@@ -272,7 +262,7 @@ func setupSuite() {
 	}
 
 	if framework.TestContext.NodeKiller.Enabled {
-		nodeKiller := e2enode.NewNodeKiller(framework.TestContext.NodeKiller, c, framework.TestContext.Provider)
+		nodeKiller := framework.NewNodeKiller(framework.TestContext.NodeKiller, c, framework.TestContext.Provider)
 		go nodeKiller.Run(framework.TestContext.NodeKiller.NodeKillerStopCh)
 	}
 }

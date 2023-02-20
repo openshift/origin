@@ -202,9 +202,6 @@ type DelegatingAuthenticationOptions struct {
 
 	// CustomRoundTripperFn allows for specifying a middleware function for custom HTTP behaviour for the authentication webhook client.
 	CustomRoundTripperFn transport.WrapperFunc
-
-	// DisableAnonymous gives user an option to disable Anonymous authentication.
-	DisableAnonymous bool
 }
 
 func NewDelegatingAuthenticationOptions() *DelegatingAuthenticationOptions {
@@ -286,7 +283,7 @@ func (s *DelegatingAuthenticationOptions) ApplyTo(authenticationInfo *server.Aut
 	}
 
 	cfg := authenticatorfactory.DelegatingAuthenticatorConfig{
-		Anonymous:                !s.DisableAnonymous,
+		Anonymous:                true,
 		CacheTTL:                 s.CacheTTL,
 		WebhookRetryBackoff:      s.WebhookRetryBackoff,
 		TokenAccessReviewTimeout: s.TokenRequestTimeout,

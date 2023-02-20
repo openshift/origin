@@ -44,12 +44,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: dockerImageManifestMediaType
       type:
         scalar: string
-    - name: dockerImageManifests
-      type:
-        list:
-          elementType:
-            namedType: com.github.openshift.api.image.v1.ImageManifest
-          elementRelationship: atomic
     - name: dockerImageMetadata
       type:
         namedType: __untyped_atomic_
@@ -103,32 +97,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: boolean
       default: false
-- name: com.github.openshift.api.image.v1.ImageManifest
-  map:
-    fields:
-    - name: architecture
-      type:
-        scalar: string
-      default: ""
-    - name: digest
-      type:
-        scalar: string
-      default: ""
-    - name: manifestSize
-      type:
-        scalar: numeric
-      default: 0
-    - name: mediaType
-      type:
-        scalar: string
-      default: ""
-    - name: os
-      type:
-        scalar: string
-      default: ""
-    - name: variant
-      type:
-        scalar: string
 - name: com.github.openshift.api.image.v1.ImageSignature
   map:
     fields:
@@ -365,9 +333,6 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: com.github.openshift.api.image.v1.TagImportPolicy
   map:
     fields:
-    - name: importMode
-      type:
-        scalar: string
     - name: insecure
       type:
         scalar: boolean

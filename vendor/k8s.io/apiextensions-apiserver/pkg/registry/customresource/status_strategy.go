@@ -22,7 +22,6 @@ import (
 	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
 
 	"k8s.io/apiextensions-apiserver/pkg/apiserver/schema/cel"
-	structurallisttype "k8s.io/apiextensions-apiserver/pkg/apiserver/schema/listtype"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -92,28 +91,18 @@ func (a statusStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Obj
 		return errs
 	}
 	uOld, ok := old.(*unstructured.Unstructured)
-	var oldObject map[string]interface{}
 	if !ok {
-		oldObject = nil
-	} else {
-		oldObject = uOld.Object
+		uOld = nil // as a safety precaution, continue with validation if uOld self cannot be cast
 	}
 
 	v := obj.GetObjectKind().GroupVersionKind().Version
-
-	// ratcheting validation of x-kubernetes-list-type value map and set
-	if newErrs := structurallisttype.ValidateListSetsAndMaps(nil, a.structuralSchemas[v], uNew.Object); len(newErrs) > 0 {
-		if oldErrs := structurallisttype.ValidateListSetsAndMaps(nil, a.structuralSchemas[v], oldObject); len(oldErrs) == 0 {
-			errs = append(errs, newErrs...)
-		}
-	}
 
 	// validate x-kubernetes-validations rules
 	if celValidator, ok := a.customResourceStrategy.celValidators[v]; ok {
 		if has, err := hasBlockingErr(errs); has {
 			errs = append(errs, err)
 		} else {
-			err, _ := celValidator.Validate(ctx, nil, a.customResourceStrategy.structuralSchemas[v], uNew.Object, oldObject, cel.RuntimeCELCostBudget)
+			err, _ := celValidator.Validate(ctx, nil, a.customResourceStrategy.structuralSchemas[v], uNew.Object, uOld.Object, cel.RuntimeCELCostBudget)
 			errs = append(errs, err...)
 		}
 	}

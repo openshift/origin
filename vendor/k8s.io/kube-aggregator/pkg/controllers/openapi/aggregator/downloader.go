@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"strings"
 
+	utiljson "k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -78,7 +79,7 @@ func (s *Downloader) Download(handler http.Handler, etag string) (returnSpec *sp
 		return nil, "", http.StatusNotFound, nil
 	case http.StatusOK:
 		openAPISpec := &spec.Swagger{}
-		if err := openAPISpec.UnmarshalJSON(writer.data); err != nil {
+		if err := utiljson.Unmarshal(writer.data, openAPISpec); err != nil {
 			return nil, "", 0, err
 		}
 		newEtag = writer.Header().Get("Etag")

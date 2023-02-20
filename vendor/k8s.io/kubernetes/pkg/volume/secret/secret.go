@@ -125,7 +125,7 @@ func (plugin *secretPlugin) NewUnmounter(volName string, podUID types.UID) (volu
 	}, nil
 }
 
-func (plugin *secretPlugin) ConstructVolumeSpec(volName, mountPath string) (volume.ReconstructedVolume, error) {
+func (plugin *secretPlugin) ConstructVolumeSpec(volName, mountPath string) (*volume.Spec, error) {
 	secretVolume := &v1.Volume{
 		Name: volName,
 		VolumeSource: v1.VolumeSource{
@@ -134,9 +134,7 @@ func (plugin *secretPlugin) ConstructVolumeSpec(volName, mountPath string) (volu
 			},
 		},
 	}
-	return volume.ReconstructedVolume{
-		Spec: volume.NewSpecFromVolume(secretVolume),
-	}, nil
+	return volume.NewSpecFromVolume(secretVolume), nil
 }
 
 type secretVolume struct {

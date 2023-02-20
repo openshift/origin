@@ -35,7 +35,6 @@ import (
 	"k8s.io/component-helpers/storage/ephemeral"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
-	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
@@ -112,9 +111,10 @@ func (s *snapshottableTestSuite) DefineTests(driver storageframework.TestDriver,
 
 	ginkgo.Describe("volume snapshot controller", func() {
 		var (
-			err          error
-			config       *storageframework.PerTestConfig
-			cleanupSteps []func()
+			err           error
+			config        *storageframework.PerTestConfig
+			driverCleanup func()
+			cleanupSteps  []func()
 
 			cs                  clientset.Interface
 			dc                  dynamic.Interface
@@ -125,7 +125,7 @@ func (s *snapshottableTestSuite) DefineTests(driver storageframework.TestDriver,
 			claimSize           string
 			originalMntTestData string
 		)
-		init := func(ctx context.Context) {
+		init := func() {
 			sDriver, _ = driver.(storageframework.SnapshottableTestDriver)
 			dDriver, _ = driver.(storageframework.DynamicPVTestDriver)
 			cleanupSteps = make([]func(), 0)
@@ -134,7 +134,8 @@ func (s *snapshottableTestSuite) DefineTests(driver storageframework.TestDriver,
 			dc = f.DynamicClient
 
 			// Now do the more expensive test initialization.
-			config = driver.PrepareTest(f)
+			config, driverCleanup = driver.PrepareTest(f)
+			cleanupSteps = append(cleanupSteps, driverCleanup)
 
 			cleanupSteps = append(cleanupSteps, func() {
 				framework.ExpectNoError(volumeResource.CleanupResource())
@@ -147,7 +148,7 @@ func (s *snapshottableTestSuite) DefineTests(driver storageframework.TestDriver,
 			// sync is available in the Linux and Windows versions of agnhost.
 			command := fmt.Sprintf("echo '%s' > %s; sync", originalMntTestData, datapath)
 
-			pod = StartInPodWithVolumeSource(ctx, cs, *volumeResource.VolSource, f.Namespace.Name, "pvc-snapshottable-tester", command, config.ClientNodeSelection)
+			pod = StartInPodWithVolumeSource(cs, *volumeResource.VolSource, f.Namespace.Name, "pvc-snapshottable-tester", command, config.ClientNodeSelection)
 
 			// At this point a pod is created with a PVC. How to proceed depends on which test is running.
 		}
@@ -172,11 +173,11 @@ func (s *snapshottableTestSuite) DefineTests(driver storageframework.TestDriver,
 		})
 
 		ginkgo.Context("", func() {
-			ginkgo.It("should check snapshot fields, check restore correctly works, check deletion (ephemeral)", func(ctx context.Context) {
+			ginkgo.It("should check snapshot fields, check restore correctly works, check deletion (ephemeral)", func() {
 				if pattern.VolType != storageframework.GenericEphemeralVolume {
 					e2eskipper.Skipf("volume type %q is not ephemeral", pattern.VolType)
 				}
-				init(ctx)
+				init()
 
 				// delete the pod at the end of the test
 				cleanupSteps = append(cleanupSteps, func() {
@@ -251,14 +252,14 @@ func (s *snapshottableTestSuite) DefineTests(driver storageframework.TestDriver,
 					},
 				}
 
-				restoredPod = StartInPodWithVolumeSource(ctx, cs, volSrc, restoredPVC.Namespace, "restored-pvc-tester", "sleep 300", config.ClientNodeSelection)
+				restoredPod = StartInPodWithVolumeSource(cs, volSrc, restoredPVC.Namespace, "restored-pvc-tester", "sleep 300", config.ClientNodeSelection)
 				cleanupSteps = append(cleanupSteps, func() {
-					StopPod(ctx, cs, restoredPod)
+					StopPod(cs, restoredPod)
 				})
 				framework.ExpectNoError(e2epod.WaitTimeoutForPodRunningInNamespace(cs, restoredPod.Name, restoredPod.Namespace, f.Timeouts.PodStartSlow))
 				if pattern.VolType != storageframework.GenericEphemeralVolume {
 					commands := e2evolume.GenerateReadFileCmd(datapath)
-					_, err = e2eoutput.LookForStringInPodExec(restoredPod.Namespace, restoredPod.Name, commands, originalMntTestData, time.Minute)
+					_, err = framework.LookForStringInPodExec(restoredPod.Namespace, restoredPod.Name, commands, originalMntTestData, time.Minute)
 					framework.ExpectNoError(err)
 				}
 
@@ -273,11 +274,11 @@ func (s *snapshottableTestSuite) DefineTests(driver storageframework.TestDriver,
 				deleteVolumeSnapshot(f, dc, sr, pattern, vscontent)
 			})
 
-			ginkgo.It("should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)", func(ctx context.Context) {
+			ginkgo.It("should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)", func() {
 				if pattern.VolType == storageframework.GenericEphemeralVolume {
 					e2eskipper.Skipf("volume type %q is ephemeral", pattern.VolType)
 				}
-				init(ctx)
+				init()
 
 				pvc = volumeResource.Pvc
 				sc = volumeResource.Sc
@@ -305,7 +306,7 @@ func (s *snapshottableTestSuite) DefineTests(driver storageframework.TestDriver,
 
 				// Delete the pod to force NodeUnpublishVolume (unlike the ephemeral case where the pod is deleted at the end of the test).
 				ginkgo.By("[init] deleting the pod")
-				StopPod(ctx, cs, pod)
+				StopPod(cs, pod)
 
 				// At this point we know that:
 				// - a pod was created with a PV that's supposed to have data
@@ -372,7 +373,7 @@ func (s *snapshottableTestSuite) DefineTests(driver storageframework.TestDriver,
 				// After writing data to a file `sync` flushes the data from memory to disk.
 				// sync is available in the Linux and Windows versions of agnhost.
 				command := fmt.Sprintf("echo '%s' > %s; sync", modifiedMntTestData, datapath)
-				RunInPodWithVolume(ctx, cs, f.Timeouts, pvc.Namespace, pvc.Name, "pvc-snapshottable-data-tester", command, config.ClientNodeSelection)
+				RunInPodWithVolume(cs, f.Timeouts, pvc.Namespace, pvc.Name, "pvc-snapshottable-data-tester", command, config.ClientNodeSelection)
 
 				ginkgo.By("creating a pvc from the snapshot")
 				claimSize = pvc.Spec.Resources.Requests.Storage().String()
@@ -401,13 +402,13 @@ func (s *snapshottableTestSuite) DefineTests(driver storageframework.TestDriver,
 				})
 
 				ginkgo.By("starting a pod to use the snapshot")
-				restoredPod = StartInPodWithVolume(ctx, cs, restoredPVC.Namespace, restoredPVC.Name, "restored-pvc-tester", "sleep 300", config.ClientNodeSelection)
+				restoredPod = StartInPodWithVolume(cs, restoredPVC.Namespace, restoredPVC.Name, "restored-pvc-tester", "sleep 300", config.ClientNodeSelection)
 				cleanupSteps = append(cleanupSteps, func() {
-					StopPod(ctx, cs, restoredPod)
+					StopPod(cs, restoredPod)
 				})
 				framework.ExpectNoError(e2epod.WaitTimeoutForPodRunningInNamespace(cs, restoredPod.Name, restoredPod.Namespace, f.Timeouts.PodStartSlow))
 				commands := e2evolume.GenerateReadFileCmd(datapath)
-				_, err = e2eoutput.LookForStringInPodExec(restoredPod.Namespace, restoredPod.Name, commands, originalMntTestData, time.Minute)
+				_, err = framework.LookForStringInPodExec(restoredPod.Namespace, restoredPod.Name, commands, originalMntTestData, time.Minute)
 				framework.ExpectNoError(err)
 
 				ginkgo.By("should delete the VolumeSnapshotContent according to its deletion policy")

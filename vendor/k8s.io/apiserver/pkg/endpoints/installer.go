@@ -26,7 +26,6 @@ import (
 	"unicode"
 
 	restful "github.com/emicklei/go-restful/v3"
-	apidiscoveryv2beta1 "k8s.io/api/apidiscovery/v2beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -67,91 +66,6 @@ type action struct {
 	Params        []*restful.Parameter // List of parameters associated with the action.
 	Namer         handlers.ScopeNamer
 	AllNamespaces bool // true iff the action is namespaced but works on aggregate result for all namespaces
-}
-
-func ConvertGroupVersionIntoToDiscovery(list []metav1.APIResource) ([]apidiscoveryv2beta1.APIResourceDiscovery, error) {
-	var apiResourceList []apidiscoveryv2beta1.APIResourceDiscovery
-	parentResources := make(map[string]int)
-
-	// Loop through all top-level resources
-	for _, r := range list {
-		if strings.Contains(r.Name, "/") {
-			// Skip subresources for now so we can get the list of resources
-			continue
-		}
-
-		var scope apidiscoveryv2beta1.ResourceScope
-		if r.Namespaced {
-			scope = apidiscoveryv2beta1.ScopeNamespace
-		} else {
-			scope = apidiscoveryv2beta1.ScopeCluster
-		}
-
-		resource := apidiscoveryv2beta1.APIResourceDiscovery{
-			Resource: r.Name,
-			Scope:    scope,
-			ResponseKind: &metav1.GroupVersionKind{
-				Group:   r.Group,
-				Version: r.Version,
-				Kind:    r.Kind,
-			},
-			Verbs:            r.Verbs,
-			ShortNames:       r.ShortNames,
-			Categories:       r.Categories,
-			SingularResource: r.SingularName,
-		}
-		apiResourceList = append(apiResourceList, resource)
-		parentResources[r.Name] = len(apiResourceList) - 1
-	}
-
-	// Loop through all subresources
-	for _, r := range list {
-		// Split resource name and subresource name
-		split := strings.SplitN(r.Name, "/", 2)
-
-		if len(split) != 2 {
-			// Skip parent resources
-			continue
-		}
-
-		var scope apidiscoveryv2beta1.ResourceScope
-		if r.Namespaced {
-			scope = apidiscoveryv2beta1.ScopeNamespace
-		} else {
-			scope = apidiscoveryv2beta1.ScopeCluster
-		}
-
-		parentidx, exists := parentResources[split[0]]
-		if !exists {
-			// If a subresource exists without a parent, create a parent
-			apiResourceList = append(apiResourceList, apidiscoveryv2beta1.APIResourceDiscovery{
-				Resource: split[0],
-				Scope:    scope,
-			})
-			parentidx = len(apiResourceList) - 1
-			parentResources[split[0]] = parentidx
-		}
-
-		if apiResourceList[parentidx].Scope != scope {
-			return nil, fmt.Errorf("Error: Parent %s (scope: %s) and subresource %s (scope: %s) scope do not match", split[0], apiResourceList[parentidx].Scope, split[1], scope)
-			//
-		}
-
-		subresource := apidiscoveryv2beta1.APISubresourceDiscovery{
-			Subresource: split[1],
-			Verbs:       r.Verbs,
-		}
-		if r.Kind != "" {
-			subresource.ResponseKind = &metav1.GroupVersionKind{
-				Group:   r.Group,
-				Version: r.Version,
-				Kind:    r.Kind,
-			}
-		}
-		apiResourceList[parentidx].Subresources = append(apiResourceList[parentidx].Subresources, subresource)
-	}
-
-	return apiResourceList, nil
 }
 
 // An interface to see if one storage supports override its default verb for monitoring
@@ -346,7 +260,7 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 	}
 
 	var resetFields map[fieldpath.APIVersion]*fieldpath.Set
-	if a.group.OpenAPIModels != nil {
+	if a.group.OpenAPIModels != nil && utilfeature.DefaultFeatureGate.Enabled(features.ServerSideApply) {
 		if resetFieldsStrategy, isResetFieldsStrategy := storage.(rest.ResetFieldsStrategy); isResetFieldsStrategy {
 			resetFields = resetFieldsStrategy.GetResetFields()
 		}
@@ -685,7 +599,7 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 	if a.group.MetaGroupVersion != nil {
 		reqScope.MetaGroupVersion = *a.group.MetaGroupVersion
 	}
-	if a.group.OpenAPIModels != nil {
+	if a.group.OpenAPIModels != nil && utilfeature.DefaultFeatureGate.Enabled(features.ServerSideApply) {
 		reqScope.FieldManager, err = fieldmanager.NewDefaultFieldManager(
 			a.group.TypeConverter,
 			a.group.UnsafeConvertor,
@@ -871,7 +785,9 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 				string(types.JSONPatchType),
 				string(types.MergePatchType),
 				string(types.StrategicMergePatchType),
-				string(types.ApplyPatchType),
+			}
+			if utilfeature.DefaultFeatureGate.Enabled(features.ServerSideApply) {
+				supportedTypes = append(supportedTypes, string(types.ApplyPatchType))
 			}
 			handler := metrics.InstrumentRouteFunc(action.Verb, group, version, resource, subresource, requestScope, metrics.APIServerComponent, deprecated, removedRelease, restfulPatchResource(patcher, reqScope, admit, supportedTypes))
 			handler = utilwarning.AddWarningsHandler(handler, warnings)

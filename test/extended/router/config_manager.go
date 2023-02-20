@@ -15,7 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
-	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 	utilpointer "k8s.io/utils/pointer"
 
 	routev1 "github.com/openshift/api/route/v1"
@@ -391,7 +391,7 @@ http {
 					Containers: []corev1.Container{
 						{
 							Name:  "test",
-							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.43"),
+							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.40"),
 							Args:  []string{"netexec"},
 							Ports: []corev1.ContainerPort{
 								{
@@ -418,7 +418,7 @@ http {
 					Containers: []corev1.Container{
 						{
 							Name:    "serve",
-							Image:   image.LocationFor("registry.k8s.io/e2e-test-images/nginx:1.15-4"),
+							Image:   image.LocationFor("registry.k8s.io/e2e-test-images/nginx:1.15-2"),
 							Command: []string{"/usr/sbin/nginx"},
 							Args:    []string{"-c", "/etc/nginx/nginx.conf"},
 							Ports: []corev1.ContainerPort{
@@ -598,7 +598,7 @@ func waitForRouteToRespond(ns, execPodName, proto, host, abspath, ipaddr string,
 			sleep 1
 		done
 		`, timeoutSeconds, host, port, ipaddr, uri)
-	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
+	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
 		return fmt.Errorf("host command failed: %v\n%s", err, output)
 	}

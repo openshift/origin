@@ -22,7 +22,6 @@ import (
 	"os"
 	"reflect"
 	"strconv"
-	"sync"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -34,41 +33,42 @@ import (
 	"k8s.io/klog/v2"
 )
 
+func determineAvoidNoopTimestampUpdatesEnabled() bool {
+	if avoidNoopTimestampUpdatesString, exists := os.LookupEnv("KUBE_APISERVER_AVOID_NOOP_SSA_TIMESTAMP_UPDATES"); exists {
+		if ret, err := strconv.ParseBool(avoidNoopTimestampUpdatesString); err == nil {
+			return ret
+		} else {
+			klog.Errorf("failed to parse envar KUBE_APISERVER_AVOID_NOOP_SSA_TIMESTAMP_UPDATES: %v", err)
+		}
+	}
+
+	// enabled by default
+	return true
+}
+
 var (
-	avoidTimestampEqualities     conversion.Equalities
-	initAvoidTimestampEqualities sync.Once
+	avoidNoopTimestampUpdatesEnabled = determineAvoidNoopTimestampUpdatesEnabled()
 )
 
-func getAvoidTimestampEqualities() conversion.Equalities {
-	initAvoidTimestampEqualities.Do(func() {
-		if avoidNoopTimestampUpdatesString, exists := os.LookupEnv("KUBE_APISERVER_AVOID_NOOP_SSA_TIMESTAMP_UPDATES"); exists {
-			if ret, err := strconv.ParseBool(avoidNoopTimestampUpdatesString); err == nil && !ret {
-				// leave avoidTimestampEqualities empty.
-				return
-			} else {
-				klog.Errorf("failed to parse envar KUBE_APISERVER_AVOID_NOOP_SSA_TIMESTAMP_UPDATES: %v", err)
-			}
-		}
+var avoidTimestampEqualities = func() conversion.Equalities {
+	var eqs = equality.Semantic.Copy()
 
-		var eqs = equality.Semantic.Copy()
-		err := eqs.AddFunc(
-			func(a, b metav1.ManagedFieldsEntry) bool {
-				// Two objects' managed fields are equivalent if, ignoring timestamp,
-				//	the objects are deeply equal.
-				a.Time = nil
-				b.Time = nil
-				return reflect.DeepEqual(a, b)
-			},
-		)
+	err := eqs.AddFunc(
+		func(a, b metav1.ManagedFieldsEntry) bool {
+			// Two objects' managed fields are equivalent if, ignoring timestamp,
+			//	the objects are deeply equal.
+			a.Time = nil
+			b.Time = nil
+			return reflect.DeepEqual(a, b)
+		},
+	)
 
-		if err != nil {
-			panic(fmt.Errorf("failed to instantiate semantic equalities: %w", err))
-		}
+	if err != nil {
+		panic(err)
+	}
 
-		avoidTimestampEqualities = eqs
-	})
-	return avoidTimestampEqualities
-}
+	return eqs
+}()
 
 // IgnoreManagedFieldsTimestampsTransformer reverts timestamp updates
 // if the non-managed parts of the object are equivalent
@@ -77,8 +77,7 @@ func IgnoreManagedFieldsTimestampsTransformer(
 	newObj runtime.Object,
 	oldObj runtime.Object,
 ) (res runtime.Object, err error) {
-	equalities := getAvoidTimestampEqualities()
-	if len(equalities.Equalities) == 0 {
+	if !avoidNoopTimestampUpdatesEnabled {
 		return newObj, nil
 	}
 
@@ -155,11 +154,11 @@ func IgnoreManagedFieldsTimestampsTransformer(
 	// This condition ensures the managed fields are always compared first. If
 	//	this check fails, the if statement will short circuit. If the check
 	// 	succeeds the slow path is taken which compares entire objects.
-	if !equalities.DeepEqualWithNilDifferentFromEmpty(oldManagedFields, newManagedFields) {
+	if !avoidTimestampEqualities.DeepEqualWithNilDifferentFromEmpty(oldManagedFields, newManagedFields) {
 		return newObj, nil
 	}
 
-	if equalities.DeepEqualWithNilDifferentFromEmpty(newObj, oldObj) {
+	if avoidTimestampEqualities.DeepEqualWithNilDifferentFromEmpty(newObj, oldObj) {
 		// Remove any changed timestamps, so that timestamp is not the only
 		// change seen by etcd.
 		//

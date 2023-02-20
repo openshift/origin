@@ -50,7 +50,9 @@ var _ = utils.SIGDescribe("Mounted volume expand [Feature:StorageProvider]", fun
 		ns                string
 		pvc               *v1.PersistentVolumeClaim
 		sc                *storagev1.StorageClass
+		cleanStorageClass func()
 		nodeName          string
+		isNodeLabeled     bool
 		nodeKeyValueLabel map[string]string
 		nodeLabelValue    string
 		nodeKey           string
@@ -58,21 +60,25 @@ var _ = utils.SIGDescribe("Mounted volume expand [Feature:StorageProvider]", fun
 
 	f := framework.NewDefaultFramework("mounted-volume-expand")
 	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
-	ginkgo.BeforeEach(func(ctx context.Context) {
+	ginkgo.BeforeEach(func() {
 		e2eskipper.SkipUnlessProviderIs("aws", "gce")
 		c = f.ClientSet
 		ns = f.Namespace.Name
-		framework.ExpectNoError(e2enode.WaitForAllNodesSchedulable(c, framework.TestContext.NodeSchedulableTimeout))
+		framework.ExpectNoError(framework.WaitForAllNodesSchedulable(c, framework.TestContext.NodeSchedulableTimeout))
 
 		node, err := e2enode.GetRandomReadySchedulableNode(f.ClientSet)
 		framework.ExpectNoError(err)
 		nodeName = node.Name
 
-		nodeKey = "mounted_volume_expand_" + ns
-		nodeLabelValue = ns
-		nodeKeyValueLabel = map[string]string{nodeKey: nodeLabelValue}
-		e2enode.AddOrUpdateLabelOnNode(c, nodeName, nodeKey, nodeLabelValue)
-		ginkgo.DeferCleanup(e2enode.RemoveLabelOffNode, c, nodeName, nodeKey)
+		nodeKey = "mounted_volume_expand"
+
+		if !isNodeLabeled {
+			nodeLabelValue = ns
+			nodeKeyValueLabel = make(map[string]string)
+			nodeKeyValueLabel[nodeKey] = nodeLabelValue
+			framework.AddOrUpdateLabelOnNode(c, nodeName, nodeKey, nodeLabelValue)
+			isNodeLabeled = true
+		}
 
 		test := testsuites.StorageClassTest{
 			Name:                 "default",
@@ -83,10 +89,8 @@ var _ = utils.SIGDescribe("Mounted volume expand [Feature:StorageProvider]", fun
 			Parameters:           make(map[string]string),
 		}
 
-		sc = testsuites.SetupStorageClass(ctx, c, newStorageClass(test, ns, "resizing"))
-		if !*sc.AllowVolumeExpansion {
-			framework.Failf("Class %s does not allow volume expansion", sc.Name)
-		}
+		sc, cleanStorageClass = testsuites.SetupStorageClass(c, newStorageClass(test, ns, "resizing"))
+		framework.ExpectEqual(*sc.AllowVolumeExpansion, true)
 
 		pvc = e2epv.MakePersistentVolumeClaim(e2epv.PersistentVolumeClaimConfig{
 			ClaimSize:        test.ClaimSize,
@@ -95,13 +99,26 @@ var _ = utils.SIGDescribe("Mounted volume expand [Feature:StorageProvider]", fun
 		}, ns)
 		pvc, err = c.CoreV1().PersistentVolumeClaims(pvc.Namespace).Create(context.TODO(), pvc, metav1.CreateOptions{})
 		framework.ExpectNoError(err, "Error creating pvc")
-		ginkgo.DeferCleanup(func() {
-			framework.Logf("AfterEach: Cleaning up resources for mounted volume resize")
+	})
 
+	framework.AddCleanupAction(func() {
+		if len(nodeLabelValue) > 0 {
+			framework.RemoveLabelOffNode(c, nodeName, nodeKey)
+		}
+	})
+
+	ginkgo.AfterEach(func() {
+		framework.Logf("AfterEach: Cleaning up resources for mounted volume resize")
+
+		if c != nil {
 			if errs := e2epv.PVPVCCleanup(c, ns, nil, pvc); len(errs) > 0 {
 				framework.Failf("AfterEach: Failed to delete PVC and/or PV. Errors: %v", utilerrors.NewAggregate(errs))
 			}
-		})
+			pvc, nodeName, isNodeLabeled, nodeLabelValue = nil, "", false, ""
+			nodeKeyValueLabel = make(map[string]string)
+		}
+
+		cleanStorageClass()
 	})
 
 	ginkgo.It("Should verify mounted devices can be resized", func() {

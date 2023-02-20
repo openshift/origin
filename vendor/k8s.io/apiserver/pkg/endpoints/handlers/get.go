@@ -25,42 +25,42 @@ import (
 	"strings"
 	"time"
 
-	"go.opentelemetry.io/otel/attribute"
+	metainternalversionvalidation "k8s.io/apimachinery/pkg/apis/meta/internalversion/validation"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"k8s.io/klog/v2"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metainternalversionscheme "k8s.io/apimachinery/pkg/apis/meta/internalversion/scheme"
-	metainternalversionvalidation "k8s.io/apimachinery/pkg/apis/meta/internalversion/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/endpoints/handlers/negotiation"
 	"k8s.io/apiserver/pkg/endpoints/metrics"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/component-base/tracing"
-	"k8s.io/klog/v2"
+	utiltrace "k8s.io/utils/trace"
 )
 
 // getterFunc performs a get request with the given context and object name. The request
 // may be used to deserialize an options object to pass to the getter.
-type getterFunc func(ctx context.Context, name string, req *http.Request) (runtime.Object, error)
+type getterFunc func(ctx context.Context, name string, req *http.Request, trace *utiltrace.Trace) (runtime.Object, error)
 
 // getResourceHandler is an HTTP handler function for get requests. It delegates to the
 // passed-in getterFunc to perform the actual get.
 func getResourceHandler(scope *RequestScope, getter getterFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		ctx := req.Context()
-		ctx, span := tracing.Start(ctx, "Get", traceFields(req)...)
-		defer span.End(500 * time.Millisecond)
+		trace := utiltrace.New("Get", traceFields(req)...)
+		defer trace.LogIfLong(500 * time.Millisecond)
 
 		namespace, name, err := scope.Namer.Name(req)
 		if err != nil {
 			scope.err(err, w, req)
 			return
 		}
+		ctx := req.Context()
 		ctx = request.WithNamespace(ctx, namespace)
 
 		outputMediaType, _, err := negotiation.NegotiateOutputMediaType(req, scope.Serializer, scope)
@@ -69,22 +69,22 @@ func getResourceHandler(scope *RequestScope, getter getterFunc) http.HandlerFunc
 			return
 		}
 
-		result, err := getter(ctx, name, req)
+		result, err := getter(ctx, name, req, trace)
 		if err != nil {
 			scope.err(err, w, req)
 			return
 		}
 
-		span.AddEvent("About to write a response")
-		defer span.AddEvent("Writing http response done")
-		transformResponseObject(ctx, scope, req, w, http.StatusOK, outputMediaType, result)
+		trace.Step("About to write a response")
+		defer trace.Step("Writing http response done")
+		transformResponseObject(ctx, scope, trace, req, w, http.StatusOK, outputMediaType, result)
 	}
 }
 
 // GetResource returns a function that handles retrieving a single resource from a rest.Storage object.
 func GetResource(r rest.Getter, scope *RequestScope) http.HandlerFunc {
 	return getResourceHandler(scope,
-		func(ctx context.Context, name string, req *http.Request) (runtime.Object, error) {
+		func(ctx context.Context, name string, req *http.Request, trace *utiltrace.Trace) (runtime.Object, error) {
 			// check for export
 			options := metav1.GetOptions{}
 			if values := req.URL.Query(); len(values) > 0 {
@@ -104,7 +104,9 @@ func GetResource(r rest.Getter, scope *RequestScope) http.HandlerFunc {
 					return nil, err
 				}
 			}
-			tracing.SpanFromContext(ctx).AddEvent("About to Get from storage")
+			if trace != nil {
+				trace.Step("About to Get from storage")
+			}
 			return r.Get(ctx, name, &options)
 		})
 }
@@ -112,15 +114,16 @@ func GetResource(r rest.Getter, scope *RequestScope) http.HandlerFunc {
 // GetResourceWithOptions returns a function that handles retrieving a single resource from a rest.Storage object.
 func GetResourceWithOptions(r rest.GetterWithOptions, scope *RequestScope, isSubresource bool) http.HandlerFunc {
 	return getResourceHandler(scope,
-		func(ctx context.Context, name string, req *http.Request) (runtime.Object, error) {
+		func(ctx context.Context, name string, req *http.Request, trace *utiltrace.Trace) (runtime.Object, error) {
 			opts, subpath, subpathKey := r.NewGetOptions()
-			span := tracing.SpanFromContext(ctx)
-			span.AddEvent("About to process Get options")
+			trace.Step("About to process Get options")
 			if err := getRequestOptions(req, scope, opts, subpath, subpathKey, isSubresource); err != nil {
 				err = errors.NewBadRequest(err.Error())
 				return nil, err
 			}
-			span.AddEvent("About to Get from storage")
+			if trace != nil {
+				trace.Step("About to Get from storage")
+			}
 			return r.Get(ctx, name, opts)
 		})
 }
@@ -165,9 +168,8 @@ func getRequestOptions(req *http.Request, scope *RequestScope, into runtime.Obje
 
 func ListResource(r rest.Lister, rw rest.Watcher, scope *RequestScope, forceWatch bool, minRequestTimeout time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		ctx := req.Context()
 		// For performance tracking purposes.
-		ctx, span := tracing.Start(ctx, "List", traceFields(req)...)
+		trace := utiltrace.New("List", traceFields(req)...)
 
 		namespace, err := scope.Namer.Namespace(req)
 		if err != nil {
@@ -183,6 +185,7 @@ func ListResource(r rest.Lister, rw rest.Watcher, scope *RequestScope, forceWatc
 			hasName = false
 		}
 
+		ctx := req.Context()
 		ctx = request.WithNamespace(ctx, namespace)
 
 		outputMediaType, _, err := negotiation.NegotiateOutputMediaType(req, scope.Serializer, scope)
@@ -270,15 +273,15 @@ func ListResource(r rest.Lister, rw rest.Watcher, scope *RequestScope, forceWatc
 		}
 
 		// Log only long List requests (ignore Watch).
-		defer span.End(500 * time.Millisecond)
-		span.AddEvent("About to List from storage")
+		defer trace.LogIfLong(500 * time.Millisecond)
+		trace.Step("About to List from storage")
 		result, err := r.List(ctx, &opts)
 		if err != nil {
 			scope.err(err, w, req)
 			return
 		}
-		span.AddEvent("Listing from storage done")
-		defer span.AddEvent("Writing http response done", attribute.Int("count", meta.LenList(result)))
-		transformResponseObject(ctx, scope, req, w, http.StatusOK, outputMediaType, result)
+		trace.Step("Listing from storage done")
+		defer trace.Step("Writing http response done", utiltrace.Field{"count", meta.LenList(result)})
+		transformResponseObject(ctx, scope, trace, req, w, http.StatusOK, outputMediaType, result)
 	}
 }

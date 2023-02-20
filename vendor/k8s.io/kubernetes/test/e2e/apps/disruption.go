@@ -19,10 +19,9 @@ package apps
 import (
 	"context"
 	"fmt"
+	"github.com/onsi/gomega"
 	"strings"
 	"time"
-
-	"github.com/onsi/gomega"
 
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/onsi/ginkgo/v2"
