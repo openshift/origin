@@ -18,8 +18,10 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+var ReMatchFirstQuote = regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)
+
 func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Interface) {
-	reMatchFirstQuote := regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)
+	ReMatchFirstQuote := regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)
 
 	// filter out events written "now" but with significantly older start times (events
 	// created in test jobs are the most common)
@@ -52,7 +54,7 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 				return nil
 			}
 			if processedEventUIDs[event.UID] != event.ResourceVersion {
-				recordAddOrUpdateEvent(ctx, m, client, reMatchFirstQuote, significantlyBeforeNow, event)
+				RecordAddOrUpdateEvent(ctx, m, client, ReMatchFirstQuote, significantlyBeforeNow, event, duplicateevents.DuplicateEventThreshold)
 				processedEventUIDs[event.UID] = event.ResourceVersion
 			}
 			return nil
@@ -63,7 +65,7 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 				return nil
 			}
 			if processedEventUIDs[event.UID] != event.ResourceVersion {
-				recordAddOrUpdateEvent(ctx, m, client, reMatchFirstQuote, significantlyBeforeNow, event)
+				RecordAddOrUpdateEvent(ctx, m, client, ReMatchFirstQuote, significantlyBeforeNow, event, duplicateevents.DuplicateEventThreshold)
 				processedEventUIDs[event.UID] = event.ResourceVersion
 			}
 			return nil
@@ -127,14 +129,19 @@ func checkAllowedRepeatedEventOKFns(event monitorapi.EventInterval, times int32)
 	return false
 }
 
-func recordAddOrUpdateEvent(
+func RecordAddOrUpdateEvent(
 	ctx context.Context,
 	m Recorder,
 	client kubernetes.Interface,
 	reMatchFirstQuote *regexp.Regexp,
 	significantlyBeforeNow time.Time,
-	obj *corev1.Event) {
+	obj *corev1.Event, threshold int) {
 
+	if m == nil {
+		// If the recorder is not set, we can't do anything.
+		fmt.Println("RecordAddOrUpdateEvent: recorder is nil")
+		return
+	}
 	m.RecordResource("events", obj)
 
 	// Temporary hack by dgoodwin, we're missing events here that show up later in
@@ -239,8 +246,9 @@ func recordAddOrUpdateEvent(
 			updatedMessage = fmt.Sprintf("%s %s", duplicateevents.InterestingMark, updatedMessage)
 		}
 
-		if obj.Count > duplicateevents.DuplicateEventThreshold && duplicateevents.EventCountExtractor.MatchString(eventDisplayMessage) {
+		if obj.Count > int32(threshold) && duplicateevents.EventCountExtractor.MatchString(eventDisplayMessage) {
 			// This is a repeated event that exceeds threshold
+			// When we are looking at events a second time, threshold will be 0.
 			updatedMessage = fmt.Sprintf("%s %s", duplicateevents.PathologicalMark, updatedMessage)
 		}
 
@@ -259,7 +267,22 @@ func recordAddOrUpdateEvent(
 			condition.Locator = fmt.Sprintf("%s hmsg/%s", condition.Locator, hashStr)
 		}
 
-		fmt.Printf("processed event: %+v\nresulting new interval: %s from: %s to %s\n", *obj, message, pathoFrom, to)
+		// For our debug message, capture/print only the fields we're interested in.
+		summaryObj := struct {
+			Name      string
+			Namespace string
+			Reason    string
+			Message   string
+			Count     int32
+		}{
+			Name:      obj.InvolvedObject.Name,
+			Namespace: obj.Namespace,
+			Reason:    obj.Reason,
+			Message:   obj.Message,
+			Count:     obj.Count,
+		}
+		fmt.Printf("processed event: %+v\nresulting new interval: %s from: %s to %s\n", summaryObj, condition.Message, pathoFrom, to)
+		fmt.Println("threshold: ", threshold)
 
 		// Add the interval.
 		inter := m.StartInterval(pathoFrom, condition)

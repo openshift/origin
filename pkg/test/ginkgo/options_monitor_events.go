@@ -155,6 +155,24 @@ func (o *MonitorEventsOptions) End(ctx context.Context, restConfig *rest.Config,
 	return nil
 }
 
+// AppendSyntheticTestIntervals is similar to End, except it takes list of new EventIntervals and appends
+// them to the current set of recordedEvents. Since these new EventIntervals happened within the
+// MonitorEventsOptions' startTime and endTime we can reuse those times during Clamp'ing.
+func (o *MonitorEventsOptions) AppendSyntheticTestIntervals(newEvents monitorapi.Intervals) error {
+	if o.monitor == nil {
+		return fmt.Errorf("not started")
+	}
+
+	fromTime, endTime := time.Time{}, time.Time{}
+	events := o.monitor.IntervalsWithAdditions(newEvents, fromTime, endTime)
+	sort.Sort(events)
+	events.Clamp(*o.startTime, *o.endTime)
+
+	o.recordedEvents = events
+
+	return nil
+}
+
 func (o *MonitorEventsOptions) GetEvents() monitorapi.Intervals {
 	return o.recordedEvents
 }

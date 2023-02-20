@@ -66,6 +66,10 @@ func (m *Monitor) StartSampling(ctx context.Context) {
 	}()
 }
 
+func (m *Monitor) GetUnsortedEvents() monitorapi.Intervals {
+	return m.unsortedEvents
+}
+
 // AddSampler adds a sampler function to the list of samplers to run every interval.
 // Conditions discovered this way are recorded with a start and end time if they persist
 // across multiple sampling intervals.
@@ -278,6 +282,15 @@ func (m *Monitor) Intervals(from, to time.Time) monitorapi.Intervals {
 	samples, sortedEvents, unsortedEvents := m.snapshot()
 
 	intervals := mergeIntervals(sortedEvents.Slice(from, to), unsortedEvents.CopyAndSort(from, to), filterSamples(samples, from, to))
+
+	return intervals
+}
+
+// IntervalsWithAdditions is the same as Intervals except we add the list of Intervals passed in.
+func (m *Monitor) IntervalsWithAdditions(moreEvents monitorapi.Intervals, from, to time.Time) monitorapi.Intervals {
+	samples, sortedEvents, unsortedEvents := m.snapshot()
+
+	intervals := mergeIntervals(sortedEvents.Slice(from, to), unsortedEvents.CopyAndSort(from, to), filterSamples(samples, from, to), moreEvents)
 
 	return intervals
 }

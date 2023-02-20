@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/origin/pkg/duplicateevents"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -103,7 +104,7 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 		}
 		t.Run(tt.name, func(t *testing.T) {
 			for _, event := range tt.args.kubeEventList.Items {
-				recordAddOrUpdateEvent(tt.args.ctx, tt.args.m, tt.args.client, tt.args.reMatchFirstQuote, tt.args.significantlyBeforeNow, &event)
+				RecordAddOrUpdateEvent(tt.args.ctx, tt.args.m, tt.args.client, tt.args.reMatchFirstQuote, tt.args.significantlyBeforeNow, &event, duplicateevents.DuplicateEventThreshold)
 			}
 		})
 	}
