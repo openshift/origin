@@ -104,7 +104,7 @@ items:
     mountTrustedCA: true
     source:
       dockerfile: |
-        FROM registry.redhat.io/ubi8/ubi:latest
+        FROM quay.io/app-sre/ubi8-ubi:latest
         RUN cat /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
     strategy:
       dockerStrategy:

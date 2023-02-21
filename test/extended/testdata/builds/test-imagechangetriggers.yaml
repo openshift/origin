@@ -10,7 +10,7 @@ items:
     - name: latest
       from:
         kind: DockerImage
-        name: registry.redhat.io/ubi8/nodejs-12:latest
+        name: quay.io/app-sre/ubi8-nodejs-12:latest
 
 - kind: BuildConfig
   apiVersion: build.openshift.io/v1
