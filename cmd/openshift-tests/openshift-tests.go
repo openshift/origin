@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/nodedetails"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -76,6 +78,7 @@ func main() {
 		newRunTestCommand(),
 		newDevCommand(),
 		newRunMonitorCommand(),
+		newMonitorCommand(),
 		newTestFailureRiskAnalysisCommand(),
 		cmd.NewRunResourceWatchCommand(),
 		monitor_cmd.NewTimelineCommand(genericclioptions.IOStreams{
@@ -131,6 +134,17 @@ func newRunMonitorCommand() *cobra.Command {
 	cmd.Flags().StringVar(&monitorOpt.ArtifactDir,
 		"artifact-dir", monitorOpt.ArtifactDir,
 		"The directory where monitor events will be stored.")
+	return cmd
+}
+
+func newMonitorCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:           "monitor",
+		SilenceErrors: true,
+	}
+	cmd.AddCommand(
+		nodedetails.AuditLogSummaryCommand(),
+	)
 	return cmd
 }
 

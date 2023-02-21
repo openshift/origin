@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
@@ -49,14 +50,14 @@ var _ = utils.SIGDescribe("PersistentVolumes [Feature:vsphere][Feature:ReclaimPo
 	ginkgo.BeforeEach(func() {
 		c = f.ClientSet
 		ns = f.Namespace.Name
-		framework.ExpectNoError(framework.WaitForAllNodesSchedulable(c, framework.TestContext.NodeSchedulableTimeout))
+		framework.ExpectNoError(e2enode.WaitForAllNodesSchedulable(c, framework.TestContext.NodeSchedulableTimeout))
 	})
 
 	ginkgo.Describe("persistentvolumereclaim:vsphere [Feature:vsphere]", func() {
 		ginkgo.BeforeEach(func() {
 			e2eskipper.SkipUnlessProviderIs("vsphere")
 			Bootstrap(f)
-			nodeInfo = GetReadySchedulableRandomNodeInfo()
+			nodeInfo = GetReadySchedulableRandomNodeInfo(c)
 			pv = nil
 			pvc = nil
 			volumePath = ""
@@ -83,7 +84,7 @@ var _ = utils.SIGDescribe("PersistentVolumes [Feature:vsphere][Feature:ReclaimPo
 			volumePath, pv, pvc, err = testSetupVSpherePersistentVolumeReclaim(c, nodeInfo, ns, v1.PersistentVolumeReclaimDelete)
 			framework.ExpectNoError(err)
 
-			deletePVCAfterBind(c, ns, pvc, pv)
+			deletePVCAfterBind(c, ns, pvc, pv, f.Timeouts)
 			pvc = nil
 
 			ginkgo.By("verify pv is deleted")
@@ -131,7 +132,9 @@ var _ = utils.SIGDescribe("PersistentVolumes [Feature:vsphere][Feature:ReclaimPo
 			ginkgo.By("Verify the volume is attached to the node")
 			isVolumeAttached, verifyDiskAttachedError := diskIsAttached(pv.Spec.VsphereVolume.VolumePath, pod.Spec.NodeName)
 			framework.ExpectNoError(verifyDiskAttachedError)
-			framework.ExpectEqual(isVolumeAttached, true)
+			if !isVolumeAttached {
+				framework.Failf("Disk %s is not attached with the node %s", pv.Spec.VsphereVolume.VolumePath, pod.Spec.NodeName)
+			}
 
 			ginkgo.By("Verify the volume is accessible and available in the pod")
 			verifyVSphereVolumesAccessible(c, pod, []*v1.PersistentVolume{pv})
@@ -241,11 +244,11 @@ func testCleanupVSpherePersistentVolumeReclaim(c clientset.Interface, nodeInfo *
 }
 
 // func to wait until PV and PVC bind and once bind completes, delete the PVC
-func deletePVCAfterBind(c clientset.Interface, ns string, pvc *v1.PersistentVolumeClaim, pv *v1.PersistentVolume) {
+func deletePVCAfterBind(c clientset.Interface, ns string, pvc *v1.PersistentVolumeClaim, pv *v1.PersistentVolume, timeouts *framework.TimeoutContext) {
 	var err error
 
 	ginkgo.By("wait for the pv and pvc to bind")
-	framework.ExpectNoError(e2epv.WaitOnPVandPVC(c, f.Timeouts, ns, pv, pvc))
+	framework.ExpectNoError(e2epv.WaitOnPVandPVC(c, timeouts, ns, pv, pvc))
 
 	ginkgo.By("delete pvc")
 	framework.ExpectNoError(e2epv.DeletePersistentVolumeClaim(c, pvc.Name, ns), "Failed to delete PVC ", pvc.Name)

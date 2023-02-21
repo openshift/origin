@@ -17,9 +17,10 @@ import (
 // Mainly because of the difference between the propagation time of triggering a new release and the actual roll-out.
 //
 // Note:
-//  the number of instances is calculated based on the number of running pods in a namespace.
-//  only pods with the given label are considered
-//  only pods in the given namespace are considered (podClient)
+//
+//	the number of instances is calculated based on the number of running pods in a namespace.
+//	only pods with the given label are considered
+//	only pods in the given namespace are considered (podClient)
 func WaitForPodsToStabilizeOnTheSameRevision(t LoggingT, podClient corev1client.PodInterface, podLabelSelector string, waitForRevisionSuccessThreshold int, waitForRevisionSuccessInterval, waitForRevisionPollInterval, waitForRevisionTimeout time.Duration) error {
 	return wait.Poll(waitForRevisionPollInterval, waitForRevisionTimeout, mustSucceedMultipleTimes(waitForRevisionSuccessThreshold, waitForRevisionSuccessInterval, func() (bool, error) {
 		return arePodsOnTheSameRevision(t, podClient, podLabelSelector)

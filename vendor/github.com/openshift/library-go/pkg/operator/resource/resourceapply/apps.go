@@ -84,7 +84,7 @@ func SetSpecHashAnnotation(objMeta *metav1.ObjectMeta, spec interface{}) error {
 // rollout in response to changes in resources external to the deployment, it will need to be
 // revised to set that external state as an annotation e.g.
 //
-//   myoperator.openshift.io/my-resource: <resourceVersion>
+//	myoperator.openshift.io/my-resource: <resourceVersion>
 //
 // - Update the call to use ApplyDeploymentWithForce. This is available as a temporary measure
 // but the method is deprecated and will be removed in 4.6.
@@ -174,7 +174,7 @@ func ApplyDeploymentWithForce(ctx context.Context, client appsclientv1.Deploymen
 // rollout in response to changes in resources external to the daemonset, it will need to be
 // revised to set that external state as an annotation e.g.
 //
-//   myoperator.openshift.io/my-resource: <resourceVersion>
+//	myoperator.openshift.io/my-resource: <resourceVersion>
 //
 // - Update the call to use ApplyDaemonSetWithForce. This is available as a temporary measure
 // but the method is deprecated and will be removed in 4.6.

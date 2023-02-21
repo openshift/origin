@@ -2,9 +2,14 @@
 
 package v1
 
+import (
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
 // InsightsReportApplyConfiguration represents an declarative configuration of the InsightsReport type for use
 // with apply.
 type InsightsReportApplyConfiguration struct {
+	DownloadedAt *v1.Time                        `json:"downloadedAt,omitempty"`
 	HealthChecks []HealthCheckApplyConfiguration `json:"healthChecks,omitempty"`
 }
 
@@ -12,6 +17,14 @@ type InsightsReportApplyConfiguration struct {
 // apply.
 func InsightsReport() *InsightsReportApplyConfiguration {
 	return &InsightsReportApplyConfiguration{}
+}
+
+// WithDownloadedAt sets the DownloadedAt field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the DownloadedAt field is set to the value of the last call.
+func (b *InsightsReportApplyConfiguration) WithDownloadedAt(value v1.Time) *InsightsReportApplyConfiguration {
+	b.DownloadedAt = &value
+	return b
 }
 
 // WithHealthChecks adds the given value to the HealthChecks field in the declarative configuration

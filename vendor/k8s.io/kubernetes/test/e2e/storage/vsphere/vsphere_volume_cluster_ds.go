@@ -18,6 +18,7 @@ package vsphere
 
 import (
 	"context"
+
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,7 +57,7 @@ var _ = utils.SIGDescribe("Volume Provisioning On Clustered Datastore [Feature:v
 		Bootstrap(f)
 		client = f.ClientSet
 		namespace = f.Namespace.Name
-		nodeInfo = GetReadySchedulableRandomNodeInfo()
+		nodeInfo = GetReadySchedulableRandomNodeInfo(client)
 		scParameters = make(map[string]string)
 		clusterDatastore = GetAndExpectStringEnvVar(VCPClusterDatastore)
 	})

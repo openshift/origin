@@ -27,6 +27,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
 	"sigs.k8s.io/yaml"
@@ -727,7 +728,7 @@ func getBearerTokenURL(url, bearer string) (string, error) {
 
 func getBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error) {
 	cmd := fmt.Sprintf("curl -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
-	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
+	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
 		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
 	}

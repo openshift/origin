@@ -2,11 +2,13 @@ package monitor
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/duplicateevents"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -69,6 +71,60 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 	}
 	reflector := cache.NewReflector(listWatch, &corev1.Event{}, customStore, 0)
 	go reflector.Run(ctx.Done())
+}
+
+var allRepeatedEventPatterns = combinedDuplicateEventPatterns()
+
+func combinedDuplicateEventPatterns() *regexp.Regexp {
+	s := ""
+	for _, r := range duplicateevents.AllowedRepeatedEventPatterns {
+		if s != "" {
+			s += "|"
+		}
+		s += r.String()
+	}
+	for _, r := range duplicateevents.AllowedUpgradeRepeatedEventPatterns {
+		if s != "" {
+			s += "|"
+		}
+		s += r.String()
+	}
+	for _, r := range duplicateevents.KnownEventsBugs {
+		if s != "" {
+			s += "|"
+		}
+		s += r.Regexp.String()
+	}
+	return regexp.MustCompile(s)
+}
+
+// checkAllowedRepeatedEventOKFns loops through all of the IsRepeatedEventOKFunc funcs
+// and returns true if this event is an event we already know about.  Some functions
+// require a kubeconfig, but also handle the kubeconfig being nil (in case we cannot
+// successfully get a kubeconfig).
+func checkAllowedRepeatedEventOKFns(event monitorapi.EventInterval, times int32) bool {
+
+	kubeClient, err := GetMonitorRESTConfig()
+	if err != nil {
+		// If we couldn't get a kube client, we won't be able to run functions that require a kube config
+		// but we can still pass a nil so that the rest of the functions can run.
+		fmt.Printf("error getting kubeclient: [%v] when processing event %s - %s\n", err, event.Locator, event.Message)
+		kubeClient = nil
+	}
+	for _, isRepeatedEventOKFuncList := range [][]duplicateevents.IsRepeatedEventOKFunc{duplicateevents.AllowedRepeatedEventFns, duplicateevents.AllowedSingleNodeRepeatedEventFns} {
+		for _, allowRepeatedEventFn := range isRepeatedEventOKFuncList {
+			allowed, err := allowRepeatedEventFn(event, kubeClient, int(times))
+			if err != nil {
+				// for errors, we'll default to no match.
+				fmt.Printf("Error processing pathological event: %v\n", err)
+				return false
+			}
+			if allowed {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func recordAddOrUpdateEvent(
@@ -158,8 +214,60 @@ func recordAddOrUpdateEvent(
 	if obj.Type == corev1.EventTypeWarning {
 		condition.Level = monitorapi.Warning
 	}
-	m.RecordAt(t, condition)
 
+	pathoFrom := obj.LastTimestamp.Time
+	if pathoFrom.IsZero() {
+		pathoFrom = obj.EventTime.Time
+	}
+	if pathoFrom.IsZero() {
+		pathoFrom = obj.CreationTimestamp.Time
+	}
+	to := pathoFrom.Add(1 * time.Second)
+
+	event := monitorapi.EventInterval{
+		Condition: condition,
+	}
+
+	if obj.Count > 1 {
+
+		// The matching here needs to mimic what is being done in the synthetictests/testDuplicatedEvents function.
+		eventDisplayMessage := fmt.Sprintf("%s - %s", event.Locator, event.Message)
+
+		updatedMessage := event.Message
+		if allRepeatedEventPatterns.MatchString(eventDisplayMessage) || checkAllowedRepeatedEventOKFns(event, obj.Count) {
+			// This is a repeated event that we know about
+			updatedMessage = fmt.Sprintf("%s %s", duplicateevents.InterestingMark, updatedMessage)
+		}
+
+		if obj.Count > duplicateevents.DuplicateEventThreshold && duplicateevents.EventCountExtractor.MatchString(eventDisplayMessage) {
+			// This is a repeated event that exceeds threshold
+			updatedMessage = fmt.Sprintf("%s %s", duplicateevents.PathologicalMark, updatedMessage)
+		}
+
+		condition.Message = updatedMessage
+		if strings.Contains(condition.Message, duplicateevents.InterestingMark) || strings.Contains(condition.Message, duplicateevents.PathologicalMark) {
+
+			// Remove the "(n times)" portion of the message, and get the first 10 characters of the hash of the message
+			// so we can add it to the locator. This incorporates the message into the locator without the resulting
+			// string being too much longer and makes it so that the spyglass chart shows locators that incorporate the message.
+			removeNTimes := regexp.MustCompile(`\s+\(\d+ times\)`)
+			newMessage := removeNTimes.ReplaceAllString(condition.Message, "")
+
+			hash := sha256.Sum256([]byte(newMessage))
+			hashStr := fmt.Sprintf("%x", hash)[:10]
+
+			condition.Locator = fmt.Sprintf("%s hmsg/%s", condition.Locator, hashStr)
+		}
+
+		fmt.Printf("processed event: %+v\nresulting new interval: %s from: %s to %s\n", *obj, message, pathoFrom, to)
+
+		// Add the interval.
+		inter := m.StartInterval(pathoFrom, condition)
+		m.EndInterval(inter, to)
+
+	} else {
+		m.RecordAt(t, condition)
+	}
 }
 
 func eventForContainer(fieldPath string) (string, bool) {

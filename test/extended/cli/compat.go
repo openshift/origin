@@ -10,6 +10,7 @@ import (
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -31,7 +32,7 @@ var _ = g.Describe("[sig-cli] oc", func() {
 
 	g.It("can run inside of a busybox container [apigroup:image.openshift.io]", func() {
 		ns := oc.Namespace()
-		cli := oc.KubeFramework().PodClient()
+		cli := e2epod.PodClientNS(oc.KubeFramework(), ns)
 
 		_, err := oc.KubeClient().RbacV1().RoleBindings(ns).Create(context.Background(), &rbacv1.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{Name: "edit-for-builder"},

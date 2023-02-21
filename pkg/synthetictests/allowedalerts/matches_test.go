@@ -185,10 +185,15 @@ func TestAlertDataFileParsing(t *testing.T) {
 	var foundGCPOVN bool
 	var foundMetalOVN bool
 
+	releasesInQueryResults := map[string]bool{}
+	var currentRelease string // track the one release we find
+
 	for _, v := range alertMatcher.HistoricalData {
 		if v.JobRuns > 100 {
 			dataOver100Runs++
 		}
+		releasesInQueryResults[v.Release] = true
+		currentRelease = v.Release
 
 		if v.Platform == "aws" && v.Network == "ovn" && v.Architecture == "amd64" {
 			foundAWSOVN = true
@@ -202,7 +207,6 @@ func TestAlertDataFileParsing(t *testing.T) {
 		if v.Platform == "metal" && v.Network == "ovn" && v.Architecture == "amd64" {
 			foundMetalOVN = true
 		}
-
 	}
 
 	assert.Greater(t, dataOver100Runs, 5,
@@ -211,5 +215,27 @@ func TestAlertDataFileParsing(t *testing.T) {
 	assert.True(t, foundGCPOVN, "no gcp ovn job data in query_results.json")
 	assert.True(t, foundAzureOVN, "no azure ovn job data in query_results.json")
 	assert.True(t, foundMetalOVN, "no metal ovn job data in query_results.json")
+	assert.Equal(t, 1, len(releasesInQueryResults),
+		"expected only one Release in query_results.json")
+
+	// Check that we get a real value for something we know should be there for every release. This alert
+	// always fires throughout the entire CI run:
+	expectedKey := historicaldata.AlertDataKey{
+		AlertName:      "AlertmanagerReceiversNotConfigured",
+		AlertNamespace: "openshift-monitoring",
+		AlertLevel:     "Warning",
+		JobType: platformidentification.JobType{
+			Release:      currentRelease,
+			FromRelease:  currentRelease,
+			Platform:     "aws",
+			Architecture: "amd64",
+			Network:      "ovn",
+			Topology:     "ha",
+		},
+	}
+	hd, msg, err := alertMatcher.BestMatchDuration(expectedKey)
+	assert.True(t, hd.P99 > 5*time.Minute, "AlertmanagerReceiversNotConfigured data not present for aws amd64 ovn ha")
+	assert.Equal(t, "", msg)
+	assert.NoError(t, err)
 
 }

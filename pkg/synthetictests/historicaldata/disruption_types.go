@@ -37,7 +37,7 @@ type DataKey struct {
 }
 
 type DisruptionBestMatcher struct {
-	historicalData map[DataKey]DisruptionStatisticalData
+	HistoricalData map[DataKey]DisruptionStatisticalData
 }
 
 func NewDisruptionMatcher(historicalJSON []byte) (*DisruptionBestMatcher, error) {
@@ -50,6 +50,7 @@ func NewDisruptionMatcher(historicalJSON []byte) (*DisruptionBestMatcher, error)
 		DataKey `json:",inline"`
 		P95     string
 		P99     string
+		JobRuns int64
 	}
 	decodingPercentilesList := []DecodingPercentile{}
 
@@ -70,18 +71,19 @@ func NewDisruptionMatcher(historicalJSON []byte) (*DisruptionBestMatcher, error)
 			DataKey: currDecoded.DataKey,
 			P95:     p95,
 			P99:     p99,
+			JobRuns: currDecoded.JobRuns,
 		}
 		historicalData[curr.DataKey] = curr
 	}
 
 	return &DisruptionBestMatcher{
-		historicalData: historicalData,
+		HistoricalData: historicalData,
 	}, nil
 }
 
 func NewDisruptionMatcherWithHistoricalData(data map[DataKey]DisruptionStatisticalData) *DisruptionBestMatcher {
 	return &DisruptionBestMatcher{
-		historicalData: data,
+		HistoricalData: data,
 	}
 }
 
@@ -91,9 +93,9 @@ func (b *DisruptionBestMatcher) bestMatch(name string, jobType platformidentific
 		JobType:     jobType,
 	}
 	logrus.WithField("backend", name).Infof("searching for bestMatch for %+v", jobType)
-	logrus.Infof("historicalData has %d entries", len(b.historicalData))
+	logrus.Infof("historicalData has %d entries", len(b.HistoricalData))
 
-	for k := range b.historicalData {
+	for k := range b.HistoricalData {
 		if k.Platform == jobType.Platform &&
 			k.Release == jobType.Release &&
 			k.FromRelease == jobType.FromRelease &&
@@ -106,7 +108,7 @@ func (b *DisruptionBestMatcher) bestMatch(name string, jobType platformidentific
 		}
 	}
 
-	if percentiles, ok := b.historicalData[exactMatchKey]; ok && percentiles.JobRuns > minJobRuns {
+	if percentiles, ok := b.HistoricalData[exactMatchKey]; ok && percentiles.JobRuns > minJobRuns {
 		logrus.Warnf("no hit for %v", exactMatchKey)
 		return percentiles, "", nil
 	}
@@ -121,7 +123,7 @@ func (b *DisruptionBestMatcher) bestMatch(name string, jobType platformidentific
 			BackendName: name,
 			JobType:     nextBestJobType,
 		}
-		if percentiles, ok := b.historicalData[nextBestMatchKey]; ok && percentiles.JobRuns > minJobRuns {
+		if percentiles, ok := b.HistoricalData[nextBestMatchKey]; ok && percentiles.JobRuns > minJobRuns {
 			return percentiles, fmt.Sprintf("(no exact match for %#v, fell back to %#v)", exactMatchKey, nextBestMatchKey), nil
 		}
 	}

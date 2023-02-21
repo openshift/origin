@@ -16,7 +16,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	e2elog "k8s.io/kubernetes/test/e2e/framework/log"
 	e2essh "k8s.io/kubernetes/test/e2e/framework/ssh"
 
 	"github.com/openshift/origin/test/e2e/upgrade"
@@ -42,14 +41,14 @@ func runCommandAndRetry(command string) string {
 		out        []byte
 		err        error
 	)
-	e2elog.Logf("command '%s'", command)
+	e2e.Logf("command '%s'", command)
 	for retryCount = 0; retryCount <= maxRetries; retryCount++ {
 		out, err = exec.Command("bash", "-c", command).CombinedOutput()
-		e2elog.Logf("output:\n%s", out)
+		e2e.Logf("output:\n%s", out)
 		if err == nil {
 			break
 		}
-		e2elog.Logf("%v", err)
+		e2e.Logf("%v", err)
 		time.Sleep(time.Second * pause)
 	}
 	o.Expect(retryCount).NotTo(o.Equal(maxRetries + 1))
@@ -84,7 +83,7 @@ func clusterNodes(oc *exutil.CLI) (masters, workers []*corev1.Node) {
 }
 
 func waitForMastersToUpdate(oc *exutil.CLI, mcps dynamic.NamespaceableResourceInterface) {
-	e2elog.Logf("Waiting for MachineConfig master to finish rolling out")
+	e2e.Logf("Waiting for MachineConfig master to finish rolling out")
 	err := wait.Poll(30*time.Second, 30*time.Minute, func() (done bool, err error) {
 		done, _ = upgrade.IsPoolUpdated(mcps, "master")
 		return done, nil
@@ -112,7 +111,7 @@ func waitForOperatorsToSettle() {
 		obj, err := coc.List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			lastErr = err
-			e2elog.Logf("Unable to check for cluster operators: %v", err)
+			e2e.Logf("Unable to check for cluster operators: %v", err)
 			return false, nil
 		}
 		cv := objx.Map(obj.UnstructuredContent())
@@ -150,7 +149,7 @@ func waitForOperatorsToSettle() {
 			}
 		}
 		if len(unavailable) > 0 {
-			e2elog.Logf("Operators still doing work: %s", strings.Join(unavailableNames, ", "))
+			e2e.Logf("Operators still doing work: %s", strings.Join(unavailableNames, ", "))
 			return false, nil
 		}
 		return true, nil
@@ -179,7 +178,7 @@ func waitForOperatorsToSettle() {
 		)
 	}
 	w.Flush()
-	e2elog.Logf("ClusterOperators:\n%s", buf.String())
+	e2e.Logf("ClusterOperators:\n%s", buf.String())
 	if len(unavailable) > 0 {
 		e2e.Failf("Some cluster operators never became available %s", strings.Join(unavailable, ", "))
 	}
@@ -190,13 +189,13 @@ func waitForOperatorsToSettle() {
 }
 
 func restartSDNPods(oc *exutil.CLI) {
-	e2elog.Logf("Restarting SDN")
+	e2e.Logf("Restarting SDN")
 
 	pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-sdn").List(context.Background(), metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	for _, pod := range pods.Items {
-		e2elog.Logf("Deleting pod %s", pod.Name)
+		e2e.Logf("Deleting pod %s", pod.Name)
 		err := oc.AdminKubeClient().CoreV1().Pods("openshift-sdn").Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
@@ -255,7 +254,7 @@ func countReady(items []corev1.Node) int {
 }
 
 func fetchFileContents(node *corev1.Node, path string) string {
-	e2elog.Logf("Fetching %s file contents from %s", path, node.Name)
+	e2e.Logf("Fetching %s file contents from %s", path, node.Name)
 	out := execOnNodeWithOutputOrFail(node, fmt.Sprintf("cat %q", path))
 	return out.Stdout
 }
@@ -271,7 +270,7 @@ func execOnNodeWithOutputOrFail(node *corev1.Node, cmd string) *e2essh.Result {
 		out, err = e2essh.IssueSSHCommandWithResult(cmd, e2e.TestContext.Provider, node)
 		// IssueSSHCommandWithResult logs output
 		if err != nil {
-			e2elog.Logf("Failed to exec cmd [%s] on node %s: %v", cmd, node.Name, err)
+			e2e.Logf("Failed to exec cmd [%s] on node %s: %v", cmd, node.Name, err)
 		}
 		return err == nil, nil
 	})
