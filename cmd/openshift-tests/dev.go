@@ -176,15 +176,13 @@ a running cluster.
 			testCases = append(testCases, synthetictests.TestAllIngressBackendsForDisruption(intervals, duration, jobType)...)
 			testCases = append(testCases, synthetictests.TestExternalBackendsForDisruption(intervals, duration, jobType)...)
 
-			/*
-				for _, tc := range testCases {
-					if tc.FailureOutput != nil {
-						logrus.Warnf("FAIL: %s\n\n%s\n\n", tc.Name, tc.FailureOutput.Output)
-					} else {
-						logrus.Infof("PASS: %s", tc.Name)
-					}
+			for _, tc := range testCases {
+				if tc.FailureOutput != nil {
+					logrus.Warnf("FAIL: %s\n\n%s\n\n", tc.Name, tc.FailureOutput.Output)
+				} else {
+					logrus.Infof("PASS: %s", tc.Name)
 				}
-			*/
+			}
 			return nil
 		},
 	}
