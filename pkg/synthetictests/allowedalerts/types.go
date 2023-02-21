@@ -1,39 +1,10 @@
 package allowedalerts
 
 import (
-	"bytes"
 	_ "embed"
 	"sync"
 
 	"github.com/openshift/origin/pkg/synthetictests/historicaldata"
-)
-
-const (
-	// p95Query produces the query_results.json.  Take this query and run it against bigquery, then export the results
-	// as json and place them query_results.json.
-	// This query produces the p95 and p99 alert firing seconds for the named alerts on a per platform, release, topology,
-	// network type basis.
-	p95Query = `
-SELECT * FROM openshift-ci-data-analysis.ci_data.Alerts_Unified_LastWeek_P95
-where
-  alertName = "etcdMembersDown" or 
-  alertName = "etcdGRPCRequestsSlow" or 
-  alertName = "etcdHighNumberOfFailedGRPCRequests" or 
-  alertName = "etcdMemberCommunicationSlow" or 
-  alertName = "etcdNoLeader" or 
-  alertName = "etcdHighFsyncDurations" or 
-  alertName = "etcdHighCommitDurations" or 
-  alertName = "etcdInsufficientMembers" or 
-  alertName = "etcdHighNumberOfLeaderChanges" or 
-  alertName = "KubeAPIErrorBudgetBurn" or 
-  alertName = "KubeClientErrors" or 
-  alertName = "KubePersistentVolumeErrors" or 
-  alertName = "MCDDrainError" or 
-  alertName = "PrometheusOperatorWatchErrors" or
-  alertName = "VSphereOpenshiftNodeHealthFail"
-order by 
- AlertName, Release, FromRelease, Topology, Platform, Network
-`
 )
 
 // queryResults contains point in time results for the current aggregated query from above.
@@ -48,19 +19,14 @@ var queryResults []byte
 
 var (
 	readResults    sync.Once
-	historicalData historicaldata.BestMatcher
+	historicalData *historicaldata.AlertBestMatcher
 )
 
-// if data is missing for a particular jobtype combination, this is the value returned.  Choose a unique value that will
-// be easily searchable across large numbers of job runs.  I like pi.
-const defaultReturn = 3.141
-
-func getCurrentResults() historicaldata.BestMatcher {
+func getCurrentResults() *historicaldata.AlertBestMatcher {
 	readResults.Do(
 		func() {
 			var err error
-			genericBytes := bytes.ReplaceAll(queryResults, []byte(`    "AlertName": "`), []byte(`    "Name": "`))
-			historicalData, err = historicaldata.NewMatcher(genericBytes, defaultReturn)
+			historicalData, err = historicaldata.NewAlertMatcher(queryResults)
 			if err != nil {
 				panic(err)
 			}
