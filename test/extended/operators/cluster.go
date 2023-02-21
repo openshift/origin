@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"k8s.io/client-go/kubernetes"
+	e2edebug "k8s.io/kubernetes/test/e2e/framework/debug"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -109,7 +110,7 @@ func crashloopingContainerCheck(podFilters ...PodFilter) {
 			continue
 		}
 		if _, ok := ns[pod.Namespace]; !ok {
-			e2e.DumpAllNamespaceInfo(c, pod.Namespace)
+			e2edebug.DumpAllNamespaceInfo(c, pod.Namespace)
 			ns[pod.Namespace] = struct{}{}
 		}
 		status, _ := json.MarshalIndent(pod.Status, "", "  ")
@@ -130,7 +131,7 @@ func crashloopingContainerCheck(podFilters ...PodFilter) {
 			continue
 		}
 		if _, ok := ns[pod.Namespace]; !ok {
-			e2e.DumpAllNamespaceInfo(c, pod.Namespace)
+			e2edebug.DumpAllNamespaceInfo(c, pod.Namespace)
 			ns[pod.Namespace] = struct{}{}
 		}
 

@@ -367,26 +367,28 @@ func (GCPKMSKeyReference) SwaggerDoc() map[string]string {
 }
 
 var map_GCPMachineProviderSpec = map[string]string{
-	"":                   "GCPMachineProviderSpec is the type that will be embedded in a Machine.Spec.ProviderSpec field for an GCP virtual machine. It is used by the GCP machine actuator to create a single Machine. Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
-	"userDataSecret":     "UserDataSecret contains a local reference to a secret that contains the UserData to apply to the instance",
-	"credentialsSecret":  "CredentialsSecret is a reference to the secret with GCP credentials.",
-	"canIPForward":       "CanIPForward Allows this instance to send and receive packets with non-matching destination or source IPs. This is required if you plan to use this instance to forward routes.",
-	"deletionProtection": "DeletionProtection whether the resource should be protected against deletion.",
-	"disks":              "Disks is a list of disks to be attached to the VM.",
-	"labels":             "Labels list of labels to apply to the VM.",
-	"gcpMetadata":        "Metadata key/value pairs to apply to the VM.",
-	"networkInterfaces":  "NetworkInterfaces is a list of network interfaces to be attached to the VM.",
-	"serviceAccounts":    "ServiceAccounts is a list of GCP service accounts to be used by the VM.",
-	"tags":               "Tags list of tags to apply to the VM.",
-	"targetPools":        "TargetPools are used for network TCP/UDP load balancing. A target pool references member instances, an associated legacy HttpHealthCheck resource, and, optionally, a backup target pool",
-	"machineType":        "MachineType is the machine type to use for the VM.",
-	"region":             "Region is the region in which the GCP machine provider will create the VM.",
-	"zone":               "Zone is the zone in which the GCP machine provider will create the VM.",
-	"projectID":          "ProjectID is the project in which the GCP machine provider will create the VM.",
-	"gpus":               "GPUs is a list of GPUs to be attached to the VM.",
-	"preemptible":        "Preemptible indicates if created instance is preemptible.",
-	"onHostMaintenance":  "OnHostMaintenance determines the behavior when a maintenance event occurs that might cause the instance to reboot. This is required to be set to \"Terminate\" if you want to provision machine with attached GPUs. Otherwise, allowed values are \"Migrate\" and \"Terminate\". If omitted, the platform chooses a default, which is subject to change over time, currently that default is \"Migrate\".",
-	"restartPolicy":      "RestartPolicy determines the behavior when an instance crashes or the underlying infrastructure provider stops the instance as part of a maintenance event (default \"Always\"). Cannot be \"Always\" with preemptible instances. Otherwise, allowed values are \"Always\" and \"Never\". If omitted, the platform chooses a default, which is subject to change over time, currently that default is \"Always\". RestartPolicy represents AutomaticRestart in GCP compute api",
+	"":                       "GCPMachineProviderSpec is the type that will be embedded in a Machine.Spec.ProviderSpec field for an GCP virtual machine. It is used by the GCP machine actuator to create a single Machine. Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"userDataSecret":         "UserDataSecret contains a local reference to a secret that contains the UserData to apply to the instance",
+	"credentialsSecret":      "CredentialsSecret is a reference to the secret with GCP credentials.",
+	"canIPForward":           "CanIPForward Allows this instance to send and receive packets with non-matching destination or source IPs. This is required if you plan to use this instance to forward routes.",
+	"deletionProtection":     "DeletionProtection whether the resource should be protected against deletion.",
+	"disks":                  "Disks is a list of disks to be attached to the VM.",
+	"labels":                 "Labels list of labels to apply to the VM.",
+	"gcpMetadata":            "Metadata key/value pairs to apply to the VM.",
+	"networkInterfaces":      "NetworkInterfaces is a list of network interfaces to be attached to the VM.",
+	"serviceAccounts":        "ServiceAccounts is a list of GCP service accounts to be used by the VM.",
+	"tags":                   "Tags list of tags to apply to the VM.",
+	"targetPools":            "TargetPools are used for network TCP/UDP load balancing. A target pool references member instances, an associated legacy HttpHealthCheck resource, and, optionally, a backup target pool",
+	"machineType":            "MachineType is the machine type to use for the VM.",
+	"region":                 "Region is the region in which the GCP machine provider will create the VM.",
+	"zone":                   "Zone is the zone in which the GCP machine provider will create the VM.",
+	"projectID":              "ProjectID is the project in which the GCP machine provider will create the VM.",
+	"gpus":                   "GPUs is a list of GPUs to be attached to the VM.",
+	"preemptible":            "Preemptible indicates if created instance is preemptible.",
+	"onHostMaintenance":      "OnHostMaintenance determines the behavior when a maintenance event occurs that might cause the instance to reboot. This is required to be set to \"Terminate\" if you want to provision machine with attached GPUs. Otherwise, allowed values are \"Migrate\" and \"Terminate\". If omitted, the platform chooses a default, which is subject to change over time, currently that default is \"Migrate\".",
+	"restartPolicy":          "RestartPolicy determines the behavior when an instance crashes or the underlying infrastructure provider stops the instance as part of a maintenance event (default \"Always\"). Cannot be \"Always\" with preemptible instances. Otherwise, allowed values are \"Always\" and \"Never\". If omitted, the platform chooses a default, which is subject to change over time, currently that default is \"Always\". RestartPolicy represents AutomaticRestart in GCP compute api",
+	"shieldedInstanceConfig": "ShieldedInstanceConfig is the Shielded VM configuration for the VM",
+	"confidentialCompute":    "confidentialCompute Defines whether the instance should have confidential compute enabled. If enabled OnHostMaintenance is required to be set to \"Terminate\". If omitted, the platform chooses a default, which is subject to change over time, currently that default is false.",
 }
 
 func (GCPMachineProviderSpec) SwaggerDoc() map[string]string {
@@ -434,6 +436,17 @@ var map_GCPServiceAccount = map[string]string{
 
 func (GCPServiceAccount) SwaggerDoc() map[string]string {
 	return map_GCPServiceAccount
+}
+
+var map_GCPShieldedInstanceConfig = map[string]string{
+	"":                                 "GCPShieldedInstanceConfig describes the shielded VM configuration of the instance on GCP. Shielded VM configuration allow users to enable and disable Secure Boot, vTPM, and Integrity Monitoring.",
+	"secureBoot":                       "SecureBoot Defines whether the instance should have secure boot enabled. Secure Boot verify the digital signature of all boot components, and halting the boot process if signature verification fails. If omitted, the platform chooses a default, which is subject to change over time, currently that default is Disabled.",
+	"virtualizedTrustedPlatformModule": "VirtualizedTrustedPlatformModule enable virtualized trusted platform module measurements to create a known good boot integrity policy baseline. The integrity policy baseline is used for comparison with measurements from subsequent VM boots to determine if anything has changed. This is required to be set to \"Enabled\" if IntegrityMonitoring is enabled. If omitted, the platform chooses a default, which is subject to change over time, currently that default is Enabled.",
+	"integrityMonitoring":              "IntegrityMonitoring determines whether the instance should have integrity monitoring that verify the runtime boot integrity. Compares the most recent boot measurements to the integrity policy baseline and return a pair of pass/fail results depending on whether they match or not. If omitted, the platform chooses a default, which is subject to change over time, currently that default is Enabled.",
+}
+
+func (GCPShieldedInstanceConfig) SwaggerDoc() map[string]string {
+	return map_GCPShieldedInstanceConfig
 }
 
 var map_LastOperation = map[string]string{

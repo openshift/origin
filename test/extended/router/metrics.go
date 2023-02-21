@@ -17,18 +17,18 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 
-	clientset "k8s.io/client-go/kubernetes"
-	watchtools "k8s.io/client-go/tools/watch"
-	"k8s.io/kubernetes/pkg/client/conditions"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
-	admissionapi "k8s.io/pod-security-admission/api"
-
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	clientset "k8s.io/client-go/kubernetes"
+	watchtools "k8s.io/client-go/tools/watch"
+	"k8s.io/kubernetes/pkg/client/conditions"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 
@@ -428,7 +428,7 @@ func findMetricLabels(f *dto.MetricFamily, promLabels map[string]string, match s
 
 func expectURLStatusCodeExec(ns, execPodName, url string, statusCodes ...int) error {
 	cmd := fmt.Sprintf("curl -s -o /dev/null -w '%%{http_code}' %q", url)
-	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
+	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
 		return fmt.Errorf("host command failed: %v\n%s", err, output)
 	}
@@ -442,7 +442,7 @@ func expectURLStatusCodeExec(ns, execPodName, url string, statusCodes ...int) er
 
 func getAuthenticatedURLViaPod(ns, execPodName, url, user, pass string) (string, error) {
 	cmd := fmt.Sprintf("curl -s -u %s:%s %q", user, pass, url)
-	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
+	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
 		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
 	}
@@ -451,7 +451,7 @@ func getAuthenticatedURLViaPod(ns, execPodName, url, user, pass string) (string,
 
 func getBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error) {
 	cmd := fmt.Sprintf("curl -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
-	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
+	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
 		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
 	}
