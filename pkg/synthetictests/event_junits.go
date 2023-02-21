@@ -1,10 +1,13 @@
 package synthetictests
 
 import (
+	"context"
 	"time"
 
 	"github.com/openshift/origin/pkg/alerts"
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/sirupsen/logrus"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/client-go/rest"
@@ -16,6 +19,12 @@ import (
 // etcd, or apis).
 func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config, testSuite string, recordedResource *monitorapi.ResourcesMap) (tests []*junitapi.JUnitTestCase) {
 
+	jobType, err := platformidentification.GetJobType(context.TODO(), kubeClientConfig)
+	if err != nil {
+		// JobType will be nil here, but we want test cases to all fail if this is the case, so we rely on them to nil check
+		logrus.WithError(err).Warn("ERROR: unable to determine job type for alert testing, jobType will be nil")
+	}
+
 	tests = SystemEventInvariants(events, duration, kubeClientConfig, testSuite, recordedResource)
 	tests = append(tests, testContainerFailures(events)...)
 	tests = append(tests, testDeleteGracePeriodZero(events)...)
@@ -26,9 +35,9 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testPodSandboxCreation(events, kubeClientConfig)...)
 	tests = append(tests, testOvnNodeReadinessProbe(events, kubeClientConfig)...)
 
-	tests = append(tests, testAllAPIBackendsForDisruption(events, duration, kubeClientConfig)...)
-	tests = append(tests, testAllIngressBackendsForDisruption(events, duration, kubeClientConfig)...)
-	tests = append(tests, testExternalBackendsForDisruption(events, duration, kubeClientConfig)...)
+	tests = append(tests, TestAllAPIBackendsForDisruption(events, duration, jobType)...)
+	tests = append(tests, TestAllIngressBackendsForDisruption(events, duration, jobType)...)
+	tests = append(tests, TestExternalBackendsForDisruption(events, duration, jobType)...)
 
 	tests = append(tests, testMultipleSingleSecondDisruptions(events)...)
 	tests = append(tests, testStableSystemOperatorStateTransitions(events)...)
@@ -42,7 +51,7 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testErrImagePullManifestUnknown(events)...)
 	tests = append(tests, testErrImagePullGenericOpenShiftNamespaces(events)...)
 	tests = append(tests, testErrImagePullGeneric(events)...)
-	tests = append(tests, testAlerts(events, alerts.AllowedAlertsDuringConformance,
+	tests = append(tests, testAlerts(events, alerts.AllowedAlertsDuringConformance, jobType,
 		kubeClientConfig, duration, recordedResource)...)
 	tests = append(tests, testOperatorOSUpdateStaged(events, kubeClientConfig)...)
 	tests = append(tests, testOperatorOSUpdateStartedEventRecorded(events, kubeClientConfig)...)
@@ -71,6 +80,13 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 // SystemUpgradeEventInvariants are invariants tested against events that should hold true in a cluster
 // that is being upgraded without induced disruption
 func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Duration, kubeClientConfig *rest.Config, testSuite string, recordedResource *monitorapi.ResourcesMap) (tests []*junitapi.JUnitTestCase) {
+
+	// JobType will be nil here, but we want test cases to all fail if this is the case, so we rely on them to nil check
+	jobType, err := platformidentification.GetJobType(context.TODO(), kubeClientConfig)
+	if err != nil {
+		logrus.WithError(err).Warn("ERROR: unable to determine job type for alert testing, jobType will be nil")
+	}
+
 	tests = SystemEventInvariants(events, duration, kubeClientConfig, testSuite, recordedResource)
 	tests = append(tests, testContainerFailures(events)...)
 	tests = append(tests, testDeleteGracePeriodZero(events)...)
@@ -92,7 +108,7 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testErrImagePullManifestUnknown(events)...)
 	tests = append(tests, testErrImagePullGenericOpenShiftNamespaces(events)...)
 	tests = append(tests, testErrImagePullGeneric(events)...)
-	tests = append(tests, testAlerts(events, alerts.AllowedAlertsDuringUpgrade,
+	tests = append(tests, testAlerts(events, alerts.AllowedAlertsDuringUpgrade, jobType,
 		kubeClientConfig, duration, recordedResource)...)
 	tests = append(tests, testOperatorOSUpdateStaged(events, kubeClientConfig)...)
 	tests = append(tests, testOperatorOSUpdateStartedEventRecorded(events, kubeClientConfig)...)
@@ -104,9 +120,9 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testAPIQuotaEvents(events)...)
 	tests = append(tests, testErrorUpdatingEndpointSlices(events)...)
 
-	tests = append(tests, testAllAPIBackendsForDisruption(events, duration, kubeClientConfig)...)
-	tests = append(tests, testAllIngressBackendsForDisruption(events, duration, kubeClientConfig)...)
-	tests = append(tests, testExternalBackendsForDisruption(events, duration, kubeClientConfig)...)
+	tests = append(tests, TestAllAPIBackendsForDisruption(events, duration, jobType)...)
+	tests = append(tests, TestAllIngressBackendsForDisruption(events, duration, jobType)...)
+	tests = append(tests, TestExternalBackendsForDisruption(events, duration, jobType)...)
 	tests = append(tests, testMultipleSingleSecondDisruptions(events)...)
 	tests = append(tests, testNoDNSLookupErrorsInDisruptionSamplers(events)...)
 

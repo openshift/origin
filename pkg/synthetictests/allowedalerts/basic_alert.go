@@ -300,6 +300,19 @@ func redhatOperatorPodsNotPending(trackedPodResources monitorapi.InstanceMap, fi
 }
 
 func (a *basicAlertTest) InvariantCheck(allEventIntervals monitorapi.Intervals, resourcesMap monitorapi.ResourcesMap) ([]*junitapi.JUnitTestCase, error) {
+
+	if a.jobType == nil {
+		// Hard fail if the higher level job type lookup from the actual cluster failed
+		return []*junitapi.JUnitTestCase{
+			{
+				Name: a.InvariantTestName(),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: "Unable to determine JobType for alert InvariantCheck",
+				},
+				SystemOut: "Unable to determine JobType for alert InvariantCheck",
+			},
+		}, nil
+	}
 	pendingIntervals := allEventIntervals.Filter(monitorapi.AlertPendingInNamespace(a.alertName, a.namespace))
 	firingIntervals := allEventIntervals.Filter(monitorapi.AlertFiringInNamespace(a.alertName, a.namespace))
 

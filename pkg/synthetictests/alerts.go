@@ -26,6 +26,7 @@ import (
 
 func testAlerts(events monitorapi.Intervals,
 	allowancesFunc alerts.AllowedAlertsFunc,
+	jobType *platformidentification.JobType,
 	restConfig *rest.Config,
 	duration time.Duration,
 	recordedResource *monitorapi.ResourcesMap) []*junitapi.JUnitTestCase {
@@ -33,11 +34,6 @@ func testAlerts(events monitorapi.Intervals,
 	// Work with the cluster under test before we run the alert tests. For testing the tests purposes,
 	// please keep any use of the rest.Config isolated to this function and do not have the actual
 	// invariant tests themselves hitting a live cluster.
-	jobType, err := platformidentification.GetJobType(context.TODO(), restConfig)
-	if err != nil {
-		// TODO: technically this should fail all tests...
-		framework.Logf("ERROR: unable to determine job type for alert testing, abandoning all alert tests: %v", err)
-	}
 
 	configClient := configv1client.NewForConfigOrDie(restConfig)
 	featureSet := configv1.Default

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
+	"github.com/sirupsen/logrus"
 )
 
 // minJobRuns is the required threshold for historical data to be sufficient to run the test.
@@ -89,8 +90,24 @@ func (b *DisruptionBestMatcher) bestMatch(name string, jobType platformidentific
 		BackendName: name,
 		JobType:     jobType,
 	}
+	logrus.WithField("backend", name).Infof("searching for bestMatch for %+v", jobType)
+	logrus.Infof("historicalData has %d entries", len(b.historicalData))
+
+	for k := range b.historicalData {
+		if k.Platform == jobType.Platform &&
+			k.Release == jobType.Release &&
+			k.FromRelease == jobType.FromRelease &&
+			k.Network == jobType.Network &&
+			k.Topology == jobType.Topology &&
+			k.Architecture == jobType.Architecture &&
+			k.BackendName == name {
+			logrus.Warnf("we found a manual match that didn't trigger: %+v", k)
+			logrus.Warnf("%s", k == exactMatchKey)
+		}
+	}
 
 	if percentiles, ok := b.historicalData[exactMatchKey]; ok && percentiles.JobRuns > minJobRuns {
+		logrus.Warnf("no hit for %v", exactMatchKey)
 		return percentiles, "", nil
 	}
 

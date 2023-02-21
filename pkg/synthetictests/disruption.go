@@ -1,7 +1,6 @@
 package synthetictests
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -12,9 +11,9 @@ import (
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
+	"github.com/sirupsen/logrus"
 
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -22,8 +21,8 @@ func testServerAvailability(
 	owner, locator string,
 	events monitorapi.Intervals,
 	jobRunDuration time.Duration,
-	restConfig *rest.Config) []*junitapi.JUnitTestCase {
-
+	jobType *platformidentification.JobType) []*junitapi.JUnitTestCase {
+	logger := logrus.WithField("owner", owner).WithField("locator", locator)
 	testName := fmt.Sprintf("[%s] %s should be available throughout the test", owner, locator)
 
 	// Lookup allowed disruption based on historical data:
@@ -31,18 +30,18 @@ func testServerAvailability(
 	disruptionName := monitorapi.DisruptionFrom(locatorParts)
 	connType := monitorapi.DisruptionConnectionTypeFrom(locatorParts)
 	backendName := fmt.Sprintf("%s-%s-connections", disruptionName, connType)
-	jobType, err := platformidentification.GetJobType(context.TODO(), restConfig)
-	if err != nil {
+	if jobType == nil {
 		return []*junitapi.JUnitTestCase{
 			{
 				Name:     testName,
 				Duration: jobRunDuration.Seconds(),
 				FailureOutput: &junitapi.FailureOutput{
-					Output: fmt.Sprintf("error in platform identification: %s", err),
+					Output: fmt.Sprintf("error in platform identification"),
 				},
 			},
 		}
 	}
+	logger.Infof("testing server availability for: %+v", *jobType)
 
 	allowedDisruption, disruptionDetails, err :=
 		allowedbackenddisruption.GetAllowedDisruption(backendName, *jobType)
@@ -110,7 +109,7 @@ func testServerAvailability(
 	}
 }
 
-func testAllAPIBackendsForDisruption(events monitorapi.Intervals, jobRunDuration time.Duration, restConfig *rest.Config) []*junitapi.JUnitTestCase {
+func TestAllAPIBackendsForDisruption(events monitorapi.Intervals, jobRunDuration time.Duration, jobType *platformidentification.JobType) []*junitapi.JUnitTestCase {
 	disruptLocators := sets.String{}
 	allDisruptionEventsIntervals := events.Filter(monitorapi.IsDisruptionEvent)
 	for _, eventInterval := range allDisruptionEventsIntervals {
@@ -119,16 +118,17 @@ func testAllAPIBackendsForDisruption(events monitorapi.Intervals, jobRunDuration
 			disruptLocators.Insert(eventInterval.Locator)
 		}
 	}
+	logrus.Infof("filtered %d intervals down to %d relevant to disruption", len(events), len(allDisruptionEventsIntervals))
 
 	ret := []*junitapi.JUnitTestCase{}
 	for _, locator := range disruptLocators.List() {
-		ret = append(ret, testServerAvailability("sig-api-machinery", locator, allDisruptionEventsIntervals, jobRunDuration, restConfig)...)
+		ret = append(ret, testServerAvailability("sig-api-machinery", locator, allDisruptionEventsIntervals, jobRunDuration, jobType)...)
 	}
 
 	return ret
 }
 
-func testAllIngressBackendsForDisruption(events monitorapi.Intervals, jobRunDuration time.Duration, restConfig *rest.Config) []*junitapi.JUnitTestCase {
+func TestAllIngressBackendsForDisruption(events monitorapi.Intervals, jobRunDuration time.Duration, jobType *platformidentification.JobType) []*junitapi.JUnitTestCase {
 	disruptLocators := sets.String{}
 	allDisruptionEventsIntervals := events.Filter(monitorapi.IsDisruptionEvent)
 	for _, eventInterval := range allDisruptionEventsIntervals {
@@ -140,14 +140,14 @@ func testAllIngressBackendsForDisruption(events monitorapi.Intervals, jobRunDura
 
 	ret := []*junitapi.JUnitTestCase{}
 	for _, locator := range disruptLocators.List() {
-		ret = append(ret, testServerAvailability("sig-network-edge", locator, allDisruptionEventsIntervals, jobRunDuration, restConfig)...)
+		ret = append(ret, testServerAvailability("sig-network-edge", locator, allDisruptionEventsIntervals, jobRunDuration, jobType)...)
 	}
 
 	return ret
 }
 
-// testExternalBackendsForDisruption runs synthetic tests for disruption backends that don't fit into the above two categories.
-func testExternalBackendsForDisruption(events monitorapi.Intervals, jobRunDuration time.Duration, restConfig *rest.Config) []*junitapi.JUnitTestCase {
+// TestExternalBackendsForDisruption runs synthetic tests for disruption backends that don't fit into the above two categories.
+func TestExternalBackendsForDisruption(events monitorapi.Intervals, jobRunDuration time.Duration, jobType *platformidentification.JobType) []*junitapi.JUnitTestCase {
 	disruptLocators := sets.String{}
 	allDisruptionEventsIntervals := events.Filter(monitorapi.IsDisruptionEvent)
 	for _, eventInterval := range allDisruptionEventsIntervals {
@@ -159,7 +159,7 @@ func testExternalBackendsForDisruption(events monitorapi.Intervals, jobRunDurati
 
 	ret := []*junitapi.JUnitTestCase{}
 	for _, locator := range disruptLocators.List() {
-		ret = append(ret, testServerAvailability("sig-trt", locator, allDisruptionEventsIntervals, jobRunDuration, restConfig)...)
+		ret = append(ret, testServerAvailability("sig-trt", locator, allDisruptionEventsIntervals, jobRunDuration, jobType)...)
 	}
 
 	return ret
